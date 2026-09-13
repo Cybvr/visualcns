@@ -61,6 +61,16 @@ const TEMPLATE_CTA: Record<string, { text: string; url: string }> = {
   "portal-tip": { text: "Open client portal", url: "/portal" },
   "service-update": { text: "View your client portal", url: "/portal" },
   "feedback-request": { text: "Send feedback", url: "/portal" },
+  // Ad campaign templates seeded by scripts/seed-ad-templates.mjs. Their CTA is
+  // a booking link rather than the portal, matched here by template id.
+  "ad-ai-build-photo": { text: "Book a call", url: "https://cal.com/pinheirojide/30min" },
+  "ad-ai-build-text": { text: "Book a call", url: "https://cal.com/pinheirojide/30min" },
+  "ad-anyone-build-photo": { text: "Book a call", url: "https://cal.com/pinheirojide/30min" },
+  "ad-anyone-build-text": { text: "Book a call", url: "https://cal.com/pinheirojide/30min" },
+  "ad-dashboard-right-photo": { text: "Book a call", url: "https://cal.com/pinheirojide/30min" },
+  "ad-dashboard-right-text": { text: "Book a call", url: "https://cal.com/pinheirojide/30min" },
+  "ad-ten-tools-photo": { text: "Book a call", url: "https://cal.com/pinheirojide/30min" },
+  "ad-ten-tools-text": { text: "Book a call", url: "https://cal.com/pinheirojide/30min" },
 }
 
 function getTemplateCta(template?: EmailTemplate | null) {
