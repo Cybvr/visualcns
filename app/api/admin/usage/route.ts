@@ -1,0 +1,18 @@
+import { NextRequest, NextResponse } from "next/server"
+import { adminServices } from "@/lib/firebase-admin"
+
+export const runtime = "nodejs"
+
+export async function GET(request: NextRequest) {
+  try {
+    const token = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "")
+    if (!token) throw new Error("Missing authorization")
+    const { auth, db } = adminServices()
+    const decoded = await auth.verifyIdToken(token)
+    const user = (await db.collection("users").doc(decoded.uid).get()).data() || {}
+    if (user.role !== "admin" && user.role !== "superadmin") throw new Error("Admin access required")
+    const tenantId = typeof user.tenantId === "string" && user.tenantId ? user.tenantId : "legacy-visualcns"
+    const usage = (await db.collection("tenantUsage").doc(tenantId).get()).data() || {}
+    return NextResponse.json({ tenantId, usage })
+  } catch (error) { return NextResponse.json({ error: error instanceof Error ? error.message : "Usage lookup failed" }, { status: 403 }) }
+}

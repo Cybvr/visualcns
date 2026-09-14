@@ -3,7 +3,7 @@
 import { Suspense, useEffect, type ReactNode } from "react"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
-import { Bot, Briefcase, Building2, Eye, FileSignature, FileText, FileType2, HardDrive, LayoutDashboard, ListTodo, Loader2, LogOut, Mail, Megaphone, Receipt, TrendingUp, Users, Wallet } from "lucide-react"
+import { Bot, Briefcase, Building2, Eye, FileSignature, FileText, FileType2, HardDrive, LayoutDashboard, ListTodo, Loader2, LogOut, Mail, Megaphone, Receipt, Shield, TrendingUp, Users, Wallet } from "lucide-react"
 import { AuthProvider, useAuth } from "@/components/auth-provider"
 import { AgentDock } from "@/components/agent/agent-dock"
 import { AgentProvider } from "@/components/agent/agent-context"
@@ -30,6 +30,7 @@ const DASHBOARD_NAV: NavLink[] = [
     ],
   },
   { label: "Marketing", href: "/dashboard/seo", icon: Megaphone, items: [{ label: "SEO", href: "/dashboard/seo", icon: TrendingUp }] },
+  { label: "Tenant operations", href: "/dashboard/admin/tenants", icon: Shield, superAdminOnly: true },
   {
     label: "Finance",
     href: "/dashboard/invoices",
@@ -43,7 +44,7 @@ const DASHBOARD_NAV: NavLink[] = [
 ]
 
 function UnifiedDashboardShell({ children, requireAdmin = false }: { children: ReactNode; requireAdmin?: boolean }) {
-  const { user, appUser, role, isAdmin, isImpersonating, impersonatedUser, stopViewingAs, loading, signOut } = useAuth()
+  const { user, appUser, role, isAdmin, isImpersonating, impersonatedUser, stopViewingAs, loading, signOut, tenantStatus } = useAuth()
   const router = useRouter()
 
   useEffect(() => {
@@ -57,6 +58,16 @@ function UnifiedDashboardShell({ children, requireAdmin = false }: { children: R
   }
 
   if (requireAdmin && !isAdmin) return null
+
+  if (tenantStatus === "suspended" && role !== "superadmin") {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-background px-4 text-center">
+        <Image src="/visualhqlogo.svg" alt="VisualHQ" width={36} height={36} />
+        <div><h1 className="text-lg font-semibold">Workspace suspended</h1><p className="mt-1 max-w-sm text-sm text-muted-foreground">This workspace is currently unavailable. Contact support to restore access.</p></div>
+        <Button variant="outline" onClick={signOut}><LogOut className="mr-2 h-4 w-4" />Sign out</Button>
+      </div>
+    )
+  }
 
   if (role === "client" || isImpersonating) return <Suspense><LegacyClientRedirect /></Suspense>
 
@@ -79,6 +90,7 @@ function UnifiedDashboardShell({ children, requireAdmin = false }: { children: R
         subtitle={appUser?.company || undefined}
         navLinks={DASHBOARD_NAV
           .filter((link) => !link.adminOnly || isAdmin)
+          .filter((link) => !link.superAdminOnly || role === "superadmin")
           .map((link) => ({
             ...link,
             items: link.items?.filter((item) => !item.adminOnly || isAdmin),

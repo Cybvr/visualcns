@@ -11,6 +11,7 @@ import {
 
 import { db } from "./firebase"
 import { tsToMillis } from "./tasks"
+import { getCurrentTenantId } from "./tenancy"
 
 /**
  * A note left on a task. Anyone with access to the task can add one, so a
@@ -18,6 +19,7 @@ import { tsToMillis } from "./tasks"
  */
 export interface Comment {
   id: string
+  tenantId?: string
   /** Firestore id of the task this comment belongs to. */
   taskId: string
   /** The workspace the task belongs to, so the rules can scope reads. */
@@ -35,14 +37,16 @@ const COLLECTION_NAME = "comments"
 /** Every comment on a task, oldest first so the thread reads top to bottom. */
 export async function getCommentsByTaskId(taskId: string): Promise<Comment[]> {
   if (!taskId) return []
-  const snapshot = await getDocs(query(collection(db, COLLECTION_NAME), where("taskId", "==", taskId)))
+  const snapshot = await getDocs(query(collection(db, COLLECTION_NAME), where("tenantId", "==", await getCurrentTenantId()), where("taskId", "==", taskId)))
   const comments = snapshot.docs.map((d) => ({ ...(d.data() as object), id: d.id })) as Comment[]
   return comments.sort((a, b) => tsToMillis(a.createdAt) - tsToMillis(b.createdAt))
 }
 
 export async function createComment(data: Omit<Comment, "id" | "createdAt">): Promise<string> {
+  const tenantId = await getCurrentTenantId()
   const ref = await addDoc(collection(db, COLLECTION_NAME), {
     ...data,
+    tenantId,
     createdAt: Timestamp.now(),
   })
   return ref.id

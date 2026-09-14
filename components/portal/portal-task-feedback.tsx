@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import type { PortalTask } from "@/lib/portal-model"
 import { tsToMillis } from "@/lib/tasks"
+import { getCurrentTenantId } from "@/lib/tenancy"
 
 export function PortalTaskFeedback({ task, canAct }: { task: PortalTask; canAct: boolean }) {
   const { user, appUser } = useAuth()
@@ -20,7 +21,7 @@ export function PortalTaskFeedback({ task, canAct }: { task: PortalTask; canAct:
   useEffect(() => {
     let active = true
     setLoading(true)
-    getDocs(query(collection(db, "portalComments"), where("companyId", "==", task.companyId), where("taskId", "==", task.id))).then(snapshot => {
+    getCurrentTenantId().then((tenantId) => getDocs(query(collection(db, "portalComments"), where("tenantId", "==", tenantId), where("companyId", "==", task.companyId), where("taskId", "==", task.id)))).then(snapshot => {
       if (active) { setComments(snapshot.docs.map(d => ({ id: d.id, ...d.data() }) as { id: string; body: string; authorName: string; createdAt?: unknown }).sort((a, b) => tsToMillis(a.createdAt) - tsToMillis(b.createdAt))); setError("") }
     }).catch(() => { if (active) setError("Couldn’t load feedback. Try again.") }).finally(() => { if (active) setLoading(false) })
     return () => { active = false }
@@ -30,7 +31,7 @@ export function PortalTaskFeedback({ task, canAct }: { task: PortalTask; canAct:
     if (!body.trim() || !user || saving) return
     setSaving(true); setError("")
     try {
-      await addDoc(collection(db, "portalComments"), { companyId: task.companyId, taskId: task.id, authorUid: user.uid, authorName: appUser?.displayName || "Client", body: body.trim(), createdAt: serverTimestamp() })
+      await addDoc(collection(db, "portalComments"), { tenantId: task.tenantId || await getCurrentTenantId(), companyId: task.companyId, taskId: task.id, authorUid: user.uid, authorName: appUser?.displayName || "Client", body: body.trim(), createdAt: serverTimestamp() })
       setBody(""); setRevision(n => n + 1)
     } catch { setError("Couldn’t send your feedback. Your message is still here; try again.") } finally { setSaving(false) }
   }

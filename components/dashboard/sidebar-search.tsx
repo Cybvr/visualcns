@@ -1,83 +1,143 @@
 "use client"
 
-import { useRef, useState, type FormEvent } from "react"
-import { useRouter } from "next/navigation"
-import { Search } from "lucide-react"
-import { useAuth } from "@/components/auth-provider"
-import { useAgent } from "@/components/agent/agent-context"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from "@/components/ui/sidebar"
+import { useCallback, useEffect, useState } from "react"
 
+import { getContracts, getEstimates, getInvoices } from "@/lib/billing"
+import { getCompanyDocuments } from "@/lib/company-documents"
+import { getOrganizations, organizationRef } from "@/lib/organizations"
+import { getProjects, projectSlug } from "@/lib/projects"
+import { getTasks } from "@/lib/tasks"
+import { getUsers } from "@/lib/users"
+import {
+  GlobalSearchDialog,
+  SearchTrigger,
+  stripHtml,
+  useSearchHotkey,
+  type SearchResult,
+} from "@/components/search/global-search"
+
+const join = (...parts: Array<string | undefined | null>) => parts.filter(Boolean).join(" · ")
+const keywords = (...parts: Array<string | undefined | null>) => parts.filter(Boolean).join(" ")
+
+/**
+ * Dashboard-wide content search. The admin surface is tenant-scoped by every
+ * loader, so a signed-in admin searches their whole workspace. Data is fetched
+ * once, the first time the palette is opened.
+ */
 export function SidebarSearch() {
-  const [search, setSearch] = useState("")
-  const inputRef = useRef<HTMLInputElement>(null)
-  const router = useRouter()
-  const { isAdmin, isImpersonating, stopViewingAs } = useAuth()
-  const { setOpen: setAgentOpen } = useAgent()
-  const { setOpen, isMobile, setOpenMobile } = useSidebar()
+  const [open, setOpen] = useState(false)
+  const [results, setResults] = useState<SearchResult[]>([])
+  const [loading, setLoading] = useState(false)
+  const [loaded, setLoaded] = useState(false)
 
-  function handleSearch(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    const query = search.trim().toLowerCase()
-    if (!query) return
-    const destinations = isAdmin
-      ? [
-          { terms: ["agent", "chat", "assistant"], href: "/dashboard/agent" },
-          { terms: ["project"], href: "/dashboard/projects" },
-          { terms: ["task"], href: "/dashboard/tasks" },
-          { terms: ["drive", "file", "upload"], href: "/dashboard/drive" },
-          { terms: ["document", "proposal", "sow", "brief"], href: "/dashboard/documents" },
-          { terms: ["email", "mail", "message", "template", "sender"], href: "/dashboard/email" },
-          { terms: ["seo", "ranking", "keyword"], href: "/dashboard/seo" },
-          { terms: ["invoice", "billing", "payment", "finance"], href: "/dashboard/invoices" },
-          { terms: ["contract", "agreement", "signature"], href: "/dashboard/contracts" },
-          { terms: ["estimate", "quote", "proposal"], href: "/dashboard/estimates" },
-          { terms: ["client", "company", "workspace"], href: "/dashboard/companies" },
-          { terms: ["contact", "user", "account", "settings"], href: "/dashboard/users" },
+  const openSearch = useCallback(() => setOpen(true), [])
+  useSearchHotkey(openSearch)
+
+  useEffect(() => {
+    if (!open || loaded) return
+    let active = true
+    setLoading(true)
+
+    Promise.all([
+      getOrganizations().catch(() => []),
+      getUsers().catch(() => []),
+      getProjects().catch(() => []),
+      getTasks().catch(() => []),
+      getCompanyDocuments().catch(() => []),
+      getInvoices().catch(() => []),
+      getEstimates().catch(() => []),
+      getContracts().catch(() => []),
+    ])
+      .then(([orgs, users, projects, tasks, documents, invoices, estimates, contracts]) => {
+        if (!active) return
+        const next: SearchResult[] = [
+          ...orgs.map((org) => ({
+            id: `company-${org.id}`,
+            group: "Companies",
+            label: org.name,
+            sublabel: join(org.industry, org.location) || undefined,
+            href: `/dashboard/companies/${organizationRef(org)}`,
+            keywords: keywords(org.industry, org.location, org.website, org.email, (org.tags || []).join(" "), org.slug),
+          })),
+          ...users.map((user) => ({
+            id: `contact-${user.uid}`,
+            group: "Contacts",
+            label: user.displayName || user.email,
+            sublabel: join(user.company, user.email) || undefined,
+            href: "/dashboard/users",
+            keywords: keywords(user.email, user.role, user.company),
+          })),
+          ...projects.map((project) => ({
+            id: `project-${project.id}`,
+            group: "Projects",
+            label: project.title,
+            sublabel: join(project.client, project.service) || undefined,
+            href: `/dashboard/projects/${projectSlug(project)}`,
+            keywords: keywords(project.client, project.service, project.summary, (project.category || []).join(" ")),
+          })),
+          ...tasks.map((task) => ({
+            id: `task-${task.id}`,
+            group: "Tasks",
+            label: task.name,
+            sublabel: join(task.project, task.client) || undefined,
+            href: "/dashboard/tasks",
+            keywords: keywords(task.project, task.client, stripHtml(task.content || "")),
+          })),
+          ...documents.map((doc) => ({
+            id: `document-${doc.id}`,
+            group: "Documents",
+            label: doc.title,
+            sublabel: join(doc.kind, doc.client) || undefined,
+            href: `/dashboard/documents/${doc.id}`,
+            keywords: keywords(doc.client, doc.project, doc.summary, stripHtml(doc.body || "")),
+          })),
+          ...invoices.map((invoice) => ({
+            id: `invoice-${invoice.id}`,
+            group: "Invoices",
+            label: invoice.invoiceNumber || "Invoice",
+            sublabel: join(invoice.client, invoice.project) || undefined,
+            href: `/dashboard/invoices/${invoice.id}`,
+            keywords: keywords(invoice.client, invoice.project, invoice.poReference),
+          })),
+          ...estimates.map((estimate) => ({
+            id: `estimate-${estimate.id}`,
+            group: "Estimates",
+            label: estimate.title || estimate.estimateNumber || "Estimate",
+            sublabel: join(estimate.client, estimate.project) || undefined,
+            href: `/dashboard/estimates/${estimate.id}`,
+            keywords: keywords(estimate.estimateNumber, estimate.client, estimate.project),
+          })),
+          ...contracts.map((contract) => ({
+            id: `contract-${contract.id}`,
+            group: "Contracts",
+            label: contract.title || "Contract",
+            sublabel: join(contract.client, contract.project) || undefined,
+            href: `/dashboard/contracts/${contract.id}`,
+            keywords: keywords(contract.client, contract.project),
+          })),
         ]
-      : [
-          { terms: ["agent", "chat", "assistant"], href: "/dashboard/agent" },
-          { terms: ["project"], href: "/dashboard/projects" },
-          { terms: ["task"], href: "/dashboard/tasks" },
-          { terms: ["drive", "file", "upload"], href: "/dashboard/drive" },
-          { terms: ["document", "proposal", "sow", "brief"], href: "/dashboard/documents" },
-          { terms: ["email", "mail", "message", "template", "sender"], href: "/dashboard/email" },
-          { terms: ["seo", "ranking", "keyword"], href: "/dashboard/seo" },
-          { terms: ["invoice", "billing", "payment", "finance"], href: "/dashboard/invoices" },
-          { terms: ["contract", "agreement", "signature"], href: "/dashboard/contracts" },
-          { terms: ["estimate", "quote", "proposal"], href: "/dashboard/estimates" },
-        ]
-    const match = destinations.find(({ terms }) => terms.some((term) => term.includes(query) || query.includes(term)))
-    if (isImpersonating && (match?.href === "/dashboard/companies" || match?.href === "/dashboard/users")) {
-      stopViewingAs()
+        setResults(next)
+        setLoaded(true)
+      })
+      .finally(() => {
+        if (active) setLoading(false)
+      })
+
+    return () => {
+      active = false
     }
-    if (match?.href === "/dashboard/agent") setAgentOpen(true)
-    else router.push(match?.href ?? "/dashboard")
-    if (isMobile) setOpenMobile(false)
-  }
-
+  }, [open, loaded])
 
   return (
     <>
-      <form role="search" onSubmit={handleSearch} className="relative group-data-[collapsible=icon]:hidden">
-        <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
-        <Input ref={inputRef} type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search dashboard" aria-label="Search dashboard" className="pl-9 pr-10 text-sm font-medium text-muted-foreground placeholder:text-muted-foreground md:text-[13px] [&::-webkit-search-cancel-button]:hidden" />
-        <Button type="submit" variant="ghost" size="icon-sm" className="absolute right-0.5 top-1/2 -translate-y-1/2" aria-label="Go to page">
-          <Search className="size-4" aria-hidden="true" />
-        </Button>
-      </form>
-      <SidebarMenu className="hidden group-data-[collapsible=icon]:flex">
-        <SidebarMenuItem>
-          <SidebarMenuButton tooltip="Search dashboard" aria-label="Search dashboard" onClick={() => {
-            setOpen(true)
-            requestAnimationFrame(() => inputRef.current?.focus())
-          }}>
-            <Search className="size-4" aria-hidden="true" />
-            <span>Search dashboard</span>
-          </SidebarMenuButton>
-        </SidebarMenuItem>
-      </SidebarMenu>
+      <SearchTrigger onOpen={openSearch} />
+      <GlobalSearchDialog
+        open={open}
+        onOpenChange={setOpen}
+        results={results}
+        loading={loading && !loaded}
+        placeholder="Search companies, projects, documents…"
+      />
     </>
   )
 }

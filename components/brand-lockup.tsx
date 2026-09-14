@@ -10,6 +10,8 @@ type BrandLockupProps = {
   gapClassName?: string
   textClassName?: string
   wordmarkScale?: number
+  logoUrl?: string
+  brandName?: string
 }
 
 export function BrandLockup({
@@ -19,16 +21,18 @@ export function BrandLockup({
   gapClassName = "gap-0.5",
   textClassName,
   wordmarkScale = 0.92,
+  logoUrl = "/visualhqlogo.svg",
+  brandName = "VisualCNS",
 }: BrandLockupProps) {
   return (
     <span className={cn("inline-flex items-center", gapClassName, className)}>
-      <Image
-        src="/visualhqlogo.svg"
-        alt="VisualCNS"
-        width={logoSize}
-        height={logoSize}
-        className={cn("shrink-0", invert && "brightness-0 invert")}
-      />
+      {logoUrl.startsWith("http") ? (
+        // Tenant logos can be hosted by the configured upload provider.
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={logoUrl} alt={brandName} width={logoSize} height={logoSize} className={cn("shrink-0 object-contain", invert && "brightness-0 invert")} />
+      ) : (
+        <Image src={logoUrl} alt={brandName} width={logoSize} height={logoSize} className={cn("shrink-0", invert && "brightness-0 invert")} />
+      )}
       <span
         className={cn(
           "poppins-wordmark leading-none",
@@ -41,7 +45,7 @@ export function BrandLockup({
           fontWeight: 400,
         }}
       >
-        <span className="font-semibold">Visual</span><span className="font-normal">CNS</span>
+        {brandName}
       </span>
     </span>
   )

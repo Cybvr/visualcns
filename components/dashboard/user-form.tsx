@@ -85,7 +85,7 @@ export function UserForm({ user, fixedRole, subjectNoun = "user", workspaceId, w
         company: user.company ?? "",
         companyId: user.companyId ?? "",
         photoURL: user.photoURL ?? "",
-        role: fixedRole ?? (user.role === "admin" ? "admin" : "client"),
+        role: fixedRole ?? (user.role === "superadmin" ? "superadmin" : user.role === "admin" ? "admin" : "client"),
       })
     } else {
       setForm({ ...EMPTY_FORM, role: fixedRole ?? EMPTY_FORM.role })

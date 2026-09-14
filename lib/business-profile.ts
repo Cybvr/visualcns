@@ -5,9 +5,11 @@ import {
   createOrganization,
   getOrganization,
   getOwnerOrganization,
+  uniqueOrganizationSlug,
   updateOrganization,
   type Organization,
 } from "./organizations"
+import { ensureCurrentTenant } from "./tenants"
 
 const COLLECTION_NAME = "settings"
 const DOC_ID = "business"
@@ -76,11 +78,13 @@ export async function getBusinessProfile(): Promise<BusinessProfile> {
  * then the legacy settings document is removed.
  */
 export async function ensureAdminBusinessOrganization(seed: AdminBusinessSeed): Promise<Organization> {
+  await ensureCurrentTenant(seed.name || "VisualHQ workspace")
   const [currentOwner, legacy] = await Promise.all([getOwnerOrganization(), getLegacyBusinessProfile()])
 
   if (currentOwner) {
     if (legacy) {
       const patch: Partial<Organization> = {}
+      if (!currentOwner.slug) patch.slug = await uniqueOrganizationSlug(currentOwner.name, currentOwner.id)
       if (!currentOwner.email && legacy.email) patch.email = legacy.email
       if (!currentOwner.phone && legacy.phone) patch.phone = legacy.phone
       if (!currentOwner.address && legacy.address) patch.address = legacy.address
@@ -90,6 +94,11 @@ export async function ensureAdminBusinessOrganization(seed: AdminBusinessSeed): 
       if (Object.keys(patch).length > 0) await updateOrganization(currentOwner.id, patch)
       await deleteDoc(doc(db, COLLECTION_NAME, DOC_ID))
       return { ...currentOwner, ...patch }
+    }
+    if (!currentOwner.slug) {
+      const slug = await uniqueOrganizationSlug(currentOwner.name, currentOwner.id)
+      await updateOrganization(currentOwner.id, { slug })
+      return { ...currentOwner, slug }
     }
     return currentOwner
   }

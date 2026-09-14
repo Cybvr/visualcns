@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState, type ComponentType, type FormEvent, type ReactNode } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState, type ComponentType, type FormEvent, type ReactNode } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { useParams, usePathname, useRouter, useSearchParams } from "next/navigation"
@@ -51,6 +51,7 @@ import type { Organization, PublicTeamMember } from "@/lib/organizations"
 import { CompanyMedia } from "@/components/company/company-media"
 import { ProjectCard } from "@/components/project-card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { GlobalSearchDialog, SearchTrigger, stripHtml, useSearchHotkey, type SearchResult } from "@/components/search/global-search"
 import { usePortal, type PortalData } from "./portal-provider"
 import { PortalNotice } from "./portal-shell"
 import { PortalTaskFeedback } from "./portal-task-feedback"
@@ -238,6 +239,85 @@ function PortalNavUser() {
   )
 }
 
+/** Content search over everything already loaded for this company portal. */
+function PortalSearch({ company }: { company: string }) {
+  const data = usePortal()
+  const [open, setOpen] = useState(false)
+  const openSearch = useCallback(() => setOpen(true), [])
+  useSearchHotkey(openSearch)
+
+  const results = useMemo<SearchResult[]>(() => {
+    const projectTitle = (id: string) => data.projects.find(item => item.id === id)?.title
+    const join = (...parts: Array<string | undefined | null>) => parts.filter(Boolean).join(" · ")
+    const keywords = (...parts: Array<string | undefined | null>) => parts.filter(Boolean).join(" ")
+    return [
+      ...data.projects.map(item => ({
+        id: `project-${item.id}`,
+        group: "Projects",
+        label: item.title,
+        sublabel: item.summary || undefined,
+        href: `${portalPath(company)}/projects/${encodeURIComponent(item.id)}`,
+        keywords: keywords(item.summary, item.status),
+      })),
+      ...data.tasks.map(item => ({
+        id: `task-${item.id}`,
+        group: "Tasks",
+        label: item.name,
+        sublabel: projectTitle(item.projectId) || undefined,
+        href: item.projectId ? `${portalPath(company)}/projects/${encodeURIComponent(item.projectId)}` : `${portalPath(company)}/tasks`,
+        keywords: keywords(stripHtml(item.instructions || ""), item.status),
+      })),
+      ...data.documents.map(item => ({
+        id: `document-${item.id}`,
+        group: "Documents",
+        label: item.title,
+        sublabel: join(item.kind, item.client) || undefined,
+        href: portalDocumentPath(company, "document", item.id),
+        keywords: keywords(item.project, item.summary, stripHtml(item.body || "")),
+      })),
+      ...data.invoices.map(item => ({
+        id: `invoice-${item.id}`,
+        group: "Billing",
+        label: item.invoiceNumber || "Invoice",
+        sublabel: item.project || undefined,
+        href: portalDocumentPath(company, "invoice", item.id),
+        keywords: keywords(item.client, item.project, item.poReference),
+      })),
+      ...data.estimates.map(item => ({
+        id: `estimate-${item.id}`,
+        group: "Billing",
+        label: item.title || item.estimateNumber || "Estimate",
+        sublabel: item.project || undefined,
+        href: portalDocumentPath(company, "estimate", item.id),
+        keywords: keywords(item.estimateNumber, item.client, item.project),
+      })),
+      ...data.contracts.map(item => ({
+        id: `contract-${item.id}`,
+        group: "Billing",
+        label: item.title || "Contract",
+        sublabel: item.project || undefined,
+        href: portalDocumentPath(company, "contract", item.id),
+        keywords: keywords(item.client, item.project),
+      })),
+      ...data.files.map(item => ({
+        id: `file-${item.id}`,
+        group: "Media",
+        label: item.title,
+        sublabel: item.type || undefined,
+        href: `${portalPath(company)}/media`,
+        keywords: keywords(item.description),
+      })),
+    ]
+  }, [data, company])
+
+  return (
+    <>
+      <SearchTrigger onOpen={openSearch} />
+      <GlobalSearchDialog open={open} onOpenChange={setOpen} results={results} placeholder="Search this workspace…" />
+    </>
+  )
+}
+
 /** The main portal navigation. Items are larger on mobile, and tapping one closes the mobile drawer. */
 function PortalTabNav({ company, activeTab }: { company: string; activeTab?: string }) {
   const { isMobile, setOpenMobile } = useSidebar()
@@ -361,6 +441,7 @@ function PortalShellContents({ company, organization, activeTab, title, children
             </SidebarMenu>
             <SidebarTrigger className="size-8 shrink-0" />
           </div>
+          <PortalSearch company={company} />
         </SidebarHeader>
         <SidebarContent>
           <SidebarGroup className="group-data-[collapsible=icon]:p-1">
@@ -386,7 +467,7 @@ function PortalShellContents({ company, organization, activeTab, title, children
         <h1 className="surface-title min-w-0 truncate capitalize">{title}</h1>
         <PortalNgaiButton />
       </header>
-      <div className={cn("px-4 py-5 sm:px-6", activeTab !== "ngai" && "pb-28")}>{children}</div>
+      <div className={cn("px-4 py-5 sm:px-6", activeTab !== "ngai" && "pb-[calc(8rem+env(safe-area-inset-bottom))]")}>{children}</div>
       <PortalNgaiMobileBar company={company} activeTab={activeTab} />
     </SidebarInset>
     <NgaiSidePanel />

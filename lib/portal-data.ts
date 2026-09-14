@@ -3,20 +3,21 @@ import { db } from "./firebase"
 import type { PortalProject, PortalTask } from "./portal-model"
 import { getProject, type Project } from "./projects"
 import type { Task } from "./tasks"
+import { getCurrentTenantId } from "./tenancy"
 
 export async function getPortalProjects(companyId: string): Promise<PortalProject[]> {
-  const snapshot = await getDocs(query(collection(db, "portalProjects"), where("companyId", "==", companyId)))
+  const snapshot = await getDocs(query(collection(db, "portalProjects"), where("tenantId", "==", await getCurrentTenantId()), where("companyId", "==", companyId)))
   return snapshot.docs.map(d => ({ ...d.data(), id: d.id }) as PortalProject)
 }
 
 export async function getPortalTasks(companyId: string, projectId: string): Promise<PortalTask[]> {
-  const snapshot = await getDocs(query(collection(db, "portalTasks"), where("companyId", "==", companyId), where("projectId", "==", projectId)))
+  const snapshot = await getDocs(query(collection(db, "portalTasks"), where("tenantId", "==", await getCurrentTenantId()), where("companyId", "==", companyId), where("projectId", "==", projectId)))
   return snapshot.docs.map(d => ({ ...d.data(), id: d.id }) as PortalTask)
 }
 
 /** Explicit allowlist: internal descriptions, earnings and task bodies never travel. */
 export function projectForPortal(project: Project, summary: string): Omit<PortalProject, "id"> {
-  return { companyId: project.companyId, title: project.title, status: project.status, progress: project.progress, dueDate: project.dueDate || "", thumbnailUrl: project.thumbnailUrl || "", summary, legacySlug: project.slug || project.title.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") }
+  return { tenantId: project.tenantId || "", companyId: project.companyId, title: project.title, status: project.status, progress: project.progress, dueDate: project.dueDate || "", thumbnailUrl: project.thumbnailUrl || "", summary, legacySlug: project.slug || project.title.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") }
 }
 
 export async function publishPortalProject(project: Project, summary: string) {
@@ -29,7 +30,7 @@ export async function unpublishPortalProject(projectId: string) {
 }
 
 export async function publishPortalTask(task: Task, instructions: string, assigneeUid: string) {
-  const data: Omit<PortalTask, "id"> = { companyId: task.companyId, projectId: task.projectId, name: task.name, status: task.status, dueDate: task.dueDate || "", instructions, assigneeUid }
+  const data: Omit<PortalTask, "id"> = { tenantId: task.tenantId || "", companyId: task.companyId, projectId: task.projectId, name: task.name, status: task.status, dueDate: task.dueDate || "", instructions, assigneeUid }
   await writeBatch(db).set(doc(db, "portalTasks", task.id), data).commit()
 }
 
@@ -57,7 +58,7 @@ export async function ensureTaskShared(task: Task) {
     if (project) await writeBatch(db).set(projectRef, projectForPortal(project, "")).commit()
   }
 
-  const safe = { companyId: task.companyId, projectId: task.projectId, name: task.name, status: task.status, dueDate: task.dueDate || "" }
+  const safe = { tenantId: task.tenantId || await getCurrentTenantId(), companyId: task.companyId, projectId: task.projectId, name: task.name, status: task.status, dueDate: task.dueDate || "" }
   if (taskSnap.exists()) {
     await writeBatch(db).update(taskRef, safe).commit()
   } else {

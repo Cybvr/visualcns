@@ -2,13 +2,21 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     function signedIn() { return request.auth != null; }
-    function isAdmin() {
-      return signedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    function tenantId() { return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('tenantId', ''); }
+    function sameTenant(data) { return signedIn() && data.get('tenantId', '') == tenantId(); }
+    function legacyData(data) { return signedIn() && tenantId() == 'legacy-visualcns' && data.get('tenantId', '') == ''; }
+    function isSuperAdmin() {
+      return signedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'superadmin';
     }
+    function isAdmin() {
+      return signedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'superadmin'];
+    }
+    function tenantAdmin(data) { return isAdmin() && (isSuperAdmin() || sameTenant(data) || legacyData(data)); }
     function companyId() { return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.companyId; }
-    function owns(data) { return signedIn() && data.companyId == companyId(); }
+    function owns(data) { return sameTenant(data) && data.get('companyId', '') == companyId(); }
     function visibleProject(projectId) {
-      return signedIn() && get(/databases/$(database)/documents/portalProjects/$(projectId)).data.companyId == companyId();
+      return signedIn() && sameTenant(get(/databases/$(database)/documents/portalProjects/$(projectId)).data)
+        && get(/databases/$(database)/documents/portalProjects/$(projectId)).data.companyId == companyId();
     }
     function visibleTask(taskId) {
       let task = get(/databases/$(database)/documents/portalTasks/$(taskId)).data;
@@ -26,70 +34,103 @@ service cloud.firestore {
 
     match /portfolio/{id} { allow read: if true; allow write: if isAdmin(); }
     match /jpportfolio/{id} { allow read: if true; allow write: if isAdmin(); }
-    match /organizations/{id} { allow read: if true; allow write: if isAdmin(); }
-    match /settings/{id} { allow read, write: if isAdmin(); }
+    match /tenants/{id} {
+      allow read: if isSuperAdmin() || (signedIn() && id == tenantId());
+      allow create: if isAdmin() && id == tenantId();
+      allow update: if isSuperAdmin() || (isAdmin() && id == tenantId());
+      allow delete: if isSuperAdmin();
+    }
+    match /organizations/{id} {
+      allow read: if tenantAdmin(resource.data) || resource.data.get('publicVisible', false) == true;
+      allow create: if tenantAdmin(request.resource.data) || (isAdmin() && request.resource.data.tenantId == tenantId());
+      allow update: if tenantAdmin(resource.data) && request.resource.data.tenantId == resource.data.get('tenantId', tenantId());
+      allow delete: if tenantAdmin(resource.data);
+    }
+    match /settings/{id} {
+      allow read: if tenantAdmin(resource.data);
+      allow create: if isAdmin() && sameTenant(request.resource.data);
+      allow update: if tenantAdmin(resource.data) && sameTenant(request.resource.data);
+      allow delete: if tenantAdmin(resource.data);
+    }
 
     match /users/{uid} {
-      allow read: if isAdmin() || (signedIn() && request.auth.uid == uid);
-      allow create: if isAdmin() || (signedIn() && request.auth.uid == uid
-        && request.resource.data.role == 'client' && request.resource.data.companyId == uid);
-      allow update: if isAdmin() || (signedIn() && request.auth.uid == uid
+      allow read: if tenantAdmin(resource.data) || (signedIn() && request.auth.uid == uid);
+      allow create: if (isAdmin() && request.resource.data.tenantId == tenantId()) || (signedIn() && request.auth.uid == uid
+        && request.resource.data.role in ['admin', 'client'] && request.resource.data.companyId == uid
+        && request.resource.data.tenantId == request.auth.uid);
+      allow update: if tenantAdmin(resource.data) || (signedIn() && request.auth.uid == uid
         && request.resource.data.role == resource.data.role
+        && request.resource.data.tenantId == resource.data.get('tenantId', tenantId())
         && request.resource.data.companyId == resource.data.get('companyId', uid));
-      allow delete: if isAdmin();
+      allow delete: if tenantAdmin(resource.data);
     }
 
     // Agency source documents stay private, apart from existing marketing publications.
     match /projects/{id} {
-      allow read: if isAdmin() || resource.data.get('isPublic', false) == true
+      allow read: if tenantAdmin(resource.data) || resource.data.get('isPublic', false) == true
         || (resource.data.get('isCaseStudy', false) == true && resource.data.get('caseStudyStatus', '') == 'published');
-      allow write: if isAdmin();
+      allow create: if isAdmin() && sameTenant(request.resource.data);
+      allow update: if tenantAdmin(resource.data) && sameTenant(request.resource.data);
+      allow delete: if tenantAdmin(resource.data);
     }
     match /tasks/{id} {
-      allow read: if isAdmin() || resource.data.get('isPublic', false) == true;
-      allow create, delete: if isAdmin();
-      allow update: if isAdmin() || (owns(resource.data) && assignedTask(id) && completionOnly()
+      allow read: if tenantAdmin(resource.data) || resource.data.get('isPublic', false) == true;
+      allow create: if isAdmin() && sameTenant(request.resource.data);
+      allow delete: if tenantAdmin(resource.data);
+      allow update: if tenantAdmin(resource.data) || (owns(resource.data) && assignedTask(id) && completionOnly()
         && getAfter(/databases/$(database)/documents/portalTasks/$(id)).data.status == request.resource.data.status);
     }
 
     // Deliberately published, allowlisted client views; no internal note fields.
     match /portalProjects/{id} {
-      allow read: if isAdmin() || owns(resource.data);
-      allow write: if isAdmin();
+      allow read: if tenantAdmin(resource.data) || owns(resource.data);
+      allow create: if isAdmin() && sameTenant(request.resource.data);
+      allow update: if tenantAdmin(resource.data) && sameTenant(request.resource.data);
+      allow delete: if tenantAdmin(resource.data);
     }
     match /portalTasks/{id} {
-      allow read: if isAdmin() || (owns(resource.data) && visibleProject(resource.data.projectId));
-      allow create, delete: if isAdmin();
-      allow update: if isAdmin() || (owns(resource.data) && visibleProject(resource.data.projectId)
+      allow read: if tenantAdmin(resource.data) || (owns(resource.data) && visibleProject(resource.data.projectId));
+      allow create: if isAdmin() && sameTenant(request.resource.data);
+      allow delete: if tenantAdmin(resource.data);
+      allow update: if tenantAdmin(resource.data) || (owns(resource.data) && visibleProject(resource.data.projectId)
         && resource.data.assigneeUid == request.auth.uid && completionOnly()
         && getAfter(/databases/$(database)/documents/tasks/$(id)).data.status == request.resource.data.status);
     }
 
     // Existing task discussions are agency notes. Portal feedback has its own collection.
-    match /comments/{id} { allow read, write: if isAdmin(); }
+    match /comments/{id} {
+      allow read: if tenantAdmin(resource.data);
+      allow create: if isAdmin() && sameTenant(request.resource.data);
+      allow update: if tenantAdmin(resource.data) && sameTenant(request.resource.data);
+      allow delete: if tenantAdmin(resource.data);
+    }
     match /portalComments/{id} {
-      allow read: if isAdmin() || (owns(resource.data) && visibleTask(resource.data.taskId));
-      allow create: if isAdmin() || (owns(request.resource.data) && visibleTask(request.resource.data.taskId)
+      allow read: if tenantAdmin(resource.data) || (owns(resource.data) && visibleTask(resource.data.taskId));
+      allow create: if (isAdmin() && sameTenant(request.resource.data)) || (owns(request.resource.data) && visibleTask(request.resource.data.taskId)
         && request.resource.data.authorUid == request.auth.uid
-        && request.resource.data.keys().hasOnly(['companyId', 'taskId', 'authorUid', 'authorName', 'body', 'createdAt'])
+        && request.resource.data.keys().hasOnly(['tenantId', 'companyId', 'taskId', 'authorUid', 'authorName', 'body', 'createdAt'])
         && request.resource.data.body is string && request.resource.data.body.size() > 0 && request.resource.data.body.size() <= 4000
         && request.resource.data.authorName is string && request.resource.data.authorName.size() <= 200
         && request.resource.data.createdAt == request.time);
-      allow update, delete: if isAdmin();
+      allow update: if tenantAdmin(resource.data) && sameTenant(request.resource.data);
+      allow delete: if tenantAdmin(resource.data);
     }
 
     match /documents/{id} {
-      allow read: if isAdmin() || owns(resource.data)
+      allow read: if tenantAdmin(resource.data) || owns(resource.data)
         || (signedIn() && request.auth.uid in resource.data.get('sharedWithUserIds', []));
-      allow write: if isAdmin();
+      allow create: if isAdmin() && sameTenant(request.resource.data);
+      allow update: if tenantAdmin(resource.data) && sameTenant(request.resource.data);
+      allow delete: if tenantAdmin(resource.data);
     }
 
     match /emailMessages/{id} {
-      allow read: if isAdmin() || owns(resource.data);
-      allow create: if isAdmin() || (owns(request.resource.data)
+      allow read: if tenantAdmin(resource.data) || owns(resource.data);
+      allow create: if (isAdmin() && sameTenant(request.resource.data)) || (owns(request.resource.data)
         && request.resource.data.createdBy == request.auth.uid
         && request.resource.data.keys().hasOnly([
           'id', 'companyId', 'createdBy', 'providerId', 'to', 'subject',
+          'tenantId',
           'createdAt', 'from', 'replyTo', 'bodyHtml', 'bodyText', 'recipients',
           'projectId', 'projectName', 'documentType', 'documentId', 'documentTitle',
           'companyName', 'messageKind', 'status'
@@ -99,26 +140,32 @@ service cloud.firestore {
         && request.resource.data.to is string
         && request.resource.data.subject is string
         && request.resource.data.createdAt is string);
-      allow update, delete: if isAdmin();
+      allow update: if tenantAdmin(resource.data) && sameTenant(request.resource.data);
+      allow delete: if tenantAdmin(resource.data);
     }
 
     match /emailLists/{id} {
-      allow read, write: if isAdmin();
+      allow read: if tenantAdmin(resource.data);
+      allow create: if isAdmin() && sameTenant(request.resource.data);
+      allow update: if tenantAdmin(resource.data) && sameTenant(request.resource.data);
+      allow delete: if tenantAdmin(resource.data);
     }
 
     // A compose-in-progress belongs to the person who started it, scoped by
     // companyId like the sent messages. Admins can reach the whole team's drafts.
     match /emailDrafts/{id} {
-      allow read: if isAdmin() || (owns(resource.data) && resource.data.createdBy == request.auth.uid);
-      allow create, update: if isAdmin() || (owns(request.resource.data) && request.resource.data.createdBy == request.auth.uid);
-      allow delete: if isAdmin() || (owns(resource.data) && resource.data.createdBy == request.auth.uid);
+      allow read: if tenantAdmin(resource.data) || (owns(resource.data) && resource.data.createdBy == request.auth.uid);
+      allow create: if (isAdmin() && sameTenant(request.resource.data)) || (owns(request.resource.data) && request.resource.data.createdBy == request.auth.uid);
+      allow update: if (tenantAdmin(resource.data) && sameTenant(request.resource.data)) || (owns(request.resource.data) && request.resource.data.createdBy == request.auth.uid);
+      allow delete: if tenantAdmin(resource.data) || (owns(resource.data) && resource.data.createdBy == request.auth.uid);
     }
 
     // Agency email templates are shared across the admin team and scoped by companyId.
     match /emailTemplates/{id} {
-      allow read: if isAdmin() && resource.data.companyId == companyId();
-      allow create, update: if isAdmin() && request.resource.data.companyId == companyId();
-      allow delete: if isAdmin() && resource.data.companyId == companyId();
+      allow read: if tenantAdmin(resource.data) && resource.data.companyId == companyId();
+      allow create: if isAdmin() && sameTenant(request.resource.data) && request.resource.data.companyId == companyId();
+      allow update: if tenantAdmin(resource.data) && sameTenant(request.resource.data) && request.resource.data.companyId == companyId();
+      allow delete: if tenantAdmin(resource.data) && resource.data.companyId == companyId();
     }
 
     // Marketing unsubscribe records are written and read only by server routes
@@ -126,23 +173,31 @@ service cloud.firestore {
     match /emailUnsubscriptions/{id} {
       allow read, write: if false;
     }
+    match /invites/{id} { allow read, write: if false; }
+    match /tenantSecrets/{id} { allow read, write: if false; }
+    match /tenantUsage/{id} { allow read, write: if false; }
 
     // Keep legacy single-document links. Anonymous collection browsing is closed.
     match /invoices/{id} {
-      allow get: if isAdmin() || resource.data.status != 'draft';
-      allow list: if isAdmin() || (owns(resource.data) && resource.data.status != 'draft');
-      allow write: if isAdmin();
+      allow get: if tenantAdmin(resource.data) || resource.data.status != 'draft';
+      allow list: if tenantAdmin(resource.data) || (owns(resource.data) && resource.data.status != 'draft');
+      allow create: if isAdmin() && sameTenant(request.resource.data);
+      allow update: if tenantAdmin(resource.data) && sameTenant(request.resource.data);
+      allow delete: if tenantAdmin(resource.data);
     }
     match /contracts/{id} {
-      allow get: if isAdmin() || resource.data.status != 'draft';
-      allow list: if isAdmin() || (owns(resource.data) && resource.data.status != 'draft');
-      allow write: if isAdmin();
+      allow get: if tenantAdmin(resource.data) || resource.data.status != 'draft';
+      allow list: if tenantAdmin(resource.data) || (owns(resource.data) && resource.data.status != 'draft');
+      allow create: if isAdmin() && sameTenant(request.resource.data);
+      allow update: if tenantAdmin(resource.data) && sameTenant(request.resource.data);
+      allow delete: if tenantAdmin(resource.data);
     }
     match /estimates/{id} {
-      allow get: if isAdmin() || (resource.data.status != 'draft' && (owns(resource.data) || resource.data.get('shareEnabled', false) == true));
-      allow list: if isAdmin() || (owns(resource.data) && resource.data.status != 'draft');
-      allow create, delete: if isAdmin();
-      allow update: if isAdmin() || ((owns(resource.data) || resource.data.get('shareEnabled', false) == true)
+      allow get: if tenantAdmin(resource.data) || (resource.data.status != 'draft' && (owns(resource.data) || resource.data.get('shareEnabled', false) == true));
+      allow list: if tenantAdmin(resource.data) || (owns(resource.data) && resource.data.status != 'draft');
+      allow create: if isAdmin() && sameTenant(request.resource.data);
+      allow delete: if tenantAdmin(resource.data);
+      allow update: if tenantAdmin(resource.data) || ((owns(resource.data) || resource.data.get('shareEnabled', false) == true)
         && resource.data.status == 'sent' && request.resource.data.status == 'accepted'
         && request.resource.data.acceptedAt == request.time && request.resource.data.updatedAt == request.time
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'acceptedAt', 'updatedAt']));
@@ -154,13 +209,20 @@ service cloud.firestore {
       // Public is the visibility switch: a public document reaches the client and the
       // no-account share link whatever its draft status. Non-public documents only ever
       // reach their own client once sent.
-      allow get: if isAdmin() || resource.data.get('shareEnabled', false) == true || (owns(resource.data) && resource.data.status != 'draft');
-      allow list: if isAdmin() || (owns(resource.data) && resource.data.get('shareEnabled', false) == true);
-      allow write: if isAdmin();
+      allow get: if tenantAdmin(resource.data) || resource.data.get('shareEnabled', false) == true || (owns(resource.data) && resource.data.status != 'draft');
+      allow list: if tenantAdmin(resource.data) || (owns(resource.data) && resource.data.get('shareEnabled', false) == true);
+      allow create: if isAdmin() && sameTenant(request.resource.data);
+      allow update: if tenantAdmin(resource.data) && sameTenant(request.resource.data);
+      allow delete: if tenantAdmin(resource.data);
     }
 
     // No client approval UI currently uses this legacy collection.
-    match /approvals/{id} { allow read, write: if isAdmin(); }
+    match /approvals/{id} {
+      allow read: if tenantAdmin(resource.data);
+      allow create: if isAdmin() && sameTenant(request.resource.data);
+      allow update: if tenantAdmin(resource.data) && sameTenant(request.resource.data);
+      allow delete: if tenantAdmin(resource.data);
+    }
 
     // One conversation transcript per signed-in account. The agent stores no
     // portal records here; this is only the user's own chat history.

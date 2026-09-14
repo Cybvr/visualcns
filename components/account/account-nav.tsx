@@ -11,6 +11,9 @@ const LINKS = [
   { label: "Profile", href: "/dashboard/account/profile" },
   { label: "Customization", href: "/dashboard/account/customization" },
   { label: "Business profile", href: "/dashboard/account/business", adminOnly: true },
+  { label: "Agency", href: "/dashboard/account/agency", adminOnly: true },
+  { label: "Billing", href: "/dashboard/account/billing", adminOnly: true },
+  { label: "Data", href: "/dashboard/account/data", adminOnly: true },
 ]
 
 /** The tab's title and one-line description, shown inside the page under the nav. */

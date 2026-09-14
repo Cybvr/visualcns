@@ -37,7 +37,7 @@ import { cn } from "@/lib/utils"
 
 export default function UsersAdminPage() {
   const router = useRouter()
-  const { viewAsUser } = useAuth()
+  const { user, viewAsUser } = useAuth()
   const [users, setUsers] = useState<AppUser[]>([])
   const [companyNames, setCompanyNames] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
@@ -45,6 +45,7 @@ export default function UsersAdminPage() {
   const [deleting, setDeleting] = useState<string | null>(null)
   const [bulkDeleting, setBulkDeleting] = useState(false)
   const [selectedId, setSelectedId] = useState<string | "new" | null>(null)
+  const [inviting, setInviting] = useState(false)
 
   // A contact's company lives on the linked organization, keyed by companyId;
   // the user doc's `company` string stays empty. Resolve the org name so the
@@ -110,6 +111,20 @@ export default function UsersAdminPage() {
     setSelectedId(null)
   }
 
+  async function handleInvite() {
+    const email = window.prompt("Email address to invite")?.trim()
+    if (!email || !user || inviting) return
+    setInviting(true)
+    try {
+      const response = await fetch("/api/admin/invites", { method: "POST", headers: { Authorization: `Bearer ${await user.getIdToken()}`, "Content-Type": "application/json" }, body: JSON.stringify({ email }) })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error || "Could not create invite")
+      await navigator.clipboard?.writeText(data.inviteUrl)
+      window.alert(`Invite created. The link was copied:\n\n${data.inviteUrl}`)
+    } catch (inviteError) { setError(inviteError instanceof Error ? inviteError.message : "Could not create invite") }
+    finally { setInviting(false) }
+  }
+
   function handleViewAs(u: AppUser) {
     viewAsUser(u)
     router.push("/dashboard")
@@ -150,7 +165,7 @@ export default function UsersAdminPage() {
         {...bar}
         placeholder="Search contacts"
         actions={
-          <Button onClick={() => setSelectedId("new")}><Plus className="h-4 w-4" />Add Contact</Button>
+          <div className="flex gap-2"><Button variant="outline" disabled={inviting} onClick={() => void handleInvite()}>{inviting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}Invite</Button><Button onClick={() => setSelectedId("new")}><Plus className="h-4 w-4" />Add Contact</Button></div>
         }
       />
 

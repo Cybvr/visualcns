@@ -1,9 +1,131 @@
 {
   "indexes": [
     {
+      "collectionGroup": "users",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "tenantId", "order": "ASCENDING" },
+        { "fieldPath": "companyId", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "projects",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "tenantId", "order": "ASCENDING" },
+        { "fieldPath": "companyId", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "tasks",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "tenantId", "order": "ASCENDING" },
+        { "fieldPath": "companyId", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "tasks",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "tenantId", "order": "ASCENDING" },
+        { "fieldPath": "projectId", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "portalProjects",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "tenantId", "order": "ASCENDING" },
+        { "fieldPath": "companyId", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "organizations",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "tenantId", "order": "ASCENDING" },
+        { "fieldPath": "isOwner", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "organizations",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "tenantId", "order": "ASCENDING" },
+        { "fieldPath": "slug", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "organizations",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "publicVisible", "order": "ASCENDING" },
+        { "fieldPath": "slug", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "organizations",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "tenantId", "order": "ASCENDING" },
+        { "fieldPath": "publicVisible", "order": "ASCENDING" },
+        { "fieldPath": "slug", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "tasks",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "projectId", "order": "ASCENDING" },
+        { "fieldPath": "isPublic", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "emailMessages",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "tenantId", "order": "ASCENDING" },
+        { "fieldPath": "companyId", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "emailDrafts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "tenantId", "order": "ASCENDING" },
+        { "fieldPath": "companyId", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "emailLists",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "tenantId", "order": "ASCENDING" },
+        { "fieldPath": "companyId", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "emailTemplates",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "tenantId", "order": "ASCENDING" },
+        { "fieldPath": "companyId", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "comments",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "tenantId", "order": "ASCENDING" },
+        { "fieldPath": "taskId", "order": "ASCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "portalTasks",
       "queryScope": "COLLECTION",
       "fields": [
+        { "fieldPath": "tenantId", "order": "ASCENDING" },
         { "fieldPath": "companyId", "order": "ASCENDING" },
         { "fieldPath": "projectId", "order": "ASCENDING" }
       ]
@@ -12,6 +134,7 @@
       "collectionGroup": "portalComments",
       "queryScope": "COLLECTION",
       "fields": [
+        { "fieldPath": "tenantId", "order": "ASCENDING" },
         { "fieldPath": "companyId", "order": "ASCENDING" },
         { "fieldPath": "taskId", "order": "ASCENDING" }
       ]
@@ -20,6 +143,7 @@
       "collectionGroup": "invoices",
       "queryScope": "COLLECTION",
       "fields": [
+        { "fieldPath": "tenantId", "order": "ASCENDING" },
         { "fieldPath": "companyId", "order": "ASCENDING" },
         { "fieldPath": "status", "order": "ASCENDING" }
       ]
@@ -28,6 +152,7 @@
       "collectionGroup": "contracts",
       "queryScope": "COLLECTION",
       "fields": [
+        { "fieldPath": "tenantId", "order": "ASCENDING" },
         { "fieldPath": "companyId", "order": "ASCENDING" },
         { "fieldPath": "status", "order": "ASCENDING" }
       ]
@@ -36,6 +161,7 @@
       "collectionGroup": "estimates",
       "queryScope": "COLLECTION",
       "fields": [
+        { "fieldPath": "tenantId", "order": "ASCENDING" },
         { "fieldPath": "companyId", "order": "ASCENDING" },
         { "fieldPath": "status", "order": "ASCENDING" }
       ]
@@ -44,8 +170,17 @@
       "collectionGroup": "companyDocuments",
       "queryScope": "COLLECTION",
       "fields": [
+        { "fieldPath": "tenantId", "order": "ASCENDING" },
         { "fieldPath": "companyId", "order": "ASCENDING" },
         { "fieldPath": "status", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "invites",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "tenantId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]
     }
   ],

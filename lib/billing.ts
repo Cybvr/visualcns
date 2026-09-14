@@ -13,6 +13,7 @@ import {
 } from "firebase/firestore"
 import { db } from "./firebase"
 import { ensureBillingTask } from "./tasks"
+import { getCurrentTenantId } from "./tenancy"
 
 export type InvoiceStatus = "draft" | "sent" | "paid" | "overdue" | "void"
 export type ContractStatus = "draft" | "sent" | "signed" | "expired"
@@ -45,6 +46,7 @@ export interface InvoiceParty {
 
 export interface Invoice {
   id: string
+  tenantId?: string
   /** Matches the companyId on a user's Firestore doc */
   companyId: string
   client: string
@@ -86,6 +88,7 @@ export interface Invoice {
 
 export interface Contract {
   id: string
+  tenantId?: string
   companyId: string
   client: string
   title: string
@@ -118,6 +121,7 @@ export interface EstimateLineItem {
 
 export interface Estimate {
   id: string
+  tenantId?: string
   companyId: string
   client: string
   /** Estimate number shown to the client, generated as EST-0001 upward. */
@@ -313,15 +317,15 @@ async function syncContractTask(contract: Contract): Promise<void> {
 }
 
 export async function getInvoices(): Promise<Invoice[]> {
-  const snapshot = await getDocs(collection(db, INVOICES))
+  const snapshot = await getDocs(query(collection(db, INVOICES), where("tenantId", "==", await getCurrentTenantId())))
   return byNewest(snapshot.docs.map((d) => toInvoice(d.id, d.data() as object)))
 }
 
 export async function getInvoicesByCompanyId(companyId: string, includeDrafts = false): Promise<Invoice[]> {
   if (!companyId) return []
   const snapshot = await getDocs(includeDrafts
-    ? query(collection(db, INVOICES), where("companyId", "==", companyId))
-    : query(collection(db, INVOICES), where("companyId", "==", companyId), where("status", "!=", "draft")))
+    ? query(collection(db, INVOICES), where("tenantId", "==", await getCurrentTenantId()), where("companyId", "==", companyId))
+    : query(collection(db, INVOICES), where("tenantId", "==", await getCurrentTenantId()), where("companyId", "==", companyId), where("status", "!=", "draft")))
   const rows = snapshot.docs.map((d) => toInvoice(d.id, d.data() as object))
   return byNewest(includeDrafts ? rows : rows.filter((row) => isVisibleToClient(row.status)))
 }
@@ -351,8 +355,10 @@ export async function getInvoice(id: string): Promise<Invoice | null> {
 }
 
 export async function createInvoice(data: Omit<Invoice, "id" | "createdAt" | "updatedAt">): Promise<string> {
+  const tenantId = await getCurrentTenantId()
   const ref = await addDoc(collection(db, INVOICES), {
     ...data,
+    tenantId,
     createdAt: Timestamp.now(),
     updatedAt: Timestamp.now(),
   })
@@ -371,15 +377,15 @@ export async function deleteInvoice(id: string): Promise<void> {
 }
 
 export async function getContracts(): Promise<Contract[]> {
-  const snapshot = await getDocs(collection(db, CONTRACTS))
+  const snapshot = await getDocs(query(collection(db, CONTRACTS), where("tenantId", "==", await getCurrentTenantId())))
   return byNewest(snapshot.docs.map((d) => ({ ...(d.data() as object), id: d.id })) as Contract[])
 }
 
 export async function getContractsByCompanyId(companyId: string, includeDrafts = false): Promise<Contract[]> {
   if (!companyId) return []
   const snapshot = await getDocs(includeDrafts
-    ? query(collection(db, CONTRACTS), where("companyId", "==", companyId))
-    : query(collection(db, CONTRACTS), where("companyId", "==", companyId), where("status", "!=", "draft")))
+    ? query(collection(db, CONTRACTS), where("tenantId", "==", await getCurrentTenantId()), where("companyId", "==", companyId))
+    : query(collection(db, CONTRACTS), where("tenantId", "==", await getCurrentTenantId()), where("companyId", "==", companyId), where("status", "!=", "draft")))
   const rows = snapshot.docs.map((d) => ({ ...(d.data() as object), id: d.id })) as Contract[]
   return byNewest(includeDrafts ? rows : rows.filter((row) => isVisibleToClient(row.status)))
 }
@@ -391,8 +397,10 @@ export async function getContract(id: string): Promise<Contract | null> {
 }
 
 export async function createContract(data: Omit<Contract, "id" | "createdAt" | "updatedAt">): Promise<string> {
+  const tenantId = await getCurrentTenantId()
   const ref = await addDoc(collection(db, CONTRACTS), {
     ...data,
+    tenantId,
     createdAt: Timestamp.now(),
     updatedAt: Timestamp.now(),
   })
@@ -411,15 +419,15 @@ export async function deleteContract(id: string): Promise<void> {
 }
 
 export async function getEstimates(): Promise<Estimate[]> {
-  const snapshot = await getDocs(collection(db, ESTIMATES))
+  const snapshot = await getDocs(query(collection(db, ESTIMATES), where("tenantId", "==", await getCurrentTenantId())))
   return byNewest(snapshot.docs.map((d) => ({ ...(d.data() as object), id: d.id })) as Estimate[])
 }
 
 export async function getEstimatesByCompanyId(companyId: string, includeDrafts = false): Promise<Estimate[]> {
   if (!companyId) return []
   const snapshot = await getDocs(includeDrafts
-    ? query(collection(db, ESTIMATES), where("companyId", "==", companyId))
-    : query(collection(db, ESTIMATES), where("companyId", "==", companyId), where("status", "!=", "draft")))
+    ? query(collection(db, ESTIMATES), where("tenantId", "==", await getCurrentTenantId()), where("companyId", "==", companyId))
+    : query(collection(db, ESTIMATES), where("tenantId", "==", await getCurrentTenantId()), where("companyId", "==", companyId), where("status", "!=", "draft")))
   const rows = snapshot.docs.map((d) => ({ ...(d.data() as object), id: d.id })) as Estimate[]
   return byNewest(includeDrafts ? rows : rows.filter((row) => isVisibleToClient(row.status)))
 }
@@ -460,8 +468,10 @@ export async function getEstimate(id: string): Promise<Estimate | null> {
 }
 
 export async function createEstimate(data: Omit<Estimate, "id" | "createdAt" | "updatedAt">): Promise<string> {
+  const tenantId = await getCurrentTenantId()
   const ref = await addDoc(collection(db, ESTIMATES), {
     ...data,
+    tenantId,
     createdAt: Timestamp.now(),
     updatedAt: Timestamp.now(),
   })

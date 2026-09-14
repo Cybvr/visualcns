@@ -17,15 +17,21 @@ type SignupAction = "email" | "google" | null
 export default function SignupPage() {
   const router = useRouter()
   const { user, loading, signUpWithEmail, signInWithGoogle } = useAuth()
+  const [inviteToken, setInviteToken] = useState("")
   const [name, setName] = useState("")
+  const [agencyName, setAgencyName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [action, setAction] = useState<SignupAction>(null)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!loading && user) router.replace("/dashboard")
-  }, [loading, user, router])
+    setInviteToken(new URLSearchParams(window.location.search).get("invite") || "")
+  }, [])
+
+  useEffect(() => {
+    if (!loading && user) router.replace(inviteToken ? `/invite/${inviteToken}` : "/dashboard")
+  }, [loading, user, router, inviteToken])
 
   async function handleEmailSignup(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -33,7 +39,7 @@ export default function SignupPage() {
     setError(null)
 
     try {
-      await signUpWithEmail(name, email.trim(), password)
+      await signUpWithEmail(name, email.trim(), password, agencyName.trim())
     } catch (err) {
       setError(authErrorMessage(err))
     } finally {
@@ -115,6 +121,11 @@ export default function SignupPage() {
           </div>
 
           <div className="space-y-2">
+            <Label htmlFor="agencyName">Agency name</Label>
+            <Input id="agencyName" name="agencyName" type="text" value={agencyName} onChange={(event) => setAgencyName(event.target.value)} placeholder="Your agency" className="h-10 rounded-none bg-background text-base md:text-sm" disabled={busy} maxLength={120} required />
+          </div>
+
+          <div className="space-y-2">
             <Label htmlFor="password">Password</Label>
             <Input
               id="password"
@@ -190,7 +201,7 @@ export default function SignupPage() {
           </Link>{" "}
           and{" "}
           <Link href="/privacy" className="text-muted-foreground/75 underline underline-offset-4 hover:text-foreground/80">
-            Privacy Policy
+          Privacy Policy
           </Link>, and to receive periodic emails with updates.
         </p>
       </section>

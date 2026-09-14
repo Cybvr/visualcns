@@ -12,6 +12,7 @@ import {
 } from "firebase/firestore"
 
 import { db } from "./firebase"
+import { getCurrentTenantId } from "./tenancy"
 
 export type CompanyDocumentStatus = "draft" | "sent" | "viewed" | "final"
 export type CompanyDocumentKind = "proposal" | "sow" | "brief" | "report" | "other"
@@ -26,6 +27,7 @@ export type CompanyDocumentKind = "proposal" | "sow" | "brief" | "report" | "oth
  */
 export interface CompanyDocument {
   id: string
+  tenantId?: string
   companyId: string
   client: string
   title: string
@@ -113,7 +115,7 @@ function toDocument(id: string, data: object): CompanyDocument {
 }
 
 export async function getCompanyDocuments(): Promise<CompanyDocument[]> {
-  const snapshot = await getDocs(collection(db, COMPANY_DOCUMENTS))
+  const snapshot = await getDocs(query(collection(db, COMPANY_DOCUMENTS), where("tenantId", "==", await getCurrentTenantId())))
   return byNewest(snapshot.docs.map((d) => toDocument(d.id, d.data() as object)))
 }
 
@@ -121,8 +123,8 @@ export async function getCompanyDocuments(): Promise<CompanyDocument[]> {
 export async function getCompanyDocumentsByCompanyId(companyId: string, includeDrafts = false): Promise<CompanyDocument[]> {
   if (!companyId) return []
   const snapshot = await getDocs(includeDrafts
-    ? query(collection(db, COMPANY_DOCUMENTS), where("companyId", "==", companyId))
-    : query(collection(db, COMPANY_DOCUMENTS), where("companyId", "==", companyId), where("status", "!=", "draft")))
+    ? query(collection(db, COMPANY_DOCUMENTS), where("tenantId", "==", await getCurrentTenantId()), where("companyId", "==", companyId))
+    : query(collection(db, COMPANY_DOCUMENTS), where("tenantId", "==", await getCurrentTenantId()), where("companyId", "==", companyId), where("status", "!=", "draft")))
   const rows = snapshot.docs.map((d) => toDocument(d.id, d.data() as object))
   return byNewest(includeDrafts ? rows : rows.filter((row) => row.status !== "draft"))
 }
@@ -130,7 +132,7 @@ export async function getCompanyDocumentsByCompanyId(companyId: string, includeD
 /** What a signed-in client sees in their portal: the documents turned public, drafts included. */
 export async function getPublicCompanyDocumentsByCompanyId(companyId: string): Promise<CompanyDocument[]> {
   if (!companyId) return []
-  const snapshot = await getDocs(query(collection(db, COMPANY_DOCUMENTS), where("companyId", "==", companyId), where("shareEnabled", "==", true)))
+  const snapshot = await getDocs(query(collection(db, COMPANY_DOCUMENTS), where("tenantId", "==", await getCurrentTenantId()), where("companyId", "==", companyId), where("shareEnabled", "==", true)))
   return byNewest(snapshot.docs.map((d) => toDocument(d.id, d.data() as object)))
 }
 
@@ -141,8 +143,10 @@ export async function getCompanyDocument(id: string): Promise<CompanyDocument | 
 }
 
 export async function createCompanyDocument(data: Omit<CompanyDocument, "id" | "createdAt" | "updatedAt">): Promise<string> {
+  const tenantId = await getCurrentTenantId()
   const ref = await addDoc(collection(db, COMPANY_DOCUMENTS), {
     ...data,
+    tenantId,
     createdAt: Timestamp.now(),
     updatedAt: Timestamp.now(),
   })

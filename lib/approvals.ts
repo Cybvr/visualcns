@@ -1,10 +1,12 @@
 import { doc, getDoc, setDoc, Timestamp } from "firebase/firestore"
 import { db } from "./firebase"
+import { getCurrentTenantId } from "./tenancy"
 
 export type ApprovalStatus = "approved" | "changes-requested"
 
 export type Approval = {
   deliverableId: string
+  tenantId?: string
   companyId: string
   status: ApprovalStatus
   note: string
@@ -25,6 +27,7 @@ export async function setApproval(
 ): Promise<void> {
   await setDoc(doc(db, COLLECTION_NAME, data.deliverableId), {
     ...data,
+    tenantId: await getCurrentTenantId(),
     updatedAt: Timestamp.now(),
   })
 }

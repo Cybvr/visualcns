@@ -45,6 +45,7 @@ export type NavLink = {
   icon: ComponentType<{ className?: string }>
   /** Admin destinations remain visible to admins while previewing another account. */
   adminOnly?: boolean
+  superAdminOnly?: boolean
   /** Opens the shared Ngai panel instead of navigating to a duplicate page. */
   opensAgent?: boolean
   /** When present the item is a collapsible dropdown and href is only its default destination. */
@@ -60,6 +61,8 @@ export function AppSidebar({
   rootHref,
   subtitle,
   navExtra,
+  brandName,
+  brandLogoUrl,
   className,
   ...props
 }: React.ComponentProps<typeof Sidebar> & {
@@ -67,6 +70,8 @@ export function AppSidebar({
   rootHref: string
   subtitle?: string
   navExtra?: ReactNode
+  brandName?: string
+  brandLogoUrl?: string
 }) {
   const pathname = usePathname()
   const { isImpersonating, stopViewingAs } = useAuth()
@@ -97,7 +102,7 @@ export function AppSidebar({
               <SidebarMenuItem>
                 <SidebarMenuButton size="lg" asChild>
                   <Link href={rootHref}>
-                    <BrandLockup logoSize={24} gapClassName="gap-1" />
+                    <BrandLockup logoSize={24} gapClassName="gap-1" brandName={brandName} logoUrl={brandLogoUrl} />
                     {subtitle && <span className="truncate text-xs text-muted-foreground">{subtitle}</span>}
                   </Link>
                 </SidebarMenuButton>

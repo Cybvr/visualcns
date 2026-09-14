@@ -11,6 +11,7 @@ import {
   Timestamp,
 } from "firebase/firestore"
 import { db } from "./firebase"
+import { getCurrentTenantId } from "./tenancy"
 import { ensureTaskShared, deleteAgencyRecord } from "./portal-data"
 
 export type TaskStatus = "todo" | "in-progress" | "review" | "done"
@@ -18,6 +19,7 @@ export type TaskPriority = "low" | "medium" | "high"
 
 export interface Task {
   id: string
+  tenantId?: string
   name: string
   /** Matches the companyId on a user's Firestore doc */
   companyId: string
@@ -91,13 +93,15 @@ export function formatTimestamp(value: unknown): string {
 const COLLECTION_NAME = "tasks"
 
 export async function getTasks(): Promise<Task[]> {
-  const snapshot = await getDocs(collection(db, COLLECTION_NAME))
+  const tenantId = await getCurrentTenantId()
+  const snapshot = await getDocs(query(collection(db, COLLECTION_NAME), where("tenantId", "==", tenantId)))
   return snapshot.docs.map((d) => ({ ...(d.data() as object), id: d.id })) as Task[]
 }
 
 export async function getTasksByCompanyId(companyId: string): Promise<Task[]> {
   if (!companyId) return []
-  const snapshot = await getDocs(query(collection(db, COLLECTION_NAME), where("companyId", "==", companyId)))
+  const tenantId = await getCurrentTenantId()
+  const snapshot = await getDocs(query(collection(db, COLLECTION_NAME), where("tenantId", "==", tenantId), where("companyId", "==", companyId)))
   return snapshot.docs.map((d) => ({ ...(d.data() as object), id: d.id })) as Task[]
 }
 
@@ -107,7 +111,8 @@ export async function getTasksByCompanyId(companyId: string): Promise<Task[]> {
  */
 export async function getTasksByProjectId(projectId: string): Promise<Task[]> {
   if (!projectId) return []
-  const snapshot = await getDocs(query(collection(db, COLLECTION_NAME), where("projectId", "==", projectId)))
+  const tenantId = await getCurrentTenantId()
+  const snapshot = await getDocs(query(collection(db, COLLECTION_NAME), where("tenantId", "==", tenantId), where("projectId", "==", projectId)))
   const tasks = snapshot.docs.map((d) => ({ ...(d.data() as object), id: d.id })) as Task[]
   return tasks.sort((a, b) => tsToMillis(a.createdAt) - tsToMillis(b.createdAt))
 }
@@ -121,6 +126,7 @@ export async function getTasksByProjectAndCompanyId(projectId: string, companyId
   const snapshot = await getDocs(
     query(
       collection(db, COLLECTION_NAME),
+      where("tenantId", "==", await getCurrentTenantId()),
       where("projectId", "==", projectId),
       where("companyId", "==", companyId),
     ),
@@ -150,8 +156,10 @@ export async function getTask(id: string): Promise<Task | null> {
 }
 
 export async function createTask(data: Omit<Task, "id" | "createdAt" | "updatedAt">): Promise<string> {
+  const tenantId = await getCurrentTenantId()
   const ref = await addDoc(collection(db, COLLECTION_NAME), {
     ...data,
+    tenantId,
     createdAt: Timestamp.now(),
     updatedAt: Timestamp.now(),
   })
@@ -189,7 +197,7 @@ export async function ensureBillingTask(params: {
 }): Promise<void> {
   const { kind, sourceId, companyId, client, projectId, project, title, isDraft, dueDate } = params
   if (isDraft || !projectId || !companyId || !sourceId) return
-  const existing = await getDocs(query(collection(db, COLLECTION_NAME), where("sourceId", "==", sourceId)))
+  const existing = await getDocs(query(collection(db, COLLECTION_NAME), where("tenantId", "==", await getCurrentTenantId()), where("sourceId", "==", sourceId)))
   if (existing.docs.some((d) => (d.data() as Task).sourceKind === kind)) return
   await createTask({
     name: title,

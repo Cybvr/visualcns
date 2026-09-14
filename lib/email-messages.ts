@@ -1,6 +1,7 @@
 import { collection, doc, getDocs, query, setDoc, where } from "firebase/firestore"
 
 import { db } from "./firebase"
+import { getCurrentTenantId } from "./tenancy"
 
 const COLLECTION_NAME = "emailMessages"
 
@@ -14,6 +15,7 @@ export type EmailRecipient = {
 
 export type EmailMessageRecord = {
   id: string
+  tenantId?: string
   companyId: string
   createdBy: string
   providerId: string
@@ -39,14 +41,14 @@ export type EmailMessageRecord = {
 
 export async function getEmailMessages(companyId: string): Promise<EmailMessageRecord[]> {
   if (!companyId) return []
-  const snapshot = await getDocs(query(collection(db, COLLECTION_NAME), where("companyId", "==", companyId)))
+  const snapshot = await getDocs(query(collection(db, COLLECTION_NAME), where("tenantId", "==", await getCurrentTenantId()), where("companyId", "==", companyId)))
   return snapshot.docs
     .map((message) => ({ ...(message.data() as Omit<EmailMessageRecord, "id">), id: message.id }))
     .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))
 }
 
 export async function getAllEmailMessages(): Promise<EmailMessageRecord[]> {
-  const snapshot = await getDocs(collection(db, COLLECTION_NAME))
+  const snapshot = await getDocs(query(collection(db, COLLECTION_NAME), where("tenantId", "==", await getCurrentTenantId())))
   return snapshot.docs
     .map((message) => ({ ...(message.data() as Omit<EmailMessageRecord, "id">), id: message.id }))
     .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))
@@ -54,5 +56,6 @@ export async function getAllEmailMessages(): Promise<EmailMessageRecord[]> {
 
 export async function saveEmailMessage(message: EmailMessageRecord): Promise<void> {
   const record = Object.fromEntries(Object.entries(message).filter(([, value]) => value !== undefined))
+  record.tenantId = await getCurrentTenantId()
   await setDoc(doc(db, COLLECTION_NAME, message.id), record, { merge: true })
 }

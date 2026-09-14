@@ -11,6 +11,7 @@ import {
   Timestamp,
 } from "firebase/firestore"
 import { db } from "./firebase"
+import { getCurrentTenantId } from "./tenancy"
 import { syncPortalProject, deleteAgencyRecord } from "./portal-data"
 import {
   createTask,
@@ -25,6 +26,7 @@ export type ProjectStatus = "in-progress" | "review" | "done" | "on-hold"
 
 export interface Project {
   id: string
+  tenantId?: string
   /** Matches the companyId on a user's Firestore doc - which client owns this project */
   companyId: string
   client: string
@@ -93,13 +95,14 @@ export const projectStatusMeta: Record<ProjectStatus, { label: string; className
 const COLLECTION_NAME = "projects"
 
 export async function getProjects(): Promise<Project[]> {
-  const snapshot = await getDocs(collection(db, COLLECTION_NAME))
+  const tenantId = await getCurrentTenantId()
+  const snapshot = await getDocs(query(collection(db, COLLECTION_NAME), where("tenantId", "==", tenantId)))
   return snapshot.docs.map((d) => ({ ...(d.data() as object), id: d.id })) as Project[]
 }
 
 export async function getProjectsByCompanyId(companyId: string): Promise<Project[]> {
   if (!companyId) return []
-  const snapshot = await getDocs(query(collection(db, COLLECTION_NAME), where("companyId", "==", companyId)))
+  const snapshot = await getDocs(query(collection(db, COLLECTION_NAME), where("tenantId", "==", await getCurrentTenantId()), where("companyId", "==", companyId)))
   return snapshot.docs.map((d) => ({ ...(d.data() as object), id: d.id })) as Project[]
 }
 
@@ -152,7 +155,7 @@ export function projectSlug(project: Project): string {
 export async function getProjectBySlug(slug: string): Promise<Project | null> {
   if (!slug) return null
 
-  const stored = await getDocs(query(collection(db, COLLECTION_NAME), where("slug", "==", slug)))
+  const stored = await getDocs(query(collection(db, COLLECTION_NAME), where("tenantId", "==", await getCurrentTenantId()), where("slug", "==", slug)))
   if (!stored.empty) {
     const first = stored.docs[0]
     return { ...(first.data() as object), id: first.id } as Project
@@ -163,8 +166,10 @@ export async function getProjectBySlug(slug: string): Promise<Project | null> {
 }
 
 export async function createProject(data: Omit<Project, "id" | "createdAt" | "updatedAt">): Promise<string> {
+  const tenantId = await getCurrentTenantId()
   const ref = await addDoc(collection(db, COLLECTION_NAME), {
     ...data,
+    tenantId,
     createdAt: Timestamp.now(),
     updatedAt: Timestamp.now(),
   })

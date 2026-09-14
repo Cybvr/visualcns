@@ -27,6 +27,8 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar"
 import { cn } from "@/lib/utils"
+import { getTenant, type Tenant } from "@/lib/tenants"
+import { useAuth } from "@/components/auth-provider"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -76,12 +78,21 @@ export function DashboardShell({
   const hideHeader = isDocumentRoute
   const [sidebarOpen, setSidebarOpen] = useState(!isDocumentRoute)
   const { open: agentOpen } = useAgent()
+  const { user } = useAuth()
+  const [tenant, setTenant] = useState<Tenant | null>(null)
   const [createItem, setCreateItem] = useState<(typeof QUICK_CREATE_LINKS)[number] | null>(null)
   const [createName, setCreateName] = useState("")
 
   useEffect(() => {
     setSidebarOpen(!isDocumentRoute)
   }, [isDocumentRoute])
+
+  useEffect(() => {
+    if (!user) { setTenant(null); return }
+    let active = true
+    void getTenant().then((value) => { if (active) setTenant(value) }).catch(() => { if (active) setTenant(null) })
+    return () => { active = false }
+  }, [user])
 
   function closeCreateModal() {
     setCreateItem(null)
@@ -110,9 +121,9 @@ export function DashboardShell({
           banner && "[&_[data-slot=sidebar-container]]:top-10 [&_[data-slot=sidebar-container]]:h-[calc(100svh-2.5rem)]"
         )}
       >
-        <AppSidebar navLinks={navLinks} rootHref={rootHref} subtitle={subtitle} navExtra={navExtra} />
+        <AppSidebar navLinks={navLinks} rootHref={rootHref} subtitle={subtitle} navExtra={navExtra} brandName={tenant?.name} brandLogoUrl={tenant?.logoUrl} />
         {/* overflow-y-auto: this column is the scroll container, not the body */}
-        <SidebarInset className="overflow-y-auto">
+        <SidebarInset className="overflow-y-auto pb-[calc(8rem+env(safe-area-inset-bottom))]">
           <header className={cn("surface-nav sticky top-0 z-40 flex h-14 shrink-0 items-center gap-2 bg-background px-4", hideHeader && "md:hidden")}>
             <div className="flex shrink-0 items-center gap-2 md:hidden">
               <SidebarTrigger className="-ml-1" />

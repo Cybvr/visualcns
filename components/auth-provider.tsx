@@ -14,9 +14,27 @@ import { auth, googleProvider } from "@/lib/firebase"
 import { ensureAdminBusinessOrganization } from "@/lib/business-profile"
 import { getUser, upsertUserOnLogin, type AppUser, type UserRole } from "@/lib/users"
 import { portalPath } from "@/lib/portal-model"
+import { getTenant, type TenantStatus } from "@/lib/tenants"
+import { LEGACY_TENANT_ID } from "@/lib/tenancy"
 
 /** sessionStorage key holding the uid an admin is currently "viewing as". */
 const VIEW_AS_KEY = "viewAsUid"
+
+/** Backfill the pre-tenant database before tenant-filtered dashboard queries run. */
+async function migrateLegacyTenant(firebaseUser: User, appUser: AppUser | null) {
+  if (!appUser || (appUser.role !== "admin" && appUser.role !== "superadmin") || appUser.tenantId !== LEGACY_TENANT_ID) return
+  try {
+    const idToken = await firebaseUser.getIdToken()
+    const response = await fetch("/api/admin/tenant-migration", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${idToken}` },
+    })
+    if (!response.ok) console.warn("Legacy tenant migration was not completed", await response.text())
+  } catch (error) {
+    // Keep sign-in usable if the one-time backfill is temporarily unavailable.
+    console.warn("Legacy tenant migration could not run", error)
+  }
+}
 
 async function sendWelcomeEmailIfPending(firebaseUser: User, appUser: AppUser | null) {
   if (!appUser?.welcomeEmailPending || appUser.welcomeEmailSentAt || appUser.role !== "client" || !appUser.email) return
@@ -52,13 +70,14 @@ type AuthContextValue = {
   isAdmin: boolean
   /** True when an admin is previewing the dashboard as another user. */
   isImpersonating: boolean
+  tenantStatus: TenantStatus | null
   /** The user being previewed, when impersonating. */
   impersonatedUser: AppUser | null
   /** Admin-only: start previewing the app as `target`. */
   viewAsUser: (target: AppUser) => void
   /** Stop previewing and return to the admin's own account. */
   stopViewingAs: () => void
-  signUpWithEmail: (name: string, email: string, password: string) => Promise<void>
+  signUpWithEmail: (name: string, email: string, password: string, agencyName?: string) => Promise<void>
   signInWithEmail: (email: string, password: string) => Promise<void>
   signInWithGoogle: () => Promise<void>
   signOut: () => Promise<void>
@@ -73,6 +92,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // The doc of the user an admin is "viewing as", if any.
   const [impersonated, setImpersonated] = useState<AppUser | null>(null)
   const [loading, setLoading] = useState(true)
+  const [tenantStatus, setTenantStatus] = useState<TenantStatus | null>(null)
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (u) => {
@@ -86,7 +106,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             displayName: u.displayName,
             photoURL: u.photoURL,
           })
-          if (doc?.role === "admin") {
+          await migrateLegacyTenant(u, doc)
+          if (doc?.role === "admin" || doc?.role === "superadmin") {
             try {
               await ensureAdminBusinessOrganization({
                 id: doc.companyId || doc.uid,
@@ -99,12 +120,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             }
           }
           setRealAppUser(doc)
+          try {
+            const tenant = doc?.tenantId ? await getTenant(doc.tenantId) : null
+            setTenantStatus(tenant?.status || "trial")
+          } catch {
+            setTenantStatus("trial")
+          }
           void sendWelcomeEmailIfPending(u, doc)
 
           // Restore a "view as" selection made before navigating here. Only
           // admins can impersonate, and never themselves.
           const viewAsUid = typeof window !== "undefined" ? sessionStorage.getItem(VIEW_AS_KEY) : null
-          if (doc?.role === "admin" && viewAsUid && viewAsUid !== u.uid) {
+          if ((doc?.role === "admin" || doc?.role === "superadmin") && viewAsUid && viewAsUid !== u.uid) {
             try {
               setImpersonated(await getUser(viewAsUid))
             } catch {
@@ -121,6 +148,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } else {
         setRealAppUser(null)
         setImpersonated(null)
+        setTenantStatus(null)
       }
       setLoading(false)
     })
@@ -135,7 +163,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await signInWithEmailAndPassword(auth, email, password)
   }
 
-  async function signUpWithEmail(name: string, email: string, password: string) {
+  async function signUpWithEmail(name: string, email: string, password: string, agencyName?: string) {
     const credential = await createUserWithEmailAndPassword(auth, email, password)
     const displayName = name.trim()
 
@@ -148,6 +176,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       email: credential.user.email,
       displayName,
       photoURL: credential.user.photoURL,
+      agencyName,
     })
   }
 
@@ -158,7 +187,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const role = realAppUser?.role ?? null
-  const isAdmin = role === "admin"
+  const isAdmin = role === "admin" || role === "superadmin"
   const isImpersonating = isAdmin && impersonated !== null
 
   function viewAsUser(target: AppUser) {
@@ -181,6 +210,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loading,
         isAdmin,
         isImpersonating,
+        tenantStatus,
         impersonatedUser: isImpersonating ? impersonated : null,
         viewAsUser,
         stopViewingAs,

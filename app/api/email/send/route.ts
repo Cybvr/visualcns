@@ -4,6 +4,7 @@ import { FieldValue } from "firebase-admin/firestore"
 import { adminServices } from "@/lib/firebase-admin"
 import { normalizeSubscriptionEmail, subscriptionDocumentId, unsubscribeUrl } from "@/lib/email-unsubscribe"
 import { markdownToHtml } from "@/lib/markdown"
+import { getTenantSecret, recordTenantUsage } from "@/lib/server/tenant-secrets"
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const SITE_ORIGIN = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") || "https://www.visualcns.com"
@@ -101,7 +102,7 @@ function brandedEmail(content: string, subject: string, input: unknown, senderAd
     phone: safeBrandValue(source.phone),
     address: safeBrandValue(source.address, "Lagos, Nigeria"),
     website: safeBrandValue(source.website, "visualcns.com"),
-    logoUrl: `${SITE_ORIGIN}/visualcns-email-logo.png`,
+    logoUrl: safeBrandValue(source.logoUrl, `${SITE_ORIGIN}/visualcns-email-logo.png`) || `${SITE_ORIGIN}/visualcns-email-logo.png`,
   }
   const websiteUrl = absoluteWebUrl(brand.website, SITE_ORIGIN)
   const ctaSource = ctaInput && typeof ctaInput === "object" ? ctaInput as Record<string, unknown> : {}
@@ -200,9 +201,9 @@ async function getAdminCaller(idToken: string) {
   }
 }
 
-async function getMarketingRecipients(recipients: string[]) {
+async function getMarketingRecipients(recipients: string[], tenantId: string) {
   const { db } = adminServices()
-  const clientSnapshot = await db.collection("users").where("role", "==", "client").get()
+  const clientSnapshot = await db.collection("users").where("tenantId", "==", tenantId).where("role", "==", "client").get()
   const subscribedByDefault = new Set(
     clientSnapshot.docs
       .map((item) => normalizeSubscriptionEmail(String(item.data().email || "")))
@@ -219,7 +220,7 @@ async function getMarketingRecipients(recipients: string[]) {
   return { db, allowedRecipients, suppressedRecipients, unknownRecipients }
 }
 
-async function markContextAsSent(db: ReturnType<typeof adminServices>["db"], context: EmailContext) {
+async function markContextAsSent(db: ReturnType<typeof adminServices>["db"], context: EmailContext, tenantId: string) {
   if (!context.documentId || !context.documentType) return
   const collectionByType: Record<string, string> = {
     invoice: "invoices",
@@ -237,7 +238,10 @@ async function markContextAsSent(db: ReturnType<typeof adminServices>["db"], con
     : context.documentType === "task"
       ? { lastNotifiedAt: new Date().toISOString() }
       : { lastCommunicationAt: new Date().toISOString() }
-  await db.collection(collectionName).doc(context.documentId).set(patch, { merge: true })
+  const ref = db.collection(collectionName).doc(context.documentId)
+  const snapshot = await ref.get()
+  if (!snapshot.exists || snapshot.data()?.tenantId !== tenantId) return
+  await ref.set(patch, { merge: true })
 }
 
 async function claimWelcomeEmail(caller: { uid: string; data: Record<string, unknown>; db: ReturnType<typeof adminServices>["db"] }, email: string): Promise<WelcomeClaim | null> {
@@ -330,15 +334,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Your session has expired. Sign in again and retry." }, { status: 401 })
   }
 
-  const apiKey = process.env.RESEND_API_KEY
-  const from = normalizeEmailAddress(process.env.EMAIL_FROM || "")
-  const replyTo = normalizeEmailAddress(process.env.EMAIL_REPLY_TO || "") || from
-  if (!apiKey || !from) {
-    return NextResponse.json(
-      { error: "Email sending is not configured. Add RESEND_API_KEY and EMAIL_FROM to the server environment." },
-      { status: 503 },
-    )
-  }
+  let apiKey = process.env.RESEND_API_KEY || ""
+  let from = normalizeEmailAddress(process.env.EMAIL_FROM || "")
+  let replyTo = normalizeEmailAddress(process.env.EMAIL_REPLY_TO || "") || from
 
   let payload: { to?: unknown; subject?: unknown; text?: unknown; html?: unknown; imageUrl?: unknown; brand?: unknown; cta?: unknown; type?: unknown; welcome?: unknown; templateId?: unknown; companyId?: unknown; projectId?: unknown; documentType?: unknown; documentId?: unknown; scheduledAt?: unknown }
   try {
@@ -393,12 +391,32 @@ export async function POST(request: Request) {
   }
 
   let suppressedRecipients: string[] = []
-  const caller = (messageKind === "marketing" || context.documentId || isWelcome) ? await getAdminCaller(idToken) : null
+  const caller = await getAdminCaller(idToken)
+  const tenantId = caller && typeof caller.data.tenantId === "string" && caller.data.tenantId
+    ? caller.data.tenantId
+    : "legacy-visualcns"
+  if (caller && !payload.brand) {
+    const tenant = (await caller.db.collection("tenants").doc(tenantId).get()).data() || {}
+    payload.brand = {
+      name: typeof tenant.name === "string" ? tenant.name : undefined,
+      logoUrl: typeof tenant.logoUrl === "string" ? tenant.logoUrl : undefined,
+      email: typeof tenant.senderEmail === "string" ? tenant.senderEmail : undefined,
+    }
+  }
+  apiKey = await getTenantSecret(tenantId, "RESEND_API_KEY", apiKey)
+  from = normalizeEmailAddress(await getTenantSecret(tenantId, "EMAIL_FROM", from))
+  replyTo = normalizeEmailAddress(await getTenantSecret(tenantId, "EMAIL_REPLY_TO", replyTo)) || from
+  if (!apiKey || !from) {
+    return NextResponse.json({ error: "Email sending is not configured for this agency." }, { status: 503 })
+  }
   let welcomeClaim: WelcomeClaim | null = null
   if (isWelcome) {
     if (!caller) return NextResponse.json({ error: "Your session has expired. Sign in again and retry." }, { status: 401 })
     const companyId = String(caller.data.companyId || caller.uid)
     const templateSnapshot = await caller.db.collection("emailTemplates").doc(`${companyId}__${templateId}`).get()
+    if (templateSnapshot.exists && templateSnapshot.data()?.tenantId !== tenantId) {
+      return NextResponse.json({ error: "The welcome email template is not available." }, { status: 503 })
+    }
     if (!templateSnapshot.exists) {
       return NextResponse.json({ error: "The welcome email template is not available." }, { status: 503 })
     }
@@ -426,16 +444,17 @@ export async function POST(request: Request) {
   if (!text || text.length > 20_000) {
     return NextResponse.json({ error: "Add a message no longer than 20,000 characters." }, { status: 400 })
   }
-  if (context.documentId && (!caller || caller.data.role !== "admin")) {
+  const callerIsAdmin = caller?.data.role === "admin" || caller?.data.role === "superadmin"
+  if (context.documentId && (!caller || !callerIsAdmin)) {
     return NextResponse.json({ error: "Only an agency admin can send contextual client communication." }, { status: 403 })
   }
   if (messageKind === "marketing") {
-    if (!caller || caller.data.role !== "admin") {
+    if (!caller || !callerIsAdmin) {
       return NextResponse.json({ error: "Only an agency admin can send marketing emails." }, { status: 403 })
     }
 
     try {
-      const marketing = await getMarketingRecipients(recipients)
+      const marketing = await getMarketingRecipients(recipients, tenantId)
       if (marketing.unknownRecipients.length > 0) {
         return NextResponse.json(
           { error: `Marketing emails can only be sent to subscribed client or portal contacts. Not subscribed: ${marketing.unknownRecipients.join(", ")}` },
@@ -518,8 +537,9 @@ export async function POST(request: Request) {
       sent.push({ id: attempt.result.id, html: attempt.html, text: attempt.brandedText })
     }
     if (caller && context.documentId && !scheduledAtIso) {
-      try { await markContextAsSent(caller.db, context) } catch { /* Sending remains successful if object sync is temporarily unavailable. */ }
+      try { await markContextAsSent(caller.db, context, tenantId) } catch { /* Sending remains successful if object sync is temporarily unavailable. */ }
     }
+    void recordTenantUsage(tenantId, "emailsSent", sent.length).catch(() => undefined)
     return NextResponse.json({
       id: sent[0].id,
       ids: sent.map((item) => item.id),
@@ -549,10 +569,11 @@ export async function POST(request: Request) {
   }
 
   if (caller && context.documentId && !scheduledAtIso) {
-    try { await markContextAsSent(caller.db, context) } catch { /* Sending remains successful if object sync is temporarily unavailable. */ }
+    try { await markContextAsSent(caller.db, context, tenantId) } catch { /* Sending remains successful if object sync is temporarily unavailable. */ }
   }
   if (welcomeClaim) {
     try { await completeWelcomeEmail(welcomeClaim) } catch { /* The claim expires and can be retried if persistence is temporarily unavailable. */ }
   }
+  void recordTenantUsage(tenantId, "emailsSent", recipients.length).catch(() => undefined)
   return NextResponse.json({ id: attempt.result.id, html: attempt.html, text: attempt.brandedText, replyTo: replyTo || null, scheduledAt: scheduledAtIso || null, context })
 }

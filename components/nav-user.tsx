@@ -5,6 +5,7 @@ import { ChevronsUpDown, LogOut, Palette, UserCog, UserRound } from "lucide-reac
 
 import { useAuth } from "@/components/auth-provider"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { userRoleLabel } from "@/lib/users"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,6 +27,7 @@ export function NavUser() {
 
   const name = appUser?.displayName || appUser?.company || user?.displayName || "Account"
   const email = appUser?.email || user?.email || ""
+  const role = userRoleLabel(appUser?.role)
   const photoURL = appUser?.photoURL || user?.photoURL
   const initials =
     name
@@ -50,7 +52,7 @@ export function NavUser() {
               </Avatar>
               <div className="grid flex-1 text-left text-[13px] font-medium leading-tight text-muted-foreground">
                 <span className="truncate font-medium">{name}</span>
-                <span className="truncate text-xs">{email}</span>
+                <span className="truncate text-xs">{role}</span>
               </div>
               <ChevronsUpDown className="ml-auto size-4" />
             </SidebarMenuButton>
@@ -70,6 +72,7 @@ export function NavUser() {
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-medium">{name}</span>
                   <span className="truncate text-xs">{email}</span>
+                  <span className="truncate text-xs text-muted-foreground">{role}</span>
                   {isImpersonating && <span className="truncate text-[10px] text-amber-700">Viewing as client</span>}
                 </div>
               </div>
