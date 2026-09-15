@@ -45,7 +45,7 @@ import { FilterBar, useFilterBar, type SortOption } from "@/components/dashboard
 import type { EmailTemplateRecord } from "@/lib/email-templates-store"
 import { deleteEmailList, getEmailLists, saveEmailList, type EmailContactList } from "@/lib/email-lists"
 import { deleteEmailDraft, getEmailDrafts, saveEmailDraft, type EmailDraftRecord } from "@/lib/email-drafts"
-import { getAllEmailMessages, getEmailMessages, saveEmailMessage, type EmailMessageRecord, type EmailRecipient } from "@/lib/email-messages"
+import { getAllEmailMessages, getEmailMessages, saveEmailMessage, updateEmailMessageStatus, type EmailMessageRecord, type EmailRecipient } from "@/lib/email-messages"
 import { contextualEmailBody, readEmailComposeContext, type EmailComposeContext } from "@/lib/email-composer"
 import { getBusinessProfile, type BusinessProfile } from "@/lib/business-profile"
 import { deleteEmailTemplate, getEmailTemplates, saveEmailTemplate } from "@/lib/email-templates-store"
@@ -351,6 +351,7 @@ export default function EmailPage() {
   const [loadingMessageId, setLoadingMessageId] = useState<string | null>(null)
   const [messageViewError, setMessageViewError] = useState("")
   const hydratingRef = useRef<Set<string>>(new Set())
+  const reconciledRef = useRef<Set<string>>(new Set())
 
   const [preview, setPreview] = useState<{ kind: "template" | "message"; id: string } | null>(null)
   const [previewHeight, setPreviewHeight] = useState<number | null>(null)
@@ -428,6 +429,12 @@ export default function EmailPage() {
     if (tab !== "messages") return
     setSelectedSentId((current) => current && visibleMessages.some((m) => m.id === current) ? current : visibleMessages[0]?.id ?? null)
   }, [tab, messages])
+
+  // Settle any scheduled send whose time has passed so it stops reading
+  // "Scheduled" everywhere (list, reader, and the stored record).
+  useEffect(() => {
+    messages.filter(isScheduledPastDue).forEach((message) => void reconcileScheduled(message))
+  }, [messages])
 
   // A new item remounts the iframe, so drop the old measured height until the
   // new one reports its own on load, and clear any error from the last message.
@@ -939,6 +946,11 @@ export default function EmailPage() {
   // provider to confirm it actually went out, then relabelled here.
   async function reconcileScheduled(message: SentMessage) {
     if (message.status !== "scheduled" || !user) return
+    if (reconciledRef.current.has(message.id)) return
+    reconciledRef.current.add(message.id)
+    // The scheduled time has passed, so the provider has released it. Confirm
+    // the real delivery status, then default to "sent" if it can't be read.
+    let nextStatus: EmailMessageRecord["status"] = "sent"
     try {
       const idToken = await user.getIdToken()
       const response = await fetch(`/api/email/send?id=${encodeURIComponent(message.providerId)}`, {
@@ -946,15 +958,16 @@ export default function EmailPage() {
         cache: "no-store",
       })
       const result = (await response.json()) as { lastEvent?: string | null }
-      if (!response.ok) return
-      const event = (result.lastEvent || "").toLowerCase()
-      if (!event || event === "scheduled") return
-      const failedEvents = ["bounced", "complained", "canceled", "cancelled", "failed"]
-      const nextStatus = failedEvents.includes(event) ? "failed" : "sent"
-      setMessages((current) => current.map((item) => item.id === message.id ? { ...item, status: nextStatus } : item))
+      if (response.ok) {
+        const event = (result.lastEvent || "").toLowerCase()
+        if (event === "scheduled") { reconciledRef.current.delete(message.id); return }
+        if (["bounced", "complained", "canceled", "cancelled", "failed"].includes(event)) nextStatus = "failed"
+      }
     } catch {
-      // Leave the status as-is if the provider can't be reached.
+      // Fall back to "sent"—a past-due scheduled email has already been released.
     }
+    setMessages((current) => current.map((item) => item.id === message.id ? { ...item, status: nextStatus } : item))
+    void updateEmailMessageStatus(message.id, nextStatus === "failed" ? "failed" : "sent").catch(() => undefined)
   }
 
   // Show a sent message in the reading pane (and pull its body in if missing).

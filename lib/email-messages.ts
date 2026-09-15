@@ -59,3 +59,9 @@ export async function saveEmailMessage(message: EmailMessageRecord): Promise<voi
   record.tenantId = await getCurrentTenantId()
   await setDoc(doc(db, COLLECTION_NAME, message.id), record, { merge: true })
 }
+
+/** Persist just the delivery status—used to settle a scheduled send once it goes out. */
+export async function updateEmailMessageStatus(id: string, status: EmailMessageStatus): Promise<void> {
+  if (!id) return
+  await setDoc(doc(db, COLLECTION_NAME, id), { status, tenantId: await getCurrentTenantId() }, { merge: true })
+}
