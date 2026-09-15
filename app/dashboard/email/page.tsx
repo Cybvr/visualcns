@@ -1039,6 +1039,36 @@ export default function EmailPage() {
     }
   }
 
+  async function addInsightsTemplate() {
+    if (!user?.uid) {
+      setTemplateNotice({ tone: "error", text: "Sign in before adding a template." })
+      return
+    }
+    const insightsTemplate: EmailTemplate = {
+      id: "announce-insights",
+      name: "Announcement — Insights",
+      subject: "Introducing Insights in your portal",
+      body:
+        "<p>Hi there,</p>" +
+        "<p>We’ve added a new section to your portal called Insights.</p>" +
+        "<p>It gives you practical suggestions for growing your business across four areas: your website, your social media, your brand and design, and your content and marketing. Each suggestion is based on your account and the work we’re already doing together, so they’re specific to you rather than generic advice.</p>" +
+        "<p>You can open Insights any time from your portal, and refresh it whenever you’d like a fresh set of ideas.</p>" +
+        "<p>Take a look when you have a moment, and let us know which suggestions you’d like us to take on. We’re happy to talk any of them through.</p>" +
+        "<p>Best regards,<br />The VisualCNS team</p>",
+      updatedAt: new Date().toISOString(),
+    }
+    try {
+      await saveEmailTemplate({ ...insightsTemplate, companyId: workspaceId, createdBy: user.uid })
+      setTemplates((current) => {
+        const rest = current.filter((template) => template.id !== insightsTemplate.id)
+        return [insightsTemplate, ...rest]
+      })
+      setTemplateNotice({ tone: "success", text: "Insights announcement added to your templates." })
+    } catch {
+      setTemplateNotice({ tone: "error", text: "The template could not be added. Try again." })
+    }
+  }
+
   async function deleteTemplate(templateId: string) {
     try {
       await deleteEmailTemplate(templateId, workspaceId)
@@ -1764,9 +1794,16 @@ export default function EmailPage() {
             )}>
               <div className="flex items-center justify-between gap-3">
                 <h2 className="font-semibold">Saved templates <span className="text-sm font-normal tabular-nums text-muted-foreground">({templates.length})</span></h2>
-                <Button type="button" variant="ghost" size="icon" onClick={() => { resetTemplateEditor(); setMobileTemplateView("editor") }} aria-label="New template" title="New template">
-                  <Plus aria-hidden="true" />
-                </Button>
+                <div className="flex items-center gap-1">
+                  {isAdmin && !templates.some((template) => template.id === "announce-insights") && (
+                    <Button type="button" variant="outline" size="sm" onClick={addInsightsTemplate}>
+                      Add Insights email
+                    </Button>
+                  )}
+                  <Button type="button" variant="ghost" size="icon" onClick={() => { resetTemplateEditor(); setMobileTemplateView("editor") }} aria-label="New template" title="New template">
+                    <Plus aria-hidden="true" />
+                  </Button>
+                </div>
               </div>
               {templates.length === 0 ? (
                 <div className="mt-3 rounded-[12px] border border-dashed border-border px-4 py-8 text-center">
