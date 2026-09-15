@@ -306,7 +306,10 @@ export default function EmailPage() {
   const messageStorageKey = `visualcns-email-messages:${workspaceId}`
   const listStorageKey = `visualcns-email-lists:${workspaceId}`
 
-  const [tab, setTab] = useState<EmailTab>("messages")
+  const [tab, setTab] = useState<EmailTab>("inbox")
+  const [composeOpen, setComposeOpen] = useState(false)
+  const [composeMinimized, setComposeMinimized] = useState(false)
+  const [selectedSentId, setSelectedSentId] = useState<string | null>(null)
   const [templates, setTemplates] = useState<EmailTemplate[]>([])
   const [messages, setMessages] = useState<SentMessage[]>([])
   const [receivedMessages, setReceivedMessages] = useState<ReceivedMessage[]>([])
@@ -353,7 +356,7 @@ export default function EmailPage() {
   const [templateSubject, setTemplateSubject] = useState("")
   const [templateBody, setTemplateBody] = useState("")
   const [templateNotice, setTemplateNotice] = useState<Notice>(null)
-  const [mobileMessageView, setMobileMessageView] = useState<"list" | "composer">("list")
+  const [mobileMessageView, setMobileMessageView] = useState<"list" | "reader">("list")
   const [mobileTemplateView, setMobileTemplateView] = useState<"list" | "editor">("list")
   const [listName, setListName] = useState("")
   const [listContactEmails, setListContactEmails] = useState<string[]>([])
@@ -407,6 +410,20 @@ export default function EmailPage() {
     setScheduleMin(datetimeLocalMin())
   }, [])
 
+  // Clear the page toast a few seconds after a send (the notice inside the open
+  // composer is left alone).
+  useEffect(() => {
+    if (composeOpen || !sendNotice) return
+    const timer = window.setTimeout(() => setSendNotice(null), 6000)
+    return () => window.clearTimeout(timer)
+  }, [composeOpen, sendNotice])
+
+  // Keep a valid selection in the Sent reading pane.
+  useEffect(() => {
+    if (tab !== "messages") return
+    setSelectedSentId((current) => current && visibleMessages.some((m) => m.id === current) ? current : visibleMessages[0]?.id ?? null)
+  }, [tab, messages])
+
   // A new item remounts the iframe, so drop the old measured height until the
   // new one reports its own on load, and clear any error from the last message.
   useEffect(() => { setPreviewHeight(null); setMessageViewError("") }, [preview?.id])
@@ -458,7 +475,14 @@ export default function EmailPage() {
       : tab === "templates"
         ? templateFilterBar
         : listFilterBar
+  const EMAIL_FOLDERS: { key: EmailTab; label: string; icon: typeof Inbox; count: () => number }[] = [
+    { key: "inbox", label: "Inbox", icon: Inbox, count: () => receivedMessages.length },
+    { key: "messages", label: "Sent", icon: Send, count: () => messages.length },
+    { key: "templates", label: "Templates", icon: FileText, count: () => templates.length },
+    { key: "lists", label: "Lists", icon: List, count: () => lists.length },
+  ]
   const selectedReceived = receivedMessages.find((message) => message.id === selectedReceivedId) || null
+  const selectedSent = messages.find((message) => message.id === selectedSentId) || null
   const selectedContactName = contacts.find((contact) => recipientEmail(contact.email) === recipientEmail(to))?.name
   const composeRecipientName = selectedContactName || composeContext?.recipientName
   const selectedContact = contacts.find((contact) => recipientEmail(contact.email) === recipientEmail(to))
@@ -525,6 +549,11 @@ export default function EmailPage() {
     if (!selectedReceived || selectedReceived.html || selectedReceived.text) return
     void hydrateReceivedMessage(selectedReceived)
   }, [selectedReceivedId, receivedMessages])
+
+  useEffect(() => {
+    if (!selectedSent) return
+    void hydrateMessageBody(selectedSent)
+  }, [selectedSentId, messages])
 
   useEffect(() => {
     if (!user?.uid || tab !== "inbox") return
@@ -668,8 +697,8 @@ export default function EmailPage() {
     const nextContext = readEmailComposeContext(searchParams)
     if (!nextContext) return
     setComposeContext(nextContext)
-    setTab("messages")
-    setMobileMessageView("composer")
+    setComposeOpen(true)
+    setComposeMinimized(false)
     setPreview(null)
     setTo(nextContext.recipientEmail || "")
     setSelectedListId("")
@@ -760,6 +789,18 @@ export default function EmailPage() {
     setSendNotice(null)
   }
 
+  // Open the docked compose window. Pass reset to start from a blank message.
+  function openCompose(reset = false) {
+    if (reset) clearComposer()
+    setComposeOpen(true)
+    setComposeMinimized(false)
+  }
+
+  function closeCompose() {
+    setComposeOpen(false)
+    setComposeMinimized(false)
+  }
+
   async function saveDraft() {
     if (!user || savingDraft) return
     if (!subject.trim() && !htmlToText(body).trim() && !to.trim() && !selectedListId) {
@@ -820,7 +861,8 @@ export default function EmailPage() {
     draftIdRef.current = draft.id
     setDraftStatus("saved")
     setSendNotice(null)
-    setMobileMessageView("composer")
+    setComposeOpen(true)
+    setComposeMinimized(false)
   }
 
   async function removeDraft(id: string) {
@@ -888,10 +930,11 @@ export default function EmailPage() {
     }
   }
 
-  // Opening a message in the lightbox pulls its body in if we don't have it yet.
-  function previewMessageById(message: SentMessage) {
+  // Show a sent message in the reading pane (and pull its body in if missing).
+  function openSentMessage(message: SentMessage) {
     setMessageViewError("")
-    setPreview({ kind: "message", id: message.id })
+    setSelectedSentId(message.id)
+    setMobileMessageView("reader")
     void hydrateMessageBody(message)
   }
 
@@ -1021,6 +1064,9 @@ export default function EmailPage() {
       setSendNotice(historySaved
         ? { tone: "success", text: `${verb}.${suppressionNotice}` }
         : { tone: "error", text: `${verb}, but its shared history could not be saved.` })
+      // Close the docked window on a successful send (Gmail-style); the notice
+      // shows as a page toast.
+      closeCompose()
     } catch (error) {
       setSendNotice({
         tone: "error",
@@ -1050,8 +1096,8 @@ export default function EmailPage() {
   function useEditingTemplate() {
     if (!editingTemplateId || !templates.some((template) => template.id === editingTemplateId)) return
     applyTemplate(editingTemplateId)
-    setTab("messages")
-    setMobileMessageView("composer")
+    setComposeOpen(true)
+    setComposeMinimized(false)
   }
 
   async function saveTemplate(event: FormEvent<HTMLFormElement>) {
@@ -1209,75 +1255,61 @@ export default function EmailPage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-0 w-full max-w-5xl flex-1 flex-col overflow-visible px-3 pt-3 pb-5 sm:px-6 sm:pt-4 sm:pb-6 lg:h-[calc(100svh-3.5rem)] lg:max-h-[calc(100svh-3.5rem)] lg:flex-none lg:overflow-hidden">
+    <main className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col overflow-visible px-3 pt-3 pb-5 sm:px-6 sm:pt-4 sm:pb-6 lg:h-[calc(100svh-3.5rem)] lg:max-h-[calc(100svh-3.5rem)] lg:flex-none lg:flex-row lg:gap-6 lg:overflow-hidden">
+      {/* Gmail-style folder rail */}
+      <nav className="hidden shrink-0 lg:flex lg:w-52 lg:flex-col" aria-label="Email folders">
+        <Button type="button" className="mb-3 justify-start gap-2 rounded-full px-4 shadow-sm" onClick={() => openCompose(true)}>
+          <Plus aria-hidden="true" />Compose
+        </Button>
+        <div className="flex flex-col gap-0.5">
+          {EMAIL_FOLDERS.map((folder) => (
+            <button
+              key={folder.key}
+              type="button"
+              onClick={() => setTab(folder.key)}
+              className={cn(
+                "flex items-center gap-3 rounded-full px-4 py-2 text-sm font-medium transition-colors",
+                tab === folder.key ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground",
+              )}
+              aria-current={tab === folder.key ? "page" : undefined}
+            >
+              <folder.icon className="size-4 shrink-0" aria-hidden="true" />
+              <span className="min-w-0 flex-1 truncate text-left">{folder.label}</span>
+              <span className="shrink-0 text-xs tabular-nums text-muted-foreground">{folder.count()}</span>
+            </button>
+          ))}
+        </div>
+      </nav>
+
       <div className="flex h-full min-h-0 w-full flex-1 flex-col">
         <FilterBar
           {...activeFilterBar}
           className="mb-2"
-          placeholder={tab === "inbox" ? "Search inbox" : tab === "messages" ? "Search messages" : tab === "templates" ? "Search templates" : "Search lists"}
+          placeholder={tab === "inbox" ? "Search inbox" : tab === "messages" ? "Search sent" : tab === "templates" ? "Search templates" : "Search lists"}
           searchClassName={tab === "messages" || tab === "inbox" ? "sm:max-w-[16rem]" : undefined}
           actions={
-            <>
-              <Button
-                type="button"
-                variant="outline"
-                className="hidden sm:inline-flex"
-                onClick={() => setTab("inbox")}
-              >
-                <Inbox aria-hidden="true" />Inbox
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                className="hidden sm:inline-flex"
-                onClick={() => {
-                  setTab("messages")
-                  clearComposer()
-                  setMobileMessageView("composer")
-                }}
-              >
-                <Plus aria-hidden="true" />Compose
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                className="hidden sm:inline-flex"
-                onClick={() => setTab("templates")}
-              >
-                <FileText aria-hidden="true" />Templates
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                className="hidden sm:inline-flex"
-                onClick={() => setTab("lists")}
-              >
-                <List aria-hidden="true" />Lists
-              </Button>
-            </>
+            <Button type="button" className="lg:hidden" onClick={() => openCompose(true)}>
+              <Plus aria-hidden="true" />Compose
+            </Button>
           }
         />
-        <div className="mb-2 flex w-full items-center gap-1 rounded-md bg-muted/50 p-0.5 sm:hidden" role="tablist" aria-label="Email">
-          {(["inbox", "messages", "templates", "lists"] as const).map((item) => (
+        <div className="mb-2 flex w-full items-center gap-1 rounded-md bg-muted/50 p-0.5 lg:hidden" role="tablist" aria-label="Email">
+          {EMAIL_FOLDERS.map((folder) => (
             <button
-              key={item}
+              key={folder.key}
               type="button"
               role="tab"
-              aria-selected={tab === item}
+              aria-selected={tab === folder.key}
               onClick={() => {
-                setTab(item)
-                if (item === "messages") {
-                  clearComposer()
-                  setMobileMessageView("list")
-                }
-                if (item === "templates") setMobileTemplateView("list")
+                setTab(folder.key)
+                if (folder.key === "templates") setMobileTemplateView("list")
               }}
               className={cn(
-                "flex-1 rounded-md px-2 py-1.5 text-xs font-medium capitalize transition-colors",
-                tab === item ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
+                "flex-1 rounded-md px-2 py-1.5 text-xs font-medium transition-colors",
+                tab === folder.key ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
               )}
             >
-              {item}
+              {folder.label}
             </button>
           ))}
         </div>
@@ -1409,13 +1441,14 @@ export default function EmailPage() {
               mobileMessageView === "list" || !isMobile ? "block" : "hidden",
             )}>
               <div className="flex items-center justify-between gap-3 border-b border-border px-3.5 py-3 sm:px-4 sm:py-3.5">
-                <h2 className="text-sm font-semibold">Sent messages</h2>
-                <div className="flex items-center gap-2">
-                  <Button type="button" variant="ghost" size="sm" className="h-8 px-2 lg:hidden" onClick={() => { clearComposer(); setMobileMessageView("composer") }}>
-                    <Plus aria-hidden="true" />Compose
-                  </Button>
+                <div className="flex min-w-0 items-center gap-2">
+                  <Send className="size-4 text-muted-foreground" aria-hidden="true" />
+                  <h2 className="text-sm font-semibold">Sent</h2>
                   <span className="text-xs tabular-nums text-muted-foreground">{messages.length}</span>
                 </div>
+                <Button type="button" variant="ghost" size="sm" className="h-8 gap-1.5 px-2 lg:hidden" onClick={() => openCompose(true)}>
+                  <Plus aria-hidden="true" />Compose
+                </Button>
               </div>
               {drafts.length > 0 && (
                 <div className="border-b border-border">
@@ -1483,12 +1516,12 @@ export default function EmailPage() {
                     <button
                       key={message.id}
                       type="button"
-                      onClick={() => previewMessageById(message)}
+                      onClick={() => openSentMessage(message)}
                       className={cn(
                         "block w-full px-3.5 py-3 text-left transition-colors hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset sm:px-4",
-                        preview?.kind === "message" && preview.id === message.id && "bg-muted",
+                        selectedSentId === message.id && "bg-muted",
                       )}
-                      aria-label={`Preview sent email: ${message.subject}`}
+                      aria-label={`Open sent email: ${message.subject}`}
                     >
                       <div className="flex items-start gap-3">
                         <Avatar className={cn("size-10", contactAvatarTone(message.to))}>
@@ -1527,241 +1560,63 @@ export default function EmailPage() {
             </aside>
 
             <div className={cn(
-              "min-h-0 lg:h-full lg:overflow-hidden",
-              mobileMessageView === "composer" || !isMobile ? "block" : "hidden",
+              "min-h-0 flex-1 flex-col overflow-hidden rounded-[14px] border border-border bg-card lg:flex",
+              mobileMessageView === "reader" || !isMobile ? "flex" : "hidden",
             )}>
-            <div className="mb-3 flex items-center gap-2 lg:hidden">
-              <Button type="button" variant="ghost" size="icon" onClick={() => setMobileMessageView("list")} aria-label="Back to sent messages">
-                <ArrowLeft aria-hidden="true" />
-              </Button>
-              <div className="min-w-0">
-                <p className="truncate text-sm font-semibold">Compose</p>
-                <p className="text-xs text-muted-foreground">Back to sent messages</p>
-              </div>
-            </div>
-            <form autoComplete="off" onSubmit={sendEmail} className="flex min-h-0 flex-col rounded-[14px] border border-border bg-card lg:grid lg:h-full lg:grid-rows-[auto_minmax(0,1fr)_auto] lg:overflow-hidden">
-              <div className="grid shrink-0 gap-0 bg-card sm:grid-cols-[minmax(0,1fr)_10rem]">
-                <div className="flex min-w-0 items-center gap-2 bg-card px-3 py-2.5 sm:px-4">
-                  <span className="shrink-0 text-xs font-medium text-muted-foreground">From</span>
-                  <p className="min-w-0 truncate text-sm">{cleanSenderDisplay(senderAddress || (showOpsDetail ? "Not configured" : "Not available yet"))}</p>
-                </div>
-                <div className="bg-card px-3 py-2.5 sm:px-4">
-                  <Select value={messageKind} onValueChange={(value) => setMessageKind(value as EmailMessageKind)}>
-                    <SelectTrigger id="email-message-kind" aria-label="Message type" className="h-7 w-full border-0 bg-transparent px-0 shadow-none hover:bg-transparent data-[state=open]:bg-transparent">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="transactional">Service message</SelectItem>
-                      <SelectItem value="marketing">Marketing email</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="min-h-0 space-y-3 overflow-visible px-3 py-3 sm:px-4 sm:py-4 lg:grid lg:grid-rows-[auto_auto_minmax(0,1fr)] lg:gap-3 lg:space-y-0 lg:overflow-hidden">
-                <div className="grid min-h-0 gap-3 sm:grid-cols-2">
-                  <div className="flex min-h-0 flex-col gap-1.5">
-                    <Popover
-                      open={contactPickerOpen}
-                      onOpenChange={(open) => {
-                        setContactPickerOpen(open)
-                        if (!open) setContactQuery("")
-                      }}
-                    >
-                      <PopoverTrigger asChild>
-                        <button
-                          id="email-to"
-                          type="button"
-                          role="combobox"
-                          aria-expanded={contactPickerOpen}
-                          aria-label="Select contact"
-                          disabled={Boolean(selectedListId)}
-                          className="flex h-8 w-full min-w-0 items-center gap-2 border-b border-input bg-transparent px-0 text-left text-sm outline-none transition-[border-color] hover:border-muted-foreground focus-visible:border-foreground disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                          <span className="min-w-0 flex-1 truncate">
-                            {selectedContact?.name || (selectedList ? `Sending to ${selectedList.contactEmails.length} contacts` : "Select contact")}
-                          </span>
-                          <ChevronsUpDown className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-                        </button>
-                      </PopoverTrigger>
-                      <PopoverContent
-                        align="start"
-                        className="w-[var(--radix-popover-trigger-width)] min-w-[280px] p-0"
-                      >
-                        <Command>
-                          <CommandInput
-                            autoFocus
-                            placeholder="Search contacts"
-                            value={contactQuery}
-                            onValueChange={setContactQuery}
-                          />
-                          <CommandList>
-                            <CommandEmpty className="px-3 py-6 text-center text-sm text-muted-foreground">No matching contacts.</CommandEmpty>
-                            <CommandGroup>
-                              {visibleContactOptions.map((contact) => {
-                                const isSelected = recipientEmail(contact.email) === recipientEmail(to)
-                                return (
-                                  <CommandItem
-                                    key={contact.email}
-                                    value={`${contact.name} ${contact.email}`}
-                                    onSelect={() => {
-                                      handleRecipientChange(contact.email)
-                                      setContactPickerOpen(false)
-                                      setContactQuery("")
-                                    }}
-                                    className="items-center gap-3 px-3 py-2.5"
-                                  >
-                                    <Avatar className={cn("size-10", contactAvatarTone(contact.name || contact.email))}>
-                                      <AvatarFallback className="bg-transparent text-sm font-medium">
-                                        {contactInitials(contact.name, contact.email)}
-                                      </AvatarFallback>
-                                    </Avatar>
-                                    <span className="min-w-0 flex-1">
-                                      <span className="block truncate text-sm font-medium text-foreground">{contact.name || "Unnamed contact"}</span>
-                                      <span className="block truncate text-xs text-muted-foreground">{contact.email}</span>
-                                    </span>
-                                    <Check className={cn("size-4 shrink-0", isSelected ? "opacity-100" : "opacity-0")} aria-hidden="true" />
-                                  </CommandItem>
-                                )
-                              })}
-                            </CommandGroup>
-                          </CommandList>
-                        </Command>
-                      </PopoverContent>
-                    </Popover>
-                    {contacts.length === 0 && !selectedList && (
-                      <p className="text-xs text-muted-foreground">No saved client contacts available.</p>
+              {selectedSent ? (
+                <>
+                  <div className="shrink-0 border-b border-border px-4 py-4 sm:px-5">
+                    <div className="mb-2 flex items-center gap-2 lg:hidden">
+                      <Button type="button" variant="ghost" size="icon" className="-ml-2 size-8" onClick={() => setMobileMessageView("list")} aria-label="Back to sent">
+                        <ArrowLeft aria-hidden="true" />
+                      </Button>
+                    </div>
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="min-w-0">
+                        <h2 className="truncate text-base font-semibold">{selectedSent.subject}</h2>
+                        <p className="mt-1 truncate text-sm text-muted-foreground">To {selectedSent.to}</p>
+                        {selectedSent.from && <p className="truncate text-xs text-muted-foreground">From {cleanSenderDisplay(selectedSent.from)}</p>}
+                      </div>
+                      <div className="flex shrink-0 flex-col items-end gap-1 text-right">
+                        <time dateTime={selectedSent.createdAt} className="text-xs text-muted-foreground">{formatMessageDate(selectedSent.createdAt)}</time>
+                        {selectedSent.status === "scheduled" ? (
+                          <span className="inline-flex items-center gap-1 text-[11px] text-amber-700 dark:text-amber-300"><Clock className="size-3" aria-hidden="true" />Scheduled</span>
+                        ) : selectedSent.status === "failed" ? (
+                          <span className="inline-flex items-center gap-1 text-[11px] text-destructive"><X className="size-3" aria-hidden="true" />Failed</span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 text-[11px] text-emerald-700 dark:text-emerald-300"><CheckCircle2 className="size-3" aria-hidden="true" />Sent</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="min-h-0 flex-1 overflow-hidden bg-white">
+                    {loadingMessageId === selectedSent.id ? (
+                      <div className="flex h-full items-center justify-center text-sm text-muted-foreground"><Loader2 className="mr-2 size-4 animate-spin" aria-hidden="true" />Loading message…</div>
+                    ) : messageViewError ? (
+                      <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center">
+                        <p className="text-sm font-medium text-destructive">Couldn’t load this email</p>
+                        <p className="text-xs leading-5 text-muted-foreground">{messageViewError}</p>
+                        <Button type="button" variant="outline" size="sm" onClick={() => void hydrateMessageBody(selectedSent)}>Try again</Button>
+                      </div>
+                    ) : !selectedSent.bodyHtml && !selectedSent.bodyText ? (
+                      <div className="flex h-full flex-col items-center justify-center gap-2 px-6 text-center text-muted-foreground">
+                        <Mail className="size-5" aria-hidden="true" />
+                        <p className="text-sm font-medium text-foreground">Message body unavailable</p>
+                        <p className="text-xs leading-5">This email was sent before previews were saved.</p>
+                      </div>
+                    ) : (
+                      <iframe
+                        title={`Sent email: ${selectedSent.subject}`}
+                        srcDoc={sentMessagePreview(selectedSent)}
+                        sandbox=""
+                        className="h-full min-h-[24rem] w-full border-0"
+                      />
                     )}
                   </div>
-                  <div className="flex min-h-0 flex-col gap-1.5">
-                    <Select
-                      value={selectedListId || "none"}
-                      onValueChange={(value) => {
-                        setSelectedListId(value === "none" ? "" : value)
-                        if (value !== "none") setTo("")
-                      }}
-                    >
-                      <SelectTrigger id="email-list" aria-label="Contact list">
-                        <SelectValue placeholder="Select list" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">No list</SelectItem>
-                        {[...lists].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" })).map((list) => (
-                          <SelectItem key={list.id} value={list.id}>{list.name} ({list.contactEmails.length})</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <div className="space-y-1.5">
-                  <Input
-                    id="email-subject"
-                    name="message-subject"
-                    aria-label="Subject"
-                    autoComplete="off"
-                    inputMode="text"
-                    value={subject}
-                    onChange={(event) => setSubject(event.target.value)}
-                    maxLength={200}
-                    placeholder="What is this message about?"
-                    required
-                  />
-                  {messageKind === "marketing" && (
-                    <p className="text-xs leading-5 text-muted-foreground">Only subscribed client and portal contacts will receive this email. An unsubscribe link will be added automatically.</p>
-                  )}
-                </div>
-                <div className="flex min-h-0 flex-col gap-1.5">
-                  <RichTextEditor
-                    value={body}
-                    onChange={setBody}
-                    placeholder="Write your message"
-                    scrollable
-                    compact
-                    flat
-                    allowHtml
-                    className="min-h-64 lg:min-h-0 lg:flex-1"
-                  />
-                </div>
-              </div>
-
-              <div className="sticky bottom-0 z-20 flex shrink-0 flex-col gap-2 border-t border-border bg-card px-3 py-2.5 pb-3 sm:flex-row sm:items-center sm:justify-between sm:px-4 lg:static lg:pb-2.5">
-                <div aria-live="polite" className="min-h-5 text-sm">
-                  {sendNotice && (
-                    <span className={sendNotice.tone === "success" ? "text-emerald-700 dark:text-emerald-300" : "text-destructive"}>
-                      {sendNotice.text}
-                    </span>
-                  )}
-                  {!sendNotice && draftStatus !== "idle" && (
-                    <span className="text-xs text-muted-foreground">
-                      {draftStatus === "saving" || savingDraft ? "Saving draft…" : draftStatus === "saved" ? "Draft saved" : "Draft could not be saved"}
-                    </span>
-                  )}
-                </div>
-                <div className="flex flex-wrap items-center justify-end gap-2">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button type="button" variant="ghost" className="max-w-52 justify-start">
-                        <FileText aria-hidden="true" />
-                        <span className="truncate">{selectedTemplate?.name || "Template"}</span>
-                        <ChevronDown className="ml-auto size-4" aria-hidden="true" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start" className="w-72">
-                      <DropdownMenuItem onSelect={() => applyTemplate("")}>Start without a template</DropdownMenuItem>
-                      {[...templates].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" })).map((template) => (
-                        <DropdownMenuItem key={template.id} onSelect={() => applyTemplate(template.id)}>
-                          <span className="truncate">{template.name}</span>
-                        </DropdownMenuItem>
-                      ))}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                  {scheduleEnabled && (
-                    <Input
-                      type="datetime-local"
-                      aria-label="Schedule date and time"
-                      value={scheduleAt}
-                      min={scheduleMin || undefined}
-                      onChange={(event) => setScheduleAt(event.target.value)}
-                      className="h-9 w-auto"
-                    />
-                  )}
-                  <div className="inline-flex items-stretch">
-                    <Button
-                      type="submit"
-                      className="rounded-r-none"
-                      disabled={!senderConfigured || sending || (!selectedListId && !to.trim()) || (selectedListId && !selectedList?.contactEmails.length) || !subject.trim() || !htmlToText(body).trim() || (scheduleEnabled && !scheduleAt)}
-                    >
-                      {sending ? <Loader2 className="animate-spin" aria-hidden="true" /> : scheduleEnabled ? <Clock aria-hidden="true" /> : <Send aria-hidden="true" />}
-                      {sending ? (scheduleEnabled ? "Scheduling" : "Sending") : scheduleEnabled ? "Schedule" : "Send"}
-                    </Button>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          type="button"
-                          aria-label="Choose send action"
-                          title="Choose send action"
-                          className="rounded-l-none border-l border-primary-foreground/25 px-2"
-                          disabled={sending}
-                        >
-                          <ChevronDown aria-hidden="true" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        {scheduleEnabled ? (
-                          <DropdownMenuItem onSelect={() => { setScheduleEnabled(false); setScheduleAt("") }}>
-                            <Send aria-hidden="true" />Send now
-                          </DropdownMenuItem>
-                        ) : (
-                          <DropdownMenuItem onSelect={() => setScheduleEnabled(true)}>
-                            <Clock aria-hidden="true" />Schedule
-                          </DropdownMenuItem>
-                        )}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                </div>
-              </div>
-            </form>
+                </>
+              ) : (
+                <div className="flex h-full min-h-[24rem] items-center justify-center px-6 text-center text-sm text-muted-foreground">Select a message to read it.</div>
+              )}
             </div>
           </section>
         )}
@@ -2022,6 +1877,251 @@ export default function EmailPage() {
         )}
 
       </div>
+
+      {/* Docked compose window (Gmail-style) */}
+      {composeOpen && (
+        <div className="fixed inset-x-0 bottom-0 z-40 flex justify-center sm:inset-x-auto sm:right-6 sm:justify-end">
+          <div className={cn(
+            "flex w-full flex-col overflow-hidden border border-border bg-card shadow-2xl sm:w-[512px] sm:max-w-[calc(100vw-3rem)] sm:rounded-t-xl",
+            composeMinimized ? "h-auto" : "h-[85svh] sm:h-[560px] sm:max-h-[calc(100svh-2rem)]",
+          )}>
+            <div className="flex shrink-0 items-center justify-between gap-2 bg-neutral-800 px-4 py-2 text-white dark:bg-neutral-900">
+              <button
+                type="button"
+                onClick={() => setComposeMinimized((value) => !value)}
+                className="min-w-0 flex-1 truncate text-left text-sm font-medium outline-none"
+                title={composeMinimized ? "Expand" : "Minimize"}
+              >
+                {subject.trim() || "New message"}
+              </button>
+              <div className="flex shrink-0 items-center gap-1">
+                <button type="button" onClick={() => setComposeMinimized((value) => !value)} aria-label={composeMinimized ? "Expand" : "Minimize"} className="flex size-7 items-center justify-center rounded text-white/80 outline-none transition-colors hover:bg-white/15 hover:text-white">
+                  <ChevronDown className={cn("size-4 transition-transform", composeMinimized && "rotate-180")} aria-hidden="true" />
+                </button>
+                <button type="button" onClick={closeCompose} aria-label="Close" className="flex size-7 items-center justify-center rounded text-white/80 outline-none transition-colors hover:bg-white/15 hover:text-white">
+                  <X className="size-4" aria-hidden="true" />
+                </button>
+              </div>
+            </div>
+
+            {!composeMinimized && (
+              <form autoComplete="off" onSubmit={sendEmail} className="flex min-h-0 flex-1 flex-col overflow-hidden">
+                <div className="grid shrink-0 grid-cols-[minmax(0,1fr)_9rem] items-center border-b border-border">
+                  <div className="flex min-w-0 items-center gap-2 px-4 py-2">
+                    <span className="shrink-0 text-xs font-medium text-muted-foreground">From</span>
+                    <p className="min-w-0 truncate text-sm">{cleanSenderDisplay(senderAddress || (showOpsDetail ? "Not configured" : "Not available yet"))}</p>
+                  </div>
+                  <div className="px-3 py-1">
+                    <Select value={messageKind} onValueChange={(value) => setMessageKind(value as EmailMessageKind)}>
+                      <SelectTrigger aria-label="Message type" className="h-7 w-full border-0 bg-transparent px-1 text-xs shadow-none hover:bg-transparent data-[state=open]:bg-transparent">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="transactional">Service message</SelectItem>
+                        <SelectItem value="marketing">Marketing email</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="grid shrink-0 grid-cols-2 gap-3 border-b border-border px-4 py-2.5">
+                  <Popover
+                    open={contactPickerOpen}
+                    onOpenChange={(open) => {
+                      setContactPickerOpen(open)
+                      if (!open) setContactQuery("")
+                    }}
+                  >
+                    <PopoverTrigger asChild>
+                      <button
+                        id="email-to"
+                        type="button"
+                        role="combobox"
+                        aria-expanded={contactPickerOpen}
+                        aria-label="Select contact"
+                        disabled={Boolean(selectedListId)}
+                        className="flex h-8 w-full min-w-0 items-center gap-2 border-b border-input bg-transparent px-0 text-left text-sm outline-none transition-[border-color] hover:border-muted-foreground focus-visible:border-foreground disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        <span className="min-w-0 flex-1 truncate">
+                          {selectedContact?.name || (selectedList ? `Sending to ${selectedList.contactEmails.length} contacts` : "To")}
+                        </span>
+                        <ChevronsUpDown className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent align="start" className="w-[var(--radix-popover-trigger-width)] min-w-[280px] p-0">
+                      <Command>
+                        <CommandInput autoFocus placeholder="Search contacts" value={contactQuery} onValueChange={setContactQuery} />
+                        <CommandList>
+                          <CommandEmpty className="px-3 py-6 text-center text-sm text-muted-foreground">No matching contacts.</CommandEmpty>
+                          <CommandGroup>
+                            {visibleContactOptions.map((contact) => {
+                              const isSelected = recipientEmail(contact.email) === recipientEmail(to)
+                              return (
+                                <CommandItem
+                                  key={contact.email}
+                                  value={`${contact.name} ${contact.email}`}
+                                  onSelect={() => {
+                                    handleRecipientChange(contact.email)
+                                    setContactPickerOpen(false)
+                                    setContactQuery("")
+                                  }}
+                                  className="items-center gap-3 px-3 py-2.5"
+                                >
+                                  <Avatar className={cn("size-10", contactAvatarTone(contact.name || contact.email))}>
+                                    <AvatarFallback className="bg-transparent text-sm font-medium">{contactInitials(contact.name, contact.email)}</AvatarFallback>
+                                  </Avatar>
+                                  <span className="min-w-0 flex-1">
+                                    <span className="block truncate text-sm font-medium text-foreground">{contact.name || "Unnamed contact"}</span>
+                                    <span className="block truncate text-xs text-muted-foreground">{contact.email}</span>
+                                  </span>
+                                  <Check className={cn("size-4 shrink-0", isSelected ? "opacity-100" : "opacity-0")} aria-hidden="true" />
+                                </CommandItem>
+                              )
+                            })}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                  <Select
+                    value={selectedListId || "none"}
+                    onValueChange={(value) => {
+                      setSelectedListId(value === "none" ? "" : value)
+                      if (value !== "none") setTo("")
+                    }}
+                  >
+                    <SelectTrigger aria-label="Contact list" className="h-8">
+                      <SelectValue placeholder="Select list" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">No list</SelectItem>
+                      {[...lists].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" })).map((list) => (
+                        <SelectItem key={list.id} value={list.id}>{list.name} ({list.contactEmails.length})</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="shrink-0 border-b border-border px-4 py-1.5">
+                  <Input
+                    id="email-subject"
+                    name="message-subject"
+                    aria-label="Subject"
+                    autoComplete="off"
+                    value={subject}
+                    onChange={(event) => setSubject(event.target.value)}
+                    maxLength={200}
+                    placeholder="Subject"
+                    className="h-8 border-0 px-0 shadow-none focus-visible:ring-0"
+                    required
+                  />
+                </div>
+                {messageKind === "marketing" && (
+                  <p className="shrink-0 border-b border-border px-4 py-1.5 text-xs leading-5 text-muted-foreground">Only subscribed contacts will receive this. An unsubscribe link is added automatically.</p>
+                )}
+
+                <div className="min-h-0 flex-1 overflow-hidden px-2 py-2">
+                  <RichTextEditor
+                    value={body}
+                    onChange={setBody}
+                    placeholder="Write your message"
+                    scrollable
+                    compact
+                    flat
+                    allowHtml
+                    className="h-full min-h-0"
+                  />
+                </div>
+
+                <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-t border-border px-3 py-2">
+                  <div className="flex items-center gap-1">
+                    <div className="inline-flex items-stretch">
+                      <Button
+                        type="submit"
+                        className="rounded-r-none"
+                        disabled={!senderConfigured || sending || (!selectedListId && !to.trim()) || (selectedListId && !selectedList?.contactEmails.length) || !subject.trim() || !htmlToText(body).trim() || (scheduleEnabled && !scheduleAt)}
+                      >
+                        {sending ? <Loader2 className="animate-spin" aria-hidden="true" /> : scheduleEnabled ? <Clock aria-hidden="true" /> : <Send aria-hidden="true" />}
+                        {sending ? (scheduleEnabled ? "Scheduling" : "Sending") : scheduleEnabled ? "Schedule" : "Send"}
+                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button type="button" aria-label="Choose send action" title="Choose send action" className="rounded-l-none border-l border-primary-foreground/25 px-2" disabled={sending}>
+                            <ChevronDown aria-hidden="true" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="start">
+                          {scheduleEnabled ? (
+                            <DropdownMenuItem onSelect={() => { setScheduleEnabled(false); setScheduleAt("") }}>
+                              <Send aria-hidden="true" />Send now
+                            </DropdownMenuItem>
+                          ) : (
+                            <DropdownMenuItem onSelect={() => setScheduleEnabled(true)}>
+                              <Clock aria-hidden="true" />Schedule
+                            </DropdownMenuItem>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                    {scheduleEnabled && (
+                      <Input
+                        type="datetime-local"
+                        aria-label="Schedule date and time"
+                        value={scheduleAt}
+                        min={scheduleMin || undefined}
+                        onChange={(event) => setScheduleAt(event.target.value)}
+                        className="h-9 w-auto"
+                      />
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {draftStatus !== "idle" && (
+                      <span className="hidden text-xs text-muted-foreground sm:inline">
+                        {draftStatus === "saving" || savingDraft ? "Saving…" : draftStatus === "saved" ? "Saved" : "Not saved"}
+                      </span>
+                    )}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button type="button" variant="ghost" size="sm" className="max-w-40 justify-start px-2">
+                          <FileText aria-hidden="true" />
+                          <span className="truncate">{selectedTemplate?.name || "Template"}</span>
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-72">
+                        <DropdownMenuItem onSelect={() => applyTemplate("")}>Start without a template</DropdownMenuItem>
+                        {[...templates].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" })).map((template) => (
+                          <DropdownMenuItem key={template.id} onSelect={() => applyTemplate(template.id)}>
+                            <span className="truncate">{template.name}</span>
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                    <button type="button" onClick={() => { if (editingDraftId) void removeDraft(editingDraftId); clearComposer(); closeCompose() }} aria-label="Discard draft" title="Discard" className="flex size-9 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-destructive/10 hover:text-destructive">
+                      <Trash2 className="size-4" aria-hidden="true" />
+                    </button>
+                  </div>
+                </div>
+                {sendNotice && sendNotice.tone === "error" && (
+                  <div className="shrink-0 border-t border-border px-4 py-2 text-sm text-destructive" aria-live="polite">{sendNotice.text}</div>
+                )}
+              </form>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Send confirmation toast (shown once the composer closes) */}
+      {!composeOpen && sendNotice && (
+        <div className="fixed bottom-4 left-1/2 z-40 -translate-x-1/2 sm:left-6 sm:translate-x-0">
+          <div className={cn(
+            "flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm shadow-lg",
+            sendNotice.tone === "success" ? "bg-neutral-800 text-white dark:bg-neutral-900" : "bg-destructive text-destructive-foreground",
+          )}>
+            {sendNotice.tone === "success" ? <CheckCircle2 className="size-4 shrink-0" aria-hidden="true" /> : <X className="size-4 shrink-0" aria-hidden="true" />}
+            <span>{sendNotice.text}</span>
+          </div>
+        </div>
+      )}
 
       {(previewTemplate || previewMessage) && (
         <div
