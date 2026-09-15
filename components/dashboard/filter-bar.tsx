@@ -63,6 +63,8 @@ export type FilterBarProps = {
   actions?: ReactNode
   /** Always-visible list controls, such as the view toggle. */
   controls?: ReactNode
+  /** Optional width override for the search field wrapper. */
+  searchClassName?: string
   className?: string
 }
 
@@ -138,6 +140,7 @@ export function FilterBar({
   mobileFilters,
   actions,
   controls,
+  searchClassName,
   className,
 }: FilterBarProps) {
   const [filterOpen, setFilterOpen] = useState(false)
@@ -150,7 +153,7 @@ export function FilterBar({
   return (
     <div className={cn("mb-6 flex flex-wrap items-center gap-3", className)}>
       <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
-      <div className="relative min-w-0 flex-1 sm:max-w-xs">
+      <div className={cn("relative min-w-0 flex-1 sm:max-w-xs", searchClassName)}>
         <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
           type="search"

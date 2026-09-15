@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Loader2, Search } from "lucide-react"
 
@@ -97,17 +97,35 @@ export function GlobalSearchDialog({
   placeholder?: string
 }) {
   const router = useRouter()
+  const [query, setQuery] = useState("")
+
+  useEffect(() => {
+    if (!open) setQuery("")
+  }, [open])
 
   // Preserve the order groups first appear in, so headings stay stable.
   const groups = useMemo(() => {
     const map = new Map<string, SearchResult[]>()
+    const term = query.trim().toLowerCase()
     for (const result of results) {
+      if (term) {
+        const searchable = [result.group, result.label, result.sublabel, result.keywords]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase()
+        if (!searchable.includes(term)) continue
+      }
       const bucket = map.get(result.group)
-      if (bucket) bucket.push(result)
+      // Keep the command list small even when a workspace has thousands of
+      // records. Matching is performed here, so cmdk does not need to mount
+      // and filter the entire dataset on every keystroke.
+      if (bucket) {
+        if (bucket.length < 8) bucket.push(result)
+      }
       else map.set(result.group, [result])
     }
     return [...map.entries()]
-  }, [results])
+  }, [query, results])
 
   function select(result: SearchResult) {
     onOpenChange(false)
@@ -119,11 +137,10 @@ export function GlobalSearchDialog({
       <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-lg [&>button]:hidden">
         <DialogTitle className="sr-only">Search</DialogTitle>
         <Command
-          // cmdk matches its own item values; our values already fold in every
-          // searchable field, so keep the default (subsequence) scorer.
+          shouldFilter={false}
           className="[&_[cmdk-group-heading]]:px-3"
         >
-          <CommandInput placeholder={placeholder} />
+          <CommandInput placeholder={placeholder} value={query} onValueChange={setQuery} />
           <CommandList className="max-h-[60vh]">
             {loading ? (
               <div className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground">

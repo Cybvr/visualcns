@@ -79,12 +79,12 @@ function today(): string {
   return new Date().toISOString().slice(0, 10)
 }
 
-export function InvoiceBuilder({ invoice }: { invoice?: Invoice | null }) {
+export function InvoiceBuilder({ invoice, initialCompanyId }: { invoice?: Invoice | null; initialCompanyId?: string }) {
   const router = useRouter()
   const isEdit = Boolean(invoice)
 
   const [invoiceNumber, setInvoiceNumber] = useState(invoice?.invoiceNumber ?? "")
-  const [companyId, setCompanyId] = useState(invoice?.companyId ?? "")
+  const [companyId, setCompanyId] = useState(invoice?.companyId ?? initialCompanyId ?? "")
   const [projectId, setProjectId] = useState(invoice?.projectId ?? "")
   const [status, setStatus] = useState<InvoiceStatus>(invoice?.status ?? "draft")
   const [currency, setCurrency] = useState(invoice?.currency || "USD")

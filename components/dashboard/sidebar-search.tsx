@@ -41,16 +41,10 @@ export function SidebarSearch() {
     Promise.all([
       getOrganizations().catch(() => []),
       getUsers().catch(() => []),
-      getProjects().catch(() => []),
-      getTasks().catch(() => []),
-      getCompanyDocuments().catch(() => []),
-      getInvoices().catch(() => []),
-      getEstimates().catch(() => []),
-      getContracts().catch(() => []),
     ])
-      .then(([orgs, users, projects, tasks, documents, invoices, estimates, contracts]) => {
+      .then(([orgs, users]) => {
         if (!active) return
-        const next: SearchResult[] = [
+        setResults([
           ...orgs.map((org) => ({
             id: `company-${org.id}`,
             group: "Companies",
@@ -67,6 +61,25 @@ export function SidebarSearch() {
             href: "/dashboard/users",
             keywords: keywords(user.email, user.role, user.company),
           })),
+        ])
+
+        // Companies and contacts make the palette useful immediately. The
+        // larger collections continue loading in the background so opening
+        // search does not block on every document in the workspace.
+        return Promise.all([
+          getProjects().catch(() => []),
+          getTasks().catch(() => []),
+          getCompanyDocuments().catch(() => []),
+          getInvoices().catch(() => []),
+          getEstimates().catch(() => []),
+          getContracts().catch(() => []),
+        ])
+      })
+      .then((loadedCollections) => {
+        if (!active || !loadedCollections) return
+        const [projects, tasks, documents, invoices, estimates, contracts] = loadedCollections
+        setResults((current) => [
+          ...current,
           ...projects.map((project) => ({
             id: `project-${project.id}`,
             group: "Projects",
@@ -115,8 +128,7 @@ export function SidebarSearch() {
             href: `/dashboard/contracts/${contract.id}`,
             keywords: keywords(contract.client, contract.project),
           })),
-        ]
-        setResults(next)
+        ])
         setLoaded(true)
       })
       .finally(() => {
@@ -135,7 +147,7 @@ export function SidebarSearch() {
         open={open}
         onOpenChange={setOpen}
         results={results}
-        loading={loading && !loaded}
+        loading={loading && results.length === 0}
         placeholder="Search companies, projects, documents…"
       />
     </>

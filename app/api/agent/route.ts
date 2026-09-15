@@ -10,7 +10,8 @@ export const dynamic = "force-dynamic"
 const MODEL = process.env.OPENAI_MODEL || "gpt-5.6-luna"
 const MAX_TOOL_ROUNDS = 12
 
-type ChatMessage = { role: "user" | "assistant"; content: string; images?: string[] }
+type AttachedFile = { name?: string; url?: string; mimeType?: string }
+type ChatMessage = { role: "user" | "assistant"; content: string; images?: string[]; files?: AttachedFile[] }
 type Surface = "client_portal" | "agency_dashboard"
 type AgentBody = { messages?: ChatMessage[]; firstName?: string; surface?: Surface }
 
@@ -75,6 +76,14 @@ the caller's permissions, so just call it and answer from what it returns.
 
 Creation tools are available for companies, projects, tasks, draft invoices, draft estimates, draft
 contracts and written company documents.
+
+When the user attaches a file, they usually want one of two things: to file it into a company's Drive,
+or to turn its contents into a record. If they say to save, add, store or keep the file, use attach_file
+with the exact URL from the attachment manifest to add it to the right company. If they want it turned
+into an invoice, estimate, contract or written document, read the file and call the matching creation
+tool. You can read PDFs and images directly; for other file types (Word, Excel, CSV) you can file them
+but cannot see their contents, so do not invent details from them, ask for anything you need instead.
+Always look up the company with query_workspace, and never ask the user for the file URL or an id.
 
 You can search the live web with the web_search tool for public information the workspace does not
 hold - company research, industry facts, news, contact details. Use it whenever the user asks about
@@ -349,6 +358,27 @@ const AGENT_TOOLS = [
         body: { type: ["string", "null"], description: "Editable HTML using headings, paragraphs, lists and blockquotes." },
       },
       required: ["companyId", "client", "title"],
+      additionalProperties: false,
+    },
+  },
+  {
+    type: "function",
+    name: "attach_file",
+    description:
+      "File an uploaded file into a company's Drive as a shared document, using the storage URL from the user's attachment. Use this when the user wants to save, add, store or keep an attached file (PDF, image, Word, Excel, etc.) against a client, rather than turn it into an invoice or contract. Take fileUrl and mimeType from the attachment manifest in the user's message, never invent a URL.",
+    parameters: {
+      type: "object",
+      properties: {
+        companyId: { type: "string" },
+        client: { type: "string" },
+        title: { type: "string", description: "A readable document title, usually the file name without its extension." },
+        fileUrl: { type: "string", description: "The storage URL of the uploaded file, copied exactly from the attachment manifest." },
+        mimeType: { type: ["string", "null"], description: "The file's MIME type from the manifest, e.g. application/pdf." },
+        description: { type: ["string", "null"] },
+        projectId: { type: ["string", "null"] },
+        project: { type: ["string", "null"] },
+      },
+      required: ["companyId", "client", "title", "fileUrl"],
       additionalProperties: false,
     },
   },
@@ -774,6 +804,30 @@ async function runAgentTool(name: string, rawArgs: string, uid: string) {
     return { type: "document", id: ref.id, title, status: "draft", url: `/dashboard/documents/${ref.id}/edit` }
   }
 
+  if (name === "attach_file") {
+    const companyId = requireText(args, "companyId")
+    const client = requireText(args, "client")
+    const title = requireText(args, "title")
+    const fileUrl = requireText(args, "fileUrl")
+    if (!/^https?:\/\//.test(fileUrl)) throw new Error("A real uploaded file URL is required to attach a document.")
+    const mimeType = optionalText(args, "mimeType")
+    const fileType = mimeType.startsWith("image/") ? "image" : mimeType.startsWith("video/") ? "video" : "file"
+    const ref = db.collection("documents").doc()
+    await ref.set({
+      tenantId,
+      companyId,
+      client,
+      title,
+      url: fileUrl,
+      description: optionalText(args, "description"),
+      projectId: optionalText(args, "projectId"),
+      project: optionalText(args, "project"),
+      type: fileType,
+      createdAt: now,
+    })
+    return { type: "file", id: ref.id, title, client, url: `/dashboard/companies/${companyId}` }
+  }
+
   throw new Error(`Unknown agent tool: ${name}`)
 }
 
@@ -792,8 +846,10 @@ export async function POST(request: Request) {
     (m) =>
       (m.role === "user" || m.role === "assistant") &&
       typeof m.content === "string" &&
-      // A user turn can be just an image, so keep it when it carries attachments.
-      (m.content.trim() || (m.role === "user" && Array.isArray(m.images) && m.images.length > 0)),
+      // A user turn can be just an attachment, so keep it when it carries images or files.
+      (m.content.trim() ||
+        (m.role === "user" &&
+          ((Array.isArray(m.images) && m.images.length > 0) || (Array.isArray(m.files) && m.files.length > 0)))),
   )
   if (messages.length === 0) {
     return new Response(JSON.stringify({ error: "No message to answer." }), {
@@ -838,12 +894,25 @@ export async function POST(request: Request) {
       const images = message.role === "user" && Array.isArray(message.images)
         ? message.images.filter((url): url is string => typeof url === "string" && /^https?:\/\//.test(url))
         : []
-      if (!images.length) return { role: message.role, content: message.content }
+      const files = message.role === "user" && Array.isArray(message.files)
+        ? message.files.filter((file): file is AttachedFile => Boolean(file) && typeof file.url === "string" && /^https?:\/\//.test(file.url))
+        : []
+      if (!images.length && !files.length) return { role: message.role, content: message.content }
+
+      // Only PDFs can be read directly; the manifest lets the model file any
+      // attachment (including non-readable types) with its real storage URL.
+      const pdfFiles = files.filter((file) => (file.mimeType || "").toLowerCase() === "application/pdf")
+      const manifest = [...images.map((url) => `image (image/*) - ${url}`), ...files.map((file) => `${file.name || "file"} (${file.mimeType || "unknown"})${(file.mimeType || "").toLowerCase() === "application/pdf" ? "" : " [contents not readable]"} - ${file.url}`)]
+        .map((line, index) => `${index + 1}. ${line}`)
+        .join("\n")
+
       return {
         role: message.role,
         content: [
           ...(message.content.trim() ? [{ type: "input_text", text: message.content }] : []),
           ...images.map((url) => ({ type: "input_image", image_url: url })),
+          ...pdfFiles.map((file) => ({ type: "input_file", file_url: file.url, filename: file.name || "document.pdf" })),
+          { type: "input_text", text: `Attached files (use these exact URLs with attach_file):\n${manifest}` },
         ],
       }
     })

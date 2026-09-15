@@ -4,8 +4,11 @@ import { useEffect, useMemo, useRef, useState, type FormEvent } from "react"
 import { useSearchParams } from "next/navigation"
 import {
   ArrowLeft,
+  Check,
   CheckCircle2,
+  ChevronDown,
   ChevronLeft,
+  ChevronsUpDown,
   Clock,
   ChevronRight,
   Eye,
@@ -16,6 +19,7 @@ import {
   Linkedin,
   Mail,
   Plus,
+  RefreshCw,
   Send,
   Trash2,
   Twitter,
@@ -24,9 +28,18 @@ import {
 
 import { useAuth } from "@/components/auth-provider"
 import { RichTextEditor } from "@/components/dashboard/rich-text-editor"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { FilterBar, useFilterBar, type SortOption } from "@/components/dashboard/filter-bar"
 import type { EmailTemplateRecord } from "@/lib/email-templates-store"
@@ -41,12 +54,27 @@ import { getUsers } from "@/lib/users"
 import { cn } from "@/lib/utils"
 import { useIsMobile } from "@/hooks/use-mobile"
 
-type EmailTab = "templates" | "messages" | "lists"
+type EmailTab = "inbox" | "templates" | "messages" | "lists"
 type EmailMessageKind = "transactional" | "marketing"
 
 type EmailTemplate = Omit<EmailTemplateRecord, "companyId" | "createdBy">
 
 type SentMessage = Omit<EmailMessageRecord, "companyId" | "createdBy"> & { companyId?: string }
+
+type ReceivedMessage = {
+  id: string
+  from: string
+  to: string[]
+  cc?: string[]
+  bcc?: string[]
+  subject: string
+  createdAt: string | null
+  messageId?: string | null
+  html?: string | null
+  text?: string | null
+  headers?: Record<string, string> | null
+  attachments?: Array<Record<string, unknown>>
+}
 
 type EmailContact = {
   email: string
@@ -62,6 +90,8 @@ type Notice = {
   text: string
 } | null
 
+type DraftStatus = "idle" | "saving" | "saved" | "error"
+
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 const MESSAGE_SORTS: SortOption<SentMessage>[] = [
@@ -70,8 +100,18 @@ const MESSAGE_SORTS: SortOption<SentMessage>[] = [
   { value: "subject", label: "Subject", get: (message) => message.subject, ascLabel: "A–Z", descLabel: "Z–A" },
 ]
 
+const RECEIVED_SORTS: SortOption<ReceivedMessage>[] = [
+  { value: "createdAt", label: "Received", get: (message) => message.createdAt || "", ascLabel: "Oldest", descLabel: "Newest" },
+  { value: "from", label: "Sender", get: (message) => message.from, ascLabel: "A–Z", descLabel: "Z–A" },
+  { value: "subject", label: "Subject", get: (message) => message.subject, ascLabel: "A–Z", descLabel: "Z–A" },
+]
+
 function searchMessage(message: SentMessage) {
   return [message.to, message.subject, message.companyName, message.projectName, message.documentTitle, message.documentType, message.from, message.status]
+}
+
+function searchReceivedMessage(message: ReceivedMessage) {
+  return [message.from, message.to.join(", "), message.subject, message.text || ""]
 }
 
 const LIST_SORTS: SortOption<ContactList>[] = [
@@ -150,89 +190,22 @@ function cleanSenderDisplay(value: string) {
     .trim()
 }
 
-type MessageFilterControlsProps = {
-  options: {
-    companies: Array<[string, string]>
-    projects: Array<[string, string]>
-    documents: Array<[string, string]>
-    senders: string[]
-  }
-  company: string
-  onCompanyChange: (value: string) => void
-  project: string
-  onProjectChange: (value: string) => void
-  document: string
-  onDocumentChange: (value: string) => void
-  sender: string
-  onSenderChange: (value: string) => void
-  status: string
-  onStatusChange: (value: string) => void
+function contactInitials(name: string, email: string) {
+  const source = name.trim() || email.trim()
+  const parts = source.split(/\s+/).filter(Boolean)
+  return (parts.length > 1 ? `${parts[0][0]}${parts[parts.length - 1][0]}` : source.slice(0, 2)).toUpperCase()
 }
 
-function MessageFilterControls({
-  options,
-  company,
-  onCompanyChange,
-  project,
-  onProjectChange,
-  document,
-  onDocumentChange,
-  sender,
-  onSenderChange,
-  status,
-  onStatusChange,
-}: MessageFilterControlsProps) {
-  return (
-    <>
-      <Select value={company} onValueChange={onCompanyChange}>
-        <SelectTrigger aria-label="Filter by company" className="h-9 w-full text-xs">
-          <SelectValue placeholder="All companies" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">All companies</SelectItem>
-          {[...options.companies].sort((a, b) => a[1].localeCompare(b[1], undefined, { sensitivity: "base" })).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}
-        </SelectContent>
-      </Select>
-      <Select value={project} onValueChange={onProjectChange}>
-        <SelectTrigger aria-label="Filter by project" className="h-9 w-full text-xs">
-          <SelectValue placeholder="All projects" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">All projects</SelectItem>
-          {[...options.projects].sort((a, b) => a[1].localeCompare(b[1], undefined, { sensitivity: "base" })).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}
-        </SelectContent>
-      </Select>
-      <Select value={document} onValueChange={onDocumentChange}>
-        <SelectTrigger aria-label="Filter by object type" className="h-9 w-full text-xs">
-          <SelectValue placeholder="All object types" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">All object types</SelectItem>
-          {[...options.documents].sort((a, b) => a[1].localeCompare(b[1], undefined, { sensitivity: "base" })).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}
-        </SelectContent>
-      </Select>
-      <Select value={sender} onValueChange={onSenderChange}>
-        <SelectTrigger aria-label="Filter by sender" className="h-9 w-full text-xs">
-          <SelectValue placeholder="All senders" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">All senders</SelectItem>
-          {[...options.senders].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" })).map((value) => <SelectItem key={value} value={value}>{value}</SelectItem>)}
-        </SelectContent>
-      </Select>
-      <Select value={status} onValueChange={onStatusChange}>
-        <SelectTrigger aria-label="Filter by status" className="h-9 w-full text-xs">
-          <SelectValue placeholder="All statuses" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">All statuses</SelectItem>
-          <SelectItem value="sent">Sent</SelectItem>
-          <SelectItem value="scheduled">Scheduled</SelectItem>
-          <SelectItem value="failed">Failed</SelectItem>
-        </SelectContent>
-      </Select>
-    </>
-  )
+function contactAvatarTone(value: string) {
+  const tones = [
+    "bg-cyan-200 text-cyan-950",
+    "bg-sky-200 text-sky-950",
+    "bg-rose-200 text-rose-950",
+    "bg-slate-300 text-slate-900",
+    "bg-amber-200 text-amber-950",
+  ]
+  const index = Array.from(value).reduce((total, character) => total + character.charCodeAt(0), 0) % tones.length
+  return tones[index]
 }
 
 function htmlToText(value: string) {
@@ -274,6 +247,11 @@ function sentMessagePreview(message: SentMessage) {
   return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>html{color-scheme:light}body{box-sizing:border-box;margin:0;padding:24px;color:#20232d;background:#fff;font:15px/1.65 Arial,sans-serif;overflow-wrap:anywhere}img{display:block;max-width:100%;height:auto}p{margin:0 0 1em}ul,ol{padding-left:1.5rem}a{color:#1649d8}</style></head><body>${content}</body></html>`
 }
 
+function receivedMessagePreview(message: ReceivedMessage) {
+  const content = message.html || `<p>${escapeHtml(message.text || "(This message has no text content.)").replaceAll("\n", "<br />")}</p>`
+  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>html{color-scheme:light}body{box-sizing:border-box;margin:0;padding:24px;color:#20232d;background:#fff;font:15px/1.65 Arial,sans-serif;overflow-wrap:anywhere}img{display:block;max-width:100%;height:auto}p{margin:0 0 1em}ul,ol{padding-left:1.5rem}a{color:#1649d8}</style></head><body>${content}</body></html>`
+}
+
 function templatePreview(template: EmailTemplate) {
   // The CTA now lives inside the body HTML, so the preview is just the body.
   const content = withMessageImage(template.body, template.imageUrl, template.imageAlt)
@@ -308,7 +286,9 @@ function formatTemplateBody(value: string) {
 function personalizeGreeting(value: string, name?: string) {
   const trimmedName = name?.trim()
   if (!trimmedName) return value
-  return value.replace(/(^|>|\n)(\s*Dear\s+)(?:\[Customer Name\]|Customer)(\s*,?)/i, `$1$2${trimmedName}$3`)
+  return value
+    .replace(/\[Customer Name\]|\[Name\]/gi, trimmedName)
+    .replace(/(^|>|\n)(\s*(?:Dear|Hello)\s+)(Customer)(\s*,?)/i, `$1$2${trimmedName}$4`)
 }
 
 function recipientEmail(value: string) {
@@ -329,10 +309,17 @@ export default function EmailPage() {
   const [tab, setTab] = useState<EmailTab>("messages")
   const [templates, setTemplates] = useState<EmailTemplate[]>([])
   const [messages, setMessages] = useState<SentMessage[]>([])
+  const [receivedMessages, setReceivedMessages] = useState<ReceivedMessage[]>([])
+  const [receivedLoading, setReceivedLoading] = useState(false)
+  const [receivedError, setReceivedError] = useState("")
+  const [selectedReceivedId, setSelectedReceivedId] = useState<string | null>(null)
+  const [loadingReceivedId, setLoadingReceivedId] = useState<string | null>(null)
   const [senderConfigured, setSenderConfigured] = useState<boolean | null>(null)
   const [senderAddress, setSenderAddress] = useState<string | null>(null)
   const [replyToAddress, setReplyToAddress] = useState<string | null>(null)
   const [contacts, setContacts] = useState<EmailContact[]>([])
+  const [contactPickerOpen, setContactPickerOpen] = useState(false)
+  const [contactQuery, setContactQuery] = useState("")
   const [lists, setLists] = useState<ContactList[]>([])
   const [businessProfile, setBusinessProfile] = useState<BusinessProfile | null>(null)
 
@@ -345,16 +332,19 @@ export default function EmailPage() {
   const [selectedTemplateId, setSelectedTemplateId] = useState("")
   const [scheduleEnabled, setScheduleEnabled] = useState(false)
   const [scheduleAt, setScheduleAt] = useState("")
+  const [scheduleMin, setScheduleMin] = useState("")
   const [drafts, setDrafts] = useState<EmailDraftRecord[]>([])
   const [editingDraftId, setEditingDraftId] = useState<string | null>(null)
   const [savingDraft, setSavingDraft] = useState(false)
+  const [draftStatus, setDraftStatus] = useState<DraftStatus>("idle")
+  const draftIdRef = useRef<string | null>(null)
   const [sending, setSending] = useState(false)
   const [sendNotice, setSendNotice] = useState<Notice>(null)
-  const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null)
   const [loadingMessageId, setLoadingMessageId] = useState<string | null>(null)
   const [messageViewError, setMessageViewError] = useState("")
+  const hydratingRef = useRef<Set<string>>(new Set())
 
-  const [previewTemplateId, setPreviewTemplateId] = useState<string | null>(null)
+  const [preview, setPreview] = useState<{ kind: "template" | "message"; id: string } | null>(null)
   const [previewHeight, setPreviewHeight] = useState<number | null>(null)
   const [previewStage, setPreviewStage] = useState<{ w: number; h: number } | null>(null)
   const previewStageRef = useRef<HTMLDivElement>(null)
@@ -371,34 +361,17 @@ export default function EmailPage() {
   const [listNotice, setListNotice] = useState<Notice>(null)
   const [listContactQuery, setListContactQuery] = useState("")
   const [listShowSelectedOnly, setListShowSelectedOnly] = useState(false)
-  const [messageCompanyFilter, setMessageCompanyFilter] = useState("all")
-  const [messageProjectFilter, setMessageProjectFilter] = useState("all")
-  const [messageDocumentFilter, setMessageDocumentFilter] = useState("all")
-  const [messageSenderFilter, setMessageSenderFilter] = useState("all")
-  const [messageStatusFilter, setMessageStatusFilter] = useState("all")
-  const messageFilterOptions = useMemo(() => ({
-    companies: Array.from(new Map(messages.flatMap((message) => message.companyId
-      ? [[message.companyId, message.companyName || message.companyId] as [string, string]]
-      : [])).entries()),
-    projects: Array.from(new Map(messages.flatMap((message) => message.projectId
-      ? [[message.projectId, message.projectName || message.projectId] as [string, string]]
-      : [])).entries()),
-    documents: Array.from(new Map(messages.flatMap((message) => message.documentType
-      ? [[message.documentType, message.documentTitle || message.documentType] as [string, string]]
-      : [])).entries()),
-    senders: Array.from(new Set(messages.map((message) => cleanSenderDisplay(message.from || "VisualCNS")).filter(Boolean))),
-  }), [messages])
-  const filteredMessages = useMemo(() => messages.filter((message) => (
-    (messageCompanyFilter === "all" || message.companyId === messageCompanyFilter)
-    && (messageProjectFilter === "all" || message.projectId === messageProjectFilter)
-    && (messageDocumentFilter === "all" || message.documentType === messageDocumentFilter)
-    && (messageSenderFilter === "all" || cleanSenderDisplay(message.from || "VisualCNS") === messageSenderFilter)
-    && (messageStatusFilter === "all" || (message.status || "sent") === messageStatusFilter)
-  )), [messageCompanyFilter, messageDocumentFilter, messageProjectFilter, messageSenderFilter, messageStatusFilter, messages])
   const { results: visibleMessages, bar: messageFilterBar } = useFilterBar({
-    items: filteredMessages,
+    items: messages,
     search: searchMessage,
     sorts: MESSAGE_SORTS,
+    defaultSort: "createdAt",
+    defaultDirection: "desc",
+  })
+  const { results: visibleReceivedMessages, bar: receivedFilterBar } = useFilterBar({
+    items: receivedMessages,
+    search: searchReceivedMessage,
+    sorts: RECEIVED_SORTS,
     defaultSort: "createdAt",
     defaultDirection: "desc",
   })
@@ -410,14 +383,16 @@ export default function EmailPage() {
     defaultDirection: "desc",
   })
 
-  // The lightbox steps through the same list the sidebar shows, so back and
-  // forth respect the current search and sort.
-  const previewIndex = previewTemplateId ? visibleTemplates.findIndex((template) => template.id === previewTemplateId) : -1
-  const previewTemplate = previewIndex >= 0 ? visibleTemplates[previewIndex] : null
+  // The lightbox steps through whichever list is on screen (templates, or sent
+  // messages) so back and forth respect the current search and sort.
+  const previewList: { id: string }[] = preview?.kind === "message" ? visibleMessages : visibleTemplates
+  const previewIndex = preview ? previewList.findIndex((item) => item.id === preview.id) : -1
+  const previewTemplate = preview?.kind === "template" && previewIndex >= 0 ? visibleTemplates[previewIndex] : null
+  const previewMessage = preview?.kind === "message" && previewIndex >= 0 ? visibleMessages[previewIndex] : null
   const hasPrevPreview = previewIndex > 0
-  const hasNextPreview = previewIndex >= 0 && previewIndex < visibleTemplates.length - 1
-  const showPrevPreview = () => { if (hasPrevPreview) setPreviewTemplateId(visibleTemplates[previewIndex - 1].id) }
-  const showNextPreview = () => { if (hasNextPreview) setPreviewTemplateId(visibleTemplates[previewIndex + 1].id) }
+  const hasNextPreview = previewIndex >= 0 && previewIndex < previewList.length - 1
+  const showPrevPreview = () => { if (preview && hasPrevPreview) setPreview({ kind: preview.kind, id: previewList[previewIndex - 1].id }) }
+  const showNextPreview = () => { if (preview && hasNextPreview) setPreview({ kind: preview.kind, id: previewList[previewIndex + 1].id }) }
 
   // Render the email at a fixed natural width, then scale it down so the whole
   // thing fits the available box in both directions (never scaled up).
@@ -426,14 +401,20 @@ export default function EmailPage() {
     ? Math.min(previewStage.w / PREVIEW_WIDTH, previewStage.h / previewHeight, 1)
     : 1
 
-  // A new template remounts the iframe, so drop the old measured height until
-  // the new one reports its own on load.
-  useEffect(() => { setPreviewHeight(null) }, [previewTemplateId])
+  // The server and browser must render the same initial markup. Calculate the
+  // moving minimum only after hydration so Date.now() never changes SSR HTML.
+  useEffect(() => {
+    setScheduleMin(datetimeLocalMin())
+  }, [])
+
+  // A new item remounts the iframe, so drop the old measured height until the
+  // new one reports its own on load, and clear any error from the last message.
+  useEffect(() => { setPreviewHeight(null); setMessageViewError("") }, [preview?.id])
 
   // Track the space available for the preview so the content can be scaled to
   // fit it with no inner scroll.
   useEffect(() => {
-    if (!previewTemplateId) return
+    if (!preview) return
     const measure = () => {
       const el = previewStageRef.current
       if (el) setPreviewStage({ w: el.clientWidth, h: el.clientHeight })
@@ -441,18 +422,27 @@ export default function EmailPage() {
     measure()
     window.addEventListener("resize", measure)
     return () => window.removeEventListener("resize", measure)
-  }, [previewTemplateId])
+  }, [preview])
 
   useEffect(() => {
-    if (previewIndex < 0) return
+    if (previewIndex < 0 || !preview) return
+    const kind = preview.kind
     function onKey(event: KeyboardEvent) {
-      if (event.key === "Escape") setPreviewTemplateId(null)
-      if (event.key === "ArrowLeft" && previewIndex > 0) setPreviewTemplateId(visibleTemplates[previewIndex - 1].id)
-      if (event.key === "ArrowRight" && previewIndex < visibleTemplates.length - 1) setPreviewTemplateId(visibleTemplates[previewIndex + 1].id)
+      if (event.key === "Escape") setPreview(null)
+      if (event.key === "ArrowLeft" && previewIndex > 0) setPreview({ kind, id: previewList[previewIndex - 1].id })
+      if (event.key === "ArrowRight" && previewIndex < previewList.length - 1) setPreview({ kind, id: previewList[previewIndex + 1].id })
     }
     window.addEventListener("keydown", onKey)
     return () => window.removeEventListener("keydown", onKey)
-  }, [previewIndex, visibleTemplates])
+  }, [previewIndex, previewList, preview])
+
+  // Whichever message the lightbox lands on (opened or stepped to) pulls its
+  // body in if we don't already hold it.
+  useEffect(() => {
+    if (preview?.kind !== "message") return
+    const message = messages.find((item) => item.id === preview.id)
+    if (message) void hydrateMessageBody(message)
+  }, [preview, messages])
   const { results: visibleLists, bar: listFilterBar } = useFilterBar({
     items: lists,
     search: searchList,
@@ -461,9 +451,85 @@ export default function EmailPage() {
     defaultDirection: "desc",
   })
 
-  const activeFilterBar = tab === "messages" ? messageFilterBar : tab === "templates" ? templateFilterBar : listFilterBar
+  const activeFilterBar = tab === "inbox"
+    ? receivedFilterBar
+    : tab === "messages"
+      ? messageFilterBar
+      : tab === "templates"
+        ? templateFilterBar
+        : listFilterBar
+  const selectedReceived = receivedMessages.find((message) => message.id === selectedReceivedId) || null
   const selectedContactName = contacts.find((contact) => recipientEmail(contact.email) === recipientEmail(to))?.name
   const composeRecipientName = selectedContactName || composeContext?.recipientName
+  const selectedContact = contacts.find((contact) => recipientEmail(contact.email) === recipientEmail(to))
+  const visibleContactOptions = useMemo(() => {
+    const query = contactQuery.trim().toLowerCase()
+    return [...contacts]
+      .filter((contact) => !query || `${contact.name} ${contact.email}`.toLowerCase().includes(query))
+      .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }))
+  }, [contactQuery, contacts])
+
+  async function loadReceivedMessages() {
+    if (!user) return
+    setReceivedLoading(true)
+    setReceivedError("")
+    try {
+      const idToken = await user.getIdToken()
+      const response = await fetch("/api/email/received", {
+        headers: { Authorization: `Bearer ${idToken}` },
+        cache: "no-store",
+      })
+      const result = (await response.json()) as { data?: ReceivedMessage[]; error?: string }
+      if (!response.ok) throw new Error(result.error || "Received messages could not be loaded.")
+      setReceivedMessages(Array.isArray(result.data) ? result.data : [])
+      setSelectedReceivedId((current) => current && result.data?.some((message) => message.id === current) ? current : result.data?.[0]?.id || null)
+    } catch (error) {
+      setReceivedError(error instanceof Error ? error.message : "Received messages could not be loaded.")
+    } finally {
+      setReceivedLoading(false)
+    }
+  }
+
+  async function hydrateReceivedMessage(message: ReceivedMessage) {
+    if (message.html || message.text || !user) return
+    setLoadingReceivedId(message.id)
+    setReceivedError("")
+    try {
+      const idToken = await user.getIdToken()
+      const response = await fetch(`/api/email/received?id=${encodeURIComponent(message.id)}`, {
+        headers: { Authorization: `Bearer ${idToken}` },
+        cache: "no-store",
+      })
+      const result = (await response.json()) as Partial<ReceivedMessage> & { error?: string }
+      if (!response.ok) throw new Error(result.error || "The received email could not be loaded.")
+      setReceivedMessages((current) => current.map((item) => item.id === message.id ? {
+        ...item,
+        ...result,
+        id: item.id,
+        from: result.from || item.from,
+        to: result.to || item.to,
+        subject: result.subject || item.subject,
+      } : item))
+    } catch (error) {
+      setReceivedError(error instanceof Error ? error.message : "The received email could not be loaded.")
+    } finally {
+      setLoadingReceivedId(null)
+    }
+  }
+
+  function previewReceivedMessageById(message: ReceivedMessage) {
+    setSelectedReceivedId(message.id)
+  }
+
+  useEffect(() => {
+    if (!selectedReceived || selectedReceived.html || selectedReceived.text) return
+    void hydrateReceivedMessage(selectedReceived)
+  }, [selectedReceivedId, receivedMessages])
+
+  useEffect(() => {
+    if (!user?.uid || tab !== "inbox") return
+    void loadReceivedMessages()
+  }, [tab, user?.uid])
 
   useEffect(() => {
     if (!user?.uid) return
@@ -604,7 +670,7 @@ export default function EmailPage() {
     setComposeContext(nextContext)
     setTab("messages")
     setMobileMessageView("composer")
-    setSelectedMessageId(null)
+    setPreview(null)
     setTo(nextContext.recipientEmail || "")
     setSelectedListId("")
     setSubject(nextContext.subject || "")
@@ -661,11 +727,6 @@ export default function EmailPage() {
       return `${contact.name} ${contact.email}`.toLowerCase().includes(query)
     })
   }, [contacts, listContactQuery, listShowSelectedOnly, listContactEmails])
-  const selectedMessage = useMemo(
-    () => messages.find((message) => message.id === selectedMessageId) || null,
-    [messages, selectedMessageId],
-  )
-
   function applyTemplate(templateId: string) {
     setSelectedTemplateId(templateId)
     const template = templates.find((item) => item.id === templateId)
@@ -682,7 +743,6 @@ export default function EmailPage() {
   }
 
   function clearComposer() {
-    setSelectedMessageId(null)
     setLoadingMessageId(null)
     setMessageViewError("")
     setTo("")
@@ -695,17 +755,21 @@ export default function EmailPage() {
     setScheduleEnabled(false)
     setScheduleAt("")
     setEditingDraftId(null)
+    draftIdRef.current = null
+    setDraftStatus("idle")
     setSendNotice(null)
   }
 
   async function saveDraft() {
     if (!user || savingDraft) return
     if (!subject.trim() && !htmlToText(body).trim() && !to.trim() && !selectedListId) {
-      setSendNotice({ tone: "error", text: "Add a subject or message before saving a draft." })
+      setDraftStatus("idle")
       return
     }
     setSavingDraft(true)
-    const id = editingDraftId || (typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `${Date.now()}`)
+    setDraftStatus("saving")
+    const id = draftIdRef.current || editingDraftId || (typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `${Date.now()}`)
+    draftIdRef.current = id
     const draft: EmailDraftRecord = {
       id,
       companyId: workspaceId,
@@ -722,16 +786,26 @@ export default function EmailPage() {
       await saveEmailDraft(draft)
       setDrafts((current) => [draft, ...current.filter((item) => item.id !== id)])
       setEditingDraftId(id)
-      setSendNotice({ tone: "success", text: "Draft saved." })
+      setDraftStatus("saved")
     } catch {
-      setSendNotice({ tone: "error", text: "The draft could not be saved. Try again." })
+      setDraftStatus("error")
     } finally {
       setSavingDraft(false)
     }
   }
 
+  useEffect(() => {
+    if (!user?.uid || (!subject.trim() && !htmlToText(body).trim() && !to.trim() && !selectedListId)) {
+      setDraftStatus("idle")
+      return
+    }
+
+    setDraftStatus("saving")
+    const timer = window.setTimeout(() => { void saveDraft() }, 800)
+    return () => window.clearTimeout(timer)
+  }, [body, composeContext, messageKind, selectedListId, subject, to, user?.uid])
+
   function loadDraft(draft: EmailDraftRecord) {
-    setSelectedMessageId(null)
     setMessageViewError("")
     setTo(draft.to || "")
     setSelectedListId(draft.listId || "")
@@ -743,6 +817,8 @@ export default function EmailPage() {
     setScheduleEnabled(false)
     setScheduleAt("")
     setEditingDraftId(draft.id)
+    draftIdRef.current = draft.id
+    setDraftStatus("saved")
     setSendNotice(null)
     setMobileMessageView("composer")
   }
@@ -750,6 +826,7 @@ export default function EmailPage() {
   async function removeDraft(id: string) {
     setDrafts((current) => current.filter((item) => item.id !== id))
     if (editingDraftId === id) setEditingDraftId(null)
+    if (draftIdRef.current === id) draftIdRef.current = null
     try {
       await deleteEmailDraft(id)
     } catch {
@@ -757,13 +834,14 @@ export default function EmailPage() {
     }
   }
 
-  async function openSentMessage(message: SentMessage) {
-    setSelectedMessageId(message.id)
-    setMobileMessageView("composer")
-    setMessageViewError("")
+  // Sent emails store only their metadata; the full body is fetched from the
+  // mail provider the first time one is previewed, then cached on the record.
+  async function hydrateMessageBody(message: SentMessage) {
     if (message.bodyHtml || message.bodyText || !user) return
-
+    if (hydratingRef.current.has(message.id)) return
+    hydratingRef.current.add(message.id)
     setLoadingMessageId(message.id)
+    setMessageViewError("")
     try {
       const idToken = await user.getIdToken()
       const response = await fetch(`/api/email/send?id=${encodeURIComponent(message.providerId)}`, {
@@ -806,7 +884,15 @@ export default function EmailPage() {
       setMessageViewError(error instanceof Error ? error.message : "The sent email could not be loaded.")
     } finally {
       setLoadingMessageId(null)
+      hydratingRef.current.delete(message.id)
     }
+  }
+
+  // Opening a message in the lightbox pulls its body in if we don't have it yet.
+  function previewMessageById(message: SentMessage) {
+    setMessageViewError("")
+    setPreview({ kind: "message", id: message.id })
+    void hydrateMessageBody(message)
   }
 
   async function sendEmail(event: FormEvent<HTMLFormElement>) {
@@ -913,8 +999,6 @@ export default function EmailPage() {
         historySaved = false
       }
       setMessages((current) => [sentMessage, ...current])
-      setSelectedMessageId(sentMessage.id)
-      setMobileMessageView("composer")
       setTo("")
       setSelectedListId("")
       setSubject("")
@@ -930,6 +1014,8 @@ export default function EmailPage() {
         setEditingDraftId(null)
         void deleteEmailDraft(sentDraftId).catch(() => undefined)
       }
+      draftIdRef.current = null
+      setDraftStatus("idle")
       const suppressionNotice = result.suppressedCount ? ` ${result.suppressedCount} unsubscribed contact${result.suppressedCount === 1 ? "" : "s"} skipped.` : ""
       const verb = scheduledAtIso ? `Scheduled for ${formatMessageDate(scheduledAtIso)}` : "Message sent"
       setSendNotice(historySaved
@@ -959,6 +1045,13 @@ export default function EmailPage() {
     setTemplateSubject(template.subject)
     setTemplateBody(withMessageImage(template.body, template.imageUrl, template.imageAlt))
     setTemplateNotice(null)
+  }
+
+  function useEditingTemplate() {
+    if (!editingTemplateId || !templates.some((template) => template.id === editingTemplateId)) return
+    applyTemplate(editingTemplateId)
+    setTab("messages")
+    setMobileMessageView("composer")
   }
 
   async function saveTemplate(event: FormEvent<HTMLFormElement>) {
@@ -1121,24 +1214,18 @@ export default function EmailPage() {
         <FilterBar
           {...activeFilterBar}
           className="mb-2"
-          placeholder={tab === "messages" ? "Search messages" : tab === "templates" ? "Search templates" : "Search lists"}
-          mobileFilters={tab === "messages" && showOpsDetail ? (
-            <MessageFilterControls
-              options={messageFilterOptions}
-              company={messageCompanyFilter}
-              onCompanyChange={setMessageCompanyFilter}
-              project={messageProjectFilter}
-              onProjectChange={setMessageProjectFilter}
-              document={messageDocumentFilter}
-              onDocumentChange={setMessageDocumentFilter}
-              sender={messageSenderFilter}
-              onSenderChange={setMessageSenderFilter}
-              status={messageStatusFilter}
-              onStatusChange={setMessageStatusFilter}
-            />
-          ) : undefined}
+          placeholder={tab === "inbox" ? "Search inbox" : tab === "messages" ? "Search messages" : tab === "templates" ? "Search templates" : "Search lists"}
+          searchClassName={tab === "messages" || tab === "inbox" ? "sm:max-w-[16rem]" : undefined}
           actions={
             <>
+              <Button
+                type="button"
+                variant="outline"
+                className="hidden sm:inline-flex"
+                onClick={() => setTab("inbox")}
+              >
+                <Inbox aria-hidden="true" />Inbox
+              </Button>
               <Button
                 type="button"
                 variant="outline"
@@ -1149,7 +1236,7 @@ export default function EmailPage() {
                   setMobileMessageView("composer")
                 }}
               >
-                <Mail aria-hidden="true" />New mail
+                <Plus aria-hidden="true" />Compose
               </Button>
               <Button
                 type="button"
@@ -1170,25 +1257,8 @@ export default function EmailPage() {
             </>
           }
         />
-        {tab === "messages" && showOpsDetail && (
-          <div className="mb-3 hidden gap-2 sm:grid sm:grid-cols-2 lg:grid-cols-5">
-            <MessageFilterControls
-              options={messageFilterOptions}
-              company={messageCompanyFilter}
-              onCompanyChange={setMessageCompanyFilter}
-              project={messageProjectFilter}
-              onProjectChange={setMessageProjectFilter}
-              document={messageDocumentFilter}
-              onDocumentChange={setMessageDocumentFilter}
-              sender={messageSenderFilter}
-              onSenderChange={setMessageSenderFilter}
-              status={messageStatusFilter}
-              onStatusChange={setMessageStatusFilter}
-            />
-          </div>
-        )}
         <div className="mb-2 flex w-full items-center gap-1 rounded-md bg-muted/50 p-0.5 sm:hidden" role="tablist" aria-label="Email">
-          {(["messages", "templates", "lists"] as const).map((item) => (
+          {(["inbox", "messages", "templates", "lists"] as const).map((item) => (
             <button
               key={item}
               type="button"
@@ -1212,6 +1282,126 @@ export default function EmailPage() {
           ))}
         </div>
 
+        {tab === "inbox" && (
+          <section className="flex min-h-0 flex-1 flex-col gap-4 lg:grid lg:grid-cols-[18rem_minmax(0,1fr)] lg:grid-rows-[minmax(0,1fr)] lg:gap-6 lg:overflow-hidden" role="tabpanel">
+            <aside className="min-h-0 shrink-0 overflow-hidden rounded-[14px] border border-border bg-card">
+              <div className="flex items-center justify-between gap-3 border-b border-border px-3.5 py-3 sm:px-4 sm:py-3.5">
+                <div className="flex min-w-0 items-center gap-2">
+                  <Inbox className="size-4 text-muted-foreground" aria-hidden="true" />
+                  <h2 className="text-sm font-semibold">Inbox</h2>
+                  <span className="text-xs tabular-nums text-muted-foreground">{receivedMessages.length}</span>
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="size-8"
+                  onClick={() => void loadReceivedMessages()}
+                  disabled={receivedLoading}
+                  aria-label="Refresh inbox"
+                >
+                  <RefreshCw className={cn("size-4", receivedLoading && "animate-spin")} aria-hidden="true" />
+                </Button>
+              </div>
+              {receivedError && (
+                <div className="border-b border-destructive/30 bg-destructive/5 px-4 py-3 text-xs leading-5 text-destructive">
+                  {receivedError}
+                </div>
+              )}
+              {receivedLoading && receivedMessages.length === 0 ? (
+                <div className="px-4 py-10 text-center text-sm text-muted-foreground">
+                  <Loader2 className="mx-auto size-5 animate-spin" aria-hidden="true" />
+                  <p className="mt-3">Loading inbox…</p>
+                </div>
+              ) : receivedMessages.length === 0 ? (
+                <div className="px-4 py-10 text-center">
+                  <Inbox className="mx-auto size-5 text-muted-foreground" aria-hidden="true" />
+                  <p className="mt-3 text-sm font-medium">No received messages</p>
+                  <p className="mt-1 text-xs leading-5 text-muted-foreground">Messages sent to your Resend receiving address will appear here.</p>
+                </div>
+              ) : visibleReceivedMessages.length === 0 ? (
+                <div className="px-4 py-10 text-center text-sm text-muted-foreground">No messages match your search.</div>
+              ) : (
+                <div className="divide-y divide-border">
+                  {visibleReceivedMessages.map((message) => (
+                    <button
+                      key={message.id}
+                      type="button"
+                      onClick={() => previewReceivedMessageById(message)}
+                      className={cn(
+                        "block w-full px-3.5 py-3 text-left transition-colors hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset sm:px-4",
+                        selectedReceivedId === message.id && "bg-muted",
+                      )}
+                      aria-label={`Open received email: ${message.subject}`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <Avatar className={cn("size-10", contactAvatarTone(message.from))}>
+                          <AvatarFallback className="bg-transparent text-sm font-medium">
+                            {contactInitials(message.from, message.from)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="min-w-0 flex-1 space-y-1">
+                          <div className="flex items-center justify-between gap-3">
+                            <span className="min-w-0 truncate text-xs font-medium">{message.from}</span>
+                            {message.createdAt && (
+                              <time dateTime={message.createdAt} className="max-w-[42%] shrink-0 truncate text-right text-[11px] text-muted-foreground">
+                                {formatMessageDate(message.createdAt)}
+                              </time>
+                            )}
+                          </div>
+                          <p className="truncate text-sm !font-bold">{message.subject}</p>
+                          <span className="inline-flex items-center gap-1 text-[11px] text-emerald-700 dark:text-emerald-300">
+                            <Mail className="size-3" aria-hidden="true" />Received
+                          </span>
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </aside>
+
+            <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[14px] border border-border bg-card">
+              {selectedReceived ? (
+                <>
+                  <div className="shrink-0 border-b border-border px-4 py-4 sm:px-5">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="min-w-0">
+                        <h2 className="truncate text-base font-semibold">{selectedReceived.subject}</h2>
+                        <p className="mt-1 truncate text-sm text-muted-foreground">From {selectedReceived.from}</p>
+                        <p className="truncate text-xs text-muted-foreground">To {selectedReceived.to.join(", ") || "hello@mail.visualcns.com"}</p>
+                      </div>
+                      {selectedReceived.createdAt && (
+                        <time dateTime={selectedReceived.createdAt} className="shrink-0 text-right text-xs text-muted-foreground">
+                          {formatMessageDate(selectedReceived.createdAt)}
+                        </time>
+                      )}
+                    </div>
+                  </div>
+                  <div className="min-h-0 flex-1 overflow-hidden bg-white">
+                    {loadingReceivedId === selectedReceived.id ? (
+                      <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+                        <Loader2 className="mr-2 size-4 animate-spin" aria-hidden="true" />Loading message…
+                      </div>
+                    ) : (
+                      <iframe
+                        title={`Received email: ${selectedReceived.subject}`}
+                        srcDoc={receivedMessagePreview(selectedReceived)}
+                        sandbox=""
+                        className="h-full min-h-[24rem] w-full border-0"
+                      />
+                    )}
+                  </div>
+                </>
+              ) : (
+                <div className="flex h-full min-h-[24rem] items-center justify-center px-6 text-center text-sm text-muted-foreground">
+                  Select a message to read it.
+                </div>
+              )}
+            </div>
+          </section>
+        )}
+
         {tab === "messages" && (
           <section className="flex min-h-0 flex-1 flex-col gap-4 lg:grid lg:grid-cols-[18rem_minmax(0,1fr)] lg:grid-rows-[minmax(0,1fr)] lg:gap-6 lg:overflow-hidden" role="tabpanel">
             <aside className={cn(
@@ -1222,7 +1412,7 @@ export default function EmailPage() {
                 <h2 className="text-sm font-semibold">Sent messages</h2>
                 <div className="flex items-center gap-2">
                   <Button type="button" variant="ghost" size="sm" className="h-8 px-2 lg:hidden" onClick={() => { clearComposer(); setMobileMessageView("composer") }}>
-                    <Plus aria-hidden="true" />New mail
+                    <Plus aria-hidden="true" />Compose
                   </Button>
                   <span className="text-xs tabular-nums text-muted-foreground">{messages.length}</span>
                 </div>
@@ -1237,23 +1427,32 @@ export default function EmailPage() {
                           type="button"
                           onClick={() => loadDraft(draft)}
                           className={cn(
-                            "block w-full space-y-1 px-3.5 py-3 text-left transition-colors hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset sm:px-4",
+                            "block w-full px-3.5 py-3 text-left transition-colors hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset sm:px-4",
                             editingDraftId === draft.id && "bg-muted",
                           )}
                           aria-label={`Open draft email: ${draft.subject?.trim() || "No subject"}`}
                         >
-                          <div className="flex items-center justify-between gap-3">
-                            <span className="min-w-0 truncate text-xs font-medium">
-                              {draft.to || (draft.listId ? "Contact list" : "No recipient selected")}
-                            </span>
-                            <time dateTime={draft.updatedAt} className="max-w-[42%] shrink-0 truncate text-right text-[11px] text-muted-foreground">
-                              {formatMessageDate(draft.updatedAt)}
-                            </time>
+                          <div className="flex items-start gap-3">
+                            <Avatar className={cn("size-10", contactAvatarTone(draft.to || "Contact list"))}>
+                              <AvatarFallback className="bg-transparent text-sm font-medium">
+                                {contactInitials(draft.to || (draft.listId ? "Contact list" : "No recipient"), draft.to || "Contact list")}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="min-w-0 flex-1 space-y-1">
+                              <div className="flex items-center justify-between gap-3">
+                                <span className="min-w-0 truncate text-xs font-medium">
+                                  {draft.to || (draft.listId ? "Contact list" : "No recipient selected")}
+                                </span>
+                                <time dateTime={draft.updatedAt} className="max-w-[42%] shrink-0 truncate text-right text-[11px] text-muted-foreground">
+                                  {formatMessageDate(draft.updatedAt)}
+                                </time>
+                              </div>
+                              <p className="truncate text-sm !font-bold">{draft.subject?.trim() || "(No subject)"}</p>
+                              <span className="inline-flex items-center gap-1 text-[11px] text-amber-700 dark:text-amber-300">
+                                <FileText className="size-3" aria-hidden="true" />Draft
+                              </span>
+                            </div>
                           </div>
-                          <p className="truncate text-sm font-semibold">{draft.subject?.trim() || "(No subject)"}</p>
-                          <span className="inline-flex items-center gap-1 text-[11px] text-amber-700 dark:text-amber-300">
-                            <FileText className="size-3" aria-hidden="true" />Draft
-                          </span>
                         </button>
                         <button
                           type="button"
@@ -1284,34 +1483,43 @@ export default function EmailPage() {
                     <button
                       key={message.id}
                       type="button"
-                      onClick={() => void openSentMessage(message)}
+                      onClick={() => previewMessageById(message)}
                       className={cn(
-                        "block w-full space-y-1 px-3.5 py-3 text-left transition-colors hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset sm:px-4",
-                        selectedMessageId === message.id && "bg-muted",
+                        "block w-full px-3.5 py-3 text-left transition-colors hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset sm:px-4",
+                        preview?.kind === "message" && preview.id === message.id && "bg-muted",
                       )}
-                      aria-label={`View sent email: ${message.subject}`}
+                      aria-label={`Preview sent email: ${message.subject}`}
                     >
-                      <div className="flex items-center justify-between gap-3">
-                        <span className="min-w-0 truncate text-xs font-medium">{message.to}</span>
-                        <time dateTime={message.createdAt} className="max-w-[42%] shrink-0 truncate text-right text-[11px] text-muted-foreground">
-                          {formatMessageDate(message.createdAt)}
-                        </time>
+                      <div className="flex items-start gap-3">
+                        <Avatar className={cn("size-10", contactAvatarTone(message.to))}>
+                          <AvatarFallback className="bg-transparent text-sm font-medium">
+                            {contactInitials(message.recipients?.[0]?.name || message.to, message.recipients?.[0]?.email || message.to)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="min-w-0 flex-1 space-y-1">
+                          <div className="flex items-center justify-between gap-3">
+                            <span className="min-w-0 truncate text-xs font-medium">{message.to}</span>
+                            <time dateTime={message.createdAt} className="max-w-[42%] shrink-0 truncate text-right text-[11px] text-muted-foreground">
+                              {formatMessageDate(message.createdAt)}
+                            </time>
+                          </div>
+                          <p className="truncate text-sm !font-bold">{message.subject}</p>
+                          {message.status === "scheduled" ? (
+                            <span className="inline-flex items-center gap-1 text-[11px] text-amber-700 dark:text-amber-300">
+                              <Clock className="size-3" aria-hidden="true" />
+                              {message.scheduledAt ? `Scheduled · ${formatMessageDate(message.scheduledAt)}` : "Scheduled"}
+                            </span>
+                          ) : message.status === "failed" ? (
+                            <span className="inline-flex items-center gap-1 text-[11px] text-destructive">
+                              <X className="size-3" aria-hidden="true" />Failed
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-[11px] text-emerald-700 dark:text-emerald-300">
+                              <CheckCircle2 className="size-3" aria-hidden="true" />Sent
+                            </span>
+                          )}
+                        </div>
                       </div>
-                      <p className="truncate text-sm font-semibold">{message.subject}</p>
-                      {message.status === "scheduled" ? (
-                        <span className="inline-flex items-center gap-1 text-[11px] text-amber-700 dark:text-amber-300">
-                          <Clock className="size-3" aria-hidden="true" />
-                          {message.scheduledAt ? `Scheduled · ${formatMessageDate(message.scheduledAt)}` : "Scheduled"}
-                        </span>
-                      ) : message.status === "failed" ? (
-                        <span className="inline-flex items-center gap-1 text-[11px] text-destructive">
-                          <X className="size-3" aria-hidden="true" />Failed
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 text-[11px] text-emerald-700 dark:text-emerald-300">
-                          <CheckCircle2 className="size-3" aria-hidden="true" />Sent
-                        </span>
-                      )}
                     </button>
                   ))}
                 </div>
@@ -1327,105 +1535,19 @@ export default function EmailPage() {
                 <ArrowLeft aria-hidden="true" />
               </Button>
               <div className="min-w-0">
-                <p className="truncate text-sm font-semibold">{selectedMessage ? "Sent email" : "New mail"}</p>
+                <p className="truncate text-sm font-semibold">Compose</p>
                 <p className="text-xs text-muted-foreground">Back to sent messages</p>
               </div>
             </div>
-            {selectedMessage ? (
-              <article className="flex min-h-[32rem] flex-col overflow-hidden rounded-[14px] border border-border bg-card lg:grid lg:h-full lg:min-h-0 lg:grid-rows-[auto_minmax(0,1fr)_auto]">
-                <header className="flex shrink-0 items-start justify-between gap-4 border-b border-border px-4 py-3.5">
-                  <div className="min-w-0">
-                    <h2 className="truncate text-base font-semibold">{selectedMessage.subject}</h2>
-                    <dl className="mt-2 grid gap-1 text-xs text-muted-foreground">
-                      <div className="flex min-w-0 gap-2">
-                        <dt className="shrink-0 font-medium text-foreground">To</dt>
-                        <dd className="truncate">{selectedMessage.to}</dd>
-                      </div>
-                      <div className="flex min-w-0 gap-2">
-                        <dt className="shrink-0 font-medium text-foreground">From</dt>
-                        <dd className="truncate">{cleanSenderDisplay(selectedMessage.from || senderAddress || "VisualCNS")}</dd>
-                      </div>
-                      <div className="flex min-w-0 gap-2">
-                        <dt className="shrink-0 font-medium text-foreground">{selectedMessage.status === "scheduled" ? "Scheduled" : "Sent"}</dt>
-                        <dd>{formatMessageDate(selectedMessage.status === "scheduled" && selectedMessage.scheduledAt ? selectedMessage.scheduledAt : selectedMessage.createdAt)}</dd>
-                      </div>
-                      {(selectedMessage.companyName || selectedMessage.projectName || selectedMessage.documentTitle) && (
-                        <div className="flex min-w-0 gap-2">
-                          <dt className="shrink-0 font-medium text-foreground">Context</dt>
-                          <dd className="truncate">{[selectedMessage.companyName, selectedMessage.projectName, selectedMessage.documentTitle].filter(Boolean).join(" · ")}</dd>
-                        </div>
-                      )}
-                    </dl>
-                  </div>
-                  <Button type="button" variant="outline" size="sm" className="shrink-0" onClick={clearComposer}>
-                    <Mail aria-hidden="true" />New mail
-                  </Button>
-                </header>
-                <div className="min-h-0 bg-white">
-                  {loadingMessageId === selectedMessage.id ? (
-                    <div className="flex h-full min-h-72 items-center justify-center gap-2 text-sm text-muted-foreground">
-                      <Loader2 className="size-4 animate-spin" aria-hidden="true" />Loading sent email
-                    </div>
-                  ) : selectedMessage.bodyHtml || selectedMessage.bodyText ? (
-                    <iframe
-                      title={`Sent email: ${selectedMessage.subject}`}
-                      sandbox=""
-                      srcDoc={sentMessagePreview(selectedMessage)}
-                      className="h-[32rem] w-full border-0 bg-white lg:h-full"
-                    />
-                  ) : messageViewError ? (
-                    <div className="flex h-full min-h-72 items-center justify-center px-6 text-center">
-                      <div>
-                        <p className="text-sm font-medium text-destructive">Couldn’t load this email</p>
-                        <p className="mt-1 max-w-sm text-xs leading-5 text-muted-foreground">{messageViewError}</p>
-                        <Button type="button" variant="outline" size="sm" className="mt-4" onClick={() => void openSentMessage(selectedMessage)}>Try again</Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex h-full min-h-72 items-center justify-center px-6 text-center">
-                      <div>
-                        <Mail className="mx-auto size-5 text-muted-foreground" aria-hidden="true" />
-                        <p className="mt-3 text-sm font-medium">Message body unavailable</p>
-                        <p className="mt-1 max-w-sm text-xs leading-5 text-muted-foreground">This email was sent before message previews were saved. New sent emails will include their complete content here.</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-                <footer className="flex shrink-0 items-center justify-between gap-3 border-t border-border bg-card px-4 py-2.5">
-                  <span className="inline-flex items-center gap-1 text-xs text-emerald-700 dark:text-emerald-300">
-                    <CheckCircle2 className="size-3.5" aria-hidden="true" />Sent successfully
-                  </span>
-                  <span className="hidden max-w-[50%] truncate text-xs text-muted-foreground sm:block">ID: {selectedMessage.providerId}</span>
-                </footer>
-              </article>
-            ) : (
             <form autoComplete="off" onSubmit={sendEmail} className="flex min-h-0 flex-col rounded-[14px] border border-border bg-card lg:grid lg:h-full lg:grid-rows-[auto_minmax(0,1fr)_auto] lg:overflow-hidden">
-              <div className="grid shrink-0 gap-px bg-border sm:grid-cols-4">
-                      <div className="bg-card px-3 py-2.5 sm:px-4">
-                  <span className="text-xs font-medium text-muted-foreground">From</span>
-                  <p className="mt-1 truncate text-sm">{cleanSenderDisplay(senderAddress || (showOpsDetail ? "Not configured" : "Not available yet"))}</p>
+              <div className="grid shrink-0 gap-0 bg-card sm:grid-cols-[minmax(0,1fr)_10rem]">
+                <div className="flex min-w-0 items-center gap-2 bg-card px-3 py-2.5 sm:px-4">
+                  <span className="shrink-0 text-xs font-medium text-muted-foreground">From</span>
+                  <p className="min-w-0 truncate text-sm">{cleanSenderDisplay(senderAddress || (showOpsDetail ? "Not configured" : "Not available yet"))}</p>
                 </div>
                 <div className="bg-card px-3 py-2.5 sm:px-4">
-                  <Label htmlFor="email-template" className="text-xs text-muted-foreground">Template</Label>
-                  <Select
-                    value={selectedTemplateId || "none"}
-                    onValueChange={(value) => applyTemplate(value === "none" ? "" : value)}
-                  >
-                    <SelectTrigger id="email-template" className="mt-1 h-7 w-full border-0 bg-transparent px-0 shadow-none hover:bg-transparent data-[state=open]:bg-transparent">
-                      <SelectValue placeholder="Start without a template" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">Start without a template</SelectItem>
-                    {[...templates].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" })).map((template) => (
-                        <SelectItem key={template.id} value={template.id}>{template.name}</SelectItem>
-                    ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="bg-card px-3 py-2.5 sm:px-4">
-                  <Label htmlFor="email-message-kind" className="text-xs text-muted-foreground">Message type</Label>
                   <Select value={messageKind} onValueChange={(value) => setMessageKind(value as EmailMessageKind)}>
-                    <SelectTrigger id="email-message-kind" className="mt-1 h-7 w-full border-0 bg-transparent px-0 shadow-none hover:bg-transparent data-[state=open]:bg-transparent">
+                    <SelectTrigger id="email-message-kind" aria-label="Message type" className="h-7 w-full border-0 bg-transparent px-0 shadow-none hover:bg-transparent data-[state=open]:bg-transparent">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -1434,53 +1556,102 @@ export default function EmailPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="bg-card px-3 py-2.5 sm:px-4">
-                  <Label htmlFor="email-list" className="text-xs text-muted-foreground">Send to list</Label>
-                  <Select
-                    value={selectedListId || "none"}
-                    onValueChange={(value) => {
-                      setSelectedListId(value === "none" ? "" : value)
-                      if (value !== "none") setTo("")
-                    }}
-                  >
-                    <SelectTrigger id="email-list" className="mt-1 h-7 w-full border-0 bg-transparent px-0 shadow-none hover:bg-transparent data-[state=open]:bg-transparent">
-                      <SelectValue placeholder="One contact" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">One contact</SelectItem>
-                    {[...lists].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" })).map((list) => (
-                        <SelectItem key={list.id} value={list.id}>{list.name} ({list.contactEmails.length})</SelectItem>
-                    ))}
-                    </SelectContent>
-                  </Select>
-                </div>
               </div>
 
               <div className="min-h-0 space-y-3 overflow-visible px-3 py-3 sm:px-4 sm:py-4 lg:grid lg:grid-rows-[auto_auto_minmax(0,1fr)] lg:gap-3 lg:space-y-0 lg:overflow-hidden">
-                <div className="flex min-h-0 flex-col gap-1.5">
-                  <Select
-                    value={to || "none"}
-                    onValueChange={(value) => handleRecipientChange(value === "none" ? "" : value)}
-                    disabled={Boolean(selectedListId)}
-                  >
-                    <SelectTrigger id="email-to" aria-label="To">
-                      <SelectValue placeholder={selectedList ? `Sending to ${selectedList.contactEmails.length} contacts` : "Select a client contact"} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">Select a client contact</SelectItem>
-                      {[...contacts].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" })).map((contact) => (
-                        <SelectItem key={contact.email} value={contact.email}>
-                          {contact.name} · {contact.email}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {contacts.length === 0 && !selectedList && (
-                    <p className="text-xs text-muted-foreground">No saved client contacts available.</p>
-                  )}
-                  {selectedList && (
-                    <p className="text-xs text-muted-foreground">This message will be sent to {selectedList.contactEmails.length} contacts in {selectedList.name}.</p>
-                  )}
+                <div className="grid min-h-0 gap-3 sm:grid-cols-2">
+                  <div className="flex min-h-0 flex-col gap-1.5">
+                    <Popover
+                      open={contactPickerOpen}
+                      onOpenChange={(open) => {
+                        setContactPickerOpen(open)
+                        if (!open) setContactQuery("")
+                      }}
+                    >
+                      <PopoverTrigger asChild>
+                        <button
+                          id="email-to"
+                          type="button"
+                          role="combobox"
+                          aria-expanded={contactPickerOpen}
+                          aria-label="Select contact"
+                          disabled={Boolean(selectedListId)}
+                          className="flex h-8 w-full min-w-0 items-center gap-2 border-b border-input bg-transparent px-0 text-left text-sm outline-none transition-[border-color] hover:border-muted-foreground focus-visible:border-foreground disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          <span className="min-w-0 flex-1 truncate">
+                            {selectedContact?.name || (selectedList ? `Sending to ${selectedList.contactEmails.length} contacts` : "Select contact")}
+                          </span>
+                          <ChevronsUpDown className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent
+                        align="start"
+                        className="w-[var(--radix-popover-trigger-width)] min-w-[280px] p-0"
+                      >
+                        <Command>
+                          <CommandInput
+                            autoFocus
+                            placeholder="Search contacts"
+                            value={contactQuery}
+                            onValueChange={setContactQuery}
+                          />
+                          <CommandList>
+                            <CommandEmpty className="px-3 py-6 text-center text-sm text-muted-foreground">No matching contacts.</CommandEmpty>
+                            <CommandGroup>
+                              {visibleContactOptions.map((contact) => {
+                                const isSelected = recipientEmail(contact.email) === recipientEmail(to)
+                                return (
+                                  <CommandItem
+                                    key={contact.email}
+                                    value={`${contact.name} ${contact.email}`}
+                                    onSelect={() => {
+                                      handleRecipientChange(contact.email)
+                                      setContactPickerOpen(false)
+                                      setContactQuery("")
+                                    }}
+                                    className="items-center gap-3 px-3 py-2.5"
+                                  >
+                                    <Avatar className={cn("size-10", contactAvatarTone(contact.name || contact.email))}>
+                                      <AvatarFallback className="bg-transparent text-sm font-medium">
+                                        {contactInitials(contact.name, contact.email)}
+                                      </AvatarFallback>
+                                    </Avatar>
+                                    <span className="min-w-0 flex-1">
+                                      <span className="block truncate text-sm font-medium text-foreground">{contact.name || "Unnamed contact"}</span>
+                                      <span className="block truncate text-xs text-muted-foreground">{contact.email}</span>
+                                    </span>
+                                    <Check className={cn("size-4 shrink-0", isSelected ? "opacity-100" : "opacity-0")} aria-hidden="true" />
+                                  </CommandItem>
+                                )
+                              })}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                    {contacts.length === 0 && !selectedList && (
+                      <p className="text-xs text-muted-foreground">No saved client contacts available.</p>
+                    )}
+                  </div>
+                  <div className="flex min-h-0 flex-col gap-1.5">
+                    <Select
+                      value={selectedListId || "none"}
+                      onValueChange={(value) => {
+                        setSelectedListId(value === "none" ? "" : value)
+                        if (value !== "none") setTo("")
+                      }}
+                    >
+                      <SelectTrigger id="email-list" aria-label="Contact list">
+                        <SelectValue placeholder="Select list" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">No list</SelectItem>
+                        {[...lists].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" })).map((list) => (
+                          <SelectItem key={list.id} value={list.id}>{list.name} ({list.contactEmails.length})</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
                 <div className="space-y-1.5">
                   <Input
@@ -1495,20 +1666,19 @@ export default function EmailPage() {
                     placeholder="What is this message about?"
                     required
                   />
+                  {messageKind === "marketing" && (
+                    <p className="text-xs leading-5 text-muted-foreground">Only subscribed client and portal contacts will receive this email. An unsubscribe link will be added automatically.</p>
+                  )}
                 </div>
-                {messageKind === "marketing" && (
-                  <p className="text-xs leading-5 text-muted-foreground">Only subscribed client and portal contacts will receive this email. An unsubscribe link will be added automatically.</p>
-                )}
                 <div className="flex min-h-0 flex-col gap-1.5">
-                  <div className="flex items-center justify-between gap-4">
-                    <span className="text-xs tabular-nums text-muted-foreground">{htmlToText(body).length.toLocaleString()} / 20,000</span>
-                  </div>
                   <RichTextEditor
                     value={body}
                     onChange={setBody}
                     placeholder="Write your message"
                     scrollable
                     compact
+                    flat
+                    allowHtml
                     className="min-h-64 lg:min-h-0 lg:flex-1"
                   />
                 </div>
@@ -1521,42 +1691,77 @@ export default function EmailPage() {
                       {sendNotice.text}
                     </span>
                   )}
+                  {!sendNotice && draftStatus !== "idle" && (
+                    <span className="text-xs text-muted-foreground">
+                      {draftStatus === "saving" || savingDraft ? "Saving draft…" : draftStatus === "saved" ? "Draft saved" : "Draft could not be saved"}
+                    </span>
+                  )}
                 </div>
                 <div className="flex flex-wrap items-center justify-end gap-2">
-                  <Button
-                    type="button"
-                    variant={scheduleEnabled ? "secondary" : "ghost"}
-                    aria-pressed={scheduleEnabled}
-                    onClick={() => setScheduleEnabled((value) => !value)}
-                  >
-                    <Clock aria-hidden="true" />
-                    Send later
-                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button type="button" variant="ghost" className="max-w-52 justify-start">
+                        <FileText aria-hidden="true" />
+                        <span className="truncate">{selectedTemplate?.name || "Template"}</span>
+                        <ChevronDown className="ml-auto size-4" aria-hidden="true" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="w-72">
+                      <DropdownMenuItem onSelect={() => applyTemplate("")}>Start without a template</DropdownMenuItem>
+                      {[...templates].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" })).map((template) => (
+                        <DropdownMenuItem key={template.id} onSelect={() => applyTemplate(template.id)}>
+                          <span className="truncate">{template.name}</span>
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                   {scheduleEnabled && (
                     <Input
                       type="datetime-local"
                       aria-label="Schedule date and time"
                       value={scheduleAt}
-                      min={datetimeLocalMin()}
+                      min={scheduleMin || undefined}
                       onChange={(event) => setScheduleAt(event.target.value)}
                       className="h-9 w-auto"
                     />
                   )}
-                  <Button type="button" variant="ghost" onClick={clearComposer}>Clear</Button>
-                  <Button type="button" variant="secondary" onClick={() => void saveDraft()} disabled={savingDraft || sending}>
-                    {savingDraft ? "Saving" : editingDraftId ? "Update draft" : "Save draft"}
-                  </Button>
-                  <Button
-                    type="submit"
-                    disabled={!senderConfigured || sending || (!selectedListId && !to.trim()) || (selectedListId && !selectedList?.contactEmails.length) || !subject.trim() || !htmlToText(body).trim() || (scheduleEnabled && !scheduleAt)}
-                  >
-                    {sending ? <Loader2 className="animate-spin" aria-hidden="true" /> : scheduleEnabled ? <Clock aria-hidden="true" /> : <Send aria-hidden="true" />}
-                    {sending ? (scheduleEnabled ? "Scheduling" : "Sending") : scheduleEnabled ? "Schedule email" : "Send email"}
-                  </Button>
+                  <div className="inline-flex items-stretch">
+                    <Button
+                      type="submit"
+                      className="rounded-r-none"
+                      disabled={!senderConfigured || sending || (!selectedListId && !to.trim()) || (selectedListId && !selectedList?.contactEmails.length) || !subject.trim() || !htmlToText(body).trim() || (scheduleEnabled && !scheduleAt)}
+                    >
+                      {sending ? <Loader2 className="animate-spin" aria-hidden="true" /> : scheduleEnabled ? <Clock aria-hidden="true" /> : <Send aria-hidden="true" />}
+                      {sending ? (scheduleEnabled ? "Scheduling" : "Sending") : scheduleEnabled ? "Schedule" : "Send"}
+                    </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          type="button"
+                          aria-label="Choose send action"
+                          title="Choose send action"
+                          className="rounded-l-none border-l border-primary-foreground/25 px-2"
+                          disabled={sending}
+                        >
+                          <ChevronDown aria-hidden="true" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        {scheduleEnabled ? (
+                          <DropdownMenuItem onSelect={() => { setScheduleEnabled(false); setScheduleAt("") }}>
+                            <Send aria-hidden="true" />Send now
+                          </DropdownMenuItem>
+                        ) : (
+                          <DropdownMenuItem onSelect={() => setScheduleEnabled(true)}>
+                            <Clock aria-hidden="true" />Schedule
+                          </DropdownMenuItem>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
                 </div>
               </div>
             </form>
-            )}
             </div>
           </section>
         )}
@@ -1580,6 +1785,11 @@ export default function EmailPage() {
                 <div className="divide-y divide-border">
                   {visibleLists.map((list) => (
                     <div key={list.id} className={cn("flex items-start gap-2 px-3.5 py-3", editingListId === list.id && "bg-sidebar-accent text-sidebar-accent-foreground")}>
+                      <Avatar className={cn("size-10 shrink-0", contactAvatarTone(list.name), editingListId === list.id && "bg-sidebar-accent-foreground/10 text-sidebar-accent-foreground")} aria-hidden="true">
+                        <AvatarFallback className="bg-transparent text-sm font-medium">
+                          {contactInitials(list.name, list.name)}
+                        </AvatarFallback>
+                      </Avatar>
                       <button type="button" onClick={() => editList(list)} className="min-w-0 flex-1 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring">
                         <span className="block truncate text-sm font-medium">{list.name}</span>
                         <span className={cn("mt-1 block text-xs text-muted-foreground", editingListId === list.id && "text-sidebar-accent-foreground/70")}>{list.contactEmails.length} contact{list.contactEmails.length === 1 ? "" : "s"}</span>
@@ -1699,6 +1909,7 @@ export default function EmailPage() {
                     onChange={setTemplateBody}
                     placeholder="Write the reusable message"
                     scrollable
+                    allowHtml
                     className="min-h-64 lg:min-h-0 lg:flex-1"
                     contentHeader={(
                       <div className="bg-white px-4 py-5 sm:px-6">
@@ -1742,7 +1953,12 @@ export default function EmailPage() {
                     </span>
                   )}
                 </div>
-                <Button type="submit">{editingTemplateId ? "Save changes" : "Save template"}</Button>
+                <div className="flex items-center gap-2">
+                  <Button type="button" variant="outline" onClick={useEditingTemplate} disabled={!editingTemplateId}>
+                    Use template
+                  </Button>
+                  <Button type="submit">Save</Button>
+                </div>
               </div>
             </form>
 
@@ -1777,9 +1993,11 @@ export default function EmailPage() {
                 <div className="mt-3">
                   {visibleTemplates.map((template) => (
                     <div key={template.id} className={cn("group flex items-start gap-2 rounded-md border-b border-border px-2.5 py-3.5 first:pt-3 last:border-b-0", editingTemplateId === template.id && "bg-sidebar-accent text-sidebar-accent-foreground")}>
-                      <div className={cn("flex size-10 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground", editingTemplateId === template.id && "bg-sidebar-accent-foreground/10 text-sidebar-accent-foreground")} aria-hidden="true">
-                        <Mail className="size-4" />
-                      </div>
+                      <Avatar className={cn("size-10", contactAvatarTone(template.name), editingTemplateId === template.id && "bg-sidebar-accent-foreground/10 text-sidebar-accent-foreground")} aria-hidden="true">
+                        <AvatarFallback className="bg-transparent text-sm font-medium">
+                          {contactInitials(template.name, template.subject)}
+                        </AvatarFallback>
+                      </Avatar>
                       <button type="button" onClick={() => { editTemplate(template); setMobileTemplateView("editor") }} className="min-w-0 flex-1 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring">
                         <span className="block truncate text-sm font-medium">{template.name}</span>
                         <span className={cn("mt-1 block truncate text-xs text-muted-foreground", editingTemplateId === template.id && "text-sidebar-accent-foreground/70")}>{template.subject}</span>
@@ -1787,7 +2005,7 @@ export default function EmailPage() {
                       <div className="flex shrink-0 flex-col items-end gap-1">
                         <time dateTime={template.updatedAt} className={cn("text-[11px] text-muted-foreground", editingTemplateId === template.id && "text-sidebar-accent-foreground/70")}>{formatTemplateDate(template.updatedAt)}</time>
                         <div className="flex items-center gap-1">
-                          <button type="button" onClick={() => setPreviewTemplateId(template.id)} aria-label={`Preview ${template.name}`} className="flex size-8 items-center justify-center rounded-sm text-muted-foreground opacity-70 outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100">
+                          <button type="button" onClick={() => setPreview({ kind: "template", id: template.id })} aria-label={`Preview ${template.name}`} className="flex size-8 items-center justify-center rounded-sm text-muted-foreground opacity-70 outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100">
                             <Eye className="size-4" aria-hidden="true" />
                           </button>
                           <button type="button" onClick={() => deleteTemplate(template.id)} aria-label={`Delete ${template.name}`} className="flex size-8 items-center justify-center rounded-sm text-muted-foreground opacity-70 outline-none transition-colors hover:bg-destructive/10 hover:text-destructive focus-visible:ring-2 focus-visible:ring-ring sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100">
@@ -1805,53 +2023,71 @@ export default function EmailPage() {
 
       </div>
 
-      {previewTemplate && (
+      {(previewTemplate || previewMessage) && (
         <div
           className="fixed inset-0 z-50 flex flex-col bg-black/70 backdrop-blur-sm"
           role="dialog"
           aria-modal="true"
-          aria-label={`Preview: ${previewTemplate.name}`}
-          onClick={() => setPreviewTemplateId(null)}
+          aria-label={`Preview: ${previewMessage ? previewMessage.subject : previewTemplate?.name}`}
+          onClick={() => setPreview(null)}
         >
           <div className="flex shrink-0 items-center gap-3 px-4 py-3 text-white sm:px-6" onClick={(event) => event.stopPropagation()}>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-semibold">{previewTemplate.name}</p>
-              <p className="truncate text-xs text-white/70">{previewTemplate.subject} · {previewIndex + 1} of {visibleTemplates.length}</p>
+              <p className="truncate text-sm font-semibold">{previewMessage ? previewMessage.subject : previewTemplate?.name}</p>
+              <p className="truncate text-xs text-white/70">{previewMessage ? previewMessage.to : previewTemplate?.subject} · {previewIndex + 1} of {previewList.length}</p>
             </div>
-            <button type="button" onClick={() => setPreviewTemplateId(null)} aria-label="Close preview" className="flex size-9 items-center justify-center rounded-full text-white/80 outline-none transition-colors hover:bg-white/15 hover:text-white focus-visible:ring-2 focus-visible:ring-white/60">
+            <button type="button" onClick={() => setPreview(null)} aria-label="Close preview" className="flex size-9 items-center justify-center rounded-full text-white/80 outline-none transition-colors hover:bg-white/15 hover:text-white focus-visible:ring-2 focus-visible:ring-white/60">
               <X className="size-5" aria-hidden="true" />
             </button>
           </div>
           <div className="flex min-h-0 flex-1 items-center justify-center gap-2 px-2 pb-6 sm:gap-4 sm:px-6" onClick={(event) => event.stopPropagation()}>
-            <button type="button" onClick={showPrevPreview} disabled={!hasPrevPreview} aria-label="Previous template" className="flex size-11 shrink-0 items-center justify-center rounded-full bg-white/10 text-white outline-none transition-colors hover:bg-white/20 focus-visible:ring-2 focus-visible:ring-white/60 disabled:pointer-events-none disabled:opacity-30">
+            <button type="button" onClick={showPrevPreview} disabled={!hasPrevPreview} aria-label="Previous" className="flex size-11 shrink-0 items-center justify-center rounded-full bg-white/10 text-white outline-none transition-colors hover:bg-white/20 focus-visible:ring-2 focus-visible:ring-white/60 disabled:pointer-events-none disabled:opacity-30">
               <ChevronLeft className="size-6" aria-hidden="true" />
             </button>
             <div ref={previewStageRef} className="flex h-full min-w-0 flex-1 items-center justify-center overflow-hidden">
-              <div
-                className="relative overflow-hidden rounded-xl bg-white shadow-2xl"
-                style={{ width: PREVIEW_WIDTH * previewScale, height: (previewHeight ?? 0) * previewScale }}
-              >
-                <iframe
-                  key={previewTemplate.id}
-                  title={`Template preview: ${previewTemplate.name}`}
-                  sandbox="allow-same-origin"
-                  scrolling="no"
-                  srcDoc={templatePreview(previewTemplate)}
-                  onLoad={(event) => {
-                    const doc = event.currentTarget.contentDocument
-                    if (doc?.body) setPreviewHeight(doc.body.scrollHeight)
-                  }}
-                  style={{
-                    width: PREVIEW_WIDTH,
-                    height: previewHeight ?? "100%",
-                    transform: `scale(${previewScale})`,
-                    transformOrigin: "top left",
-                  }}
-                  className="absolute left-0 top-0 border-0 bg-white"
-                />
-              </div>
+              {previewMessage && loadingMessageId === previewMessage.id ? (
+                <div className="flex items-center gap-2 rounded-xl bg-white px-6 py-10 text-sm text-neutral-500 shadow-2xl">
+                  <Loader2 className="size-4 animate-spin" aria-hidden="true" />Loading email
+                </div>
+              ) : previewMessage && messageViewError ? (
+                <div className="max-w-sm rounded-xl bg-white px-6 py-10 text-center shadow-2xl">
+                  <p className="text-sm font-medium text-destructive">Couldn’t load this email</p>
+                  <p className="mt-1 text-xs leading-5 text-neutral-500">{messageViewError}</p>
+                  <Button type="button" variant="outline" size="sm" className="mt-4" onClick={() => void hydrateMessageBody(previewMessage)}>Try again</Button>
+                </div>
+              ) : previewMessage && !previewMessage.bodyHtml && !previewMessage.bodyText ? (
+                <div className="max-w-sm rounded-xl bg-white px-6 py-10 text-center shadow-2xl">
+                  <Mail className="mx-auto size-5 text-neutral-400" aria-hidden="true" />
+                  <p className="mt-3 text-sm font-medium text-neutral-700">Message body unavailable</p>
+                  <p className="mt-1 text-xs leading-5 text-neutral-500">This email was sent before message previews were saved. New sent emails include their full content here.</p>
+                </div>
+              ) : (
+                <div
+                  className="relative overflow-hidden rounded-xl bg-white shadow-2xl"
+                  style={{ width: PREVIEW_WIDTH * previewScale, height: (previewHeight ?? 0) * previewScale }}
+                >
+                  <iframe
+                    key={preview?.id}
+                    title={previewMessage ? `Email preview: ${previewMessage.subject}` : `Template preview: ${previewTemplate?.name}`}
+                    sandbox="allow-same-origin"
+                    scrolling="no"
+                    srcDoc={previewMessage ? sentMessagePreview(previewMessage) : templatePreview(previewTemplate!)}
+                    onLoad={(event) => {
+                      const doc = event.currentTarget.contentDocument
+                      if (doc?.body) setPreviewHeight(doc.body.scrollHeight)
+                    }}
+                    style={{
+                      width: PREVIEW_WIDTH,
+                      height: previewHeight ?? "100%",
+                      transform: `scale(${previewScale})`,
+                      transformOrigin: "top left",
+                    }}
+                    className="absolute left-0 top-0 border-0 bg-white"
+                  />
+                </div>
+              )}
             </div>
-            <button type="button" onClick={showNextPreview} disabled={!hasNextPreview} aria-label="Next template" className="flex size-11 shrink-0 items-center justify-center rounded-full bg-white/10 text-white outline-none transition-colors hover:bg-white/20 focus-visible:ring-2 focus-visible:ring-white/60 disabled:pointer-events-none disabled:opacity-30">
+            <button type="button" onClick={showNextPreview} disabled={!hasNextPreview} aria-label="Next" className="flex size-11 shrink-0 items-center justify-center rounded-full bg-white/10 text-white outline-none transition-colors hover:bg-white/20 focus-visible:ring-2 focus-visible:ring-white/60 disabled:pointer-events-none disabled:opacity-30">
               <ChevronRight className="size-6" aria-hidden="true" />
             </button>
           </div>

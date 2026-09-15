@@ -16,6 +16,7 @@ import { DocumentActions } from "@/components/dashboard/document-actions"
 import { EstimateDocument } from "@/components/dashboard/estimate-document"
 import { InvoiceDocument } from "@/components/dashboard/invoice-document"
 import { NewPersonDialog } from "@/components/dashboard/new-person-dialog"
+import { NewDocumentDialog } from "@/components/dashboard/new-document-dialog"
 import { NewProjectDialog } from "@/components/dashboard/new-project-dialog"
 import { ProjectDetail } from "@/components/dashboard/project-detail"
 import { ContextualEmailButton } from "@/components/dashboard/contextual-email-button"
@@ -158,6 +159,7 @@ export function CompanyPage({
   const [editingPerson, setEditingPerson] = useState<AppUser | null>(null)
   const [pendingRemove, setPendingRemove] = useState<AppUser | null>(null)
   const [removing, setRemoving] = useState(false)
+  const [creatingDocument, setCreatingDocument] = useState(false)
   const [creatingProject, setCreatingProject] = useState(false)
   const [shareOpen, setShareOpen] = useState(false)
   const [issuer, setIssuer] = useState<BusinessProfile | null>(null)
@@ -195,6 +197,14 @@ export function CompanyPage({
 
   function handleCloseDocument() {
     updateParams({ doc: null })
+  }
+
+  function handleAddDocument(kind: CompanyDocumentKind) {
+    if (kind === "document") {
+      setCreatingDocument(true)
+      return
+    }
+    router.push(`/dashboard/${kind}s/new?companyId=${encodeURIComponent(company.id)}`)
   }
 
   const absoluteUrl = (path: string) =>
@@ -587,6 +597,8 @@ export function CompanyPage({
                   estimates={estimates}
                   documents={documents}
                   onSelect={handleSelectDocument}
+                  canAdd={Boolean(admin)}
+                  onAdd={handleAddDocument}
                 />
               )}
             </div>
@@ -596,6 +608,12 @@ export function CompanyPage({
 
       {admin && (
         <>
+          <NewDocumentDialog
+            open={creatingDocument}
+            onOpenChange={setCreatingDocument}
+            initialCompanyId={company.id}
+          />
+
           <NewPersonDialog
             open={addingPerson}
             onOpenChange={setAddingPerson}

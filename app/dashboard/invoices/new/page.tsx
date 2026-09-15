@@ -1,6 +1,6 @@
 "use client"
 
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { useEffect } from "react"
 import { Loader2 } from "lucide-react"
 
@@ -10,6 +10,7 @@ import { InvoiceBuilder } from "@/components/dashboard/invoice-builder"
 export default function NewInvoicePage() {
   const router = useRouter()
   const { user, loading, isAdmin, isImpersonating } = useAuth()
+  const initialCompanyId = useSearchParams().get("companyId") ?? undefined
   const allowed = isAdmin && !isImpersonating
 
   useEffect(() => {
@@ -26,7 +27,7 @@ export default function NewInvoicePage() {
 
   return (
     <main className="mx-auto w-full max-w-5xl px-4 py-9 sm:px-6">
-      <InvoiceBuilder />
+      <InvoiceBuilder initialCompanyId={initialCompanyId} />
     </main>
   )
 }

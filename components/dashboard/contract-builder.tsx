@@ -31,12 +31,12 @@ import { getUsers, type AppUser } from "@/lib/users"
 import { ShareLinkField } from "@/components/dashboard/share-link-field"
 import { cn } from "@/lib/utils"
 
-export function ContractBuilder({ contract }: { contract?: Contract | null }) {
+export function ContractBuilder({ contract, initialCompanyId }: { contract?: Contract | null; initialCompanyId?: string }) {
   const router = useRouter()
   const isEdit = Boolean(contract)
 
   const [title, setTitle] = useState(contract?.title ?? "")
-  const [companyId, setCompanyId] = useState(contract?.companyId ?? "")
+  const [companyId, setCompanyId] = useState(contract?.companyId ?? initialCompanyId ?? "")
   const [projectId, setProjectId] = useState(contract?.projectId ?? "")
   const [status, setStatus] = useState<ContractStatus>(contract?.status ?? "draft")
   const [startsOn, setStartsOn] = useState(contract?.startsOn ?? "")

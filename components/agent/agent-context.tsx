@@ -22,12 +22,21 @@ export type AgentForm = {
   fields: AgentFormField[]
 }
 
+/** A non-image file the user attached: PDFs the model can read, plus other docs it can only file. */
+export type AgentFile = {
+  name: string
+  url: string
+  mimeType?: string
+}
+
 export type AgentMessage = {
   id: string
   role: "user" | "assistant"
   content: string
   /** Storage URLs of images the user attached to this message. */
   images?: string[]
+  /** Non-image files (PDFs, Word, Excel…) attached to this message. */
+  files?: AgentFile[]
   /** Present when the agent answered and then asked for details as a form. */
   form?: AgentForm
 }
@@ -64,7 +73,7 @@ interface AgentContextValue {
   activeConversationId: string
   sending: boolean
   firstName: string
-  send: (text: string, images?: string[]) => void
+  send: (text: string, images?: string[], files?: AgentFile[]) => void
   reset: () => void
   selectConversation: (id: string) => void
 }
@@ -107,14 +116,14 @@ export function AgentProvider({ children }: { children: ReactNode }) {
           const stored = chat.data().messages
           const chatMessages = Array.isArray(stored)
             ? stored
-                .filter((message): message is { id: string | number; role: "user" | "assistant"; content: string; images?: string[] } =>
+                .filter((message): message is { id: string | number; role: "user" | "assistant"; content: string; images?: string[]; files?: AgentFile[] } =>
                   Boolean(message) &&
                   (message.role === "user" || message.role === "assistant") &&
                   typeof message.content === "string" &&
                   !(message.role === "assistant" && !message.content.trim()),
                 )
                 .slice(-MAX_HISTORY_MESSAGES)
-                .map((message) => ({ ...message, id: String(message.id), ...(Array.isArray(message.images) ? { images: message.images.filter((url): url is string => typeof url === "string") } : {}) }))
+                .map((message) => ({ ...message, id: String(message.id), ...(Array.isArray(message.images) ? { images: message.images.filter((url): url is string => typeof url === "string") } : {}), ...(Array.isArray(message.files) ? { files: message.files.filter((file): file is AgentFile => Boolean(file) && typeof file.url === "string" && typeof file.name === "string") } : {}) }))
             : []
           return { id: chat.id, title: String(chat.data().title || NEW_CHAT_TITLE), messages: chatMessages }
         })
@@ -125,14 +134,14 @@ export function AgentProvider({ children }: { children: ReactNode }) {
           const stored = legacy.data()?.messages
           const legacyMessages = Array.isArray(stored)
             ? stored
-                .filter((message): message is { id: string | number; role: "user" | "assistant"; content: string; images?: string[] } =>
+                .filter((message): message is { id: string | number; role: "user" | "assistant"; content: string; images?: string[]; files?: AgentFile[] } =>
                   Boolean(message) &&
                   (message.role === "user" || message.role === "assistant") &&
                   typeof message.content === "string" &&
                   !(message.role === "assistant" && !message.content.trim()),
                 )
                 .slice(-MAX_HISTORY_MESSAGES)
-                .map((message) => ({ ...message, id: String(message.id), ...(Array.isArray(message.images) ? { images: message.images.filter((url): url is string => typeof url === "string") } : {}) }))
+                .map((message) => ({ ...message, id: String(message.id), ...(Array.isArray(message.images) ? { images: message.images.filter((url): url is string => typeof url === "string") } : {}), ...(Array.isArray(message.files) ? { files: message.files.filter((file): file is AgentFile => Boolean(file) && typeof file.url === "string" && typeof file.name === "string") } : {}) }))
             : []
           if (legacyMessages.length) restored = [{ id: "previous-chat", title: "Previous chat", messages: legacyMessages }]
         }
@@ -169,18 +178,25 @@ export function AgentProvider({ children }: { children: ReactNode }) {
   )
 
   const send = useCallback(
-    (text: string, images?: string[]) => {
+    (text: string, images?: string[], files?: AgentFile[]) => {
       const content = text.trim()
       const attachments = (images ?? []).filter((url) => typeof url === "string" && url)
+      const fileAttachments = (files ?? []).filter((file) => file && typeof file.url === "string" && file.url && typeof file.name === "string")
       const currentUser = user
-      if ((!content && !attachments.length) || sending || !currentUser) return
+      if ((!content && !attachments.length && !fileAttachments.length) || sending || !currentUser) return
 
-      const userMessage: AgentMessage = { id: messageId(nextId), role: "user", content, ...(attachments.length ? { images: attachments } : {}) }
+      const userMessage: AgentMessage = {
+        id: messageId(nextId),
+        role: "user",
+        content,
+        ...(attachments.length ? { images: attachments } : {}),
+        ...(fileAttachments.length ? { files: fileAttachments } : {}),
+      }
       const assistantId = messageId(nextId)
       const history = [...messages, userMessage]
       const conversationId = activeConversationId || messageId(nextId)
       const existing = conversations.find((conversation) => conversation.id === conversationId)
-      const fallbackTitle = content.slice(0, 56) || "Shared an image"
+      const fallbackTitle = content.slice(0, 56) || (fileAttachments.length ? fileAttachments[0].name : "Shared a file")
       const title = existing?.title && existing.title !== NEW_CHAT_TITLE ? existing.title : fallbackTitle
       const pending = [...history, { id: assistantId, role: "assistant" as const, content: "" }]
 
@@ -189,7 +205,7 @@ export function AgentProvider({ children }: { children: ReactNode }) {
       rememberConversation({ id: conversationId, title, messages: history })
       setSending(true)
 
-      const payload = history.map(({ role, content: c, images: im }) => ({ role, content: c, ...(im?.length ? { images: im } : {}) }))
+      const payload = history.map(({ role, content: c, images: im, files: fl }) => ({ role, content: c, ...(im?.length ? { images: im } : {}), ...(fl?.length ? { files: fl } : {}) }))
 
       void (async () => {
         try {

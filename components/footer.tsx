@@ -58,6 +58,12 @@ const socialLinks: Array<{ name: string; href: string; icon: LucideIcon }> = [
   { name: "LinkedIn", href: "https://www.linkedin.com/company/visualng", icon: Linkedin },
 ]
 
+const legalLinks = [
+  { name: "Privacy", href: "/privacy" },
+  { name: "Cookies", href: "/cookies" },
+  { name: "Terms", href: "/terms" },
+]
+
 export function Footer() {
   const year = new Date().getFullYear()
 
@@ -139,7 +145,23 @@ export function Footer() {
         </div>
 
         <div className="mt-10 flex flex-col gap-4 border-t border-primary-foreground/15 pt-6 text-xs text-primary-foreground/55 md:flex-row md:items-center md:justify-between">
-          <p>© {year} Visual Core Nine Systems · Privacy · Terms</p>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+            <span>© {year} Visual Core Nine Systems</span>
+            <span aria-hidden="true">·</span>
+            <nav aria-label="Legal footer links" className="flex flex-wrap items-center gap-x-3 gap-y-2">
+              {legalLinks.map((item, index) => (
+                <span key={item.name} className="flex items-center gap-x-3">
+                  {index > 0 && <span aria-hidden="true">·</span>}
+                  <Link
+                    href={item.href}
+                    className="text-primary-foreground/70 underline decoration-primary-foreground/25 underline-offset-4 transition-colors hover:text-accent hover:decoration-accent"
+                  >
+                    {item.name}
+                  </Link>
+                </span>
+              ))}
+            </nav>
+          </div>
           <div className="flex gap-8 text-sm font-semibold tracking-[0.16em] text-primary-foreground">
             {socialLinks.map((item) => (
               <a

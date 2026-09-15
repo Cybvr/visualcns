@@ -1,10 +1,10 @@
 "use client"
 
 import Image from "next/image"
-import { useEffect, useRef, useState, type ChangeEvent, type FormEvent, type KeyboardEvent, type ReactNode } from "react"
-import { ArrowUp, Loader2, Plus, X } from "lucide-react"
+import { useEffect, useRef, useState, type ChangeEvent, type DragEvent, type FormEvent, type KeyboardEvent, type ReactNode } from "react"
+import { ArrowUp, FileText, Loader2, Plus, UploadCloud, X } from "lucide-react"
 
-import type { AgentConversation, AgentForm, AgentMessage } from "@/components/agent/agent-context"
+import type { AgentConversation, AgentFile, AgentForm, AgentMessage } from "@/components/agent/agent-context"
 import { uploadFileToStorage } from "@/lib/documents"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -239,6 +239,25 @@ function AgentFormCard({ form, disabled, onSubmit }: { form: AgentForm; disabled
   )
 }
 
+/** One attachment held in the composer before the message is sent. */
+type ComposerAttachment = { name: string; url: string; mimeType: string }
+
+/** Types the picker offers and a drop is allowed to add. */
+const ACCEPT_ATTR = ".pdf,image/*,.doc,.docx,.xls,.xlsx,.csv,.txt"
+const ALLOWED_EXTENSION = /\.(pdf|png|jpe?g|gif|webp|heic|heif|svg|doc|docx|xls|xlsx|csv|txt)$/i
+
+function isAllowedFile(file: File): boolean {
+  return file.type.startsWith("image/") || file.type === "application/pdf" || ALLOWED_EXTENSION.test(file.name)
+}
+
+/** Chips shown once a file is attached; each prefills the composer, the user adds the client and sends. */
+const QUICK_ACTIONS: { label: string; prompt: string }[] = [
+  { label: "Add to Drive", prompt: "File this into the client's documents." },
+  { label: "Make invoice", prompt: "Turn this into a draft invoice for the client." },
+  { label: "Make estimate", prompt: "Turn this into a draft estimate for the client." },
+  { label: "Make contract", prompt: "Turn this into a draft contract for the client." },
+]
+
 /**
  * The agent conversation surface, shared by the full-page route and the
  * dashboard dock. `compact` tightens spacing for the narrow docked panel.
@@ -259,7 +278,7 @@ export function AgentChat({
   activeConversationId: string
   sending: boolean
   firstName: string
-  onSend: (text: string, images?: string[]) => void
+  onSend: (text: string, images?: string[], files?: AgentFile[]) => void
   onSelectConversation: (id: string) => void
   onNewChat: () => void
   compact?: boolean
@@ -274,10 +293,13 @@ export function AgentChat({
     "How many projects do I have?",
   ]
   const [input, setInput] = useState("")
-  const [attachments, setAttachments] = useState<string[]>([])
+  const [attachments, setAttachments] = useState<ComposerAttachment[]>([])
   const [uploading, setUploading] = useState(false)
   const [attachError, setAttachError] = useState("")
+  const [dragging, setDragging] = useState(false)
   const fileInput = useRef<HTMLInputElement>(null)
+  const textInput = useRef<HTMLTextAreaElement>(null)
+  const dragDepth = useRef(0)
   const transcriptEnd = useRef<HTMLDivElement>(null)
   // The last assistant message is empty while its stream is still arriving.
   const streaming = sending && messages[messages.length - 1]?.content === ""
@@ -287,27 +309,85 @@ export function AgentChat({
     transcriptEnd.current?.scrollIntoView({ behavior: "smooth", block: "end" })
   }, [messages, sending])
 
-  async function handleFiles(event: ChangeEvent<HTMLInputElement>) {
-    const files = Array.from(event.target.files ?? []).filter((file) => file.type.startsWith("image/"))
-    event.target.value = ""
-    if (!files.length) return
+  async function uploadFiles(fileList: File[]) {
+    const files = fileList.filter(isAllowedFile)
+    if (!files.length) {
+      if (fileList.length) setAttachError("That file type isn’t supported.")
+      return
+    }
     setAttachError("")
     setUploading(true)
     try {
-      const urls = await Promise.all(files.map((file) => uploadFileToStorage(file)))
-      setAttachments((current) => [...current, ...urls])
+      const uploaded = await Promise.all(
+        files.map(async (file) => ({
+          name: file.name,
+          url: await uploadFileToStorage(file),
+          mimeType: file.type || "application/octet-stream",
+        })),
+      )
+      setAttachments((current) => [...current, ...uploaded])
     } catch {
-      setAttachError("Couldn’t upload that image. Try again.")
+      setAttachError("Couldn’t upload that file. Try again.")
     } finally {
       setUploading(false)
     }
+  }
+
+  function handleFiles(event: ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(event.target.files ?? [])
+    event.target.value = ""
+    void uploadFiles(files)
+  }
+
+  function hasFiles(event: DragEvent<HTMLDivElement>) {
+    return Array.from(event.dataTransfer?.types ?? []).includes("Files")
+  }
+
+  function handleDragEnter(event: DragEvent<HTMLDivElement>) {
+    if (!hasFiles(event) || streaming) return
+    event.preventDefault()
+    dragDepth.current += 1
+    setDragging(true)
+  }
+
+  function handleDragOver(event: DragEvent<HTMLDivElement>) {
+    if (!hasFiles(event) || streaming) return
+    event.preventDefault()
+  }
+
+  function handleDragLeave(event: DragEvent<HTMLDivElement>) {
+    if (!hasFiles(event)) return
+    dragDepth.current -= 1
+    if (dragDepth.current <= 0) {
+      dragDepth.current = 0
+      setDragging(false)
+    }
+  }
+
+  function handleDrop(event: DragEvent<HTMLDivElement>) {
+    if (!hasFiles(event)) return
+    event.preventDefault()
+    dragDepth.current = 0
+    setDragging(false)
+    if (streaming) return
+    const files = Array.from(event.dataTransfer?.files ?? [])
+    if (files.length) void uploadFiles(files)
+  }
+
+  function applyQuickAction(prompt: string) {
+    setInput(prompt)
+    requestAnimationFrame(() => textInput.current?.focus())
   }
 
   function submit(event?: FormEvent<HTMLFormElement>) {
     event?.preventDefault()
     const content = input.trim()
     if ((!content && !attachments.length) || sending || uploading) return
-    onSend(content, attachments)
+    const images = attachments.filter((item) => item.mimeType.startsWith("image/")).map((item) => item.url)
+    const files: AgentFile[] = attachments
+      .filter((item) => !item.mimeType.startsWith("image/"))
+      .map(({ name, url, mimeType }) => ({ name, url, mimeType }))
+    onSend(content, images, files)
     setInput("")
     setAttachments([])
     setAttachError("")
@@ -321,7 +401,22 @@ export function AgentChat({
   }
 
   return (
-    <div className={cn("dashboard-body flex h-full flex-col font-sans [&_*]:font-sans", compact ? "bg-background" : "agent-surface")}>
+    <div
+      className={cn("dashboard-body relative flex h-full flex-col font-sans [&_*]:font-sans", compact ? "bg-background" : "agent-surface")}
+      onDragEnter={handleDragEnter}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
+      {dragging && (
+        <div className="pointer-events-none absolute inset-0 z-50 flex items-center justify-center bg-background/85 p-4 backdrop-blur-sm">
+          <div className="flex w-full max-w-sm flex-col items-center gap-3 rounded-[16px] border-2 border-dashed border-accent px-6 py-10 text-center">
+            <UploadCloud className="size-8 text-accent" aria-hidden="true" />
+            <p className="text-sm font-medium">Drop files to attach</p>
+            <p className="text-xs text-muted-foreground">PDFs and images can be read. Other files can be filed to a company.</p>
+          </div>
+        </div>
+      )}
       {messages.length === 0 ? (
         <div className={cn("flex min-h-0 flex-1 items-center justify-center overflow-y-auto text-center", compact ? "px-4 py-6" : "px-4 pb-16 sm:px-6")}>
           <div className="flex max-w-lg flex-col items-center">
@@ -380,10 +475,26 @@ export function AgentChat({
                   {message.role === "user" ? (
                     <>
                       {message.images && message.images.length > 0 && (
-                        <div className={cn("flex flex-wrap gap-2", message.content ? "mb-2" : "")}>
+                        <div className={cn("flex flex-wrap gap-2", message.content || message.files?.length ? "mb-2" : "")}>
                           {message.images.map((src, index) => (
                             // eslint-disable-next-line @next/next/no-img-element
                             <img key={`${message.id}-img-${index}`} src={src} alt="Attachment" className="max-h-40 w-auto rounded-[10px] border border-border object-cover" />
+                          ))}
+                        </div>
+                      )}
+                      {message.files && message.files.length > 0 && (
+                        <div className={cn("flex flex-wrap gap-2", message.content ? "mb-2" : "")}>
+                          {message.files.map((file, index) => (
+                            <a
+                              key={`${message.id}-file-${index}`}
+                              href={file.url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="flex max-w-[14rem] items-center gap-2 rounded-[10px] border border-border bg-background px-3 py-2 text-left text-foreground transition-colors hover:bg-muted"
+                            >
+                              <FileText className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                              <span className="truncate text-xs font-medium">{file.name}</span>
+                            </a>
                           ))}
                         </div>
                       )}
@@ -415,13 +526,20 @@ export function AgentChat({
         >
           {(attachments.length > 0 || uploading) && (
             <div className="flex flex-wrap gap-2 px-1 pt-1">
-              {attachments.map((src, index) => (
-                <div key={src} className="relative">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={src} alt="Attachment preview" className="size-16 rounded-[10px] border border-border object-cover" />
+              {attachments.map((item, index) => (
+                <div key={`${item.url}-${index}`} className="relative">
+                  {item.mimeType.startsWith("image/") ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={item.url} alt={item.name} className="size-16 rounded-[10px] border border-border object-cover" />
+                  ) : (
+                    <div className="flex h-16 w-40 items-center gap-2 rounded-[10px] border border-border bg-card px-3">
+                      <FileText className="size-5 shrink-0 text-muted-foreground" aria-hidden="true" />
+                      <span className="truncate text-xs font-medium">{item.name}</span>
+                    </div>
+                  )}
                   <button
                     type="button"
-                    aria-label="Remove image"
+                    aria-label={`Remove ${item.name}`}
                     onClick={() => setAttachments((current) => current.filter((_, i) => i !== index))}
                     className="absolute -right-1.5 -top-1.5 flex size-5 items-center justify-center rounded-full bg-foreground text-background shadow-sm hover:opacity-80"
                   >
@@ -436,13 +554,28 @@ export function AgentChat({
               )}
             </div>
           )}
+          {attachments.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 px-1">
+              {QUICK_ACTIONS.map((action) => (
+                <button
+                  key={action.label}
+                  type="button"
+                  onClick={() => applyQuickAction(action.prompt)}
+                  disabled={streaming}
+                  className="rounded-full border border-border px-2.5 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {action.label}
+                </button>
+              ))}
+            </div>
+          )}
           <div className="flex items-end gap-2">
-            <input ref={fileInput} type="file" accept="image/*" multiple onChange={handleFiles} className="hidden" />
+            <input ref={fileInput} type="file" accept={ACCEPT_ATTR} multiple onChange={handleFiles} className="hidden" />
             <Button
               type="button"
               size="icon"
               variant="ghost"
-              aria-label="Add image"
+              aria-label="Attach file"
               disabled={uploading || streaming}
               onClick={() => fileInput.current?.click()}
               className="size-10 shrink-0 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
@@ -450,6 +583,7 @@ export function AgentChat({
               <Plus className="size-5" aria-hidden="true" />
             </Button>
             <Textarea
+              ref={textInput}
               value={input}
               onChange={(event) => setInput(event.target.value)}
               onKeyDown={handleKeyDown}

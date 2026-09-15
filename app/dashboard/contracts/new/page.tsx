@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Loader2 } from "lucide-react"
 
 import { useAuth } from "@/components/auth-provider"
@@ -10,6 +10,7 @@ import { ContractBuilder } from "@/components/dashboard/contract-builder"
 export default function NewContractPage() {
   const router = useRouter()
   const { user, loading, isAdmin, isImpersonating } = useAuth()
+  const initialCompanyId = useSearchParams().get("companyId") ?? undefined
   const allowed = isAdmin && !isImpersonating
 
   useEffect(() => {
@@ -26,7 +27,7 @@ export default function NewContractPage() {
 
   return (
     <main className="mx-auto w-full max-w-5xl px-4 py-9 sm:px-6">
-      <ContractBuilder />
+      <ContractBuilder initialCompanyId={initialCompanyId} />
     </main>
   )
 }

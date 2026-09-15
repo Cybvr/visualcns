@@ -12,9 +12,9 @@ import {
   type Invoice,
 } from "@/lib/billing"
 import { getCompanyDocumentsByCompanyId, type CompanyDocument } from "@/lib/company-documents"
-import { getOrganization, updateOrganization, type Organization, type PublicTeamMember } from "@/lib/organizations"
+import { getOrganization, getOrganizationByRef, updateOrganization, type Organization, type PublicTeamMember } from "@/lib/organizations"
 import { getProjectsByCompanyId, type Project } from "@/lib/projects"
-import { getUserByRef, getUsersByCompanyId, type AppUser } from "@/lib/users"
+import { getUserByCompanyId, getUserByRef, getUsersByCompanyId, type AppUser } from "@/lib/users"
 
 export function clientName(client: AppUser): string {
   return client.company || client.displayName || client.email || "Unnamed company"
@@ -88,14 +88,20 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
     if (!ref) return
     setError(null)
     try {
-      const found = await getUserByRef(ref)
+      // Prefer the organization ref because company URLs use the organization's
+      // canonical slug. Fall back to user refs so older /dashboard/{userSlug}
+      // links and raw ids continue to resolve.
+      const resolvedOrg = await getOrganizationByRef(ref)
+      const found = resolvedOrg
+        ? await getUserByCompanyId(resolvedOrg.id)
+        : await getUserByRef(ref)
       if (!found) {
         setError("That company doesn't exist, or it has been removed.")
         return
       }
-      const workspace = found.companyId || found.uid
+      const workspace = found.companyId || resolvedOrg?.id || found.uid
       const [foundOrg, foundPeople, foundProjects, foundInvoices, foundContracts, foundEstimates, foundDocuments] = await Promise.all([
-        getOrganization(workspace),
+        resolvedOrg?.id === workspace ? Promise.resolve(resolvedOrg) : getOrganization(workspace),
         getUsersByCompanyId(workspace),
         getProjectsByCompanyId(workspace),
         getInvoicesByCompanyId(workspace, true),

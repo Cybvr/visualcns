@@ -3,12 +3,13 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { Bell, Briefcase, Building2, CircleHelp, Crown, FileText, ListTodo, Plus, Receipt, ScrollText } from "lucide-react"
+import { Bell, Briefcase, Building2, CircleHelp, Crown, FileText, ListTodo, Plus, Receipt, ScrollText, Users } from "lucide-react"
 
 import { useAgent } from "@/components/agent/agent-context"
 import { AgentHeaderButton } from "@/components/agent/agent-header-button"
 import { AppSidebar, type NavLink } from "@/components/app-sidebar"
 import { NgaiSidePanel } from "@/components/agent/ngai-side-panel"
+import { NewDocumentDialog } from "@/components/dashboard/new-document-dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -40,12 +41,13 @@ export type { NavLink }
 
 const QUICK_CREATE_LINKS = [
   { label: "Company", href: "/dashboard/companies", icon: Building2 },
+  { label: "New Contact", href: "/dashboard/users", icon: Users },
   { label: "Project", href: "/dashboard/projects", icon: Briefcase },
   { label: "Task", href: "/dashboard/tasks", icon: ListTodo },
   { label: "Invoice", href: "/dashboard/invoices/new", icon: Receipt },
   { label: "Estimate", href: "/dashboard/estimates/new", icon: FileText },
   { label: "Contract", href: "/dashboard/contracts/new", icon: ScrollText },
-  // Documents open from a modal on their list page, as companies, projects and tasks do.
+  // Documents use their full template/company selection flow from the header.
   { label: "Document", href: "/dashboard/documents", icon: FileText },
 ] as const
 
@@ -82,6 +84,7 @@ export function DashboardShell({
   const [tenant, setTenant] = useState<Tenant | null>(null)
   const [createItem, setCreateItem] = useState<(typeof QUICK_CREATE_LINKS)[number] | null>(null)
   const [createName, setCreateName] = useState("")
+  const [documentCreateOpen, setDocumentCreateOpen] = useState(false)
 
   useEffect(() => {
     setSidebarOpen(!isDocumentRoute)
@@ -123,7 +126,12 @@ export function DashboardShell({
       >
         <AppSidebar navLinks={navLinks} rootHref={rootHref} subtitle={subtitle} navExtra={navExtra} brandName={tenant?.name} brandLogoUrl={tenant?.logoUrl} />
         {/* overflow-y-auto: this column is the scroll container, not the body */}
-        <SidebarInset className="overflow-y-auto pb-[calc(8rem+env(safe-area-inset-bottom))]">
+        <SidebarInset
+          className={cn(
+            "overflow-y-auto pb-[calc(8rem+env(safe-area-inset-bottom))]",
+            pathname === "/dashboard/email" && "lg:min-h-0 lg:overflow-hidden lg:pb-0",
+          )}
+        >
           <header className={cn("surface-nav sticky top-0 z-40 flex h-14 shrink-0 items-center gap-2 bg-background px-4", hideHeader && "md:hidden")}>
             <div className="flex shrink-0 items-center gap-2 md:hidden">
               <SidebarTrigger className="-ml-1" />
@@ -142,6 +150,10 @@ export function DashboardShell({
                     <DropdownMenuItem
                       key={label}
                       onSelect={() => {
+                        if (label === "Document") {
+                          setDocumentCreateOpen(true)
+                          return
+                        }
                         setCreateName("")
                         setCreateItem(QUICK_CREATE_LINKS.find((item) => item.label === label) ?? null)
                       }}
@@ -206,6 +218,8 @@ export function DashboardShell({
           )}
         </DialogContent>
       </Dialog>
+
+      <NewDocumentDialog open={documentCreateOpen} onOpenChange={setDocumentCreateOpen} />
     </div>
   )
 }

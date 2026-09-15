@@ -10,6 +10,7 @@ import { TableKit } from "@tiptap/extension-table"
 import { looksLikeMarkdown, markdownToHtml } from "@/lib/markdown"
 import {
   Bold,
+  Code2,
   Heading2,
   Heading3,
   Italic,
@@ -109,6 +110,8 @@ export function RichTextEditor({
   className,
   scrollable = false,
   compact = false,
+  flat = false,
+  allowHtml = false,
   contentHeader,
   contentFooter,
 }: {
@@ -118,6 +121,8 @@ export function RichTextEditor({
   className?: string
   scrollable?: boolean
   compact?: boolean
+  flat?: boolean
+  allowHtml?: boolean
   contentHeader?: ReactNode
   contentFooter?: ReactNode
 }) {
@@ -125,6 +130,7 @@ export function RichTextEditor({
   const editorRef = useRef<Editor | null>(null)
   const [imageSelected, setImageSelected] = useState(false)
   const [imageDialogOpen, setImageDialogOpen] = useState(false)
+  const [htmlMode, setHtmlMode] = useState(false)
 
   const editor = useEditor({
     extensions: [StarterKit, Image, TableKit.configure({ table: { resizable: true } })],
@@ -189,8 +195,18 @@ export function RichTextEditor({
     onChange(editor.getHTML())
   }
 
+  function toggleHtmlMode() {
+    if (!allowHtml) return
+    if (htmlMode) editorRef.current?.commands.setContent(value || "", { emitUpdate: false })
+    setHtmlMode((current) => !current)
+  }
+
   return (
-    <div className={cn("flex min-h-0 flex-col overflow-hidden rounded-[10px] border border-input bg-background", className)}>
+    <div className={cn(
+      "flex min-h-0 flex-col overflow-hidden bg-background",
+      flat ? "rounded-none border-x-0 border-t-0 border-b border-input" : "rounded-[10px] border border-input",
+      className,
+    )}>
       <div className="flex flex-wrap items-center gap-1 border-b border-input px-2 py-1.5">
         {BUTTONS.map((group, index) => (
           <div key={index} className="flex items-center gap-1 [&:not(:last-child)]:mr-1">
@@ -231,16 +247,49 @@ export function RichTextEditor({
             <ImagePlus className="size-4" aria-hidden="true" />
           </button>
         </div>
+        {allowHtml && (
+          <button
+            type="button"
+            onClick={toggleHtmlMode}
+            aria-label={htmlMode ? "Use visual editor" : "Edit HTML"}
+            aria-pressed={htmlMode}
+            title={htmlMode ? "Use visual editor" : "Edit HTML"}
+            className={cn(
+              "inline-flex size-8 items-center justify-center rounded-md outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring",
+              htmlMode ? "bg-muted text-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground",
+            )}
+          >
+            <Code2 className="size-4" aria-hidden="true" />
+          </button>
+        )}
       </div>
       <ImagePickerDialog
         open={imageDialogOpen}
         onOpenChange={setImageDialogOpen}
         onSelect={handleImageSelected}
       />
-      <div className={cn("min-h-0 overflow-x-auto", scrollable && "flex-1 overflow-y-auto")}>
-        {contentHeader}
-        <EditorContent editor={editor} />
-        {contentFooter}
+      <div className={cn(
+        "min-h-0 overflow-x-auto",
+        scrollable && "flex-1 overflow-y-auto",
+        htmlMode && "flex flex-1 flex-col overflow-hidden",
+      )}>
+        {!htmlMode && contentHeader}
+        {htmlMode ? (
+          <textarea
+            value={value}
+            onChange={(event) => onChange(event.target.value)}
+            placeholder="Edit the email HTML"
+            aria-label="Email HTML source"
+            spellCheck={false}
+            className={cn(
+              "min-h-0 flex-1 resize-none border-0 bg-transparent px-4 py-3 font-mono text-xs leading-6 text-foreground outline-none",
+              compact ? "min-h-48 sm:min-h-64" : "min-h-64",
+            )}
+          />
+        ) : (
+          <EditorContent editor={editor} />
+        )}
+        {!htmlMode && contentFooter}
       </div>
     </div>
   )

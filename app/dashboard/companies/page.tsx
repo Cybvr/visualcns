@@ -47,6 +47,7 @@ import { deleteUser, getUsers, userRef, type AppUser } from "@/lib/users"
 type CompanyRow = {
   /** The workspace id: the organization doc id, and the client user's companyId. */
   id: string
+  slug?: string
   name: string
   label: string
   projectCount: number
@@ -137,6 +138,7 @@ export default function CompaniesPage() {
       const meta = metaByWorkspace.get(org.id)
       add({
         id: org.id,
+        slug: org.slug,
         name: org.name || userByWorkspace.get(org.id)?.company || "Unnamed company",
         label: meta?.label ?? "",
         projectCount: meta?.projectCount ?? 0,
@@ -159,7 +161,7 @@ export default function CompaniesPage() {
     [],
   )
 
-  const search = useMemo(() => (row: CompanyRow) => [row.name, row.label, row.id], [])
+  const search = useMemo(() => (row: CompanyRow) => [row.name, row.label, row.slug, row.id], [])
 
   const { results: visibleCompanies, bar } = useFilterBar({
     items: companies,
@@ -213,9 +215,10 @@ export default function CompaniesPage() {
   }
 
   function companyHref(row: CompanyRow): string {
-    // The detail route resolves a client account by ref, so use the user's when
-    // there is one; the raw workspace id still resolves for org-only rows.
-    return `/dashboard/companies/${row.user ? userRef(row.user) : row.id}`
+    // Company pages are addressed by the organization slug. A user slug can
+    // differ from it (for example, sadaya vs sadaya-client), which would make
+    // the same company appear at two different dashboard URLs.
+    return `/dashboard/companies/${row.slug || (row.user ? userRef(row.user) : row.id)}`
   }
 
   function handleViewWorkspace(row: CompanyRow) {

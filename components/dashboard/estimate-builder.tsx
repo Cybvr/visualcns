@@ -143,13 +143,13 @@ function SortableEstimateLine({
   )
 }
 
-export function EstimateBuilder({ estimate }: { estimate?: Estimate | null }) {
+export function EstimateBuilder({ estimate, initialCompanyId }: { estimate?: Estimate | null; initialCompanyId?: string }) {
   const router = useRouter()
   const isEdit = Boolean(estimate)
 
   const [estimateNumber, setEstimateNumber] = useState(estimate?.estimateNumber ?? "")
   const [title, setTitle] = useState(estimate?.title ?? "")
-  const [companyId, setCompanyId] = useState(estimate?.companyId ?? "")
+  const [companyId, setCompanyId] = useState(estimate?.companyId ?? initialCompanyId ?? "")
   const [projectId, setProjectId] = useState(estimate?.projectId ?? "")
   const [status, setStatus] = useState<EstimateStatus>(estimate?.status ?? "draft")
   const [currency, setCurrency] = useState(estimate?.currency || "NGN")
