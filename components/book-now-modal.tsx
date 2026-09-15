@@ -13,7 +13,6 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import {
   Select,
   SelectContent,
@@ -95,27 +94,27 @@ export function BookNowModal() {
           <DialogTitle>Book now</DialogTitle>
           <DialogDescription>Tell us a little about your project and we&apos;ll get back to you.</DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <Input
+            placeholder="Name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            required
+          />
+          <Input
+            type="email"
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+          <Input
+            placeholder="Company name"
+            value={company}
+            onChange={(e) => setCompany(e.target.value)}
+          />
           <div className="grid gap-2">
-            <Label htmlFor="book-name">Name</Label>
-            <Input id="book-name" value={name} onChange={(e) => setName(e.target.value)} required />
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="book-email">Email</Label>
-            <Input
-              id="book-email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="book-company">Company name</Label>
-            <Input id="book-company" value={company} onChange={(e) => setCompany(e.target.value)} />
-          </div>
-          <div className="grid gap-2">
-            <Label>What do you need?</Label>
+            <span className="text-sm text-muted-foreground">What do you need?</span>
             <div className="flex flex-wrap gap-2">
               {WORK_TYPES.map((type) => {
                 const active = workTypes.includes(type)
@@ -140,7 +139,7 @@ export function BookNowModal() {
           </div>
           <div className="grid gap-2">
             <div className="flex items-center justify-between">
-              <Label htmlFor="book-budget">Budget</Label>
+              <span className="text-sm text-muted-foreground">Budget</span>
               <div className="inline-flex rounded-full border border-border p-0.5 text-xs">
                 {(["USD", "NGN"] as const).map((option) => (
                   <button
@@ -161,8 +160,8 @@ export function BookNowModal() {
               </div>
             </div>
             <Select value={budget} onValueChange={setBudget}>
-              <SelectTrigger id="book-budget">
-                <SelectValue placeholder="Select a range" />
+              <SelectTrigger>
+                <SelectValue placeholder="Select a budget range" />
               </SelectTrigger>
               <SelectContent>
                 {BUDGET_RANGES[currency].map((range) => (
@@ -173,15 +172,12 @@ export function BookNowModal() {
               </SelectContent>
             </Select>
           </div>
-          <div className="grid gap-2">
-            <Label htmlFor="book-message">Anything else? (optional)</Label>
-            <Textarea
-              id="book-message"
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              rows={3}
-            />
-          </div>
+          <Textarea
+            placeholder="Anything else? (optional)"
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            rows={3}
+          />
           <Button type="submit" className="w-full" size="lg" disabled={submitting}>
             {submitting ? "Sending…" : "Send request"}
           </Button>
