@@ -5,6 +5,20 @@ import { adminServices } from "@/lib/firebase-admin"
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const WORK_TYPES = ["Design", "Strategy", "Marketing", "Animation"]
+const TENANT_ID = "legacy-visualcns"
+const OWNER_EMAIL = process.env.BOOKING_OWNER_EMAIL || "jide.pinheiro@gmail.com"
+const SITE_ORIGIN = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") || "https://www.visualcns.com"
+const WELCOME_TEMPLATE_ID = "welcome-client-portal"
+
+const FALLBACK_WELCOME = {
+  subject: "Welcome to VisualCNS",
+  body:
+    "<p>Hi [Customer Name],</p>" +
+    "<p>Thanks for reaching out — we've got your request and someone from our team will be in touch shortly to talk through your project.</p>" +
+    "<p>In the meantime, you're welcome to explore your client portal.</p>" +
+    `<p><a href="${SITE_ORIGIN}/portal" style="display:inline-block;background:#0E32FC;color:#ffffff;text-decoration:none;font-weight:600;padding:12px 22px;border-radius:10px">Open your portal</a></p>` +
+    "<p>Best regards,<br />The VisualCNS team</p>",
+}
 
 function escapeHtml(value: string) {
   return value.replace(/[&<>"']/g, (character) => ({
@@ -69,17 +83,94 @@ export async function POST(request: Request) {
   }
 
   // Save the lead to Firestore first so nothing is lost even if email is down.
+  const { db } = adminServices()
   try {
-    const { db } = adminServices()
     await db.collection("bookings").add(booking)
   } catch {
     return NextResponse.json({ error: "Could not save your request. Try again." }, { status: 503 })
+  }
+
+  // Add the lead to the users collection so it shows up as a contact the
+  // agency can email. Merge onto an existing record so a real client's role is
+  // never downgraded; only create a fresh "client" contact when none exists.
+  try {
+    const existing = await db
+      .collection("users")
+      .where("tenantId", "==", TENANT_ID)
+      .where("email", "==", email)
+      .limit(1)
+      .get()
+    if (existing.empty) {
+      const ref = db.collection("users").doc()
+      await ref.set({
+        email,
+        displayName: name,
+        company,
+        role: "client",
+        tenantId: TENANT_ID,
+        companyId: ref.id,
+        source: "booking",
+        lastBookingAt: FieldValue.serverTimestamp(),
+        createdAt: FieldValue.serverTimestamp(),
+      })
+    } else {
+      await existing.docs[0].ref.set(
+        { source: "booking", lastBookingAt: FieldValue.serverTimestamp() },
+        { merge: true },
+      )
+    }
+  } catch {
+    // The booking is saved; failing to sync the contact must not fail the request.
   }
 
   // Notify the agency by email when Resend is configured.
   const apiKey = process.env.RESEND_API_KEY
   const from = clean(process.env.EMAIL_FROM, 200)
   const to = clean(process.env.BOOKING_NOTIFY_EMAIL, 200) || clean(process.env.EMAIL_REPLY_TO, 200) || from
+  const replyTo = clean(process.env.EMAIL_REPLY_TO, 200) || from
+
+  // Send the lead a welcome email using the seeded transactional template,
+  // falling back to a built-in message if the template is not in the DB yet.
+  if (apiKey && from) {
+    try {
+      let welcome = FALLBACK_WELCOME
+      const owner = await db
+        .collection("users")
+        .where("tenantId", "==", TENANT_ID)
+        .where("email", "==", OWNER_EMAIL)
+        .limit(1)
+        .get()
+      const companyId = owner.empty ? "" : String(owner.docs[0].data().companyId || owner.docs[0].id)
+      if (companyId) {
+        const templateSnap = await db.collection("emailTemplates").doc(`${companyId}__${WELCOME_TEMPLATE_ID}`).get()
+        const data = templateSnap.data()
+        if (templateSnap.exists && data?.tenantId === TENANT_ID && data.subject && data.body) {
+          welcome = { subject: String(data.subject), body: String(data.body) }
+        }
+      }
+      const subject = welcome.subject.replaceAll("[Customer Name]", name)
+      const body = welcome.body.replaceAll("[Customer Name]", name)
+      await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+          "Idempotency-Key": crypto.randomUUID(),
+        },
+        body: JSON.stringify({
+          from,
+          to: email,
+          subject,
+          html: body,
+          reply_to: replyTo,
+        }),
+        cache: "no-store",
+      })
+    } catch {
+      // The booking is saved; a failed welcome email must not fail the request.
+    }
+  }
+
   if (apiKey && from && to) {
     const rows = [
       ["Name", name],

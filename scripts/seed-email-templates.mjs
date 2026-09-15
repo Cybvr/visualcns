@@ -32,6 +32,24 @@ function ctaButton(url, text) {
   return `<p><a href="${url}" style="display:inline-block;background:#2856d9;color:#ffffff;text-decoration:none;font-weight:600;padding:12px 22px;border-radius:10px">${text}</a></p>`;
 }
 
+// Transactional welcome email. Sent to a new lead/client the first time they
+// reach out (e.g. the Book Now form) or sign in. "[Customer Name]" is swapped
+// for the recipient's name by the sender.
+const welcomeTemplates = [
+  {
+    id: 'welcome-client-portal',
+    name: 'Welcome — Client portal',
+    subject: 'Welcome to VisualCNS',
+    body: [
+      '<p>Hi [Customer Name],</p>',
+      "<p>Thanks for reaching out — we've got your request and someone from our team will be in touch shortly to talk through your project.</p>",
+      "<p>In the meantime, you're welcome to explore your client portal.</p>",
+      ctaButton('/portal', 'Open your portal'),
+      '<p>Best regards,<br />The VisualCNS team</p>',
+    ].join(''),
+  },
+];
+
 // Announcement email the agency can send to clients. "Hi there," is a safe
 // default — the composer swaps it for the recipient's name when one is known.
 const announcementTemplates = [
@@ -79,7 +97,7 @@ const adTemplates = adConcepts.flatMap((c) =>
   })
 );
 
-const templates = [...announcementTemplates, ...adTemplates];
+const templates = [...welcomeTemplates, ...announcementTemplates, ...adTemplates];
 
 async function resolveOwner() {
   const snapshot = await getDocs(

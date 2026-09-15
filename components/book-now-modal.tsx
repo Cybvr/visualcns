@@ -181,6 +181,13 @@ export function BookNowModal() {
           <Button type="submit" className="w-full" size="lg" disabled={submitting}>
             {submitting ? "Sending…" : "Send request"}
           </Button>
+          <p className="text-center text-xs text-muted-foreground">
+            By sending, you agree to our{" "}
+            <a href="/terms" className="underline underline-offset-2 hover:text-foreground">
+              terms
+            </a>
+            .
+          </p>
         </form>
       </DialogContent>
     </Dialog>
