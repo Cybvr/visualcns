@@ -1,3 +1,4 @@
+import { BookNowModal } from "@/components/book-now-modal"
 import { Footer } from "@/components/footer"
 import { Header } from "@/components/header"
 import { HomeAccordion } from "@/components/home-accordion"
@@ -21,6 +22,9 @@ export default function HomePage() {
           >
             Dream. Execute
           </h1>
+          <div className="mb-8 flex justify-center sm:mb-10">
+            <BookNowModal />
+          </div>
           <div className="h-[58svh] min-h-[22rem] max-h-[48rem] overflow-hidden rounded-[0.75rem] bg-muted">
             <video
               className="size-full object-cover"
