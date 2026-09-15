@@ -44,6 +44,8 @@ type ResendResponse = {
   reply_to?: string[] | string
   subject?: string
   created_at?: string
+  scheduled_at?: string | null
+  last_event?: string | null
   html?: string | null
   text?: string | null
 }
@@ -314,6 +316,8 @@ export async function GET(request: Request) {
       replyTo: Array.isArray(result.reply_to) ? result.reply_to.join(", ") : result.reply_to || replyTo || null,
       subject: result.subject || "",
       createdAt: result.created_at || null,
+      scheduledAt: result.scheduled_at || null,
+      lastEvent: result.last_event || null,
       html: result.html || null,
       text: result.text || null,
     })

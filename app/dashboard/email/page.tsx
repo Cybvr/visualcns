@@ -166,6 +166,11 @@ function datetimeLocalMin() {
   return `${soon.getFullYear()}-${pad(soon.getMonth() + 1)}-${pad(soon.getDate())}T${pad(soon.getHours())}:${pad(soon.getMinutes())}`
 }
 
+/** A scheduled send whose time has passed—Resend has released it by now. */
+function isScheduledPastDue(message: SentMessage) {
+  return message.status === "scheduled" && !!message.scheduledAt && Date.parse(message.scheduledAt) <= Date.now()
+}
+
 function formatTemplateDate(value: string) {
   try {
     const date = new Date(value)
@@ -930,12 +935,35 @@ export default function EmailPage() {
     }
   }
 
+  // A scheduled send that has passed its time is checked against the mail
+  // provider to confirm it actually went out, then relabelled here.
+  async function reconcileScheduled(message: SentMessage) {
+    if (message.status !== "scheduled" || !user) return
+    try {
+      const idToken = await user.getIdToken()
+      const response = await fetch(`/api/email/send?id=${encodeURIComponent(message.providerId)}`, {
+        headers: { Authorization: `Bearer ${idToken}` },
+        cache: "no-store",
+      })
+      const result = (await response.json()) as { lastEvent?: string | null }
+      if (!response.ok) return
+      const event = (result.lastEvent || "").toLowerCase()
+      if (!event || event === "scheduled") return
+      const failedEvents = ["bounced", "complained", "canceled", "cancelled", "failed"]
+      const nextStatus = failedEvents.includes(event) ? "failed" : "sent"
+      setMessages((current) => current.map((item) => item.id === message.id ? { ...item, status: nextStatus } : item))
+    } catch {
+      // Leave the status as-is if the provider can't be reached.
+    }
+  }
+
   // Show a sent message in the reading pane (and pull its body in if missing).
   function openSentMessage(message: SentMessage) {
     setMessageViewError("")
     setSelectedSentId(message.id)
     setMobileMessageView("reader")
     void hydrateMessageBody(message)
+    if (isScheduledPastDue(message)) void reconcileScheduled(message)
   }
 
   async function sendEmail(event: FormEvent<HTMLFormElement>) {
@@ -1537,7 +1565,7 @@ export default function EmailPage() {
                             </time>
                           </div>
                           <p className="truncate text-sm !font-bold">{message.subject}</p>
-                          {message.status === "scheduled" ? (
+                          {message.status === "scheduled" && !isScheduledPastDue(message) ? (
                             <span className="inline-flex items-center gap-1 text-[11px] text-amber-700 dark:text-amber-300">
                               <Clock className="size-3" aria-hidden="true" />
                               {message.scheduledAt ? `Scheduled · ${formatMessageDate(message.scheduledAt)}` : "Scheduled"}
@@ -1579,8 +1607,8 @@ export default function EmailPage() {
                       </div>
                       <div className="flex shrink-0 flex-col items-end gap-1 text-right">
                         <time dateTime={selectedSent.createdAt} className="text-xs text-muted-foreground">{formatMessageDate(selectedSent.createdAt)}</time>
-                        {selectedSent.status === "scheduled" ? (
-                          <span className="inline-flex items-center gap-1 text-[11px] text-amber-700 dark:text-amber-300"><Clock className="size-3" aria-hidden="true" />Scheduled</span>
+                        {selectedSent.status === "scheduled" && !isScheduledPastDue(selectedSent) ? (
+                          <span className="inline-flex items-center gap-1 text-[11px] text-amber-700 dark:text-amber-300"><Clock className="size-3" aria-hidden="true" />{selectedSent.scheduledAt ? `Scheduled · ${formatMessageDate(selectedSent.scheduledAt)}` : "Scheduled"}</span>
                         ) : selectedSent.status === "failed" ? (
                           <span className="inline-flex items-center gap-1 text-[11px] text-destructive"><X className="size-3" aria-hidden="true" />Failed</span>
                         ) : (
