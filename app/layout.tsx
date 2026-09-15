@@ -19,8 +19,7 @@ const poppins = Poppins({
   weight: ["500", "600", "700"],
 })
 
-const FIREBASE_FAVICON_URL =
-  "https://firebasestorage.googleapis.com/v0/b/jujuagi-new.firebasestorage.app/o/favicon.ico?alt=media&token=e0666b35-06cb-41a4-8d0d-9b37740baa7a"
+const FAVICON_URL = "/visualhqlogo.svg"
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://visualcns.com"),
@@ -48,7 +47,7 @@ export const metadata: Metadata = {
   },
   // --- FAVICON USING EXTERNAL URL ---
   icons: {
-    icon: FIREBASE_FAVICON_URL,
+    icon: FAVICON_URL,
     apple: "/apple-icon.png",
   },
   // ----------------------------------
