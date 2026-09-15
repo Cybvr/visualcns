@@ -26,10 +26,15 @@ const db = getFirestore(app);
 // (see lib/users.ts), so we read it off the users doc rather than hardcoding.
 const OWNER_EMAIL = 'jide.pinheiro@gmail.com';
 
-// Announcement emails the agency can send to clients. subject is the email
-// subject line; body is the HTML shown in the editor. "Hi there," is a safe
+// A styled button, baked straight into the email body so it shows in the editor
+// and code view and travels with the template.
+function ctaButton(url, text) {
+  return `<p><a href="${url}" style="display:inline-block;background:#2856d9;color:#ffffff;text-decoration:none;font-weight:600;padding:12px 22px;border-radius:10px">${text}</a></p>`;
+}
+
+// Announcement email the agency can send to clients. "Hi there," is a safe
 // default — the composer swaps it for the recipient's name when one is known.
-const templates = [
+const announcementTemplates = [
   {
     id: 'announce-insights',
     name: 'Announcement — Insights',
@@ -40,11 +45,41 @@ const templates = [
       '<p>It gives you practical suggestions for growing your business across four areas: your website, your social media, your brand and design, and your content and marketing. Each suggestion is based on your account and the work we’re already doing together, so they’re specific to you rather than generic advice.</p>',
       '<p>You can open Insights any time from your portal, and refresh it whenever you’d like a fresh set of ideas.</p>',
       '<p>Take a look when you have a moment, and let us know which suggestions you’d like us to take on. We’re happy to talk any of them through.</p>',
-      '<p><a href="/portal" style="display:inline-block;background:#2856d9;color:#ffffff;text-decoration:none;font-weight:600;padding:12px 22px;border-radius:10px">Open your portal</a></p>',
+      ctaButton('/portal', 'Open your portal'),
       '<p>Best regards,<br />The VisualCNS team</p>',
     ].join(''),
   },
 ];
+
+// Marketing ad campaigns. Each concept ships as a film photo (9:16) and a text
+// card (1:1) -> eight templates. subject is the headline, body the subheading,
+// followed by a "Book a call" button.
+const AD_CTA = 'https://cal.com/pinheirojide/30min';
+const adConcepts = [
+  { key: 'ai-build', subject: 'AI can build it. We make it work.', body: 'Custom tools your business can trust.', photoAlt: 'A Nigerian coffee shop owner checks a blue dashboard on her laptop.' },
+  { key: 'anyone-build', subject: 'Anyone can build a tool now. Can you trust it?', body: 'We build the ones that hold up.', photoAlt: 'A Nigerian apparel studio owner beside a laptop showing a blue dashboard.' },
+  { key: 'dashboard-right', subject: 'Your dashboard looks right. Is it?', body: 'We build tools that get the numbers right.', photoAlt: 'A Nigerian print studio owner checking figures on a laptop.' },
+  { key: 'ten-tools', subject: 'You built ten tools. None of them talk.', body: 'We build one system that works.', photoAlt: 'A Nigerian shop owner holding a tablet showing one unified blue dashboard.' },
+];
+const adFormats = [
+  { suffix: 'photo', label: 'photo 9:16' },
+  { suffix: 'text', label: 'text 1:1' },
+];
+const adTemplates = adConcepts.flatMap((c) =>
+  adFormats.map((f) => {
+    const id = `ad-${c.key}-${f.suffix}`;
+    return {
+      id,
+      name: `Ad — ${c.subject} (${f.label})`,
+      subject: c.subject,
+      body: `<p>${c.body}</p>${ctaButton(AD_CTA, 'Book a call')}`,
+      imageUrl: `/ads/${id}.png`,
+      imageAlt: f.suffix === 'photo' ? c.photoAlt : `VisualCNS ad — “${c.subject}”`,
+    };
+  })
+);
+
+const templates = [...announcementTemplates, ...adTemplates];
 
 async function resolveOwner() {
   const snapshot = await getDocs(
