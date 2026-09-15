@@ -1691,7 +1691,7 @@ export default function EmailPage() {
                 </div>
               </div>
 
-              <div className="mt-5 flex flex-col gap-3 border-t border-border pt-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="sticky bottom-0 z-10 mt-5 -mx-4 -mb-4 flex shrink-0 flex-col gap-3 border-t border-border bg-card px-4 pt-3 pb-4 sm:-mx-5 sm:-mb-5 sm:flex-row sm:items-center sm:justify-between sm:px-5 lg:static lg:mx-0 lg:mb-0 lg:bg-transparent lg:px-0 lg:pt-4">
                 <div aria-live="polite" className="min-h-5 text-sm">
                   {listNotice && <span className={listNotice.tone === "success" ? "text-emerald-700 dark:text-emerald-300" : "text-destructive"}>{listNotice.text}</span>}
                 </div>
