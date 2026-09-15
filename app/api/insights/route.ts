@@ -231,7 +231,7 @@ async function resolveCaller(request: Request, wantedCompanyId: string) {
 }
 
 async function readStored(db: FirebaseFirestore.Firestore, companyId: string): Promise<StoredSet | null> {
-  const snap = await db.collection("portalRecommendations").doc(companyId).get()
+  const snap = await db.collection("portalInsights").doc(companyId).get()
   if (!snap.exists) return null
   const data = snap.data() as StoredSet | undefined
   if (!data || !Array.isArray(data.categories)) return null
@@ -252,11 +252,11 @@ async function buildAndStore(db: FirebaseFirestore.Firestore, tenantId: string, 
   }
 
   const generatedAt = new Date().toISOString()
-  await db.collection("portalRecommendations").doc(companyId).set(
+  await db.collection("portalInsights").doc(companyId).set(
     { tenantId, companyId, generatedAt, categories, updatedAt: FieldValue.serverTimestamp() },
     { merge: true },
   )
-  void recordTenantUsage(tenantId, "recommendationRuns").catch(() => undefined)
+  void recordTenantUsage(tenantId, "insightRuns").catch(() => undefined)
   return jsonResponse({ generatedAt, categories, cached: false })
 }
 

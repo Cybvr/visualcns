@@ -63,7 +63,7 @@ function CategoryCard({ category }: { category: Category }) {
   )
 }
 
-export function PortalRecommendations() {
+export function PortalInsights() {
   const { user } = useAuth()
   const [payload, setPayload] = useState<Payload | null>(null)
   const [loading, setLoading] = useState(true)
@@ -77,7 +77,7 @@ export function PortalRecommendations() {
       setError("")
       try {
         const token = await user.getIdToken()
-        const response = await fetch("/api/recommendations", {
+        const response = await fetch("/api/insights", {
           method: refresh ? "POST" : "GET",
           headers: refresh
             ? { "content-type": "application/json", Authorization: `Bearer ${token}` }
@@ -86,12 +86,12 @@ export function PortalRecommendations() {
         })
         const body = await response.json()
         if (!response.ok) {
-          setError(body?.error || "Could not load recommendations.")
+          setError(body?.error || "Could not load insights.")
           return
         }
         setPayload(body as Payload)
       } catch {
-        setError("Could not load recommendations. Please try again.")
+        setError("Could not load insights. Please try again.")
       } finally {
         setLoading(false)
         setRefreshing(false)
@@ -110,10 +110,10 @@ export function PortalRecommendations() {
         <div>
           <h2 className="flex items-center gap-2 text-lg font-semibold tracking-tight">
             <Sparkles className="size-5 text-muted-foreground" />
-            Recommendations
+            Insights
           </h2>
           <p className="mt-1 max-w-2xl text-sm leading-6 text-muted-foreground">
-            Suggested next moves for your website, social media, brand, and content — put together for you by your agency.
+            Suggestions for growing your business across your website, social media, brand, and content. Based on your account and the work we're doing together.
           </p>
         </div>
         <div className="flex items-center gap-3">

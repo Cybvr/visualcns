@@ -55,7 +55,7 @@ import { GlobalSearchDialog, SearchTrigger, stripHtml, useSearchHotkey, type Sea
 import { usePortal, type PortalData } from "./portal-provider"
 import { PortalNotice } from "./portal-shell"
 import { PortalTaskFeedback } from "./portal-task-feedback"
-import { PortalRecommendations } from "./portal-recommendations"
+import { PortalInsights } from "./portal-insights"
 
 const TAB_ICONS: Record<string, ComponentType<{ className?: string }>> = {
   overview: LayoutDashboard,
@@ -64,11 +64,11 @@ const TAB_ICONS: Record<string, ComponentType<{ className?: string }>> = {
   tasks: ListTodo,
   documents: FileText,
   media: ImageIcon,
-  recommendations: Lightbulb,
+  insights: Lightbulb,
   ngai: Sparkles,
 }
 
-const COMPANY_TABS = ["overview", "projects", "contacts", "tasks", "documents", "media", "recommendations", "ngai"]
+const COMPANY_TABS = ["overview", "projects", "contacts", "tasks", "documents", "media", "insights", "ngai"]
 
 function shortDate(value: string) {
   if (!value) return ""
@@ -528,7 +528,7 @@ export function PortalWorkspaceView({ data, project, company, uid, canAct, tab, 
     {tab === "tasks" && <Tasks tasks={tasks} uid={uid} canAct={canAct} onChanged={onChanged} all />}
     {tab === "documents" && <div className="space-y-6"><CompanyDocuments company={company} documents={documents} /><Files files={files} /></div>}
     {tab === "media" && <CompanyMedia logoUrl={data.organization.logoUrl} projects={data.projects as unknown as Project[]} uploaded={data.organization.media ?? []} />}
-    {tab === "recommendations" && <PortalRecommendations />}
+    {tab === "insights" && <PortalInsights />}
     {tab === "ngai" && <PortalNgai />}
     {tab === "account" && <About organization={data.organization} />}
   </PortalShellLayout>
@@ -542,7 +542,7 @@ export function PortalWorkspace({ projectMode = false, section }: { projectMode?
   const search = useSearchParams()
   const router = useRouter()
   const project = projectMode ? data.projects.find(item => item.id === projectId || item.legacySlug === projectId) : undefined
-  const available = projectMode ? ["overview", "tasks", "documents"] : ["overview", "projects", "contacts", "tasks", "documents", "media", "recommendations", "ngai", "account"]
+  const available = projectMode ? ["overview", "tasks", "documents"] : ["overview", "projects", "contacts", "tasks", "documents", "media", "insights", "ngai", "account"]
   const raw = section || search.get("tab") || "overview"
   const tab = available.includes(raw) ? raw : "overview"
   if (projectMode && !project) return <PortalNotice title="This project isn’t available">It may not have been shared with your company yet. <Link className="underline" href={portalPath(companySlug)}>Back to your company</Link></PortalNotice>
