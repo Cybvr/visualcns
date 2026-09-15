@@ -40,6 +40,7 @@ const templates = [
       '<p>It gives you practical suggestions for growing your business across four areas: your website, your social media, your brand and design, and your content and marketing. Each suggestion is based on your account and the work we’re already doing together, so they’re specific to you rather than generic advice.</p>',
       '<p>You can open Insights any time from your portal, and refresh it whenever you’d like a fresh set of ideas.</p>',
       '<p>Take a look when you have a moment, and let us know which suggestions you’d like us to take on. We’re happy to talk any of them through.</p>',
+      '<p><a href="/portal" style="display:inline-block;background:#2856d9;color:#ffffff;text-decoration:none;font-weight:600;padding:12px 22px;border-radius:10px">Open your portal</a></p>',
       '<p>Best regards,<br />The VisualCNS team</p>',
     ].join(''),
   },

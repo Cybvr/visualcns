@@ -48,7 +48,11 @@ const templates = concepts.flatMap((c) =>
       id,
       name: `Ad — ${c.subject} (${f.label})`,
       subject: c.subject,
-      body: c.body,
+      // The CTA button is baked into the body HTML so it shows in the editor
+      // and code view, and travels with the template.
+      body:
+        `<p>${c.body}</p>` +
+        '<p><a href="https://cal.com/pinheirojide/30min" style="display:inline-block;background:#2856d9;color:#ffffff;text-decoration:none;font-weight:600;padding:12px 22px;border-radius:10px">Book a call</a></p>',
       imageUrl: `/ads/${id}.png`,
       imageAlt: f.suffix === 'photo' ? c.photoAlt : `VisualCNS ad — “${c.subject}”`,
     };

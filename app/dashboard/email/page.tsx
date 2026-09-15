@@ -48,35 +48,6 @@ type EmailTemplate = Omit<EmailTemplateRecord, "companyId" | "createdBy">
 
 type SentMessage = Omit<EmailMessageRecord, "companyId" | "createdBy"> & { companyId?: string }
 
-const TEMPLATE_CTA: Record<string, { text: string; url: string }> = {
-  "introducing-ngai": { text: "Ask Ngai", url: "/portal" },
-  "introducing-client-portal": { text: "Open your client portal", url: "/portal" },
-  "project-progress-update": { text: "View project progress", url: "/portal" },
-  "document-ready": { text: "Review document", url: "/portal" },
-  "task-assigned": { text: "View assigned task", url: "/portal" },
-  "invoice-available": { text: "View invoice", url: "/portal" },
-  "estimate-for-approval": { text: "Review estimate", url: "/portal" },
-  "contract-ready": { text: "Review contract", url: "/portal" },
-  "project-kickoff": { text: "Open project workspace", url: "/portal" },
-  "portal-tip": { text: "Open client portal", url: "/portal" },
-  "service-update": { text: "View your client portal", url: "/portal" },
-  "feedback-request": { text: "Send feedback", url: "/portal" },
-  // Ad campaign templates seeded by scripts/seed-ad-templates.mjs. Their CTA is
-  // a booking link rather than the portal, matched here by template id.
-  "ad-ai-build-photo": { text: "Book a call", url: "https://cal.com/pinheirojide/30min" },
-  "ad-ai-build-text": { text: "Book a call", url: "https://cal.com/pinheirojide/30min" },
-  "ad-anyone-build-photo": { text: "Book a call", url: "https://cal.com/pinheirojide/30min" },
-  "ad-anyone-build-text": { text: "Book a call", url: "https://cal.com/pinheirojide/30min" },
-  "ad-dashboard-right-photo": { text: "Book a call", url: "https://cal.com/pinheirojide/30min" },
-  "ad-dashboard-right-text": { text: "Book a call", url: "https://cal.com/pinheirojide/30min" },
-  "ad-ten-tools-photo": { text: "Book a call", url: "https://cal.com/pinheirojide/30min" },
-  "ad-ten-tools-text": { text: "Book a call", url: "https://cal.com/pinheirojide/30min" },
-}
-
-function getTemplateCta(template?: EmailTemplate | null) {
-  return template ? TEMPLATE_CTA[template.id] || { text: "Open your client portal", url: "/portal" } : null
-}
-
 type EmailContact = {
   email: string
   label: string
@@ -304,12 +275,9 @@ function sentMessagePreview(message: SentMessage) {
 }
 
 function templatePreview(template: EmailTemplate) {
-  const cta = getTemplateCta(template)
+  // The CTA now lives inside the body HTML, so the preview is just the body.
   const content = withMessageImage(template.body, template.imageUrl, template.imageAlt)
-  const button = cta
-    ? `<p style="margin:1.75em 0 0"><a href="${escapeHtmlAttribute(cta.url)}" style="display:inline-block;background:#2856d9;color:#fff!important;text-decoration:none;font-weight:600;padding:12px 22px;border-radius:10px">${escapeHtml(cta.text)}</a></p>`
-    : ""
-  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>html{color-scheme:light}body{box-sizing:border-box;margin:0 auto;max-width:640px;padding:32px 28px;color:#20232d;background:#fff;font:15px/1.65 Arial,sans-serif;overflow-wrap:anywhere}img{display:block;max-width:100%;height:auto}p{margin:0 0 1em}ul,ol{padding-left:1.5rem}a{color:#1649d8}</style></head><body>${content}${button}</body></html>`
+  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>html{color-scheme:light}body{box-sizing:border-box;margin:0 auto;max-width:640px;padding:32px 28px;color:#20232d;background:#fff;font:15px/1.65 Arial,sans-serif;overflow-wrap:anywhere}img{display:block;max-width:100%;height:auto}p{margin:0 0 1em}ul,ol{padding-left:1.5rem}a{color:#1649d8}</style></head><body>${content}</body></html>`
 }
 
 function withMessageImage(value: string, imageUrl?: string, imageAlt?: string) {
@@ -697,10 +665,6 @@ export default function EmailPage() {
     () => messages.find((message) => message.id === selectedMessageId) || null,
     [messages, selectedMessageId],
   )
-  const editingTemplate = useMemo(
-    () => templates.find((template) => template.id === editingTemplateId),
-    [editingTemplateId, templates],
-  )
 
   function applyTemplate(templateId: string) {
     setSelectedTemplateId(templateId)
@@ -903,7 +867,7 @@ export default function EmailPage() {
           brand: businessProfile,
           cta: composeContext?.ctaUrl
             ? { text: composeContext.ctaText || "Open your client portal", url: composeContext.ctaUrl }
-            : getTemplateCta(selectedTemplate),
+            : undefined,
           companyId: composeContext?.companyId,
           projectId: composeContext?.projectId,
           documentType: composeContext?.documentType,
@@ -1054,6 +1018,7 @@ export default function EmailPage() {
         "<p>It gives you practical suggestions for growing your business across four areas: your website, your social media, your brand and design, and your content and marketing. Each suggestion is based on your account and the work we’re already doing together, so they’re specific to you rather than generic advice.</p>" +
         "<p>You can open Insights any time from your portal, and refresh it whenever you’d like a fresh set of ideas.</p>" +
         "<p>Take a look when you have a moment, and let us know which suggestions you’d like us to take on. We’re happy to talk any of them through.</p>" +
+        "<p><a href=\"/portal\" style=\"display:inline-block;background:#2856d9;color:#ffffff;text-decoration:none;font-weight:600;padding:12px 22px;border-radius:10px\">Open your portal</a></p>" +
         "<p>Best regards,<br />The VisualCNS team</p>",
       updatedAt: new Date().toISOString(),
     }
@@ -1746,13 +1711,6 @@ export default function EmailPage() {
                     )}
                     contentFooter={(
                       <>
-                        <div className="bg-white px-4 pb-5 pt-2 text-left sm:px-6">
-                          {getTemplateCta(editingTemplate) && (
-                            <a href={getTemplateCta(editingTemplate)?.url} className="inline-flex min-h-10 items-center justify-center rounded-full bg-neutral-950 px-5 py-2.5 text-sm font-semibold text-white no-underline">
-                              {getTemplateCta(editingTemplate)?.text}
-                            </a>
-                          )}
-                        </div>
                         <div className="flex items-start justify-between gap-4 border-t border-border bg-neutral-50 px-4 py-4 text-xs leading-5 text-neutral-500 sm:px-6">
                           <div className="min-w-0 text-left">
                             <p className="font-semibold text-neutral-700">{businessProfile?.name || "VisualCNS"}</p>
