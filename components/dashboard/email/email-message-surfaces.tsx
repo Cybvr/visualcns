@@ -143,7 +143,7 @@ export function EmailMessageSurfaces({
   if (tab === "drafts") {
     return (
       <section className="flex min-h-0 w-full min-w-0 max-w-full flex-1 flex-col gap-4 lg:gap-6 lg:overflow-hidden" role="tabpanel">
-        <aside className="min-h-0 rounded-lg border border-border bg-card lg:flex-1 lg:overflow-y-auto">
+        <aside className="min-h-0 max-lg:shrink-0 rounded-lg border border-border bg-card lg:flex-1 lg:overflow-y-auto">
           {drafts.length === 0 ? <div className="px-4 py-10 text-center"><FileText className="mx-auto size-5 text-muted-foreground" aria-hidden="true" /><p className="mt-3 text-sm font-medium">No drafts</p><p className="mt-1 text-xs leading-5 text-muted-foreground">Saved drafts will appear here.</p></div> : visibleDrafts.length === 0 ? <div className="px-4 py-10 text-center text-sm text-muted-foreground">No drafts match your search.</div> : (
             <div><EmailListHeader primaryLabel="To" dateLabel="Updated" />{visibleDrafts.map((draft) => {
               const recipient = draft.to ? resolveName(draft.to) : (draft.listId ? "Contact list" : "No recipient selected")
