@@ -1,4 +1,4 @@
-import { collection, doc, getDocs, query, setDoc, where } from "firebase/firestore"
+import { collection, deleteDoc, doc, getDocs, query, setDoc, where } from "firebase/firestore"
 
 import { db } from "./firebase"
 import { getCurrentTenantId } from "./tenancy"
@@ -64,4 +64,9 @@ export async function saveEmailMessage(message: EmailMessageRecord): Promise<voi
 export async function updateEmailMessageStatus(id: string, status: EmailMessageStatus): Promise<void> {
   if (!id) return
   await setDoc(doc(db, COLLECTION_NAME, id), { status, tenantId: await getCurrentTenantId() }, { merge: true })
+}
+
+export async function deleteEmailMessage(id: string): Promise<void> {
+  if (!id) return
+  await deleteDoc(doc(db, COLLECTION_NAME, id))
 }

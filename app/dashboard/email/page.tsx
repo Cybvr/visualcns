@@ -19,7 +19,6 @@ import {
   Linkedin,
   Mail,
   Plus,
-  RefreshCw,
   Send,
   Trash2,
   Twitter,
@@ -30,6 +29,7 @@ import { useAuth } from "@/components/auth-provider"
 import { RichTextEditor } from "@/components/dashboard/rich-text-editor"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
+import { SidebarTrigger } from "@/components/ui/sidebar"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import {
   DropdownMenu,
@@ -41,11 +41,12 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { FilterBar, useFilterBar, type SortOption } from "@/components/dashboard/filter-bar"
-import type { EmailTemplateRecord } from "@/lib/email-templates-store"
 import { deleteEmailList, getEmailLists, saveEmailList, type EmailContactList } from "@/lib/email-lists"
 import { deleteEmailDraft, getEmailDrafts, saveEmailDraft, type EmailDraftRecord } from "@/lib/email-drafts"
-import { getAllEmailMessages, getEmailMessages, saveEmailMessage, updateEmailMessageStatus, type EmailMessageRecord, type EmailRecipient } from "@/lib/email-messages"
+import { deleteEmailMessage, getAllEmailMessages, getEmailMessages, saveEmailMessage, updateEmailMessageStatus, type EmailMessageRecord, type EmailRecipient } from "@/lib/email-messages"
+import { getHiddenReceivedIds, hideReceivedEmail } from "@/lib/email-received-hidden"
 import { contextualEmailBody, readEmailComposeContext, type EmailComposeContext } from "@/lib/email-composer"
 import { getBusinessProfile, type BusinessProfile } from "@/lib/business-profile"
 import { deleteEmailTemplate, getEmailTemplates, saveEmailTemplate } from "@/lib/email-templates-store"
@@ -53,37 +54,28 @@ import { markdownToHtml } from "@/lib/markdown"
 import { getUsers } from "@/lib/users"
 import { cn } from "@/lib/utils"
 import { useIsMobile } from "@/hooks/use-mobile"
-
-type EmailTab = "inbox" | "templates" | "messages" | "lists"
-type EmailMessageKind = "transactional" | "marketing"
-
-type EmailTemplate = Omit<EmailTemplateRecord, "companyId" | "createdBy">
-
-type SentMessage = Omit<EmailMessageRecord, "companyId" | "createdBy"> & { companyId?: string }
-
-type ReceivedMessage = {
-  id: string
-  from: string
-  to: string[]
-  cc?: string[]
-  bcc?: string[]
-  subject: string
-  createdAt: string | null
-  messageId?: string | null
-  html?: string | null
-  text?: string | null
-  headers?: Record<string, string> | null
-  attachments?: Array<Record<string, unknown>>
-}
-
-type EmailContact = {
-  email: string
-  label: string
-  name: string
-  companyId?: string
-}
-
-type ContactList = Omit<EmailContactList, "companyId" | "createdBy">
+import {
+  escapeHtml,
+  escapeHtmlAttribute,
+  formatTemplateBody,
+  receivedMessagePreview,
+  sentMessagePreview,
+  templatePreview,
+  withMessageImage,
+} from "@/components/dashboard/email/email-preview"
+import type {
+  ContactList,
+  EmailContact,
+  EmailMessageKind,
+  EmailTab,
+  EmailTemplate,
+  ReceivedMessage,
+  SentMessage,
+} from "@/components/dashboard/email/types"
+import { EmailComposer } from "@/components/dashboard/email/email-composer"
+import { EmailLists } from "@/components/dashboard/email/email-lists"
+import { EmailMessageSurfaces } from "@/components/dashboard/email/email-message-surfaces"
+import { EmailTemplates } from "@/components/dashboard/email/email-templates"
 
 type Notice = {
   tone: "success" | "error"
@@ -99,6 +91,10 @@ const MESSAGE_SORTS: SortOption<SentMessage>[] = [
   { value: "recipient", label: "Recipient", get: (message) => message.to, ascLabel: "A–Z", descLabel: "Z–A" },
   { value: "subject", label: "Subject", get: (message) => message.subject, ascLabel: "A–Z", descLabel: "Z–A" },
 ]
+const DRAFT_SORTS: SortOption<EmailDraftRecord>[] = [
+  { value: "updatedAt", label: "Last edited", get: (draft) => draft.updatedAt, ascLabel: "Oldest", descLabel: "Newest" },
+  { value: "subject", label: "Subject", get: (draft) => draft.subject, ascLabel: "A–Z", descLabel: "Z–A" },
+]
 
 const RECEIVED_SORTS: SortOption<ReceivedMessage>[] = [
   { value: "createdAt", label: "Received", get: (message) => message.createdAt || "", ascLabel: "Oldest", descLabel: "Newest" },
@@ -108,6 +104,10 @@ const RECEIVED_SORTS: SortOption<ReceivedMessage>[] = [
 
 function searchMessage(message: SentMessage) {
   return [message.to, message.subject, message.companyName, message.projectName, message.documentTitle, message.documentType, message.from, message.status]
+}
+
+function searchDraft(draft: EmailDraftRecord) {
+  return [draft.to, draft.subject, draft.body]
 }
 
 function searchReceivedMessage(message: ReceivedMessage) {
@@ -158,6 +158,15 @@ function formatMessageDate(value: string) {
   }
 }
 
+/** Date only, no time—used in the list rows where a bare date reads cleaner. */
+function formatListDate(value: string) {
+  try {
+    return new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(new Date(value))
+  } catch {
+    return "Unknown date"
+  }
+}
+
 /** Local time a few minutes ahead, formatted for a datetime-local input's min/value. */
 function datetimeLocalMin() {
   const soon = new Date(Date.now() + 5 * 60_000)
@@ -171,21 +180,6 @@ function isScheduledPastDue(message: SentMessage) {
   return message.status === "scheduled" && !!message.scheduledAt && Date.parse(message.scheduledAt) <= Date.now()
 }
 
-function formatTemplateDate(value: string) {
-  try {
-    const date = new Date(value)
-    const now = new Date()
-    const dayStart = (input: Date) => new Date(input.getFullYear(), input.getMonth(), input.getDate()).getTime()
-    const daysAgo = Math.round((dayStart(now) - dayStart(date)) / 86_400_000)
-
-    if (daysAgo === 0) return new Intl.DateTimeFormat(undefined, { hour: "numeric", minute: "2-digit" }).format(date)
-    if (daysAgo === 1) return "Yesterday"
-    if (daysAgo > 1 && daysAgo < 7) return new Intl.DateTimeFormat(undefined, { weekday: "long" }).format(date)
-    return new Intl.DateTimeFormat(undefined, { day: "2-digit", month: "2-digit", year: "2-digit" }).format(date)
-  } catch {
-    return "Unknown date"
-  }
-}
 
 function cleanSenderDisplay(value: string) {
   return value
@@ -227,51 +221,6 @@ function htmlToText(value: string) {
     .replace(/&#39;/gi, "'")
 }
 
-function escapeHtmlAttribute(value: string) {
-  return value.replace(/[&<>"']/g, (character) => ({
-    "&": "&amp;",
-    "<": "&lt;",
-    ">": "&gt;",
-    '"': "&quot;",
-    "'": "&#39;",
-  })[character] as string)
-}
-
-function escapeHtml(value: string) {
-  return value.replace(/[&<>"']/g, (character) => ({
-    "&": "&amp;",
-    "<": "&lt;",
-    ">": "&gt;",
-    '"': "&quot;",
-    "'": "&#39;",
-  })[character] as string)
-}
-
-function sentMessagePreview(message: SentMessage) {
-  const content = message.bodyHtml || `<p>${escapeHtml(message.bodyText || "").replaceAll("\n", "<br />")}</p>`
-  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>html{color-scheme:light}body{box-sizing:border-box;margin:0;padding:24px;color:#20232d;background:#fff;font:15px/1.65 Arial,sans-serif;overflow-wrap:anywhere}img{display:block;max-width:100%;height:auto}p{margin:0 0 1em}ul,ol{padding-left:1.5rem}a{color:#1649d8}</style></head><body>${content}</body></html>`
-}
-
-function receivedMessagePreview(message: ReceivedMessage) {
-  const content = message.html || `<p>${escapeHtml(message.text || "(This message has no text content.)").replaceAll("\n", "<br />")}</p>`
-  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>html{color-scheme:light}body{box-sizing:border-box;margin:0;padding:24px;color:#20232d;background:#fff;font:15px/1.65 Arial,sans-serif;overflow-wrap:anywhere}img{display:block;max-width:100%;height:auto}p{margin:0 0 1em}ul,ol{padding-left:1.5rem}a{color:#1649d8}</style></head><body>${content}</body></html>`
-}
-
-function templatePreview(template: EmailTemplate) {
-  // The CTA now lives inside the body HTML, so the preview is just the body.
-  const content = withMessageImage(template.body, template.imageUrl, template.imageAlt)
-  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>html{color-scheme:light}body{box-sizing:border-box;margin:0 auto;max-width:640px;padding:32px 28px;color:#20232d;background:#fff;font:15px/1.65 Arial,sans-serif;overflow-wrap:anywhere}img{display:block;max-width:100%;height:auto}p{margin:0 0 1em}ul,ol{padding-left:1.5rem}a{color:#1649d8}</style></head><body>${content}</body></html>`
-}
-
-function withMessageImage(value: string, imageUrl?: string, imageAlt?: string) {
-  const content = formatTemplateBody(value)
-  if (!imageUrl) return content
-  const existingImage = content.match(/<img[^>]*>/i)?.[0]
-  const withoutImage = existingImage ? content.replace(existingImage, "").replaceAll("<p></p>", "") : content
-  const image = `<p><img src="${escapeHtmlAttribute(imageUrl)}" alt="${escapeHtmlAttribute(imageAlt || "Message image")}" style="display:block;width:100%;max-width:100%;height:auto;border:0;border-radius:12px;" /></p>`
-  return `${image}${withoutImage}`
-}
-
 function firstImageAttributes(value: string) {
   const image = value.match(/<img\b[^>]*>/i)?.[0]
   if (!image) return null
@@ -281,11 +230,6 @@ function firstImageAttributes(value: string) {
     src,
     alt: image.match(/\balt=["']([^"']*)["']/i)?.[1] || undefined,
   }
-}
-
-function formatTemplateBody(value: string) {
-  const content = value.includes("<") ? value : markdownToHtml(value)
-  return content.replace(/Best regards,\s*VisualCNS Team/gi, "Best regards,<br />VisualCNS Team")
 }
 
 function personalizeGreeting(value: string, name?: string) {
@@ -313,11 +257,13 @@ export default function EmailPage() {
 
   const [tab, setTab] = useState<EmailTab>("inbox")
   const [composeOpen, setComposeOpen] = useState(false)
+  const [composerPreviewOpen, setComposerPreviewOpen] = useState(false)
   const [composeMinimized, setComposeMinimized] = useState(false)
   const [selectedSentId, setSelectedSentId] = useState<string | null>(null)
   const [templates, setTemplates] = useState<EmailTemplate[]>([])
   const [messages, setMessages] = useState<SentMessage[]>([])
   const [receivedMessages, setReceivedMessages] = useState<ReceivedMessage[]>([])
+  const [hiddenReceivedIds, setHiddenReceivedIds] = useState<Set<string>>(new Set())
   const [receivedLoading, setReceivedLoading] = useState(false)
   const [receivedError, setReceivedError] = useState("")
   const [selectedReceivedId, setSelectedReceivedId] = useState<string | null>(null)
@@ -353,7 +299,7 @@ export default function EmailPage() {
   const hydratingRef = useRef<Set<string>>(new Set())
   const reconciledRef = useRef<Set<string>>(new Set())
 
-  const [preview, setPreview] = useState<{ kind: "template" | "message"; id: string } | null>(null)
+  const [preview, setPreview] = useState<string | null>(null)
   const [previewHeight, setPreviewHeight] = useState<number | null>(null)
   const [previewStage, setPreviewStage] = useState<{ w: number; h: number } | null>(null)
   const previewStageRef = useRef<HTMLDivElement>(null)
@@ -377,8 +323,33 @@ export default function EmailPage() {
     defaultSort: "createdAt",
     defaultDirection: "desc",
   })
+  const { results: visibleDrafts, bar: draftFilterBar } = useFilterBar({
+    items: drafts,
+    search: searchDraft,
+    sorts: DRAFT_SORTS,
+    defaultSort: "updatedAt",
+    defaultDirection: "desc",
+  })
+  const activeReceivedMessages = useMemo(
+    () => receivedMessages.filter((message) => !hiddenReceivedIds.has(message.id)),
+    [receivedMessages, hiddenReceivedIds],
+  )
+
+  // The lists show a person's name, never a raw address: prefer an explicit name,
+  // then a "Name <email>" display part, then a saved contact, then the local part.
+  function resolveName(raw: string, explicitName?: string) {
+    if (explicitName?.trim()) return explicitName.trim()
+    const cleaned = cleanSenderDisplay(raw || "")
+    const angle = cleaned.match(/^"?([^"<]*?)"?\s*<([^>]+)>$/)
+    if (angle?.[1]?.trim()) return angle[1].trim()
+    const email = (angle?.[2] || cleaned).trim()
+    const contact = contacts.find((item) => item.email.toLowerCase() === email.toLowerCase())
+    if (contact?.name?.trim()) return contact.name.trim()
+    const local = email.includes("@") ? email.split("@")[0] : email
+    return local ? local.replace(/[._-]+/g, " ").replace(/\b\w/g, (character) => character.toUpperCase()) : cleaned
+  }
   const { results: visibleReceivedMessages, bar: receivedFilterBar } = useFilterBar({
-    items: receivedMessages,
+    items: activeReceivedMessages,
     search: searchReceivedMessage,
     sorts: RECEIVED_SORTS,
     defaultSort: "createdAt",
@@ -392,16 +363,15 @@ export default function EmailPage() {
     defaultDirection: "desc",
   })
 
-  // The lightbox steps through whichever list is on screen (templates, or sent
-  // messages) so back and forth respect the current search and sort.
-  const previewList: { id: string }[] = preview?.kind === "message" ? visibleMessages : visibleTemplates
-  const previewIndex = preview ? previewList.findIndex((item) => item.id === preview.id) : -1
-  const previewTemplate = preview?.kind === "template" && previewIndex >= 0 ? visibleTemplates[previewIndex] : null
-  const previewMessage = preview?.kind === "message" && previewIndex >= 0 ? visibleMessages[previewIndex] : null
+  // Templates keep their own preview lightbox. Messages use the Gmail-style
+  // reading panes above, so they never enter this preview flow.
+  const previewList = visibleTemplates
+  const previewIndex = preview ? previewList.findIndex((item) => item.id === preview) : -1
+  const previewTemplate = previewIndex >= 0 ? previewList[previewIndex] : null
   const hasPrevPreview = previewIndex > 0
   const hasNextPreview = previewIndex >= 0 && previewIndex < previewList.length - 1
-  const showPrevPreview = () => { if (preview && hasPrevPreview) setPreview({ kind: preview.kind, id: previewList[previewIndex - 1].id }) }
-  const showNextPreview = () => { if (preview && hasNextPreview) setPreview({ kind: preview.kind, id: previewList[previewIndex + 1].id }) }
+  const showPrevPreview = () => { if (hasPrevPreview) setPreview(previewList[previewIndex - 1].id) }
+  const showNextPreview = () => { if (hasNextPreview) setPreview(previewList[previewIndex + 1].id) }
 
   // Render the email at a fixed natural width, then scale it down so the whole
   // thing fits the available box in both directions (never scaled up).
@@ -424,11 +394,16 @@ export default function EmailPage() {
     return () => window.clearTimeout(timer)
   }, [composeOpen, sendNotice])
 
-  // Keep a valid selection in the Sent reading pane.
+  // Keep a user-selected message valid without opening the first message on
+  // page load. Gmail lands on the list; the reader opens only after a click.
   useEffect(() => {
     if (tab !== "messages") return
-    setSelectedSentId((current) => current && visibleMessages.some((m) => m.id === current) ? current : visibleMessages[0]?.id ?? null)
+    setSelectedSentId((current) => current && visibleMessages.some((m) => m.id === current) ? current : null)
   }, [tab, messages])
+
+  useEffect(() => {
+    if (tab === "inbox" || tab === "messages") setMobileMessageView("list")
+  }, [tab])
 
   // Settle any scheduled send whose time has passed so it stops reading
   // "Scheduled" everywhere (list, reader, and the stored record).
@@ -438,7 +413,7 @@ export default function EmailPage() {
 
   // A new item remounts the iframe, so drop the old measured height until the
   // new one reports its own on load, and clear any error from the last message.
-  useEffect(() => { setPreviewHeight(null); setMessageViewError("") }, [preview?.id])
+  useEffect(() => { setPreviewHeight(null); setMessageViewError("") }, [preview])
 
   // Track the space available for the preview so the content can be scaled to
   // fit it with no inner scroll.
@@ -455,23 +430,15 @@ export default function EmailPage() {
 
   useEffect(() => {
     if (previewIndex < 0 || !preview) return
-    const kind = preview.kind
     function onKey(event: KeyboardEvent) {
       if (event.key === "Escape") setPreview(null)
-      if (event.key === "ArrowLeft" && previewIndex > 0) setPreview({ kind, id: previewList[previewIndex - 1].id })
-      if (event.key === "ArrowRight" && previewIndex < previewList.length - 1) setPreview({ kind, id: previewList[previewIndex + 1].id })
+      if (event.key === "ArrowLeft" && previewIndex > 0) setPreview(previewList[previewIndex - 1].id)
+      if (event.key === "ArrowRight" && previewIndex < previewList.length - 1) setPreview(previewList[previewIndex + 1].id)
     }
     window.addEventListener("keydown", onKey)
     return () => window.removeEventListener("keydown", onKey)
   }, [previewIndex, previewList, preview])
 
-  // Whichever message the lightbox lands on (opened or stepped to) pulls its
-  // body in if we don't already hold it.
-  useEffect(() => {
-    if (preview?.kind !== "message") return
-    const message = messages.find((item) => item.id === preview.id)
-    if (message) void hydrateMessageBody(message)
-  }, [preview, messages])
   const { results: visibleLists, bar: listFilterBar } = useFilterBar({
     items: lists,
     search: searchList,
@@ -482,6 +449,8 @@ export default function EmailPage() {
 
   const activeFilterBar = tab === "inbox"
     ? receivedFilterBar
+    : tab === "drafts"
+      ? draftFilterBar
     : tab === "messages"
       ? messageFilterBar
       : tab === "templates"
@@ -489,6 +458,7 @@ export default function EmailPage() {
         : listFilterBar
   const EMAIL_FOLDERS: { key: EmailTab; label: string; icon: typeof Inbox; count: () => number }[] = [
     { key: "inbox", label: "Inbox", icon: Inbox, count: () => receivedMessages.length },
+    { key: "drafts", label: "Drafts", icon: FileText, count: () => drafts.length },
     { key: "messages", label: "Sent", icon: Send, count: () => messages.length },
     { key: "templates", label: "Templates", icon: FileText, count: () => templates.length },
     { key: "lists", label: "Lists", icon: List, count: () => lists.length },
@@ -518,7 +488,7 @@ export default function EmailPage() {
       const result = (await response.json()) as { data?: ReceivedMessage[]; error?: string }
       if (!response.ok) throw new Error(result.error || "Received messages could not be loaded.")
       setReceivedMessages(Array.isArray(result.data) ? result.data : [])
-      setSelectedReceivedId((current) => current && result.data?.some((message) => message.id === current) ? current : result.data?.[0]?.id || null)
+      setSelectedReceivedId((current) => current && result.data?.some((message) => message.id === current) ? current : null)
     } catch (error) {
       setReceivedError(error instanceof Error ? error.message : "Received messages could not be loaded.")
     } finally {
@@ -555,6 +525,7 @@ export default function EmailPage() {
 
   function previewReceivedMessageById(message: ReceivedMessage) {
     setSelectedReceivedId(message.id)
+    setMobileMessageView("reader")
   }
 
   useEffect(() => {
@@ -633,6 +604,15 @@ export default function EmailPage() {
     void getEmailDrafts(workspaceId)
       .then((storedDrafts) => { if (active) setDrafts(storedDrafts) })
       .catch(() => { if (active) setDrafts([]) })
+    return () => { active = false }
+  }, [user?.uid, workspaceId])
+
+  useEffect(() => {
+    if (!user?.uid || !workspaceId) return
+    let active = true
+    void getHiddenReceivedIds(workspaceId)
+      .then((ids) => { if (active) setHiddenReceivedIds(new Set(ids)) })
+      .catch(() => { if (active) setHiddenReceivedIds(new Set()) })
     return () => { active = false }
   }, [user?.uid, workspaceId])
 
@@ -768,6 +748,22 @@ export default function EmailPage() {
       return `${contact.name} ${contact.email}`.toLowerCase().includes(query)
     })
   }, [contacts, listContactQuery, listShowSelectedOnly, listContactEmails])
+
+  function composerPreviewHtml() {
+    const origin = typeof window !== "undefined" ? window.location.origin : ""
+    const logoUrl = businessProfile?.logoUrl || "/visualcns-email-logo.png"
+    const absoluteLogoUrl = logoUrl.startsWith("/") ? `${origin}${logoUrl}` : logoUrl
+    const content = formatTemplateBody(body || "<p>Your message preview will appear here.</p>")
+      .replace(/(src=["'])\/([^"']*)/gi, `$1${origin}/$2`)
+    const brandName = businessProfile?.name || "VisualCNS"
+    const address = businessProfile?.address || "Lagos, Nigeria"
+    const website = businessProfile?.website || "visualcns.com"
+    const websiteUrl = website.startsWith("http") ? website : `https://${website}`
+    const ctaUrl = composeContext?.ctaUrl || `${origin}/portal`
+    const ctaText = composeContext?.ctaText || "Open your client portal"
+    return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>html{color-scheme:light}body{margin:0;padding:0;background:#f3f4f7;color:#20232d;font-family:Arial,Helvetica,sans-serif}table{border-collapse:collapse}img{display:block;max-width:100%;height:auto;max-height:56px;object-fit:contain;object-position:left center}p{margin:0 0 1em}ul,ol{padding-left:1.5rem}a{color:#1649d8}</style></head><body><table role="presentation" width="100%" style="width:100%;background:#f3f4f7"><tr><td align="center" style="padding:28px 12px"><table role="presentation" width="600" style="width:100%;max-width:600px;background:#fff"><tr><td style="padding:22px 28px;height:56px;line-height:0"><img src="${escapeHtmlAttribute(absoluteLogoUrl)}" width="320" alt="${escapeHtmlAttribute(brandName)}" style="display:block;width:320px;max-width:100%;height:auto;max-height:56px;object-fit:contain;object-position:left center;border:0"></td></tr><tr><td style="padding:8px 28px 12px;font-size:15px;line-height:1.65;overflow-wrap:anywhere"><h1 style="margin:0 0 18px;font-size:24px;line-height:1.25;color:#20232d">${escapeHtml(subject || "(No subject)")}</h1>${content}</td></tr><tr><td style="padding:0 28px 30px"><a href="${escapeHtmlAttribute(ctaUrl)}" style="display:inline-block;background:#111318;border-radius:999px;color:#fff;padding:12px 20px;font-size:14px;font-weight:700;line-height:20px;text-decoration:none">${escapeHtml(ctaText)}</a></td></tr><tr><td style="padding:20px 28px;background:#f8f8fa;border-top:1px solid #e7e8ec;font-size:12px;line-height:1.6;color:#6d7280"><strong style="color:#303440">${escapeHtml(brandName)}</strong><br>${escapeHtml(address)}<br><a href="${escapeHtmlAttribute(websiteUrl)}" style="color:#5f6472">${escapeHtml(website)}</a></td></tr></table></td></tr></table></body></html>`
+  }
+
   function applyTemplate(templateId: string) {
     setSelectedTemplateId(templateId)
     const template = templates.find((item) => item.id === templateId)
@@ -784,6 +780,7 @@ export default function EmailPage() {
   }
 
   function clearComposer() {
+    setComposerPreviewOpen(false)
     setLoadingMessageId(null)
     setMessageViewError("")
     setTo("")
@@ -809,6 +806,7 @@ export default function EmailPage() {
   }
 
   function closeCompose() {
+    setComposerPreviewOpen(false)
     setComposeOpen(false)
     setComposeMinimized(false)
   }
@@ -885,6 +883,28 @@ export default function EmailPage() {
       await deleteEmailDraft(id)
     } catch {
       setSendNotice({ tone: "error", text: "The draft could not be deleted." })
+    }
+  }
+
+  async function deleteReceivedMessage(message: ReceivedMessage) {
+    if (!user) return
+    setHiddenReceivedIds((current) => new Set(current).add(message.id))
+    if (selectedReceivedId === message.id) { setSelectedReceivedId(null); setMobileMessageView("list") }
+    try {
+      await hideReceivedEmail({ receivedId: message.id, companyId: workspaceId, createdBy: user.uid })
+    } catch {
+      setHiddenReceivedIds((current) => { const next = new Set(current); next.delete(message.id); return next })
+      setReceivedError("The message could not be deleted.")
+    }
+  }
+
+  async function deleteSentMessage(message: SentMessage) {
+    setMessages((current) => current.filter((item) => item.id !== message.id))
+    if (selectedSentId === message.id) { setSelectedSentId(null); setMobileMessageView("list") }
+    try {
+      await deleteEmailMessage(message.id)
+    } catch {
+      setSendNotice({ tone: "error", text: "The message could not be deleted." })
     }
   }
 
@@ -1141,6 +1161,17 @@ export default function EmailPage() {
     setComposeMinimized(false)
   }
 
+  function previewEditingTemplate() {
+    if (!templateBody.trim()) return
+    setSubject(templateSubject)
+    setBody(withMessageImage(templateBody))
+    setSelectedTemplateId(editingTemplateId || "")
+    setSendNotice(null)
+    setComposeOpen(true)
+    setComposeMinimized(false)
+    setComposerPreviewOpen(true)
+  }
+
   async function saveTemplate(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const name = templateName.trim()
@@ -1296,10 +1327,10 @@ export default function EmailPage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col overflow-visible px-3 pt-3 pb-5 sm:px-6 sm:pt-4 sm:pb-6 lg:h-[calc(100svh-3.5rem)] lg:max-h-[calc(100svh-3.5rem)] lg:flex-none lg:flex-row lg:gap-6 lg:overflow-hidden">
+    <main className="mx-auto flex min-h-0 w-full min-w-0 max-w-6xl flex-1 flex-col overflow-visible px-3 pt-3 pb-5 sm:px-6 sm:pt-4 sm:pb-6 lg:h-[calc(100svh-3.5rem)] lg:max-h-[calc(100svh-3.5rem)] lg:flex-none lg:flex-row lg:gap-6 lg:overflow-hidden">
       {/* Gmail-style folder rail */}
       <nav className="hidden shrink-0 lg:flex lg:w-52 lg:flex-col" aria-label="Email folders">
-        <Button type="button" className="mb-3 justify-start gap-2 rounded-full px-4 shadow-sm" onClick={() => openCompose(true)}>
+        <Button type="button" size="lg" className="mb-3 w-fit justify-start gap-2 rounded-sm px-4 shadow-sm" onClick={() => openCompose(true)}>
           <Plus aria-hidden="true" />Compose
         </Button>
         <div className="flex flex-col gap-0.5">
@@ -1322,17 +1353,13 @@ export default function EmailPage() {
         </div>
       </nav>
 
-      <div className="flex h-full min-h-0 w-full flex-1 flex-col">
+      <div className="flex h-full min-h-0 w-full min-w-0 flex-1 flex-col">
         <FilterBar
           {...activeFilterBar}
           className="mb-2"
           placeholder={tab === "inbox" ? "Search inbox" : tab === "messages" ? "Search sent" : tab === "templates" ? "Search templates" : "Search lists"}
           searchClassName={tab === "messages" || tab === "inbox" ? "sm:max-w-[16rem]" : undefined}
-          actions={
-            <Button type="button" className="lg:hidden" onClick={() => openCompose(true)}>
-              <Plus aria-hidden="true" />Compose
-            </Button>
-          }
+          leading={<SidebarTrigger className="-ml-1 shrink-0 lg:hidden" />}
         />
         <div className="mb-2 flex w-full items-center gap-1 rounded-md bg-muted/50 p-0.5 lg:hidden" role="tablist" aria-label="Email">
           {EMAIL_FOLDERS.map((folder) => (
@@ -1355,801 +1382,167 @@ export default function EmailPage() {
           ))}
         </div>
 
-        {tab === "inbox" && (
-          <section className="flex min-h-0 flex-1 flex-col gap-4 lg:grid lg:grid-cols-[18rem_minmax(0,1fr)] lg:grid-rows-[minmax(0,1fr)] lg:gap-6 lg:overflow-hidden" role="tabpanel">
-            <aside className="min-h-0 shrink-0 overflow-hidden rounded-[14px] border border-border bg-card">
-              <div className="flex items-center justify-between gap-3 border-b border-border px-3.5 py-3 sm:px-4 sm:py-3.5">
-                <div className="flex min-w-0 items-center gap-2">
-                  <Inbox className="size-4 text-muted-foreground" aria-hidden="true" />
-                  <h2 className="text-sm font-semibold">Inbox</h2>
-                  <span className="text-xs tabular-nums text-muted-foreground">{receivedMessages.length}</span>
-                </div>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="size-8"
-                  onClick={() => void loadReceivedMessages()}
-                  disabled={receivedLoading}
-                  aria-label="Refresh inbox"
-                >
-                  <RefreshCw className={cn("size-4", receivedLoading && "animate-spin")} aria-hidden="true" />
-                </Button>
-              </div>
-              {receivedError && (
-                <div className="border-b border-destructive/30 bg-destructive/5 px-4 py-3 text-xs leading-5 text-destructive">
-                  {receivedError}
-                </div>
-              )}
-              {receivedLoading && receivedMessages.length === 0 ? (
-                <div className="px-4 py-10 text-center text-sm text-muted-foreground">
-                  <Loader2 className="mx-auto size-5 animate-spin" aria-hidden="true" />
-                  <p className="mt-3">Loading inbox…</p>
-                </div>
-              ) : receivedMessages.length === 0 ? (
-                <div className="px-4 py-10 text-center">
-                  <Inbox className="mx-auto size-5 text-muted-foreground" aria-hidden="true" />
-                  <p className="mt-3 text-sm font-medium">No received messages</p>
-                  <p className="mt-1 text-xs leading-5 text-muted-foreground">Messages sent to your Resend receiving address will appear here.</p>
-                </div>
-              ) : visibleReceivedMessages.length === 0 ? (
-                <div className="px-4 py-10 text-center text-sm text-muted-foreground">No messages match your search.</div>
-              ) : (
-                <div className="divide-y divide-border">
-                  {visibleReceivedMessages.map((message) => (
-                    <button
-                      key={message.id}
-                      type="button"
-                      onClick={() => previewReceivedMessageById(message)}
-                      className={cn(
-                        "block w-full px-3.5 py-3 text-left transition-colors hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset sm:px-4",
-                        selectedReceivedId === message.id && "bg-muted",
-                      )}
-                      aria-label={`Open received email: ${message.subject}`}
-                    >
-                      <div className="flex items-start gap-3">
-                        <Avatar className={cn("size-10", contactAvatarTone(message.from))}>
-                          <AvatarFallback className="bg-transparent text-sm font-medium">
-                            {contactInitials(message.from, message.from)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="min-w-0 flex-1 space-y-1">
-                          <div className="flex items-center justify-between gap-3">
-                            <span className="min-w-0 truncate text-xs font-medium">{message.from}</span>
-                            {message.createdAt && (
-                              <time dateTime={message.createdAt} className="max-w-[42%] shrink-0 truncate text-right text-[11px] text-muted-foreground">
-                                {formatMessageDate(message.createdAt)}
-                              </time>
-                            )}
-                          </div>
-                          <p className="truncate text-sm !font-bold">{message.subject}</p>
-                          <span className="inline-flex items-center gap-1 text-[11px] text-emerald-700 dark:text-emerald-300">
-                            <Mail className="size-3" aria-hidden="true" />Received
-                          </span>
-                        </div>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </aside>
-
-            <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[14px] border border-border bg-card">
-              {selectedReceived ? (
-                <>
-                  <div className="shrink-0 border-b border-border px-4 py-4 sm:px-5">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="min-w-0">
-                        <h2 className="truncate text-base font-semibold">{selectedReceived.subject}</h2>
-                        <p className="mt-1 truncate text-sm text-muted-foreground">From {selectedReceived.from}</p>
-                        <p className="truncate text-xs text-muted-foreground">To {selectedReceived.to.join(", ") || "hello@mail.visualcns.com"}</p>
-                      </div>
-                      {selectedReceived.createdAt && (
-                        <time dateTime={selectedReceived.createdAt} className="shrink-0 text-right text-xs text-muted-foreground">
-                          {formatMessageDate(selectedReceived.createdAt)}
-                        </time>
-                      )}
-                    </div>
-                  </div>
-                  <div className="min-h-0 flex-1 overflow-hidden bg-white">
-                    {loadingReceivedId === selectedReceived.id ? (
-                      <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-                        <Loader2 className="mr-2 size-4 animate-spin" aria-hidden="true" />Loading message…
-                      </div>
-                    ) : (
-                      <iframe
-                        title={`Received email: ${selectedReceived.subject}`}
-                        srcDoc={receivedMessagePreview(selectedReceived)}
-                        sandbox=""
-                        className="h-full min-h-[24rem] w-full border-0"
-                      />
-                    )}
-                  </div>
-                </>
-              ) : (
-                <div className="flex h-full min-h-[24rem] items-center justify-center px-6 text-center text-sm text-muted-foreground">
-                  Select a message to read it.
-                </div>
-              )}
-            </div>
-          </section>
-        )}
-
-        {tab === "messages" && (
-          <section className="flex min-h-0 flex-1 flex-col gap-4 lg:grid lg:grid-cols-[18rem_minmax(0,1fr)] lg:grid-rows-[minmax(0,1fr)] lg:gap-6 lg:overflow-hidden" role="tabpanel">
-            <aside className={cn(
-              "min-h-0 shrink-0 overflow-hidden rounded-[14px] border border-border bg-card",
-              mobileMessageView === "list" || !isMobile ? "block" : "hidden",
-            )}>
-              <div className="flex items-center justify-between gap-3 border-b border-border px-3.5 py-3 sm:px-4 sm:py-3.5">
-                <div className="flex min-w-0 items-center gap-2">
-                  <Send className="size-4 text-muted-foreground" aria-hidden="true" />
-                  <h2 className="text-sm font-semibold">Sent</h2>
-                  <span className="text-xs tabular-nums text-muted-foreground">{messages.length}</span>
-                </div>
-                <Button type="button" variant="ghost" size="sm" className="h-8 gap-1.5 px-2 lg:hidden" onClick={() => openCompose(true)}>
-                  <Plus aria-hidden="true" />Compose
-                </Button>
-              </div>
-              {drafts.length > 0 && (
-                <div className="border-b border-border">
-                  <div className="px-3.5 py-2 text-xs font-medium text-muted-foreground sm:px-4">Drafts</div>
-                  <div className="divide-y divide-border">
-                    {drafts.map((draft) => (
-                      <div key={draft.id} className="group relative">
-                        <button
-                          type="button"
-                          onClick={() => loadDraft(draft)}
-                          className={cn(
-                            "block w-full px-3.5 py-3 text-left transition-colors hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset sm:px-4",
-                            editingDraftId === draft.id && "bg-muted",
-                          )}
-                          aria-label={`Open draft email: ${draft.subject?.trim() || "No subject"}`}
-                        >
-                          <div className="flex items-start gap-3">
-                            <Avatar className={cn("size-10", contactAvatarTone(draft.to || "Contact list"))}>
-                              <AvatarFallback className="bg-transparent text-sm font-medium">
-                                {contactInitials(draft.to || (draft.listId ? "Contact list" : "No recipient"), draft.to || "Contact list")}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div className="min-w-0 flex-1 space-y-1">
-                              <div className="flex items-center justify-between gap-3">
-                                <span className="min-w-0 truncate text-xs font-medium">
-                                  {draft.to || (draft.listId ? "Contact list" : "No recipient selected")}
-                                </span>
-                                <time dateTime={draft.updatedAt} className="max-w-[42%] shrink-0 truncate text-right text-[11px] text-muted-foreground">
-                                  {formatMessageDate(draft.updatedAt)}
-                                </time>
-                              </div>
-                              <p className="truncate text-sm !font-bold">{draft.subject?.trim() || "(No subject)"}</p>
-                              <span className="inline-flex items-center gap-1 text-[11px] text-amber-700 dark:text-amber-300">
-                                <FileText className="size-3" aria-hidden="true" />Draft
-                              </span>
-                            </div>
-                          </div>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => void removeDraft(draft.id)}
-                          aria-label="Delete draft"
-                          className="absolute bottom-2.5 right-2 flex size-8 items-center justify-center rounded-sm text-muted-foreground opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring group-hover:opacity-100"
-                        >
-                          <Trash2 className="size-4" aria-hidden="true" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-              {messages.length === 0 ? (
-                <div className="px-4 py-10 text-center">
-                  <Inbox className="mx-auto size-5 text-muted-foreground" aria-hidden="true" />
-                  <p className="mt-3 text-sm font-medium">No sent messages</p>
-                  <p className="mt-1 text-xs leading-5 text-muted-foreground">Your sent emails will appear here.</p>
-                </div>
-              ) : visibleMessages.length === 0 ? (
-                <div className="px-4 py-10 text-center text-sm text-muted-foreground">
-                  No messages match your search.
-                </div>
-              ) : (
-                <div className="divide-y divide-border">
-                  {visibleMessages.map((message) => (
-                    <button
-                      key={message.id}
-                      type="button"
-                      onClick={() => openSentMessage(message)}
-                      className={cn(
-                        "block w-full px-3.5 py-3 text-left transition-colors hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset sm:px-4",
-                        selectedSentId === message.id && "bg-muted",
-                      )}
-                      aria-label={`Open sent email: ${message.subject}`}
-                    >
-                      <div className="flex items-start gap-3">
-                        <Avatar className={cn("size-10", contactAvatarTone(message.to))}>
-                          <AvatarFallback className="bg-transparent text-sm font-medium">
-                            {contactInitials(message.recipients?.[0]?.name || message.to, message.recipients?.[0]?.email || message.to)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="min-w-0 flex-1 space-y-1">
-                          <div className="flex items-center justify-between gap-3">
-                            <span className="min-w-0 truncate text-xs font-medium">{message.to}</span>
-                            <time dateTime={message.createdAt} className="max-w-[42%] shrink-0 truncate text-right text-[11px] text-muted-foreground">
-                              {formatMessageDate(message.createdAt)}
-                            </time>
-                          </div>
-                          <p className="truncate text-sm !font-bold">{message.subject}</p>
-                          {message.status === "scheduled" && !isScheduledPastDue(message) ? (
-                            <span className="inline-flex items-center gap-1 text-[11px] text-amber-700 dark:text-amber-300">
-                              <Clock className="size-3" aria-hidden="true" />
-                              {message.scheduledAt ? `Scheduled · ${formatMessageDate(message.scheduledAt)}` : "Scheduled"}
-                            </span>
-                          ) : message.status === "failed" ? (
-                            <span className="inline-flex items-center gap-1 text-[11px] text-destructive">
-                              <X className="size-3" aria-hidden="true" />Failed
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 text-[11px] text-emerald-700 dark:text-emerald-300">
-                              <CheckCircle2 className="size-3" aria-hidden="true" />Sent
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </aside>
-
-            <div className={cn(
-              "min-h-0 flex-1 flex-col overflow-hidden rounded-[14px] border border-border bg-card lg:flex",
-              mobileMessageView === "reader" || !isMobile ? "flex" : "hidden",
-            )}>
-              {selectedSent ? (
-                <>
-                  <div className="shrink-0 border-b border-border px-4 py-4 sm:px-5">
-                    <div className="mb-2 flex items-center gap-2 lg:hidden">
-                      <Button type="button" variant="ghost" size="icon" className="-ml-2 size-8" onClick={() => setMobileMessageView("list")} aria-label="Back to sent">
-                        <ArrowLeft aria-hidden="true" />
-                      </Button>
-                    </div>
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="min-w-0">
-                        <h2 className="truncate text-base font-semibold">{selectedSent.subject}</h2>
-                        <p className="mt-1 truncate text-sm text-muted-foreground">To {selectedSent.to}</p>
-                        {selectedSent.from && <p className="truncate text-xs text-muted-foreground">From {cleanSenderDisplay(selectedSent.from)}</p>}
-                      </div>
-                      <div className="flex shrink-0 flex-col items-end gap-1 text-right">
-                        <time dateTime={selectedSent.createdAt} className="text-xs text-muted-foreground">{formatMessageDate(selectedSent.createdAt)}</time>
-                        {selectedSent.status === "scheduled" && !isScheduledPastDue(selectedSent) ? (
-                          <span className="inline-flex items-center gap-1 text-[11px] text-amber-700 dark:text-amber-300"><Clock className="size-3" aria-hidden="true" />{selectedSent.scheduledAt ? `Scheduled · ${formatMessageDate(selectedSent.scheduledAt)}` : "Scheduled"}</span>
-                        ) : selectedSent.status === "failed" ? (
-                          <span className="inline-flex items-center gap-1 text-[11px] text-destructive"><X className="size-3" aria-hidden="true" />Failed</span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 text-[11px] text-emerald-700 dark:text-emerald-300"><CheckCircle2 className="size-3" aria-hidden="true" />Sent</span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="min-h-0 flex-1 overflow-hidden bg-white">
-                    {loadingMessageId === selectedSent.id ? (
-                      <div className="flex h-full items-center justify-center text-sm text-muted-foreground"><Loader2 className="mr-2 size-4 animate-spin" aria-hidden="true" />Loading message…</div>
-                    ) : messageViewError ? (
-                      <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center">
-                        <p className="text-sm font-medium text-destructive">Couldn’t load this email</p>
-                        <p className="text-xs leading-5 text-muted-foreground">{messageViewError}</p>
-                        <Button type="button" variant="outline" size="sm" onClick={() => void hydrateMessageBody(selectedSent)}>Try again</Button>
-                      </div>
-                    ) : !selectedSent.bodyHtml && !selectedSent.bodyText ? (
-                      <div className="flex h-full flex-col items-center justify-center gap-2 px-6 text-center text-muted-foreground">
-                        <Mail className="size-5" aria-hidden="true" />
-                        <p className="text-sm font-medium text-foreground">Message body unavailable</p>
-                        <p className="text-xs leading-5">This email was sent before previews were saved.</p>
-                      </div>
-                    ) : (
-                      <iframe
-                        title={`Sent email: ${selectedSent.subject}`}
-                        srcDoc={sentMessagePreview(selectedSent)}
-                        sandbox=""
-                        className="h-full min-h-[24rem] w-full border-0"
-                      />
-                    )}
-                  </div>
-                </>
-              ) : (
-                <div className="flex h-full min-h-[24rem] items-center justify-center px-6 text-center text-sm text-muted-foreground">Select a message to read it.</div>
-              )}
-            </div>
-          </section>
+        {(tab === "inbox" || tab === "drafts" || tab === "messages") && (
+          <EmailMessageSurfaces
+            tab={tab}
+            receivedMessages={activeReceivedMessages}
+            visibleReceivedMessages={visibleReceivedMessages}
+            receivedLoading={receivedLoading}
+            receivedError={receivedError}
+            selectedReceived={selectedReceived}
+            selectedReceivedId={selectedReceivedId}
+            loadingReceivedId={loadingReceivedId}
+            onOpenReceived={previewReceivedMessageById}
+            onClearReceived={() => { setSelectedReceivedId(null); setMobileMessageView("list") }}
+            onDeleteReceived={(message) => void deleteReceivedMessage(message)}
+            drafts={drafts}
+            visibleDrafts={visibleDrafts}
+            editingDraftId={editingDraftId}
+            onLoadDraft={loadDraft}
+            onRemoveDraft={removeDraft}
+            messages={messages}
+            visibleMessages={visibleMessages}
+            selectedSent={selectedSent}
+            selectedSentId={selectedSentId}
+            onOpenSent={openSentMessage}
+            onClearSent={() => { setSelectedSentId(null); setMobileMessageView("list") }}
+            onDeleteSent={(message) => void deleteSentMessage(message)}
+            mobileMessageView={mobileMessageView}
+            setMobileMessageView={setMobileMessageView}
+            loadingMessageId={loadingMessageId}
+            messageViewError={messageViewError}
+            onRetrySent={(message) => void hydrateMessageBody(message)}
+            receivedMessagePreview={receivedMessagePreview}
+            sentMessagePreview={sentMessagePreview}
+            contactInitials={contactInitials}
+            contactAvatarTone={contactAvatarTone}
+            resolveName={resolveName}
+            formatMessageDate={formatMessageDate}
+            formatListDate={formatListDate}
+            cleanSenderDisplay={cleanSenderDisplay}
+            isScheduledPastDue={isScheduledPastDue}
+          />
         )}
 
         {tab === "lists" && (
-          <section className="grid min-h-0 flex-1 gap-4 overflow-visible pt-2 lg:grid-cols-[18rem_minmax(0,1fr)] lg:gap-6 lg:overflow-hidden" role="tabpanel">
-            <div className="min-h-0 overflow-visible rounded-[14px] border border-border bg-card lg:overflow-y-auto">
-              <div className="flex items-center justify-between gap-3 border-b border-border px-3.5 py-3 sm:px-4 sm:py-3.5">
-                <h2 className="text-sm font-semibold">Contact lists <span className="font-normal tabular-nums text-muted-foreground">({lists.length})</span></h2>
-                <Button type="button" variant="ghost" size="icon" onClick={resetListEditor} aria-label="New contact list" title="New contact list">
-                  <Plus aria-hidden="true" />
-                </Button>
-              </div>
-              {visibleLists.length === 0 ? (
-                <div className="px-4 py-10 text-center">
-                  <List className="mx-auto size-5 text-muted-foreground" aria-hidden="true" />
-                  <p className="mt-3 text-sm font-medium">No lists yet</p>
-                  <p className="mt-1 text-xs leading-5 text-muted-foreground">Create a list to group contacts for sending.</p>
-                </div>
-              ) : (
-                <div className="divide-y divide-border">
-                  {visibleLists.map((list) => (
-                    <div key={list.id} className={cn("flex items-start gap-2 px-3.5 py-3", editingListId === list.id && "bg-sidebar-accent text-sidebar-accent-foreground")}>
-                      <Avatar className={cn("size-10 shrink-0", contactAvatarTone(list.name), editingListId === list.id && "bg-sidebar-accent-foreground/10 text-sidebar-accent-foreground")} aria-hidden="true">
-                        <AvatarFallback className="bg-transparent text-sm font-medium">
-                          {contactInitials(list.name, list.name)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <button type="button" onClick={() => editList(list)} className="min-w-0 flex-1 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                        <span className="block truncate text-sm font-medium">{list.name}</span>
-                        <span className={cn("mt-1 block text-xs text-muted-foreground", editingListId === list.id && "text-sidebar-accent-foreground/70")}>{list.contactEmails.length} contact{list.contactEmails.length === 1 ? "" : "s"}</span>
-                      </button>
-                      <button type="button" onClick={() => deleteList(list.id)} aria-label={`Delete ${list.name}`} className="flex size-8 shrink-0 items-center justify-center rounded-sm text-muted-foreground hover:bg-destructive/10 hover:text-destructive focus-visible:ring-2 focus-visible:ring-ring">
-                        <Trash2 className="size-4" aria-hidden="true" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <form onSubmit={saveList} className="min-h-0 rounded-[14px] border border-border bg-card p-4 sm:p-5">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <h2 className="font-semibold">{editingListId ? "Edit list" : "New list"}</h2>
-                  <p className="mt-1 text-sm text-muted-foreground">Choose the contacts you want to group together.</p>
-                </div>
-                {editingListId && <Button type="button" variant="ghost" size="sm" onClick={resetListEditor}>New</Button>}
-              </div>
-
-              <div className="mt-4 space-y-4">
-                <Input value={listName} onChange={(event) => setListName(event.target.value)} maxLength={80} placeholder="List name" aria-label="List name" required />
-                <div className="rounded-md border border-border">
-                  <div className="flex items-center justify-between gap-3 border-b border-border px-3 py-2">
-                    <span className="text-xs font-medium text-muted-foreground">Contacts</span>
-                    <button
-                      type="button"
-                      onClick={() => setListShowSelectedOnly((value) => !value)}
-                      className={cn("text-xs font-medium outline-none transition-colors hover:text-foreground", listShowSelectedOnly ? "text-foreground" : "text-muted-foreground")}
-                      aria-pressed={listShowSelectedOnly}
-                    >
-                      {listShowSelectedOnly ? "Show all" : `In list (${listContactEmails.length})`}
-                    </button>
-                  </div>
-                  {contacts.length === 0 ? (
-                    <p className="px-3 py-4 text-sm text-muted-foreground">No client contacts available.</p>
-                  ) : (
-                    <>
-                      <div className="border-b border-border p-2">
-                        <Input
-                          value={listContactQuery}
-                          onChange={(event) => setListContactQuery(event.target.value)}
-                          placeholder="Search contacts"
-                          aria-label="Search contacts"
-                          className="h-8 text-sm"
-                        />
-                      </div>
-                      <div className="max-h-72 overflow-y-auto">
-                        {visibleListContacts.length === 0 ? (
-                          <p className="px-3 py-4 text-sm text-muted-foreground">
-                            {listShowSelectedOnly ? "No contacts in this list yet." : "No contacts match your search."}
-                          </p>
-                        ) : (
-                          visibleListContacts.map((contact) => (
-                            <label key={contact.email} className="flex cursor-pointer items-center gap-3 border-b border-border px-3 py-2.5 last:border-b-0">
-                              <input
-                                type="checkbox"
-                                checked={listContactEmails.includes(contact.email)}
-                                onChange={(event) => setListContactEmails((current) => event.target.checked ? [...current, contact.email] : current.filter((email) => email !== contact.email))}
-                                className="size-4 accent-primary"
-                              />
-                              <span className="min-w-0">
-                                <span className="block truncate text-sm font-medium">{contact.name}</span>
-                                <span className="block truncate text-xs text-muted-foreground">{contact.email}</span>
-                              </span>
-                            </label>
-                          ))
-                        )}
-                      </div>
-                    </>
-                  )}
-                </div>
-              </div>
-
-              <div className="sticky bottom-0 z-10 mt-5 -mx-4 -mb-4 flex shrink-0 flex-col gap-3 border-t border-border bg-card px-4 pt-3 pb-4 sm:-mx-5 sm:-mb-5 sm:flex-row sm:items-center sm:justify-between sm:px-5 lg:static lg:mx-0 lg:mb-0 lg:bg-transparent lg:px-0 lg:pt-4">
-                <div aria-live="polite" className="min-h-5 text-sm">
-                  {listNotice && <span className={listNotice.tone === "success" ? "text-emerald-700 dark:text-emerald-300" : "text-destructive"}>{listNotice.text}</span>}
-                </div>
-                <Button type="submit">{editingListId ? "Save changes" : "Create list"}</Button>
-              </div>
-            </form>
-          </section>
+          <EmailLists
+            lists={lists}
+            visibleLists={visibleLists}
+            editingListId={editingListId}
+            editList={editList}
+            deleteList={deleteList}
+            resetListEditor={resetListEditor}
+            listName={listName}
+            setListName={setListName}
+            listContactQuery={listContactQuery}
+            setListContactQuery={setListContactQuery}
+            listShowSelectedOnly={listShowSelectedOnly}
+            setListShowSelectedOnly={setListShowSelectedOnly}
+            listContactEmails={listContactEmails}
+            setListContactEmails={setListContactEmails}
+            contacts={contacts}
+            visibleListContacts={visibleListContacts}
+            saveList={saveList}
+            listNotice={listNotice}
+            contactInitials={contactInitials}
+            contactAvatarTone={contactAvatarTone}
+          />
         )}
 
         {tab === "templates" && (
-          <section className="flex min-h-0 flex-1 flex-col gap-3 overflow-visible pt-2 lg:grid lg:grid-cols-[18rem_minmax(0,1fr)] lg:gap-6 lg:overflow-hidden" role="tabpanel">
-            <form
-              onSubmit={saveTemplate}
-              className={cn(
-                "order-2 flex-none flex-col lg:order-2 lg:min-h-0 lg:flex-1",
-                mobileTemplateView === "editor" || !isMobile ? "flex" : "hidden",
-              )}
-            >
-              <div className="mb-1 flex items-center gap-2 lg:hidden">
-                <Button type="button" variant="ghost" size="icon" onClick={() => setMobileTemplateView("list")} aria-label="Back to templates">
-                  <ArrowLeft aria-hidden="true" />
-                </Button>
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold">{editingTemplateId ? "Edit" : "New template"}</p>
-                </div>
-              </div>
-
-              <div className="flex flex-none flex-col gap-3 lg:min-h-0 lg:flex-1">
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-2">
-                    <Input id="template-name" aria-label="Template name" value={templateName} onChange={(event) => setTemplateName(event.target.value)} maxLength={80} placeholder="Template name" required />
-                  </div>
-                  <div className="space-y-2">
-                    <Input id="template-subject" aria-label="Subject" value={templateSubject} onChange={(event) => setTemplateSubject(event.target.value)} maxLength={200} placeholder="Subject" required />
-                  </div>
-                </div>
-                <div className="flex min-h-0 flex-1 flex-col gap-2">
-                  <RichTextEditor
-                    value={templateBody}
-                    onChange={setTemplateBody}
-                    placeholder="Write the reusable message"
-                    scrollable
-                    allowHtml
-                    className="min-h-64 lg:min-h-0 lg:flex-1"
-                    contentHeader={(
-                      <div className="bg-white px-4 py-5 sm:px-6">
-                        <img
-                          src="/visualcns-email-logo.png"
-                          alt={businessProfile?.name || "VisualCNS"}
-                          className="h-auto w-56 max-w-full object-contain object-left"
-                        />
-                      </div>
-                    )}
-                    contentFooter={(
-                      <>
-                        <div className="flex items-start justify-between gap-4 border-t border-border bg-neutral-50 px-4 py-4 text-xs leading-5 text-neutral-500 sm:px-6">
-                          <div className="min-w-0 text-left">
-                            <p className="font-semibold text-neutral-700">{businessProfile?.name || "VisualCNS"}</p>
-                            <p>{businessProfile?.address || "Lagos, Nigeria"}</p>
-                            <a href={businessProfile?.website?.startsWith("http") ? businessProfile.website : `https://${businessProfile?.website || "visualcns.com"}`} target="_blank" rel="noreferrer" className="underline underline-offset-2">
-                              {businessProfile?.website || "visualcns.com"}
-                            </a>
-                          </div>
-                          <div className="flex shrink-0 items-center gap-3 pt-0.5">
-                            <a href="https://x.com/visualcns" target="_blank" rel="noreferrer" aria-label="VisualCNS on X" className="text-neutral-700 hover:text-neutral-950">
-                              <Twitter className="size-3.5" aria-hidden="true" />
-                            </a>
-                            <a href="https://www.linkedin.com/company/visualng" target="_blank" rel="noreferrer" aria-label="VisualCNS on LinkedIn" className="text-neutral-700 hover:text-neutral-950">
-                              <Linkedin className="size-3.5" aria-hidden="true" />
-                            </a>
-                          </div>
-                        </div>
-                      </>
-                    )}
-                  />
-                </div>
-              </div>
-
-              <div className="sticky bottom-0 z-10 mt-5 flex shrink-0 flex-col gap-3 border-t border-border bg-background pt-3 pb-4 sm:flex-row sm:items-center sm:justify-between lg:static lg:bg-transparent lg:pt-4 lg:pb-0">
-                <div aria-live="polite" className="min-h-5 text-sm">
-                  {templateNotice && (
-                    <span className={templateNotice.tone === "success" ? "text-emerald-700 dark:text-emerald-300" : "text-destructive"}>
-                      {templateNotice.text}
-                    </span>
-                  )}
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button type="button" variant="outline" onClick={useEditingTemplate} disabled={!editingTemplateId}>
-                    Use template
-                  </Button>
-                  <Button type="submit">Save</Button>
-                </div>
-              </div>
-            </form>
-
-            <div className={cn(
-              "order-1 min-h-0 overflow-visible pr-1 lg:order-1 lg:overflow-y-auto",
-              mobileTemplateView === "list" || !isMobile ? "block" : "hidden",
-            )}>
-              <div className="flex items-center justify-between gap-3">
-                <h2 className="font-semibold">Saved templates <span className="text-sm font-normal tabular-nums text-muted-foreground">({templates.length})</span></h2>
-                <div className="flex items-center gap-1">
-                  {isAdmin && !templates.some((template) => template.id === "announce-insights") && (
-                    <Button type="button" variant="outline" size="sm" onClick={addInsightsTemplate}>
-                      Add Insights email
-                    </Button>
-                  )}
-                  <Button type="button" variant="ghost" size="icon" onClick={() => { resetTemplateEditor(); setMobileTemplateView("editor") }} aria-label="New template" title="New template">
-                    <Plus aria-hidden="true" />
-                  </Button>
-                </div>
-              </div>
-              {templates.length === 0 ? (
-                <div className="mt-3 rounded-[12px] border border-dashed border-border px-4 py-8 text-center">
-                  <FileText className="mx-auto size-5 text-muted-foreground" aria-hidden="true" />
-                  <p className="mt-3 text-sm font-medium">No templates yet</p>
-                  <p className="mt-1 text-xs leading-5 text-muted-foreground">Save the first one using the editor.</p>
-                </div>
-              ) : visibleTemplates.length === 0 ? (
-                <div className="mt-3 rounded-[12px] border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground">
-                  No templates match your search.
-                </div>
-              ) : (
-                <div className="mt-3">
-                  {visibleTemplates.map((template) => (
-                    <div key={template.id} className={cn("group flex items-start gap-2 rounded-md border-b border-border px-2.5 py-3.5 first:pt-3 last:border-b-0", editingTemplateId === template.id && "bg-sidebar-accent text-sidebar-accent-foreground")}>
-                      <Avatar className={cn("size-10", contactAvatarTone(template.name), editingTemplateId === template.id && "bg-sidebar-accent-foreground/10 text-sidebar-accent-foreground")} aria-hidden="true">
-                        <AvatarFallback className="bg-transparent text-sm font-medium">
-                          {contactInitials(template.name, template.subject)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <button type="button" onClick={() => { editTemplate(template); setMobileTemplateView("editor") }} className="min-w-0 flex-1 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                        <span className="block truncate text-sm font-medium">{template.name}</span>
-                        <span className={cn("mt-1 block truncate text-xs text-muted-foreground", editingTemplateId === template.id && "text-sidebar-accent-foreground/70")}>{template.subject}</span>
-                      </button>
-                      <div className="flex shrink-0 flex-col items-end gap-1">
-                        <time dateTime={template.updatedAt} className={cn("text-[11px] text-muted-foreground", editingTemplateId === template.id && "text-sidebar-accent-foreground/70")}>{formatTemplateDate(template.updatedAt)}</time>
-                        <div className="flex items-center gap-1">
-                          <button type="button" onClick={() => setPreview({ kind: "template", id: template.id })} aria-label={`Preview ${template.name}`} className="flex size-8 items-center justify-center rounded-sm text-muted-foreground opacity-70 outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100">
-                            <Eye className="size-4" aria-hidden="true" />
-                          </button>
-                          <button type="button" onClick={() => deleteTemplate(template.id)} aria-label={`Delete ${template.name}`} className="flex size-8 items-center justify-center rounded-sm text-muted-foreground opacity-70 outline-none transition-colors hover:bg-destructive/10 hover:text-destructive focus-visible:ring-2 focus-visible:ring-ring sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100">
-                            <Trash2 className="size-4" aria-hidden="true" />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </section>
+          <EmailTemplates
+            templates={templates}
+            visibleTemplates={visibleTemplates}
+            editingTemplateId={editingTemplateId}
+            templateName={templateName}
+            setTemplateName={setTemplateName}
+            templateSubject={templateSubject}
+            setTemplateSubject={setTemplateSubject}
+            templateBody={templateBody}
+            setTemplateBody={setTemplateBody}
+            templateNotice={templateNotice}
+            saveTemplate={saveTemplate}
+            useEditingTemplate={useEditingTemplate}
+            previewEditingTemplate={previewEditingTemplate}
+            editTemplate={editTemplate}
+            setMobileTemplateView={setMobileTemplateView}
+            mobileTemplateView={mobileTemplateView}
+            businessProfile={businessProfile}
+            isAdmin={isAdmin}
+            addInsightsTemplate={addInsightsTemplate}
+            resetTemplateEditor={resetTemplateEditor}
+            deleteTemplate={deleteTemplate}
+            contactInitials={contactInitials}
+            contactAvatarTone={contactAvatarTone}
+            formatListDate={formatListDate}
+          />
         )}
 
       </div>
 
-      {/* Docked compose window (Gmail-style) */}
-      {composeOpen && (
-        <div className="fixed inset-x-0 bottom-0 z-40 flex justify-center sm:inset-x-auto sm:right-6 sm:justify-end">
-          <div className={cn(
-            "flex w-full flex-col overflow-hidden border border-border bg-card shadow-2xl sm:w-[512px] sm:max-w-[calc(100vw-3rem)] sm:rounded-t-xl",
-            composeMinimized ? "h-auto" : "h-[85svh] sm:h-[560px] sm:max-h-[calc(100svh-2rem)]",
-          )}>
-            <div className="flex shrink-0 items-center justify-between gap-2 bg-neutral-800 px-4 py-2 text-white dark:bg-neutral-900">
-              <button
-                type="button"
-                onClick={() => setComposeMinimized((value) => !value)}
-                className="min-w-0 flex-1 truncate text-left text-sm font-medium outline-none"
-                title={composeMinimized ? "Expand" : "Minimize"}
-              >
-                {subject.trim() || "New message"}
-              </button>
-              <div className="flex shrink-0 items-center gap-1">
-                <button type="button" onClick={() => setComposeMinimized((value) => !value)} aria-label={composeMinimized ? "Expand" : "Minimize"} className="flex size-7 items-center justify-center rounded text-white/80 outline-none transition-colors hover:bg-white/15 hover:text-white">
-                  <ChevronDown className={cn("size-4 transition-transform", composeMinimized && "rotate-180")} aria-hidden="true" />
-                </button>
-                <button type="button" onClick={closeCompose} aria-label="Close" className="flex size-7 items-center justify-center rounded text-white/80 outline-none transition-colors hover:bg-white/15 hover:text-white">
-                  <X className="size-4" aria-hidden="true" />
-                </button>
-              </div>
-            </div>
+      <Button
+        type="button"
+        size="icon"
+        onClick={() => openCompose(true)}
+        aria-label="Compose"
+        title="Compose"
+        className="fixed right-5 bottom-6 z-30 size-14 rounded-full shadow-lg lg:hidden"
+      >
+        <Plus className="size-6" aria-hidden="true" />
+      </Button>
 
-            {!composeMinimized && (
-              <form autoComplete="off" onSubmit={sendEmail} className="flex min-h-0 flex-1 flex-col overflow-hidden">
-                <div className="grid shrink-0 grid-cols-[minmax(0,1fr)_9rem] items-center border-b border-border">
-                  <div className="flex min-w-0 items-center gap-2 px-4 py-2">
-                    <span className="shrink-0 text-xs font-medium text-muted-foreground">From</span>
-                    <p className="min-w-0 truncate text-sm">{cleanSenderDisplay(senderAddress || (showOpsDetail ? "Not configured" : "Not available yet"))}</p>
-                  </div>
-                  <div className="px-3 py-1">
-                    <Select value={messageKind} onValueChange={(value) => setMessageKind(value as EmailMessageKind)}>
-                      <SelectTrigger aria-label="Message type" className="h-7 w-full border-0 bg-transparent px-1 text-xs shadow-none hover:bg-transparent data-[state=open]:bg-transparent">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="transactional">Service message</SelectItem>
-                        <SelectItem value="marketing">Marketing email</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                <div className="grid shrink-0 grid-cols-2 gap-3 border-b border-border px-4 py-2.5">
-                  <Popover
-                    open={contactPickerOpen}
-                    onOpenChange={(open) => {
-                      setContactPickerOpen(open)
-                      if (!open) setContactQuery("")
-                    }}
-                  >
-                    <PopoverTrigger asChild>
-                      <button
-                        id="email-to"
-                        type="button"
-                        role="combobox"
-                        aria-expanded={contactPickerOpen}
-                        aria-label="Select contact"
-                        disabled={Boolean(selectedListId)}
-                        className="flex h-8 w-full min-w-0 items-center gap-2 border-b border-input bg-transparent px-0 text-left text-sm outline-none transition-[border-color] hover:border-muted-foreground focus-visible:border-foreground disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        <span className="min-w-0 flex-1 truncate">
-                          {selectedContact?.name || (selectedList ? `Sending to ${selectedList.contactEmails.length} contacts` : "To")}
-                        </span>
-                        <ChevronsUpDown className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-                      </button>
-                    </PopoverTrigger>
-                    <PopoverContent align="start" className="w-[var(--radix-popover-trigger-width)] min-w-[280px] p-0">
-                      <Command>
-                        <CommandInput autoFocus placeholder="Search contacts" value={contactQuery} onValueChange={setContactQuery} />
-                        <CommandList>
-                          <CommandEmpty className="px-3 py-6 text-center text-sm text-muted-foreground">No matching contacts.</CommandEmpty>
-                          <CommandGroup>
-                            {visibleContactOptions.map((contact) => {
-                              const isSelected = recipientEmail(contact.email) === recipientEmail(to)
-                              return (
-                                <CommandItem
-                                  key={contact.email}
-                                  value={`${contact.name} ${contact.email}`}
-                                  onSelect={() => {
-                                    handleRecipientChange(contact.email)
-                                    setContactPickerOpen(false)
-                                    setContactQuery("")
-                                  }}
-                                  className="items-center gap-3 px-3 py-2.5"
-                                >
-                                  <Avatar className={cn("size-10", contactAvatarTone(contact.name || contact.email))}>
-                                    <AvatarFallback className="bg-transparent text-sm font-medium">{contactInitials(contact.name, contact.email)}</AvatarFallback>
-                                  </Avatar>
-                                  <span className="min-w-0 flex-1">
-                                    <span className="block truncate text-sm font-medium text-foreground">{contact.name || "Unnamed contact"}</span>
-                                    <span className="block truncate text-xs text-muted-foreground">{contact.email}</span>
-                                  </span>
-                                  <Check className={cn("size-4 shrink-0", isSelected ? "opacity-100" : "opacity-0")} aria-hidden="true" />
-                                </CommandItem>
-                              )
-                            })}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
-                  <Select
-                    value={selectedListId || "none"}
-                    onValueChange={(value) => {
-                      setSelectedListId(value === "none" ? "" : value)
-                      if (value !== "none") setTo("")
-                    }}
-                  >
-                    <SelectTrigger aria-label="Contact list" className="h-8">
-                      <SelectValue placeholder="Select list" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">No list</SelectItem>
-                      {[...lists].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" })).map((list) => (
-                        <SelectItem key={list.id} value={list.id}>{list.name} ({list.contactEmails.length})</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="shrink-0 border-b border-border px-4 py-1.5">
-                  <Input
-                    id="email-subject"
-                    name="message-subject"
-                    aria-label="Subject"
-                    autoComplete="off"
-                    value={subject}
-                    onChange={(event) => setSubject(event.target.value)}
-                    maxLength={200}
-                    placeholder="Subject"
-                    className="h-8 border-0 px-0 shadow-none focus-visible:ring-0"
-                    required
-                  />
-                </div>
-                {messageKind === "marketing" && (
-                  <p className="shrink-0 border-b border-border px-4 py-1.5 text-xs leading-5 text-muted-foreground">Only subscribed contacts will receive this. An unsubscribe link is added automatically.</p>
-                )}
-
-                <div className="min-h-0 flex-1 overflow-hidden px-2 py-2">
-                  <RichTextEditor
-                    value={body}
-                    onChange={setBody}
-                    placeholder="Write your message"
-                    scrollable
-                    compact
-                    flat
-                    allowHtml
-                    className="h-full min-h-0"
-                  />
-                </div>
-
-                <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-t border-border px-3 py-2">
-                  <div className="flex items-center gap-1">
-                    <div className="inline-flex items-stretch">
-                      <Button
-                        type="submit"
-                        className="rounded-r-none"
-                        disabled={!senderConfigured || sending || (!selectedListId && !to.trim()) || (selectedListId && !selectedList?.contactEmails.length) || !subject.trim() || !htmlToText(body).trim() || (scheduleEnabled && !scheduleAt)}
-                      >
-                        {sending ? <Loader2 className="animate-spin" aria-hidden="true" /> : scheduleEnabled ? <Clock aria-hidden="true" /> : <Send aria-hidden="true" />}
-                        {sending ? (scheduleEnabled ? "Scheduling" : "Sending") : scheduleEnabled ? "Schedule" : "Send"}
-                      </Button>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button type="button" aria-label="Choose send action" title="Choose send action" className="rounded-l-none border-l border-primary-foreground/25 px-2" disabled={sending}>
-                            <ChevronDown aria-hidden="true" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="start">
-                          {scheduleEnabled ? (
-                            <DropdownMenuItem onSelect={() => { setScheduleEnabled(false); setScheduleAt("") }}>
-                              <Send aria-hidden="true" />Send now
-                            </DropdownMenuItem>
-                          ) : (
-                            <DropdownMenuItem onSelect={() => setScheduleEnabled(true)}>
-                              <Clock aria-hidden="true" />Schedule
-                            </DropdownMenuItem>
-                          )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                    {scheduleEnabled && (
-                      <Input
-                        type="datetime-local"
-                        aria-label="Schedule date and time"
-                        value={scheduleAt}
-                        min={scheduleMin || undefined}
-                        onChange={(event) => setScheduleAt(event.target.value)}
-                        className="h-9 w-auto"
-                      />
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {draftStatus !== "idle" && (
-                      <span className="hidden text-xs text-muted-foreground sm:inline">
-                        {draftStatus === "saving" || savingDraft ? "Saving…" : draftStatus === "saved" ? "Saved" : "Not saved"}
-                      </span>
-                    )}
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button type="button" variant="ghost" size="sm" className="max-w-40 justify-start px-2">
-                          <FileText aria-hidden="true" />
-                          <span className="truncate">{selectedTemplate?.name || "Template"}</span>
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-72">
-                        <DropdownMenuItem onSelect={() => applyTemplate("")}>Start without a template</DropdownMenuItem>
-                        {[...templates].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" })).map((template) => (
-                          <DropdownMenuItem key={template.id} onSelect={() => applyTemplate(template.id)}>
-                            <span className="truncate">{template.name}</span>
-                          </DropdownMenuItem>
-                        ))}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                    <button type="button" onClick={() => { if (editingDraftId) void removeDraft(editingDraftId); clearComposer(); closeCompose() }} aria-label="Discard draft" title="Discard" className="flex size-9 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-destructive/10 hover:text-destructive">
-                      <Trash2 className="size-4" aria-hidden="true" />
-                    </button>
-                  </div>
-                </div>
-                {sendNotice && sendNotice.tone === "error" && (
-                  <div className="shrink-0 border-t border-border px-4 py-2 text-sm text-destructive" aria-live="polite">{sendNotice.text}</div>
-                )}
-              </form>
-            )}
-          </div>
-        </div>
-      )}
+      <EmailComposer
+        composeOpen={composeOpen}
+        composeMinimized={composeMinimized}
+        setComposeMinimized={setComposeMinimized}
+        closeCompose={closeCompose}
+        subject={subject}
+        setSubject={setSubject}
+        senderAddress={senderAddress || ""}
+        showOpsDetail={showOpsDetail}
+        cleanSenderDisplay={cleanSenderDisplay}
+        messageKind={messageKind}
+        setMessageKind={setMessageKind}
+        contactPickerOpen={contactPickerOpen}
+        setContactPickerOpen={setContactPickerOpen}
+        setContactQuery={setContactQuery}
+        contactQuery={contactQuery}
+        selectedContact={selectedContact || null}
+        selectedList={selectedList || null}
+        handleRecipientChange={handleRecipientChange}
+        visibleContactOptions={visibleContactOptions}
+        contactInitials={contactInitials}
+        contactAvatarTone={contactAvatarTone}
+        to={to}
+        recipientEmail={recipientEmail}
+        selectedListId={selectedListId || ""}
+        setSelectedListId={setSelectedListId}
+        setTo={setTo}
+        lists={lists}
+        body={body}
+        setBody={setBody}
+        senderConfigured={Boolean(senderConfigured)}
+        sending={sending}
+        scheduleEnabled={Boolean(scheduleEnabled)}
+        setScheduleEnabled={setScheduleEnabled}
+        scheduleAt={scheduleAt}
+        scheduleMin={scheduleMin}
+        setScheduleAt={setScheduleAt}
+        sendEmail={sendEmail}
+        draftStatus={draftStatus}
+        savingDraft={savingDraft}
+        setComposerPreviewOpen={setComposerPreviewOpen}
+        templates={templates}
+        selectedTemplate={selectedTemplate || null}
+        applyTemplate={applyTemplate}
+        editingDraftId={editingDraftId}
+        removeDraft={removeDraft}
+        clearComposer={clearComposer}
+        htmlToText={htmlToText}
+        composerPreviewOpen={composerPreviewOpen}
+        composerPreviewHtml={composerPreviewHtml}
+        sendNotice={sendNotice}
+      />
 
       {/* Send confirmation toast (shown once the composer closes) */}
       {!composeOpen && sendNotice && (
@@ -2164,18 +1557,18 @@ export default function EmailPage() {
         </div>
       )}
 
-      {(previewTemplate || previewMessage) && (
+      {previewTemplate && (
         <div
           className="fixed inset-0 z-50 flex flex-col bg-black/70 backdrop-blur-sm"
           role="dialog"
           aria-modal="true"
-          aria-label={`Preview: ${previewMessage ? previewMessage.subject : previewTemplate?.name}`}
+          aria-label={`Preview: ${previewTemplate.name}`}
           onClick={() => setPreview(null)}
         >
           <div className="flex shrink-0 items-center gap-3 px-4 py-3 text-white sm:px-6" onClick={(event) => event.stopPropagation()}>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-semibold">{previewMessage ? previewMessage.subject : previewTemplate?.name}</p>
-              <p className="truncate text-xs text-white/70">{previewMessage ? previewMessage.to : previewTemplate?.subject} · {previewIndex + 1} of {previewList.length}</p>
+              <p className="truncate text-sm font-semibold">{previewTemplate.name}</p>
+              <p className="truncate text-xs text-white/70">{previewTemplate.subject} · {previewIndex + 1} of {previewList.length}</p>
             </div>
             <button type="button" onClick={() => setPreview(null)} aria-label="Close preview" className="flex size-9 items-center justify-center rounded-full text-white/80 outline-none transition-colors hover:bg-white/15 hover:text-white focus-visible:ring-2 focus-visible:ring-white/60">
               <X className="size-5" aria-hidden="true" />
@@ -2186,47 +1579,29 @@ export default function EmailPage() {
               <ChevronLeft className="size-6" aria-hidden="true" />
             </button>
             <div ref={previewStageRef} className="flex h-full min-w-0 flex-1 items-center justify-center overflow-hidden">
-              {previewMessage && loadingMessageId === previewMessage.id ? (
-                <div className="flex items-center gap-2 rounded-xl bg-white px-6 py-10 text-sm text-neutral-500 shadow-2xl">
-                  <Loader2 className="size-4 animate-spin" aria-hidden="true" />Loading email
-                </div>
-              ) : previewMessage && messageViewError ? (
-                <div className="max-w-sm rounded-xl bg-white px-6 py-10 text-center shadow-2xl">
-                  <p className="text-sm font-medium text-destructive">Couldn’t load this email</p>
-                  <p className="mt-1 text-xs leading-5 text-neutral-500">{messageViewError}</p>
-                  <Button type="button" variant="outline" size="sm" className="mt-4" onClick={() => void hydrateMessageBody(previewMessage)}>Try again</Button>
-                </div>
-              ) : previewMessage && !previewMessage.bodyHtml && !previewMessage.bodyText ? (
-                <div className="max-w-sm rounded-xl bg-white px-6 py-10 text-center shadow-2xl">
-                  <Mail className="mx-auto size-5 text-neutral-400" aria-hidden="true" />
-                  <p className="mt-3 text-sm font-medium text-neutral-700">Message body unavailable</p>
-                  <p className="mt-1 text-xs leading-5 text-neutral-500">This email was sent before message previews were saved. New sent emails include their full content here.</p>
-                </div>
-              ) : (
-                <div
-                  className="relative overflow-hidden rounded-xl bg-white shadow-2xl"
-                  style={{ width: PREVIEW_WIDTH * previewScale, height: (previewHeight ?? 0) * previewScale }}
-                >
-                  <iframe
-                    key={preview?.id}
-                    title={previewMessage ? `Email preview: ${previewMessage.subject}` : `Template preview: ${previewTemplate?.name}`}
-                    sandbox="allow-same-origin"
-                    scrolling="no"
-                    srcDoc={previewMessage ? sentMessagePreview(previewMessage) : templatePreview(previewTemplate!)}
-                    onLoad={(event) => {
-                      const doc = event.currentTarget.contentDocument
-                      if (doc?.body) setPreviewHeight(doc.body.scrollHeight)
-                    }}
-                    style={{
-                      width: PREVIEW_WIDTH,
-                      height: previewHeight ?? "100%",
-                      transform: `scale(${previewScale})`,
-                      transformOrigin: "top left",
-                    }}
-                    className="absolute left-0 top-0 border-0 bg-white"
-                  />
-                </div>
-              )}
+              <div
+                className="relative overflow-hidden rounded-xl bg-white shadow-2xl"
+                style={{ width: PREVIEW_WIDTH * previewScale, height: (previewHeight ?? 0) * previewScale }}
+              >
+                <iframe
+                  key={preview}
+                  title={`Template preview: ${previewTemplate.name}`}
+                  sandbox="allow-same-origin"
+                  scrolling="no"
+                  srcDoc={templatePreview(previewTemplate)}
+                  onLoad={(event) => {
+                    const doc = event.currentTarget.contentDocument
+                    if (doc?.body) setPreviewHeight(doc.body.scrollHeight)
+                  }}
+                  style={{
+                    width: PREVIEW_WIDTH,
+                    height: previewHeight ?? "100%",
+                    transform: `scale(${previewScale})`,
+                    transformOrigin: "top left",
+                  }}
+                  className="absolute left-0 top-0 border-0 bg-white"
+                />
+              </div>
             </div>
             <button type="button" onClick={showNextPreview} disabled={!hasNextPreview} aria-label="Next" className="flex size-11 shrink-0 items-center justify-center rounded-full bg-white/10 text-white outline-none transition-colors hover:bg-white/20 focus-visible:ring-2 focus-visible:ring-white/60 disabled:pointer-events-none disabled:opacity-30">
               <ChevronRight className="size-6" aria-hidden="true" />

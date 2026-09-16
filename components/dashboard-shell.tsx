@@ -77,6 +77,7 @@ export function DashboardShell({
   // Document detail and editor screens keep the focused layout, while the
   // navigation remains available as a collapsed icon rail.
   const isDocumentRoute = /^\/dashboard\/documents\/[^/]+/.test(pathname ?? "")
+  const isEmailRoute = pathname === "/dashboard/email"
   const hideHeader = isDocumentRoute
   const [sidebarOpen, setSidebarOpen] = useState(!isDocumentRoute)
   const { open: agentOpen } = useAgent()
@@ -132,7 +133,7 @@ export function DashboardShell({
             pathname === "/dashboard/email" && "lg:min-h-0 lg:overflow-hidden lg:pb-0",
           )}
         >
-          <header className={cn("surface-nav sticky top-0 z-40 flex h-14 shrink-0 items-center gap-2 bg-background px-4", hideHeader && "md:hidden")}>
+          <header className={cn("surface-nav sticky top-0 z-40 flex h-14 shrink-0 items-center gap-2 bg-background px-4", hideHeader && "md:hidden", isEmailRoute && "max-lg:hidden")}>
             <div className="flex shrink-0 items-center gap-2 md:hidden">
               <SidebarTrigger className="-ml-1" />
               <Separator orientation="vertical" className="data-[orientation=vertical]:h-4" />

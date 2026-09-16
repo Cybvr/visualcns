@@ -61,6 +61,8 @@ export type FilterBarProps = {
   mobileFilters?: ReactNode
   /** Primary page actions, aligned to the right of the filters. */
   actions?: ReactNode
+  /** Control shown before the search field, such as a menu trigger on mobile. */
+  leading?: ReactNode
   /** Always-visible list controls, such as the view toggle. */
   controls?: ReactNode
   /** Optional width override for the search field wrapper. */
@@ -139,6 +141,7 @@ export function FilterBar({
   children,
   mobileFilters,
   actions,
+  leading,
   controls,
   searchClassName,
   className,
@@ -153,6 +156,7 @@ export function FilterBar({
   return (
     <div className={cn("mb-6 flex flex-wrap items-center gap-3", className)}>
       <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+      {leading}
       <div className={cn("relative min-w-0 flex-1 sm:max-w-xs", searchClassName)}>
         <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input

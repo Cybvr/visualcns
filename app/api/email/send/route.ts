@@ -131,7 +131,7 @@ function brandedEmail(content: string, subject: string, input: unknown, senderAd
             <tr>
               <td style="padding:22px 28px;">
                 <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
-                  <td style="vertical-align:middle;"><img src="${escapeHtml(brand.logoUrl)}" width="320" alt="${escapeHtml(brand.name)}" style="display:block;width:320px;max-width:100%;height:auto;border:0;"></td>
+                  <td style="vertical-align:middle;height:56px;line-height:0;"><img src="${escapeHtml(brand.logoUrl)}" width="320" alt="${escapeHtml(brand.name)}" style="display:block;width:320px;max-width:100%;height:auto;max-height:56px;object-fit:contain;object-position:left center;border:0;"></td>
                 </tr></table>
               </td>
             </tr>
