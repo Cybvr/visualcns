@@ -257,6 +257,8 @@ export default function EmailPage() {
 
   const [tab, setTab] = useState<EmailTab>("inbox")
   const [composeOpen, setComposeOpen] = useState(false)
+  // Drafts open as a full page; new-mail compose stays the docked popup.
+  const [composeFullPage, setComposeFullPage] = useState(false)
   const [composerPreviewOpen, setComposerPreviewOpen] = useState(false)
   const [composeMinimized, setComposeMinimized] = useState(false)
   const [selectedSentId, setSelectedSentId] = useState<string | null>(null)
@@ -689,6 +691,7 @@ export default function EmailPage() {
     const nextContext = readEmailComposeContext(searchParams)
     if (!nextContext) return
     setComposeContext(nextContext)
+    setComposeFullPage(false)
     setComposeOpen(true)
     setComposeMinimized(false)
     setPreview(null)
@@ -801,6 +804,7 @@ export default function EmailPage() {
   // Open the docked compose window. Pass reset to start from a blank message.
   function openCompose(reset = false) {
     if (reset) clearComposer()
+    setComposeFullPage(false)
     setComposeOpen(true)
     setComposeMinimized(false)
   }
@@ -874,6 +878,7 @@ export default function EmailPage() {
     draftIdRef.current = draft.id
     setDraftStatus("saved")
     setSendNotice(null)
+    setComposeFullPage(true)
     setComposeOpen(true)
     setComposeMinimized(false)
   }
@@ -1160,6 +1165,7 @@ export default function EmailPage() {
   function useEditingTemplate() {
     if (!editingTemplateId || !templates.some((template) => template.id === editingTemplateId)) return
     applyTemplate(editingTemplateId)
+    setComposeFullPage(false)
     setComposeOpen(true)
     setComposeMinimized(false)
   }
@@ -1170,6 +1176,7 @@ export default function EmailPage() {
     setBody(withMessageImage(templateBody))
     setSelectedTemplateId(editingTemplateId || "")
     setSendNotice(null)
+    setComposeFullPage(false)
     setComposeOpen(true)
     setComposeMinimized(false)
     setComposerPreviewOpen(true)
@@ -1496,6 +1503,7 @@ export default function EmailPage() {
 
       <EmailComposer
         composeOpen={composeOpen}
+        fullPage={composeFullPage}
         composeMinimized={composeMinimized}
         setComposeMinimized={setComposeMinimized}
         closeCompose={closeCompose}

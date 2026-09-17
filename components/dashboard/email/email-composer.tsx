@@ -19,6 +19,8 @@ type Notice = { tone: "success" | "error"; text: string } | null
 
 export type EmailComposerProps = {
   composeOpen: boolean
+  /** Drafts open as a full page; new-mail compose stays a docked popup. */
+  fullPage: boolean
   composeMinimized: boolean
   setComposeMinimized: (value: boolean | ((current: boolean) => boolean)) => void
   closeCompose: () => void
@@ -72,6 +74,7 @@ export type EmailComposerProps = {
 
 export function EmailComposer({
   composeOpen,
+  fullPage,
   composeMinimized,
   setComposeMinimized,
   closeCompose,
@@ -126,16 +129,26 @@ export function EmailComposer({
 
   return (
     <>
-      <div className="fixed inset-0 z-40 flex">
-        <div className="flex h-full w-full flex-col overflow-hidden bg-card">
-          {/* Full-page header (back arrow), not a floating popup. */}
-          <div className="flex shrink-0 items-center gap-2 border-b border-border bg-background px-3 py-2.5 text-foreground">
-            <button type="button" onClick={closeCompose} aria-label="Back" className="-ml-1 flex size-8 shrink-0 items-center justify-center rounded outline-none transition-colors hover:bg-muted"><ArrowLeft className="size-5" aria-hidden="true" /></button>
-            <span className="min-w-0 flex-1 truncate text-sm font-medium">{subject.trim() || "New message"}</span>
-            <button type="button" onClick={closeCompose} aria-label="Close" className="flex size-8 shrink-0 items-center justify-center rounded text-muted-foreground outline-none transition-colors hover:bg-muted"><X className="size-4" aria-hidden="true" /></button>
-          </div>
+      <div className={fullPage ? "fixed inset-0 z-40 flex" : "fixed inset-x-0 bottom-0 z-40 flex justify-center sm:inset-x-auto sm:right-6 sm:justify-end"}>
+        <div className={fullPage
+          ? "flex h-full w-full flex-col overflow-hidden bg-card"
+          : cn("flex w-full flex-col overflow-hidden border border-border bg-card shadow-2xl sm:w-[512px] sm:max-w-[calc(100vw-3rem)] sm:rounded-t-xl", composeMinimized ? "h-auto" : "h-[100svh] sm:h-[560px] sm:max-h-[calc(100svh-2rem)]")}>
+          {fullPage ? (
+            /* Drafts: a full-page surface with a back arrow — not a popup. */
+            <div className="flex shrink-0 items-center gap-2 border-b border-border bg-background px-3 py-2.5 text-foreground">
+              <button type="button" onClick={closeCompose} aria-label="Back" className="-ml-1 flex size-8 shrink-0 items-center justify-center rounded outline-none transition-colors hover:bg-muted"><ArrowLeft className="size-5" aria-hidden="true" /></button>
+              <span className="min-w-0 flex-1 truncate text-sm font-medium">{subject.trim() || "New message"}</span>
+              <button type="button" onClick={closeCompose} aria-label="Close" className="flex size-8 shrink-0 items-center justify-center rounded text-muted-foreground outline-none transition-colors hover:bg-muted"><X className="size-4" aria-hidden="true" /></button>
+            </div>
+          ) : (
+            /* New mail: the docked compose popup. */
+            <div className="flex shrink-0 items-center justify-between gap-2 bg-neutral-800 px-4 py-2 text-white dark:bg-neutral-900">
+              <button type="button" onClick={() => setComposeMinimized(!composeMinimized)} className="min-w-0 flex-1 truncate text-left text-sm font-medium outline-none" title={composeMinimized ? "Expand" : "Minimize"}>{subject.trim() || "New message"}</button>
+              <div className="flex shrink-0 items-center gap-1"><button type="button" onClick={() => setComposeMinimized(!composeMinimized)} aria-label={composeMinimized ? "Expand" : "Minimize"} className="flex size-7 items-center justify-center rounded text-white/80 outline-none transition-colors hover:bg-white/15 hover:text-white"><ChevronDown className={cn("size-4 transition-transform", composeMinimized && "rotate-180")} aria-hidden="true" /></button><button type="button" onClick={closeCompose} aria-label="Close" className="flex size-7 items-center justify-center rounded text-white/80 outline-none transition-colors hover:bg-white/15 hover:text-white"><X className="size-4" aria-hidden="true" /></button></div>
+            </div>
+          )}
 
-          {!composeMinimized && (
+          {(fullPage || !composeMinimized) && (
             <form autoComplete="off" onSubmit={sendEmail} className="flex min-h-0 flex-1 flex-col overflow-hidden">
               <div className="grid shrink-0 grid-cols-[minmax(0,1fr)_9rem] items-center border-b border-border"><div className="flex min-w-0 items-center gap-2 px-4 py-2"><span className="shrink-0 text-xs font-medium text-muted-foreground">From</span><p className="min-w-0 truncate text-sm">{cleanSenderDisplay(senderAddress || (showOpsDetail ? "Not configured" : "Not available yet"))}</p></div><div className="px-3 py-1"><Select value={messageKind} onValueChange={(value) => setMessageKind(value as EmailMessageKind)}><SelectTrigger aria-label="Message type" className="h-7 w-full border-0 bg-transparent px-1 text-xs shadow-none hover:bg-transparent data-[state=open]:bg-transparent"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="transactional">Service message</SelectItem><SelectItem value="marketing">Marketing email</SelectItem></SelectContent></Select></div></div>
 
