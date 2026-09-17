@@ -6,12 +6,6 @@ import { useEffect, useRef, useState, type CSSProperties } from "react"
 import { ArrowUpRight, ChevronDown } from "lucide-react"
 import { BrandLockup } from "@/components/brand-lockup"
 import { Button } from "@/components/ui/button"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import { getBrandItems } from "@/lib/brands"
 import { capabilities } from "@/lib/capabilities"
 
@@ -70,18 +64,34 @@ const MENU_ROWS: MenuRow[] = [
   { number: "06", title: "Careers", href: "https://pasive.co/jobs" },
 ]
 
+const num = (i: number) => String(i + 1).padStart(2, "0")
+
+// Solutions and Resources open the same full-width overlay as More, with their
+// items rendered as the same big numbered rows.
+const solutionsRows: MenuRow[] = [
+  { number: "01", title: "All Solutions", href: "/capabilities" },
+  ...serviceNavItems.map((service, i) => ({ number: num(i + 1), title: service.name, href: service.href })),
+]
+const resourcesRows: MenuRow[] = resourceNavItems.map((resource, i) => ({ number: num(i), title: resource.name, href: resource.href }))
+
+type MenuKind = "more" | "solutions" | "resources"
+const MENU_TITLES: Record<MenuKind, string> = { more: "More", solutions: "Solutions", resources: "Resources" }
+
 const MONO_LABEL = "font-mono text-[0.6875rem] uppercase tracking-[0.24em]"
 // Top-nav links use the body (sans) font, not the mono label style.
 const NAV_LABEL = "text-sm font-medium"
 
 export function Header() {
-  const [open, setOpen] = useState(false)
+  const [activeMenu, setActiveMenu] = useState<MenuKind | null>(null)
+  const open = activeMenu !== null
+  const closeMenu = () => setActiveMenu(null)
+  const toggleMenu = (kind: MenuKind) => setActiveMenu((current) => (current === kind ? null : kind))
   const headerRef = useRef<HTMLElement>(null)
   const pathname = usePathname()
 
   // Any navigation dismisses the menu.
   useEffect(() => {
-    setOpen(false)
+    setActiveMenu(null)
   }, [pathname])
 
   useEffect(() => {
@@ -95,7 +105,7 @@ export function Header() {
 
     function onKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
-        setOpen(false)
+        setActiveMenu(null)
         return
       }
       if (event.key !== "Tab" || !root) return
@@ -155,62 +165,32 @@ export function Header() {
                 </Link>
               ))}
 
-              {/* This is a lightweight navigation popover; keeping the page scrollable prevents the scrollbar from disappearing and shifting the layout. */}
-              <DropdownMenu modal={false}>
-                <DropdownMenuTrigger asChild>
-                  <button
-                    type="button"
-                    aria-current={isCurrent("/capabilities") ? "page" : undefined}
-                    className={`inline-flex items-center gap-1 outline-none transition-colors hover:text-accent focus-visible:text-accent ${NAV_LABEL} ${
-                      isCurrent("/capabilities") ? "text-accent" : ""
-                    }`}
-                  >
-                    Solutions
-                    <ChevronDown className="size-3.5" aria-hidden="true" />
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" sideOffset={16} className="w-80 rounded-2xl border-border p-2 shadow-xl">
-                  <DropdownMenuItem asChild className="rounded-xl focus:bg-muted">
-                    <Link href="/capabilities" className="flex w-full flex-col items-start gap-0.5 px-3 py-2.5">
-                      <span className={`font-semibold text-foreground ${NAV_LABEL}`}>All Solutions</span>
-                      <span className="text-xs font-normal text-muted-foreground">Explore everything we build.</span>
-                    </Link>
-                  </DropdownMenuItem>
-                  {serviceNavItems.map((service) => (
-                    <DropdownMenuItem key={service.href} asChild className="rounded-xl focus:bg-muted">
-                      <Link href={service.href} className="flex w-full flex-col items-start gap-0.5 px-3 py-2.5">
-                        <span className={`font-medium text-foreground ${NAV_LABEL}`}>{service.name}</span>
-                        {service.description && <span className="line-clamp-2 text-xs font-normal text-muted-foreground">{service.description}</span>}
-                      </Link>
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
+              {/* Solutions and Resources open the same full-width overlay as More. */}
+              <button
+                type="button"
+                onClick={() => toggleMenu("solutions")}
+                aria-expanded={activeMenu === "solutions"}
+                aria-controls="site-menu"
+                className={`inline-flex items-center gap-1 outline-none transition-colors hover:text-accent focus-visible:text-accent ${NAV_LABEL} ${
+                  activeMenu === "solutions" || isCurrent("/capabilities") ? "text-accent" : ""
+                }`}
+              >
+                Solutions
+                <ChevronDown className={`size-3.5 transition-transform ${activeMenu === "solutions" ? "rotate-180" : ""}`} aria-hidden="true" />
+              </button>
 
-              <DropdownMenu modal={false}>
-                <DropdownMenuTrigger asChild>
-                  <button
-                    type="button"
-                    aria-current={isCurrent("/blog") ? "page" : undefined}
-                    className={`inline-flex items-center gap-1 outline-none transition-colors hover:text-accent focus-visible:text-accent ${NAV_LABEL} ${
-                      isCurrent("/blog") ? "text-accent" : ""
-                    }`}
-                  >
-                    Resources
-                    <ChevronDown className="size-3.5" aria-hidden="true" />
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" sideOffset={16} className="w-80 rounded-2xl border-border p-2 shadow-xl">
-                  {resourceNavItems.map((resource) => (
-                    <DropdownMenuItem key={resource.href} asChild className="rounded-xl focus:bg-muted">
-                      <Link href={resource.href} className="flex w-full flex-col items-start gap-0.5 px-3 py-2.5">
-                        <span className={`font-medium text-foreground ${NAV_LABEL}`}>{resource.name}</span>
-                        {resource.description && <span className="text-xs font-normal text-muted-foreground">{resource.description}</span>}
-                      </Link>
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <button
+                type="button"
+                onClick={() => toggleMenu("resources")}
+                aria-expanded={activeMenu === "resources"}
+                aria-controls="site-menu"
+                className={`inline-flex items-center gap-1 outline-none transition-colors hover:text-accent focus-visible:text-accent ${NAV_LABEL} ${
+                  activeMenu === "resources" ? "text-accent" : ""
+                }`}
+              >
+                Resources
+                <ChevronDown className={`size-3.5 transition-transform ${activeMenu === "resources" ? "rotate-180" : ""}`} aria-hidden="true" />
+              </button>
 
               {trailingNavItems.map((item) => (
                 <Link
@@ -229,13 +209,13 @@ export function Header() {
             {/* Menu toggle, at the end of the nav — plain text, no icon. */}
             <button
               type="button"
-              onClick={() => setOpen((value) => !value)}
-              aria-expanded={open}
+              onClick={() => toggleMenu("more")}
+              aria-expanded={activeMenu === "more"}
               aria-controls="site-menu"
-              aria-label={open ? "Close menu" : "Open more navigation"}
-              className={`inline-flex items-center outline-none transition-colors hover:text-accent focus-visible:text-accent ${NAV_LABEL} ${open ? "text-accent" : "text-foreground"}`}
+              aria-label={activeMenu === "more" ? "Close menu" : "Open more navigation"}
+              className={`inline-flex items-center outline-none transition-colors hover:text-accent focus-visible:text-accent ${NAV_LABEL} ${activeMenu === "more" ? "text-accent" : "text-foreground"}`}
             >
-              {open ? "Close" : "More"}
+              {activeMenu === "more" ? "Close" : "More"}
             </button>
           </div>
 
@@ -250,17 +230,17 @@ export function Header() {
         </div>
       </div>
 
-      {open && (
+      {open && activeMenu && (
         <div
           id="site-menu"
           role="dialog"
           aria-modal="true"
-          aria-label="More site navigation"
+          aria-label={`${MENU_TITLES[activeMenu]} navigation`}
           className="hdr-panel min-h-0 flex-1 overflow-y-auto bg-background"
         >
           <div className="mx-auto max-w-7xl px-4 pb-20 pt-6 sm:px-8 md:px-20 md:pt-10">
             <ul>
-              {MENU_ROWS.map((row, rowIndex) => (
+              {(activeMenu === "solutions" ? solutionsRows : activeMenu === "resources" ? resourcesRows : MENU_ROWS).map((row, rowIndex) => (
                 <li
                   key={row.number}
                   className="hdr-row border-t border-border"
@@ -269,7 +249,7 @@ export function Header() {
                   {row.href ? (
                     <Link
                       href={row.href}
-                      onClick={() => setOpen(false)}
+                      onClick={closeMenu}
                       aria-current={isCurrent(row.href) ? "page" : undefined}
                       className="group grid grid-cols-[2.5rem_minmax(0,1fr)_1.5rem] items-baseline gap-x-4 py-6 outline-none md:grid-cols-[4rem_minmax(0,1fr)_2rem] md:gap-x-10 md:py-8"
                     >
@@ -298,7 +278,7 @@ export function Header() {
                           <li key={item.href}>
                             <Link
                               href={item.href}
-                              onClick={() => setOpen(false)}
+                              onClick={closeMenu}
                               aria-current={isCurrent(item.href) ? "page" : undefined}
                               className={`transition-colors hover:text-accent ${MONO_LABEL} ${
                                 isCurrent(item.href) ? "text-accent" : "text-muted-foreground"
@@ -317,7 +297,7 @@ export function Header() {
 
             <div className="mt-10 border-t border-border pt-8 lg:hidden">
               <Button asChild className={`w-full px-5 ${MONO_LABEL}`}>
-                <Link href={bookNowHref} onClick={() => setOpen(false)}>
+                <Link href={bookNowHref} onClick={closeMenu}>
                   Contact Us
                 </Link>
               </Button>
