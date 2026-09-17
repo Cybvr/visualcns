@@ -58,10 +58,7 @@ type MenuRow =
 const MENU_ROWS: MenuRow[] = [
   { number: "01", title: "Software", items: productNavItems },
   { number: "02", title: "Consulting", items: consultingNavItems },
-  { number: "03", title: "Templates", href: "/templates" },
-  { number: "04", title: "Pricing", href: "/pricing" },
-  { number: "05", title: "Resources", items: resourceNavItems },
-  { number: "06", title: "Careers", href: "https://pasive.co/jobs" },
+  { number: "03", title: "Careers", href: "https://pasive.co/jobs" },
 ]
 
 const num = (i: number) => String(i + 1).padStart(2, "0")
