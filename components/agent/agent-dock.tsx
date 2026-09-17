@@ -3,11 +3,12 @@
 
 import Image from "next/image"
 import { usePathname } from "next/navigation"
-import { useState, type FormEvent } from "react"
-import { ArrowUp, History, Plus, RotateCcw, X } from "lucide-react"
+import { useRef, useState, type ChangeEvent, type FormEvent } from "react"
+import { ArrowUp, History, Loader2, Paperclip, Plus, RotateCcw, X } from "lucide-react"
 
 import { AgentChat } from "@/components/agent/agent-chat"
-import { useAgent } from "@/components/agent/agent-context"
+import { useAgent, type AgentFile } from "@/components/agent/agent-context"
+import { uploadFileToStorage } from "@/lib/documents"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -74,20 +75,59 @@ function DockHeader({ onReset, onClose, showReset, conversations, activeConversa
   )
 }
 
+/** Types the picker offers, matching the full Ngai composer. */
+const DOCK_ACCEPT_ATTR = ".pdf,image/*,.doc,.docx,.xls,.xlsx,.csv,.txt"
+const DOCK_ALLOWED_EXTENSION = /\.(pdf|png|jpe?g|gif|webp|heic|heif|svg|doc|docx|xls|xlsx|csv|txt)$/i
+
+function isAllowedDockFile(file: File): boolean {
+  return file.type.startsWith("image/") || file.type === "application/pdf" || DOCK_ALLOWED_EXTENSION.test(file.name)
+}
+
 function DashboardPromptBar() {
   const pathname = usePathname()
   const { send, setOpen } = useAgent()
   const [text, setText] = useState("")
+  const [uploading, setUploading] = useState(false)
+  const fileInput = useRef<HTMLInputElement>(null)
 
   if (pathname.startsWith("/portal") || pathname === "/dashboard/email") return null
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const content = text.trim()
-    if (!content) return
+    if (!content || uploading) return
     send(content)
     setText("")
     setOpen(true)
+  }
+
+  async function handleFiles(event: ChangeEvent<HTMLInputElement>) {
+    const picked = Array.from(event.target.files ?? [])
+    event.target.value = ""
+    const files = picked.filter(isAllowedDockFile)
+    if (!files.length) return
+    setUploading(true)
+    try {
+      const uploaded = await Promise.all(
+        files.map(async (file) => ({
+          name: file.name,
+          url: await uploadFileToStorage(file),
+          mimeType: file.type || "application/octet-stream",
+        })),
+      )
+      const images = uploaded.filter((item) => item.mimeType.startsWith("image/")).map((item) => item.url)
+      const docs: AgentFile[] = uploaded
+        .filter((item) => !item.mimeType.startsWith("image/"))
+        .map(({ name, url, mimeType }) => ({ name, url, mimeType }))
+      // Send straight away with whatever text is typed, then open the panel to continue.
+      send(text.trim(), images, docs)
+      setText("")
+      setOpen(true)
+    } catch {
+      // Upload failures surface in the full panel; keep the bar usable.
+    } finally {
+      setUploading(false)
+    }
   }
 
   return (
@@ -100,7 +140,18 @@ function DashboardPromptBar() {
         aria-label="Ask Ngai"
         className="h-9 min-w-0 flex-1 rounded-full border-0 bg-background px-4 text-sm outline-none focus-visible:ring-0"
       />
-      <button type="submit" aria-label="Send to Ngai" disabled={!text.trim()} className="flex size-9 shrink-0 items-center justify-center rounded-full bg-accent text-accent-foreground transition-opacity hover:bg-accent/90 disabled:cursor-not-allowed disabled:opacity-50">
+      <input ref={fileInput} type="file" accept={DOCK_ACCEPT_ATTR} multiple onChange={handleFiles} className="hidden" />
+      <button
+        type="button"
+        aria-label="Attach file"
+        title="Attach file"
+        disabled={uploading}
+        onClick={() => fileInput.current?.click()}
+        className="flex size-9 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        {uploading ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <Paperclip className="size-4" aria-hidden="true" />}
+      </button>
+      <button type="submit" aria-label="Send to Ngai" disabled={!text.trim() || uploading} className="flex size-9 shrink-0 items-center justify-center rounded-full bg-accent text-accent-foreground transition-opacity hover:bg-accent/90 disabled:cursor-not-allowed disabled:opacity-50">
         <ArrowUp className="size-4" aria-hidden="true" />
       </button>
     </form>
