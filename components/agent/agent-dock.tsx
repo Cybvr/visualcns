@@ -4,7 +4,7 @@
 import Image from "next/image"
 import { usePathname } from "next/navigation"
 import { useRef, useState, type ChangeEvent, type FormEvent } from "react"
-import { ArrowUp, History, Loader2, Paperclip, Plus, RotateCcw, X } from "lucide-react"
+import { ArrowUp, History, Loader2, Plus, RotateCcw, X } from "lucide-react"
 
 import { AgentChat } from "@/components/agent/agent-chat"
 import { useAgent, type AgentFile } from "@/components/agent/agent-context"
@@ -83,7 +83,7 @@ function isAllowedDockFile(file: File): boolean {
   return file.type.startsWith("image/") || file.type === "application/pdf" || DOCK_ALLOWED_EXTENSION.test(file.name)
 }
 
-function DashboardPromptBar() {
+function NgaiWidget() {
   const pathname = usePathname()
   const { send, setOpen } = useAgent()
   const [text, setText] = useState("")
@@ -132,7 +132,22 @@ function DashboardPromptBar() {
 
   return (
     <form onSubmit={submit} className="fixed bottom-8 left-1/2 z-40 flex w-[min(calc(100vw-2rem),36rem)] -translate-x-1/2 items-center gap-2 rounded-full border border-border bg-background px-3 py-2 shadow-[0_8px_24px_rgba(15,23,42,0.08)]">
-      <Image src="/ngai-logo.png" alt="" width={20} height={20} className="shrink-0 rounded-full" />
+      <input ref={fileInput} type="file" accept={DOCK_ACCEPT_ATTR} multiple onChange={handleFiles} className="hidden" />
+      {/* The Ngai logo doubles as the attach button. */}
+      <button
+        type="button"
+        aria-label="Attach file"
+        title="Attach file"
+        disabled={uploading}
+        onClick={() => fileInput.current?.click()}
+        className="relative flex size-6 shrink-0 items-center justify-center rounded-full outline-none transition-opacity hover:opacity-80 focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        {uploading ? (
+          <Loader2 className="size-4 animate-spin text-muted-foreground" aria-hidden="true" />
+        ) : (
+          <Image src="/ngai-logo.png" alt="" width={20} height={20} className="rounded-full" />
+        )}
+      </button>
       <input
         value={text}
         onChange={(event) => setText(event.target.value)}
@@ -140,17 +155,6 @@ function DashboardPromptBar() {
         aria-label="Ask Ngai"
         className="h-9 min-w-0 flex-1 rounded-full border-0 bg-background px-4 text-sm outline-none focus-visible:ring-0"
       />
-      <input ref={fileInput} type="file" accept={DOCK_ACCEPT_ATTR} multiple onChange={handleFiles} className="hidden" />
-      <button
-        type="button"
-        aria-label="Attach file"
-        title="Attach file"
-        disabled={uploading}
-        onClick={() => fileInput.current?.click()}
-        className="flex size-9 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
-      >
-        {uploading ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <Paperclip className="size-4" aria-hidden="true" />}
-      </button>
       <button type="submit" aria-label="Send to Ngai" disabled={!text.trim() || uploading} className="flex size-9 shrink-0 items-center justify-center rounded-full bg-accent text-accent-foreground transition-opacity hover:bg-accent/90 disabled:cursor-not-allowed disabled:opacity-50">
         <ArrowUp className="size-4" aria-hidden="true" />
       </button>
@@ -167,7 +171,7 @@ export function AgentDock() {
 
   return (
     <>
-      {!open && <DashboardPromptBar />}
+      {!open && <NgaiWidget />}
 
       {/* Mobile: full-screen sheet */}
       {open && (
