@@ -70,13 +70,13 @@ export function EmailTemplates({
           <Button type="button" variant="ghost" size="icon" onClick={() => setMobileTemplateView("list")} aria-label="Back to templates"><ArrowLeft aria-hidden="true" /></Button>
           <div className="min-w-0"><p className="truncate text-sm font-semibold">{editingTemplateId ? "Edit" : "New template"}</p></div>
         </div>
-        <div className="flex min-w-0 flex-none flex-col gap-3 lg:min-h-0 lg:flex-1">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3">
           <div className="grid min-w-0 max-w-full grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
             <Input id="template-name" aria-label="Template name" value={templateName} onChange={(event) => setTemplateName(event.target.value)} maxLength={80} placeholder="Template name" required />
             <Input id="template-subject" aria-label="Subject" value={templateSubject} onChange={(event) => setTemplateSubject(event.target.value)} maxLength={200} placeholder="Subject" required />
           </div>
           <div className="flex min-h-0 min-w-0 max-w-full flex-1 flex-col gap-2">
-            <RichTextEditor value={templateBody} onChange={setTemplateBody} placeholder="Write the reusable message" scrollable allowHtml className="min-h-64 min-w-0 max-w-full lg:min-h-0 lg:flex-1" contentHeader={(
+            <RichTextEditor value={templateBody} onChange={setTemplateBody} placeholder="Write the reusable message" scrollable allowHtml className="min-h-64 min-w-0 max-w-full flex-1 lg:min-h-0" contentHeader={(
               <div className="bg-white px-4 py-5 sm:px-6"><img src="/visualcns-email-logo.png" alt={businessProfile?.name || "VisualCNS"} className="h-auto w-56 max-w-full object-contain object-left" /></div>
             )} contentFooter={(
               <div className="flex items-start justify-between gap-4 border-t border-border bg-neutral-50 px-4 py-4 text-xs leading-5 text-neutral-500 sm:px-6">
