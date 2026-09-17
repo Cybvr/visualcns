@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useEffect, useRef, useState, type CSSProperties } from "react"
-import { ArrowUpRight, ChevronDown, Menu, X } from "lucide-react"
+import { ArrowUpRight, ChevronDown } from "lucide-react"
 import { BrandLockup } from "@/components/brand-lockup"
 import { Button } from "@/components/ui/button"
 import {
@@ -35,24 +35,25 @@ const consultingNavItems = [
 const bookNowHref = "/contact"
 
 const primaryNavItems = [
-  { name: "About", href: "/about" },
   { name: "Case Studies", href: "/case-studies" },
 ]
 
-// Rendered after the Solutions dropdown so the order reads:
-// About, Case Studies, Solutions, Resources, Templates, Pricing.
+// Rendered after the Resources dropdown so the order reads:
+// Case Studies, Solutions, Resources, Pricing, More.
 const trailingNavItems = [
-  { name: "Templates", href: "/templates" },
   { name: "Pricing", href: "/pricing" },
 ]
 
 const serviceNavItems = capabilities.map((service) => ({
   name: service.title,
   href: `/capabilities/${service.slug}`,
+  description: service.description,
 }))
 
 const resourceNavItems = [
-  { name: "News", href: "/blog" },
+  { name: "About", href: "/about", description: "Our story, values, and team." },
+  { name: "Templates", href: "/templates", description: "Ready-to-use starting points." },
+  { name: "News", href: "/blog", description: "Updates, guides, and announcements." },
 ]
 
 type MenuRow =
@@ -135,25 +136,12 @@ export function Header() {
         className="shrink-0 border-b border-border bg-background/90 text-foreground backdrop-blur-md"
       >
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-8 md:px-20 md:py-5">
-          <div className="flex items-center gap-4 md:gap-8">
+          <div className="flex items-center gap-3 md:gap-5">
             <Link href="/" aria-label="VisualCNS home">
               <BrandLockup logoSize={28} gapClassName="gap-1" />
             </Link>
 
-            {/* The menu toggle now reads as a plain nav item, sitting beside the nav. */}
-            <button
-              type="button"
-              onClick={() => setOpen((value) => !value)}
-              aria-expanded={open}
-              aria-controls="site-menu"
-              aria-label={open ? "Close menu" : "Open more navigation"}
-              className={`inline-flex items-center gap-1.5 text-foreground outline-none transition-colors hover:text-accent focus-visible:text-accent ${NAV_LABEL} ${open ? "text-accent" : ""}`}
-            >
-              {open ? "Close" : "More"}
-              {open ? <X className="size-4" aria-hidden="true" /> : <Menu className="size-4" aria-hidden="true" />}
-            </button>
-
-            <nav className="hidden items-center gap-6 lg:flex" aria-label="Primary navigation">
+            <nav className="hidden items-center gap-4 lg:flex" aria-label="Primary navigation">
               {primaryNavItems.map((item) => (
                 <Link
                   key={item.href}
@@ -181,16 +169,18 @@ export function Header() {
                     <ChevronDown className="size-3.5" aria-hidden="true" />
                   </button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="w-72 p-2">
-                  <DropdownMenuItem asChild>
-                    <Link href="/capabilities" className={`w-full font-semibold ${NAV_LABEL}`}>
-                      All Solutions
+                <DropdownMenuContent align="start" sideOffset={16} className="w-80 rounded-2xl border-border p-2 shadow-xl">
+                  <DropdownMenuItem asChild className="rounded-xl focus:bg-muted">
+                    <Link href="/capabilities" className="flex w-full flex-col items-start gap-0.5 px-3 py-2.5">
+                      <span className={`font-semibold text-foreground ${NAV_LABEL}`}>All Solutions</span>
+                      <span className="text-xs font-normal text-muted-foreground">Explore everything we build.</span>
                     </Link>
                   </DropdownMenuItem>
                   {serviceNavItems.map((service) => (
-                    <DropdownMenuItem key={service.href} asChild>
-                      <Link href={service.href} className={`w-full ${NAV_LABEL}`}>
-                        {service.name}
+                    <DropdownMenuItem key={service.href} asChild className="rounded-xl focus:bg-muted">
+                      <Link href={service.href} className="flex w-full flex-col items-start gap-0.5 px-3 py-2.5">
+                        <span className={`font-medium text-foreground ${NAV_LABEL}`}>{service.name}</span>
+                        {service.description && <span className="line-clamp-2 text-xs font-normal text-muted-foreground">{service.description}</span>}
                       </Link>
                     </DropdownMenuItem>
                   ))}
@@ -210,11 +200,12 @@ export function Header() {
                     <ChevronDown className="size-3.5" aria-hidden="true" />
                   </button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="w-52 p-2">
+                <DropdownMenuContent align="start" sideOffset={16} className="w-80 rounded-2xl border-border p-2 shadow-xl">
                   {resourceNavItems.map((resource) => (
-                    <DropdownMenuItem key={resource.href} asChild>
-                      <Link href={resource.href} className={`w-full ${NAV_LABEL}`}>
-                        {resource.name}
+                    <DropdownMenuItem key={resource.href} asChild className="rounded-xl focus:bg-muted">
+                      <Link href={resource.href} className="flex w-full flex-col items-start gap-0.5 px-3 py-2.5">
+                        <span className={`font-medium text-foreground ${NAV_LABEL}`}>{resource.name}</span>
+                        {resource.description && <span className="text-xs font-normal text-muted-foreground">{resource.description}</span>}
                       </Link>
                     </DropdownMenuItem>
                   ))}
@@ -234,6 +225,18 @@ export function Header() {
                 </Link>
               ))}
             </nav>
+
+            {/* Menu toggle, at the end of the nav — plain text, no icon. */}
+            <button
+              type="button"
+              onClick={() => setOpen((value) => !value)}
+              aria-expanded={open}
+              aria-controls="site-menu"
+              aria-label={open ? "Close menu" : "Open more navigation"}
+              className={`inline-flex items-center outline-none transition-colors hover:text-accent focus-visible:text-accent ${NAV_LABEL} ${open ? "text-accent" : "text-foreground"}`}
+            >
+              {open ? "Close" : "More"}
+            </button>
           </div>
 
           <div className="flex items-center gap-2">
