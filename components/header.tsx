@@ -148,6 +148,15 @@ export function Header() {
       >
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-8 md:px-20 md:py-5">
           <div className="flex items-center gap-3 md:gap-5">
+            <Link href="/" aria-label="VisualCNS home">
+              <span
+                className="poppins-wordmark leading-none text-foreground"
+                style={{ fontSize: "26px", lineHeight: "0.82", fontWeight: 400 }}
+              >
+                VisualCNS
+              </span>
+            </Link>
+
             <nav className="hidden items-center gap-4 lg:flex" aria-label="Primary navigation">
               <button
                 type="button"
