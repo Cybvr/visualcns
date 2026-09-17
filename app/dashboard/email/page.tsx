@@ -858,6 +858,9 @@ export default function EmailPage() {
 
   function loadDraft(draft: EmailDraftRecord) {
     setMessageViewError("")
+    // Clear any open preview overlay so the composer opens as the only surface.
+    setComposerPreviewOpen(false)
+    setPreview(null)
     setTo(draft.to || "")
     setSelectedListId(draft.listId || "")
     setSubject(draft.subject || "")
