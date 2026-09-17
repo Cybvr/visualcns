@@ -4,7 +4,6 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useEffect, useRef, useState, type CSSProperties } from "react"
 import { ArrowUpRight, ChevronDown } from "lucide-react"
-import { BrandLockup } from "@/components/brand-lockup"
 import { Button } from "@/components/ui/button"
 import { getBrandItems } from "@/lib/brands"
 import { capabilities } from "@/lib/capabilities"
@@ -17,10 +16,14 @@ const productNavItems = brands
   .filter((item) => item.slug !== "visualhq")
   .map((item) => ({ name: item.name, href: item.href, description: item.description }))
 
+const customerNavItems = [
+  { name: "Stories", href: "/stories", description: "What our work looks like in the world." },
+  { name: "Case Studies", href: "/case-studies", description: "Explore our work and client projects." },
+]
+
 const consultingNavItems = [
   { name: "VisualHQ", href: "/visualhq", description: "Who we are and what we do." },
   { name: "About", href: "/about", description: "Our story, values, and team." },
-  { name: "Case Studies", href: "/case-studies", description: "Explore our work and client projects." },
   { name: "Solutions", href: "/capabilities", description: "Explore VisualCNS solutions." },
   { name: "Industries", href: "/industries", description: "See the markets VisualHQ builds for." },
   { name: "FAQ", href: "/faq", description: "Answers about VisualCNS and our services." },
@@ -28,12 +31,8 @@ const consultingNavItems = [
 
 const bookNowHref = "/contact"
 
-const primaryNavItems = [
-  { name: "Case Studies", href: "/case-studies" },
-]
-
 // Rendered after the Resources dropdown so the order reads:
-// Case Studies, Solutions, Resources, Pricing, More.
+// Customers, Solutions, Resources, Pricing, More.
 const trailingNavItems = [
   { name: "Pricing", href: "/pricing" },
 ]
@@ -63,16 +62,21 @@ const MENU_ROWS: MenuRow[] = [
 
 const num = (i: number) => String(i + 1).padStart(2, "0")
 
-// Solutions and Resources open the same full-width overlay as More, with their
-// items rendered as the same big numbered rows.
+// Customers, Solutions, and Resources open the same full-width overlay as More,
+// with their items rendered as the same big numbered rows.
+const customerRows: MenuRow[] = customerNavItems.map((customer, i) => ({
+  number: num(i),
+  title: customer.name,
+  href: customer.href,
+}))
 const solutionsRows: MenuRow[] = [
   { number: "01", title: "All Solutions", href: "/capabilities" },
   ...serviceNavItems.map((service, i) => ({ number: num(i + 1), title: service.name, href: service.href })),
 ]
 const resourcesRows: MenuRow[] = resourceNavItems.map((resource, i) => ({ number: num(i), title: resource.name, href: resource.href }))
 
-type MenuKind = "more" | "solutions" | "resources"
-const MENU_TITLES: Record<MenuKind, string> = { more: "More", solutions: "Solutions", resources: "Resources" }
+type MenuKind = "more" | "customers" | "solutions" | "resources"
+const MENU_TITLES: Record<MenuKind, string> = { more: "More", customers: "Customers", solutions: "Solutions", resources: "Resources" }
 
 const MONO_LABEL = "font-mono text-[0.6875rem] uppercase tracking-[0.24em]"
 // Top-nav links use the body (sans) font, not the mono label style.
@@ -144,23 +148,19 @@ export function Header() {
       >
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-8 md:px-20 md:py-5">
           <div className="flex items-center gap-3 md:gap-5">
-            <Link href="/" aria-label="VisualCNS home">
-              <BrandLockup logoSize={28} gapClassName="gap-1" />
-            </Link>
-
             <nav className="hidden items-center gap-4 lg:flex" aria-label="Primary navigation">
-              {primaryNavItems.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  aria-current={isCurrent(item.href) ? "page" : undefined}
-                  className={`transition-colors hover:text-accent ${NAV_LABEL} ${
-                    isCurrent(item.href) ? "text-accent" : ""
-                  }`}
-                >
-                  {item.name}
-                </Link>
-              ))}
+              <button
+                type="button"
+                onClick={() => toggleMenu("customers")}
+                aria-expanded={activeMenu === "customers"}
+                aria-controls="site-menu"
+                className={`inline-flex items-center gap-1 outline-none transition-colors hover:text-accent focus-visible:text-accent ${NAV_LABEL} ${
+                  activeMenu === "customers" || isCurrent("/stories") || isCurrent("/case-studies") ? "text-accent" : ""
+                }`}
+              >
+                Customers
+                <ChevronDown className={`size-3.5 transition-transform ${activeMenu === "customers" ? "rotate-180" : ""}`} aria-hidden="true" />
+              </button>
 
               {/* Solutions and Resources open the same full-width overlay as More. */}
               <button
@@ -217,10 +217,10 @@ export function Header() {
           </div>
 
           <div className="flex items-center gap-2">
-            <Button asChild variant="ghost" size="sm" className={NAV_LABEL}>
+            <Button asChild variant="ghost" size="lg">
               <Link href="/login">Sign in</Link>
             </Button>
-            <Button asChild size="sm" className={NAV_LABEL}>
+            <Button asChild size="lg">
               <Link href="/contact">Talk to sales</Link>
             </Button>
           </div>
@@ -237,7 +237,7 @@ export function Header() {
         >
           <div className="mx-auto max-w-7xl px-4 pb-20 pt-6 sm:px-8 md:px-20 md:pt-10">
             <ul>
-              {(activeMenu === "solutions" ? solutionsRows : activeMenu === "resources" ? resourcesRows : MENU_ROWS).map((row, rowIndex) => (
+              {(activeMenu === "customers" ? customerRows : activeMenu === "solutions" ? solutionsRows : activeMenu === "resources" ? resourcesRows : MENU_ROWS).map((row, rowIndex) => (
                 <li
                   key={row.number}
                   className="hdr-row border-t border-border"

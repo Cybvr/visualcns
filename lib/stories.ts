@@ -48,3 +48,44 @@ export const stories: Story[] = [
       "https://images.pexels.com/photos/2379004/pexels-photo-2379004.jpeg?auto=compress&cs=tinysrgb&w=100&h=100",
   },
 ];
+
+export interface CustomerStory {
+  id: string;
+  brandName: string;
+  logoUrl: string;
+  quote: string;
+  personName: string;
+  personRole: string;
+  avatarUrl: string;
+}
+
+/** Demo content for the public customer-story card layout. Replace with approved customer details before publishing. */
+export const customerStories: CustomerStory[] = [
+  {
+    id: "pasive",
+    brandName: "Pasive",
+    logoUrl: "/images/brands/pasive.png",
+    quote: "Working with VisualCNS gave us a clearer way to turn a complex idea into a product people could understand and use.",
+    personName: "Amina Okafor",
+    personRole: "Growth Lead, Pasive",
+    avatarUrl: "/team/jide-pinheiro-bw.png",
+  },
+  {
+    id: "juju",
+    brandName: "Juju",
+    logoUrl: "/images/brands/juju.png",
+    quote: "The team brought strategy, design, and delivery into one conversation. We always knew what the next decision was.",
+    personName: "Daniel Eze",
+    personRole: "Product Director, Juju",
+    avatarUrl: "/team/jide-pinheiro-bw.png",
+  },
+  {
+    id: "waddi",
+    brandName: "Waddi",
+    logoUrl: "/images/brands/waddi.png",
+    quote: "VisualCNS helped us move from scattered plans to a focused digital experience that felt ready for the people we serve.",
+    personName: "Tolu Adeyemi",
+    personRole: "Founder, Waddi",
+    avatarUrl: "/team/jide-pinheiro-bw.png",
+  },
+];

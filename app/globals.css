@@ -64,10 +64,6 @@
   }
 }
 
-.marketing-surface {
-  --radius: 0rem;
-}
-
 .dark {
   --radius: 0.5rem;
   --background: oklch(0.134 0.016 272.261);
