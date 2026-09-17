@@ -48,6 +48,22 @@
   --sidebar-ring: oklch(0.708 0 0);
 }
 
+/* Dashboard/portal text runs small on phones. Bump the shared typography
+   scale on narrow screens; every surface role derives from these tokens,
+   so this one block enlarges body, titles, nav and labels together. */
+@media (max-width: 767px) {
+  :root {
+    --surface-title-size: 0.9375rem;
+    --surface-title-line-height: 1.375rem;
+    --surface-body-size: 0.875rem;
+    --surface-body-line-height: 1.375rem;
+    --surface-nav-size: 0.9375rem;
+    --surface-nav-line-height: 1.375rem;
+    --surface-section-label-size: 0.8125rem;
+    --surface-section-label-line-height: 1.125rem;
+  }
+}
+
 .marketing-surface {
   --radius: 0rem;
 }
