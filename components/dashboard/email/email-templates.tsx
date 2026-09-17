@@ -65,7 +65,7 @@ export function EmailTemplates({
 }: EmailTemplatesProps) {
   return (
     <section className="flex min-h-0 w-full min-w-0 max-w-full flex-1 flex-col gap-4 lg:gap-6 lg:overflow-hidden" role="tabpanel">
-      <form onSubmit={saveTemplate} className={cn("min-h-0 w-full min-w-0 max-w-full flex-1 flex-col overflow-x-hidden", mobileTemplateView === "editor" ? "flex" : "hidden")}>
+      <form onSubmit={saveTemplate} className={cn("min-h-0 w-full min-w-0 max-w-full flex-1 flex-col overflow-x-hidden max-lg:min-h-[calc(100svh-8rem)]", mobileTemplateView === "editor" ? "flex" : "hidden")}>
         <div className="mb-1 flex items-center gap-2">
           <Button type="button" variant="ghost" size="icon" onClick={() => setMobileTemplateView("list")} aria-label="Back to templates"><ArrowLeft aria-hidden="true" /></Button>
           <div className="min-w-0"><p className="truncate text-sm font-semibold">{editingTemplateId ? "Edit" : "New template"}</p></div>
