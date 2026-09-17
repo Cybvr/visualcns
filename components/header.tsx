@@ -221,7 +221,7 @@ export function Header() {
               <Link href="/login">Sign in</Link>
             </Button>
             <Button asChild size="sm" className={NAV_LABEL}>
-              <Link href="/signup">Sign up</Link>
+              <Link href="/contact">Talk to sales</Link>
             </Button>
           </div>
         </div>
