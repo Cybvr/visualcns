@@ -17,7 +17,7 @@ type AuthAction = "email" | "google" | "reset" | null
 export default function LoginPage() {
   const router = useRouter()
   const emailInputRef = useRef<HTMLInputElement>(null)
-  const { user, role, loading, signInWithEmail, signInWithGoogle } = useAuth()
+  const { user, isAdmin, loading, signInWithEmail, signInWithGoogle } = useAuth()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [action, setAction] = useState<AuthAction>(null)
@@ -27,9 +27,9 @@ export default function LoginPage() {
   useEffect(() => {
     if (!loading && user) {
       const requested = safeReturnTo(new URLSearchParams(window.location.search).get("next"))
-      router.replace(requested || (role === "admin" ? "/dashboard" : "/portal"))
+      router.replace(requested || (isAdmin ? "/dashboard" : "/portal"))
     }
-  }, [loading, user, role, router])
+  }, [loading, user, isAdmin, router])
 
   async function handleEmailSignIn(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
