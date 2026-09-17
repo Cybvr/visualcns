@@ -1,6 +1,7 @@
 import { BookNowModal } from "@/components/book-now-modal"
 import { Footer } from "@/components/footer"
 import { Header } from "@/components/header"
+import { PwaRedirect } from "@/components/pwa-redirect"
 import { HomeAccordion } from "@/components/home-accordion"
 import { getBrandItems } from "@/lib/brands"
 import { getCapabilities } from "@/lib/capabilities"
@@ -13,6 +14,7 @@ const news = getBlogPosts()
 export default function HomePage() {
   return (
     <div className="min-h-screen bg-background text-foreground">
+      <PwaRedirect />
       <Header />
       <main className="pt-28 sm:pt-32 md:pt-36">
         <section aria-labelledby="home-hero-heading" className="mx-auto max-w-7xl px-4 sm:px-8 md:px-20">
