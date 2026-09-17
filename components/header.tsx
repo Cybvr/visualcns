@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useEffect, useRef, useState, type CSSProperties } from "react"
-import { ArrowUpRight, ChevronDown, Menu, UserRound, X } from "lucide-react"
+import { ArrowUpRight, ChevronDown, Menu, X } from "lucide-react"
 import { BrandLockup } from "@/components/brand-lockup"
 import { Button } from "@/components/ui/button"
 import {
@@ -70,6 +70,8 @@ const MENU_ROWS: MenuRow[] = [
 ]
 
 const MONO_LABEL = "font-mono text-[0.6875rem] uppercase tracking-[0.24em]"
+// Top-nav links use the body (sans) font, not the mono label style.
+const NAV_LABEL = "text-sm font-medium"
 
 export function Header() {
   const [open, setOpen] = useState(false)
@@ -133,18 +135,31 @@ export function Header() {
         className="shrink-0 border-b border-border bg-background/90 text-foreground backdrop-blur-md"
       >
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-8 md:px-20 md:py-5">
-          <Link href="/" aria-label="VisualCNS home">
-            <BrandLockup logoSize={28} gapClassName="gap-1" />
-          </Link>
+          <div className="flex items-center gap-4 md:gap-8">
+            <Link href="/" aria-label="VisualCNS home">
+              <BrandLockup logoSize={28} gapClassName="gap-1" />
+            </Link>
 
-          <div className="flex items-center gap-4 md:gap-6">
-            <nav className="hidden items-center gap-5 lg:flex" aria-label="Primary navigation">
+            {/* The menu toggle now reads as a plain nav item, sitting beside the nav. */}
+            <button
+              type="button"
+              onClick={() => setOpen((value) => !value)}
+              aria-expanded={open}
+              aria-controls="site-menu"
+              aria-label={open ? "Close menu" : "Open more navigation"}
+              className={`inline-flex items-center gap-1.5 text-foreground outline-none transition-colors hover:text-accent focus-visible:text-accent ${NAV_LABEL} ${open ? "text-accent" : ""}`}
+            >
+              {open ? "Close" : "More"}
+              {open ? <X className="size-4" aria-hidden="true" /> : <Menu className="size-4" aria-hidden="true" />}
+            </button>
+
+            <nav className="hidden items-center gap-6 lg:flex" aria-label="Primary navigation">
               {primaryNavItems.map((item) => (
                 <Link
                   key={item.href}
                   href={item.href}
                   aria-current={isCurrent(item.href) ? "page" : undefined}
-                  className={`transition-colors hover:text-accent ${MONO_LABEL} ${
+                  className={`transition-colors hover:text-accent ${NAV_LABEL} ${
                     isCurrent(item.href) ? "text-accent" : ""
                   }`}
                 >
@@ -158,7 +173,7 @@ export function Header() {
                   <button
                     type="button"
                     aria-current={isCurrent("/capabilities") ? "page" : undefined}
-                    className={`inline-flex items-center gap-1 outline-none transition-colors hover:text-accent focus-visible:text-accent ${MONO_LABEL} ${
+                    className={`inline-flex items-center gap-1 outline-none transition-colors hover:text-accent focus-visible:text-accent ${NAV_LABEL} ${
                       isCurrent("/capabilities") ? "text-accent" : ""
                     }`}
                   >
@@ -166,15 +181,15 @@ export function Header() {
                     <ChevronDown className="size-3.5" aria-hidden="true" />
                   </button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-72 p-2">
+                <DropdownMenuContent align="start" className="w-72 p-2">
                   <DropdownMenuItem asChild>
-                    <Link href="/capabilities" className={`w-full font-medium ${MONO_LABEL}`}>
+                    <Link href="/capabilities" className={`w-full font-semibold ${NAV_LABEL}`}>
                       All Solutions
                     </Link>
                   </DropdownMenuItem>
                   {serviceNavItems.map((service) => (
                     <DropdownMenuItem key={service.href} asChild>
-                      <Link href={service.href} className={`w-full ${MONO_LABEL}`}>
+                      <Link href={service.href} className={`w-full ${NAV_LABEL}`}>
                         {service.name}
                       </Link>
                     </DropdownMenuItem>
@@ -187,7 +202,7 @@ export function Header() {
                   <button
                     type="button"
                     aria-current={isCurrent("/blog") ? "page" : undefined}
-                    className={`inline-flex items-center gap-1 outline-none transition-colors hover:text-accent focus-visible:text-accent ${MONO_LABEL} ${
+                    className={`inline-flex items-center gap-1 outline-none transition-colors hover:text-accent focus-visible:text-accent ${NAV_LABEL} ${
                       isCurrent("/blog") ? "text-accent" : ""
                     }`}
                   >
@@ -195,10 +210,10 @@ export function Header() {
                     <ChevronDown className="size-3.5" aria-hidden="true" />
                   </button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-52 p-2">
+                <DropdownMenuContent align="start" className="w-52 p-2">
                   {resourceNavItems.map((resource) => (
                     <DropdownMenuItem key={resource.href} asChild>
-                      <Link href={resource.href} className={`w-full ${MONO_LABEL}`}>
+                      <Link href={resource.href} className={`w-full ${NAV_LABEL}`}>
                         {resource.name}
                       </Link>
                     </DropdownMenuItem>
@@ -211,7 +226,7 @@ export function Header() {
                   key={item.href}
                   href={item.href}
                   aria-current={isCurrent(item.href) ? "page" : undefined}
-                  className={`transition-colors hover:text-accent ${MONO_LABEL} ${
+                  className={`transition-colors hover:text-accent ${NAV_LABEL} ${
                     isCurrent(item.href) ? "text-accent" : ""
                   }`}
                 >
@@ -219,28 +234,15 @@ export function Header() {
                 </Link>
               ))}
             </nav>
+          </div>
 
-            <div className="flex items-center gap-2">
-              <Link
-                href="/login"
-                aria-label="Sign in"
-                className="inline-flex size-8 items-center justify-center text-foreground outline-none transition-colors hover:text-accent focus-visible:text-accent"
-              >
-                <UserRound className="size-4" aria-hidden="true" />
-              </Link>
-
-              <button
-                type="button"
-                onClick={() => setOpen((value) => !value)}
-                aria-expanded={open}
-                aria-controls="site-menu"
-                aria-label={open ? "Close menu" : "Open more navigation"}
-                className={`group flex items-center gap-2 text-foreground outline-none transition-colors hover:text-accent focus-visible:text-accent ${MONO_LABEL}`}
-              >
-                {open ? "Close" : "More"}
-                {open ? <X className="size-4" /> : <Menu className="size-4" />}
-              </button>
-            </div>
+          <div className="flex items-center gap-2">
+            <Button asChild variant="ghost" size="sm" className={NAV_LABEL}>
+              <Link href="/login">Sign in</Link>
+            </Button>
+            <Button asChild size="sm" className={NAV_LABEL}>
+              <Link href="/signup">Sign up</Link>
+            </Button>
           </div>
         </div>
       </div>
