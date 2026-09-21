@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useEffect, useRef, useState, type CSSProperties } from "react"
-import { ArrowUpRight, ChevronDown } from "lucide-react"
+import { ArrowUpRight, ChevronDown, LogIn, Menu, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { getBrandItems } from "@/lib/brands"
 import { capabilities } from "@/lib/capabilities"
@@ -212,7 +212,7 @@ export function Header() {
               ))}
             </nav>
 
-            {/* Menu toggle, at the end of the nav — plain text, no icon. */}
+            {/* Menu toggle — hamburger icon on mobile, text on desktop. */}
             <button
               type="button"
               onClick={() => toggleMenu("more")}
@@ -221,12 +221,22 @@ export function Header() {
               aria-label={activeMenu === "more" ? "Close menu" : "Open more navigation"}
               className={`inline-flex items-center outline-none transition-colors hover:text-accent focus-visible:text-accent ${NAV_LABEL} ${activeMenu === "more" ? "text-accent" : "text-foreground"}`}
             >
-              {activeMenu === "more" ? "Close" : "More"}
+              {activeMenu === "more" ? (
+                <X className="size-5 lg:hidden" aria-hidden="true" />
+              ) : (
+                <Menu className="size-5 lg:hidden" aria-hidden="true" />
+              )}
+              <span className="hidden lg:inline">{activeMenu === "more" ? "Close" : "More"}</span>
             </button>
           </div>
 
           <div className="flex items-center gap-2">
-            <Button asChild variant="ghost" size="lg">
+            <Button asChild variant="ghost" size="icon-lg" className="lg:hidden">
+              <Link href="/login" aria-label="Sign in">
+                <LogIn aria-hidden="true" />
+              </Link>
+            </Button>
+            <Button asChild variant="ghost" size="lg" className="hidden lg:inline-flex">
               <Link href="/login">Sign in</Link>
             </Button>
             <Button asChild size="lg">
