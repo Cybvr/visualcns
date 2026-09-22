@@ -3,7 +3,7 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { Bell, Bot, Briefcase, Building2, CircleHelp, FileText, Home, ListTodo, Menu, Plus, Receipt, ScrollText, Users } from "lucide-react"
+import { Bell, Bot, Briefcase, Building2, CircleHelp, FileText, Home, ListTodo, Mail, Plus, Receipt, ScrollText, Users } from "lucide-react"
 
 import { useAgent } from "@/components/agent/agent-context"
 import { AgentHeaderButton } from "@/components/agent/agent-header-button"
@@ -29,7 +29,6 @@ import {
   SidebarInset,
   SidebarProvider,
   SidebarTrigger,
-  useSidebar,
 } from "@/components/ui/sidebar"
 import { cn } from "@/lib/utils"
 import { getTenant, type Tenant } from "@/lib/tenants"
@@ -58,13 +57,12 @@ const QUICK_CREATE_LINKS = [
 /** Bottom tab bar for mobile, replacing the floating Ngai composer. Must render inside SidebarProvider. */
 function DashboardMobileFooterNav({ rootHref }: { rootHref: string }) {
   const { open: agentOpen, setOpen: setAgentOpen } = useAgent()
-  const { setOpenMobile } = useSidebar()
 
   const items: MobileFooterNavItem[] = [
     { key: "home", label: "Home", icon: Home, href: rootHref },
+    { key: "email", label: "Emails", icon: Mail, href: "/dashboard/email" },
     { key: "documents", label: "Documents", icon: FileText, href: "/dashboard/documents" },
     { key: "ngai", label: "Ngai", icon: Bot, onClick: () => setAgentOpen(true), isActive: agentOpen },
-    { key: "menu", label: "Menu", icon: Menu, onClick: () => setOpenMobile(true) },
   ]
 
   return <MobileFooterNav items={items} />
