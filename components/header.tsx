@@ -75,6 +75,16 @@ const solutionsRows: MenuRow[] = [
 ]
 const resourcesRows: MenuRow[] = resourceNavItems.map((resource, i) => ({ number: num(i), title: resource.name, href: resource.href }))
 
+// On mobile there's no separate Customers/Solutions/Resources/Pricing button (they're
+// hidden below lg), so the "More" overlay folds them in alongside Software/Consulting/Careers.
+const mobileMoreRows: MenuRow[] = [
+  { number: num(0), title: "Customers", items: customerNavItems },
+  { number: num(1), title: "Solutions", items: solutionsRows.map(({ title, href }) => ({ name: title, href: href as string })) },
+  { number: num(2), title: "Resources", items: resourceNavItems },
+  { number: num(3), title: "Pricing", href: "/pricing" },
+  ...MENU_ROWS.map((row, i) => ({ ...row, number: num(i + 4) }) as MenuRow),
+]
+
 type MenuKind = "more" | "customers" | "solutions" | "resources"
 const MENU_TITLES: Record<MenuKind, string> = { more: "More", customers: "Customers", solutions: "Solutions", resources: "Resources" }
 
@@ -138,6 +148,61 @@ export function Header() {
   }, [open])
 
   const isCurrent = (href: string) => pathname === href || pathname.startsWith(`${href}/`)
+
+  const renderRows = (rows: MenuRow[]) =>
+    rows.map((row, rowIndex) => (
+      <li
+        key={row.number}
+        className="hdr-row border-t border-border"
+        style={{ "--i": rowIndex } as CSSProperties}
+      >
+        {row.href ? (
+          <Link
+            href={row.href}
+            onClick={closeMenu}
+            aria-current={isCurrent(row.href) ? "page" : undefined}
+            className="group grid grid-cols-[2.5rem_minmax(0,1fr)_1.5rem] items-baseline gap-x-4 py-6 outline-none md:grid-cols-[4rem_minmax(0,1fr)_2rem] md:gap-x-10 md:py-8"
+          >
+            <span
+              className={`font-mono text-xs tabular-nums transition-colors group-hover:text-accent ${
+                isCurrent(row.href) ? "text-accent" : "text-muted-foreground"
+              }`}
+            >
+              {row.number}
+            </span>
+            <span className="text-3xl tracking-[-0.02em] text-foreground transition-colors group-hover:text-accent md:text-5xl">
+              {row.title}
+            </span>
+            <ArrowUpRight className="size-5 justify-self-end text-muted-foreground transition-[transform,color] duration-500 ease-out group-hover:-translate-y-1 group-hover:translate-x-1 group-hover:text-accent motion-reduce:transition-none" />
+          </Link>
+        ) : (
+          <div className="grid grid-cols-[2.5rem_minmax(0,1fr)] items-baseline gap-x-4 gap-y-4 py-6 md:grid-cols-[4rem_minmax(0,20rem)_minmax(0,1fr)] md:gap-x-10 md:py-8">
+            <span className="col-start-1 row-start-1 font-mono text-xs tabular-nums text-muted-foreground">
+              {row.number}
+            </span>
+            <span className="col-start-2 row-start-1 text-3xl tracking-[-0.02em] text-foreground md:text-5xl">
+              {row.title}
+            </span>
+            <ul className="col-start-2 row-start-2 flex flex-wrap gap-x-6 gap-y-3 md:col-start-3 md:row-start-1 md:justify-end">
+              {row.items?.map((item) => (
+                <li key={item.href}>
+                  <Link
+                    href={item.href}
+                    onClick={closeMenu}
+                    aria-current={isCurrent(item.href) ? "page" : undefined}
+                    className={`transition-colors hover:text-accent ${MONO_LABEL} ${
+                      isCurrent(item.href) ? "text-accent" : "text-muted-foreground"
+                    }`}
+                  >
+                    {item.name}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </li>
+    ))
 
   return (
     // When the index is open the header owns the viewport, so the panel can be a
@@ -255,61 +320,17 @@ export function Header() {
           className="hdr-panel min-h-0 flex-1 overflow-y-auto bg-background"
         >
           <div className="mx-auto max-w-7xl px-4 pb-20 pt-6 sm:px-8 md:px-20 md:pt-10">
-            <ul>
-              {(activeMenu === "customers" ? customerRows : activeMenu === "solutions" ? solutionsRows : activeMenu === "resources" ? resourcesRows : MENU_ROWS).map((row, rowIndex) => (
-                <li
-                  key={row.number}
-                  className="hdr-row border-t border-border"
-                  style={{ "--i": rowIndex } as CSSProperties}
-                >
-                  {row.href ? (
-                    <Link
-                      href={row.href}
-                      onClick={closeMenu}
-                      aria-current={isCurrent(row.href) ? "page" : undefined}
-                      className="group grid grid-cols-[2.5rem_minmax(0,1fr)_1.5rem] items-baseline gap-x-4 py-6 outline-none md:grid-cols-[4rem_minmax(0,1fr)_2rem] md:gap-x-10 md:py-8"
-                    >
-                      <span
-                        className={`font-mono text-xs tabular-nums transition-colors group-hover:text-accent ${
-                          isCurrent(row.href) ? "text-accent" : "text-muted-foreground"
-                        }`}
-                      >
-                        {row.number}
-                      </span>
-                      <span className="text-3xl tracking-[-0.02em] text-foreground transition-colors group-hover:text-accent md:text-5xl">
-                        {row.title}
-                      </span>
-                      <ArrowUpRight className="size-5 justify-self-end text-muted-foreground transition-[transform,color] duration-500 ease-out group-hover:-translate-y-1 group-hover:translate-x-1 group-hover:text-accent motion-reduce:transition-none" />
-                    </Link>
-                  ) : (
-                    <div className="grid grid-cols-[2.5rem_minmax(0,1fr)] items-baseline gap-x-4 gap-y-4 py-6 md:grid-cols-[4rem_minmax(0,20rem)_minmax(0,1fr)] md:gap-x-10 md:py-8">
-                      <span className="col-start-1 row-start-1 font-mono text-xs tabular-nums text-muted-foreground">
-                        {row.number}
-                      </span>
-                      <span className="col-start-2 row-start-1 text-3xl tracking-[-0.02em] text-foreground md:text-5xl">
-                        {row.title}
-                      </span>
-                      <ul className="col-start-2 row-start-2 flex flex-wrap gap-x-6 gap-y-3 md:col-start-3 md:row-start-1 md:justify-end">
-                        {row.items?.map((item) => (
-                          <li key={item.href}>
-                            <Link
-                              href={item.href}
-                              onClick={closeMenu}
-                              aria-current={isCurrent(item.href) ? "page" : undefined}
-                              className={`transition-colors hover:text-accent ${MONO_LABEL} ${
-                                isCurrent(item.href) ? "text-accent" : "text-muted-foreground"
-                              }`}
-                            >
-                              {item.name}
-                            </Link>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </li>
-              ))}
-            </ul>
+            {activeMenu === "more" ? (
+              <>
+                {/* Mobile: Customers/Solutions/Resources/Pricing have no other entry point, so fold them in here. */}
+                <ul className="lg:hidden">{renderRows(mobileMoreRows)}</ul>
+                <ul className="hidden lg:block">{renderRows(MENU_ROWS)}</ul>
+              </>
+            ) : (
+              <ul>
+                {renderRows(activeMenu === "customers" ? customerRows : activeMenu === "solutions" ? solutionsRows : resourcesRows)}
+              </ul>
+            )}
 
             <div className="mt-10 border-t border-border pt-8 lg:hidden">
               <Button asChild className={`w-full px-5 ${MONO_LABEL}`}>
