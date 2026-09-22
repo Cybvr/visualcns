@@ -1,21 +1,18 @@
 "use client"
 
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { Copy, Eye, FileUp, Loader2, Pencil, Plus, Trash2 } from "lucide-react"
+import { ChevronDown, Eye, FileUp, Loader2, Pencil, Plus, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
-import { DuplicateDocumentDialog, type DuplicateSelection } from "@/components/dashboard/duplicate-document-dialog"
+import { DriveView } from "@/components/dashboard/drive-view"
 import { EmptySearchState, FirstRunState } from "@/components/dashboard/empty-state"
 import { NewDocumentDialog } from "@/components/dashboard/new-document-dialog"
 import { ImportWordDocumentDialog } from "@/components/dashboard/import-word-document-dialog"
 import { FilterBar, useFilterBar, type SortOption } from "@/components/dashboard/filter-bar"
-import { TableBulkBar } from "@/components/dashboard/table-bulk-bar"
 import { UserEditorSheet } from "@/components/dashboard/user-editor-sheet"
-import { Checkbox } from "@/components/ui/checkbox"
-import { useRowSelection } from "@/hooks/use-row-selection"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,61 +24,191 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
-import { Switch } from "@/components/ui/switch"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { formatDate } from "@/lib/billing"
+import {
+  contractStatusMeta,
+  deleteContract,
+  deleteEstimate,
+  deleteInvoice,
+  estimateStatusMeta,
+  formatDate,
+  getContracts,
+  getContractsByCompanyId,
+  getEstimates,
+  getEstimatesByCompanyId,
+  getInvoices,
+  getInvoicesByCompanyId,
+  invoiceStatusMeta,
+  type Contract,
+  type Estimate,
+  type Invoice,
+} from "@/lib/billing"
 import {
   companyDocumentKindMeta,
   companyDocumentStatusMeta,
-  createCompanyDocument,
   deleteCompanyDocument,
   getCompanyDocuments,
   getCompanyDocumentsByCompanyId,
-  updateCompanyDocument,
   type CompanyDocument,
+  type CompanyDocumentKind,
 } from "@/lib/company-documents"
 import { tsToMillis } from "@/lib/tasks"
 import { cn } from "@/lib/utils"
 
-const DOCUMENT_SORTS: SortOption<CompanyDocument>[] = [
-  { value: "updatedAt", label: "Last updated", get: (row) => tsToMillis(row.updatedAt) || tsToMillis(row.createdAt), ascLabel: "Oldest", descLabel: "Newest" },
-  { value: "title", label: "Title", get: (row) => row.title, ascLabel: "A–Z", descLabel: "Z–A" },
-  { value: "client", label: "Company", get: (row) => row.client || row.companyId, ascLabel: "A–Z", descLabel: "Z–A" },
-  { value: "kind", label: "Type", get: (row) => companyDocumentKindMeta[row.kind]?.label ?? row.kind, ascLabel: "A–Z", descLabel: "Z–A" },
-  { value: "status", label: "Status", get: (row) => companyDocumentStatusMeta[row.status]?.label ?? row.status, ascLabel: "A–Z", descLabel: "Z–A" },
+type Tab = "all" | "document" | "contract" | "invoice" | "estimate" | "media"
+
+const TABS: { key: Tab; label: string }[] = [
+  { key: "all", label: "All" },
+  { key: "document", label: "Documents" },
+  { key: "contract", label: "Contracts" },
+  { key: "invoice", label: "Invoices" },
+  { key: "estimate", label: "Estimates" },
+  { key: "media", label: "Media" },
 ]
 
-function searchDocument(row: CompanyDocument) {
-  return [row.title, row.summary, row.client, row.companyId, row.project, companyDocumentKindMeta[row.kind]?.label, companyDocumentStatusMeta[row.status]?.label]
+type RowKind = "contract" | "invoice" | "estimate" | CompanyDocumentKind
+
+const KIND_LABEL: Record<RowKind, string> = {
+  contract: "Contract",
+  invoice: "Invoice",
+  estimate: "Estimate",
+  proposal: companyDocumentKindMeta.proposal.label,
+  sow: companyDocumentKindMeta.sow.label,
+  brief: companyDocumentKindMeta.brief.label,
+  report: companyDocumentKindMeta.report.label,
+  other: companyDocumentKindMeta.other.label,
 }
 
-/** The updated stamp, which is a Timestamp rather than the yyyy-mm-dd strings billing uses. */
-function updatedLabel(row: CompanyDocument) {
-  const stamp = row.updatedAt ?? row.createdAt
-  return stamp ? formatDate(stamp.toDate().toISOString().slice(0, 10)) : "—"
+interface UnifiedRow {
+  id: string
+  kind: RowKind
+  title: string
+  company: string
+  companyId: string
+  statusLabel?: string
+  statusClassName?: string
+  updatedAtMs: number
+  viewHref: string
+  editHref?: string
+}
+
+function companyDocToRow(d: CompanyDocument, adminView: boolean): UnifiedRow {
+  const meta = companyDocumentStatusMeta[d.status] ?? companyDocumentStatusMeta.draft
+  return {
+    id: d.id,
+    kind: d.kind,
+    title: d.title,
+    company: d.client || d.companyId,
+    companyId: d.companyId,
+    statusLabel: meta.label,
+    statusClassName: meta.className,
+    updatedAtMs: tsToMillis(d.updatedAt) || tsToMillis(d.createdAt),
+    viewHref: `/dashboard/documents/${d.id}`,
+    editHref: adminView ? `/dashboard/documents/${d.id}/edit` : undefined,
+  }
+}
+
+function contractToRow(c: Contract, adminView: boolean): UnifiedRow {
+  const meta = contractStatusMeta[c.status] ?? contractStatusMeta.draft
+  return {
+    id: c.id,
+    kind: "contract",
+    title: c.title,
+    company: c.client || c.companyId,
+    companyId: c.companyId,
+    statusLabel: meta.label,
+    statusClassName: meta.className,
+    updatedAtMs: tsToMillis(c.updatedAt) || tsToMillis(c.createdAt),
+    viewHref: `/dashboard/contracts/${c.id}`,
+    editHref: adminView ? `/dashboard/contracts/${c.id}/edit` : undefined,
+  }
+}
+
+function invoiceToRow(i: Invoice, adminView: boolean): UnifiedRow {
+  const meta = invoiceStatusMeta[i.status] ?? invoiceStatusMeta.draft
+  return {
+    id: i.id,
+    kind: "invoice",
+    title: `Invoice ${i.invoiceNumber}`,
+    company: i.client || i.companyId,
+    companyId: i.companyId,
+    statusLabel: meta.label,
+    statusClassName: meta.className,
+    updatedAtMs: tsToMillis(i.updatedAt) || tsToMillis(i.createdAt),
+    viewHref: `/dashboard/invoices/${i.id}`,
+    editHref: adminView ? `/dashboard/invoices/${i.id}/edit` : undefined,
+  }
+}
+
+function estimateToRow(e: Estimate, adminView: boolean): UnifiedRow {
+  const meta = estimateStatusMeta[e.status] ?? estimateStatusMeta.draft
+  return {
+    id: e.id,
+    kind: "estimate",
+    title: e.title || `Estimate ${e.estimateNumber}`,
+    company: e.client || e.companyId,
+    companyId: e.companyId,
+    statusLabel: meta.label,
+    statusClassName: meta.className,
+    updatedAtMs: tsToMillis(e.updatedAt) || tsToMillis(e.createdAt),
+    viewHref: `/dashboard/estimates/${e.id}`,
+    editHref: adminView ? `/dashboard/estimates/${e.id}/edit` : undefined,
+  }
+}
+
+const DOCUMENT_KINDS = new Set<RowKind>(["proposal", "sow", "brief", "report", "other"])
+
+function matchesTab(row: UnifiedRow, tab: Tab) {
+  if (tab === "all") return true
+  if (tab === "document") return DOCUMENT_KINDS.has(row.kind)
+  return row.kind === tab
+}
+
+function searchRow(row: UnifiedRow) {
+  return [row.title, row.company, KIND_LABEL[row.kind], row.statusLabel]
 }
 
 export default function DocumentsPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { user, appUser, isAdmin, isImpersonating } = useAuth()
   const companyId = appUser?.companyId ?? ""
   const adminView = isAdmin && !isImpersonating
-  const [documents, setDocuments] = useState<CompanyDocument[]>([])
+
+  const initialTab = TABS.find((t) => t.key === searchParams.get("type"))?.key ?? "all"
+  const [tab, setTab] = useState<Tab>(initialTab)
+  const [rows, setRows] = useState<UnifiedRow[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
-  const [confirmDelete, setConfirmDelete] = useState<CompanyDocument | null>(null)
+  const [confirmDelete, setConfirmDelete] = useState<UnifiedRow | null>(null)
   const [clientSheet, setClientSheet] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
-  const [bulkDeleting, setBulkDeleting] = useState(false)
-  const [duplicateTarget, setDuplicateTarget] = useState<CompanyDocument | null>(null)
-  const [duplicating, setDuplicating] = useState(false)
   const [creating, setCreating] = useState(false)
   const [importing, setImporting] = useState(false)
 
   const fetchData = useCallback(async () => {
     setError(false)
     try {
-      setDocuments(adminView ? await getCompanyDocuments() : await getCompanyDocumentsByCompanyId(companyId))
+      const [docs, contracts, invoices, estimates] = adminView
+        ? await Promise.all([getCompanyDocuments(), getContracts(), getInvoices(), getEstimates()])
+        : await Promise.all([
+            getCompanyDocumentsByCompanyId(companyId),
+            getContractsByCompanyId(companyId),
+            getInvoicesByCompanyId(companyId),
+            getEstimatesByCompanyId(companyId),
+          ])
+      setRows([
+        ...docs.map((d) => companyDocToRow(d, adminView)),
+        ...contracts.map((c) => contractToRow(c, adminView)),
+        ...invoices.map((i) => invoiceToRow(i, adminView)),
+        ...estimates.map((e) => estimateToRow(e, adminView)),
+      ])
     } catch (loadError) {
       console.error("Error loading documents:", loadError)
       setError(true)
@@ -91,227 +218,182 @@ export default function DocumentsPage() {
   }, [adminView, companyId])
 
   useEffect(() => {
-    void fetchData()
-  }, [fetchData])
+    if (tab !== "media") void fetchData()
+  }, [fetchData, tab])
 
-  async function confirmDuplicateDocument(selection: DuplicateSelection) {
-    if (!duplicateTarget || duplicating) return
-    setDuplicating(true)
-    try {
-      const { id: _id, createdAt: _createdAt, updatedAt: _updatedAt, ...rest } = duplicateTarget
-      const newId = await createCompanyDocument({
-        ...rest,
-        title: `${duplicateTarget.title} (copy)`,
-        status: "draft",
-        shareEnabled: false,
-        companyId: selection.companyId,
-        client: selection.client || duplicateTarget.client,
-        projectId: selection.projectId,
-        project: selection.project,
-      })
-      setDuplicateTarget(null)
-      router.push(`/dashboard/documents/${newId}/edit`)
-    } catch (duplicateError) {
-      console.error("Error duplicating document:", duplicateError)
-      toast.error("Couldn't duplicate this document.")
-    } finally {
-      setDuplicating(false)
-    }
-  }
-
-  async function togglePublic(row: CompanyDocument, next: boolean) {
-    setDocuments((current) => current.map((item) => (item.id === row.id ? { ...item, shareEnabled: next } : item)))
-    try {
-      await updateCompanyDocument(row.id, { shareEnabled: next })
-    } catch (toggleError) {
-      console.error("Error updating document visibility:", toggleError)
-      setDocuments((current) => current.map((item) => (item.id === row.id ? { ...item, shareEnabled: !next } : item)))
-      toast.error("Couldn't change who can see this document.")
-    }
-  }
-
-  async function removeDocument() {
+  async function removeRow() {
     if (!confirmDelete) return
     setDeleting(true)
     try {
-      await deleteCompanyDocument(confirmDelete.id)
-      setDocuments((current) => current.filter((row) => row.id !== confirmDelete.id))
+      if (confirmDelete.kind === "contract") await deleteContract(confirmDelete.id)
+      else if (confirmDelete.kind === "invoice") await deleteInvoice(confirmDelete.id)
+      else if (confirmDelete.kind === "estimate") await deleteEstimate(confirmDelete.id)
+      else await deleteCompanyDocument(confirmDelete.id)
+      setRows((current) => current.filter((row) => row.id !== confirmDelete.id))
       setConfirmDelete(null)
     } catch (deleteError) {
       console.error("Error deleting document:", deleteError)
+      toast.error("Couldn't delete this.")
     } finally {
       setDeleting(false)
     }
   }
 
-  const sorts = useMemo(
-    () => (adminView ? DOCUMENT_SORTS : DOCUMENT_SORTS.filter((option) => option.value !== "client")),
-    [adminView],
-  )
-  const { results: visibleDocuments, bar } = useFilterBar({
-    items: documents,
-    search: searchDocument,
+  const tabRows = useMemo(() => rows.filter((row) => matchesTab(row, tab)), [rows, tab])
+
+  const sorts: SortOption<UnifiedRow>[] = useMemo(() => {
+    const all: SortOption<UnifiedRow>[] = [
+      { value: "updated", label: "Last updated", get: (row) => row.updatedAtMs, ascLabel: "Oldest", descLabel: "Newest" },
+      { value: "title", label: "Title", get: (row) => row.title, ascLabel: "A–Z", descLabel: "Z–A" },
+      { value: "company", label: "Company", get: (row) => row.company, ascLabel: "A–Z", descLabel: "Z–A" },
+      { value: "type", label: "Type", get: (row) => KIND_LABEL[row.kind], ascLabel: "A–Z", descLabel: "Z–A" },
+      { value: "status", label: "Status", get: (row) => row.statusLabel, ascLabel: "A–Z", descLabel: "Z–A" },
+    ]
+    return adminView ? all : all.filter((option) => option.value !== "company")
+  }, [adminView])
+
+  const { results: visibleRows, bar } = useFilterBar({
+    items: tabRows,
+    search: searchRow,
     sorts,
-    defaultSort: "updatedAt",
+    defaultSort: "updated",
     defaultDirection: "desc",
   })
-
-  const selection = useRowSelection(visibleDocuments, (row) => row.id)
-
-  async function handleBulkDelete() {
-    const ids = selection.selectedIds
-    if (ids.length === 0 || bulkDeleting) return
-    setBulkDeleting(true)
-    try {
-      await Promise.all(ids.map((id) => deleteCompanyDocument(id)))
-      const removed = new Set(ids)
-      setDocuments((current) => current.filter((row) => !removed.has(row.id)))
-      if (confirmDelete && removed.has(confirmDelete.id)) setConfirmDelete(null)
-      selection.clear()
-    } catch (deleteError) {
-      console.error("Error deleting documents:", deleteError)
-    } finally {
-      setBulkDeleting(false)
-    }
-  }
 
   if (!user) return null
 
   return (
-    <main className="mx-auto w-full max-w-5xl px-4 pt-4 pb-12 sm:px-6">
-      <FilterBar
-        {...bar}
-        placeholder="Search documents"
-        actions={
-          adminView && (
-            <>
-              <Button variant="outline" onClick={() => setImporting(true)}><FileUp className="size-4" aria-hidden="true" />Import</Button>
-              <Button onClick={() => setCreating(true)}><Plus className="size-4" aria-hidden="true" />New</Button>
-            </>
-          )
-        }
-      />
+    <main className="mx-auto w-full max-w-6xl px-4 pt-4 pb-12 sm:px-6">
+      <div className="mb-5 flex flex-wrap gap-2" role="tablist" aria-label="Document type">
+        {TABS.map((t) => (
+          <button
+            key={t.key}
+            type="button"
+            role="tab"
+            aria-selected={tab === t.key}
+            onClick={() => {
+              setTab(t.key)
+              router.replace(t.key === "all" ? "/dashboard/documents" : `/dashboard/documents?type=${t.key}`, { scroll: false })
+            }}
+            className={cn(
+              "rounded-full border px-3.5 py-1.5 text-sm font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring",
+              tab === t.key
+                ? "border-foreground/40 bg-foreground text-background"
+                : "border-border text-muted-foreground hover:border-foreground/30 hover:text-foreground",
+            )}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
 
-      {loading ? (
-        <div className="flex items-center justify-center py-20"><Loader2 className="size-8 animate-spin text-muted-foreground" aria-hidden="true" /></div>
-      ) : error ? (
-        <p className="mt-10 text-sm text-destructive">Couldn&rsquo;t load documents right now.</p>
-      ) : documents.length === 0 ? (
-        <FirstRunState
-          className="mt-2"
-          label="Document"
-          title={adminView ? "Let's create your first document" : "No documents yet"}
-          description={adminView
-            ? "This is where you make the things you send to clients — proposals, contracts, statements of work. Pick a template or start blank, and we'll suggest the sections to include."
-            : "Documents your agency shares with you will show up here."}
-          action={adminView ? <Button onClick={() => setCreating(true)}>New Document</Button> : undefined}
-        />
-      ) : visibleDocuments.length === 0 ? (
-        <EmptySearchState label="No documents match your search." />
+      {tab === "media" ? (
+        <DriveView />
       ) : (
         <>
-        {adminView && (
-          <TableBulkBar
-            count={selection.selectedCount}
-            noun="document"
-            deleting={bulkDeleting}
-            onClear={selection.clear}
-            onDelete={handleBulkDelete}
-          />
-        )}
-        <Table>
-          <TableHeader>
-            <TableRow>
-              {adminView && (
-                <TableHead className="w-10">
-                  <Checkbox
-                    aria-label="Select all documents"
-                    checked={selection.allSelected}
-                    indeterminate={selection.someSelected}
-                    onChange={selection.toggleAll}
-                  />
-                </TableHead>
-              )}
-              <TableHead>Title</TableHead>
-              {adminView && <TableHead>Company</TableHead>}
-              <TableHead>Public</TableHead>
-              <TableHead>Updated</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead><span className="sr-only">Actions</span></TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {visibleDocuments.map((row) => {
-              const meta = companyDocumentStatusMeta[row.status] ?? companyDocumentStatusMeta.draft
-              return (
-                <TableRow key={row.id}>
-                  {adminView && (
-                    <TableCell onClick={(e) => e.stopPropagation()}>
-                      <Checkbox
-                        aria-label={`Select ${row.title}`}
-                        checked={selection.isSelected(row.id)}
-                        onChange={() => selection.toggle(row.id)}
-                      />
-                    </TableCell>
-                  )}
-                  <TableCell className="font-medium"><Link href={adminView ? `/dashboard/documents/${row.id}/edit` : `/dashboard/documents/${row.id}`} className="rounded-sm outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring">{row.title}</Link></TableCell>
-                  {adminView && <TableCell>{row.companyId ? <button type="button" onClick={() => setClientSheet(row.companyId)} className="rounded-sm text-left outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring">{row.client || "Company"}</button> : "—"}</TableCell>}
-                  <TableCell>
-                    {adminView ? (
-                      <Switch
-                        checked={row.shareEnabled ?? false}
-                        onCheckedChange={(next) => togglePublic(row, next)}
-                        aria-label={`Make ${row.title} public`}
-                      />
-                    ) : (
-                      (row.shareEnabled ?? false) ? "Public" : "Private"
-                    )}
-                  </TableCell>
-                  <TableCell>{updatedLabel(row)}</TableCell>
-                  <TableCell><span className={cn("inline-flex rounded-full px-2 py-0.5 text-xs font-medium", meta.className)}>{meta.label}</span></TableCell>
-                  <TableCell>
-                    <div className="flex items-center justify-end gap-0.5">
-                      <Link href={`/dashboard/documents/${row.id}`} aria-label={`View ${row.title}`} className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"><Eye className="size-4" aria-hidden="true" /></Link>
-                      {adminView && <>
-                        <Link href={`/dashboard/documents/${row.id}/edit`} aria-label={`Edit ${row.title}`} className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"><Pencil className="size-4" aria-hidden="true" /></Link>
-                        <button type="button" onClick={() => setDuplicateTarget(row)} aria-label={`Duplicate ${row.title}`} className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"><Copy className="size-4" aria-hidden="true" /></button>
-                        <button type="button" onClick={() => setConfirmDelete(row)} aria-label={`Delete ${row.title}`} className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-destructive focus-visible:ring-2 focus-visible:ring-ring"><Trash2 className="size-4" aria-hidden="true" /></button>
-                      </>}
-                    </div>
-                  </TableCell>
-                </TableRow>
+          <FilterBar
+            {...bar}
+            placeholder="Search documents"
+            actions={
+              adminView && (
+                <>
+                  <Button variant="outline" onClick={() => setImporting(true)}><FileUp className="size-4" aria-hidden="true" />Import</Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button>
+                        <Plus className="size-4" aria-hidden="true" />New
+                        <ChevronDown className="size-3.5" aria-hidden="true" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onSelect={() => setCreating(true)}>Document</DropdownMenuItem>
+                      <DropdownMenuItem onSelect={() => router.push("/dashboard/contracts/new")}>Contract</DropdownMenuItem>
+                      <DropdownMenuItem onSelect={() => router.push("/dashboard/invoices/new")}>Invoice</DropdownMenuItem>
+                      <DropdownMenuItem onSelect={() => router.push("/dashboard/estimates/new")}>Estimate</DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </>
               )
-            })}
-          </TableBody>
-        </Table>
+            }
+          />
+
+          {loading ? (
+            <div className="flex items-center justify-center py-20"><Loader2 className="size-8 animate-spin text-muted-foreground" aria-hidden="true" /></div>
+          ) : error ? (
+            <p className="mt-10 text-sm text-destructive">Couldn&rsquo;t load documents right now.</p>
+          ) : tabRows.length === 0 ? (
+            <FirstRunState
+              className="mt-2"
+              label="Document"
+              title={adminView ? "Let's create your first document" : "Nothing here yet"}
+              description={adminView
+                ? "Proposals, contracts, invoices, estimates and everything else you send to clients, all in one place. Pick a type or start blank."
+                : "Documents your agency shares with you will show up here."}
+              action={adminView ? <Button onClick={() => setCreating(true)}>New Document</Button> : undefined}
+            />
+          ) : visibleRows.length === 0 ? (
+            <EmptySearchState label="No documents match your search." />
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Title</TableHead>
+                  <TableHead>Type</TableHead>
+                  {adminView && <TableHead>Company</TableHead>}
+                  <TableHead>Updated</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead><span className="sr-only">Actions</span></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {visibleRows.map((row) => (
+                  <TableRow key={`${row.kind}-${row.id}`}>
+                    <TableCell className="font-medium">
+                      <Link href={row.editHref ?? row.viewHref} className="rounded-sm outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring">{row.title}</Link>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">{KIND_LABEL[row.kind]}</TableCell>
+                    {adminView && (
+                      <TableCell>
+                        {row.companyId ? (
+                          <button type="button" onClick={() => setClientSheet(row.companyId)} className="rounded-sm text-left outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring">{row.company || "Company"}</button>
+                        ) : "—"}
+                      </TableCell>
+                    )}
+                    <TableCell>{row.updatedAtMs ? formatDate(new Date(row.updatedAtMs).toISOString().slice(0, 10)) : "—"}</TableCell>
+                    <TableCell>{row.statusLabel && <span className={cn("inline-flex rounded-full px-2 py-0.5 text-xs font-medium", row.statusClassName)}>{row.statusLabel}</span>}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center justify-end gap-0.5">
+                        <Link href={row.viewHref} aria-label={`View ${row.title}`} className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"><Eye className="size-4" aria-hidden="true" /></Link>
+                        {adminView && row.editHref && (
+                          <Link href={row.editHref} aria-label={`Edit ${row.title}`} className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"><Pencil className="size-4" aria-hidden="true" /></Link>
+                        )}
+                        {adminView && (
+                          <button type="button" onClick={() => setConfirmDelete(row)} aria-label={`Delete ${row.title}`} className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-destructive focus-visible:ring-2 focus-visible:ring-ring"><Trash2 className="size-4" aria-hidden="true" /></button>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+
+          {adminView && (
+            <AlertDialog open={confirmDelete !== null} onOpenChange={(open) => !open && setConfirmDelete(null)}>
+              <AlertDialogContent>
+                <AlertDialogHeader><AlertDialogTitle>Delete this {confirmDelete && KIND_LABEL[confirmDelete.kind].toLowerCase()}?</AlertDialogTitle><AlertDialogDescription>{confirmDelete?.title} will be removed for good. This cannot be undone.</AlertDialogDescription></AlertDialogHeader>
+                <AlertDialogFooter><AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel><AlertDialogAction onClick={(event) => { event.preventDefault(); void removeRow() }} disabled={deleting}>{deleting && <Loader2 className="size-4 animate-spin" aria-hidden="true" />}Delete</AlertDialogAction></AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
+
+          {adminView && <NewDocumentDialog open={creating} onOpenChange={setCreating} />}
+
+          {adminView && <ImportWordDocumentDialog open={importing} onOpenChange={setImporting} />}
+
+          {adminView && <UserEditorSheet open={clientSheet !== null} companyId={clientSheet ?? ""} onClose={() => setClientSheet(null)} onSaved={() => setClientSheet(null)} />}
         </>
       )}
-
-      {adminView && <AlertDialog open={confirmDelete !== null} onOpenChange={(open) => !open && setConfirmDelete(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader><AlertDialogTitle>Delete this document?</AlertDialogTitle><AlertDialogDescription>{confirmDelete?.title} will be removed for good. This cannot be undone.</AlertDialogDescription></AlertDialogHeader>
-          <AlertDialogFooter><AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel><AlertDialogAction onClick={(event) => { event.preventDefault(); void removeDocument() }} disabled={deleting}>{deleting && <Loader2 className="size-4 animate-spin" aria-hidden="true" />}Delete</AlertDialogAction></AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>}
-
-      {adminView && (
-        <DuplicateDocumentDialog
-          open={duplicateTarget !== null}
-          onOpenChange={(open) => !open && setDuplicateTarget(null)}
-          title={`Duplicate ${duplicateTarget?.title ?? "document"}`}
-          description="Choose which company and project the copy belongs to."
-          defaultCompanyId={duplicateTarget?.companyId ?? ""}
-          defaultProjectId={duplicateTarget?.projectId}
-          submitting={duplicating}
-          onConfirm={confirmDuplicateDocument}
-        />
-      )}
-
-      {adminView && <NewDocumentDialog open={creating} onOpenChange={setCreating} />}
-
-      {adminView && <ImportWordDocumentDialog open={importing} onOpenChange={setImporting} />}
-
-      {adminView && <UserEditorSheet open={clientSheet !== null} companyId={clientSheet ?? ""} onClose={() => setClientSheet(null)} onSaved={() => setClientSheet(null)} />}
     </main>
   )
 }
