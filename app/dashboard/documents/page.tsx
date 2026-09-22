@@ -3,9 +3,7 @@
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { createElement } from "react"
-import { ChevronDown, Eye, FileUp, Loader2, Pencil, Plus, Trash2 } from "lucide-react"
-import { FaFileAlt, FaFileInvoiceDollar, FaFileSignature } from "react-icons/fa"
+import { ChevronDown, Eye, FileText, FileUp, Loader2, Pencil, Plus, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
@@ -92,14 +90,14 @@ const KIND_LABEL: Record<RowKind, string> = {
 }
 
 const KIND_ICON = {
-  contract: FaFileSignature,
-  invoice: FaFileInvoiceDollar,
-  estimate: FaFileAlt,
-  proposal: FaFileAlt,
-  sow: FaFileAlt,
-  brief: FaFileAlt,
-  report: FaFileAlt,
-  other: FaFileAlt,
+  contract: FileText,
+  invoice: FileText,
+  estimate: FileText,
+  proposal: FileText,
+  sow: FileText,
+  brief: FileText,
+  report: FileText,
+  other: FileText,
 }
 
 const KIND_ICON_COLOR: Record<RowKind, string> = {
@@ -372,7 +370,7 @@ export default function DocumentsPage() {
                   href={row.editHref ?? row.viewHref}
                   title={row.title}
                   subtitle={timeAgo(row.updatedAtMs)}
-                  icon={createElement(KindIcon, { className: cn("size-5", KIND_ICON_COLOR[row.kind]), "aria-hidden": true })}
+                  icon={<KindIcon className={cn("size-5", KIND_ICON_COLOR[row.kind])} aria-hidden="true" />}
                   menuLabel={`Options for ${row.title}`}
                   menu={
                     <>

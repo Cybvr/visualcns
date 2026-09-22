@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { createElement } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -25,7 +24,6 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Eye, Pencil, Plus, Trash2, Loader2, User as UserIcon, UserPlus } from "lucide-react"
-import { FaUser } from "react-icons/fa"
 import { getUsers, deleteUser, type AppUser } from "@/lib/users"
 import { getOrganizations } from "@/lib/organizations"
 import { DashboardPageSkeleton } from "@/components/dashboard/dashboard-page-skeleton"
@@ -218,7 +216,7 @@ export default function UsersAdminPage() {
                     title={u.displayName || u.email || "—"}
                     subtitle={u.email || companyNameOf(u) || "—"}
                     imageUrl={u.photoURL}
-                    icon={createElement(FaUser, { className: "size-5 text-violet-600 dark:text-violet-400", "aria-hidden": true })}
+                    icon={<UserIcon className="size-5 text-violet-600 dark:text-violet-400" aria-hidden="true" />}
                     menuLabel={`Options for ${u.displayName || u.email || "contact"}`}
                     menu={
                       <>

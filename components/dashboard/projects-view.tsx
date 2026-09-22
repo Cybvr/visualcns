@@ -1,8 +1,8 @@
 "use client"
 
-import { createElement, useRef, useState } from "react"
+import { useRef, useState } from "react"
 import Link from "next/link"
-import { Loader2, Plus } from "lucide-react"
+import { FolderOpen, Loader2, Plus } from "lucide-react"
 
 import { FirstRunState } from "@/components/dashboard/empty-state"
 import { MobileDataCard } from "@/components/dashboard/mobile-data-card"
@@ -36,7 +36,6 @@ import {
   type Project,
 } from "@/lib/projects"
 import { getTasksByProjectAndCompanyId, taskStatusMeta, type Task } from "@/lib/tasks"
-import { FaFolderOpen } from "react-icons/fa"
 
 function ProgressBar({ value }: { value: number }) {
   return (
@@ -155,7 +154,7 @@ export function ProjectsView({
                 key={project.id}
                 title={project.title}
                 subtitle={[project.client || project.companyId, project.service, meta.label].filter(Boolean).join(" · ")}
-                icon={createElement(FaFolderOpen, { className: "size-5 text-amber-600 dark:text-amber-400", "aria-hidden": true })}
+                icon={<FolderOpen className="size-5 text-amber-600 dark:text-amber-400" aria-hidden="true" />}
                 href={`/dashboard/projects/${projectSlug(project)}`}
                 ariaLabel={`Open ${project.title}`}
                 menuLabel={`Options for ${project.title}`}
