@@ -275,7 +275,34 @@ export default function CompaniesPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="rounded-lg border border-border">
+        <>
+          <div className="divide-y divide-border rounded-lg border border-border sm:hidden">
+            {visibleCompanies.map((row) => (
+              <button
+                key={row.id}
+                type="button"
+                onClick={() => router.push(companyHref(row))}
+                className="flex w-full items-center gap-3 p-3 text-left outline-none transition-colors hover:bg-muted/50 focus-visible:bg-muted/50"
+              >
+                {row.logoUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={row.logoUrl} alt="" className="size-11 shrink-0 rounded-full object-cover" referrerPolicy="no-referrer" />
+                ) : (
+                  <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-muted">
+                    <Building2 className="size-5 text-muted-foreground" />
+                  </span>
+                )}
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold">{row.name}</p>
+                  <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                    {row.label || (row.projectCount ? `${row.projectCount} project${row.projectCount === 1 ? "" : "s"}` : "No projects yet")}
+                  </p>
+                </div>
+              </button>
+            ))}
+          </div>
+
+          <div className="hidden rounded-lg border border-border sm:block">
           <TableBulkBar
             count={selection.selectedCount}
             noun="company"
@@ -379,7 +406,8 @@ export default function CompaniesPage() {
               ))}
             </TableBody>
           </Table>
-        </div>
+          </div>
+        </>
       )}
 
       <AlertDialog open={Boolean(pendingDelete)} onOpenChange={(open) => !open && !deleting && setPendingDelete(null)}>

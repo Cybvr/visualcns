@@ -54,13 +54,43 @@ const QUICK_CREATE_LINKS = [
   { label: "Document", href: "/dashboard/documents", icon: FileText },
 ] as const
 
+/** The "create new…" dropdown, shared by the header's Plus button and the mobile footer's center Plus. */
+function QuickCreateMenu({ trigger, onSelect }: { trigger: ReactNode; onSelect: (label: string) => void }) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>{trigger}</DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="dashboard-body">
+        {QUICK_CREATE_LINKS.map(({ label, icon: Icon }) => (
+          <DropdownMenuItem key={label} onSelect={() => onSelect(label)}>
+            <Icon aria-hidden="true" />
+            <span>{label}</span>
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+}
+
 /** Bottom tab bar for mobile, replacing the floating Ngai composer. Must render inside SidebarProvider. */
-function DashboardMobileFooterNav({ rootHref }: { rootHref: string }) {
+function DashboardMobileFooterNav({ rootHref, onQuickCreate }: { rootHref: string; onQuickCreate: (label: string) => void }) {
   const { open: agentOpen, setOpen: setAgentOpen } = useAgent()
 
   const items: MobileFooterNavItem[] = [
     { key: "home", label: "Home", icon: Home, href: rootHref },
     { key: "email", label: "Emails", icon: Mail, href: "/dashboard/email" },
+    {
+      key: "create",
+      render: ({ className }) => (
+        <QuickCreateMenu
+          onSelect={onQuickCreate}
+          trigger={
+            <button type="button" aria-label="Create new" className={className}>
+              <Plus className="size-5 text-muted-foreground" aria-hidden="true" />
+            </button>
+          }
+        />
+      ),
+    },
     { key: "documents", label: "Documents", icon: FileText, href: "/dashboard/documents" },
     { key: "ngai", label: "Ngai", icon: Bot, onClick: () => setAgentOpen(true), isActive: agentOpen },
   ]
@@ -119,6 +149,15 @@ export function DashboardShell({
   function closeCreateModal() {
     setCreateItem(null)
     setCreateName("")
+  }
+
+  function selectQuickCreate(label: string) {
+    if (label === "Document") {
+      setDocumentCreateOpen(true)
+      return
+    }
+    setCreateName("")
+    setCreateItem(QUICK_CREATE_LINKS.find((item) => item.label === label) ?? null)
   }
 
   function createFromHeader(event: FormEvent<HTMLFormElement>) {
@@ -180,31 +219,14 @@ export function DashboardShell({
             </div>
             <div className="ml-auto flex shrink-0 items-center gap-2">
               <DashboardSearchButton className="md:hidden" />
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
+              <QuickCreateMenu
+                onSelect={selectQuickCreate}
+                trigger={
                   <Button type="button" variant="outline" size="icon" aria-label="Create new" title="Create new">
                     <Plus className="size-4" aria-hidden="true" />
                   </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="dashboard-body">
-                  {QUICK_CREATE_LINKS.map(({ label, icon: Icon }) => (
-                    <DropdownMenuItem
-                      key={label}
-                      onSelect={() => {
-                        if (label === "Document") {
-                          setDocumentCreateOpen(true)
-                          return
-                        }
-                        setCreateName("")
-                        setCreateItem(QUICK_CREATE_LINKS.find((item) => item.label === label) ?? null)
-                      }}
-                    >
-                      <Icon aria-hidden="true" />
-                      <span>{label}</span>
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
+                }
+              />
               <Button asChild variant="outline" className="surface-nav hidden sm:inline-flex">
                 <Link href="/pricing" aria-label="Upgrade" title="Upgrade">
                   <span>Upgrade</span>
@@ -224,7 +246,7 @@ export function DashboardShell({
           {children}
         </SidebarInset>
         <NgaiSidePanel />
-        <DashboardMobileFooterNav rootHref={rootHref} />
+        <DashboardMobileFooterNav rootHref={rootHref} onQuickCreate={selectQuickCreate} />
       </SidebarProvider>
 
       <Dialog

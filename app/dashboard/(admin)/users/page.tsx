@@ -196,7 +196,32 @@ export default function UsersAdminPage() {
               </CardContent>
             </Card>
           ) : (
-            <div className="rounded-lg border border-border">
+            <>
+              <div className="divide-y divide-border rounded-lg border border-border sm:hidden">
+                {visibleUsers.map((u) => (
+                  <button
+                    key={u.uid}
+                    type="button"
+                    onClick={() => setSelectedId(u.uid)}
+                    className="flex w-full items-center gap-3 p-3 text-left outline-none transition-colors hover:bg-muted/50 focus-visible:bg-muted/50"
+                  >
+                    {u.photoURL ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={u.photoURL} alt="" className="size-11 shrink-0 rounded-full" referrerPolicy="no-referrer" />
+                    ) : (
+                      <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-muted">
+                        <UserIcon className="size-5 text-muted-foreground" />
+                      </span>
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold">{u.displayName || u.email || "—"}</p>
+                      <p className="mt-0.5 truncate text-xs text-muted-foreground">{u.email || companyNameOf(u) || "—"}</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+
+              <div className="hidden rounded-lg border border-border sm:block">
               <TableBulkBar
                 count={selection.selectedCount}
                 noun="contact"
@@ -329,7 +354,8 @@ export default function UsersAdminPage() {
                   ))}
                 </TableBody>
               </Table>
-            </div>
+              </div>
+            </>
           )}
         </>
       )}
