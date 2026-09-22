@@ -6,7 +6,6 @@ import { Loader2 } from "lucide-react"
 
 import { useAuth } from "@/components/auth-provider"
 import { ActivityFeed } from "@/components/dashboard/activity-feed"
-import { HomeBanner } from "@/components/dashboard/home-banner"
 import { HomeTaskList } from "@/components/dashboard/home-task-list"
 import { ProjectsView } from "@/components/dashboard/projects-view"
 import { TemplatesView } from "@/components/dashboard/templates-view"
@@ -93,8 +92,6 @@ export default function DashboardPage() {
 
   return (
     <main className="mx-auto w-full max-w-5xl px-4 pb-10 pt-4 sm:px-6">
-      <HomeBanner onTrial={appUser?.plan === undefined || appUser?.plan === "trial"} />
-
       {loading ? (
         <div className="flex items-center justify-center py-20">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />

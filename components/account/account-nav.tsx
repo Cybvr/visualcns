@@ -14,6 +14,7 @@ const LINKS = [
   { label: "Agency", href: "/dashboard/account/agency", adminOnly: true },
   { label: "Billing", href: "/dashboard/account/billing", adminOnly: true },
   { label: "Data", href: "/dashboard/account/data", adminOnly: true },
+  { label: "Tenant operations", href: "/dashboard/admin/tenants", superAdminOnly: true },
 ]
 
 /** The tab's title and one-line description, shown inside the page under the nav. */
@@ -28,8 +29,10 @@ export function AccountHeader({ title, description }: { title: string; descripti
 
 export function AccountNav() {
   const pathname = usePathname()
-  const { isAdmin } = useAuth()
-  const links = LINKS.filter((link) => !link.adminOnly || isAdmin)
+  const { isAdmin, role } = useAuth()
+  const links = LINKS
+    .filter((link) => !link.adminOnly || isAdmin)
+    .filter((link) => !link.superAdminOnly || role === "superadmin")
 
   return (
     <div className="flex gap-6 border-b border-border" role="tablist" aria-label="Account settings">

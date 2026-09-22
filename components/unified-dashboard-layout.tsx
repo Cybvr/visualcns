@@ -3,7 +3,7 @@
 import { Suspense, useEffect, type ReactNode } from "react"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
-import { Bot, Briefcase, Building2, Eye, FileSignature, FileText, FileType2, HardDrive, LayoutDashboard, ListTodo, Loader2, LogOut, Mail, Megaphone, Receipt, Shield, TrendingUp, Users, Wallet } from "lucide-react"
+import { Bot, Briefcase, Building2, Eye, FileSignature, FileText, FileType2, LayoutDashboard, ListTodo, Loader2, LogOut, Mail, Megaphone, Receipt, TrendingUp, Users, Wallet } from "lucide-react"
 import { AuthProvider, useAuth } from "@/components/auth-provider"
 import { AgentDock } from "@/components/agent/agent-dock"
 import { AgentProvider } from "@/components/agent/agent-context"
@@ -18,7 +18,7 @@ const DASHBOARD_NAV: NavLink[] = [
   { label: "Contacts", href: "/dashboard/users", icon: Users, adminOnly: true },
   { label: "Email", href: "/dashboard/email", icon: Mail },
   { label: "Ngai", href: "/dashboard/agent", icon: Bot, opensAgent: true },
-  { label: "Drive", href: "/dashboard/drive", icon: HardDrive },
+  { label: "Documents", href: "/dashboard/documents", icon: FileType2 },
   {
     sectionLabel: "Workspace",
     label: "Operations",
@@ -27,11 +27,9 @@ const DASHBOARD_NAV: NavLink[] = [
     items: [
       { label: "Projects", href: "/dashboard/projects", icon: Briefcase },
       { label: "Tasks", href: "/dashboard/tasks", icon: ListTodo },
-      { label: "Documents", href: "/dashboard/documents", icon: FileType2 },
     ],
   },
   { label: "Marketing", href: "/dashboard/seo", icon: Megaphone, items: [{ label: "SEO", href: "/dashboard/seo", icon: TrendingUp }] },
-  { label: "Tenant operations", href: "/dashboard/admin/tenants", icon: Shield, superAdminOnly: true },
   {
     label: "Finance",
     href: "/dashboard/invoices",

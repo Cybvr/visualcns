@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { Loader2 } from "lucide-react"
 import { useAuth } from "@/components/auth-provider"
+import { AccountNav } from "@/components/account/account-nav"
 import { Button } from "@/components/ui/button"
 
 type TenantRow = { id: string; name?: string; status?: string; plan?: string; updatedAt?: unknown }
@@ -35,11 +36,12 @@ export default function TenantOperationsPage() {
     await load()
   }
 
-  if (loading || busy) return <main className="mx-auto max-w-4xl px-4 py-10"><Loader2 className="size-6 animate-spin" /></main>
-  if (role !== "superadmin") return <main className="mx-auto max-w-4xl px-4 py-10"><p className="text-sm text-muted-foreground">This area is restricted to platform operations.</p></main>
+  if (loading || busy) return <main className="mx-auto w-full max-w-4xl px-4 py-10 sm:px-6"><AccountNav /><Loader2 className="mt-6 size-6 animate-spin" /></main>
+  if (role !== "superadmin") return <main className="mx-auto w-full max-w-4xl px-4 py-10 sm:px-6"><AccountNav /><p className="mt-6 text-sm text-muted-foreground">This area is restricted to platform operations.</p></main>
 
-  return <main className="mx-auto max-w-4xl px-4 py-10 sm:px-6">
-    <h1 className="text-xl font-semibold">Tenant operations</h1>
+  return <main className="mx-auto w-full max-w-4xl px-4 py-10 sm:px-6">
+    <AccountNav />
+    <h1 className="mt-7 text-xl font-semibold">Tenant operations</h1>
     <p className="mt-1 text-sm text-muted-foreground">Platform-level tenant visibility and access status.</p>
     {error && <p className="mt-4 text-sm text-destructive">{error}</p>}
     <div className="mt-6 divide-y divide-border border border-border">
