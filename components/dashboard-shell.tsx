@@ -151,10 +151,17 @@ export function DashboardShell({
             pathname === "/dashboard/email" && "lg:min-h-0 lg:overflow-hidden lg:pb-0",
           )}
         >
-          <header className={cn("surface-nav sticky top-0 z-40 flex h-14 shrink-0 items-center gap-2 bg-background px-4", hideHeader && "md:hidden", isEmailRoute && "max-lg:hidden")}>
+          <header
+            className={cn(
+              "surface-nav sticky top-0 z-40 flex h-14 shrink-0 items-center gap-2 bg-background px-4",
+              "max-md:bg-primary max-md:[--foreground:var(--primary-foreground)] max-md:[--muted-foreground:var(--primary-foreground)]",
+              hideHeader && "md:hidden",
+              isEmailRoute && "max-lg:hidden",
+            )}
+          >
             <div className="flex shrink-0 items-center gap-2 md:hidden">
               <SidebarTrigger className="-ml-1" />
-              <Separator orientation="vertical" className="data-[orientation=vertical]:h-4" />
+              <Separator orientation="vertical" className="max-md:bg-primary-foreground/30 data-[orientation=vertical]:h-4" />
             </div>
             <div className="flex min-w-0 items-center gap-1">
               {titleOverride?.homeHref && (
