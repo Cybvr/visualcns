@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
+import { createElement } from "react"
 import { useRouter } from "next/navigation"
 import { Building2, Eye, Pencil, Plus, Trash2, Loader2 } from "lucide-react"
 import { FaBuilding } from "react-icons/fa"
@@ -287,7 +288,7 @@ export default function CompaniesPage() {
                 title={row.name}
                 subtitle={row.label || (row.projectCount ? `${row.projectCount} project${row.projectCount === 1 ? "" : "s"}` : "No projects yet")}
                 imageUrl={row.logoUrl}
-                icon={<FaBuilding className="size-5 text-blue-600 dark:text-blue-400" aria-hidden="true" />}
+                icon={createElement(FaBuilding, { className: "size-5 text-blue-600 dark:text-blue-400", "aria-hidden": true })}
                 menuLabel={`Options for ${row.name}`}
                 menu={
                   <>

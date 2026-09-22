@@ -1,6 +1,6 @@
 "use client"
 
-import { useRef, useState } from "react"
+import { createElement, useRef, useState } from "react"
 import Link from "next/link"
 import { Loader2, Plus } from "lucide-react"
 
@@ -155,7 +155,7 @@ export function ProjectsView({
                 key={project.id}
                 title={project.title}
                 subtitle={[project.client || project.companyId, project.service, meta.label].filter(Boolean).join(" · ")}
-                icon={<FaFolderOpen className="size-5 text-amber-600 dark:text-amber-400" aria-hidden="true" />}
+                icon={createElement(FaFolderOpen, { className: "size-5 text-amber-600 dark:text-amber-400", "aria-hidden": true })}
                 href={`/dashboard/projects/${projectSlug(project)}`}
                 ariaLabel={`Open ${project.title}`}
                 menuLabel={`Options for ${project.title}`}

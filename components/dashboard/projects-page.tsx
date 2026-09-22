@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { createElement, useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -219,7 +219,7 @@ export default function ProjectsAdminPage() {
                       href={`/dashboard/projects/${projectSlug(p)}`}
                       title={p.title}
                       subtitle={[p.client || p.companyId, p.service].filter(Boolean).join(" · ") || "No details"}
-                      icon={<FaFolderOpen className="size-5 text-amber-600 dark:text-amber-400" aria-hidden="true" />}
+                      icon={createElement(FaFolderOpen, { className: "size-5 text-amber-600 dark:text-amber-400", "aria-hidden": true })}
                       menuLabel={`Options for ${p.title}`}
                       menu={
                         <>

@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { createElement } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -217,7 +218,7 @@ export default function UsersAdminPage() {
                     title={u.displayName || u.email || "—"}
                     subtitle={u.email || companyNameOf(u) || "—"}
                     imageUrl={u.photoURL}
-                    icon={<FaUser className="size-5 text-violet-600 dark:text-violet-400" aria-hidden="true" />}
+                    icon={createElement(FaUser, { className: "size-5 text-violet-600 dark:text-violet-400", "aria-hidden": true })}
                     menuLabel={`Options for ${u.displayName || u.email || "contact"}`}
                     menu={
                       <>

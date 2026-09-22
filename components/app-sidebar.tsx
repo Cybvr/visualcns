@@ -132,7 +132,7 @@ export function AppSidebar({
                         <SidebarMenuButton tooltip={link.label} className={mobileNavButton}>
                           <link.icon className="h-4 w-4" />
                           <span>{link.label}</span>
-                          <FiChevronRight className="ml-auto h-4 w-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                          {React.createElement(FiChevronRight, { className: "ml-auto h-4 w-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" })}
                         </SidebarMenuButton>
                       </CollapsibleTrigger>
                       <CollapsibleContent>
