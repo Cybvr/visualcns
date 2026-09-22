@@ -9,7 +9,6 @@ import type { ComponentType, ReactNode } from "react"
 import { useAuth } from "@/components/auth-provider"
 import { useAgent } from "@/components/agent/agent-context"
 import { BrandLockup } from "@/components/brand-lockup"
-import { SidebarSearch } from "@/components/dashboard/sidebar-search"
 import { NavUser } from "@/components/nav-user"
 import { cn } from "@/lib/utils"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
@@ -33,9 +32,9 @@ import {
 // On mobile the sidebar is a slide-over sheet, so nav rows need finger-sized
 // hit areas. max-md: keeps the desktop rail untouched.
 const mobileNavButton =
-  "surface-nav h-7 max-md:h-12 max-md:gap-3 max-md:px-3 [&>svg]:max-md:size-5"
+  "surface-nav h-7 max-md:h-10 max-md:gap-2.5 max-md:px-2.5 [&>svg]:max-md:size-4"
 const mobileNavSubButton =
-  "surface-nav max-md:h-11 max-md:gap-3 max-md:px-3 [&>svg]:max-md:size-5"
+  "surface-nav max-md:h-9 max-md:gap-2.5 max-md:px-2.5 [&>svg]:max-md:size-4"
 
 export type NavLink = {
   label: string
@@ -110,7 +109,6 @@ export function AppSidebar({
             </SidebarMenu>
             <SidebarTrigger className="size-8 shrink-0 opacity-0 transition-opacity group-hover/sidebar:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100" />
           </div>
-          <SidebarSearch />
         </SidebarHeader>
         <SidebarContent>
           <SidebarGroup className="group-data-[collapsible=icon]:p-1">

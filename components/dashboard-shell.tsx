@@ -85,7 +85,9 @@ function DashboardMobileFooterNav({ rootHref, onQuickCreate }: { rootHref: strin
           onSelect={onQuickCreate}
           trigger={
             <button type="button" aria-label="Create new" className={className}>
-              <Plus className="size-5 text-muted-foreground" aria-hidden="true" />
+              <span className="flex size-9 items-center justify-center rounded-full bg-foreground text-background">
+                <Plus className="size-5" aria-hidden="true" />
+              </span>
             </button>
           }
         />

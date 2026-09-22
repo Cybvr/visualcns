@@ -8,13 +8,7 @@ import { getOrganizations, organizationRef } from "@/lib/organizations"
 import { getProjects, projectSlug } from "@/lib/projects"
 import { getTasks } from "@/lib/tasks"
 import { getUsers } from "@/lib/users"
-import {
-  GlobalSearchDialog,
-  SearchTrigger,
-  stripHtml,
-  useSearchHotkey,
-  type SearchResult,
-} from "@/components/search/global-search"
+import { stripHtml, useSearchHotkey, type SearchResult } from "@/components/search/global-search"
 
 const join = (...parts: Array<string | undefined | null>) => parts.filter(Boolean).join(" · ")
 const keywords = (...parts: Array<string | undefined | null>) => parts.filter(Boolean).join(" ")
@@ -141,21 +135,4 @@ export function useDashboardSearch() {
   }, [open, loaded])
 
   return { open, setOpen, openSearch, results, loading: loading && results.length === 0 }
-}
-
-/** The sidebar drawer's search row: a faux input that opens the palette. */
-export function SidebarSearch() {
-  const { open, setOpen, openSearch, results, loading } = useDashboardSearch()
-  return (
-    <>
-      <SearchTrigger onOpen={openSearch} />
-      <GlobalSearchDialog
-        open={open}
-        onOpenChange={setOpen}
-        results={results}
-        loading={loading}
-        placeholder="Search companies, projects, documents…"
-      />
-    </>
-  )
 }

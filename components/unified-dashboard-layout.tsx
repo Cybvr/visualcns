@@ -19,15 +19,8 @@ const DASHBOARD_NAV: NavLink[] = [
   { label: "Email", href: "/dashboard/email", icon: Mail },
   { label: "Ngai", href: "/dashboard/agent", icon: Bot, opensAgent: true },
   { label: "Documents", href: "/dashboard/documents", icon: FileType2 },
-  {
-    label: "Operations",
-    href: "/dashboard/projects",
-    icon: Briefcase,
-    items: [
-      { label: "Projects", href: "/dashboard/projects", icon: Briefcase },
-      { label: "Tasks", href: "/dashboard/tasks", icon: ListTodo },
-    ],
-  },
+  { label: "Projects", href: "/dashboard/projects", icon: Briefcase },
+  { label: "Tasks", href: "/dashboard/tasks", icon: ListTodo },
 ]
 
 function UnifiedDashboardShell({ children, requireAdmin = false }: { children: ReactNode; requireAdmin?: boolean }) {
