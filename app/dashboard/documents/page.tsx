@@ -7,10 +7,12 @@ import { ChevronDown, Eye, FileUp, Loader2, Pencil, Plus, Trash2 } from "lucide-
 import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
+import { DriveView } from "@/components/dashboard/drive-view"
 import { EmptySearchState, FirstRunState } from "@/components/dashboard/empty-state"
 import { NewDocumentDialog } from "@/components/dashboard/new-document-dialog"
 import { ImportWordDocumentDialog } from "@/components/dashboard/import-word-document-dialog"
 import { FilterBar, useFilterBar, type SortOption } from "@/components/dashboard/filter-bar"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { UserEditorSheet } from "@/components/dashboard/user-editor-sheet"
 import {
   AlertDialog,
@@ -60,11 +62,15 @@ import {
 import { tsToMillis } from "@/lib/tasks"
 import { cn } from "@/lib/utils"
 
-type Tab = "all" | "document" | "contract" | "invoice" | "estimate"
+type Tab = "all" | "document" | "contract" | "invoice" | "estimate" | "media"
 
-const TABS: { key: Tab; label: string }[] = [
+const TYPE_OPTIONS: { key: Tab; label: string }[] = [
   { key: "all", label: "All" },
   { key: "document", label: "Documents" },
+  { key: "contract", label: "Contracts" },
+  { key: "invoice", label: "Invoices" },
+  { key: "estimate", label: "Estimates" },
+  { key: "media", label: "Media" },
 ]
 
 type RowKind = "contract" | "invoice" | "estimate" | CompanyDocumentKind
@@ -176,7 +182,7 @@ export default function DocumentsPage() {
   const companyId = appUser?.companyId ?? ""
   const adminView = isAdmin && !isImpersonating
 
-  const initialTab = TABS.find((t) => t.key === searchParams.get("type"))?.key ?? "all"
+  const initialTab = TYPE_OPTIONS.find((t) => t.key === searchParams.get("type"))?.key ?? "all"
   const [tab, setTab] = useState<Tab>(initialTab)
   const [rows, setRows] = useState<UnifiedRow[]>([])
   const [loading, setLoading] = useState(true)
@@ -213,8 +219,13 @@ export default function DocumentsPage() {
   }, [adminView, companyId])
 
   useEffect(() => {
-    void fetchData()
-  }, [fetchData])
+    if (tab !== "media") void fetchData()
+  }, [fetchData, tab])
+
+  function changeTab(next: Tab) {
+    setTab(next)
+    router.replace(next === "all" ? "/dashboard/documents" : `/dashboard/documents?type=${next}`, { scroll: false })
+  }
 
   async function removeRow() {
     if (!confirmDelete) return
@@ -259,29 +270,6 @@ export default function DocumentsPage() {
 
   return (
     <main className="mx-auto w-full max-w-6xl px-4 pt-4 pb-12 sm:px-6">
-      <div className="mb-5 flex flex-wrap gap-2" role="tablist" aria-label="Document type">
-        {TABS.map((t) => (
-          <button
-            key={t.key}
-            type="button"
-            role="tab"
-            aria-selected={tab === t.key}
-            onClick={() => {
-              setTab(t.key)
-              router.replace(t.key === "all" ? "/dashboard/documents" : `/dashboard/documents?type=${t.key}`, { scroll: false })
-            }}
-            className={cn(
-              "rounded-full border px-3.5 py-1.5 text-sm font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring",
-              tab === t.key
-                ? "border-foreground/40 bg-foreground text-background"
-                : "border-border text-muted-foreground hover:border-foreground/30 hover:text-foreground",
-            )}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
-
       <FilterBar
         {...bar}
         mobileVariant="drawer"
@@ -307,9 +295,22 @@ export default function DocumentsPage() {
             </>
           )
         }
-      />
+      >
+        <Select value={tab} onValueChange={(value) => changeTab(value as Tab)}>
+          <SelectTrigger className="w-[140px]" aria-label="Document type">
+            <SelectValue placeholder="Type" />
+          </SelectTrigger>
+          <SelectContent>
+            {TYPE_OPTIONS.map((option) => (
+              <SelectItem key={option.key} value={option.key}>{option.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </FilterBar>
 
-      {loading ? (
+      {tab === "media" ? (
+        <DriveView />
+      ) : loading ? (
         <div className="flex items-center justify-center py-20"><Loader2 className="size-8 animate-spin text-muted-foreground" aria-hidden="true" /></div>
       ) : error ? (
         <p className="mt-10 text-sm text-destructive">Couldn&rsquo;t load documents right now.</p>

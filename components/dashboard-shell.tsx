@@ -3,12 +3,13 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { Bell, Briefcase, Building2, CircleHelp, FileText, Home, ListTodo, Plus, Receipt, ScrollText, Users } from "lucide-react"
+import { Bell, Bot, Briefcase, Building2, CircleHelp, FileText, Home, ListTodo, Menu, Plus, Receipt, ScrollText, Users } from "lucide-react"
 
 import { useAgent } from "@/components/agent/agent-context"
 import { AgentHeaderButton } from "@/components/agent/agent-header-button"
 import { AppSidebar, type NavLink } from "@/components/app-sidebar"
 import { NgaiSidePanel } from "@/components/agent/ngai-side-panel"
+import { MobileFooterNav, type MobileFooterNavItem } from "@/components/mobile-footer-nav"
 import { NewDocumentDialog } from "@/components/dashboard/new-document-dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -27,6 +28,7 @@ import {
   SidebarInset,
   SidebarProvider,
   SidebarTrigger,
+  useSidebar,
 } from "@/components/ui/sidebar"
 import { cn } from "@/lib/utils"
 import { getTenant, type Tenant } from "@/lib/tenants"
@@ -51,6 +53,21 @@ const QUICK_CREATE_LINKS = [
   // Documents use their full template/company selection flow from the header.
   { label: "Document", href: "/dashboard/documents", icon: FileText },
 ] as const
+
+/** Bottom tab bar for mobile, replacing the floating Ngai composer. Must render inside SidebarProvider. */
+function DashboardMobileFooterNav({ rootHref }: { rootHref: string }) {
+  const { open: agentOpen, setOpen: setAgentOpen } = useAgent()
+  const { setOpenMobile } = useSidebar()
+
+  const items: MobileFooterNavItem[] = [
+    { key: "home", label: "Home", icon: Home, href: rootHref },
+    { key: "documents", label: "Documents", icon: FileText, href: "/dashboard/documents" },
+    { key: "ngai", label: "Ngai", icon: Bot, onClick: () => setAgentOpen(true), isActive: agentOpen },
+    { key: "menu", label: "Menu", icon: Menu, onClick: () => setOpenMobile(true) },
+  ]
+
+  return <MobileFooterNav items={items} />
+}
 
 /**
  * Shared dashboard layout (admin + client), built on the shadcn sidebar-07
@@ -131,7 +148,7 @@ export function DashboardShell({
         {/* overflow-y-auto: this column is the scroll container, not the body */}
         <SidebarInset
           className={cn(
-            "overflow-y-auto pb-[calc(8rem+env(safe-area-inset-bottom))]",
+            "overflow-y-auto pb-[calc(4.5rem+env(safe-area-inset-bottom))] md:pb-6",
             pathname === "/dashboard/email" && "lg:min-h-0 lg:overflow-hidden lg:pb-0",
           )}
         >
@@ -200,6 +217,7 @@ export function DashboardShell({
           {children}
         </SidebarInset>
         <NgaiSidePanel />
+        <DashboardMobileFooterNav rootHref={rootHref} />
       </SidebarProvider>
 
       <Dialog

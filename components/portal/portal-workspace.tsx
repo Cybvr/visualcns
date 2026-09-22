@@ -1,16 +1,16 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useRef, useState, type ComponentType, type FormEvent, type ReactNode } from "react"
-import Image from "next/image"
+import { useCallback, useEffect, useMemo, useRef, useState, type ComponentType, type ReactNode } from "react"
 import Link from "next/link"
 import { useParams, usePathname, useRouter, useSearchParams } from "next/navigation"
-import { ArrowLeft, ArrowUp, ArrowUpRight, CalendarDays, Check, ChevronsUpDown, ClipboardList, FileSignature, FileText, FolderOpen, ImageIcon, LayoutDashboard, Lightbulb, ListTodo, LogOut, MessageSquare, Receipt, Settings, Sparkles, Users } from "lucide-react"
+import { ArrowLeft, ArrowUpRight, CalendarDays, Check, ChevronsUpDown, ClipboardList, FileSignature, FileText, FolderOpen, ImageIcon, LayoutDashboard, Lightbulb, ListTodo, LogOut, Menu, MessageSquare, Receipt, Settings, Sparkles, Users } from "lucide-react"
 import { useAuth } from "@/components/auth-provider"
 import { AgentChat } from "@/components/agent/agent-chat"
 import { AgentDock } from "@/components/agent/agent-dock"
 import { useAgent } from "@/components/agent/agent-context"
 import { AgentHeaderButton } from "@/components/agent/agent-header-button"
 import { NgaiSidePanel } from "@/components/agent/ngai-side-panel"
+import { MobileFooterNav, type MobileFooterNavItem } from "@/components/mobile-footer-nav"
 import { DOC_BADGE, DocTile } from "@/components/company/document-tile"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
@@ -355,36 +355,19 @@ function PortalNgaiButton() {
   return <AgentHeaderButton className="ml-auto" />
 }
 
-/** Viewport-pinned composer. Sending fires the message and jumps to the Ngai tab to continue there. */
-function PortalNgaiMobileBar({ company, activeTab }: { company: string; activeTab?: string }) {
-  const { send } = useAgent()
-  const router = useRouter()
-  const [text, setText] = useState("Hi Ngai, show me my project updates")
-  if (activeTab === "ngai") return null
-  function submit(event: FormEvent) {
-    event.preventDefault()
-    const content = text.trim()
-    if (!content) return
-    send(content)
-    setText("")
-    router.push(`${portalPath(company)}?tab=ngai`)
-  }
-  return (
-    <div className="portal-ngai-bar pointer-events-none">
-      <form onSubmit={submit} className="pointer-events-auto mx-auto flex w-full max-w-xl items-center gap-2 rounded-full border border-border bg-card px-3 py-2 shadow-[0_8px_24px_rgba(15,23,42,0.08)]">
-        <Image src="/ngai-logo.png" alt="" width={20} height={20} className="shrink-0 rounded-full" />
-        <input
-          value={text}
-          onChange={(event) => setText(event.target.value)}
-          aria-label="Ask Ngai"
-          className="h-9 min-w-0 flex-1 rounded-full border-0 bg-background px-4 text-sm outline-none focus-visible:ring-0"
-        />
-        <Button type="submit" size="icon" aria-label="Send to Ngai" disabled={!text.trim()} className="size-9 shrink-0 rounded-full bg-accent text-accent-foreground hover:bg-accent/90">
-          <ArrowUp className="size-4" aria-hidden="true" />
-        </Button>
-      </form>
-    </div>
-  )
+/** Bottom tab bar for mobile, replacing the floating Ngai composer. */
+function PortalMobileFooterNav({ company, activeTab }: { company: string; activeTab?: string }) {
+  const { open: agentOpen, setOpen: setAgentOpen } = useAgent()
+  const { setOpenMobile } = useSidebar()
+
+  const items: MobileFooterNavItem[] = [
+    { key: "overview", label: "Overview", icon: LayoutDashboard, href: portalPath(company), isActive: activeTab === "overview" },
+    { key: "documents", label: "Documents", icon: FileText, href: `${portalPath(company)}/documents`, isActive: activeTab === "documents" },
+    { key: "ngai", label: "Ngai", icon: Sparkles, onClick: () => setAgentOpen(true), isActive: agentOpen || activeTab === "ngai" },
+    { key: "menu", label: "Menu", icon: Menu, onClick: () => setOpenMobile(true) },
+  ]
+
+  return <MobileFooterNav items={items} />
 }
 
 /** The full-page Ngai chat, shown on the portal's Ngai tab. */
@@ -469,11 +452,11 @@ function PortalShellContents({ company, organization, activeTab, title, children
         <h1 className="surface-title min-w-0 truncate capitalize">{title}</h1>
         <PortalNgaiButton />
       </header>
-      <div className={cn("px-4 py-5 sm:px-6", activeTab !== "ngai" && "pb-[calc(8rem+env(safe-area-inset-bottom))]")}>{children}</div>
-      <PortalNgaiMobileBar company={company} activeTab={activeTab} />
+      <div className={cn("px-4 py-5 sm:px-6", activeTab !== "ngai" && "pb-[calc(4.5rem+env(safe-area-inset-bottom))] md:pb-5")}>{children}</div>
     </SidebarInset>
     <NgaiSidePanel />
     <AgentDock />
+    <PortalMobileFooterNav company={company} activeTab={activeTab} />
   </>
 }
 

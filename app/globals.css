@@ -189,17 +189,6 @@
     --portal-content-right: 0px;
   }
 
-  .portal-ngai-bar {
-    position: fixed;
-    inset-inline: var(--portal-content-left) var(--portal-content-right);
-    bottom: 0;
-    z-index: 40;
-    display: flex;
-    justify-content: center;
-    padding: 0.75rem 1rem calc(0.75rem + env(safe-area-inset-bottom));
-    background: var(--background);
-  }
-
   @media (min-width: 768px) {
     .peer[data-state="expanded"] ~ .portal-content-area {
       --portal-content-left: 16rem;
