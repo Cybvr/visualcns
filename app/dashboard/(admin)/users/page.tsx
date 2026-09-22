@@ -226,7 +226,6 @@ export default function UsersAdminPage() {
                       {(u.displayName || u.email || "?").trim().charAt(0).toUpperCase()}
                     </span>
                   }
-                  footer={<span className="block truncate">{companyNameOf(u) || u.email || "—"}</span>}
                   menuLabel={`Options for ${u.displayName || u.email || "contact"}`}
                   menu={<DropdownMenuItem onSelect={() => setSelectedId(u.uid)}>Edit contact</DropdownMenuItem>}
                 />

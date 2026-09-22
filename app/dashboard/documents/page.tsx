@@ -377,12 +377,6 @@ export default function DocumentsPage() {
                 title={row.title}
                 icon={<ReactIcon icon={KindIcon} className={cn("size-4", KIND_ICON_COLOR[row.kind])} aria-hidden="true" />}
                 placeholder={<ReactIcon icon={KindIcon} className={cn("size-12 opacity-40", KIND_ICON_COLOR[row.kind])} aria-hidden="true" />}
-                footer={
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="truncate">{timeAgo(row.updatedAtMs) || KIND_LABEL[row.kind]}</span>
-                    {row.statusLabel && <span className={cn("shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium", row.statusClassName)}>{row.statusLabel}</span>}
-                  </div>
-                }
                 menuLabel={`Options for ${row.title}`}
                 menu={
                   <>

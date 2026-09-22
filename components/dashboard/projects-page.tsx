@@ -185,7 +185,6 @@ export default function ProjectsAdminPage() {
           ) : view === "grid" ? (
             <GridCardList>
               {visibleProjects.map((p) => {
-                const meta = projectStatusMeta[p.status] ?? projectStatusMeta["in-progress"]
                 return (
                   <GridCard
                     key={p.id}
@@ -194,12 +193,6 @@ export default function ProjectsAdminPage() {
                     title={p.title}
                     icon={<ReactIcon icon={FaFolderOpen} className="size-4 text-amber-600 dark:text-amber-400" aria-hidden="true" />}
                     preview={<ProjectCover project={p} />}
-                    footer={
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="truncate">{p.client || p.companyId || p.service}</span>
-                        <span className={cn("shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium", meta.className)}>{meta.label}</span>
-                      </div>
-                    }
                     menuLabel={`Options for ${p.title}`}
                     menu={
                       <>

@@ -15,8 +15,6 @@ type GridCardProps = {
   imageAlt?: string
   /** Large icon shown in the preview tile when there is no image. */
   placeholder?: ReactNode
-  /** Small line under the preview, such as a date or a status. */
-  footer?: ReactNode
   menu?: ReactNode
   menuLabel?: string
   href?: string
@@ -35,7 +33,6 @@ export function GridCard({
   imageUrl,
   imageAlt = "",
   placeholder,
-  footer,
   menu,
   menuLabel = "More options",
   href,
@@ -59,7 +56,7 @@ export function GridCard({
 
       <div className="flex min-h-9 items-center gap-2.5 pl-1">
         {icon && <span className="pointer-events-none relative flex shrink-0 items-center">{icon}</span>}
-        <p className="pointer-events-none relative line-clamp-2 min-w-0 flex-1 text-sm font-medium leading-snug text-foreground">{title}</p>
+        <p className="pointer-events-none relative min-w-0 flex-1 truncate text-sm font-medium text-foreground">{title}</p>
         {menu && (
           <DropdownMenu modal={false}>
             <DropdownMenuTrigger asChild>
@@ -86,8 +83,6 @@ export function GridCard({
             placeholder
           ))}
       </div>
-
-      {footer && <div className="pointer-events-none relative min-w-0 px-1 text-xs text-muted-foreground">{footer}</div>}
     </div>
   )
 }

@@ -296,7 +296,6 @@ export default function CompaniesPage() {
                 <img src={row.logoUrl} alt="" loading="lazy" referrerPolicy="no-referrer" className="size-full object-contain p-6" />
               ) : undefined}
               placeholder={<ReactIcon icon={FaBuilding} className="size-12 text-muted-foreground/40" aria-hidden="true" />}
-              footer={<span className="block truncate">{row.label || (row.projectCount ? `${row.projectCount} project${row.projectCount === 1 ? "" : "s"}` : "No projects yet")}</span>}
               menuLabel={`Options for ${row.name}`}
               menu={
                 <>
