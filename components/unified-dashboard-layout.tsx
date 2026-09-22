@@ -20,7 +20,6 @@ const DASHBOARD_NAV: NavLink[] = [
   { label: "Ngai", href: "/dashboard/agent", icon: Bot, opensAgent: true },
   { label: "Drive", href: "/dashboard/drive", icon: HardDrive },
   {
-    sectionLabel: "Workspace",
     label: "Operations",
     href: "/dashboard/projects",
     icon: Briefcase,
