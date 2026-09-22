@@ -202,7 +202,7 @@ export function CompanySidebar({
   }
 
   return (
-    <aside className="print:hidden lg:sticky lg:top-6 lg:self-start">
+    <aside className="min-w-0 print:hidden lg:sticky lg:top-6 lg:self-start">
       <div className="rounded-2xl border border-border/60 bg-card p-5">
         <div className="flex items-start gap-3">
           {admin ? (
