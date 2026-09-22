@@ -661,7 +661,9 @@ export default function EmailPage() {
         const nextContacts = users
           .filter((contact) => contact.role === "client" && contact.email?.trim())
           .map((contact) => ({
-            email: contact.email.trim(),
+            // Lists store emails lowercased, so match that here or saved
+            // members show as unticked when the list is reopened.
+            email: contact.email.trim().toLowerCase(),
             label: [contact.company, contact.displayName].filter(Boolean).join(" · ") || contact.email.trim(),
             name:
               contact.displayName?.trim() ||
@@ -1278,7 +1280,7 @@ export default function EmailPage() {
   function editList(list: ContactList) {
     setEditingListId(list.id)
     setListName(list.name)
-    setListContactEmails(list.contactEmails)
+    setListContactEmails(list.contactEmails.map((email) => email.trim().toLowerCase()))
     setListNotice(null)
     setListContactQuery("")
     // Open the picker with every contact visible and this list's members checked.
