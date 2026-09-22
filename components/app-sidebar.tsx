@@ -3,7 +3,7 @@
 import * as React from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { ChevronRight } from "lucide-react"
+import { FiChevronRight } from "react-icons/fi"
 import type { ComponentType, ReactNode } from "react"
 
 import { useAuth } from "@/components/auth-provider"
@@ -11,6 +11,7 @@ import { useAgent } from "@/components/agent/agent-context"
 import { BrandLockup } from "@/components/brand-lockup"
 import { NavUser } from "@/components/nav-user"
 import { cn } from "@/lib/utils"
+import { ReactIcon } from "@/components/react-icon"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import {
   Sidebar,
@@ -132,7 +133,7 @@ export function AppSidebar({
                         <SidebarMenuButton tooltip={link.label} className={mobileNavButton}>
                           <link.icon className="h-4 w-4" />
                           <span>{link.label}</span>
-                          <ChevronRight className="ml-auto h-4 w-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                          <ReactIcon icon={FiChevronRight} className="ml-auto h-4 w-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
                         </SidebarMenuButton>
                       </CollapsibleTrigger>
                       <CollapsibleContent>

@@ -24,9 +24,11 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Eye, Pencil, Plus, Trash2, Loader2, User as UserIcon, UserPlus } from "lucide-react"
+import { FaUser } from "react-icons/fa"
 import { getUsers, deleteUser, type AppUser } from "@/lib/users"
 import { getOrganizations } from "@/lib/organizations"
 import { DashboardPageSkeleton } from "@/components/dashboard/dashboard-page-skeleton"
+import { ReactIcon } from "@/components/react-icon"
 import { UserEditorSheet } from "@/components/dashboard/user-editor-sheet"
 import { MobileDataCard } from "@/components/dashboard/mobile-data-card"
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
@@ -216,7 +218,7 @@ export default function UsersAdminPage() {
                     title={u.displayName || u.email || "—"}
                     subtitle={u.email || companyNameOf(u) || "—"}
                     imageUrl={u.photoURL}
-                    icon={<UserIcon className="size-5 text-violet-600 dark:text-violet-400" aria-hidden="true" />}
+                    icon={<ReactIcon icon={FaUser} className="size-5 text-violet-600 dark:text-violet-400" aria-hidden="true" />}
                     menuLabel={`Options for ${u.displayName || u.email || "contact"}`}
                     menu={
                       <>

@@ -24,11 +24,13 @@ import {
 } from "@/components/ui/table"
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Eye, FolderOpen, LayoutGrid, List, Loader2, Plus, Trash2 } from "lucide-react"
+import { Eye, LayoutGrid, List, Loader2, Plus, Trash2 } from "lucide-react"
+import { FaFolderOpen } from "react-icons/fa"
 import { getProjects, deleteProject, projectSlug, projectStatusMeta, type Project } from "@/lib/projects"
 import { NewProjectDialog } from "@/components/dashboard/new-project-dialog"
 import { MobileDataCard } from "@/components/dashboard/mobile-data-card"
 import { DashboardPageSkeleton } from "@/components/dashboard/dashboard-page-skeleton"
+import { ReactIcon } from "@/components/react-icon"
 import { ProjectCard } from "@/components/project-card"
 import { EmptySearchState, FirstRunState } from "@/components/dashboard/empty-state"
 import { FilterBar, useFilterBar, type SortOption } from "@/components/dashboard/filter-bar"
@@ -218,7 +220,7 @@ export default function ProjectsAdminPage() {
                       href={`/dashboard/projects/${projectSlug(p)}`}
                       title={p.title}
                       subtitle={[p.client || p.companyId, p.service].filter(Boolean).join(" · ") || "No details"}
-                      icon={<FolderOpen className="size-5 text-amber-600 dark:text-amber-400" aria-hidden="true" />}
+                      icon={<ReactIcon icon={FaFolderOpen} className="size-5 text-amber-600 dark:text-amber-400" aria-hidden="true" />}
                       menuLabel={`Options for ${p.title}`}
                       menu={
                         <>

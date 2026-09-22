@@ -2,10 +2,12 @@
 
 import { useRef, useState } from "react"
 import Link from "next/link"
-import { FolderOpen, Loader2, Plus } from "lucide-react"
+import { Loader2, Plus } from "lucide-react"
+import { FaFolderOpen } from "react-icons/fa"
 
 import { FirstRunState } from "@/components/dashboard/empty-state"
 import { MobileDataCard } from "@/components/dashboard/mobile-data-card"
+import { ReactIcon } from "@/components/react-icon"
 import { ProjectCard } from "@/components/project-card"
 import { Button } from "@/components/ui/button"
 import {
@@ -154,7 +156,7 @@ export function ProjectsView({
                 key={project.id}
                 title={project.title}
                 subtitle={[project.client || project.companyId, project.service, meta.label].filter(Boolean).join(" · ")}
-                icon={<FolderOpen className="size-5 text-amber-600 dark:text-amber-400" aria-hidden="true" />}
+                icon={<ReactIcon icon={FaFolderOpen} className="size-5 text-amber-600 dark:text-amber-400" aria-hidden="true" />}
                 href={`/dashboard/projects/${projectSlug(project)}`}
                 ariaLabel={`Open ${project.title}`}
                 menuLabel={`Options for ${project.title}`}

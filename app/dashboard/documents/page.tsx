@@ -3,11 +3,13 @@
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { ChevronDown, Eye, FileText, FileUp, Loader2, Pencil, Plus, Trash2 } from "lucide-react"
+import { ChevronDown, Eye, FileUp, Loader2, Pencil, Plus, Trash2 } from "lucide-react"
+import { FaFileAlt, FaFileInvoiceDollar, FaFileSignature } from "react-icons/fa"
 import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
 import { DashboardPageSkeleton } from "@/components/dashboard/dashboard-page-skeleton"
+import { ReactIcon } from "@/components/react-icon"
 import { DriveView } from "@/components/dashboard/drive-view"
 import { FirstRunState } from "@/components/dashboard/empty-state"
 import { NewDocumentDialog } from "@/components/dashboard/new-document-dialog"
@@ -90,14 +92,14 @@ const KIND_LABEL: Record<RowKind, string> = {
 }
 
 const KIND_ICON = {
-  contract: FileText,
-  invoice: FileText,
-  estimate: FileText,
-  proposal: FileText,
-  sow: FileText,
-  brief: FileText,
-  report: FileText,
-  other: FileText,
+  contract: FaFileSignature,
+  invoice: FaFileInvoiceDollar,
+  estimate: FaFileAlt,
+  proposal: FaFileAlt,
+  sow: FaFileAlt,
+  brief: FaFileAlt,
+  report: FaFileAlt,
+  other: FaFileAlt,
 }
 
 const KIND_ICON_COLOR: Record<RowKind, string> = {
@@ -370,7 +372,7 @@ export default function DocumentsPage() {
                   href={row.editHref ?? row.viewHref}
                   title={row.title}
                   subtitle={timeAgo(row.updatedAtMs)}
-                  icon={<KindIcon className={cn("size-5", KIND_ICON_COLOR[row.kind])} aria-hidden="true" />}
+                  icon={<ReactIcon icon={KindIcon} className={cn("size-5", KIND_ICON_COLOR[row.kind])} aria-hidden="true" />}
                   menuLabel={`Options for ${row.title}`}
                   menu={
                     <>

@@ -3,11 +3,13 @@
 import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Building2, Eye, Pencil, Plus, Trash2, Loader2 } from "lucide-react"
+import { FaBuilding } from "react-icons/fa"
 import type { Timestamp } from "firebase/firestore"
 
 import { useAuth } from "@/components/auth-provider"
 import { CompanyCreateSheet } from "@/components/dashboard/company-create-sheet"
 import { DashboardPageSkeleton } from "@/components/dashboard/dashboard-page-skeleton"
+import { ReactIcon } from "@/components/react-icon"
 import { MobileDataCard } from "@/components/dashboard/mobile-data-card"
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import {
@@ -286,7 +288,7 @@ export default function CompaniesPage() {
                 title={row.name}
                 subtitle={row.label || (row.projectCount ? `${row.projectCount} project${row.projectCount === 1 ? "" : "s"}` : "No projects yet")}
                 imageUrl={row.logoUrl}
-                icon={<Building2 className="size-5 text-blue-600 dark:text-blue-400" aria-hidden="true" />}
+                icon={<ReactIcon icon={FaBuilding} className="size-5 text-blue-600 dark:text-blue-400" aria-hidden="true" />}
                 menuLabel={`Options for ${row.name}`}
                 menu={
                   <>
