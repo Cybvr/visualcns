@@ -3,7 +3,7 @@
 import { Suspense, useEffect, type ReactNode } from "react"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
-import { Bot, Briefcase, Building2, Eye, FileSignature, FileText, FileType2, LayoutDashboard, ListTodo, Loader2, LogOut, Mail, Megaphone, Receipt, TrendingUp, Users, Wallet } from "lucide-react"
+import { Bot, Briefcase, Building2, Eye, FileType2, LayoutDashboard, ListTodo, Loader2, LogOut, Mail, Megaphone, TrendingUp, Users } from "lucide-react"
 import { AuthProvider, useAuth } from "@/components/auth-provider"
 import { AgentDock } from "@/components/agent/agent-dock"
 import { AgentProvider } from "@/components/agent/agent-context"
@@ -29,16 +29,6 @@ const DASHBOARD_NAV: NavLink[] = [
     ],
   },
   { label: "Marketing", href: "/dashboard/seo", icon: Megaphone, items: [{ label: "SEO", href: "/dashboard/seo", icon: TrendingUp }] },
-  {
-    label: "Finance",
-    href: "/dashboard/invoices",
-    icon: Wallet,
-    items: [
-      { label: "Invoices", href: "/dashboard/invoices", icon: Receipt },
-      { label: "Contracts", href: "/dashboard/contracts", icon: FileSignature },
-      { label: "Estimates", href: "/dashboard/estimates", icon: FileText },
-    ],
-  },
 ]
 
 function UnifiedDashboardShell({ children, requireAdmin = false }: { children: ReactNode; requireAdmin?: boolean }) {

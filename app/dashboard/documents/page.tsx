@@ -297,7 +297,7 @@ export default function DocumentsPage() {
         }
       >
         <Select value={tab} onValueChange={(value) => changeTab(value as Tab)}>
-          <SelectTrigger className="w-[140px]" aria-label="Document type">
+          <SelectTrigger className="w-full sm:w-[140px]" aria-label="Document type">
             <SelectValue placeholder="Type" />
           </SelectTrigger>
           <SelectContent>

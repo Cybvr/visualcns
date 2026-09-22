@@ -1,7 +1,7 @@
 "use client"
 
 import { useMemo, useState, type ReactNode } from "react"
-import { ArrowDownWideNarrow, ArrowUpNarrowWide, Check, Search, SlidersHorizontal, X } from "lucide-react"
+import { ArrowDownWideNarrow, ArrowUpNarrowWide, Search, SlidersHorizontal, X } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -174,41 +174,38 @@ export function FilterBar({
       )}
       {sorts.length > 0 && (
         <>
-          <div className="space-y-1">
-            <p className="mb-2 text-xs font-medium tracking-wide text-muted-foreground uppercase">Sort by</p>
-            {sorts.map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                onClick={() => onSortKeyChange(option.value)}
-                className={cn(
-                  "flex w-full items-center justify-between rounded-md px-3 py-2.5 text-left text-sm transition-colors",
-                  option.value === sortKey ? "bg-accent/15 font-medium" : "hover:bg-accent/10",
-                )}
-              >
-                {option.label}
-                {option.value === sortKey && <Check className="h-4 w-4" />}
-              </button>
-            ))}
+          <div className="space-y-1.5">
+            <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Sort by</p>
+            <Select value={sortKey} onValueChange={onSortKeyChange}>
+              <SelectTrigger className="w-full" aria-label="Sort by">
+                <SelectValue placeholder="Sort by" />
+              </SelectTrigger>
+              <SelectContent>
+                {sorts.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
-          <div className="space-y-1">
-            <p className="mb-2 text-xs font-medium tracking-wide text-muted-foreground uppercase">Order</p>
-            <div className="grid grid-cols-2 gap-2">
-              <Button
-                variant={direction === "asc" ? "secondary" : "outline"}
-                onClick={() => onDirectionChange("asc")}
-              >
-                <ArrowUpNarrowWide className="h-4 w-4" />
-                {ascLabel}
-              </Button>
-              <Button
-                variant={direction === "desc" ? "secondary" : "outline"}
-                onClick={() => onDirectionChange("desc")}
-              >
-                <ArrowDownWideNarrow className="h-4 w-4" />
-                {descLabel}
-              </Button>
-            </div>
+          <div className="space-y-1.5">
+            <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Order</p>
+            <Select value={direction} onValueChange={(value) => onDirectionChange(value as SortDirection)}>
+              <SelectTrigger className="w-full" aria-label="Order">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="asc">
+                  <ArrowUpNarrowWide className="h-4 w-4" />
+                  {ascLabel}
+                </SelectItem>
+                <SelectItem value="desc">
+                  <ArrowDownWideNarrow className="h-4 w-4" />
+                  {descLabel}
+                </SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </>
       )}
