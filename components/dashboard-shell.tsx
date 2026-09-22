@@ -3,7 +3,7 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { Bell, Briefcase, Building2, CircleHelp, Crown, FileText, Home, ListTodo, Plus, Receipt, ScrollText, Users } from "lucide-react"
+import { Bell, Briefcase, Building2, CircleHelp, FileText, Home, ListTodo, Plus, Receipt, ScrollText, Users } from "lucide-react"
 
 import { useAgent } from "@/components/agent/agent-context"
 import { AgentHeaderButton } from "@/components/agent/agent-header-button"
@@ -181,10 +181,9 @@ export function DashboardShell({
                   ))}
                 </DropdownMenuContent>
               </DropdownMenu>
-              <Button asChild variant="outline" className="surface-nav">
+              <Button asChild variant="outline" className="surface-nav hidden sm:inline-flex">
                 <Link href="/pricing" aria-label="Upgrade" title="Upgrade">
-                  <Crown className="size-4 sm:hidden" aria-hidden="true" />
-                  <span className="hidden sm:inline">Upgrade</span>
+                  <span>Upgrade</span>
                 </Link>
               </Button>
               <Button asChild variant="ghost" size="icon" className="hidden sm:inline-flex">
