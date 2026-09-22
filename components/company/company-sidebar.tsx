@@ -2,11 +2,8 @@
 
 import { useState, type ReactNode } from "react"
 import Link from "next/link"
-import { ChevronDown, Copy, MoreHorizontal, X } from "lucide-react"
-import { toast } from "sonner"
+import { ChevronDown, MoreHorizontal, X } from "lucide-react"
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { SectionAddButton } from "@/components/company/section-add-button"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,7 +11,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import {
   Select,
   SelectContent,
@@ -68,17 +64,6 @@ export interface CompanySidebarAdmin {
   viewHref?: string
 }
 
-function initialsFor(name: string): string {
-  return (
-    name
-      .split(" ")
-      .map((part) => part[0])
-      .join("")
-      .slice(0, 2)
-      .toUpperCase() || "?"
-  )
-}
-
 function DetailRow({ label, value, editable }: { label: string; value?: string; editable: boolean }) {
   return (
     <div className="surface-body flex items-center justify-between gap-3 py-2.5">
@@ -105,13 +90,11 @@ function DetailsRow({ label, children }: { label: string; children: ReactNode })
 
 /**
  * The company profile panel on the left of the company detail page: industry,
- * quick actions, the primary contact, and the editable Details fields
+ * quick actions, and the editable Details fields
  * (including tags). Read-only whenever `admin` is omitted.
  */
 export function CompanySidebar({
   company,
-  people,
-  contacts,
   admin,
 }: {
   company: CompanySidebarCompany
@@ -125,16 +108,6 @@ export function CompanySidebar({
   const [detailsOpen, setDetailsOpen] = useState(false)
   const [addingTag, setAddingTag] = useState(false)
   const [tagDraft, setTagDraft] = useState("")
-  const [contactQuery, setContactQuery] = useState("")
-
-  const pickList = contacts ?? people
-  const primaryContact =
-    pickList.find((person) => person.id === company.primaryContactId) ?? people[0]
-  const filteredContacts = contactQuery.trim()
-    ? pickList.filter((person) =>
-        `${person.name} ${person.subtitle ?? ""}`.toLowerCase().includes(contactQuery.trim().toLowerCase()),
-      )
-    : pickList
 
   async function commitTags(next: string[]) {
     if (!admin) return
@@ -173,11 +146,6 @@ export function CompanySidebar({
     void commitTags((company.tags ?? []).filter((t) => t !== tag))
   }
 
-  function copyEmail(email: string) {
-    void navigator.clipboard.writeText(email)
-    toast.success("Email copied to clipboard")
-  }
-
   return (
     <aside className="min-w-0 space-y-4 print:hidden lg:sticky lg:top-6 lg:self-start">
       <div className="rounded-2xl border border-border/60 bg-card p-5">
@@ -214,95 +182,6 @@ export function CompanySidebar({
             </DropdownMenu>
           </div>
         )}
-      </div>
-
-      <div>
-        <div className="flex items-center justify-between px-1">
-          <h3 className="surface-section-label">Primary Contact</h3>
-          {admin && (
-            <Popover>
-              <PopoverTrigger asChild>
-                <SectionAddButton label="Set primary contact" />
-              </PopoverTrigger>
-              <PopoverContent align="end" className="w-72 p-1">
-                  {pickList.length === 0 ? (
-                    <button
-                      type="button"
-                      onClick={() => admin.onAddPerson()}
-                      className="surface-body w-full rounded-sm px-2 py-1.5 text-left outline-none hover:bg-accent"
-                    >
-                      Add a contact first
-                    </button>
-                  ) : (
-                    <>
-                      <Input
-                        autoFocus
-                        value={contactQuery}
-                        onChange={(event) => setContactQuery(event.target.value)}
-                        placeholder="Search contacts"
-                        className="surface-body mb-1 h-8"
-                      />
-                      <div className="max-h-64 overflow-y-auto">
-                        {filteredContacts.length === 0 ? (
-                          <p className="surface-body px-2 py-1.5">No matching contacts.</p>
-                        ) : (
-                          [...filteredContacts].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" })).map((person) => (
-                            <button
-                              key={person.id}
-                              type="button"
-                              onClick={() =>
-                                void (admin.onSelectPrimaryContact
-                                  ? admin.onSelectPrimaryContact(person.id)
-                                  : admin.onSave({ primaryContactId: person.id }))
-                              }
-                              className={cn(
-                                "surface-body flex w-full flex-col items-start rounded-sm px-2 py-1.5 text-left outline-none hover:bg-accent",
-                                person.id === primaryContact?.id && "font-medium",
-                              )}
-                            >
-                              <span className="w-full truncate">{person.name}</span>
-                              {person.subtitle && (
-                                <span className="surface-body w-full truncate text-muted-foreground">{person.subtitle}</span>
-                              )}
-                            </button>
-                          ))
-                        )}
-                      </div>
-                    </>
-                  )}
-                </PopoverContent>
-              </Popover>
-            )}
-          </div>
-
-        <div className="mt-2 rounded-2xl border border-border/60 bg-card p-4">
-          {primaryContact ? (
-            <div className="flex items-center gap-3">
-              <Avatar size="lg" className="rounded-xl">
-                {primaryContact.photoUrl && <AvatarImage src={primaryContact.photoUrl} alt="" />}
-                <AvatarFallback className="rounded-xl">{initialsFor(primaryContact.name)}</AvatarFallback>
-              </Avatar>
-              <div className="min-w-0">
-                <p className="surface-body truncate font-semibold text-foreground">{primaryContact.name}</p>
-                {primaryContact.subtitle && (
-                  <div className="flex items-center gap-1.5">
-                    <p className="surface-body truncate text-muted-foreground">{primaryContact.subtitle}</p>
-                    <button
-                      type="button"
-                      onClick={() => copyEmail(primaryContact.subtitle!)}
-                      aria-label="Copy email"
-                      className="shrink-0 text-muted-foreground outline-none transition-colors hover:text-foreground"
-                    >
-                      <Copy className="size-3.5" aria-hidden="true" />
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-          ) : (
-            <p className="surface-body text-muted-foreground">No primary contact yet.</p>
-          )}
-        </div>
       </div>
 
       <div>
