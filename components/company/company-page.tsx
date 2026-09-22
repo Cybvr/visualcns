@@ -254,7 +254,7 @@ export function CompanyPage({
 
   return (
     <main className="mx-auto min-h-screen w-full max-w-7xl px-4 pb-16 pt-6 sm:px-6">
-      <div className="grid gap-6 lg:grid-cols-[300px_1fr]">
+      <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
         <CompanySidebar
           backHref={admin ? "/dashboard/companies" : undefined}
           company={{
@@ -284,11 +284,10 @@ export function CompanyPage({
                   viewHref: admin.sharePath,
                   extraAction: (
                     <ContextualEmailButton
-                      label="Email contact"
-                      variant="secondary"
-                      size="icon"
-                      icon={false}
-                      className="rounded-full"
+                      label="Email"
+                      variant="default"
+                      size="lg"
+                      className="flex-1 rounded-xl"
                       context={{
                         companyId: company.id,
                         companyName: company.name,

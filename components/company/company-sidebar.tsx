@@ -2,11 +2,11 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react"
 import Link from "next/link"
-import { ArrowLeft, ChevronDown, Copy, ImagePlus, MoreHorizontal, Plus, X } from "lucide-react"
+import { ArrowLeft, ChevronDown, Copy, ImagePlus, MoreHorizontal, X } from "lucide-react"
 import { toast } from "sonner"
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Button } from "@/components/ui/button"
+import { SectionAddButton } from "@/components/company/section-add-button"
 import { uploadToCloudinary } from "@/components/image-dropzone"
 import {
   DropdownMenu,
@@ -210,24 +210,25 @@ export function CompanySidebar({
   }
 
   return (
-    <aside className="min-w-0 print:hidden lg:sticky lg:top-6 lg:self-start">
-      <div className="p-4 lg:rounded-2xl lg:border lg:border-border/60 lg:bg-card lg:p-5">
-        <div className="flex items-start gap-2">
-          {backHref && (
-            <Link
-              href={backHref}
-              aria-label="Back to companies"
-              title="Back to companies"
-              className="mt-1 flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              <ArrowLeft className="size-4" aria-hidden="true" />
-            </Link>
-          )}
+    <aside className="min-w-0 space-y-4 print:hidden lg:sticky lg:top-6 lg:self-start">
+      {backHref && (
+        <Link
+          href={backHref}
+          aria-label="Back to companies"
+          title="Back to companies"
+          className="flex size-10 shrink-0 items-center justify-center rounded-xl text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <ArrowLeft className="size-5" aria-hidden="true" />
+        </Link>
+      )}
+
+      <div className="rounded-2xl border border-border/60 bg-card p-5">
+        <div className="flex items-start gap-3">
           {admin ? (
             <>
               <button
                 type="button"
-                className="group relative size-14 shrink-0 overflow-hidden rounded-xl bg-muted outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                className="group relative size-16 shrink-0 overflow-hidden rounded-2xl bg-muted outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                 onClick={() => logoInputRef.current?.click()}
                 disabled={uploadingLogo}
                 aria-label="Change company avatar"
@@ -237,7 +238,7 @@ export function CompanySidebar({
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={company.logoUrl} alt="" className="h-full w-full object-cover" />
                 ) : (
-                  <span className="flex h-full w-full items-center justify-center text-lg font-semibold text-muted-foreground">
+                  <span className="flex h-full w-full items-center justify-center text-xl font-semibold text-muted-foreground">
                     {company.name.trim().charAt(0).toUpperCase() || "?"}
                   </span>
                 )}
@@ -258,12 +259,12 @@ export function CompanySidebar({
               />
             </>
           ) : (
-            <div className="size-14 shrink-0 overflow-hidden rounded-xl bg-muted">
+            <div className="size-16 shrink-0 overflow-hidden rounded-2xl bg-muted">
               {company.logoUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={company.logoUrl} alt="" className="h-full w-full object-cover" />
               ) : (
-                <span className="flex h-full w-full items-center justify-center text-lg font-semibold text-muted-foreground">
+                <span className="flex h-full w-full items-center justify-center text-xl font-semibold text-muted-foreground">
                   {company.name.trim().charAt(0).toUpperCase() || "?"}
                 </span>
               )}
@@ -286,10 +287,15 @@ export function CompanySidebar({
                     event.currentTarget.blur()
                   }
                 }}
-                className="surface-record-title h-8 border-transparent bg-transparent px-1.5 shadow-none hover:border-input focus-visible:border-ring"
+                className="h-9 border-transparent bg-transparent px-1.5 text-xl font-bold shadow-none hover:border-input focus-visible:border-ring lg:text-lg"
               />
             ) : (
-              <h1 className="surface-record-title truncate">{company.name}</h1>
+              <h1 className="truncate text-xl font-bold text-foreground lg:text-lg">{company.name}</h1>
+            )}
+            {company.industry && (
+              <span className="surface-body mt-2 inline-flex items-center rounded-full bg-muted px-2.5 py-1 font-medium">
+                {company.industry}
+              </span>
             )}
             <div className="mt-2 flex flex-wrap items-center gap-1.5">
               {(company.tags ?? []).map((tag) => (
@@ -344,13 +350,18 @@ export function CompanySidebar({
         </div>
 
         {admin && (
-          <div className="mt-3 flex items-center gap-2">
+          <div className="mt-4 flex items-center gap-2">
             {admin.extraAction}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button size="icon" variant="secondary" className="rounded-full" aria-label="More actions" title="More actions">
-                  <MoreHorizontal className="size-4" aria-hidden="true" />
-                </Button>
+                <button
+                  type="button"
+                  aria-label="More actions"
+                  title="More actions"
+                  className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-muted text-foreground outline-none transition-colors hover:bg-muted/70 focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <MoreHorizontal className="size-5" aria-hidden="true" />
+                </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start">
                 <DropdownMenuItem onSelect={() => admin.onNewProject()}>New project</DropdownMenuItem>
@@ -365,22 +376,17 @@ export function CompanySidebar({
             </DropdownMenu>
           </div>
         )}
+      </div>
 
-        <div className="mt-5">
-          <div className="flex items-center justify-between">
-            <h3 className="surface-section-label">Primary Contact</h3>
-            {admin && (
-              <Popover>
-                <PopoverTrigger asChild>
-                  <button
-                    type="button"
-                    aria-label="Set primary contact"
-                    className="flex size-6 items-center justify-center rounded-full text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground"
-                  >
-                    <Plus className="size-4" aria-hidden="true" />
-                  </button>
-                </PopoverTrigger>
-                <PopoverContent align="end" className="w-72 p-1">
+      <div>
+        <div className="flex items-center justify-between px-1">
+          <h3 className="surface-section-label">Primary Contact</h3>
+          {admin && (
+            <Popover>
+              <PopoverTrigger asChild>
+                <SectionAddButton label="Set primary contact" />
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-72 p-1">
                   {pickList.length === 0 ? (
                     <button
                       type="button"
@@ -431,11 +437,12 @@ export function CompanySidebar({
             )}
           </div>
 
+        <div className="mt-2 rounded-2xl border border-border/60 bg-card p-4">
           {primaryContact ? (
-            <div className="mt-3 flex items-center gap-3">
-              <Avatar size="lg">
+            <div className="flex items-center gap-3">
+              <Avatar size="lg" className="rounded-xl">
                 {primaryContact.photoUrl && <AvatarImage src={primaryContact.photoUrl} alt="" />}
-                <AvatarFallback>{initialsFor(primaryContact.name)}</AvatarFallback>
+                <AvatarFallback className="rounded-xl">{initialsFor(primaryContact.name)}</AvatarFallback>
               </Avatar>
               <div className="min-w-0">
                 <p className="surface-body truncate font-semibold text-foreground">{primaryContact.name}</p>
@@ -455,26 +462,27 @@ export function CompanySidebar({
               </div>
             </div>
           ) : (
-            <p className="surface-body mt-3 text-muted-foreground">No primary contact yet.</p>
+            <p className="surface-body text-muted-foreground">No primary contact yet.</p>
           )}
         </div>
+      </div>
 
-        <div className="mt-5">
-          <button
-            type="button"
-            onClick={() => setDetailsOpen((open) => !open)}
-            aria-expanded={detailsOpen}
-            className="flex w-full items-center justify-between outline-none lg:pointer-events-none"
-          >
-            <h3 className="surface-section-label">Details</h3>
-            <ChevronDown
-              className={cn("size-4 text-muted-foreground transition-transform lg:hidden", detailsOpen && "rotate-180")}
-              aria-hidden="true"
-            />
-          </button>
+      <div>
+        <button
+          type="button"
+          onClick={() => setDetailsOpen((open) => !open)}
+          aria-expanded={detailsOpen}
+          className="flex w-full items-center justify-between px-1 outline-none lg:pointer-events-none"
+        >
+          <h3 className="surface-section-label">Details</h3>
+          <ChevronDown
+            className={cn("size-4 text-muted-foreground transition-transform lg:hidden", detailsOpen && "rotate-180")}
+            aria-hidden="true"
+          />
+        </button>
 
-          {admin ? (
-            <div className={cn("mt-3 divide-y divide-border/60 lg:block", detailsOpen ? "block" : "hidden")}>
+        {admin ? (
+            <div className={cn("mt-2 divide-y divide-border/60 rounded-2xl border border-border/60 bg-card px-4 lg:block", detailsOpen ? "block" : "hidden")}>
               <DetailsRow label="Domain">
                 <Input
                   key={company.website ?? ""}
@@ -556,7 +564,7 @@ export function CompanySidebar({
               </DetailsRow>
             </div>
           ) : (
-            <div className={cn("mt-3 divide-y divide-border/60 lg:block", detailsOpen ? "block" : "hidden")}>
+            <div className={cn("mt-2 divide-y divide-border/60 rounded-2xl border border-border/60 bg-card px-4 lg:block", detailsOpen ? "block" : "hidden")}>
               <DetailRow label="Domain" value={company.website} editable={false} />
               <DetailRow label="Description" value={company.description} editable={false} />
               <DetailRow label="Industry" value={company.industry} editable={false} />
@@ -570,7 +578,6 @@ export function CompanySidebar({
               <DetailRow label="LinkedIn" value={company.linkedIn} editable={false} />
             </div>
           )}
-        </div>
       </div>
     </aside>
   )
