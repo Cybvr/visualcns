@@ -47,14 +47,16 @@ import { cn } from "@/lib/utils"
 import { PortalPublishingPanel } from "@/components/portal/portal-publishing"
 
 const SECTIONS = [
-  { key: "overview", label: "Overview" },
-  { key: "team", label: "Contacts" },
   { key: "projects", label: "Projects" },
+  { key: "about", label: "About" },
+  { key: "team", label: "Team" },
   { key: "media", label: "Media" },
-  { key: "documents", label: "Documents" },
 ] as const
 
-type SectionKey = (typeof SECTIONS)[number]["key"]
+// Documents has no tab any more, but ?tab=documents still opens it so a
+// document picked from an older link keeps working.
+type SectionKey = (typeof SECTIONS)[number]["key"] | "documents"
+const SECTION_KEYS: readonly SectionKey[] = [...SECTIONS.map((s) => s.key), "documents"]
 
 export interface CompanyPagePerson {
   id: string
@@ -142,7 +144,7 @@ export function CompanyPage({
   const searchParams = useSearchParams()
 
   const tabParam = searchParams.get("tab")
-  const section: SectionKey = SECTIONS.some((s) => s.key === tabParam) ? (tabParam as SectionKey) : "overview"
+  const section: SectionKey = SECTION_KEYS.includes(tabParam as SectionKey) ? (tabParam as SectionKey) : "projects"
 
   const [docKind, docId] = (searchParams.get("doc") ?? "").split(":")
   const selectedDocument = useMemo(() => {
@@ -185,7 +187,7 @@ export function CompanyPage({
   }
 
   function handleSectionChange(key: SectionKey) {
-    updateParams({ tab: key === "overview" ? null : key, doc: null })
+    updateParams({ tab: key === "projects" ? null : key, doc: null })
     if (key !== "projects") setSelectedProject(null)
   }
 
@@ -306,41 +308,16 @@ export function CompanyPage({
             <SectionNav sections={SECTIONS} active={section} onChange={handleSectionChange} />
           </div>
 
-          {section === "overview" && (
+          {section === "about" && (
             <div className="mt-4">
-              <CompanyDetails
-                company={profile}
-                onSave={admin?.onUpdateCompany}
-              />
-
-              <div className="mt-8 flex items-center justify-between gap-4">
-                <h2 className="text-base font-semibold">Recent Projects</h2>
-                {admin && <SectionAddButton onClick={() => setCreatingProject(true)} label="New project" />}
-              </div>
-
-              {projects.length === 0 ? (
-                <CompanyEmptyState icon={Briefcase} title="No projects yet" />
-              ) : (
-                <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                  {projects.slice(0, 6).map((project) => (
-                    <ProjectCard
-                      key={project.id}
-                      project={project}
-                      onClick={() => {
-                        handleSectionChange("projects")
-                        setSelectedProject(project)
-                      }}
-                    />
-                  ))}
-                </div>
-              )}
+              <CompanyDetails company={profile} onSave={admin?.onUpdateCompany} />
             </div>
           )}
 
           {section === "team" && (
             <div className="mt-4">
               <div className="flex items-center justify-between gap-4">
-                <h2 className="sr-only">Contacts</h2>
+                <h2 className="sr-only">Team</h2>
                 <span className="text-sm text-muted-foreground">
                   {people.length} contact{people.length === 1 ? "" : "s"}
                 </span>
