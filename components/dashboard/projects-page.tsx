@@ -23,6 +23,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Eye, LayoutGrid, List, Loader2, Plus, Trash2 } from "lucide-react"
 import { getProjects, deleteProject, projectSlug, projectStatusMeta, type Project } from "@/lib/projects"
 import { NewProjectDialog } from "@/components/dashboard/new-project-dialog"
@@ -92,8 +93,17 @@ export default function ProjectsAdminPage() {
   const [bulkDeleting, setBulkDeleting] = useState(false)
   const [pendingDelete, setPendingDelete] = useState<Project | null>(null)
   const [creating, setCreating] = useState(false)
+  const [companyFilter, setCompanyFilter] = useState("all")
+
+  const companyOptions = Array.from(
+    new Set(projects.map((p) => p.client || p.companyId).filter(Boolean)),
+  ).sort((a, b) => a.localeCompare(b))
+
+  const companyFilteredProjects =
+    companyFilter === "all" ? projects : projects.filter((p) => (p.client || p.companyId) === companyFilter)
+
   const { results: visibleProjects, bar } = useFilterBar({
-    items: projects,
+    items: companyFilteredProjects,
     search: searchProject,
     sorts: PROJECT_SORTS,
     defaultSort: "title",
@@ -155,9 +165,27 @@ export default function ProjectsAdminPage() {
         placeholder="Search projects"
         controls={<ViewToggle view={view} onChange={setView} />}
         actions={
-          <Button onClick={() => setCreating(true)}><Plus className="h-4 w-4" />Add Project</Button>
+          <Button size="icon" onClick={() => setCreating(true)} aria-label="Add Project">
+            <Plus className="h-4 w-4" />
+          </Button>
         }
-      />
+      >
+        {companyOptions.length > 0 && (
+          <Select value={companyFilter} onValueChange={setCompanyFilter}>
+            <SelectTrigger className="w-[170px]" aria-label="Filter by company">
+              <SelectValue placeholder="Company" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All companies</SelectItem>
+              {companyOptions.map((company) => (
+                <SelectItem key={company} value={company}>
+                  {company}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+      </FilterBar>
 
       {loading ? (
         <div className="flex items-center justify-center py-20">
