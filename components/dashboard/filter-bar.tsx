@@ -21,6 +21,15 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
+import {
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet"
 import { cn } from "@/lib/utils"
 
 export type SortDirection = "asc" | "desc"
@@ -68,6 +77,8 @@ export type FilterBarProps = {
   /** Optional width override for the search field wrapper. */
   searchClassName?: string
   className?: string
+  /** How the mobile filter control is presented. Defaults to a centered dialog. */
+  mobileVariant?: "dialog" | "drawer"
 }
 
 function compare(a: string | number | null | undefined, b: string | number | null | undefined) {
@@ -145,6 +156,7 @@ export function FilterBar({
   controls,
   searchClassName,
   className,
+  mobileVariant = "dialog",
 }: FilterBarProps) {
   const [filterOpen, setFilterOpen] = useState(false)
   const active = sorts.find((option) => option.value === sortKey)
@@ -152,6 +164,56 @@ export function FilterBar({
   const descLabel = active?.descLabel ?? "Descending"
   const directionLabel = direction === "asc" ? ascLabel : descLabel
   const hasControls = sorts.length > 0 || Boolean(children)
+
+  const filterBody = (
+    <>
+      {(mobileFilters || children) && (
+        <div className="grid gap-3">
+          {mobileFilters || children}
+        </div>
+      )}
+      {sorts.length > 0 && (
+        <>
+          <div className="space-y-1">
+            <p className="mb-2 text-xs font-medium tracking-wide text-muted-foreground uppercase">Sort by</p>
+            {sorts.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => onSortKeyChange(option.value)}
+                className={cn(
+                  "flex w-full items-center justify-between rounded-md px-3 py-2.5 text-left text-sm transition-colors",
+                  option.value === sortKey ? "bg-accent/15 font-medium" : "hover:bg-accent/10",
+                )}
+              >
+                {option.label}
+                {option.value === sortKey && <Check className="h-4 w-4" />}
+              </button>
+            ))}
+          </div>
+          <div className="space-y-1">
+            <p className="mb-2 text-xs font-medium tracking-wide text-muted-foreground uppercase">Order</p>
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                variant={direction === "asc" ? "secondary" : "outline"}
+                onClick={() => onDirectionChange("asc")}
+              >
+                <ArrowUpNarrowWide className="h-4 w-4" />
+                {ascLabel}
+              </Button>
+              <Button
+                variant={direction === "desc" ? "secondary" : "outline"}
+                onClick={() => onDirectionChange("desc")}
+              >
+                <ArrowDownWideNarrow className="h-4 w-4" />
+                {descLabel}
+              </Button>
+            </div>
+          </div>
+        </>
+      )}
+    </>
+  )
 
   return (
     <div className={cn("mb-6 flex flex-wrap items-center gap-3", className)}>
@@ -214,69 +276,47 @@ export function FilterBar({
             )}
           </div>
 
-          <Dialog open={filterOpen} onOpenChange={setFilterOpen}>
-            <DialogTrigger asChild>
-              <Button variant="outline" size="icon" className="sm:hidden" aria-label="Sort and filter">
-                <SlidersHorizontal className="h-4 w-4" />
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-h-[min(82vh,42rem)] overflow-y-auto p-0 sm:max-w-md">
-              <DialogHeader className="border-b px-6 pt-6 pb-4">
-                <DialogTitle>Sort and filter</DialogTitle>
-                <DialogDescription>Refine the list and choose how it is ordered.</DialogDescription>
-              </DialogHeader>
-              <div className="space-y-6 px-6 py-5">
-                {(mobileFilters || children) && (
-                  <div className="grid gap-3">
-                    {mobileFilters || children}
-                  </div>
-                )}
-                {sorts.length > 0 && (
-                  <>
-                    <div className="space-y-1">
-                      <p className="mb-2 text-xs font-medium tracking-wide text-muted-foreground uppercase">Sort by</p>
-                      {sorts.map((option) => (
-                        <button
-                          key={option.value}
-                          type="button"
-                          onClick={() => onSortKeyChange(option.value)}
-                          className={cn(
-                            "flex w-full items-center justify-between rounded-md px-3 py-2.5 text-left text-sm transition-colors",
-                            option.value === sortKey ? "bg-accent/15 font-medium" : "hover:bg-accent/10",
-                          )}
-                        >
-                          {option.label}
-                          {option.value === sortKey && <Check className="h-4 w-4" />}
-                        </button>
-                      ))}
-                    </div>
-                    <div className="space-y-1">
-                      <p className="mb-2 text-xs font-medium tracking-wide text-muted-foreground uppercase">Order</p>
-                      <div className="grid grid-cols-2 gap-2">
-                        <Button
-                          variant={direction === "asc" ? "secondary" : "outline"}
-                          onClick={() => onDirectionChange("asc")}
-                        >
-                          <ArrowUpNarrowWide className="h-4 w-4" />
-                          {ascLabel}
-                        </Button>
-                        <Button
-                          variant={direction === "desc" ? "secondary" : "outline"}
-                          onClick={() => onDirectionChange("desc")}
-                        >
-                          <ArrowDownWideNarrow className="h-4 w-4" />
-                          {descLabel}
-                        </Button>
-                      </div>
-                    </div>
-                  </>
-                )}
-                <DialogClose asChild>
-                  <Button className="w-full">Done</Button>
-                </DialogClose>
-              </div>
-            </DialogContent>
-          </Dialog>
+          {mobileVariant === "drawer" ? (
+            <Sheet open={filterOpen} onOpenChange={setFilterOpen}>
+              <SheetTrigger asChild>
+                <Button variant="outline" size="icon" className="sm:hidden" aria-label="Sort and filter">
+                  <SlidersHorizontal className="h-4 w-4" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="bottom" className="max-h-[85vh] overflow-y-auto rounded-t-xl p-0">
+                <SheetHeader className="border-b px-6 pt-6 pb-4 text-left">
+                  <SheetTitle>Sort and filter</SheetTitle>
+                  <SheetDescription>Refine the list and choose how it is ordered.</SheetDescription>
+                </SheetHeader>
+                <div className="space-y-6 px-6 py-5">
+                  {filterBody}
+                  <SheetClose asChild>
+                    <Button className="w-full">Done</Button>
+                  </SheetClose>
+                </div>
+              </SheetContent>
+            </Sheet>
+          ) : (
+            <Dialog open={filterOpen} onOpenChange={setFilterOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="icon" className="sm:hidden" aria-label="Sort and filter">
+                  <SlidersHorizontal className="h-4 w-4" />
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-h-[min(82vh,42rem)] overflow-y-auto p-0 sm:max-w-md">
+                <DialogHeader className="border-b px-6 pt-6 pb-4">
+                  <DialogTitle>Sort and filter</DialogTitle>
+                  <DialogDescription>Refine the list and choose how it is ordered.</DialogDescription>
+                </DialogHeader>
+                <div className="space-y-6 px-6 py-5">
+                  {filterBody}
+                  <DialogClose asChild>
+                    <Button className="w-full">Done</Button>
+                  </DialogClose>
+                </div>
+              </DialogContent>
+            </Dialog>
+          )}
         </>
       )}
         {controls}

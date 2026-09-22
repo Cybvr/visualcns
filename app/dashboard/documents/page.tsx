@@ -7,7 +7,6 @@ import { ChevronDown, Eye, FileUp, Loader2, Pencil, Plus, Trash2 } from "lucide-
 import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
-import { DriveView } from "@/components/dashboard/drive-view"
 import { EmptySearchState, FirstRunState } from "@/components/dashboard/empty-state"
 import { NewDocumentDialog } from "@/components/dashboard/new-document-dialog"
 import { ImportWordDocumentDialog } from "@/components/dashboard/import-word-document-dialog"
@@ -61,15 +60,11 @@ import {
 import { tsToMillis } from "@/lib/tasks"
 import { cn } from "@/lib/utils"
 
-type Tab = "all" | "document" | "contract" | "invoice" | "estimate" | "media"
+type Tab = "all" | "document" | "contract" | "invoice" | "estimate"
 
 const TABS: { key: Tab; label: string }[] = [
   { key: "all", label: "All" },
   { key: "document", label: "Documents" },
-  { key: "contract", label: "Contracts" },
-  { key: "invoice", label: "Invoices" },
-  { key: "estimate", label: "Estimates" },
-  { key: "media", label: "Media" },
 ]
 
 type RowKind = "contract" | "invoice" | "estimate" | CompanyDocumentKind
@@ -218,8 +213,8 @@ export default function DocumentsPage() {
   }, [adminView, companyId])
 
   useEffect(() => {
-    if (tab !== "media") void fetchData()
-  }, [fetchData, tab])
+    void fetchData()
+  }, [fetchData])
 
   async function removeRow() {
     if (!confirmDelete) return
@@ -287,113 +282,108 @@ export default function DocumentsPage() {
         ))}
       </div>
 
-      {tab === "media" ? (
-        <DriveView />
+      <FilterBar
+        {...bar}
+        mobileVariant="drawer"
+        placeholder="Search documents"
+        actions={
+          adminView && (
+            <>
+              <Button variant="outline" onClick={() => setImporting(true)}><FileUp className="size-4" aria-hidden="true" />Import</Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button>
+                    <Plus className="size-4" aria-hidden="true" />New
+                    <ChevronDown className="size-3.5" aria-hidden="true" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onSelect={() => setCreating(true)}>Document</DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => router.push("/dashboard/contracts/new")}>Contract</DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => router.push("/dashboard/invoices/new")}>Invoice</DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => router.push("/dashboard/estimates/new")}>Estimate</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </>
+          )
+        }
+      />
+
+      {loading ? (
+        <div className="flex items-center justify-center py-20"><Loader2 className="size-8 animate-spin text-muted-foreground" aria-hidden="true" /></div>
+      ) : error ? (
+        <p className="mt-10 text-sm text-destructive">Couldn&rsquo;t load documents right now.</p>
+      ) : tabRows.length === 0 ? (
+        <FirstRunState
+          className="mt-2"
+          label="Document"
+          title={adminView ? "Let's create your first document" : "Nothing here yet"}
+          description={adminView
+            ? "Proposals, contracts, invoices, estimates and everything else you send to clients, all in one place. Pick a type or start blank."
+            : "Documents your agency shares with you will show up here."}
+          action={adminView ? <Button onClick={() => setCreating(true)}>New Document</Button> : undefined}
+        />
+      ) : visibleRows.length === 0 ? (
+        <EmptySearchState label="No documents match your search." />
       ) : (
-        <>
-          <FilterBar
-            {...bar}
-            placeholder="Search documents"
-            actions={
-              adminView && (
-                <>
-                  <Button variant="outline" onClick={() => setImporting(true)}><FileUp className="size-4" aria-hidden="true" />Import</Button>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button>
-                        <Plus className="size-4" aria-hidden="true" />New
-                        <ChevronDown className="size-3.5" aria-hidden="true" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onSelect={() => setCreating(true)}>Document</DropdownMenuItem>
-                      <DropdownMenuItem onSelect={() => router.push("/dashboard/contracts/new")}>Contract</DropdownMenuItem>
-                      <DropdownMenuItem onSelect={() => router.push("/dashboard/invoices/new")}>Invoice</DropdownMenuItem>
-                      <DropdownMenuItem onSelect={() => router.push("/dashboard/estimates/new")}>Estimate</DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </>
-              )
-            }
-          />
-
-          {loading ? (
-            <div className="flex items-center justify-center py-20"><Loader2 className="size-8 animate-spin text-muted-foreground" aria-hidden="true" /></div>
-          ) : error ? (
-            <p className="mt-10 text-sm text-destructive">Couldn&rsquo;t load documents right now.</p>
-          ) : tabRows.length === 0 ? (
-            <FirstRunState
-              className="mt-2"
-              label="Document"
-              title={adminView ? "Let's create your first document" : "Nothing here yet"}
-              description={adminView
-                ? "Proposals, contracts, invoices, estimates and everything else you send to clients, all in one place. Pick a type or start blank."
-                : "Documents your agency shares with you will show up here."}
-              action={adminView ? <Button onClick={() => setCreating(true)}>New Document</Button> : undefined}
-            />
-          ) : visibleRows.length === 0 ? (
-            <EmptySearchState label="No documents match your search." />
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Title</TableHead>
-                  <TableHead>Type</TableHead>
-                  {adminView && <TableHead>Company</TableHead>}
-                  <TableHead>Updated</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead><span className="sr-only">Actions</span></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {visibleRows.map((row) => (
-                  <TableRow key={`${row.kind}-${row.id}`}>
-                    <TableCell className="font-medium">
-                      <Link href={row.editHref ?? row.viewHref} className="rounded-sm outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring">{row.title}</Link>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">{KIND_LABEL[row.kind]}</TableCell>
-                    {adminView && (
-                      <TableCell>
-                        {row.companyId ? (
-                          <button type="button" onClick={() => setClientSheet(row.companyId)} className="rounded-sm text-left outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring">{row.company || "Company"}</button>
-                        ) : "—"}
-                      </TableCell>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Title</TableHead>
+              <TableHead>Type</TableHead>
+              {adminView && <TableHead>Company</TableHead>}
+              <TableHead>Updated</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead><span className="sr-only">Actions</span></TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {visibleRows.map((row) => (
+              <TableRow key={`${row.kind}-${row.id}`}>
+                <TableCell className="font-medium">
+                  <Link href={row.editHref ?? row.viewHref} className="rounded-sm outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring">{row.title}</Link>
+                </TableCell>
+                <TableCell className="text-muted-foreground">{KIND_LABEL[row.kind]}</TableCell>
+                {adminView && (
+                  <TableCell>
+                    {row.companyId ? (
+                      <button type="button" onClick={() => setClientSheet(row.companyId)} className="rounded-sm text-left outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring">{row.company || "Company"}</button>
+                    ) : "—"}
+                  </TableCell>
+                )}
+                <TableCell>{row.updatedAtMs ? formatDate(new Date(row.updatedAtMs).toISOString().slice(0, 10)) : "—"}</TableCell>
+                <TableCell>{row.statusLabel && <span className={cn("inline-flex rounded-full px-2 py-0.5 text-xs font-medium", row.statusClassName)}>{row.statusLabel}</span>}</TableCell>
+                <TableCell>
+                  <div className="flex items-center justify-end gap-0.5">
+                    <Link href={row.viewHref} aria-label={`View ${row.title}`} className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"><Eye className="size-4" aria-hidden="true" /></Link>
+                    {adminView && row.editHref && (
+                      <Link href={row.editHref} aria-label={`Edit ${row.title}`} className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"><Pencil className="size-4" aria-hidden="true" /></Link>
                     )}
-                    <TableCell>{row.updatedAtMs ? formatDate(new Date(row.updatedAtMs).toISOString().slice(0, 10)) : "—"}</TableCell>
-                    <TableCell>{row.statusLabel && <span className={cn("inline-flex rounded-full px-2 py-0.5 text-xs font-medium", row.statusClassName)}>{row.statusLabel}</span>}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center justify-end gap-0.5">
-                        <Link href={row.viewHref} aria-label={`View ${row.title}`} className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"><Eye className="size-4" aria-hidden="true" /></Link>
-                        {adminView && row.editHref && (
-                          <Link href={row.editHref} aria-label={`Edit ${row.title}`} className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"><Pencil className="size-4" aria-hidden="true" /></Link>
-                        )}
-                        {adminView && (
-                          <button type="button" onClick={() => setConfirmDelete(row)} aria-label={`Delete ${row.title}`} className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-destructive focus-visible:ring-2 focus-visible:ring-ring"><Trash2 className="size-4" aria-hidden="true" /></button>
-                        )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-
-          {adminView && (
-            <AlertDialog open={confirmDelete !== null} onOpenChange={(open) => !open && setConfirmDelete(null)}>
-              <AlertDialogContent>
-                <AlertDialogHeader><AlertDialogTitle>Delete this {confirmDelete && KIND_LABEL[confirmDelete.kind].toLowerCase()}?</AlertDialogTitle><AlertDialogDescription>{confirmDelete?.title} will be removed for good. This cannot be undone.</AlertDialogDescription></AlertDialogHeader>
-                <AlertDialogFooter><AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel><AlertDialogAction onClick={(event) => { event.preventDefault(); void removeRow() }} disabled={deleting}>{deleting && <Loader2 className="size-4 animate-spin" aria-hidden="true" />}Delete</AlertDialogAction></AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          )}
-
-          {adminView && <NewDocumentDialog open={creating} onOpenChange={setCreating} />}
-
-          {adminView && <ImportWordDocumentDialog open={importing} onOpenChange={setImporting} />}
-
-          {adminView && <UserEditorSheet open={clientSheet !== null} companyId={clientSheet ?? ""} onClose={() => setClientSheet(null)} onSaved={() => setClientSheet(null)} />}
-        </>
+                    {adminView && (
+                      <button type="button" onClick={() => setConfirmDelete(row)} aria-label={`Delete ${row.title}`} className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-destructive focus-visible:ring-2 focus-visible:ring-ring"><Trash2 className="size-4" aria-hidden="true" /></button>
+                    )}
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
       )}
+
+      {adminView && (
+        <AlertDialog open={confirmDelete !== null} onOpenChange={(open) => !open && setConfirmDelete(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader><AlertDialogTitle>Delete this {confirmDelete && KIND_LABEL[confirmDelete.kind].toLowerCase()}?</AlertDialogTitle><AlertDialogDescription>{confirmDelete?.title} will be removed for good. This cannot be undone.</AlertDialogDescription></AlertDialogHeader>
+            <AlertDialogFooter><AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel><AlertDialogAction onClick={(event) => { event.preventDefault(); void removeRow() }} disabled={deleting}>{deleting && <Loader2 className="size-4 animate-spin" aria-hidden="true" />}Delete</AlertDialogAction></AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
+
+      {adminView && <NewDocumentDialog open={creating} onOpenChange={setCreating} />}
+
+      {adminView && <ImportWordDocumentDialog open={importing} onOpenChange={setImporting} />}
+
+      {adminView && <UserEditorSheet open={clientSheet !== null} companyId={clientSheet ?? ""} onClose={() => setClientSheet(null)} onSaved={() => setClientSheet(null)} />}
     </main>
   )
 }
