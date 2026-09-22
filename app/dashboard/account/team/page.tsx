@@ -32,13 +32,15 @@ function initial(value: string) {
 
 /**
  * The people who run this tenant: everyone with admin access, plus admin
- * invites that haven't been used yet. Inviting creates a link to send.
+ * invites that haven't been used yet. Adding someone gives them access right
+ * away and returns a link for them to set a password.
  */
 export default function AccountTeamPage() {
   const { user, isAdmin, loading: authLoading } = useAuth()
   const [members, setMembers] = useState<AppUser[]>([])
   const [invites, setInvites] = useState<Invite[]>([])
   const [loading, setLoading] = useState(true)
+  const [name, setName] = useState("")
   const [email, setEmail] = useState("")
   const [inviting, setInviting] = useState(false)
   const [inviteUrl, setInviteUrl] = useState("")
@@ -86,19 +88,21 @@ export default function AccountTeamPage() {
     setError("")
     setInviteUrl("")
     try {
-      const response = await fetch("/api/admin/invites", {
+      const response = await fetch("/api/admin/team", {
         method: "POST",
         headers: { Authorization: `Bearer ${await user.getIdToken()}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ email: address, role: "admin" }),
+        body: JSON.stringify({ email: address, name: name.trim() }),
       })
       const data = await response.json()
-      if (!response.ok) throw new Error(data.error || "Could not create invite")
-      setInviteUrl(data.inviteUrl)
+      if (!response.ok) throw new Error(data.error || "Could not add team member")
+      setInviteUrl(data.setupUrl)
       setCopied(false)
+      setName("")
       setEmail("")
+      toast.success("Team member added")
       void load()
     } catch (inviteError) {
-      setError(inviteError instanceof Error ? inviteError.message : "Could not create invite")
+      setError(inviteError instanceof Error ? inviteError.message : "Could not add team member")
     } finally {
       setInviting(false)
     }
@@ -108,7 +112,7 @@ export default function AccountTeamPage() {
     try {
       await navigator.clipboard.writeText(inviteUrl)
       setCopied(true)
-      toast.success("Invite link copied")
+      toast.success("Link copied")
     } catch {
       toast.error("Couldn't copy. Select the link and copy it.")
     }
@@ -119,35 +123,41 @@ export default function AccountTeamPage() {
   return (
     <main className="mx-auto w-full max-w-3xl px-4 py-9 sm:px-6">
       <AccountNav />
-      <AccountHeader title="Team" description="People who can manage this workspace. Invite someone and send them the link." />
+      <AccountHeader title="Team" description="People who can manage this workspace." />
 
-      <form onSubmit={handleInvite} className="mt-6 space-y-1.5">
-        <Label htmlFor="invite-email">Invite by email</Label>
-        <div className="flex gap-2">
-          <Input
-            id="invite-email"
-            type="email"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            placeholder="name@example.com"
-            className="min-w-0 flex-1"
-            required
-          />
-          <Button type="submit" disabled={inviting}>
-            {inviting && <Loader2 className="mr-2 size-4 animate-spin" />}
-            Invite
-          </Button>
+      <form onSubmit={handleInvite} className="mt-6 space-y-3">
+        <h2 className="text-sm font-medium">Add team member</h2>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="space-y-1.5">
+            <Label htmlFor="member-name">Name</Label>
+            <Input id="member-name" value={name} onChange={(event) => setName(event.target.value)} placeholder="Ada Obi" />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="member-email">Email</Label>
+            <Input
+              id="member-email"
+              type="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              placeholder="name@example.com"
+              required
+            />
+          </div>
         </div>
+        <Button type="submit" disabled={inviting}>
+          {inviting && <Loader2 className="mr-2 size-4 animate-spin" />}
+          Add member
+        </Button>
         {error && <p className="text-sm text-destructive">{error}</p>}
       </form>
 
       {inviteUrl && (
         <div className="mt-4 rounded-xl border border-border bg-muted/40 p-3">
-          <p className="text-sm font-medium">Invite link ready</p>
-          <p className="mt-0.5 text-xs text-muted-foreground">Send this to them. It works once and expires in 7 days.</p>
+          <p className="text-sm font-medium">Added. Send them this link to set their password</p>
+          <p className="mt-0.5 text-xs text-muted-foreground">After that they sign in with their email.</p>
           <div className="mt-2 flex gap-2">
             <Input readOnly value={inviteUrl} onFocus={(event) => event.target.select()} className="min-w-0 flex-1 text-xs" />
-            <Button type="button" variant="outline" size="icon" onClick={() => void copyLink()} aria-label="Copy invite link">
+            <Button type="button" variant="outline" size="icon" onClick={() => void copyLink()} aria-label="Copy link">
               {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
             </Button>
           </div>
