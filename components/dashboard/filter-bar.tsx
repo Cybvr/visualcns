@@ -281,7 +281,7 @@ export function FilterBar({
           {mobileVariant === "drawer" ? (
             <Sheet open={filterOpen} onOpenChange={setFilterOpen}>
               <SheetTrigger asChild>
-                <Button variant="outline" size="icon" className="sm:hidden" aria-label="Sort and filter">
+                <Button variant="ghost" size="icon" className="sm:hidden bg-card shadow-none hover:bg-card/80" aria-label="Sort and filter">
                   <SlidersHorizontal className="h-4 w-4" />
                 </Button>
               </SheetTrigger>
@@ -301,7 +301,7 @@ export function FilterBar({
           ) : (
             <Dialog open={filterOpen} onOpenChange={setFilterOpen}>
               <DialogTrigger asChild>
-                <Button variant="outline" size="icon" className="sm:hidden" aria-label="Sort and filter">
+                <Button variant="ghost" size="icon" className="sm:hidden bg-card shadow-none hover:bg-card/80" aria-label="Sort and filter">
                   <SlidersHorizontal className="h-4 w-4" />
                 </Button>
               </DialogTrigger>

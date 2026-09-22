@@ -1,13 +1,15 @@
 "use client"
 
-import { ArrowLeft, Check, ChevronDown, ChevronsUpDown, Clock, Eye, FileText, Loader2, Send, Trash2, X } from "lucide-react"
+import { ArrowLeft, Check, ChevronDown, ChevronsUpDown, Clock, Eye, FileText, Loader2, MoreVertical, Trash2, X } from "lucide-react"
 import type { FormEvent } from "react"
+import { IoSend } from "react-icons/io5"
 
 import { RichTextEditor } from "@/components/dashboard/rich-text-editor"
+import { ReactIcon } from "@/components/react-icon"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -131,14 +133,33 @@ export function EmailComposer({
     <>
       <div className={fullPage ? "fixed inset-0 z-40 flex" : "fixed inset-x-0 bottom-0 z-40 flex justify-center sm:inset-x-auto sm:right-6 sm:justify-end"}>
         <div className={fullPage
-          ? "flex h-full w-full flex-col overflow-hidden bg-card"
+          ? "flex h-full w-full flex-col overflow-hidden bg-background"
           : cn("flex w-full flex-col overflow-hidden border border-border bg-card shadow-2xl sm:w-[512px] sm:max-w-[calc(100vw-3rem)] sm:rounded-t-xl", composeMinimized ? "h-auto" : "h-[100svh] sm:h-[560px] sm:max-h-[calc(100svh-2rem)]")}>
           {fullPage ? (
             /* Drafts: a full-page surface with a back arrow — not a popup. */
-            <div className="flex shrink-0 items-center gap-2 border-b border-border bg-background px-3 py-2.5 text-foreground">
+            <div className="flex shrink-0 items-center justify-between gap-2 border-b border-border bg-background px-3 py-2.5 text-foreground">
               <button type="button" onClick={closeCompose} aria-label="Back" className="-ml-1 flex size-8 shrink-0 items-center justify-center rounded outline-none transition-colors hover:bg-muted"><ArrowLeft className="size-5" aria-hidden="true" /></button>
-              <span className="min-w-0 flex-1 truncate text-sm font-medium">{subject.trim() || "New message"}</span>
-              <button type="button" onClick={closeCompose} aria-label="Close" className="flex size-8 shrink-0 items-center justify-center rounded text-muted-foreground outline-none transition-colors hover:bg-muted"><X className="size-4" aria-hidden="true" /></button>
+              <div className="flex shrink-0 items-center gap-1">
+                <Button type="submit" form="email-compose-form" size="icon" variant="ghost" aria-label={scheduleEnabled ? "Schedule email" : "Send email"} title={scheduleEnabled ? "Schedule email" : "Send email"} disabled={!senderConfigured || sending || (!selectedListId && !to.trim()) || (selectedListId && !selectedList?.contactEmails.length) || !subject.trim() || !htmlToText(body).trim() || (scheduleEnabled && !scheduleAt)}>
+                  {sending ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : scheduleEnabled ? <Clock className="size-4" aria-hidden="true" /> : <ReactIcon icon={IoSend} className="size-4" aria-hidden="true" />}
+                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button type="button" variant="ghost" size="icon" aria-label="More email actions" title="More email actions"><MoreVertical className="size-5" aria-hidden="true" /></Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56">
+                    <DropdownMenuItem onSelect={() => setComposerPreviewOpen(true)}><Eye aria-hidden="true" />Preview</DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuLabel>Templates</DropdownMenuLabel>
+                    <DropdownMenuItem onSelect={() => applyTemplate("")}><FileText aria-hidden="true" />Start without a template</DropdownMenuItem>
+                    {[...templates].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" })).map((template) => (
+                      <DropdownMenuItem key={template.id} onSelect={() => applyTemplate(template.id)}><FileText aria-hidden="true" /><span className="truncate">{template.name}</span></DropdownMenuItem>
+                    ))}
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem variant="destructive" onSelect={() => { if (editingDraftId) void removeDraft(editingDraftId); clearComposer(); closeCompose() }}><Trash2 aria-hidden="true" />Delete draft</DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
             </div>
           ) : (
             /* New mail: the docked compose popup. */
@@ -149,7 +170,7 @@ export function EmailComposer({
           )}
 
           {(fullPage || !composeMinimized) && (
-            <form autoComplete="off" onSubmit={sendEmail} className="flex min-h-0 flex-1 flex-col overflow-hidden">
+            <form id="email-compose-form" autoComplete="off" onSubmit={sendEmail} className="flex min-h-0 flex-1 flex-col overflow-hidden">
               <div className="grid shrink-0 grid-cols-[minmax(0,1fr)_9rem] items-center border-b border-border"><div className="flex min-w-0 items-center gap-2 px-4 py-2"><span className="shrink-0 text-xs font-medium text-muted-foreground">From</span><p className="min-w-0 truncate text-sm">{cleanSenderDisplay(senderAddress || (showOpsDetail ? "Not configured" : "Not available yet"))}</p></div><div className="px-3 py-1"><Select value={messageKind} onValueChange={(value) => setMessageKind(value as EmailMessageKind)}><SelectTrigger aria-label="Message type" className="h-7 w-full border-0 bg-transparent px-1 text-xs shadow-none hover:bg-transparent data-[state=open]:bg-transparent"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="transactional">Service message</SelectItem><SelectItem value="marketing">Marketing email</SelectItem></SelectContent></Select></div></div>
 
               <div className="grid shrink-0 grid-cols-2 gap-3 border-b border-border px-4 py-2.5">
@@ -161,7 +182,29 @@ export function EmailComposer({
               {messageKind === "marketing" && <p className="shrink-0 border-b border-border px-4 py-1.5 text-xs leading-5 text-muted-foreground">Only subscribed contacts will receive this. An unsubscribe link is added automatically.</p>}
               <div className="min-h-0 flex-1 overflow-hidden px-2 py-2"><RichTextEditor value={body} onChange={setBody} placeholder="Write your message" scrollable compact flat allowHtml className="h-full min-h-0" /></div>
 
-              <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-t border-border px-3 py-2"><div className="flex items-center gap-1"><div className="inline-flex items-stretch"><Button type="submit" className="rounded-r-none" disabled={!senderConfigured || sending || (!selectedListId && !to.trim()) || (selectedListId && !selectedList?.contactEmails.length) || !subject.trim() || !htmlToText(body).trim() || (scheduleEnabled && !scheduleAt)}>{sending ? <Loader2 className="animate-spin" aria-hidden="true" /> : scheduleEnabled ? <Clock aria-hidden="true" /> : <Send aria-hidden="true" />}{sending ? (scheduleEnabled ? "Scheduling" : "Sending") : scheduleEnabled ? "Schedule" : "Send"}</Button><DropdownMenu><DropdownMenuTrigger asChild><Button type="button" aria-label="Choose send action" title="Choose send action" className="rounded-l-none border-l border-primary-foreground/25 px-2" disabled={sending}><ChevronDown aria-hidden="true" /></Button></DropdownMenuTrigger><DropdownMenuContent align="start">{scheduleEnabled ? <DropdownMenuItem onSelect={() => { setScheduleEnabled(false); setScheduleAt("") }}><Send aria-hidden="true" />Send now</DropdownMenuItem> : <DropdownMenuItem onSelect={() => setScheduleEnabled(true)}><Clock aria-hidden="true" />Schedule</DropdownMenuItem>}</DropdownMenuContent></DropdownMenu></div>{scheduleEnabled && <Input type="datetime-local" aria-label="Schedule date and time" value={scheduleAt} min={scheduleMin || undefined} onChange={(event) => setScheduleAt(event.target.value)} className="h-9 w-auto" />}</div><div className="flex items-center gap-2">{draftStatus !== "idle" && <span className="hidden text-xs text-muted-foreground sm:inline">{draftStatus === "saving" || savingDraft ? "Saving…" : draftStatus === "saved" ? "Saved" : "Not saved"}</span>}<Button type="button" variant="outline" size="sm" onClick={() => setComposerPreviewOpen(true)}><Eye aria-hidden="true" />Preview</Button><DropdownMenu><DropdownMenuTrigger asChild><Button type="button" variant="ghost" size="sm" className="max-w-40 justify-start px-2"><FileText aria-hidden="true" /><span className="truncate">{selectedTemplate?.name || "Template"}</span></Button></DropdownMenuTrigger><DropdownMenuContent align="end" className="w-72"><DropdownMenuItem onSelect={() => applyTemplate("")}>Start without a template</DropdownMenuItem>{[...templates].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" })).map((template) => <DropdownMenuItem key={template.id} onSelect={() => applyTemplate(template.id)}><span className="truncate">{template.name}</span></DropdownMenuItem>)}</DropdownMenuContent></DropdownMenu><button type="button" onClick={() => { if (editingDraftId) void removeDraft(editingDraftId); clearComposer(); closeCompose() }} aria-label="Discard draft" title="Discard" className="flex size-9 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-destructive/10 hover:text-destructive"><Trash2 className="size-4" aria-hidden="true" /></button></div></div>
+              {!fullPage && (
+                <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-t border-border px-3 py-2">
+                  <div className="flex items-center gap-1">
+                    <div className="inline-flex items-stretch">
+                      <Button type="submit" className="rounded-r-none" disabled={!senderConfigured || sending || (!selectedListId && !to.trim()) || (selectedListId && !selectedList?.contactEmails.length) || !subject.trim() || !htmlToText(body).trim() || (scheduleEnabled && !scheduleAt)}>{sending ? <Loader2 className="animate-spin" aria-hidden="true" /> : scheduleEnabled ? <Clock aria-hidden="true" /> : <ReactIcon icon={IoSend} aria-hidden="true" />}{sending ? (scheduleEnabled ? "Scheduling" : "Sending") : scheduleEnabled ? "Schedule" : "Send"}</Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild><Button type="button" aria-label="Choose send action" title="Choose send action" className="rounded-l-none border-l border-primary-foreground/25 px-2" disabled={sending}><ChevronDown aria-hidden="true" /></Button></DropdownMenuTrigger>
+                        <DropdownMenuContent align="start">{scheduleEnabled ? <DropdownMenuItem onSelect={() => { setScheduleEnabled(false); setScheduleAt("") }}><ReactIcon icon={IoSend} aria-hidden="true" />Send now</DropdownMenuItem> : <DropdownMenuItem onSelect={() => setScheduleEnabled(true)}><Clock aria-hidden="true" />Schedule</DropdownMenuItem>}</DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                    {scheduleEnabled && <Input type="datetime-local" aria-label="Schedule date and time" value={scheduleAt} min={scheduleMin || undefined} onChange={(event) => setScheduleAt(event.target.value)} className="h-9 w-auto" />}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {draftStatus !== "idle" && <span className="hidden text-xs text-muted-foreground sm:inline">{draftStatus === "saving" || savingDraft ? "Saving…" : draftStatus === "saved" ? "Saved" : "Not saved"}</span>}
+                    <Button type="button" variant="outline" size="sm" onClick={() => setComposerPreviewOpen(true)}><Eye aria-hidden="true" />Preview</Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild><Button type="button" variant="ghost" size="sm" className="max-w-40 justify-start px-2"><FileText aria-hidden="true" /><span className="truncate">{selectedTemplate?.name || "Template"}</span></Button></DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-72"><DropdownMenuItem onSelect={() => applyTemplate("")}>Start without a template</DropdownMenuItem>{[...templates].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" })).map((template) => <DropdownMenuItem key={template.id} onSelect={() => applyTemplate(template.id)}><span className="truncate">{template.name}</span></DropdownMenuItem>)}</DropdownMenuContent>
+                    </DropdownMenu>
+                    <button type="button" onClick={() => { if (editingDraftId) void removeDraft(editingDraftId); clearComposer(); closeCompose() }} aria-label="Discard draft" title="Discard" className="flex size-9 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-destructive/10 hover:text-destructive"><Trash2 className="size-4" aria-hidden="true" /></button>
+                  </div>
+                </div>
+              )}
               {sendNotice && sendNotice.tone === "error" && <div className="shrink-0 border-t border-border px-4 py-2 text-sm text-destructive" aria-live="polite">{sendNotice.text}</div>}
             </form>
           )}

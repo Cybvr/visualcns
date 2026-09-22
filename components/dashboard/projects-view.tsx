@@ -148,7 +148,7 @@ export function ProjectsView({
         />
       ) : (
       <>
-        <div className="mt-4 space-y-2 sm:hidden">
+        <div className="mt-2 space-y-2 sm:hidden">
           {projects.map((project) => {
             const meta = projectStatusMeta[project.status]
             return (

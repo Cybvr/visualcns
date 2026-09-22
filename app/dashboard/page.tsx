@@ -80,10 +80,10 @@ export default function DashboardPage() {
         <p className="mt-10 text-sm text-destructive">{error}</p>
       ) : (
         <>
-          <Tabs defaultValue="projects" className="mt-4">
-            <TabsList>
-              <TabsTrigger value="projects">Projects</TabsTrigger>
-              <TabsTrigger value="activity">Activity</TabsTrigger>
+          <Tabs defaultValue="projects" className="mt-0 gap-1">
+            <TabsList className="h-8 p-0.5">
+              <TabsTrigger value="projects" className="px-3 py-0">Projects</TabsTrigger>
+              <TabsTrigger value="activity" className="px-3 py-0">Activity</TabsTrigger>
             </TabsList>
             <TabsContent value="projects" className="mt-0">
               <ProjectsView
@@ -95,7 +95,7 @@ export default function DashboardPage() {
                 hideHeader
                 minimal
               />
-              <HomeTaskList tasks={tasks.slice(0, HOME_TASK_LIMIT)} onSaved={fetchData} className="mt-8" />
+              <HomeTaskList tasks={tasks.slice(0, HOME_TASK_LIMIT)} onSaved={fetchData} className="mt-4" />
             </TabsContent>
             <TabsContent value="activity" className="mt-0">
               <ActivityFeed items={activity} hrefFor={activityHref} showHeader={false} className="mt-0" />

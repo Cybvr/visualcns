@@ -314,7 +314,7 @@ export default function DocumentsPage() {
         actions={
           adminView && (
             <>
-              <Button variant="outline" size="icon" onClick={() => setImporting(true)} aria-label="Import document" title="Import document"><FileUp className="size-4" aria-hidden="true" /></Button>
+              <Button variant="ghost" size="icon" className="bg-card shadow-none hover:bg-card/80" onClick={() => setImporting(true)} aria-label="Import document" title="Import document"><FileUp className="size-4" aria-hidden="true" /></Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button size="sm" className="px-3" aria-label="New" title="New">

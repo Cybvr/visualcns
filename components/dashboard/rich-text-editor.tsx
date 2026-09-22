@@ -11,6 +11,7 @@ import { looksLikeMarkdown, markdownToHtml } from "@/lib/markdown"
 import {
   Bold,
   Code2,
+  EllipsisVertical,
   Heading2,
   Heading3,
   Italic,
@@ -26,6 +27,7 @@ import {
 
 import { cn } from "@/lib/utils"
 import { ImagePickerDialog } from "@/components/dashboard/image-picker-dialog"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 
 type ToolbarButton = {
   label: string
@@ -201,67 +203,67 @@ export function RichTextEditor({
     setHtmlMode((current) => !current)
   }
 
+  function renderToolbarButton(button: ToolbarButton) {
+    const Icon = button.icon
+    const active = button.isActive?.(editor) ?? false
+    return (
+      <button
+        key={button.label}
+        type="button"
+        onClick={() => button.run(editor)}
+        aria-label={button.label}
+        aria-pressed={active}
+        className={cn(
+          "inline-flex size-8 shrink-0 items-center justify-center rounded-md outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring",
+          active
+            ? "bg-muted text-foreground"
+            : "text-muted-foreground hover:bg-muted hover:text-foreground",
+        )}
+      >
+        <Icon className="size-4" aria-hidden="true" />
+      </button>
+    )
+  }
+
   return (
     <div className={cn(
       "flex min-h-0 flex-col overflow-hidden bg-background",
       flat ? "rounded-none border-x-0 border-t-0 border-b border-input" : "rounded-[10px] border border-input",
       className,
     )}>
-      <div className="flex flex-wrap items-center gap-1 border-b border-input px-2 py-1.5">
-        {BUTTONS.map((group, index) => (
-          <div key={index} className="flex items-center gap-1 [&:not(:last-child)]:mr-1">
-            {group.map((button) => {
-              const Icon = button.icon
-              const active = button.isActive?.(editor) ?? false
-              return (
-                <button
-                  key={button.label}
-                  type="button"
-                  onClick={() => button.run(editor)}
-                  aria-label={button.label}
-                  aria-pressed={active}
-                  className={cn(
-                    "inline-flex size-8 items-center justify-center rounded-md outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring",
-                    active
-                      ? "bg-muted text-foreground"
-                      : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                  )}
-                >
-                  <Icon className="size-4" aria-hidden="true" />
-                </button>
-              )
-            })}
-          </div>
-        ))}
-        <div className="flex items-center gap-1 border-l border-input pl-1">
-          <button
-            type="button"
-            onClick={() => setImageDialogOpen(true)}
-            aria-label={imageSelected ? "Replace image" : "Insert image"}
-            title={imageSelected ? "Replace image" : "Insert image"}
-            className={cn(
-              "inline-flex size-8 items-center justify-center rounded-md outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring",
-              imageSelected ? "bg-muted text-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground",
-            )}
-          >
-            <ImagePlus className="size-4" aria-hidden="true" />
-          </button>
+      <div className="flex min-w-0 items-center gap-1 border-b border-input px-2 py-1.5">
+        <div className="flex shrink-0 items-center gap-1 sm:hidden">
+          {(BUTTONS[0] ?? []).map(renderToolbarButton)}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button type="button" aria-label="More formatting tools" title="More formatting tools" className="inline-flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring">
+                <EllipsisVertical className="size-4" aria-hidden="true" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" side="top">
+              {BUTTONS.slice(1).flat().map((button) => {
+                const Icon = button.icon
+                return <DropdownMenuItem key={button.label} onSelect={() => button.run(editor)}><Icon aria-hidden="true" /><span>{button.label}</span></DropdownMenuItem>
+              })}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onSelect={() => setImageDialogOpen(true)}><ImagePlus aria-hidden="true" /><span>{imageSelected ? "Replace image" : "Insert image"}</span></DropdownMenuItem>
+              {allowHtml && <DropdownMenuItem onSelect={toggleHtmlMode}><Code2 aria-hidden="true" /><span>{htmlMode ? "Use visual editor" : "Edit HTML"}</span></DropdownMenuItem>}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
-        {allowHtml && (
-          <button
-            type="button"
-            onClick={toggleHtmlMode}
-            aria-label={htmlMode ? "Use visual editor" : "Edit HTML"}
-            aria-pressed={htmlMode}
-            title={htmlMode ? "Use visual editor" : "Edit HTML"}
-            className={cn(
-              "inline-flex size-8 items-center justify-center rounded-md outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring",
-              htmlMode ? "bg-muted text-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground",
-            )}
-          >
-            <Code2 className="size-4" aria-hidden="true" />
-          </button>
-        )}
+        <div className="hidden min-w-0 flex-1 items-center gap-1 sm:flex">
+          {BUTTONS.map((group, index) => (
+            <div key={index} className="flex shrink-0 items-center gap-1 [&:not(:last-child)]:mr-1">
+              {group.map(renderToolbarButton)}
+            </div>
+          ))}
+          <div className="flex shrink-0 items-center gap-1 border-l border-input pl-1">
+            <button type="button" onClick={() => setImageDialogOpen(true)} aria-label={imageSelected ? "Replace image" : "Insert image"} title={imageSelected ? "Replace image" : "Insert image"} className={cn("inline-flex size-8 shrink-0 items-center justify-center rounded-md outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring", imageSelected ? "bg-muted text-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground")}>
+              <ImagePlus className="size-4" aria-hidden="true" />
+            </button>
+          </div>
+          {allowHtml && <button type="button" onClick={toggleHtmlMode} aria-label={htmlMode ? "Use visual editor" : "Edit HTML"} aria-pressed={htmlMode} title={htmlMode ? "Use visual editor" : "Edit HTML"} className={cn("inline-flex size-8 shrink-0 items-center justify-center rounded-md outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring", htmlMode ? "bg-muted text-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground")}><Code2 className="size-4" aria-hidden="true" /></button>}
+        </div>
       </div>
       <ImagePickerDialog
         open={imageDialogOpen}

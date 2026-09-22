@@ -72,7 +72,7 @@ import type {
   SentMessage,
 } from "@/components/dashboard/email/types"
 import { EmailComposer } from "@/components/dashboard/email/email-composer"
-import { EmailLists } from "@/components/dashboard/email/email-lists"
+import { EmailListPicker, EmailLists } from "@/components/dashboard/email/email-lists"
 import { EmailMessageSurfaces } from "@/components/dashboard/email/email-message-surfaces"
 import { EmailTemplates } from "@/components/dashboard/email/email-templates"
 
@@ -314,6 +314,7 @@ export default function EmailPage() {
   const [listName, setListName] = useState("")
   const [listContactEmails, setListContactEmails] = useState<string[]>([])
   const [editingListId, setEditingListId] = useState<string | null>(null)
+  const [listPickerOpen, setListPickerOpen] = useState(false)
   const [listNotice, setListNotice] = useState<Notice>(null)
   const [listContactQuery, setListContactQuery] = useState("")
   const [listShowSelectedOnly, setListShowSelectedOnly] = useState(false)
@@ -1266,6 +1267,7 @@ export default function EmailPage() {
   }
 
   function resetListEditor() {
+    setListPickerOpen(false)
     setEditingListId(null)
     setListName("")
     setListContactEmails([])
@@ -1280,8 +1282,9 @@ export default function EmailPage() {
     setListContactEmails(list.contactEmails)
     setListNotice(null)
     setListContactQuery("")
-    // Open straight into the list's members so you can see who's in it.
-    setListShowSelectedOnly(true)
+    // Open the picker with every contact visible and this list's members checked.
+    setListShowSelectedOnly(false)
+    setListPickerOpen(true)
   }
 
   async function saveList(event: FormEvent<HTMLFormElement>) {
@@ -1366,8 +1369,26 @@ export default function EmailPage() {
         <FilterBar
           {...activeFilterBar}
           className="mb-2"
+          showSearch={false}
           placeholder={tab === "inbox" ? "Search inbox" : tab === "messages" ? "Search sent" : tab === "templates" ? "Search templates" : "Search lists"}
           searchClassName={tab === "messages" || tab === "inbox" ? "sm:max-w-[16rem]" : undefined}
+          actions={
+            <div className="lg:hidden">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button size="sm" className="bg-foreground px-3 text-background hover:bg-foreground/90" aria-label="Create email item" title="Create email item">
+                    <Plus className="size-4" aria-hidden="true" />
+                    <ChevronDown className="size-4" aria-hidden="true" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onSelect={() => openCompose(true)}><Mail aria-hidden="true" />Compose email</DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => { setTab("templates"); setMobileTemplateView("editor") }}><FileText aria-hidden="true" />New template</DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => { setTab("lists"); resetListEditor(); setListPickerOpen(true) }}><List aria-hidden="true" />New list</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          }
         />
         <div className="mb-2 flex w-full items-center gap-1 rounded-md bg-muted/50 p-0.5 lg:hidden" role="tablist" aria-label="Email">
           {EMAIL_FOLDERS.map((folder) => (
@@ -1433,28 +1454,34 @@ export default function EmailPage() {
         )}
 
         {tab === "lists" && (
-          <EmailLists
-            lists={lists}
-            visibleLists={visibleLists}
-            editingListId={editingListId}
-            editList={editList}
-            deleteList={deleteList}
-            resetListEditor={resetListEditor}
-            listName={listName}
-            setListName={setListName}
-            listContactQuery={listContactQuery}
-            setListContactQuery={setListContactQuery}
-            listShowSelectedOnly={listShowSelectedOnly}
-            setListShowSelectedOnly={setListShowSelectedOnly}
-            listContactEmails={listContactEmails}
-            setListContactEmails={setListContactEmails}
-            contacts={contacts}
-            visibleListContacts={visibleListContacts}
-            saveList={saveList}
-            listNotice={listNotice}
-            contactInitials={contactInitials}
-            contactAvatarTone={contactAvatarTone}
-          />
+          listPickerOpen ? (
+            <EmailListPicker
+              open={listPickerOpen}
+              onClose={() => setListPickerOpen(false)}
+              listName={listName}
+              setListName={setListName}
+              listContactQuery={listContactQuery}
+              setListContactQuery={setListContactQuery}
+              listShowSelectedOnly={listShowSelectedOnly}
+              setListShowSelectedOnly={setListShowSelectedOnly}
+              listContactEmails={listContactEmails}
+              setListContactEmails={setListContactEmails}
+              contacts={contacts}
+              visibleListContacts={visibleListContacts}
+              saveList={saveList}
+              listNotice={listNotice}
+              editingListId={editingListId}
+            />
+          ) : (
+            <EmailLists
+              visibleLists={visibleLists}
+              editingListId={editingListId}
+              editList={editList}
+              deleteList={deleteList}
+              contactInitials={contactInitials}
+              contactAvatarTone={contactAvatarTone}
+            />
+          )
         )}
 
         {tab === "templates" && (
@@ -1487,17 +1514,6 @@ export default function EmailPage() {
         )}
 
       </div>
-
-      <Button
-        type="button"
-        size="icon"
-        onClick={() => openCompose(true)}
-        aria-label="Compose"
-        title="Compose"
-        className="fixed right-5 bottom-6 z-30 size-14 rounded-full shadow-lg lg:hidden"
-      >
-        <Plus className="size-6" aria-hidden="true" />
-      </Button>
 
       <EmailComposer
         composeOpen={composeOpen}

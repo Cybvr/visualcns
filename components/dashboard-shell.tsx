@@ -189,7 +189,8 @@ export function DashboardShell({
         {/* overflow-y-auto: this column is the scroll container, not the body */}
         <SidebarInset
           className={cn(
-            "overflow-y-auto pb-[calc(4.5rem+env(safe-area-inset-bottom))] md:pb-6",
+            "overflow-y-auto md:pb-6",
+            !isEmailRoute && "pb-[calc(4.5rem+env(safe-area-inset-bottom))]",
             pathname === "/dashboard/email" && "lg:min-h-0 lg:overflow-hidden lg:pb-0",
           )}
         >
@@ -255,7 +256,7 @@ export function DashboardShell({
           {children}
         </SidebarInset>
         <NgaiSidePanel />
-        <DashboardMobileFooterNav rootHref={rootHref} onQuickCreate={selectQuickCreate} />
+        {!isEmailRoute && <DashboardMobileFooterNav rootHref={rootHref} onQuickCreate={selectQuickCreate} />}
       </SidebarProvider>
 
       <Dialog

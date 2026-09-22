@@ -1,6 +1,6 @@
 "use client"
 
-import { ArrowLeft, Eye, FileText, Linkedin, Plus, Twitter } from "lucide-react"
+import { ArrowLeft, Eye, FileText, Linkedin, Twitter } from "lucide-react"
 
 import { RichTextEditor } from "@/components/dashboard/rich-text-editor"
 import { Button } from "@/components/ui/button"
@@ -92,7 +92,7 @@ export function EmailTemplates({
         </div>
       </form>
       <div className={cn("min-h-0 w-full min-w-0 max-w-full max-lg:shrink-0 lg:rounded-lg lg:border lg:border-border lg:bg-card lg:flex-1 lg:overflow-y-auto", mobileTemplateView === "list" ? "block" : "hidden")}>
-        <div className="flex items-center justify-end gap-2 border-b border-border p-2"><div className="flex items-center gap-1">{isAdmin && !templates.some((template) => template.id === "announce-insights") && <Button type="button" variant="outline" size="sm" onClick={addInsightsTemplate}>Add Insights email</Button>}<Button type="button" variant="ghost" size="icon" className="size-8" onClick={() => { resetTemplateEditor(); setMobileTemplateView("editor") }} aria-label="New template" title="New template"><Plus aria-hidden="true" /></Button></div></div>
+        {isAdmin && !templates.some((template) => template.id === "announce-insights") && <div className="flex items-center justify-end gap-2 border-b border-border p-2"><Button type="button" variant="outline" size="sm" onClick={addInsightsTemplate}>Add Insights email</Button></div>}
         {templates.length === 0 ? <div className="mt-3 rounded-[12px] border border-dashed border-border px-4 py-8 text-center"><FileText className="mx-auto size-5 text-muted-foreground" aria-hidden="true" /><p className="mt-3 text-sm font-medium">No templates yet</p><p className="mt-1 text-xs leading-5 text-muted-foreground">Save the first one using the editor.</p></div> : visibleTemplates.length === 0 ? <div className="mt-3 rounded-[12px] border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground">No templates match your search.</div> : (
           <div><EmailListHeader primaryLabel="Template" dateLabel="Updated" />{visibleTemplates.map((template) => (
             <EmailListRow
