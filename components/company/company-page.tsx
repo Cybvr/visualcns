@@ -51,12 +51,10 @@ const SECTIONS = [
   { key: "about", label: "About" },
   { key: "team", label: "Team" },
   { key: "media", label: "Media" },
+  { key: "documents", label: "Documents" },
 ] as const
 
-// Documents has no tab any more, but ?tab=documents still opens it so a
-// document picked from an older link keeps working.
-type SectionKey = (typeof SECTIONS)[number]["key"] | "documents"
-const SECTION_KEYS: readonly SectionKey[] = [...SECTIONS.map((s) => s.key), "documents"]
+type SectionKey = (typeof SECTIONS)[number]["key"]
 
 export interface CompanyPagePerson {
   id: string
@@ -144,7 +142,7 @@ export function CompanyPage({
   const searchParams = useSearchParams()
 
   const tabParam = searchParams.get("tab")
-  const section: SectionKey = SECTION_KEYS.includes(tabParam as SectionKey) ? (tabParam as SectionKey) : "projects"
+  const section: SectionKey = SECTIONS.some((s) => s.key === tabParam) ? (tabParam as SectionKey) : "projects"
 
   const [docKind, docId] = (searchParams.get("doc") ?? "").split(":")
   const selectedDocument = useMemo(() => {
