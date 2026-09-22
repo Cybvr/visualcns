@@ -189,7 +189,7 @@ export function DashboardShell({
         {/* overflow-y-auto: this column is the scroll container, not the body */}
         <SidebarInset
           className={cn(
-            "overflow-y-auto md:pb-6 max-md:bg-primary",
+            "overflow-y-auto md:pb-6",
             !isEmailRoute && "pb-[calc(4.5rem+env(safe-area-inset-bottom))]",
             pathname === "/dashboard/email" && "lg:min-h-0 lg:overflow-hidden lg:pb-0",
           )}
@@ -253,9 +253,7 @@ export function DashboardShell({
           <AgentHeaderButton className="ml-0" />
             </div>
           </header>
-          <div className="min-h-full flex-1 max-md:mx-2 max-md:my-3 max-md:overflow-hidden max-md:rounded-xl max-md:bg-background">
-            {children}
-          </div>
+          {children}
         </SidebarInset>
         <NgaiSidePanel />
         {!isEmailRoute && <DashboardMobileFooterNav rootHref={rootHref} onQuickCreate={selectQuickCreate} />}
