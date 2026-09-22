@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState, type ReactNode } from "react"
-import { Copy, ImagePlus, Plus, Share2, X } from "lucide-react"
+import { ChevronDown, Copy, ImagePlus, Plus, Share2, X } from "lucide-react"
 import { toast } from "sonner"
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -119,6 +119,9 @@ export function CompanySidebar({
   contacts?: CompanySidebarPerson[]
   admin?: CompanySidebarAdmin
 }) {
+  // Collapsed by default on mobile so the tabs below don't sit under a wall of
+  // fields; always shown on desktop, where the sidebar has its own column.
+  const [detailsOpen, setDetailsOpen] = useState(false)
   const [addingTag, setAddingTag] = useState(false)
   const [tagDraft, setTagDraft] = useState("")
   const [nameDraft, setNameDraft] = useState(company.name)
@@ -450,10 +453,21 @@ export function CompanySidebar({
         <Separator className="my-5" />
 
         <div>
-          <h3 className="surface-section-label">Details</h3>
+          <button
+            type="button"
+            onClick={() => setDetailsOpen((open) => !open)}
+            aria-expanded={detailsOpen}
+            className="flex w-full items-center justify-between outline-none lg:pointer-events-none"
+          >
+            <h3 className="surface-section-label">Details</h3>
+            <ChevronDown
+              className={cn("size-4 text-muted-foreground transition-transform lg:hidden", detailsOpen && "rotate-180")}
+              aria-hidden="true"
+            />
+          </button>
 
           {admin ? (
-            <div className="mt-3 divide-y divide-border/60">
+            <div className={cn("mt-3 divide-y divide-border/60 lg:block", detailsOpen ? "block" : "hidden")}>
               <DetailsRow label="Domain">
                 <Input
                   key={company.website ?? ""}
@@ -535,7 +549,7 @@ export function CompanySidebar({
               </DetailsRow>
             </div>
           ) : (
-            <div className="mt-3 divide-y divide-border/60">
+            <div className={cn("mt-3 divide-y divide-border/60 lg:block", detailsOpen ? "block" : "hidden")}>
               <DetailRow label="Domain" value={company.website} editable={false} />
               <DetailRow label="Description" value={company.description} editable={false} />
               <DetailRow label="Industry" value={company.industry} editable={false} />
