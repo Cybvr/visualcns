@@ -11,6 +11,8 @@ import { CompanyCreateSheet } from "@/components/dashboard/company-create-sheet"
 import { DashboardPageSkeleton } from "@/components/dashboard/dashboard-page-skeleton"
 import { ReactIcon } from "@/components/react-icon"
 import { MobileDataCard } from "@/components/dashboard/mobile-data-card"
+import { GridCard, GridCardList } from "@/components/dashboard/grid-card"
+import { ViewToggle, useViewMode } from "@/components/dashboard/view-toggle"
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import {
   AlertDialog,
@@ -78,6 +80,7 @@ export default function CompaniesPage() {
   const [bulkDeleting, setBulkDeleting] = useState(false)
   const [pendingDelete, setPendingDelete] = useState<CompanyRow | null>(null)
   const [creating, setCreating] = useState(false)
+  const [view, setView] = useViewMode("companies")
 
   async function fetchCompanies() {
     setError(null)
@@ -238,6 +241,7 @@ export default function CompaniesPage() {
         mobileVariant="drawer"
         showSearch={false}
         placeholder="Search companies"
+        controls={<ViewToggle view={view} onChange={setView} />}
         actions={
           <Button variant="ghost" size="icon" className="bg-transparent text-foreground hover:bg-transparent" onClick={() => setCreating(true)} aria-label="Add company" title="Add company">
             <Plus className="size-4" aria-hidden="true" />
@@ -278,6 +282,32 @@ export default function CompaniesPage() {
             No companies match your search.
           </CardContent>
         </Card>
+      ) : view === "grid" ? (
+        <GridCardList>
+          {visibleCompanies.map((row) => (
+            <GridCard
+              key={row.id}
+              href={companyHref(row)}
+              ariaLabel={`Open ${row.name}`}
+              title={row.name}
+              icon={<ReactIcon icon={FaBuilding} className="size-4 text-blue-600 dark:text-blue-400" aria-hidden="true" />}
+              preview={row.logoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={row.logoUrl} alt="" loading="lazy" referrerPolicy="no-referrer" className="size-full object-contain p-6" />
+              ) : undefined}
+              placeholder={<ReactIcon icon={FaBuilding} className="size-12 text-muted-foreground/40" aria-hidden="true" />}
+              footer={<span className="block truncate">{row.label || (row.projectCount ? `${row.projectCount} project${row.projectCount === 1 ? "" : "s"}` : "No projects yet")}</span>}
+              menuLabel={`Options for ${row.name}`}
+              menu={
+                <>
+                  <DropdownMenuItem onSelect={() => router.push(companyHref(row))}>Open company</DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => router.push(`${companyHref(row)}/edit`)}>Edit company</DropdownMenuItem>
+                  <DropdownMenuItem variant="destructive" onSelect={() => setPendingDelete(row)}>Remove company</DropdownMenuItem>
+                </>
+              }
+            />
+          ))}
+        </GridCardList>
       ) : (
         <>
           <div className="space-y-2 sm:hidden">

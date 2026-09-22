@@ -19,6 +19,8 @@ import { FilterBar, useFilterBar, type SortOption } from "@/components/dashboard
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { UserEditorSheet } from "@/components/dashboard/user-editor-sheet"
 import { MobileDataCard } from "@/components/dashboard/mobile-data-card"
+import { GridCard, GridCardList } from "@/components/dashboard/grid-card"
+import { ViewToggle, useViewMode } from "@/components/dashboard/view-toggle"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -229,6 +231,7 @@ export default function DocumentsPage() {
   const [clientSheet, setClientSheet] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [creating, setCreating] = useState(false)
+  const [view, setView] = useViewMode("documents")
   const [importing, setImporting] = useState(false)
 
   const fetchData = useCallback(async () => {
@@ -311,6 +314,7 @@ export default function DocumentsPage() {
         {...bar}
         mobileVariant="drawer"
         showSearch={false}
+        controls={tab !== "media" && <ViewToggle view={view} onChange={setView} />}
         actions={
           adminView && (
             <>
@@ -361,6 +365,36 @@ export default function DocumentsPage() {
             : "Documents your agency shares with you will show up here."}
           action={adminView ? <Button onClick={() => setCreating(true)}>New Document</Button> : undefined}
         />
+      ) : view === "grid" ? (
+        <GridCardList>
+          {visibleRows.map((row) => {
+            const KindIcon = KIND_ICON[row.kind]
+            return (
+              <GridCard
+                key={`${row.kind}-${row.id}`}
+                href={row.editHref ?? row.viewHref}
+                ariaLabel={`Open ${row.title}`}
+                title={row.title}
+                icon={<ReactIcon icon={KindIcon} className={cn("size-4", KIND_ICON_COLOR[row.kind])} aria-hidden="true" />}
+                placeholder={<ReactIcon icon={KindIcon} className={cn("size-12 opacity-40", KIND_ICON_COLOR[row.kind])} aria-hidden="true" />}
+                footer={
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="truncate">{timeAgo(row.updatedAtMs) || KIND_LABEL[row.kind]}</span>
+                    {row.statusLabel && <span className={cn("shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium", row.statusClassName)}>{row.statusLabel}</span>}
+                  </div>
+                }
+                menuLabel={`Options for ${row.title}`}
+                menu={
+                  <>
+                    <DropdownMenuItem onSelect={() => router.push(row.viewHref)}>View {KIND_LABEL[row.kind].toLowerCase()}</DropdownMenuItem>
+                    {adminView && row.editHref && <DropdownMenuItem onSelect={() => row.editHref && router.push(row.editHref)}>Edit</DropdownMenuItem>}
+                    {adminView && <DropdownMenuItem variant="destructive" onSelect={() => setConfirmDelete(row)}>Delete</DropdownMenuItem>}
+                  </>
+                }
+              />
+            )
+          })}
+        </GridCardList>
       ) : (
         <>
           <div className="space-y-2 sm:hidden">

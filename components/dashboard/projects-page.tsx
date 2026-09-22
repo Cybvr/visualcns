@@ -24,14 +24,16 @@ import {
 } from "@/components/ui/table"
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Eye, LayoutGrid, List, Loader2, Plus, Trash2 } from "lucide-react"
+import { Eye, Loader2, Plus, Trash2 } from "lucide-react"
 import { FaFolderOpen } from "react-icons/fa"
 import { getProjects, deleteProject, projectSlug, projectStatusMeta, type Project } from "@/lib/projects"
 import { NewProjectDialog } from "@/components/dashboard/new-project-dialog"
 import { MobileDataCard } from "@/components/dashboard/mobile-data-card"
 import { DashboardPageSkeleton } from "@/components/dashboard/dashboard-page-skeleton"
 import { ReactIcon } from "@/components/react-icon"
-import { ProjectCard } from "@/components/project-card"
+import { ProjectCover } from "@/components/project-card"
+import { GridCard, GridCardList } from "@/components/dashboard/grid-card"
+import { ViewToggle, useViewMode } from "@/components/dashboard/view-toggle"
 import { EmptySearchState, FirstRunState } from "@/components/dashboard/empty-state"
 import { FilterBar, useFilterBar, type SortOption } from "@/components/dashboard/filter-bar"
 import { TableBulkBar } from "@/components/dashboard/table-bulk-bar"
@@ -57,42 +59,12 @@ function searchProject(p: Project) {
   return [p.title, p.client, p.companyId, p.service, projectStatusMeta[p.status]?.label]
 }
 
-/** Card / list switch for the projects grid. Cards are the default. */
-function ViewToggle({ view, onChange }: { view: "card" | "list"; onChange: (view: "card" | "list") => void }) {
-  return (
-    <div className="flex shrink-0 items-center gap-1 rounded-lg border border-border p-1">
-      <Button
-        type="button"
-        variant={view === "card" ? "secondary" : "ghost"}
-        size="icon"
-        className="h-7 w-7"
-        onClick={() => onChange("card")}
-        aria-label="Card view"
-        aria-pressed={view === "card"}
-      >
-        <LayoutGrid className="h-3.5 w-3.5" />
-      </Button>
-      <Button
-        type="button"
-        variant={view === "list" ? "secondary" : "ghost"}
-        size="icon"
-        className="h-7 w-7"
-        onClick={() => onChange("list")}
-        aria-label="List view"
-        aria-pressed={view === "list"}
-      >
-        <List className="h-3.5 w-3.5" />
-      </Button>
-    </div>
-  )
-}
-
 export default function ProjectsAdminPage() {
   const router = useRouter()
   const [projects, setProjects] = useState<Project[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [view, setView] = useState<"card" | "list">("card")
+  const [view, setView] = useViewMode("projects", "grid")
   const [deleting, setDeleting] = useState<string | null>(null)
   const [bulkDeleting, setBulkDeleting] = useState(false)
   const [pendingDelete, setPendingDelete] = useState<Project | null>(null)
@@ -169,7 +141,7 @@ export default function ProjectsAdminPage() {
         mobileVariant="drawer"
         showSearch={false}
         placeholder="Search projects"
-        controls={<span className="hidden sm:block"><ViewToggle view={view} onChange={setView} /></span>}
+        controls={<ViewToggle view={view} onChange={setView} />}
         actions={
           <Button variant="ghost" size="icon" className="bg-transparent text-foreground hover:bg-transparent" onClick={() => setCreating(true)} aria-label="Add Project">
             <Plus className="h-4 w-4" />
@@ -210,6 +182,35 @@ export default function ProjectsAdminPage() {
         <>
           {visibleProjects.length === 0 ? (
             <EmptySearchState label="No projects match your search." />
+          ) : view === "grid" ? (
+            <GridCardList>
+              {visibleProjects.map((p) => {
+                const meta = projectStatusMeta[p.status] ?? projectStatusMeta["in-progress"]
+                return (
+                  <GridCard
+                    key={p.id}
+                    href={`/dashboard/projects/${projectSlug(p)}`}
+                    ariaLabel={`Open ${p.title}`}
+                    title={p.title}
+                    icon={<ReactIcon icon={FaFolderOpen} className="size-4 text-amber-600 dark:text-amber-400" aria-hidden="true" />}
+                    preview={<ProjectCover project={p} />}
+                    footer={
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="truncate">{p.client || p.companyId || p.service}</span>
+                        <span className={cn("shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium", meta.className)}>{meta.label}</span>
+                      </div>
+                    }
+                    menuLabel={`Options for ${p.title}`}
+                    menu={
+                      <>
+                        <DropdownMenuItem onSelect={() => router.push(`/dashboard/projects/${projectSlug(p)}`)}>Open project</DropdownMenuItem>
+                        <DropdownMenuItem variant="destructive" onSelect={() => setPendingDelete(p)}>Delete project</DropdownMenuItem>
+                      </>
+                    }
+                  />
+                )
+              })}
+            </GridCardList>
           ) : (
             <>
               <div className="space-y-2 sm:hidden">
@@ -233,47 +234,7 @@ export default function ProjectsAdminPage() {
                 })}
               </div>
 
-              <div className="hidden sm:block">
-                {view === "card" ? (
-                  <ul className="grid grid-cols-1 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-                    {visibleProjects.map((p) => {
-                      const meta = projectStatusMeta[p.status] ?? projectStatusMeta["in-progress"]
-                      return (
-                        <li key={p.id}>
-                          <ProjectCard
-                            project={p}
-                            href={`/dashboard/projects/${projectSlug(p)}`}
-                            subtitle={p.client || p.companyId}
-                            footer={
-                              <div className="flex flex-wrap items-center gap-1.5">
-                                <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-medium", meta.className)}>
-                                  {meta.label}
-                                </span>
-                                {p.isCaseStudy && (
-                                  <span className="rounded-full bg-violet-100 px-2 py-0.5 text-[11px] font-medium text-violet-700 dark:bg-violet-950 dark:text-violet-200">
-                                    Case study
-                                  </span>
-                                )}
-                              </div>
-                            }
-                            menuLabel={`Options for ${p.title}`}
-                            menu={
-                              <>
-                                <DropdownMenuItem onSelect={() => router.push(`/dashboard/projects/${projectSlug(p)}`)}>
-                                  Open project
-                                </DropdownMenuItem>
-                                <DropdownMenuItem variant="destructive" onSelect={() => setPendingDelete(p)}>
-                                  Delete project
-                                </DropdownMenuItem>
-                              </>
-                            }
-                          />
-                        </li>
-                      )
-                    })}
-                  </ul>
-                ) : (
-                  <div className="rounded-lg border border-border">
+              <div className="hidden rounded-lg border border-border sm:block">
               <TableBulkBar
                 count={selection.selectedCount}
                 noun="project"
@@ -363,8 +324,6 @@ export default function ProjectsAdminPage() {
                   })}
                 </TableBody>
               </Table>
-                  </div>
-                )}
               </div>
             </>
           )}

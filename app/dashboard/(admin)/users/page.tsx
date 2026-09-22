@@ -31,6 +31,8 @@ import { DashboardPageSkeleton } from "@/components/dashboard/dashboard-page-ske
 import { ReactIcon } from "@/components/react-icon"
 import { UserEditorSheet } from "@/components/dashboard/user-editor-sheet"
 import { MobileDataCard } from "@/components/dashboard/mobile-data-card"
+import { GridCard, GridCardList } from "@/components/dashboard/grid-card"
+import { ViewToggle, useViewMode } from "@/components/dashboard/view-toggle"
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { useAuth } from "@/components/auth-provider"
 import { FilterBar, useFilterBar, type SortOption } from "@/components/dashboard/filter-bar"
@@ -50,6 +52,7 @@ export default function UsersAdminPage() {
   const [deleting, setDeleting] = useState<string | null>(null)
   const [bulkDeleting, setBulkDeleting] = useState(false)
   const [selectedId, setSelectedId] = useState<string | "new" | null>(null)
+  const [view, setView] = useViewMode("contacts")
   const [inviting, setInviting] = useState(false)
 
   // A contact's company lives on the linked organization, keyed by companyId;
@@ -171,6 +174,7 @@ export default function UsersAdminPage() {
         mobileVariant="drawer"
         showSearch={false}
         placeholder="Search contacts"
+        controls={<ViewToggle view={view} onChange={setView} />}
         actions={
           <div className="flex gap-2">
             <Button variant="outline" size="icon" disabled={inviting} onClick={() => void handleInvite()} aria-label="Invite contact" title="Invite contact">
@@ -207,6 +211,27 @@ export default function UsersAdminPage() {
                 No contacts match your search.
               </CardContent>
             </Card>
+          ) : view === "grid" ? (
+            <GridCardList>
+              {visibleUsers.map((u) => (
+                <GridCard
+                  key={u.uid}
+                  onClick={() => setSelectedId(u.uid)}
+                  ariaLabel={`Open ${u.displayName || u.email || "contact"}`}
+                  title={u.displayName || u.email || "—"}
+                  icon={<ReactIcon icon={FaUser} className="size-4 text-violet-600 dark:text-violet-400" aria-hidden="true" />}
+                  imageUrl={u.photoURL}
+                  placeholder={
+                    <span className="flex size-16 items-center justify-center rounded-full bg-muted text-2xl font-medium text-muted-foreground">
+                      {(u.displayName || u.email || "?").trim().charAt(0).toUpperCase()}
+                    </span>
+                  }
+                  footer={<span className="block truncate">{companyNameOf(u) || u.email || "—"}</span>}
+                  menuLabel={`Options for ${u.displayName || u.email || "contact"}`}
+                  menu={<DropdownMenuItem onSelect={() => setSelectedId(u.uid)}>Edit contact</DropdownMenuItem>}
+                />
+              ))}
+            </GridCardList>
           ) : (
             <>
               <div className="space-y-2 sm:hidden">
