@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
-import { ArrowLeft, Eye, Plus, User as UserIcon } from "lucide-react"
+import { ArrowLeft, Plus, User as UserIcon } from "lucide-react"
 import { toast } from "sonner"
 
 import { CompanyDocuments, type CompanyDocumentKind } from "@/components/company/company-documents"
@@ -288,29 +288,23 @@ export function CompanyPage({
                   onAddPerson: () => setAddingPerson(true),
                   onNewProject: () => setCreatingProject(true),
                   onShare: () => setShareOpen(true),
+                  viewHref: admin.sharePath,
                   extraAction: (
-                    <>
-                      <ContextualEmailButton
-                        label="Email contact"
-                        variant="secondary"
-                        size="icon"
-                        icon={false}
-                        className="rounded-full"
-                        context={{
-                          companyId: company.id,
-                          companyName: company.name,
-                          recipientEmail: primaryContact?.adminUser?.email,
-                          recipientName: primaryContact?.adminUser?.displayName || primaryContact?.name,
-                          ctaText: "Open your client portal",
-                          ctaUrl: admin.sharePath,
-                        }}
-                      />
-                      <Button asChild size="icon" variant="secondary" className="rounded-full" aria-label="View" title="View">
-                        <Link href={admin.sharePath} target="_blank" rel="noreferrer">
-                          <Eye className="size-4" aria-hidden="true" />
-                        </Link>
-                      </Button>
-                    </>
+                    <ContextualEmailButton
+                      label="Email contact"
+                      variant="secondary"
+                      size="icon"
+                      icon={false}
+                      className="rounded-full"
+                      context={{
+                        companyId: company.id,
+                        companyName: company.name,
+                        recipientEmail: primaryContact?.adminUser?.email,
+                        recipientName: primaryContact?.adminUser?.displayName || primaryContact?.name,
+                        ctaText: "Open your client portal",
+                        ctaUrl: admin.sharePath,
+                      }}
+                    />
                   ),
                 }
               : undefined
@@ -360,10 +354,10 @@ export function CompanyPage({
           {section === "team" && (
             <div className="mt-4">
               <div className="flex items-center justify-between gap-4">
-                <div className="flex items-baseline gap-2">
-                  <h2 className="text-base font-semibold">Contacts</h2>
-                  <span className="text-sm text-muted-foreground">{people.length}</span>
-                </div>
+                <h2 className="sr-only">Contacts</h2>
+                <span className="text-sm text-muted-foreground">
+                  {people.length} contact{people.length === 1 ? "" : "s"}
+                </span>
                 {admin && (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -476,10 +470,10 @@ export function CompanyPage({
               ) : (
                 <>
                   <div className="flex items-center justify-between gap-4">
-                    <div className="flex items-baseline gap-2">
-                      <h2 className="text-base font-semibold">Projects</h2>
-                      <span className="text-sm text-muted-foreground">{projects.length}</span>
-                    </div>
+                    <h2 className="sr-only">Projects</h2>
+                    <span className="text-sm text-muted-foreground">
+                      {projects.length} project{projects.length === 1 ? "" : "s"}
+                    </span>
                     {admin && (
                       <Button onClick={() => setCreatingProject(true)}>
                         <Plus className="size-4" aria-hidden="true" />

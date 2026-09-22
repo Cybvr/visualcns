@@ -1,7 +1,8 @@
 "use client"
 
 import { useEffect, useRef, useState, type ReactNode } from "react"
-import { ChevronDown, Copy, ImagePlus, Plus, Share2, X } from "lucide-react"
+import Link from "next/link"
+import { ChevronDown, Copy, ImagePlus, MoreHorizontal, Plus, X } from "lucide-react"
 import { toast } from "sonner"
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -22,7 +23,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Separator } from "@/components/ui/separator"
 import { INDUSTRIES } from "@/lib/industries"
 import { COMPANY_SIZES } from "@/lib/organizations"
 import { cn } from "@/lib/utils"
@@ -63,8 +63,10 @@ export interface CompanySidebarAdmin {
   onShare: () => void
   /** Pick a primary contact from the full contacts list; attaches them to this company if needed. */
   onSelectPrimaryContact?: (contactId: string) => void | Promise<void>
-  /** The single client-portal action, rendered between New and Share. */
+  /** The single client-portal action, shown next to the actions menu. */
   extraAction?: ReactNode
+  /** Link to the live client portal, shown as "View workspace" in the actions menu. */
+  viewHref?: string
 }
 
 function initialsFor(name: string): string {
@@ -206,7 +208,7 @@ export function CompanySidebar({
 
   return (
     <aside className="min-w-0 print:hidden lg:sticky lg:top-6 lg:self-start">
-      <div className="rounded-2xl border border-border/60 bg-card p-5">
+      <div className="p-4 lg:rounded-2xl lg:border lg:border-border/60 lg:bg-card lg:p-5">
         <div className="flex items-start gap-3">
           {admin ? (
             <>
@@ -329,35 +331,29 @@ export function CompanySidebar({
         </div>
 
         {admin && (
-          <div className="mt-4 flex flex-wrap items-center gap-2">
+          <div className="mt-3 flex items-center gap-2">
+            {admin.extraAction}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button size="icon" className="rounded-full" aria-label="New" title="New">
-                  <Plus className="size-4" aria-hidden="true" />
+                <Button size="icon" variant="secondary" className="rounded-full" aria-label="More actions" title="More actions">
+                  <MoreHorizontal className="size-4" aria-hidden="true" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start">
                 <DropdownMenuItem onSelect={() => admin.onNewProject()}>New project</DropdownMenuItem>
                 <DropdownMenuItem onSelect={() => admin.onAddPerson()}>New person</DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => admin.onShare()}>Share workspace</DropdownMenuItem>
+                {admin.viewHref && (
+                  <DropdownMenuItem asChild>
+                    <Link href={admin.viewHref} target="_blank" rel="noreferrer">View workspace</Link>
+                  </DropdownMenuItem>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
-            {admin.extraAction}
-            <Button
-              size="icon"
-              variant="secondary"
-              className="rounded-full"
-              onClick={() => admin.onShare()}
-              aria-label="Share"
-              title="Share"
-            >
-              <Share2 className="size-4" aria-hidden="true" />
-            </Button>
           </div>
         )}
 
-        <Separator className="my-5" />
-
-        <div>
+        <div className="mt-5">
           <div className="flex items-center justify-between">
             <h3 className="surface-section-label">Primary Contact</h3>
             {admin && (
@@ -450,9 +446,7 @@ export function CompanySidebar({
           )}
         </div>
 
-        <Separator className="my-5" />
-
-        <div>
+        <div className="mt-5">
           <button
             type="button"
             onClick={() => setDetailsOpen((open) => !open)}

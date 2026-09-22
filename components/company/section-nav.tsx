@@ -18,7 +18,7 @@ export function SectionNav<K extends string>({
   onChange: (key: K) => void
 }) {
   return (
-    <nav className="flex items-center gap-6 overflow-x-auto border-b border-border">
+    <nav className="scrollbar-none flex items-center gap-6 overflow-x-auto border-b border-border">
       {sections.map((s) => (
         <button
           key={s.key}
