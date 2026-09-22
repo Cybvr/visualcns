@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react"
 import Link from "next/link"
-import { ChevronDown, Copy, ImagePlus, MoreHorizontal, Plus, X } from "lucide-react"
+import { ArrowLeft, ChevronDown, Copy, ImagePlus, MoreHorizontal, Plus, X } from "lucide-react"
 import { toast } from "sonner"
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -114,12 +114,15 @@ export function CompanySidebar({
   people,
   contacts,
   admin,
+  backHref,
 }: {
   company: CompanySidebarCompany
   people: CompanySidebarPerson[]
   /** All contacts to choose a primary contact from; defaults to this company's people. */
   contacts?: CompanySidebarPerson[]
   admin?: CompanySidebarAdmin
+  /** Shown inline with the logo/name row instead of its own row above the card. */
+  backHref?: string
 }) {
   // Collapsed by default on mobile so the tabs below don't sit under a wall of
   // fields; always shown on desktop, where the sidebar has its own column.
@@ -209,7 +212,17 @@ export function CompanySidebar({
   return (
     <aside className="min-w-0 print:hidden lg:sticky lg:top-6 lg:self-start">
       <div className="p-4 lg:rounded-2xl lg:border lg:border-border/60 lg:bg-card lg:p-5">
-        <div className="flex items-start gap-3">
+        <div className="flex items-start gap-2">
+          {backHref && (
+            <Link
+              href={backHref}
+              aria-label="Back to companies"
+              title="Back to companies"
+              className="mt-1 flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <ArrowLeft className="size-4" aria-hidden="true" />
+            </Link>
+          )}
           {admin ? (
             <>
               <button

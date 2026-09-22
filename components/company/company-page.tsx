@@ -254,18 +254,9 @@ export function CompanyPage({
 
   return (
     <main className="mx-auto min-h-screen w-full max-w-7xl px-4 pb-16 pt-6 sm:px-6">
-      {admin && (
-        <Link
-          href="/dashboard/companies"
-          aria-label="Back to companies"
-          title="Back to companies"
-          className="mb-4 inline-flex size-8 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          <ArrowLeft className="size-4" aria-hidden="true" />
-        </Link>
-      )}
       <div className="grid gap-6 lg:grid-cols-[300px_1fr]">
         <CompanySidebar
+          backHref={admin ? "/dashboard/companies" : undefined}
           company={{
             id: company.id,
             name: company.name,
