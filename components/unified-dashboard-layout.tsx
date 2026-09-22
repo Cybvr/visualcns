@@ -3,7 +3,8 @@
 import { Suspense, useEffect, type ReactNode } from "react"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
-import { Bot, Briefcase, Building2, Eye, FileType2, LayoutDashboard, ListTodo, Loader2, LogOut, Mail, Users } from "lucide-react"
+import { Eye, Loader2, LogOut } from "lucide-react"
+import { FiBriefcase, FiCheckSquare, FiFileText, FiFolder, FiHome, FiMail, FiMessageCircle, FiUsers } from "react-icons/fi"
 import { AuthProvider, useAuth } from "@/components/auth-provider"
 import { AgentDock } from "@/components/agent/agent-dock"
 import { AgentProvider } from "@/components/agent/agent-context"
@@ -13,14 +14,14 @@ import { PageTitleProvider } from "@/components/dashboard/page-title-context"
 import { LegacyClientRedirect } from "@/components/portal/legacy-client-redirect"
 
 const DASHBOARD_NAV: NavLink[] = [
-  { label: "Home", href: "/dashboard", icon: LayoutDashboard },
-  { label: "Companies", href: "/dashboard/companies", icon: Building2, adminOnly: true },
-  { label: "Contacts", href: "/dashboard/users", icon: Users, adminOnly: true },
-  { label: "Email", href: "/dashboard/email", icon: Mail },
-  { label: "Ngai", href: "/dashboard/agent", icon: Bot, opensAgent: true },
-  { label: "Documents", href: "/dashboard/documents", icon: FileType2 },
-  { label: "Projects", href: "/dashboard/projects", icon: Briefcase },
-  { label: "Tasks", href: "/dashboard/tasks", icon: ListTodo },
+  { label: "Home", href: "/dashboard", icon: FiHome },
+  { label: "Companies", href: "/dashboard/companies", icon: FiBriefcase, adminOnly: true },
+  { label: "Contacts", href: "/dashboard/users", icon: FiUsers, adminOnly: true },
+  { label: "Email", href: "/dashboard/email", icon: FiMail },
+  { label: "Ngai", href: "/dashboard/agent", icon: FiMessageCircle, opensAgent: true },
+  { label: "Documents", href: "/dashboard/documents", icon: FiFileText },
+  { label: "Projects", href: "/dashboard/projects", icon: FiFolder },
+  { label: "Tasks", href: "/dashboard/tasks", icon: FiCheckSquare },
 ]
 
 function UnifiedDashboardShell({ children, requireAdmin = false }: { children: ReactNode; requireAdmin?: boolean }) {

@@ -41,6 +41,7 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { EmptyState, EmptySearchState } from "@/components/dashboard/empty-state"
+import { DashboardPageSkeleton } from "@/components/dashboard/dashboard-page-skeleton"
 import { getUsers, type AppUser } from "@/lib/users"
 import {
   createDocument,
@@ -410,9 +411,7 @@ export function DriveView() {
       )}
 
       {loading ? (
-        <div className="flex items-center justify-center py-20">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-        </div>
+        <DashboardPageSkeleton rows={6} />
       ) : error ? (
         <Card>
           <div className="py-10 text-center text-sm text-destructive">{error}</div>

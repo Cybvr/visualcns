@@ -2,9 +2,9 @@
 
 import { useCallback, useEffect, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { Loader2 } from "lucide-react"
 import { useAuth } from "@/components/auth-provider"
 import { ClientProjectCreateSheet } from "@/components/dashboard/client-project-create-sheet"
+import { DashboardPageSkeleton } from "@/components/dashboard/dashboard-page-skeleton"
 import { ProjectsView } from "@/components/dashboard/projects-view"
 import { TemplatesView } from "@/components/dashboard/templates-view"
 import { TasksView } from "@/components/dashboard/tasks-view"
@@ -64,7 +64,7 @@ export function ClientSectionPage({ section }: { section: "projects" | "tasks" }
   return (
     <>
       <main className="mx-auto w-full max-w-5xl px-4 pb-12 sm:px-6">
-        {loading ? <div className="flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
+        {loading ? <DashboardPageSkeleton rows={6} />
           : error ? <p className="py-12 text-sm text-destructive">Couldn&apos;t load this section.</p>
           : section === "projects" ? (
             <>

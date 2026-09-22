@@ -5,6 +5,7 @@ import Link from "next/link"
 import { ClipboardList, FileSignature, FileText, FolderOpen, ListTodo, Paperclip, Receipt } from "lucide-react"
 
 import type { ActivityItem, ActivityKind } from "@/lib/activity"
+import { MobileDataCard } from "@/components/dashboard/mobile-data-card"
 import { cn } from "@/lib/utils"
 
 const KIND_ICON: Record<ActivityKind, ComponentType<{ className?: string }>> = {
@@ -35,22 +36,43 @@ export function ActivityFeed({
   hrefFor,
   title = "Activity",
   emptyLabel = "No recent activity yet.",
+  showHeader = true,
   className,
 }: {
   items: ActivityItem[]
   hrefFor?: (item: ActivityItem) => string | undefined
   title?: string
   emptyLabel?: string
+  showHeader?: boolean
   className?: string
 }) {
   return (
-    <section className={cn("rounded-lg bg-card p-5", className)}>
-      <h2 className="mb-4 flex items-center gap-2 text-sm font-semibold">
-        {title}
-        {items.length > 0 && <span className="font-normal tabular-nums text-muted-foreground">{items.length}</span>}
-      </h2>
+    <section className={cn("sm:rounded-lg sm:bg-card sm:p-5", className)}>
+      {showHeader && (
+        <h2 className="mb-4 flex items-center gap-2 text-sm font-semibold">
+          {title}
+          {items.length > 0 && <span className="font-normal tabular-nums text-muted-foreground">{items.length}</span>}
+        </h2>
+      )}
       {items.length ? (
-        <ul className="divide-y divide-border">
+        <>
+          <div className="space-y-2 sm:hidden">
+            {items.map((item) => {
+              const Icon = KIND_ICON[item.kind]
+              const href = hrefFor?.(item)
+              return (
+                <MobileDataCard
+                  key={item.id}
+                  title={item.title}
+                  subtitle={[item.subtitle, timeAgo(item.at)].filter(Boolean).join(" · ")}
+                  icon={<Icon className="size-5 text-muted-foreground" aria-hidden="true" />}
+                  href={href}
+                  ariaLabel={`Open ${item.title}`}
+                />
+              )
+            })}
+          </div>
+          <ul className="hidden divide-y divide-border sm:block">
           {items.map((item) => {
             const Icon = KIND_ICON[item.kind]
             const href = hrefFor?.(item)
@@ -78,7 +100,8 @@ export function ActivityFeed({
               </li>
             )
           })}
-        </ul>
+          </ul>
+        </>
       ) : (
         <p className="py-4 text-sm text-muted-foreground">{emptyLabel}</p>
       )}

@@ -3,10 +3,14 @@
 import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Building2, Eye, Pencil, Plus, Trash2, Loader2 } from "lucide-react"
+import { FaBuilding } from "react-icons/fa"
 import type { Timestamp } from "firebase/firestore"
 
 import { useAuth } from "@/components/auth-provider"
 import { CompanyCreateSheet } from "@/components/dashboard/company-create-sheet"
+import { DashboardPageSkeleton } from "@/components/dashboard/dashboard-page-skeleton"
+import { MobileDataCard } from "@/components/dashboard/mobile-data-card"
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,7 +31,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Skeleton } from "@/components/ui/skeleton"
 import { FilterBar, useFilterBar, type SortOption } from "@/components/dashboard/filter-bar"
 import { TableBulkBar } from "@/components/dashboard/table-bulk-bar"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -231,9 +234,13 @@ export default function CompaniesPage() {
     <main className="mx-auto w-full max-w-6xl px-4 pb-12 pt-4 sm:px-6">
       <FilterBar
         {...bar}
+        mobileVariant="drawer"
+        showSearch={false}
         placeholder="Search companies"
         actions={
-          <Button onClick={() => setCreating(true)}><Plus className="h-4 w-4" />Add Company</Button>
+          <Button size="icon" onClick={() => setCreating(true)} aria-label="Add company" title="Add company">
+            <Plus className="size-4" aria-hidden="true" />
+          </Button>
         }
       />
 
@@ -247,11 +254,7 @@ export default function CompaniesPage() {
       )}
 
       {loading ? (
-        <div className="space-y-2" aria-label="Loading companies">
-          {Array.from({ length: 6 }, (_, index) => (
-            <Skeleton key={index} className="h-14 rounded-lg" />
-          ))}
-        </div>
+        <DashboardPageSkeleton rows={6} />
       ) : companies.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center py-16 text-center">
@@ -276,29 +279,24 @@ export default function CompaniesPage() {
         </Card>
       ) : (
         <>
-          <div className="divide-y divide-border rounded-lg border border-border sm:hidden">
+          <div className="space-y-2 sm:hidden">
             {visibleCompanies.map((row) => (
-              <button
+              <MobileDataCard
                 key={row.id}
-                type="button"
-                onClick={() => router.push(companyHref(row))}
-                className="flex w-full items-center gap-3 p-3 text-left outline-none transition-colors hover:bg-muted/50 focus-visible:bg-muted/50"
-              >
-                {row.logoUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={row.logoUrl} alt="" className="size-11 shrink-0 rounded-full object-cover" referrerPolicy="no-referrer" />
-                ) : (
-                  <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-muted">
-                    <Building2 className="size-5 text-muted-foreground" />
-                  </span>
-                )}
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold">{row.name}</p>
-                  <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                    {row.label || (row.projectCount ? `${row.projectCount} project${row.projectCount === 1 ? "" : "s"}` : "No projects yet")}
-                  </p>
-                </div>
-              </button>
+                href={companyHref(row)}
+                title={row.name}
+                subtitle={row.label || (row.projectCount ? `${row.projectCount} project${row.projectCount === 1 ? "" : "s"}` : "No projects yet")}
+                imageUrl={row.logoUrl}
+                icon={<FaBuilding className="size-5 text-blue-600 dark:text-blue-400" aria-hidden="true" />}
+                menuLabel={`Options for ${row.name}`}
+                menu={
+                  <>
+                    <DropdownMenuItem onSelect={() => router.push(companyHref(row))}>Open company</DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => router.push(`${companyHref(row)}/edit`)}>Edit company</DropdownMenuItem>
+                    <DropdownMenuItem variant="destructive" onSelect={() => setPendingDelete(row)}>Remove company</DropdownMenuItem>
+                  </>
+                }
+              />
             ))}
           </div>
 

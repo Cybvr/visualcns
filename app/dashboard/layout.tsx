@@ -5,7 +5,10 @@ import { DashboardDocumentTitle } from "@/components/dashboard/dashboard-documen
 import { UnifiedDashboardLayout } from "@/components/unified-dashboard-layout"
 
 export const metadata: Metadata = {
-  title: "Dashboard | VisualCNS",
+  title: {
+    default: "Home | VisualCNS",
+    template: "%s | VisualCNS",
+  },
 }
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {

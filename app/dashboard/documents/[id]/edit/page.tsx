@@ -2,10 +2,9 @@
 
 import { useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
-import { Loader2 } from "lucide-react"
-
 import { useAuth } from "@/components/auth-provider"
 import { CompanyDocumentBuilder } from "@/components/dashboard/company-document-builder"
+import { DashboardPageSkeleton } from "@/components/dashboard/dashboard-page-skeleton"
 import { getCompanyDocument, type CompanyDocument } from "@/lib/company-documents"
 
 export default function EditDocumentPage() {
@@ -39,9 +38,7 @@ export default function EditDocumentPage() {
 
   if (!user || authLoading || !allowed || loading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
+      <DashboardPageSkeleton variant="form" rows={5} />
     )
   }
 

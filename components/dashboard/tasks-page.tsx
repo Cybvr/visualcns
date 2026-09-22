@@ -42,6 +42,7 @@ import {
   type TaskStatus,
   type TaskPriority,
 } from "@/lib/tasks"
+import { DashboardPageSkeleton } from "@/components/dashboard/dashboard-page-skeleton"
 import { getProjects, type Project } from "@/lib/projects"
 import { Badge, InlineDate, InlineProject, InlineSelect, InlineText } from "@/components/inline-table-cells"
 import { TaskForm } from "@/components/dashboard/task-form"
@@ -182,9 +183,7 @@ export default function TasksAdminPage() {
       />
 
       {loading ? (
-        <div className="flex items-center justify-center py-20">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-        </div>
+        <DashboardPageSkeleton rows={6} />
       ) : error ? (
         <Card>
           <CardContent className="py-10 text-center text-sm text-destructive">{error}</CardContent>

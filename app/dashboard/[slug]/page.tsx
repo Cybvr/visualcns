@@ -3,9 +3,8 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { useParams, useRouter } from "next/navigation"
-import { Loader2 } from "lucide-react"
-
 import { useAuth } from "@/components/auth-provider"
+import { DashboardPageSkeleton } from "@/components/dashboard/dashboard-page-skeleton"
 import { getUserBySlug, type AppUser } from "@/lib/users"
 
 export default function UserDashboardPage() {
@@ -52,9 +51,7 @@ export default function UserDashboardPage() {
   if (loading || checking) {
     return (
       <main className="mx-auto w-full max-w-5xl px-4 py-10 sm:px-6">
-        <div className="flex items-center justify-center py-20">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-        </div>
+        <DashboardPageSkeleton variant="detail" />
       </main>
     )
   }
@@ -75,9 +72,7 @@ export default function UserDashboardPage() {
 
   return (
     <main className="mx-auto w-full max-w-5xl px-4 py-10 sm:px-6">
-      <div className="flex items-center justify-center py-20">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
+      <DashboardPageSkeleton variant="detail" />
     </main>
   )
 }

@@ -3,10 +3,11 @@
 import type { ReactNode } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { ArrowLeft, Loader2 } from "lucide-react"
+import { ArrowLeft } from "lucide-react"
 
 import { CompanyBanner } from "@/components/company/company-banner"
 import { CompanyProvider, useCompanyState } from "@/components/dashboard/company-context"
+import { DashboardPageSkeleton } from "@/components/dashboard/dashboard-page-skeleton"
 import { usePageTitle } from "@/components/dashboard/page-title-context"
 import type { Project } from "@/lib/projects"
 
@@ -20,9 +21,7 @@ function CompanyLayoutBody({ children }: { children: ReactNode }) {
   if (loading) {
     return (
       <main className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6">
-        <div className="flex items-center justify-center py-20">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-        </div>
+        <DashboardPageSkeleton variant="detail" />
       </main>
     )
   }

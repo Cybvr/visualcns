@@ -1,9 +1,9 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Loader2 } from "lucide-react"
 import { useAuth } from "@/components/auth-provider"
 import { AccountNav } from "@/components/account/account-nav"
+import { DashboardPageSkeleton } from "@/components/dashboard/dashboard-page-skeleton"
 import { Button } from "@/components/ui/button"
 
 type TenantRow = { id: string; name?: string; status?: string; plan?: string; updatedAt?: unknown }
@@ -36,7 +36,7 @@ export default function TenantOperationsPage() {
     await load()
   }
 
-  if (loading || busy) return <main className="mx-auto w-full max-w-4xl px-4 py-10 sm:px-6"><AccountNav /><Loader2 className="mt-6 size-6 animate-spin" /></main>
+  if (loading || busy) return <main className="mx-auto w-full max-w-4xl px-4 py-10 sm:px-6"><AccountNav /><div className="mt-7"><DashboardPageSkeleton rows={5} /></div></main>
   if (role !== "superadmin") return <main className="mx-auto w-full max-w-4xl px-4 py-10 sm:px-6"><AccountNav /><p className="mt-6 text-sm text-muted-foreground">This area is restricted to platform operations.</p></main>
 
   return <main className="mx-auto w-full max-w-4xl px-4 py-10 sm:px-6">

@@ -3,6 +3,8 @@
 import { useEffect } from "react"
 import { usePathname } from "next/navigation"
 
+import { usePageHeaderOverride } from "@/components/dashboard/page-title-context"
+
 const APP_NAME = "VisualCNS"
 
 function documentTitle(page: string): string {
@@ -15,7 +17,7 @@ export function dashboardPageTitle(pathname: string): string {
   const record = segments[2]
   const action = segments[3]
 
-  if (!section) return "Dashboard"
+  if (!section) return "Home"
 
   switch (section) {
     case "account":
@@ -63,10 +65,11 @@ export function dashboardPageTitle(pathname: string): string {
 
 export function DashboardDocumentTitle() {
   const pathname = usePathname()
+  const { override } = usePageHeaderOverride()
 
   useEffect(() => {
-    document.title = documentTitle(dashboardPageTitle(pathname ?? "/dashboard"))
-  }, [pathname])
+    document.title = documentTitle(override?.title ?? dashboardPageTitle(pathname ?? "/dashboard"))
+  }, [override?.title, pathname])
 
   return null
 }

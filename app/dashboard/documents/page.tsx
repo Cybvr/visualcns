@@ -2,19 +2,22 @@
 
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
-import { useCallback, useEffect, useMemo, useState, type ComponentType } from "react"
-import { ChevronDown, ClipboardList, Eye, FileSignature, FileText, FileUp, Loader2, Pencil, Plus, Receipt, Trash2 } from "lucide-react"
+import { useCallback, useEffect, useMemo, useState } from "react"
+import { ChevronDown, Eye, FileUp, Loader2, Pencil, Plus, Trash2 } from "lucide-react"
+import { FaFileAlt, FaFileInvoiceDollar, FaFileSignature } from "react-icons/fa"
 import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
-import { DOC_BADGE } from "@/components/company/document-tile"
+import { DashboardPageSkeleton } from "@/components/dashboard/dashboard-page-skeleton"
 import { DriveView } from "@/components/dashboard/drive-view"
 import { FirstRunState } from "@/components/dashboard/empty-state"
 import { NewDocumentDialog } from "@/components/dashboard/new-document-dialog"
 import { ImportWordDocumentDialog } from "@/components/dashboard/import-word-document-dialog"
+import { usePageTitle } from "@/components/dashboard/page-title-context"
 import { FilterBar, useFilterBar, type SortOption } from "@/components/dashboard/filter-bar"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { UserEditorSheet } from "@/components/dashboard/user-editor-sheet"
+import { MobileDataCard } from "@/components/dashboard/mobile-data-card"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -87,26 +90,26 @@ const KIND_LABEL: Record<RowKind, string> = {
   other: companyDocumentKindMeta.other.label,
 }
 
-const KIND_ICON: Record<RowKind, ComponentType<{ className?: string }>> = {
-  contract: FileSignature,
-  invoice: Receipt,
-  estimate: ClipboardList,
-  proposal: FileText,
-  sow: FileText,
-  brief: FileText,
-  report: FileText,
-  other: FileText,
+const KIND_ICON = {
+  contract: FaFileSignature,
+  invoice: FaFileInvoiceDollar,
+  estimate: FaFileAlt,
+  proposal: FaFileAlt,
+  sow: FaFileAlt,
+  brief: FaFileAlt,
+  report: FaFileAlt,
+  other: FaFileAlt,
 }
 
-const KIND_BADGE: Record<RowKind, string> = {
-  contract: DOC_BADGE.contract,
-  invoice: DOC_BADGE.invoice,
-  estimate: DOC_BADGE.estimate,
-  proposal: DOC_BADGE.document,
-  sow: DOC_BADGE.document,
-  brief: DOC_BADGE.document,
-  report: DOC_BADGE.document,
-  other: DOC_BADGE.document,
+const KIND_ICON_COLOR: Record<RowKind, string> = {
+  contract: "text-violet-600 dark:text-violet-400",
+  invoice: "text-emerald-600 dark:text-emerald-400",
+  estimate: "text-amber-600 dark:text-amber-400",
+  proposal: "text-blue-600 dark:text-blue-400",
+  sow: "text-cyan-600 dark:text-cyan-400",
+  brief: "text-sky-600 dark:text-sky-400",
+  report: "text-teal-600 dark:text-teal-400",
+  other: "text-muted-foreground",
 }
 
 function timeAgo(ms: number): string {
@@ -214,6 +217,8 @@ export default function DocumentsPage() {
   const companyId = appUser?.companyId ?? ""
   const adminView = isAdmin && !isImpersonating
 
+  usePageTitle("Documents")
+
   const initialTab = TYPE_OPTIONS.find((t) => t.key === searchParams.get("type"))?.key ?? "all"
   const [tab, setTab] = useState<Tab>(initialTab)
   const [rows, setRows] = useState<UnifiedRow[]>([])
@@ -308,11 +313,11 @@ export default function DocumentsPage() {
         actions={
           adminView && (
             <>
-              <Button variant="outline" onClick={() => setImporting(true)}><FileUp className="size-4" aria-hidden="true" />Import</Button>
+              <Button variant="outline" size="icon" onClick={() => setImporting(true)} aria-label="Import document" title="Import document"><FileUp className="size-4" aria-hidden="true" /></Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button>
-                    <Plus className="size-4" aria-hidden="true" />New
+                  <Button size="sm" className="px-3" aria-label="New" title="New">
+                    <Plus className="size-4" aria-hidden="true" />
                     <ChevronDown className="size-3.5" aria-hidden="true" />
                   </Button>
                 </DropdownMenuTrigger>
@@ -342,7 +347,7 @@ export default function DocumentsPage() {
       {tab === "media" ? (
         <DriveView />
       ) : loading ? (
-        <div className="flex items-center justify-center py-20"><Loader2 className="size-8 animate-spin text-muted-foreground" aria-hidden="true" /></div>
+        <DashboardPageSkeleton rows={6} />
       ) : error ? (
         <p className="mt-10 text-sm text-destructive">Couldn&rsquo;t load documents right now.</p>
       ) : tabRows.length === 0 ? (
@@ -357,23 +362,25 @@ export default function DocumentsPage() {
         />
       ) : (
         <>
-          <div className="divide-y divide-border rounded-lg border border-border sm:hidden">
+          <div className="space-y-2 sm:hidden">
             {visibleRows.map((row) => {
               const KindIcon = KIND_ICON[row.kind]
               return (
-                <Link
+                <MobileDataCard
                   key={`${row.kind}-${row.id}`}
                   href={row.editHref ?? row.viewHref}
-                  className="flex items-center gap-3 p-3 outline-none transition-colors hover:bg-muted/50 focus-visible:bg-muted/50"
-                >
-                  <span className={cn("flex size-11 shrink-0 items-center justify-center rounded-lg", KIND_BADGE[row.kind])}>
-                    <KindIcon className="size-5" aria-hidden="true" />
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold">{row.title}</p>
-                    <p className="mt-0.5 truncate text-xs text-muted-foreground">{timeAgo(row.updatedAtMs)}</p>
-                  </div>
-                </Link>
+                  title={row.title}
+                  subtitle={timeAgo(row.updatedAtMs)}
+                  icon={<KindIcon className={cn("size-5", KIND_ICON_COLOR[row.kind])} aria-hidden="true" />}
+                  menuLabel={`Options for ${row.title}`}
+                  menu={
+                    <>
+                      <DropdownMenuItem onSelect={() => router.push(row.viewHref)}>View {KIND_LABEL[row.kind].toLowerCase()}</DropdownMenuItem>
+                      {adminView && row.editHref && <DropdownMenuItem onSelect={() => row.editHref && router.push(row.editHref)}>Edit</DropdownMenuItem>}
+                      {adminView && <DropdownMenuItem variant="destructive" onSelect={() => setConfirmDelete(row)}>Delete</DropdownMenuItem>}
+                    </>
+                  }
+                />
               )
             })}
           </div>

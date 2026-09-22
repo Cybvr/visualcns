@@ -3,12 +3,14 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { useParams } from "next/navigation"
-import { ArrowLeft, Loader2 } from "lucide-react"
+import { ArrowLeft } from "lucide-react"
 
 import { useAuth } from "@/components/auth-provider"
+import { DashboardPageSkeleton } from "@/components/dashboard/dashboard-page-skeleton"
 import { DocumentActions } from "@/components/dashboard/document-actions"
 import { ContextualEmailButton } from "@/components/dashboard/contextual-email-button"
 import { InvoiceDocument } from "@/components/dashboard/invoice-document"
+import { usePageTitle } from "@/components/dashboard/page-title-context"
 import { getBusinessProfile, type BusinessProfile } from "@/lib/business-profile"
 import { getInvoice, type Invoice } from "@/lib/billing"
 import { portalDocumentPath } from "@/lib/portal-model"
@@ -20,6 +22,8 @@ export default function InvoiceDetailPage() {
   const [issuer, setIssuer] = useState<BusinessProfile | null>(null)
   const [loading, setLoading] = useState(true)
   const [failed, setFailed] = useState(false)
+
+  usePageTitle(invoice?.invoiceNumber ? `Invoice ${invoice.invoiceNumber}` : null, "/dashboard/invoices")
 
   useEffect(() => {
     if (!id || !user || !appUser) return
@@ -48,7 +52,7 @@ export default function InvoiceDetailPage() {
   }, [appUser, id, isAdmin, isImpersonating, user])
 
   if (!user) return null
-  if (loading) return <div role="status" className="flex min-h-[50vh] items-center justify-center gap-2 text-sm text-muted-foreground"><Loader2 className="size-5 animate-spin" aria-hidden="true" />Loading invoice…</div>
+  if (loading) return <DashboardPageSkeleton variant="detail" />
 
   if (failed || !invoice) {
     return (

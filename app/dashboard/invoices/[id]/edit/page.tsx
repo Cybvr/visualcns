@@ -2,10 +2,9 @@
 
 import { useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
-import { Loader2 } from "lucide-react"
-
 import { useAuth } from "@/components/auth-provider"
 import { InvoiceBuilder } from "@/components/dashboard/invoice-builder"
+import { DashboardPageSkeleton } from "@/components/dashboard/dashboard-page-skeleton"
 import { getInvoice, type Invoice } from "@/lib/billing"
 
 export default function EditInvoicePage() {
@@ -45,9 +44,7 @@ export default function EditInvoicePage() {
 
   if (!user || authLoading || !allowed || loading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
+      <DashboardPageSkeleton variant="form" rows={5} />
     )
   }
 

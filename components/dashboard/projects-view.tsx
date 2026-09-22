@@ -5,6 +5,7 @@ import Link from "next/link"
 import { Loader2, Plus } from "lucide-react"
 
 import { FirstRunState } from "@/components/dashboard/empty-state"
+import { MobileDataCard } from "@/components/dashboard/mobile-data-card"
 import { ProjectCard } from "@/components/project-card"
 import { Button } from "@/components/ui/button"
 import {
@@ -35,6 +36,7 @@ import {
   type Project,
 } from "@/lib/projects"
 import { getTasksByProjectAndCompanyId, taskStatusMeta, type Task } from "@/lib/tasks"
+import { FaFolderOpen } from "react-icons/fa"
 
 function ProgressBar({ value }: { value: number }) {
   return (
@@ -48,12 +50,15 @@ export function ProjectsView({
   projects,
   onChanged,
   onNewProject,
+  hideHeader = false,
   minimal = false,
 }: {
   projects: Project[]
   onChanged?: () => Promise<void>
   /** Opens a quick-create dialog instead of navigating to /dashboard/projects?new=1. */
   onNewProject?: () => void
+  /** Home page: the tab label already provides the section heading. */
+  hideHeader?: boolean
   /** Home page: skip the pitch copy and support line in the empty state. */
   minimal?: boolean
 }) {
@@ -109,11 +114,13 @@ export function ProjectsView({
   }
 
   return (
-    <section id="projects" className="mt-4 scroll-mt-20">
-      <div className="flex items-center gap-2">
-        <h2 className="text-xs font-medium text-muted-foreground">Projects</h2>
-        <span className="text-xs font-medium text-muted-foreground">{projects.length}</span>
-      </div>
+    <section id="projects" className={cn(hideHeader ? "mt-0" : "mt-4", "scroll-mt-20")}>
+      {!hideHeader && (
+        <div className="flex items-center gap-2">
+          <h2 className="text-xs font-medium text-muted-foreground">Projects</h2>
+          <span className="text-xs font-medium text-muted-foreground">{projects.length}</span>
+        </div>
+      )}
 
       {error && !renaming && !deleting && (
         <p className="mt-3 text-sm text-destructive" role="alert">
@@ -139,7 +146,33 @@ export function ProjectsView({
           }
         />
       ) : (
-      <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+      <>
+        <div className="mt-4 space-y-2 sm:hidden">
+          {projects.map((project) => {
+            const meta = projectStatusMeta[project.status]
+            return (
+              <MobileDataCard
+                key={project.id}
+                title={project.title}
+                subtitle={[project.client || project.companyId, project.service, meta.label].filter(Boolean).join(" · ")}
+                icon={<FaFolderOpen className="size-5 text-amber-600 dark:text-amber-400" aria-hidden="true" />}
+                href={`/dashboard/projects/${projectSlug(project)}`}
+                ariaLabel={`Open ${project.title}`}
+                menuLabel={`Options for ${project.title}`}
+                menu={onChanged ? (
+                  <>
+                    <DropdownMenuItem onSelect={() => openTaskPreview(project)}>Preview tasks</DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => { setTitle(project.title); setError(null); setRenaming(project) }}>Rename</DropdownMenuItem>
+                    <DropdownMenuItem onSelect={(event) => { event.preventDefault(); run(() => duplicateProject(project), "The project could not be duplicated.") }}>Duplicate</DropdownMenuItem>
+                    <DropdownMenuItem variant="destructive" onSelect={() => { setError(null); setDeleting(project) }}>Delete</DropdownMenuItem>
+                  </>
+                ) : undefined}
+              />
+            )
+          })}
+        </div>
+
+        <div className="mt-4 hidden grid-cols-1 gap-3 sm:grid sm:grid-cols-3 lg:grid-cols-4">
         {projects.map((project) => {
           const meta = projectStatusMeta[project.status]
           return (
@@ -222,7 +255,8 @@ export function ProjectsView({
             <span className="text-sm font-medium text-foreground">Create a new project</span>
           </Link>
         )}
-      </div>
+        </div>
+      </>
       )}
 
       <Sheet open={Boolean(previewing)} onOpenChange={(open) => !open && closeTaskPreview()}>

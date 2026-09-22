@@ -2,10 +2,9 @@
 
 import { useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { Loader2 } from "lucide-react"
-
 import { useAuth } from "@/components/auth-provider"
 import { ContractBuilder } from "@/components/dashboard/contract-builder"
+import { DashboardPageSkeleton } from "@/components/dashboard/dashboard-page-skeleton"
 
 export default function NewContractPage() {
   const router = useRouter()
@@ -19,9 +18,7 @@ export default function NewContractPage() {
 
   if (!user || loading || !allowed) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
+      <DashboardPageSkeleton variant="form" rows={5} />
     )
   }
 

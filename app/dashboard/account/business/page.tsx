@@ -7,6 +7,7 @@ import { Loader2 } from "lucide-react"
 
 import { useAuth } from "@/components/auth-provider"
 import { AccountNav } from "@/components/account/account-nav"
+import { DashboardPageSkeleton } from "@/components/dashboard/dashboard-page-skeleton"
 import { ImageDropzone } from "@/components/image-dropzone"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -91,9 +92,7 @@ export default function AccountBusinessPage() {
       </header>
 
       {loading ? (
-        <div className="flex items-center justify-center py-20">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-        </div>
+        <DashboardPageSkeleton variant="form" rows={6} />
       ) : (
         <form onSubmit={handleSubmit} className="mt-6 space-y-5">
           <ImageDropzone compact label="Logo" value={form.logoUrl} onChange={(url) => set("logoUrl", url)} />

@@ -25,8 +25,11 @@ import {
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Eye, LayoutGrid, List, Loader2, Plus, Trash2 } from "lucide-react"
+import { FaFolderOpen } from "react-icons/fa"
 import { getProjects, deleteProject, projectSlug, projectStatusMeta, type Project } from "@/lib/projects"
 import { NewProjectDialog } from "@/components/dashboard/new-project-dialog"
+import { MobileDataCard } from "@/components/dashboard/mobile-data-card"
+import { DashboardPageSkeleton } from "@/components/dashboard/dashboard-page-skeleton"
 import { ProjectCard } from "@/components/project-card"
 import { EmptySearchState, FirstRunState } from "@/components/dashboard/empty-state"
 import { FilterBar, useFilterBar, type SortOption } from "@/components/dashboard/filter-bar"
@@ -162,8 +165,10 @@ export default function ProjectsAdminPage() {
     <main className="mx-auto w-full max-w-6xl px-4 pt-4 pb-12 sm:px-6">
       <FilterBar
         {...bar}
+        mobileVariant="drawer"
+        showSearch={false}
         placeholder="Search projects"
-        controls={<ViewToggle view={view} onChange={setView} />}
+        controls={<span className="hidden sm:block"><ViewToggle view={view} onChange={setView} /></span>}
         actions={
           <Button size="icon" onClick={() => setCreating(true)} aria-label="Add Project">
             <Plus className="h-4 w-4" />
@@ -188,9 +193,7 @@ export default function ProjectsAdminPage() {
       </FilterBar>
 
       {loading ? (
-        <div className="flex items-center justify-center py-20">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-        </div>
+        <DashboardPageSkeleton rows={6} />
       ) : error ? (
         <Card>
           <CardContent className="py-10 text-center text-sm text-destructive">{error}</CardContent>
@@ -204,50 +207,72 @@ export default function ProjectsAdminPage() {
         />
       ) : (
         <>
-
-
           {visibleProjects.length === 0 ? (
             <EmptySearchState label="No projects match your search." />
-          ) : view === "card" ? (
-            <ul className="grid grid-cols-1 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-              {visibleProjects.map((p) => {
-                const meta = projectStatusMeta[p.status] ?? projectStatusMeta["in-progress"]
-                return (
-                  <li key={p.id}>
-                    <ProjectCard
-                      project={p}
+          ) : (
+            <>
+              <div className="space-y-2 sm:hidden">
+                {visibleProjects.map((p) => {
+                  return (
+                    <MobileDataCard
+                      key={p.id}
                       href={`/dashboard/projects/${projectSlug(p)}`}
-                      subtitle={p.client || p.companyId}
-                      footer={
-                        <div className="flex flex-wrap items-center gap-1.5">
-                          <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-medium", meta.className)}>
-                            {meta.label}
-                          </span>
-                          {p.isCaseStudy && (
-                            <span className="rounded-full bg-violet-100 px-2 py-0.5 text-[11px] font-medium text-violet-700 dark:bg-violet-950 dark:text-violet-200">
-                              Case study
-                            </span>
-                          )}
-                        </div>
-                      }
+                      title={p.title}
+                      subtitle={[p.client || p.companyId, p.service].filter(Boolean).join(" · ") || "No details"}
+                      icon={<FaFolderOpen className="size-5 text-amber-600 dark:text-amber-400" aria-hidden="true" />}
                       menuLabel={`Options for ${p.title}`}
                       menu={
                         <>
-                          <DropdownMenuItem onSelect={() => router.push(`/dashboard/projects/${projectSlug(p)}`)}>
-                            Open project
-                          </DropdownMenuItem>
-                          <DropdownMenuItem variant="destructive" onSelect={() => setPendingDelete(p)}>
-                            Delete project
-                          </DropdownMenuItem>
+                          <DropdownMenuItem onSelect={() => router.push(`/dashboard/projects/${projectSlug(p)}`)}>Open project</DropdownMenuItem>
+                          <DropdownMenuItem variant="destructive" onSelect={() => setPendingDelete(p)}>Delete project</DropdownMenuItem>
                         </>
                       }
                     />
-                  </li>
-                )
-              })}
-            </ul>
-          ) : (
-            <div className="rounded-lg border border-border">
+                  )
+                })}
+              </div>
+
+              <div className="hidden sm:block">
+                {view === "card" ? (
+                  <ul className="grid grid-cols-1 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+                    {visibleProjects.map((p) => {
+                      const meta = projectStatusMeta[p.status] ?? projectStatusMeta["in-progress"]
+                      return (
+                        <li key={p.id}>
+                          <ProjectCard
+                            project={p}
+                            href={`/dashboard/projects/${projectSlug(p)}`}
+                            subtitle={p.client || p.companyId}
+                            footer={
+                              <div className="flex flex-wrap items-center gap-1.5">
+                                <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-medium", meta.className)}>
+                                  {meta.label}
+                                </span>
+                                {p.isCaseStudy && (
+                                  <span className="rounded-full bg-violet-100 px-2 py-0.5 text-[11px] font-medium text-violet-700 dark:bg-violet-950 dark:text-violet-200">
+                                    Case study
+                                  </span>
+                                )}
+                              </div>
+                            }
+                            menuLabel={`Options for ${p.title}`}
+                            menu={
+                              <>
+                                <DropdownMenuItem onSelect={() => router.push(`/dashboard/projects/${projectSlug(p)}`)}>
+                                  Open project
+                                </DropdownMenuItem>
+                                <DropdownMenuItem variant="destructive" onSelect={() => setPendingDelete(p)}>
+                                  Delete project
+                                </DropdownMenuItem>
+                              </>
+                            }
+                          />
+                        </li>
+                      )
+                    })}
+                  </ul>
+                ) : (
+                  <div className="rounded-lg border border-border">
               <TableBulkBar
                 count={selection.selectedCount}
                 noun="project"
@@ -337,7 +362,10 @@ export default function ProjectsAdminPage() {
                   })}
                 </TableBody>
               </Table>
-            </div>
+                  </div>
+                )}
+              </div>
+            </>
           )}
         </>
       )}

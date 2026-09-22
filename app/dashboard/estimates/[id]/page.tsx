@@ -3,11 +3,13 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { useParams } from "next/navigation"
-import { ArrowLeft, Loader2, Pencil } from "lucide-react"
+import { ArrowLeft, Pencil } from "lucide-react"
 
 import { useAuth } from "@/components/auth-provider"
+import { DashboardPageSkeleton } from "@/components/dashboard/dashboard-page-skeleton"
 import { DocumentActions } from "@/components/dashboard/document-actions"
 import { EstimateDocument } from "@/components/dashboard/estimate-document"
+import { usePageTitle } from "@/components/dashboard/page-title-context"
 import { Button } from "@/components/ui/button"
 import { ContextualEmailButton } from "@/components/dashboard/contextual-email-button"
 import { getBusinessProfile, type BusinessProfile } from "@/lib/business-profile"
@@ -22,6 +24,8 @@ export default function EstimateDetailPage() {
   const [issuer, setIssuer] = useState<BusinessProfile | null>(null)
   const [loading, setLoading] = useState(true)
   const [failed, setFailed] = useState(false)
+
+  usePageTitle(estimate ? (estimate.title || estimate.estimateNumber || "Estimate") : null, "/dashboard/estimates")
 
   useEffect(() => {
     if (!id || !user || !appUser) return
@@ -42,7 +46,7 @@ export default function EstimateDetailPage() {
   }, [adminView, appUser, id, user])
 
   if (!user) return null
-  if (loading) return <div role="status" className="flex min-h-[50vh] items-center justify-center gap-2 text-sm text-muted-foreground"><Loader2 className="size-5 animate-spin" aria-hidden="true" />Loading estimate…</div>
+  if (loading) return <DashboardPageSkeleton variant="detail" />
   if (failed || !estimate) return <main className="mx-auto w-full max-w-5xl px-4 py-10 sm:px-6"><Link href="/dashboard/estimates" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"><ArrowLeft className="size-4" aria-hidden="true" />Back to estimates</Link><p className="mt-12 text-sm text-muted-foreground">This estimate couldn’t be found or you don’t have access to it.</p></main>
 
   return (

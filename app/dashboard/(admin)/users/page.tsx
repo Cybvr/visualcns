@@ -23,10 +23,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Eye, Pencil, Plus, Trash2, Loader2, User as UserIcon } from "lucide-react"
+import { Eye, Pencil, Plus, Trash2, Loader2, User as UserIcon, UserPlus } from "lucide-react"
+import { FaUser } from "react-icons/fa"
 import { getUsers, deleteUser, type AppUser } from "@/lib/users"
 import { getOrganizations } from "@/lib/organizations"
+import { DashboardPageSkeleton } from "@/components/dashboard/dashboard-page-skeleton"
 import { UserEditorSheet } from "@/components/dashboard/user-editor-sheet"
+import { MobileDataCard } from "@/components/dashboard/mobile-data-card"
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { useAuth } from "@/components/auth-provider"
 import { FilterBar, useFilterBar, type SortOption } from "@/components/dashboard/filter-bar"
 import { TableBulkBar } from "@/components/dashboard/table-bulk-bar"
@@ -163,16 +167,23 @@ export default function UsersAdminPage() {
     <main className="mx-auto w-full max-w-6xl px-4 pt-4 pb-12 sm:px-6">
       <FilterBar
         {...bar}
+        mobileVariant="drawer"
+        showSearch={false}
         placeholder="Search contacts"
         actions={
-          <div className="flex gap-2"><Button variant="outline" disabled={inviting} onClick={() => void handleInvite()}>{inviting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}Invite</Button><Button onClick={() => setSelectedId("new")}><Plus className="h-4 w-4" />Add Contact</Button></div>
+          <div className="flex gap-2">
+            <Button variant="outline" size="icon" disabled={inviting} onClick={() => void handleInvite()} aria-label="Invite contact" title="Invite contact">
+              {inviting ? <Loader2 className="size-4 animate-spin" /> : <UserPlus className="size-4" aria-hidden="true" />}
+            </Button>
+            <Button size="icon" onClick={() => setSelectedId("new")} aria-label="Add contact" title="Add contact">
+              <Plus className="size-4" aria-hidden="true" />
+            </Button>
+          </div>
         }
       />
 
       {loading ? (
-        <div className="flex items-center justify-center py-20">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-        </div>
+        <DashboardPageSkeleton rows={6} />
       ) : error ? (
         <Card>
           <CardContent className="py-10 text-center text-sm text-destructive">{error}</CardContent>
@@ -197,27 +208,23 @@ export default function UsersAdminPage() {
             </Card>
           ) : (
             <>
-              <div className="divide-y divide-border rounded-lg border border-border sm:hidden">
+              <div className="space-y-2 sm:hidden">
                 {visibleUsers.map((u) => (
-                  <button
+                  <MobileDataCard
                     key={u.uid}
-                    type="button"
                     onClick={() => setSelectedId(u.uid)}
-                    className="flex w-full items-center gap-3 p-3 text-left outline-none transition-colors hover:bg-muted/50 focus-visible:bg-muted/50"
-                  >
-                    {u.photoURL ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={u.photoURL} alt="" className="size-11 shrink-0 rounded-full" referrerPolicy="no-referrer" />
-                    ) : (
-                      <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-muted">
-                        <UserIcon className="size-5 text-muted-foreground" />
-                      </span>
-                    )}
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-semibold">{u.displayName || u.email || "—"}</p>
-                      <p className="mt-0.5 truncate text-xs text-muted-foreground">{u.email || companyNameOf(u) || "—"}</p>
-                    </div>
-                  </button>
+                    ariaLabel={`Open ${u.displayName || u.email || "contact"}`}
+                    title={u.displayName || u.email || "—"}
+                    subtitle={u.email || companyNameOf(u) || "—"}
+                    imageUrl={u.photoURL}
+                    icon={<FaUser className="size-5 text-violet-600 dark:text-violet-400" aria-hidden="true" />}
+                    menuLabel={`Options for ${u.displayName || u.email || "contact"}`}
+                    menu={
+                      <>
+                        <DropdownMenuItem onSelect={() => setSelectedId(u.uid)}>Edit contact</DropdownMenuItem>
+                      </>
+                    }
+                  />
                 ))}
               </div>
 

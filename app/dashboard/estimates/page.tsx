@@ -8,6 +8,7 @@ import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
 import { DuplicateDocumentDialog, type DuplicateSelection } from "@/components/dashboard/duplicate-document-dialog"
+import { DashboardPageSkeleton } from "@/components/dashboard/dashboard-page-skeleton"
 import { EmptySearchState, FirstRunState } from "@/components/dashboard/empty-state"
 import { FilterBar, useFilterBar, type SortOption } from "@/components/dashboard/filter-bar"
 import { TableBulkBar } from "@/components/dashboard/table-bulk-bar"
@@ -170,7 +171,7 @@ export default function EstimatesPage() {
       <p className="mb-6 text-sm text-muted-foreground">Price and scope work before it becomes an invoice.</p>
 
       {loading ? (
-        <div className="flex items-center justify-center py-20"><Loader2 className="size-8 animate-spin text-muted-foreground" aria-hidden="true" /></div>
+        <DashboardPageSkeleton rows={6} />
       ) : error ? (
         <p className="mt-10 text-sm text-destructive">Couldn’t load estimates right now.</p>
       ) : estimates.length === 0 ? (

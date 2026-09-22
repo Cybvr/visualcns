@@ -2,10 +2,9 @@
 
 import { useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { Loader2 } from "lucide-react"
-
 import { useAuth } from "@/components/auth-provider"
 import { EstimateBuilder } from "@/components/dashboard/estimate-builder"
+import { DashboardPageSkeleton } from "@/components/dashboard/dashboard-page-skeleton"
 
 export default function NewEstimatePage() {
   const router = useRouter()
@@ -18,7 +17,7 @@ export default function NewEstimatePage() {
   }, [allowed, loading, router, user])
 
   if (!user || loading || !allowed) {
-    return <div className="flex items-center justify-center py-20"><Loader2 className="size-8 animate-spin text-muted-foreground" aria-hidden="true" /></div>
+    return <DashboardPageSkeleton variant="form" rows={5} />
   }
 
   return <main className="mx-auto w-full max-w-6xl px-4 py-9 sm:px-6"><EstimateBuilder initialCompanyId={initialCompanyId} /></main>

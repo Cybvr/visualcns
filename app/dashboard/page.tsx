@@ -2,17 +2,20 @@
 
 import { useCallback, useEffect, useState } from "react"
 import Image from "next/image"
-import { Loader2 } from "lucide-react"
-
 import { useAuth } from "@/components/auth-provider"
 import { ActivityFeed } from "@/components/dashboard/activity-feed"
+import { DashboardPageSkeleton } from "@/components/dashboard/dashboard-page-skeleton"
 import { HomeTaskList } from "@/components/dashboard/home-task-list"
 import { NewProjectDialog } from "@/components/dashboard/new-project-dialog"
 import { ProjectsView } from "@/components/dashboard/projects-view"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { buildActivity, type ActivityItem } from "@/lib/activity"
 import { getContracts, getEstimates, getInvoices } from "@/lib/billing"
 import { getProjects, type Project } from "@/lib/projects"
 import { getTasks, tsToMillis, type Task } from "@/lib/tasks"
+
+const HOME_PROJECT_LIMIT = 4
+const HOME_TASK_LIMIT = 4
 
 /** Where a home-page activity row jumps to in the agency workspace. */
 function activityHref(item: ActivityItem): string | undefined {
@@ -72,23 +75,32 @@ export default function DashboardPage() {
   return (
     <main className="mx-auto w-full max-w-5xl px-4 pb-10 pt-4 sm:px-6">
       {loading ? (
-        <div className="flex items-center justify-center py-20">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-        </div>
+        <DashboardPageSkeleton variant="home" rows={4} />
       ) : error ? (
         <p className="mt-10 text-sm text-destructive">{error}</p>
       ) : (
         <>
-          <ProjectsView
-            projects={projects}
-            onChanged={fetchData}
-            onNewProject={() => setCreatingProject(true)}
-            minimal
-          />
-          <div className="mt-8 grid items-start gap-6 lg:grid-cols-2">
-            <HomeTaskList tasks={tasks} onSaved={fetchData} className="mt-0" />
-            <ActivityFeed items={activity} hrefFor={activityHref} className="mt-0 hidden lg:block" />
-          </div>
+          <Tabs defaultValue="projects" className="mt-4">
+            <TabsList>
+              <TabsTrigger value="projects">Projects</TabsTrigger>
+              <TabsTrigger value="activity">Activity</TabsTrigger>
+            </TabsList>
+            <TabsContent value="projects" className="mt-0">
+              <ProjectsView
+                projects={[...projects]
+                  .sort((a, b) => Math.max(tsToMillis(b.updatedAt), tsToMillis(b.createdAt)) - Math.max(tsToMillis(a.updatedAt), tsToMillis(a.createdAt)))
+                  .slice(0, HOME_PROJECT_LIMIT)}
+                onChanged={fetchData}
+                onNewProject={() => setCreatingProject(true)}
+                hideHeader
+                minimal
+              />
+              <HomeTaskList tasks={tasks.slice(0, HOME_TASK_LIMIT)} onSaved={fetchData} className="mt-8" />
+            </TabsContent>
+            <TabsContent value="activity" className="mt-0">
+              <ActivityFeed items={activity} hrefFor={activityHref} showHeader={false} className="mt-0" />
+            </TabsContent>
+          </Tabs>
           <div className="mt-6 overflow-hidden rounded-lg bg-card">
             <Image
               src="/images/visualcns-blue-campaign-ad-v4.png"

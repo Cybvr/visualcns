@@ -2,10 +2,12 @@
 
 import { useCallback, useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
-import { ArrowLeft, Loader2 } from "lucide-react"
+import { ArrowLeft } from "lucide-react"
 
 import { useAuth } from "@/components/auth-provider"
+import { DashboardPageSkeleton } from "@/components/dashboard/dashboard-page-skeleton"
 import { ProjectDetail } from "@/components/dashboard/project-detail"
+import { usePageTitle } from "@/components/dashboard/page-title-context"
 import { getProjectBySlug, type Project } from "@/lib/projects"
 
 /** Goes back a step in history, falling back to the dashboard on a cold open. */
@@ -35,6 +37,8 @@ export default function ProjectDetailPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
 
+  usePageTitle(project?.title ?? null, "/dashboard/projects")
+
   const fetchProject = useCallback(async () => {
     if (!slug) return
     setError(false)
@@ -58,9 +62,7 @@ export default function ProjectDetailPage() {
   if (loading) {
     return (
       <main className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6">
-        <div className="flex items-center justify-center py-20">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-        </div>
+        <DashboardPageSkeleton variant="detail" />
       </main>
     )
   }

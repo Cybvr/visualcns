@@ -3,7 +3,8 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { Bell, Bot, Briefcase, Building2, CircleHelp, FileText, FileType2, Home, LayoutDashboard, ListTodo, Mail, Plus, Receipt, ScrollText, Users } from "lucide-react"
+import { Bell, Briefcase, Building2, CircleHelp, FileText, Home, ListTodo, Plus, Receipt, ScrollText, Users } from "lucide-react"
+import { FiFileText, FiHome, FiMail, FiMessageCircle } from "react-icons/fi"
 
 import { useAgent } from "@/components/agent/agent-context"
 import { AgentHeaderButton } from "@/components/agent/agent-header-button"
@@ -76,25 +77,25 @@ function DashboardMobileFooterNav({ rootHref, onQuickCreate }: { rootHref: strin
   const { open: agentOpen, setOpen: setAgentOpen } = useAgent()
 
   const items: MobileFooterNavItem[] = [
-    { key: "home", label: "Home", icon: LayoutDashboard, href: rootHref },
-    { key: "email", label: "Emails", icon: Mail, href: "/dashboard/email" },
+    { key: "home", label: "Home", icon: FiHome, href: rootHref },
+    { key: "email", label: "Emails", icon: FiMail, href: "/dashboard/email" },
     {
       key: "create",
       render: ({ className }) => (
         <QuickCreateMenu
           onSelect={onQuickCreate}
           trigger={
-            <button type="button" aria-label="Create new" className={className}>
-              <span className="flex size-9 items-center justify-center rounded-full bg-foreground text-background">
-                <Plus className="size-5" aria-hidden="true" />
+            <button type="button" aria-label="Create new" className={cn(className, "-mt-5")}>
+              <span className="flex size-14 items-center justify-center rounded-full border-4 border-background bg-foreground text-background shadow-lg">
+                <Plus className="size-7" aria-hidden="true" />
               </span>
             </button>
           }
         />
       ),
     },
-    { key: "documents", label: "Documents", icon: FileType2, href: "/dashboard/documents" },
-    { key: "ngai", label: "Ngai", icon: Bot, onClick: () => setAgentOpen(true), isActive: agentOpen },
+    { key: "documents", label: "Documents", icon: FiFileText, href: "/dashboard/documents" },
+    { key: "ngai", label: "Ngai", icon: FiMessageCircle, onClick: () => setAgentOpen(true), isActive: agentOpen },
   ]
 
   return <MobileFooterNav items={items} />
@@ -197,7 +198,6 @@ export function DashboardShell({
               "surface-nav sticky top-0 z-40 flex h-14 shrink-0 items-center gap-2 bg-background px-4",
               "max-md:bg-primary max-md:[--foreground:var(--primary-foreground)] max-md:[--muted-foreground:var(--primary-foreground)]",
               hideHeader && "md:hidden",
-              isEmailRoute && "max-lg:hidden",
             )}
           >
             <div className="flex shrink-0 items-center gap-2 md:hidden">
@@ -246,7 +246,7 @@ export function DashboardShell({
                   <CircleHelp className="size-4" aria-hidden="true" />
                 </Link>
               </Button>
-              <Button type="button" variant="ghost" size="icon" aria-label="Notifications">
+              <Button type="button" variant="ghost" size="icon" className="hidden sm:inline-flex" aria-label="Notifications">
                 <Bell className="size-4" aria-hidden="true" />
               </Button>
           <AgentHeaderButton className="ml-0" />

@@ -45,7 +45,7 @@ export function MobileFooterNav({ items, className }: { items: MobileFooterNavIt
           <>
             {Icon && <Icon className={cn("size-5", active ? "text-foreground" : "text-muted-foreground")} aria-hidden="true" />}
             {item.label && (
-              <span className={cn("text-[11px] font-medium", active ? "text-foreground" : "text-muted-foreground")}>{item.label}</span>
+              <span className="text-[11px] font-semibold text-foreground">{item.label}</span>
             )}
           </>
         )

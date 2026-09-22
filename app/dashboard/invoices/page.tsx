@@ -8,6 +8,7 @@ import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
 import { DuplicateDocumentDialog, type DuplicateSelection } from "@/components/dashboard/duplicate-document-dialog"
+import { DashboardPageSkeleton } from "@/components/dashboard/dashboard-page-skeleton"
 import { EmptySearchState, FirstRunState } from "@/components/dashboard/empty-state"
 import { UserEditorSheet } from "@/components/dashboard/user-editor-sheet"
 import {
@@ -185,9 +186,7 @@ export default function InvoicesPage() {
       />
 
       {loading ? (
-        <div className="flex items-center justify-center py-20">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-        </div>
+        <DashboardPageSkeleton rows={6} />
       ) : error ? (
         <p className="mt-10 text-sm text-destructive">Couldn&apos;t load invoices right now.</p>
       ) : invoices.length === 0 ? (
