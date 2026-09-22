@@ -1,18 +1,18 @@
 "use client"
 
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import Image from "next/image"
 import { Loader2 } from "lucide-react"
 
 import { useAuth } from "@/components/auth-provider"
 import { ActivityFeed } from "@/components/dashboard/activity-feed"
 import { HomeTaskList } from "@/components/dashboard/home-task-list"
-import { NewProjectQuickDialog } from "@/components/dashboard/new-project-quick-dialog"
+import { NewProjectDialog } from "@/components/dashboard/new-project-dialog"
 import { ProjectsView } from "@/components/dashboard/projects-view"
-import { getCompanyActivity, type ActivityItem } from "@/lib/activity"
-import { getProjectsByCompanyId, type Project } from "@/lib/projects"
-import { getTasksByCompanyId, seedDefaultTasks, tsToMillis, type Task } from "@/lib/tasks"
-import { updateUser } from "@/lib/users"
+import { buildActivity, type ActivityItem } from "@/lib/activity"
+import { getContracts, getEstimates, getInvoices } from "@/lib/billing"
+import { getProjects, type Project } from "@/lib/projects"
+import { getTasks, tsToMillis, type Task } from "@/lib/tasks"
 
 /** Where a home-page activity row jumps to in the agency workspace. */
 function activityHref(item: ActivityItem): string | undefined {
@@ -26,12 +26,14 @@ function activityHref(item: ActivityItem): string | undefined {
   }
 }
 
+/**
+ * Only a signed-in admin ever reaches this route: clients (and anyone being
+ * impersonated) are redirected to the portal by UnifiedDashboardShell. So this
+ * home page shows the whole tenant's projects/tasks/activity, the same scope
+ * as the dedicated Projects and Tasks pages, not one company's alone.
+ */
 export default function DashboardPage() {
-  const { user, appUser } = useAuth()
-  const companyId = appUser?.companyId ?? ""
-  const clientName = appUser?.company || appUser?.displayName || ""
-  const uid = appUser?.uid
-  const tasksSeeded = appUser?.tasksSeeded === true
+  const { user } = useAuth()
 
   const [projects, setProjects] = useState<Project[]>([])
   const [tasks, setTasks] = useState<Task[]>([])
@@ -39,51 +41,27 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [creatingProject, setCreatingProject] = useState(false)
-  const seedingRef = useRef(false)
 
   const fetchData = useCallback(async () => {
-    if (!companyId) {
-      setLoading(false)
-      return
-    }
-
     setError(null)
-
     try {
-      const [nextProjects, nextTasks, nextActivity] = await Promise.all([
-        getProjectsByCompanyId(companyId),
-        getTasksByCompanyId(companyId),
-        getCompanyActivity(companyId),
+      const [nextProjects, nextTasks, invoices, estimates, contracts] = await Promise.all([
+        getProjects(),
+        getTasks(),
+        getInvoices(),
+        getEstimates(),
+        getContracts(),
       ])
       setProjects(nextProjects)
-      setActivity(nextActivity)
-
-      let taskList = nextTasks
-
-      if (taskList.length === 0 && !tasksSeeded && uid && !seedingRef.current) {
-        seedingRef.current = true
-        taskList = await seedDefaultTasks(
-          companyId,
-          clientName,
-          nextProjects[0] ? { id: nextProjects[0].id, title: nextProjects[0].title } : undefined,
-        )
-
-        try {
-          await updateUser(uid, { tasksSeeded: true })
-        } catch (err) {
-          console.error("Error marking tasks as seeded:", err)
-        }
-      }
-
-      taskList.sort((a, b) => tsToMillis(b.createdAt) - tsToMillis(a.createdAt))
-      setTasks(taskList)
+      setActivity(buildActivity({ projects: nextProjects, tasks: nextTasks, invoices, estimates, contracts }))
+      setTasks([...nextTasks].sort((a, b) => tsToMillis(b.createdAt) - tsToMillis(a.createdAt)))
     } catch (err) {
       console.error("Error loading dashboard data:", err)
       setError("Couldn't load your projects right now. Please try again shortly.")
     } finally {
       setLoading(false)
     }
-  }, [companyId, clientName, uid, tasksSeeded])
+  }, [])
 
   useEffect(() => {
     void fetchData()
@@ -108,13 +86,7 @@ export default function DashboardPage() {
             minimal
           />
           <div className="mt-8 grid items-start gap-6 lg:grid-cols-2">
-            <HomeTaskList
-              tasks={tasks}
-              companyId={companyId}
-              clientName={clientName}
-              onSaved={fetchData}
-              className="mt-0"
-            />
+            <HomeTaskList tasks={tasks} onSaved={fetchData} className="mt-0" />
             <ActivityFeed items={activity} hrefFor={activityHref} className="mt-0 hidden lg:block" />
           </div>
           <div className="mt-6 overflow-hidden rounded-lg bg-card">
@@ -129,12 +101,12 @@ export default function DashboardPage() {
         </>
       )}
 
-      <NewProjectQuickDialog
+      <NewProjectDialog
         open={creatingProject}
         onOpenChange={setCreatingProject}
-        companyId={companyId}
-        clientName={clientName}
-        onCreated={fetchData}
+        onCreated={() => {
+          void fetchData()
+        }}
       />
     </main>
   )

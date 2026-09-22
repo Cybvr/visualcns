@@ -3,7 +3,7 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { Bell, Bot, Briefcase, Building2, CircleHelp, FileText, Home, ListTodo, Mail, Plus, Receipt, ScrollText, Users } from "lucide-react"
+import { Bell, Bot, Briefcase, Building2, CircleHelp, FileText, FileType2, Home, LayoutDashboard, ListTodo, Mail, Plus, Receipt, ScrollText, Users } from "lucide-react"
 
 import { useAgent } from "@/components/agent/agent-context"
 import { AgentHeaderButton } from "@/components/agent/agent-header-button"
@@ -76,7 +76,7 @@ function DashboardMobileFooterNav({ rootHref, onQuickCreate }: { rootHref: strin
   const { open: agentOpen, setOpen: setAgentOpen } = useAgent()
 
   const items: MobileFooterNavItem[] = [
-    { key: "home", label: "Home", icon: Home, href: rootHref },
+    { key: "home", label: "Home", icon: LayoutDashboard, href: rootHref },
     { key: "email", label: "Emails", icon: Mail, href: "/dashboard/email" },
     {
       key: "create",
@@ -93,7 +93,7 @@ function DashboardMobileFooterNav({ rootHref, onQuickCreate }: { rootHref: strin
         />
       ),
     },
-    { key: "documents", label: "Documents", icon: FileText, href: "/dashboard/documents" },
+    { key: "documents", label: "Documents", icon: FileType2, href: "/dashboard/documents" },
     { key: "ngai", label: "Ngai", icon: Bot, onClick: () => setAgentOpen(true), isActive: agentOpen },
   ]
 
