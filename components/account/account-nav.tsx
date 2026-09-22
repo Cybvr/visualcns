@@ -11,6 +11,7 @@ const LINKS = [
   { label: "Profile", href: "/dashboard/account/profile" },
   { label: "Customization", href: "/dashboard/account/customization" },
   { label: "Organization profile", href: "/dashboard/account/business", adminOnly: true },
+  { label: "Team", href: "/dashboard/account/team", adminOnly: true },
   { label: "Agency", href: "/dashboard/account/agency", adminOnly: true },
   { label: "Billing", href: "/dashboard/account/billing", adminOnly: true },
   { label: "Data", href: "/dashboard/account/data", adminOnly: true },
