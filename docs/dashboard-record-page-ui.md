@@ -15,10 +15,12 @@ page already uses.
   by internal `<Separator>` lines. A gap reads faster than a rule.
 - **A section label lives outside its card**, as a small heading with an
   optional action button beside it — the card below holds only the content.
-- **A lone back button gets its own thin row above the hero card**, on the
-  plain background, not inside the card and not squeezed next to the
-  logo. It only reads as "wasted space" if the row is tall/padded like a
-  card; keep it tight (just the button's own height) and it's fine.
+- **No back button on the page itself.** The dashboard header already carries
+  navigation: set the record's name as the header title and a Home icon
+  pointing at the record's list page, via `usePageTitle(name, listHref)`
+  from `components/dashboard/page-title-context.tsx` (see
+  `app/dashboard/companies/[slug]/layout.tsx`). Don't duplicate that with a
+  second back arrow inside the page body.
 - **Flatten wrapper divs.** If a `<div>` exists only to hold one class that
   could live on its child, delete it.
 
@@ -33,9 +35,14 @@ page already uses.
   `rounded-full`), sized `size-10` minimum for a real touch target. Avatars
   follow the same rule — `rounded-xl`, not circular — everywhere a person's
   or company's initials/photo shows up.
-- **Show the record's category/type as a pill right under its name**
-  (e.g. an industry badge), not buried in a collapsed details panel — it's
-  identity, not metadata.
+- **Show the record's category/type as a pill** at the top of the hero card
+  (e.g. an industry badge) — it's identity, not metadata, so it doesn't
+  belong buried in the collapsed Details panel.
+- **No logo/avatar in the hero card.** Keep the hero card to the category
+  pill plus the primary action row; a photo/logo there duplicates whatever
+  the record's list page already shows and adds no information here.
+- **Tags live in Details, not the hero card.** They're metadata like
+  Domain or Source, not identity like the category pill above.
 - **"Add" actions are icon-only**, no "Add person" / "New project" text —
   just a `+` in a `rounded-xl` square (see `SectionAddButton`). The label
   still exists as `aria-label`/`title` for accessibility, it's just not
@@ -53,8 +60,9 @@ page already uses.
 
 ## Typography
 
-- The record's name/title is the boldest thing on the page: large and
-  `font-bold`, not a `font-semibold` label-sized heading.
+- **The record's name isn't repeated in the page body.** It lives once, in
+  the dashboard header (see the back-button note above) — don't also render
+  a big `<h1>` for it in the hero card.
 - Section labels (e.g. "Primary Contact", "Details") stay small, muted,
   uppercase-or-not per the existing `surface-section-label` token — they're
   wayfinding, not content.

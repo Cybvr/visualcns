@@ -7,12 +7,15 @@ import { ArrowLeft, Loader2 } from "lucide-react"
 
 import { CompanyBanner } from "@/components/company/company-banner"
 import { CompanyProvider, useCompanyState } from "@/components/dashboard/company-context"
+import { usePageTitle } from "@/components/dashboard/page-title-context"
 import type { Project } from "@/lib/projects"
 
 function CompanyLayoutBody({ children }: { children: ReactNode }) {
   const { loading, error, client, organization, workspaceId, name, categoryLabel } = useCompanyState()
   const pathname = usePathname()
   const isEditRoute = pathname?.endsWith("/edit") ?? false
+
+  usePageTitle(!loading && client ? name : null, "/dashboard/companies")
 
   if (loading) {
     return (

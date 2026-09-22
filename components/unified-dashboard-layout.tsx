@@ -9,6 +9,7 @@ import { AgentDock } from "@/components/agent/agent-dock"
 import { AgentProvider } from "@/components/agent/agent-context"
 import { Button } from "@/components/ui/button"
 import { DashboardShell, type NavLink } from "@/components/dashboard-shell"
+import { PageTitleProvider } from "@/components/dashboard/page-title-context"
 import { LegacyClientRedirect } from "@/components/portal/legacy-client-redirect"
 
 const DASHBOARD_NAV: NavLink[] = [
@@ -128,9 +129,11 @@ function DashboardWithAgent({
 }) {
   return (
     <>
-      <DashboardShell title="VisualCNS" subtitle={subtitle} navLinks={navLinks} rootHref="/dashboard" banner={banner}>
-        {children}
-      </DashboardShell>
+      <PageTitleProvider>
+        <DashboardShell title="VisualCNS" subtitle={subtitle} navLinks={navLinks} rootHref="/dashboard" banner={banner}>
+          {children}
+        </DashboardShell>
+      </PageTitleProvider>
 
       <AgentDock />
 

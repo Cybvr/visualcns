@@ -256,7 +256,6 @@ export function CompanyPage({
     <main className="mx-auto min-h-screen w-full max-w-7xl px-4 pb-16 pt-6 sm:px-6">
       <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
         <CompanySidebar
-          backHref={admin ? "/dashboard/companies" : undefined}
           company={{
             id: company.id,
             name: company.name,

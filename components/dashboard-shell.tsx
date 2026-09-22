@@ -3,7 +3,7 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { Bell, Briefcase, Building2, CircleHelp, Crown, FileText, ListTodo, Plus, Receipt, ScrollText, Users } from "lucide-react"
+import { Bell, Briefcase, Building2, CircleHelp, Crown, FileText, Home, ListTodo, Plus, Receipt, ScrollText, Users } from "lucide-react"
 
 import { useAgent } from "@/components/agent/agent-context"
 import { AgentHeaderButton } from "@/components/agent/agent-header-button"
@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { dashboardPageTitle } from "@/components/dashboard/dashboard-document-title"
+import { usePageHeaderOverride } from "@/components/dashboard/page-title-context"
 import {
   Dialog,
   DialogContent,
@@ -82,6 +83,7 @@ export function DashboardShell({
   const [sidebarOpen, setSidebarOpen] = useState(!isDocumentRoute)
   const { open: agentOpen } = useAgent()
   const { user } = useAuth()
+  const { override: titleOverride } = usePageHeaderOverride()
   const [tenant, setTenant] = useState<Tenant | null>(null)
   const [createItem, setCreateItem] = useState<(typeof QUICK_CREATE_LINKS)[number] | null>(null)
   const [createName, setCreateName] = useState("")
@@ -138,7 +140,21 @@ export function DashboardShell({
               <SidebarTrigger className="-ml-1" />
               <Separator orientation="vertical" className="data-[orientation=vertical]:h-4" />
             </div>
-            <h1 className="surface-title min-w-0 truncate">{dashboardPageTitle(pathname ?? "/dashboard")}</h1>
+            <div className="flex min-w-0 items-center gap-1">
+              {titleOverride?.homeHref && (
+                <Link
+                  href={titleOverride.homeHref}
+                  aria-label="Home"
+                  title="Home"
+                  className="flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground"
+                >
+                  <Home className="size-4" aria-hidden="true" />
+                </Link>
+              )}
+              <h1 className="surface-title min-w-0 truncate">
+                {titleOverride?.title ?? dashboardPageTitle(pathname ?? "/dashboard")}
+              </h1>
+            </div>
             <div className="ml-auto flex shrink-0 items-center gap-2">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>

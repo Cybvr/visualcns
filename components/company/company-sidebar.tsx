@@ -1,13 +1,12 @@
 "use client"
 
-import { useEffect, useRef, useState, type ReactNode } from "react"
+import { useState, type ReactNode } from "react"
 import Link from "next/link"
-import { ArrowLeft, ChevronDown, Copy, ImagePlus, MoreHorizontal, X } from "lucide-react"
+import { ChevronDown, Copy, MoreHorizontal, X } from "lucide-react"
 import { toast } from "sonner"
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { SectionAddButton } from "@/components/company/section-add-button"
-import { uploadToCloudinary } from "@/components/image-dropzone"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -105,34 +104,28 @@ function DetailsRow({ label, children }: { label: string; children: ReactNode })
 }
 
 /**
- * The company profile panel on the left of the company detail page: logo,
- * name, tags, quick actions, the primary contact, and the editable Details
- * fields. Read-only whenever `admin` is omitted.
+ * The company profile panel on the left of the company detail page: industry,
+ * quick actions, the primary contact, and the editable Details fields
+ * (including tags). Read-only whenever `admin` is omitted.
  */
 export function CompanySidebar({
   company,
   people,
   contacts,
   admin,
-  backHref,
 }: {
   company: CompanySidebarCompany
   people: CompanySidebarPerson[]
   /** All contacts to choose a primary contact from; defaults to this company's people. */
   contacts?: CompanySidebarPerson[]
   admin?: CompanySidebarAdmin
-  /** Shown inline with the logo/name row instead of its own row above the card. */
-  backHref?: string
 }) {
   // Collapsed by default on mobile so the tabs below don't sit under a wall of
   // fields; always shown on desktop, where the sidebar has its own column.
   const [detailsOpen, setDetailsOpen] = useState(false)
   const [addingTag, setAddingTag] = useState(false)
   const [tagDraft, setTagDraft] = useState("")
-  const [nameDraft, setNameDraft] = useState(company.name)
-  const [uploadingLogo, setUploadingLogo] = useState(false)
   const [contactQuery, setContactQuery] = useState("")
-  const logoInputRef = useRef<HTMLInputElement>(null)
 
   const pickList = contacts ?? people
   const primaryContact =
@@ -142,10 +135,6 @@ export function CompanySidebar({
         `${person.name} ${person.subtitle ?? ""}`.toLowerCase().includes(contactQuery.trim().toLowerCase()),
       )
     : pickList
-
-  useEffect(() => {
-    setNameDraft(company.name)
-  }, [company.name])
 
   async function commitTags(next: string[]) {
     if (!admin) return
@@ -158,7 +147,7 @@ export function CompanySidebar({
 
   /** Auto-save a single Details field, skipping the write when it's unchanged. */
   async function commitField(
-    field: "name" | "website" | "description" | "industry" | "location" | "companySize" | "source" | "linkedIn",
+    field: "website" | "description" | "industry" | "location" | "companySize" | "source" | "linkedIn",
     value: string,
   ) {
     if (!admin) return
@@ -189,168 +178,17 @@ export function CompanySidebar({
     toast.success("Email copied to clipboard")
   }
 
-  async function handleLogoChange(file: File) {
-    if (!admin) return
-    if (!file.type.startsWith("image/")) {
-      toast.error("Choose an image file.")
-      return
-    }
-
-    setUploadingLogo(true)
-    try {
-      const logoUrl = await uploadToCloudinary(file)
-      await admin.onSave({ logoUrl })
-      toast.success("Company avatar updated")
-    } catch (error) {
-      console.error("Error uploading company avatar:", error)
-      toast.error("The company avatar could not be uploaded.")
-    } finally {
-      setUploadingLogo(false)
-    }
-  }
-
   return (
     <aside className="min-w-0 space-y-4 print:hidden lg:sticky lg:top-6 lg:self-start">
-      {backHref && (
-        <Link
-          href={backHref}
-          aria-label="Back to companies"
-          title="Back to companies"
-          className="flex size-10 shrink-0 items-center justify-center rounded-xl text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          <ArrowLeft className="size-5" aria-hidden="true" />
-        </Link>
-      )}
-
       <div className="rounded-2xl border border-border/60 bg-card p-5">
-        <div className="flex items-start gap-3">
-          {admin ? (
-            <>
-              <button
-                type="button"
-                className="group relative size-16 shrink-0 overflow-hidden rounded-2xl bg-muted outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                onClick={() => logoInputRef.current?.click()}
-                disabled={uploadingLogo}
-                aria-label="Change company avatar"
-                title="Change company avatar"
-              >
-                {company.logoUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={company.logoUrl} alt="" className="h-full w-full object-cover" />
-                ) : (
-                  <span className="flex h-full w-full items-center justify-center text-xl font-semibold text-muted-foreground">
-                    {company.name.trim().charAt(0).toUpperCase() || "?"}
-                  </span>
-                )}
-                <span className="absolute inset-0 flex items-center justify-center bg-foreground/55 text-background opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
-                  <ImagePlus className="size-5" aria-hidden="true" />
-                </span>
-              </button>
-              <input
-                ref={logoInputRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={(event) => {
-                  const file = event.target.files?.[0]
-                  if (file) void handleLogoChange(file)
-                  event.target.value = ""
-                }}
-              />
-            </>
-          ) : (
-            <div className="size-16 shrink-0 overflow-hidden rounded-2xl bg-muted">
-              {company.logoUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={company.logoUrl} alt="" className="h-full w-full object-cover" />
-              ) : (
-                <span className="flex h-full w-full items-center justify-center text-xl font-semibold text-muted-foreground">
-                  {company.name.trim().charAt(0).toUpperCase() || "?"}
-                </span>
-              )}
-            </div>
-          )}
-          <div className="min-w-0 flex-1 pt-1">
-            {admin ? (
-              <Input
-                aria-label="Company name"
-                value={nameDraft}
-                onChange={(event) => setNameDraft(event.target.value)}
-                onBlur={() => void commitField("name", nameDraft)}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter") {
-                    event.preventDefault()
-                    event.currentTarget.blur()
-                  }
-                  if (event.key === "Escape") {
-                    setNameDraft(company.name)
-                    event.currentTarget.blur()
-                  }
-                }}
-                className="h-9 border-transparent bg-transparent px-1.5 text-xl font-bold shadow-none hover:border-input focus-visible:border-ring lg:text-lg"
-              />
-            ) : (
-              <h1 className="truncate text-xl font-bold text-foreground lg:text-lg">{company.name}</h1>
-            )}
-            {company.industry && (
-              <span className="surface-body mt-2 inline-flex items-center rounded-full bg-muted px-2.5 py-1 font-medium">
-                {company.industry}
-              </span>
-            )}
-            <div className="mt-2 flex flex-wrap items-center gap-1.5">
-              {(company.tags ?? []).map((tag) => (
-                <span
-                  key={tag}
-                  className="surface-body group/tag inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 font-medium"
-                >
-                  {tag}
-                  {admin && (
-                    <button
-                      type="button"
-                      onClick={() => removeTag(tag)}
-                      aria-label={`Remove ${tag} tag`}
-                      className="text-muted-foreground opacity-0 outline-none transition-opacity hover:text-foreground group-hover/tag:opacity-100 focus-visible:opacity-100"
-                    >
-                      <X className="size-3" aria-hidden="true" />
-                    </button>
-                  )}
-                </span>
-              ))}
-              {admin &&
-                (addingTag ? (
-                  <input
-                    autoFocus
-                    value={tagDraft}
-                    onChange={(event) => setTagDraft(event.target.value)}
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter") {
-                        event.preventDefault()
-                        addTag()
-                      }
-                      if (event.key === "Escape") {
-                        setTagDraft("")
-                        setAddingTag(false)
-                      }
-                    }}
-                    onBlur={addTag}
-                    placeholder="Tag name"
-                    className="surface-body h-6 w-24 rounded-full border border-border bg-transparent px-2.5 outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                  />
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => setAddingTag(true)}
-                    className="surface-body text-muted-foreground outline-none transition-colors hover:text-foreground"
-                  >
-                    {(company.tags?.length ?? 0) > 0 ? "Add tag" : "Add tags"}
-                  </button>
-                ))}
-            </div>
-          </div>
-        </div>
+        {company.industry && (
+          <span className="surface-body inline-flex items-center rounded-full bg-muted px-2.5 py-1 font-medium">
+            {company.industry}
+          </span>
+        )}
 
         {admin && (
-          <div className="mt-4 flex items-center gap-2">
+          <div className={cn("flex items-center gap-2", company.industry && "mt-4")}>
             {admin.extraAction}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -483,6 +321,55 @@ export function CompanySidebar({
 
         {admin ? (
             <div className={cn("mt-2 divide-y divide-border/60 rounded-2xl border border-border/60 bg-card px-4 lg:block", detailsOpen ? "block" : "hidden")}>
+              <div className="surface-body flex items-start justify-between gap-3 py-2.5">
+                <span className="shrink-0 pt-0.5 text-muted-foreground">Tags</span>
+                <div className="flex flex-1 flex-wrap items-center justify-end gap-1.5">
+                  {(company.tags ?? []).map((tag) => (
+                    <span
+                      key={tag}
+                      className="surface-body group/tag inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 font-medium"
+                    >
+                      {tag}
+                      <button
+                        type="button"
+                        onClick={() => removeTag(tag)}
+                        aria-label={`Remove ${tag} tag`}
+                        className="text-muted-foreground opacity-0 outline-none transition-opacity hover:text-foreground group-hover/tag:opacity-100 focus-visible:opacity-100"
+                      >
+                        <X className="size-3" aria-hidden="true" />
+                      </button>
+                    </span>
+                  ))}
+                  {addingTag ? (
+                    <input
+                      autoFocus
+                      value={tagDraft}
+                      onChange={(event) => setTagDraft(event.target.value)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") {
+                          event.preventDefault()
+                          addTag()
+                        }
+                        if (event.key === "Escape") {
+                          setTagDraft("")
+                          setAddingTag(false)
+                        }
+                      }}
+                      onBlur={addTag}
+                      placeholder="Tag name"
+                      className="surface-body h-6 w-24 rounded-full border border-border bg-transparent px-2.5 outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    />
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setAddingTag(true)}
+                      className="surface-body text-muted-foreground outline-none transition-colors hover:text-foreground"
+                    >
+                      {(company.tags?.length ?? 0) > 0 ? "Add tag" : "Add tags"}
+                    </button>
+                  )}
+                </div>
+              </div>
               <DetailsRow label="Domain">
                 <Input
                   key={company.website ?? ""}
@@ -565,6 +452,20 @@ export function CompanySidebar({
             </div>
           ) : (
             <div className={cn("mt-2 divide-y divide-border/60 rounded-2xl border border-border/60 bg-card px-4 lg:block", detailsOpen ? "block" : "hidden")}>
+              <div className="surface-body flex items-center justify-between gap-3 py-2.5">
+                <span className="shrink-0 text-muted-foreground">Tags</span>
+                {(company.tags?.length ?? 0) > 0 ? (
+                  <div className="flex flex-wrap items-center justify-end gap-1.5">
+                    {company.tags!.map((tag) => (
+                      <span key={tag} className="surface-body rounded-full bg-muted px-2.5 py-1 font-medium">
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <span className="text-muted-foreground/60">Not set</span>
+                )}
+              </div>
               <DetailRow label="Domain" value={company.website} editable={false} />
               <DetailRow label="Description" value={company.description} editable={false} />
               <DetailRow label="Industry" value={company.industry} editable={false} />
