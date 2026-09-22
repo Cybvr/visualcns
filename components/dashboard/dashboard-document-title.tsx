@@ -23,7 +23,7 @@ export function dashboardPageTitle(pathname: string): string {
     case "account":
       if (record === "profile") return "Profile"
       if (record === "customization") return "Customization"
-      if (record === "business") return "Business profile"
+      if (record === "business") return "Organization profile"
       return "Account"
     case "agent":
       return "Ngai"
@@ -51,7 +51,7 @@ export function dashboardPageTitle(pathname: string): string {
     case "seo":
       return "SEO"
     case "settings":
-      return record === "business" ? "Business Profile" : "Settings"
+      return record === "business" ? "Organization Profile" : "Settings"
     case "tasks":
       return "Tasks"
     case "users":

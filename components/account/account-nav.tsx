@@ -10,7 +10,7 @@ const LINKS = [
   { label: "Account", href: "/dashboard/account" },
   { label: "Profile", href: "/dashboard/account/profile" },
   { label: "Customization", href: "/dashboard/account/customization" },
-  { label: "Business profile", href: "/dashboard/account/business", adminOnly: true },
+  { label: "Organization profile", href: "/dashboard/account/business", adminOnly: true },
   { label: "Agency", href: "/dashboard/account/agency", adminOnly: true },
   { label: "Billing", href: "/dashboard/account/billing", adminOnly: true },
   { label: "Data", href: "/dashboard/account/data", adminOnly: true },
@@ -35,17 +35,18 @@ export function AccountNav() {
     .filter((link) => !link.superAdminOnly || role === "superadmin")
 
   return (
-    <div className="flex gap-6 border-b border-border" role="tablist" aria-label="Account settings">
+    <div className="-mx-4 flex gap-6 overflow-x-auto border-b border-border px-4 scrollbar-none sm:mx-0 sm:px-0" role="tablist" aria-label="Account settings">
       {links.map((link) => {
         const active = pathname === link.href
         return (
           <Link
             key={link.href}
             href={link.href}
+            ref={active ? (node) => node?.scrollIntoView({ block: "nearest", inline: "center" }) : undefined}
             role="tab"
             aria-selected={active}
             className={cn(
-              "relative flex h-11 items-center text-sm font-medium text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+              "relative flex h-11 shrink-0 items-center whitespace-nowrap text-sm font-medium text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
               active && "text-foreground after:absolute after:inset-x-0 after:bottom-[-1px] after:h-0.5 after:bg-foreground",
             )}
           >

@@ -88,7 +88,7 @@ export default function AccountBusinessPage() {
       <AccountNav />
 
       <header className="mt-7">
-        <h1 className="text-lg font-semibold">Business profile</h1>
+        <h1 className="text-lg font-semibold">Organization profile</h1>
       </header>
 
       {loading ? (
@@ -98,7 +98,7 @@ export default function AccountBusinessPage() {
           <ImageDropzone compact label="Logo" value={form.logoUrl} onChange={(url) => set("logoUrl", url)} />
 
           <div className="space-y-1.5">
-            <Label htmlFor="name">Business name</Label>
+            <Label htmlFor="name">Organization name</Label>
             <Input id="name" value={form.name} onChange={(event) => set("name", event.target.value)} required />
           </div>
 
