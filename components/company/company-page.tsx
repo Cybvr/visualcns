@@ -10,7 +10,7 @@ import { CompanyDocuments, type CompanyDocumentKind } from "@/components/company
 import { CompanyDocumentView } from "@/components/dashboard/company-document-view"
 import { CompanyEmptyState } from "@/components/company/empty-state"
 import { CompanyMedia } from "@/components/company/company-media"
-import { CompanySidebar, type CompanyDetailsPatch } from "@/components/company/company-sidebar"
+import { CompanyDetails, CompanySidebar, type CompanyDetailsPatch } from "@/components/company/company-sidebar"
 import { SectionAddButton } from "@/components/company/section-add-button"
 import { SectionNav } from "@/components/company/section-nav"
 import { ContractDocument } from "@/components/dashboard/contract-document"
@@ -252,31 +252,30 @@ export function CompanyPage({
     }
   }
 
+  const profile = {
+    id: company.id,
+    name: company.name,
+    logoUrl: company.logoUrl,
+    industry: company.industry,
+    location: company.location,
+    website: company.website,
+    description: company.description,
+    companySize: company.companySize,
+    source: company.source,
+    linkedIn: company.linkedIn,
+    tags: company.tags,
+    primaryContactId: company.primaryContactId,
+  }
+
   return (
     <main className="mx-auto min-h-screen w-full max-w-7xl px-4 pb-16 pt-6 sm:px-6">
       <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
         <CompanySidebar
-          company={{
-            id: company.id,
-            name: company.name,
-            logoUrl: company.logoUrl,
-            industry: company.industry,
-            location: company.location,
-            website: company.website,
-            description: company.description,
-            companySize: company.companySize,
-            source: company.source,
-            linkedIn: company.linkedIn,
-            tags: company.tags,
-            primaryContactId: company.primaryContactId,
-          }}
-          people={people}
-          contacts={allContacts ?? people}
+          company={profile}
           admin={
             admin
               ? {
                   onSave: admin.onUpdateCompany,
-                  onSelectPrimaryContact: admin.onSelectPrimaryContact,
                   onAddPerson: () => setAddingPerson(true),
                   onNewProject: () => setCreatingProject(true),
                   onShare: () => setShareOpen(true),
@@ -309,7 +308,12 @@ export function CompanyPage({
 
           {section === "overview" && (
             <div className="mt-4">
-              <div className="flex items-center justify-between gap-4">
+              <CompanyDetails
+                company={profile}
+                onSave={admin?.onUpdateCompany}
+              />
+
+              <div className="mt-8 flex items-center justify-between gap-4">
                 <h2 className="text-base font-semibold">Recent Projects</h2>
                 {admin && <SectionAddButton onClick={() => setCreatingProject(true)} label="New project" />}
               </div>
