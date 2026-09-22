@@ -3,13 +3,15 @@
 import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
-import { ArrowLeft, Plus, User as UserIcon } from "lucide-react"
+import { ArrowLeft, Briefcase, User as UserIcon } from "lucide-react"
 import { toast } from "sonner"
 
 import { CompanyDocuments, type CompanyDocumentKind } from "@/components/company/company-documents"
 import { CompanyDocumentView } from "@/components/dashboard/company-document-view"
+import { CompanyEmptyState } from "@/components/company/empty-state"
 import { CompanyMedia } from "@/components/company/company-media"
 import { CompanySidebar, type CompanyDetailsPatch } from "@/components/company/company-sidebar"
+import { SectionAddButton } from "@/components/company/section-add-button"
 import { SectionNav } from "@/components/company/section-nav"
 import { ContractDocument } from "@/components/dashboard/contract-document"
 import { DocumentActions } from "@/components/dashboard/document-actions"
@@ -317,23 +319,14 @@ export function CompanyPage({
           </div>
 
           {section === "overview" && (
-            <div className="mt-4 rounded-2xl border border-border/60 bg-card p-5">
+            <div className="mt-4">
               <div className="flex items-center justify-between gap-4">
                 <h2 className="text-base font-semibold">Recent Projects</h2>
-                {admin && (
-                  <button
-                    type="button"
-                    onClick={() => setCreatingProject(true)}
-                    aria-label="New project"
-                    className="flex size-8 items-center justify-center rounded-full bg-muted text-foreground outline-none transition-colors hover:bg-muted/70 focus-visible:ring-2 focus-visible:ring-ring"
-                  >
-                    <Plus className="size-4" aria-hidden="true" />
-                  </button>
-                )}
+                {admin && <SectionAddButton onClick={() => setCreatingProject(true)} label="New project" />}
               </div>
 
               {projects.length === 0 ? (
-                <p className="py-10 text-center text-sm text-muted-foreground">No projects started yet.</p>
+                <CompanyEmptyState icon={Briefcase} title="No projects yet" />
               ) : (
                 <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                   {projects.slice(0, 6).map((project) => (
@@ -361,10 +354,7 @@ export function CompanyPage({
                 {admin && (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button>
-                        <Plus className="size-4" aria-hidden="true" />
-                        Add person
-                      </Button>
+                      <SectionAddButton label="Add person" />
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem onSelect={() => setAddingPerson(true)}>New person</DropdownMenuItem>
@@ -384,23 +374,12 @@ export function CompanyPage({
               </div>
 
               {people.length === 0 ? (
-                <div className="mt-4 flex flex-col items-center rounded-lg border border-dashed border-border py-10 text-center">
-                  <span className="flex size-11 items-center justify-center rounded-full bg-muted">
-                    <UserIcon className="size-5 text-muted-foreground" aria-hidden="true" />
-                  </span>
-                  <h3 className="mt-4 font-medium">No contacts yet</h3>
-                  {admin && (
-                    <>
-                      <p className="mt-1 max-w-sm text-sm text-muted-foreground">
-                        Add the first person to give them access to this workspace.
-                      </p>
-                      <Button className="mt-5" onClick={() => setAddingPerson(true)}>
-                        <Plus className="mr-2 size-4" aria-hidden="true" />
-                        Add person
-                      </Button>
-                    </>
-                  )}
-                </div>
+                <CompanyEmptyState
+                  icon={UserIcon}
+                  title="No contacts yet"
+                  description={admin ? "Add the first person to give them access to this workspace." : undefined}
+                  action={admin ? <SectionAddButton onClick={() => setAddingPerson(true)} label="Add person" /> : undefined}
+                />
               ) : (
                 <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                   {people.map((person) => (
@@ -474,16 +453,15 @@ export function CompanyPage({
                     <span className="text-sm text-muted-foreground">
                       {projects.length} project{projects.length === 1 ? "" : "s"}
                     </span>
-                    {admin && (
-                      <Button onClick={() => setCreatingProject(true)}>
-                        <Plus className="size-4" aria-hidden="true" />
-                        New project
-                      </Button>
-                    )}
+                    {admin && <SectionAddButton onClick={() => setCreatingProject(true)} label="New project" />}
                   </div>
 
-                  {!admin && projects.length === 0 ? (
-                    <p className="py-10 text-center text-sm text-muted-foreground">{emptyProjectsLabel}</p>
+                  {projects.length === 0 ? (
+                    <CompanyEmptyState
+                      icon={Briefcase}
+                      title={admin ? "No projects yet" : emptyProjectsLabel}
+                      action={admin ? <SectionAddButton onClick={() => setCreatingProject(true)} label="New project" /> : undefined}
+                    />
                   ) : (
                     <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                       {projects.map((project) => {
@@ -510,19 +488,6 @@ export function CompanyPage({
                           />
                         )
                       })}
-
-                      {admin && (
-                        <button
-                          type="button"
-                          onClick={() => setCreatingProject(true)}
-                          className="group flex min-h-[180px] flex-col items-center justify-center gap-3 rounded-[14px] border border-dashed border-border bg-card p-4 text-center outline-none transition-colors hover:border-foreground/30 hover:bg-muted/40 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                        >
-                          <span className="flex size-9 items-center justify-center rounded-full bg-foreground text-background transition-transform group-hover:scale-105">
-                            <Plus className="size-4" aria-hidden="true" />
-                          </span>
-                          <span className="text-sm font-medium text-foreground">Add project</span>
-                        </button>
-                      )}
                     </div>
                   )}
                 </>

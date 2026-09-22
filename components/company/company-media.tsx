@@ -1,10 +1,11 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { ChevronLeft, ChevronRight, Images, Play, Plus, X } from "lucide-react"
+import { ChevronLeft, ChevronRight, Images, Play, X } from "lucide-react"
 
+import { CompanyEmptyState } from "@/components/company/empty-state"
+import { SectionAddButton } from "@/components/company/section-add-button"
 import { GalleryDropzone } from "@/components/image-dropzone"
-import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { mediaKindForUrl, type MediaKind } from "@/lib/media"
 import type { Project } from "@/lib/projects"
@@ -78,13 +79,9 @@ export function CompanyMedia({
   return (
     <section className="mt-4" aria-labelledby="company-media-heading">
       <div className="flex items-center justify-between gap-4">
-        <h2 id="company-media-heading" className="text-base font-semibold">Media</h2>
-        {isAdmin && (
-          <Button onClick={() => setAddOpen(true)}>
-            <Plus className="size-4" aria-hidden="true" />
-            Add media
-          </Button>
-        )}
+        <h2 id="company-media-heading" className="sr-only">Media</h2>
+        <span className="text-sm text-muted-foreground">{gallery.length} item{gallery.length === 1 ? "" : "s"}</span>
+        {isAdmin && <SectionAddButton onClick={() => setAddOpen(true)} label="Add media" />}
       </div>
 
       {isAdmin && (
@@ -103,13 +100,11 @@ export function CompanyMedia({
       )}
 
       {gallery.length === 0 ? (
-        <div className="mt-4 flex flex-col items-center rounded-lg border border-dashed border-border py-10 text-center">
-          <span className="flex size-11 items-center justify-center rounded-full bg-muted">
-            <Images className="size-5 text-muted-foreground" aria-hidden="true" />
-          </span>
-          <h3 className="mt-4 font-medium">No media yet</h3>
-          <p className="mt-1 text-sm text-muted-foreground">Project covers, images, and videos will appear here.</p>
-        </div>
+        <CompanyEmptyState
+          icon={Images}
+          title="No media yet"
+          description="Project covers, images, and videos will appear here."
+        />
       ) : (
         <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
           {gallery.map((item, index) => (
