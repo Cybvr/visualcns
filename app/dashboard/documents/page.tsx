@@ -2,11 +2,12 @@
 
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
-import { useCallback, useEffect, useMemo, useState } from "react"
-import { ChevronDown, Eye, FileUp, Loader2, Pencil, Plus, Trash2 } from "lucide-react"
+import { useCallback, useEffect, useMemo, useState, type ComponentType } from "react"
+import { ChevronDown, ClipboardList, Eye, FileSignature, FileText, FileUp, Loader2, Pencil, Plus, Receipt, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
+import { DOC_BADGE } from "@/components/company/document-tile"
 import { DriveView } from "@/components/dashboard/drive-view"
 import { FirstRunState } from "@/components/dashboard/empty-state"
 import { NewDocumentDialog } from "@/components/dashboard/new-document-dialog"
@@ -84,6 +85,41 @@ const KIND_LABEL: Record<RowKind, string> = {
   brief: companyDocumentKindMeta.brief.label,
   report: companyDocumentKindMeta.report.label,
   other: companyDocumentKindMeta.other.label,
+}
+
+const KIND_ICON: Record<RowKind, ComponentType<{ className?: string }>> = {
+  contract: FileSignature,
+  invoice: Receipt,
+  estimate: ClipboardList,
+  proposal: FileText,
+  sow: FileText,
+  brief: FileText,
+  report: FileText,
+  other: FileText,
+}
+
+const KIND_BADGE: Record<RowKind, string> = {
+  contract: DOC_BADGE.contract,
+  invoice: DOC_BADGE.invoice,
+  estimate: DOC_BADGE.estimate,
+  proposal: DOC_BADGE.document,
+  sow: DOC_BADGE.document,
+  brief: DOC_BADGE.document,
+  report: DOC_BADGE.document,
+  other: DOC_BADGE.document,
+}
+
+function timeAgo(ms: number): string {
+  if (!ms) return ""
+  const diff = Date.now() - ms
+  if (diff < 60_000) return "just now"
+  const mins = Math.floor(diff / 60_000)
+  if (mins < 60) return `${mins} minute${mins === 1 ? "" : "s"} ago`
+  const hours = Math.floor(mins / 60)
+  if (hours < 24) return `${hours} hour${hours === 1 ? "" : "s"} ago`
+  const days = Math.floor(hours / 24)
+  if (days < 7) return `${days} day${days === 1 ? "" : "s"} ago`
+  return new Date(ms).toLocaleDateString("en-US", { month: "short", day: "numeric" })
 }
 
 interface UnifiedRow {
@@ -320,48 +356,71 @@ export default function DocumentsPage() {
           action={adminView ? <Button onClick={() => setCreating(true)}>New Document</Button> : undefined}
         />
       ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Title</TableHead>
-              <TableHead>Type</TableHead>
-              {adminView && <TableHead>Company</TableHead>}
-              <TableHead>Updated</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead><span className="sr-only">Actions</span></TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {visibleRows.map((row) => (
-              <TableRow key={`${row.kind}-${row.id}`}>
-                <TableCell className="font-medium">
-                  <Link href={row.editHref ?? row.viewHref} className="rounded-sm outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring">{row.title}</Link>
-                </TableCell>
-                <TableCell className="text-muted-foreground">{KIND_LABEL[row.kind]}</TableCell>
-                {adminView && (
-                  <TableCell>
-                    {row.companyId ? (
-                      <button type="button" onClick={() => setClientSheet(row.companyId)} className="rounded-sm text-left outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring">{row.company || "Company"}</button>
-                    ) : "—"}
-                  </TableCell>
-                )}
-                <TableCell>{row.updatedAtMs ? formatDate(new Date(row.updatedAtMs).toISOString().slice(0, 10)) : "—"}</TableCell>
-                <TableCell>{row.statusLabel && <span className={cn("inline-flex rounded-full px-2 py-0.5 text-xs font-medium", row.statusClassName)}>{row.statusLabel}</span>}</TableCell>
-                <TableCell>
-                  <div className="flex items-center justify-end gap-0.5">
-                    <Link href={row.viewHref} aria-label={`View ${row.title}`} className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"><Eye className="size-4" aria-hidden="true" /></Link>
-                    {adminView && row.editHref && (
-                      <Link href={row.editHref} aria-label={`Edit ${row.title}`} className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"><Pencil className="size-4" aria-hidden="true" /></Link>
-                    )}
-                    {adminView && (
-                      <button type="button" onClick={() => setConfirmDelete(row)} aria-label={`Delete ${row.title}`} className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-destructive focus-visible:ring-2 focus-visible:ring-ring"><Trash2 className="size-4" aria-hidden="true" /></button>
-                    )}
+        <>
+          <div className="divide-y divide-border rounded-lg border border-border sm:hidden">
+            {visibleRows.map((row) => {
+              const KindIcon = KIND_ICON[row.kind]
+              return (
+                <Link
+                  key={`${row.kind}-${row.id}`}
+                  href={row.editHref ?? row.viewHref}
+                  className="flex items-center gap-3 p-3 outline-none transition-colors hover:bg-muted/50 focus-visible:bg-muted/50"
+                >
+                  <span className={cn("flex size-11 shrink-0 items-center justify-center rounded-lg", KIND_BADGE[row.kind])}>
+                    <KindIcon className="size-5" aria-hidden="true" />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold">{row.title}</p>
+                    <p className="mt-0.5 truncate text-xs text-muted-foreground">{timeAgo(row.updatedAtMs)}</p>
                   </div>
-                </TableCell>
+                </Link>
+              )
+            })}
+          </div>
+
+          <Table className="hidden sm:table">
+            <TableHeader>
+              <TableRow>
+                <TableHead>Title</TableHead>
+                <TableHead>Type</TableHead>
+                {adminView && <TableHead>Company</TableHead>}
+                <TableHead>Updated</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead><span className="sr-only">Actions</span></TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {visibleRows.map((row) => (
+                <TableRow key={`${row.kind}-${row.id}`}>
+                  <TableCell className="font-medium">
+                    <Link href={row.editHref ?? row.viewHref} className="rounded-sm outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring">{row.title}</Link>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">{KIND_LABEL[row.kind]}</TableCell>
+                  {adminView && (
+                    <TableCell>
+                      {row.companyId ? (
+                        <button type="button" onClick={() => setClientSheet(row.companyId)} className="rounded-sm text-left outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring">{row.company || "Company"}</button>
+                      ) : "—"}
+                    </TableCell>
+                  )}
+                  <TableCell>{row.updatedAtMs ? formatDate(new Date(row.updatedAtMs).toISOString().slice(0, 10)) : "—"}</TableCell>
+                  <TableCell>{row.statusLabel && <span className={cn("inline-flex rounded-full px-2 py-0.5 text-xs font-medium", row.statusClassName)}>{row.statusLabel}</span>}</TableCell>
+                  <TableCell>
+                    <div className="flex items-center justify-end gap-0.5">
+                      <Link href={row.viewHref} aria-label={`View ${row.title}`} className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"><Eye className="size-4" aria-hidden="true" /></Link>
+                      {adminView && row.editHref && (
+                        <Link href={row.editHref} aria-label={`Edit ${row.title}`} className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"><Pencil className="size-4" aria-hidden="true" /></Link>
+                      )}
+                      {adminView && (
+                        <button type="button" onClick={() => setConfirmDelete(row)} aria-label={`Delete ${row.title}`} className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-destructive focus-visible:ring-2 focus-visible:ring-ring"><Trash2 className="size-4" aria-hidden="true" /></button>
+                      )}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </>
       )}
 
       {adminView && (
