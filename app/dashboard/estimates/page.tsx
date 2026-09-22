@@ -165,7 +165,7 @@ export default function EstimatesPage() {
         {...bar}
         placeholder="Search estimates"
         actions={
-          adminView && <Button asChild><Link href="/dashboard/estimates/new"><Plus className="size-4" aria-hidden="true" />New</Link></Button>
+          adminView && <Button asChild variant="ghost" className="bg-transparent text-foreground hover:bg-transparent"><Link href="/dashboard/estimates/new"><Plus className="size-4" aria-hidden="true" />New</Link></Button>
         }
       />
       <p className="mb-6 text-sm text-muted-foreground">Price and scope work before it becomes an invoice.</p>

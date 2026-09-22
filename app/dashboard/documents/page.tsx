@@ -314,10 +314,10 @@ export default function DocumentsPage() {
         actions={
           adminView && (
             <>
-              <Button variant="ghost" size="icon" className="bg-card shadow-none hover:bg-card/80" onClick={() => setImporting(true)} aria-label="Import document" title="Import document"><FileUp className="size-4" aria-hidden="true" /></Button>
+              <Button variant="ghost" size="icon" className="bg-transparent shadow-none hover:bg-transparent" onClick={() => setImporting(true)} aria-label="Import document" title="Import document"><FileUp className="size-4" aria-hidden="true" /></Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button size="sm" className="px-3" aria-label="New" title="New">
+                  <Button variant="ghost" size="sm" className="bg-transparent px-3 text-foreground hover:bg-transparent" aria-label="New" title="New">
                     <Plus className="size-4" aria-hidden="true" />
                     <ChevronDown className="size-3.5" aria-hidden="true" />
                   </Button>

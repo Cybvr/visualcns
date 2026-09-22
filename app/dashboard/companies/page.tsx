@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
-import { Building2, Eye, Pencil, Plus, Trash2, Loader2 } from "lucide-react"
+import { Building2, Eye, Pencil, Plus, Trash2 } from "lucide-react"
 import { FaBuilding } from "react-icons/fa"
 import type { Timestamp } from "firebase/firestore"
 
@@ -239,7 +239,7 @@ export default function CompaniesPage() {
         showSearch={false}
         placeholder="Search companies"
         actions={
-          <Button size="icon" onClick={() => setCreating(true)} aria-label="Add company" title="Add company">
+          <Button variant="ghost" size="icon" className="bg-transparent text-foreground hover:bg-transparent" onClick={() => setCreating(true)} aria-label="Add company" title="Add company">
             <Plus className="size-4" aria-hidden="true" />
           </Button>
         }

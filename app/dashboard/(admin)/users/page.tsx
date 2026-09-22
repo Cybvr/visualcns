@@ -176,7 +176,7 @@ export default function UsersAdminPage() {
             <Button variant="outline" size="icon" disabled={inviting} onClick={() => void handleInvite()} aria-label="Invite contact" title="Invite contact">
               {inviting ? <Loader2 className="size-4 animate-spin" /> : <UserPlus className="size-4" aria-hidden="true" />}
             </Button>
-            <Button size="icon" onClick={() => setSelectedId("new")} aria-label="Add contact" title="Add contact">
+            <Button variant="ghost" size="icon" className="bg-transparent text-foreground hover:bg-transparent" onClick={() => setSelectedId("new")} aria-label="Add contact" title="Add contact">
               <Plus className="size-4" aria-hidden="true" />
             </Button>
           </div>

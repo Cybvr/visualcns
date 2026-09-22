@@ -393,7 +393,7 @@ export function DriveView() {
         {...bar}
         placeholder="Search files"
         actions={
-          adminView && <Button onClick={() => fileInputRef.current?.click()}><Plus className="h-4 w-4" />Add</Button>
+          adminView && <Button variant="ghost" className="bg-transparent text-foreground hover:bg-transparent" onClick={() => fileInputRef.current?.click()}><Plus className="h-4 w-4" />Add</Button>
         }
       />
 

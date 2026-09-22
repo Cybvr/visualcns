@@ -185,7 +185,7 @@ export default function ContractsPage() {
         {...bar}
         placeholder="Search contracts"
         actions={
-          adminView && <Button asChild><Link href="/dashboard/contracts/new"><Plus className="size-4" aria-hidden="true" />New</Link></Button>
+          adminView && <Button asChild variant="ghost" className="bg-transparent text-foreground hover:bg-transparent"><Link href="/dashboard/contracts/new"><Plus className="size-4" aria-hidden="true" />New</Link></Button>
         }
       />
 

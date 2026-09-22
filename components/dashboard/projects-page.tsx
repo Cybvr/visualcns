@@ -171,7 +171,7 @@ export default function ProjectsAdminPage() {
         placeholder="Search projects"
         controls={<span className="hidden sm:block"><ViewToggle view={view} onChange={setView} /></span>}
         actions={
-          <Button size="icon" onClick={() => setCreating(true)} aria-label="Add Project">
+          <Button variant="ghost" size="icon" className="bg-transparent text-foreground hover:bg-transparent" onClick={() => setCreating(true)} aria-label="Add Project">
             <Plus className="h-4 w-4" />
           </Button>
         }

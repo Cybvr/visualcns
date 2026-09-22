@@ -181,7 +181,7 @@ export default function InvoicesPage() {
         {...bar}
         placeholder="Search invoices"
         actions={
-          adminView && <Button asChild><Link href="/dashboard/invoices/new"><Plus className="size-4" aria-hidden="true" />New invoice</Link></Button>
+          adminView && <Button asChild variant="ghost" className="bg-transparent text-foreground hover:bg-transparent"><Link href="/dashboard/invoices/new"><Plus className="size-4" aria-hidden="true" />New invoice</Link></Button>
         }
       />
 

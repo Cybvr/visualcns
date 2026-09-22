@@ -14,7 +14,6 @@ import {
   Eye,
   FileText,
   Inbox,
-  Loader2,
   List,
   Linkedin,
   Mail,
@@ -1376,7 +1375,7 @@ export default function EmailPage() {
             <div className="lg:hidden">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button size="sm" className="bg-foreground px-3 text-background hover:bg-foreground/90" aria-label="Create email item" title="Create email item">
+                  <Button variant="ghost" size="sm" className="bg-transparent px-3 text-foreground hover:bg-transparent" aria-label="Create email item" title="Create email item">
                     <Plus className="size-4" aria-hidden="true" />
                     <ChevronDown className="size-4" aria-hidden="true" />
                   </Button>

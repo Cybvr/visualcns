@@ -178,7 +178,7 @@ export default function TasksAdminPage() {
         {...bar}
         placeholder="Search tasks"
         actions={
-          <Button onClick={() => setSelectedId("new")}><Plus className="h-4 w-4" />Add Task</Button>
+          <Button variant="ghost" className="bg-transparent text-foreground hover:bg-transparent" onClick={() => setSelectedId("new")}><Plus className="h-4 w-4" />Add Task</Button>
         }
       />
 
