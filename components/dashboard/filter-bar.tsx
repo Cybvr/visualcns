@@ -79,6 +79,8 @@ export type FilterBarProps = {
   className?: string
   /** How the mobile filter control is presented. Defaults to a centered dialog. */
   mobileVariant?: "dialog" | "drawer"
+  /** Hide the text search field, e.g. when a page relies on global search instead. Defaults to true. */
+  showSearch?: boolean
 }
 
 function compare(a: string | number | null | undefined, b: string | number | null | undefined) {
@@ -157,6 +159,7 @@ export function FilterBar({
   searchClassName,
   className,
   mobileVariant = "dialog",
+  showSearch = true,
 }: FilterBarProps) {
   const [filterOpen, setFilterOpen] = useState(false)
   const active = sorts.find((option) => option.value === sortKey)
@@ -216,27 +219,29 @@ export function FilterBar({
     <div className={cn("mb-6 flex flex-wrap items-center gap-3", className)}>
       <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
       {leading}
-      <div className={cn("relative min-w-0 flex-1 sm:max-w-xs", searchClassName)}>
-        <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          type="search"
-          value={query}
-          onChange={(event) => onQueryChange(event.target.value)}
-          placeholder={placeholder}
-          aria-label={placeholder}
-          className="pl-9 [&::-webkit-search-cancel-button]:hidden"
-        />
-        {query && (
-          <button
-            type="button"
-            onClick={() => onQueryChange("")}
-            aria-label="Clear search"
-            className="absolute top-1/2 right-2 -translate-y-1/2 rounded-sm p-1 text-muted-foreground transition-colors hover:text-foreground"
-          >
-            <X className="h-3.5 w-3.5" />
-          </button>
-        )}
-      </div>
+      {showSearch && (
+        <div className={cn("relative min-w-0 flex-1 sm:max-w-xs", searchClassName)}>
+          <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            type="search"
+            value={query}
+            onChange={(event) => onQueryChange(event.target.value)}
+            placeholder={placeholder}
+            aria-label={placeholder}
+            className="pl-9 [&::-webkit-search-cancel-button]:hidden"
+          />
+          {query && (
+            <button
+              type="button"
+              onClick={() => onQueryChange("")}
+              aria-label="Clear search"
+              className="absolute top-1/2 right-2 -translate-y-1/2 rounded-sm p-1 text-muted-foreground transition-colors hover:text-foreground"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
+      )}
 
       {hasControls && (
         <>

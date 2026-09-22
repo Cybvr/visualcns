@@ -10,6 +10,7 @@ import { AgentHeaderButton } from "@/components/agent/agent-header-button"
 import { AppSidebar, type NavLink } from "@/components/app-sidebar"
 import { NgaiSidePanel } from "@/components/agent/ngai-side-panel"
 import { MobileFooterNav, type MobileFooterNavItem } from "@/components/mobile-footer-nav"
+import { DashboardSearchButton } from "@/components/dashboard/dashboard-search-button"
 import { NewDocumentDialog } from "@/components/dashboard/new-document-dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -173,6 +174,7 @@ export function DashboardShell({
               </h1>
             </div>
             <div className="ml-auto flex shrink-0 items-center gap-2">
+              <DashboardSearchButton className="md:hidden" />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button type="button" variant="outline" size="icon" aria-label="Create new" title="Create new">

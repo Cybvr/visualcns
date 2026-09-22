@@ -8,7 +8,7 @@ import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
 import { DriveView } from "@/components/dashboard/drive-view"
-import { EmptySearchState, FirstRunState } from "@/components/dashboard/empty-state"
+import { FirstRunState } from "@/components/dashboard/empty-state"
 import { NewDocumentDialog } from "@/components/dashboard/new-document-dialog"
 import { ImportWordDocumentDialog } from "@/components/dashboard/import-word-document-dialog"
 import { FilterBar, useFilterBar, type SortOption } from "@/components/dashboard/filter-bar"
@@ -171,10 +171,6 @@ function matchesTab(row: UnifiedRow, tab: Tab) {
   return row.kind === tab
 }
 
-function searchRow(row: UnifiedRow) {
-  return [row.title, row.company, KIND_LABEL[row.kind], row.statusLabel]
-}
-
 export default function DocumentsPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -260,7 +256,6 @@ export default function DocumentsPage() {
 
   const { results: visibleRows, bar } = useFilterBar({
     items: tabRows,
-    search: searchRow,
     sorts,
     defaultSort: "updated",
     defaultDirection: "desc",
@@ -273,7 +268,7 @@ export default function DocumentsPage() {
       <FilterBar
         {...bar}
         mobileVariant="drawer"
-        placeholder="Search documents"
+        showSearch={false}
         actions={
           adminView && (
             <>
@@ -324,8 +319,6 @@ export default function DocumentsPage() {
             : "Documents your agency shares with you will show up here."}
           action={adminView ? <Button onClick={() => setCreating(true)}>New Document</Button> : undefined}
         />
-      ) : visibleRows.length === 0 ? (
-        <EmptySearchState label="No documents match your search." />
       ) : (
         <Table>
           <TableHeader>

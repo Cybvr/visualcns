@@ -24,7 +24,7 @@ const keywords = (...parts: Array<string | undefined | null>) => parts.filter(Bo
  * loader, so a signed-in admin searches their whole workspace. Data is fetched
  * once, the first time the palette is opened.
  */
-export function SidebarSearch() {
+export function useDashboardSearch() {
   const [open, setOpen] = useState(false)
   const [results, setResults] = useState<SearchResult[]>([])
   const [loading, setLoading] = useState(false)
@@ -140,6 +140,12 @@ export function SidebarSearch() {
     }
   }, [open, loaded])
 
+  return { open, setOpen, openSearch, results, loading: loading && results.length === 0 }
+}
+
+/** The sidebar drawer's search row: a faux input that opens the palette. */
+export function SidebarSearch() {
+  const { open, setOpen, openSearch, results, loading } = useDashboardSearch()
   return (
     <>
       <SearchTrigger onOpen={openSearch} />
@@ -147,7 +153,7 @@ export function SidebarSearch() {
         open={open}
         onOpenChange={setOpen}
         results={results}
-        loading={loading && results.length === 0}
+        loading={loading}
         placeholder="Search companies, projects, documents…"
       />
     </>
