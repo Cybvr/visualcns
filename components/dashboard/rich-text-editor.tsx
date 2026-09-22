@@ -182,6 +182,8 @@ export function RichTextEditor({
     return <div className={cn("min-h-72 rounded-[10px] border border-input", className)} />
   }
 
+  const currentEditor = editor
+
   function handleImageSelected({ src, alt }: { src: string; alt: string }) {
     if (!editor) return
     const { selection } = editor.state
@@ -205,12 +207,12 @@ export function RichTextEditor({
 
   function renderToolbarButton(button: ToolbarButton) {
     const Icon = button.icon
-    const active = button.isActive?.(editor) ?? false
+    const active = button.isActive?.(currentEditor) ?? false
     return (
       <button
         key={button.label}
         type="button"
-        onClick={() => button.run(editor)}
+        onClick={() => button.run(currentEditor)}
         aria-label={button.label}
         aria-pressed={active}
         className={cn(
