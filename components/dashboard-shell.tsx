@@ -222,7 +222,14 @@ export function DashboardShell({
               <QuickCreateMenu
                 onSelect={selectQuickCreate}
                 trigger={
-                  <Button type="button" variant="outline" size="icon" aria-label="Create new" title="Create new">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    aria-label="Create new"
+                    title="Create new"
+                    className="max-md:border-transparent max-md:bg-transparent max-md:shadow-none"
+                  >
                     <Plus className="size-4" aria-hidden="true" />
                   </Button>
                 }

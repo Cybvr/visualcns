@@ -44,7 +44,19 @@ function ProgressBar({ value }: { value: number }) {
   )
 }
 
-export function ProjectsView({ projects, onChanged }: { projects: Project[]; onChanged?: () => Promise<void> }) {
+export function ProjectsView({
+  projects,
+  onChanged,
+  onNewProject,
+  minimal = false,
+}: {
+  projects: Project[]
+  onChanged?: () => Promise<void>
+  /** Opens a quick-create dialog instead of navigating to /dashboard/projects?new=1. */
+  onNewProject?: () => void
+  /** Home page: skip the pitch copy and support line in the empty state. */
+  minimal?: boolean
+}) {
   const [renaming, setRenaming] = useState<Project | null>(null)
   const [deleting, setDeleting] = useState<Project | null>(null)
   const [title, setTitle] = useState("")
@@ -114,11 +126,16 @@ export function ProjectsView({ projects, onChanged }: { projects: Project[]; onC
           className="mt-4"
           label="Project"
           title="No projects yet"
-          description="Projects created for you will show up here, with their tasks and progress alongside."
+          description={minimal ? undefined : "Projects created for you will show up here, with their tasks and progress alongside."}
+          help={minimal ? null : undefined}
           action={
-            <Button asChild>
-              <Link href="/dashboard/projects?new=1">New Project</Link>
-            </Button>
+            onNewProject ? (
+              <Button onClick={onNewProject}>New Project</Button>
+            ) : (
+              <Button asChild>
+                <Link href="/dashboard/projects?new=1">New Project</Link>
+              </Button>
+            )
           }
         />
       ) : (
@@ -183,15 +200,28 @@ export function ProjectsView({ projects, onChanged }: { projects: Project[]; onC
           )
         })}
 
-        <Link
-          href="/dashboard/projects?new=1"
-          className="group flex min-h-[180px] flex-col items-center justify-center gap-3 rounded-[14px] border border-dashed border-border bg-card p-4 text-center outline-none transition-colors hover:border-foreground/30 hover:bg-muted/40 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-        >
-          <span className="flex size-10 items-center justify-center rounded-full bg-foreground text-background transition-transform group-hover:scale-105">
-            <Plus className="size-5" aria-hidden="true" />
-          </span>
-          <span className="text-sm font-medium text-foreground">Create a new project</span>
-        </Link>
+        {onNewProject ? (
+          <button
+            type="button"
+            onClick={onNewProject}
+            className="group flex min-h-[180px] flex-col items-center justify-center gap-3 rounded-[14px] border border-dashed border-border bg-card p-4 text-center outline-none transition-colors hover:border-foreground/30 hover:bg-muted/40 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          >
+            <span className="flex size-10 items-center justify-center rounded-full bg-foreground text-background transition-transform group-hover:scale-105">
+              <Plus className="size-5" aria-hidden="true" />
+            </span>
+            <span className="text-sm font-medium text-foreground">Create a new project</span>
+          </button>
+        ) : (
+          <Link
+            href="/dashboard/projects?new=1"
+            className="group flex min-h-[180px] flex-col items-center justify-center gap-3 rounded-[14px] border border-dashed border-border bg-card p-4 text-center outline-none transition-colors hover:border-foreground/30 hover:bg-muted/40 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          >
+            <span className="flex size-10 items-center justify-center rounded-full bg-foreground text-background transition-transform group-hover:scale-105">
+              <Plus className="size-5" aria-hidden="true" />
+            </span>
+            <span className="text-sm font-medium text-foreground">Create a new project</span>
+          </Link>
+        )}
       </div>
       )}
 

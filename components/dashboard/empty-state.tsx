@@ -23,7 +23,7 @@ export function FirstRunState({
 }: {
   label: string
   title: string
-  description: string
+  description?: string
   action?: ReactNode
   help?: ReactNode
   className?: string
@@ -36,7 +36,7 @@ export function FirstRunState({
         </div>
         <div className="max-w-md">
           <h2 className="text-xl font-semibold tracking-[-0.02em] sm:text-2xl">{title}</h2>
-          <p className="mt-4 text-sm leading-7 text-muted-foreground">{description}</p>
+          {description && <p className="mt-4 text-sm leading-7 text-muted-foreground">{description}</p>}
           {action && <div className="mt-7">{action}</div>}
         </div>
       </div>

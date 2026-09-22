@@ -7,8 +7,8 @@ import { Loader2 } from "lucide-react"
 import { useAuth } from "@/components/auth-provider"
 import { ActivityFeed } from "@/components/dashboard/activity-feed"
 import { HomeTaskList } from "@/components/dashboard/home-task-list"
+import { NewProjectQuickDialog } from "@/components/dashboard/new-project-quick-dialog"
 import { ProjectsView } from "@/components/dashboard/projects-view"
-import { TemplatesView } from "@/components/dashboard/templates-view"
 import { getCompanyActivity, type ActivityItem } from "@/lib/activity"
 import { getProjectsByCompanyId, type Project } from "@/lib/projects"
 import { getTasksByCompanyId, seedDefaultTasks, tsToMillis, type Task } from "@/lib/tasks"
@@ -38,6 +38,7 @@ export default function DashboardPage() {
   const [activity, setActivity] = useState<ActivityItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [creatingProject, setCreatingProject] = useState(false)
   const seedingRef = useRef(false)
 
   const fetchData = useCallback(async () => {
@@ -100,8 +101,12 @@ export default function DashboardPage() {
         <p className="mt-10 text-sm text-destructive">{error}</p>
       ) : (
         <>
-          <ProjectsView projects={projects} onChanged={fetchData} />
-          <TemplatesView companyId={companyId} clientName={clientName} onCreated={fetchData} />
+          <ProjectsView
+            projects={projects}
+            onChanged={fetchData}
+            onNewProject={() => setCreatingProject(true)}
+            minimal
+          />
           <div className="mt-8 grid items-start gap-6 lg:grid-cols-2">
             <HomeTaskList
               tasks={tasks}
@@ -110,7 +115,7 @@ export default function DashboardPage() {
               onSaved={fetchData}
               className="mt-0"
             />
-            <ActivityFeed items={activity} hrefFor={activityHref} className="mt-0" />
+            <ActivityFeed items={activity} hrefFor={activityHref} className="mt-0 hidden lg:block" />
           </div>
           <div className="mt-6 overflow-hidden rounded-lg bg-card">
             <Image
@@ -123,6 +128,14 @@ export default function DashboardPage() {
           </div>
         </>
       )}
+
+      <NewProjectQuickDialog
+        open={creatingProject}
+        onOpenChange={setCreatingProject}
+        companyId={companyId}
+        clientName={clientName}
+        onCreated={fetchData}
+      />
     </main>
   )
 }
