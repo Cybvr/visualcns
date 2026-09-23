@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState, type ReactNode } from "react"
+import { createPortal } from "react-dom"
 import { ArrowDownWideNarrow, ArrowUpNarrowWide, Check, Search, X } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -261,33 +262,31 @@ export function FilterBar({
     </div>
   )
 
-  // Memoised on props only, so the header context update this triggers doesn't loop back into a new node.
-  const headerNode = useMemo(
-    () =>
-      headerOnMobile ? (
-        <div className="flex items-center gap-1 sm:hidden [&_a]:!text-current [&_button]:!text-current">
-          <Button type="button" variant="ghost" size="icon" aria-label={sheetTitle} onClick={() => setFilterOpen(true)} className="relative">
-            <Search className="size-4" aria-hidden="true" />
-            {query && <span className="absolute top-1.5 right-1.5 size-1.5 rounded-full bg-current" aria-hidden="true" />}
-          </Button>
-          {actions}
-        </div>
-      ) : null,
-    [headerOnMobile, sheetTitle, query, actions],
-  )
-  // Only touch the header when asked, so bars nested in pages with their own header actions leave them alone.
-  const { setActions, setReplacesMobileDefaults } = usePageHeaderOverride()
+  // Portalled into the blue header rather than pushed through context state, so page
+  // re-renders can never feed back into a header update loop.
+  const { headerSlot, setReplacesMobileDefaults } = usePageHeaderOverride()
   useEffect(() => {
     if (!headerOnMobile) return
-    setActions(headerNode)
     setReplacesMobileDefaults(true)
-    return () => {
-      setActions(null)
-      setReplacesMobileDefaults(false)
-    }
-  }, [headerOnMobile, headerNode, setActions, setReplacesMobileDefaults])
+    return () => setReplacesMobileDefaults(false)
+  }, [headerOnMobile, setReplacesMobileDefaults])
+  const headerPortal =
+    headerOnMobile && headerSlot
+      ? createPortal(
+          <div className="flex items-center gap-1 sm:hidden [&_a]:!text-current [&_button]:!text-current">
+            <Button type="button" variant="ghost" size="icon" aria-label={sheetTitle} onClick={() => setFilterOpen(true)} className="relative">
+              <Search className="size-4" aria-hidden="true" />
+              {query && <span className="absolute top-1.5 right-1.5 size-1.5 rounded-full bg-current" aria-hidden="true" />}
+            </Button>
+            {actions}
+          </div>,
+          headerSlot,
+        )
+      : null
 
   return (
+    <>
+    {headerPortal}
     <div className={cn("mb-6 flex flex-wrap items-center gap-3", headerOnMobile && !leading && !controls && "max-sm:hidden", className)}>
       <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
       {leading}
@@ -355,5 +354,6 @@ export function FilterBar({
       </div>
       {actions && <div className={cn("ml-auto flex shrink-0 flex-wrap items-center justify-end gap-2", headerOnMobile && "max-sm:hidden")}>{actions}</div>}
     </div>
+    </>
   )
 }

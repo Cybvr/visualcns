@@ -1369,6 +1369,8 @@ export default function EmailPage() {
       <div className="flex h-full min-h-0 w-full min-w-0 flex-1 flex-col">
         <FilterBar
           {...activeFilterBar}
+          mobileVariant="drawer"
+          headerOnMobile
           className="mb-2"
           showSearch={false}
           placeholder={tab === "inbox" ? "Search inbox" : tab === "messages" ? "Search sent" : tab === "templates" ? "Search templates" : "Search lists"}

@@ -139,6 +139,7 @@ export default function ProjectsAdminPage() {
       <FilterBar
         {...bar}
         mobileVariant="drawer"
+        headerOnMobile
         showSearch={false}
         placeholder="Search projects"
         controls={<ViewToggle view={view} onChange={setView} />}

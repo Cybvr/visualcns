@@ -18,6 +18,9 @@ interface PageTitleContextValue {
   /** When set, the page's actions stand in for the header's default search and create buttons on phones. */
   replacesMobileDefaults: boolean
   setReplacesMobileDefaults: Dispatch<SetStateAction<boolean>>
+  /** Header element pages can portal their own buttons into, see FilterBar headerOnMobile. */
+  headerSlot: HTMLElement | null
+  setHeaderSlot: Dispatch<SetStateAction<HTMLElement | null>>
 }
 
 const PageTitleContext = createContext<PageTitleContextValue | null>(null)
@@ -27,9 +30,10 @@ export function PageTitleProvider({ children }: { children: ReactNode }) {
   const [titleNode, setTitleNode] = useState<ReactNode | null>(null)
   const [actions, setActions] = useState<ReactNode>(null)
   const [replacesMobileDefaults, setReplacesMobileDefaults] = useState(false)
+  const [headerSlot, setHeaderSlot] = useState<HTMLElement | null>(null)
   const value = useMemo(
-    () => ({ override, setOverride, titleNode, setTitleNode, actions, setActions, replacesMobileDefaults, setReplacesMobileDefaults }),
-    [override, titleNode, actions, replacesMobileDefaults],
+    () => ({ override, setOverride, titleNode, setTitleNode, actions, setActions, replacesMobileDefaults, setReplacesMobileDefaults, headerSlot, setHeaderSlot }),
+    [override, titleNode, actions, replacesMobileDefaults, headerSlot],
   )
   return <PageTitleContext.Provider value={value}>{children}</PageTitleContext.Provider>
 }

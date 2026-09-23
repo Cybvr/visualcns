@@ -82,11 +82,11 @@ function DashboardMobileFooterNav({ rootHref }: { rootHref: string }) {
     {
       key: "ngai",
       render: ({ className }) => (
-        <button type="button" aria-label="Open Ngai" onClick={() => setAgentOpen(true)} className={cn(className, "-mt-5")}>
+        <Link href="/dashboard/agent" aria-label="Ngai" onClick={() => setAgentOpen(false)} className={cn(className, "-mt-5")}>
           <span className="flex size-14 items-center justify-center rounded-full border-4 border-background bg-background shadow-lg ring-1 ring-border">
             <Image src="/ngai-logo.png" alt="" width={32} height={32} />
           </span>
-        </button>
+        </Link>
       ),
     },
     { key: "documents", label: "Documents", icon: FiFileText, href: "/dashboard/documents" },
@@ -130,7 +130,7 @@ export function DashboardShell({
   const [sidebarOpen, setSidebarOpen] = useState(!isDocumentRoute)
   const { open: agentOpen } = useAgent()
   const { user } = useAuth()
-  const { override: titleOverride, titleNode, actions: headerActions, replacesMobileDefaults } = usePageHeaderOverride()
+  const { override: titleOverride, titleNode, actions: headerActions, replacesMobileDefaults, setHeaderSlot } = usePageHeaderOverride()
   const [tenant, setTenant] = useState<Tenant | null>(null)
   const [createItem, setCreateItem] = useState<(typeof QUICK_CREATE_LINKS)[number] | null>(null)
   const [createName, setCreateName] = useState("")
@@ -232,6 +232,7 @@ export function DashboardShell({
             </div>
             <div className="ml-auto flex shrink-0 items-center gap-2">
               {!isProjectDetailRoute && <DashboardSearchButton className={cn("md:hidden", replacesMobileDefaults && "max-sm:hidden")} />}
+              <div ref={setHeaderSlot} className="contents" />
               {headerActions}
               {!isCompanyDetailRoute && !isProjectDetailRoute && (
                 <QuickCreateMenu
