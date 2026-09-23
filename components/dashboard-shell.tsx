@@ -90,7 +90,7 @@ function DashboardMobileFooterNav({ rootHref }: { rootHref: string }) {
       ),
     },
     { key: "documents", label: "Documents", icon: FiFileText, href: "/dashboard/documents" },
-    { key: "profile", label: "Profile", icon: FiUser, href: "/dashboard/account/profile" },
+    { key: "profile", label: "Profile", icon: FiUser, href: "/dashboard/account" },
   ]
 
   return <MobileFooterNav items={items} />

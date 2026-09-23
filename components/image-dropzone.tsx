@@ -31,9 +31,11 @@ interface ImageDropzoneProps {
   onChange: (url: string) => void
   label?: string
   compact?: boolean
+  /** Replaces the "Add logo" text beside the compact picker, e.g. with the person's name. */
+  caption?: React.ReactNode
 }
 
-export function ImageDropzone({ value, onChange, label, compact = false }: ImageDropzoneProps) {
+export function ImageDropzone({ value, onChange, label, compact = false, caption }: ImageDropzoneProps) {
   const [uploading, setUploading] = useState(false)
   const [dragging, setDragging] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -111,10 +113,14 @@ export function ImageDropzone({ value, onChange, label, compact = false }: Image
               }}
             />
           </div>
-          <div>
-            <p className="text-sm font-medium">{value ? "Change logo" : "Add logo"}</p>
-            <p className="mt-1 text-xs text-muted-foreground">Square image recommended</p>
-          </div>
+          {caption ? (
+            <div className="min-w-0 truncate text-base font-semibold">{caption}</div>
+          ) : (
+            <div>
+              <p className="text-sm font-medium">{value ? "Change logo" : "Add logo"}</p>
+              <p className="mt-1 text-xs text-muted-foreground">Square image recommended</p>
+            </div>
+          )}
         </div>
       </div>
     )

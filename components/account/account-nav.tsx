@@ -2,59 +2,96 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import type { ComponentType } from "react"
+import { ArrowLeft, Building2, ChevronRight, CreditCard, Database, LogOut, Palette, Server, Sparkles, UserRound, Users } from "lucide-react"
 
 import { useAuth } from "@/components/auth-provider"
-import { cn } from "@/lib/utils"
 
-const LINKS = [
-  { label: "Account", href: "/dashboard/account" },
-  { label: "Profile", href: "/dashboard/account/profile" },
-  { label: "Customization", href: "/dashboard/account/customization" },
-  { label: "Organization profile", href: "/dashboard/account/business", adminOnly: true },
-  { label: "Team", href: "/dashboard/account/team", adminOnly: true },
-  { label: "Agency", href: "/dashboard/account/agency", adminOnly: true },
-  { label: "Billing", href: "/dashboard/account/billing", adminOnly: true },
-  { label: "Data", href: "/dashboard/account/data", adminOnly: true },
-  { label: "Tenant operations", href: "/dashboard/admin/tenants", superAdminOnly: true },
+const LINKS: { label: string; href: string; icon: ComponentType<{ className?: string }>; adminOnly?: boolean; superAdminOnly?: boolean }[] = [
+  { label: "Profile", href: "/dashboard/account/profile", icon: UserRound },
+  { label: "Customization", href: "/dashboard/account/customization", icon: Palette },
+  { label: "Organization", href: "/dashboard/account/business", icon: Building2, adminOnly: true },
+  { label: "Team", href: "/dashboard/account/team", icon: Users, adminOnly: true },
+  { label: "Agency", href: "/dashboard/account/agency", icon: Sparkles, adminOnly: true },
+  { label: "Billing", href: "/dashboard/account/billing", icon: CreditCard, adminOnly: true },
+  { label: "Data", href: "/dashboard/account/data", icon: Database, adminOnly: true },
+  { label: "Tenant operations", href: "/dashboard/admin/tenants", icon: Server, superAdminOnly: true },
 ]
 
-/** The tab's title and one-line description, shown inside the page under the nav. */
-export function AccountHeader({ title, description }: { title: string; description: string }) {
+const MENU_HREF = "/dashboard/account"
+
+/** The section title, shown under the back link. */
+export function AccountHeader({ title }: { title: string }) {
   return (
     <header className="mt-7">
       <h1 className="text-lg font-semibold">{title}</h1>
-      <p className="mt-1 text-sm leading-6 text-muted-foreground">{description}</p>
     </header>
   )
 }
 
-export function AccountNav() {
-  const pathname = usePathname()
-  const { isAdmin, role } = useAuth()
+/** The settings menu itself: who you are, then every section as a stacked row. */
+export function AccountMenu() {
+  const { user, appUser, isAdmin, role, signOut } = useAuth()
   const links = LINKS
     .filter((link) => !link.adminOnly || isAdmin)
     .filter((link) => !link.superAdminOnly || role === "superadmin")
+  const name = appUser?.displayName || user?.displayName || appUser?.email || user?.email || ""
+  const photo = appUser?.photoURL || user?.photoURL || ""
 
   return (
-    <div className="-mx-4 flex gap-6 overflow-x-auto border-b border-border px-4 scrollbar-none sm:mx-0 sm:px-0" role="tablist" aria-label="Account settings">
-      {links.map((link) => {
-        const active = pathname === link.href
-        return (
+    <div>
+      <Link href="/dashboard/account/profile" className="flex items-center gap-3 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring">
+        <span className="flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-full bg-muted text-lg font-semibold text-muted-foreground">
+          {photo ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={photo} alt="" className="size-full object-cover" referrerPolicy="no-referrer" />
+          ) : (
+            name.charAt(0).toUpperCase()
+          )}
+        </span>
+        <span className="min-w-0">
+          <span className="block truncate text-base font-semibold text-foreground">{name}</span>
+          {appUser?.slug && <span className="block truncate text-sm text-muted-foreground">@{appUser.slug}</span>}
+        </span>
+      </Link>
+
+      <nav aria-label="Account settings" className="mt-6 flex flex-col text-sm">
+        {links.map(({ label, href, icon: Icon }) => (
           <Link
-            key={link.href}
-            href={link.href}
-            ref={active ? (node) => node?.scrollIntoView({ block: "nearest", inline: "center" }) : undefined}
-            role="tab"
-            aria-selected={active}
-            className={cn(
-              "relative flex h-11 shrink-0 items-center whitespace-nowrap text-sm font-medium text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-              active && "text-foreground after:absolute after:inset-x-0 after:bottom-[-1px] after:h-0.5 after:bg-foreground",
-            )}
+            key={href}
+            href={href}
+            className="flex h-12 items-center gap-3 border-b border-border text-foreground outline-none transition-colors hover:text-foreground/80 focus-visible:ring-2 focus-visible:ring-ring"
           >
-            {link.label}
+            <Icon className="size-4 text-muted-foreground" aria-hidden="true" />
+            <span className="flex-1">{label}</span>
+            <ChevronRight className="size-4 text-muted-foreground" aria-hidden="true" />
           </Link>
-        )
-      })}
+        ))}
+        <button
+          type="button"
+          onClick={signOut}
+          className="flex h-12 items-center gap-3 text-left text-destructive outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <LogOut className="size-4" aria-hidden="true" />
+          Log out
+        </button>
+      </nav>
     </div>
+  )
+}
+
+/** On a section page, a way back to the menu. The page itself slides in (see account layout). */
+export function AccountNav() {
+  const pathname = usePathname()
+  if (pathname === MENU_HREF) return <AccountMenu />
+
+  return (
+    <Link
+      href={MENU_HREF}
+      className="-ml-2 inline-flex h-8 items-center gap-1.5 rounded-md px-2 text-sm text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+    >
+      <ArrowLeft className="size-4" aria-hidden="true" />
+      Settings
+    </Link>
   )
 }

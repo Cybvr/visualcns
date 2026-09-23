@@ -123,7 +123,7 @@ export default function AccountTeamPage() {
   return (
     <main className="mx-auto w-full max-w-3xl px-4 py-9 sm:px-6">
       <AccountNav />
-      <AccountHeader title="Team" description="People who can manage this workspace." />
+      <AccountHeader title="Team" />
 
       <form onSubmit={handleInvite} className="mt-6 space-y-3">
         <h2 className="text-sm font-medium">Add team member</h2>
@@ -154,7 +154,6 @@ export default function AccountTeamPage() {
       {inviteUrl && (
         <div className="mt-4 rounded-xl border border-border bg-muted/40 p-3">
           <p className="text-sm font-medium">Added. Send them this link to set their password</p>
-          <p className="mt-0.5 text-xs text-muted-foreground">After that they sign in with their email.</p>
           <div className="mt-2 flex gap-2">
             <Input readOnly value={inviteUrl} onFocus={(event) => event.target.select()} className="min-w-0 flex-1 text-xs" />
             <Button type="button" variant="outline" size="icon" onClick={() => void copyLink()} aria-label="Copy link">

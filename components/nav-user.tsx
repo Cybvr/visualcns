@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { ChevronsUpDown, LogOut, Palette, UserCog, UserRound } from "lucide-react"
+import { ChevronsUpDown, LogOut, Palette, UserCog } from "lucide-react"
 
 import { useAuth } from "@/components/auth-provider"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -82,12 +82,6 @@ export function NavUser() {
               <Link href="/dashboard/account">
                 <UserCog />
                 Account
-              </Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <Link href="/dashboard/account/profile">
-                <UserRound />
-                Profile
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>

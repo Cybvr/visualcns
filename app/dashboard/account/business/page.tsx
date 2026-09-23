@@ -14,8 +14,6 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { getBusinessProfile, updateBusinessProfile, type BusinessProfile } from "@/lib/business-profile"
-import { TenantIdMigration } from "@/components/dashboard/tenant-id-migration"
-import { OrganizationSlugMigration } from "@/components/dashboard/organization-slug-migration"
 
 const EMPTY_FORM = { name: "", address: "", email: "", phone: "", website: "", taxNumber: "", logoUrl: "" }
 
@@ -88,7 +86,7 @@ export default function AccountBusinessPage() {
       <AccountNav />
 
       <header className="mt-7">
-        <h1 className="text-lg font-semibold">Organization profile</h1>
+        <h1 className="text-lg font-semibold">Organization</h1>
       </header>
 
       {loading ? (
@@ -167,8 +165,6 @@ export default function AccountBusinessPage() {
         </form>
       )}
 
-      <TenantIdMigration />
-      <OrganizationSlugMigration />
     </main>
   )
 }

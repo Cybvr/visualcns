@@ -30,13 +30,10 @@ export default function CustomizationPage() {
     <main className="mx-auto w-full max-w-3xl px-4 py-9 sm:px-6">
       <AccountNav />
 
-      <AccountHeader title="Customization" description="How the dashboard looks on this device." />
+      <AccountHeader title="Customization" />
 
       <section className="mt-6">
         <h2 className="text-sm font-medium">Appearance</h2>
-        <p className="mt-1 text-sm leading-6 text-muted-foreground">
-          Saved in this browser, so it won&apos;t follow you to another device.
-        </p>
 
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
           {THEMES.map((option) => {

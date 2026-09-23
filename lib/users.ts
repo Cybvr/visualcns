@@ -35,6 +35,11 @@ export interface AppUser {
   slug?: string
   /** Links a client user to their project/deliverable data. */
   companyId?: string
+  phone?: string
+  website?: string
+  linkedIn?: string
+  instagram?: string
+  x?: string
   /** Set once we've seeded a client's starter tasks, so we never re-seed. */
   tasksSeeded?: boolean
   /** Set on public signup until the one-time welcome email is delivered. */

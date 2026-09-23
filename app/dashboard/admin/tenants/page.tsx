@@ -42,7 +42,6 @@ export default function TenantOperationsPage() {
   return <main className="mx-auto w-full max-w-4xl px-4 py-10 sm:px-6">
     <AccountNav />
     <h1 className="mt-7 text-xl font-semibold">Tenant operations</h1>
-    <p className="mt-1 text-sm text-muted-foreground">Platform-level tenant visibility and access status.</p>
     {error && <p className="mt-4 text-sm text-destructive">{error}</p>}
     <div className="mt-6 divide-y divide-border border border-border">
       {tenants.map((tenant) => <div key={tenant.id} className="flex flex-wrap items-center justify-between gap-4 p-4">
