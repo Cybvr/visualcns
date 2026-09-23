@@ -313,6 +313,7 @@ export default function DocumentsPage() {
       <FilterBar
         {...bar}
         mobileVariant="drawer"
+        headerOnMobile
         showSearch={false}
         controls={tab !== "media" && <ViewToggle view={view} onChange={setView} />}
         actions={

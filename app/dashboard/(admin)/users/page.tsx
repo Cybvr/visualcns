@@ -172,6 +172,7 @@ export default function UsersAdminPage() {
       <FilterBar
         {...bar}
         mobileVariant="drawer"
+        headerOnMobile
         showSearch={false}
         placeholder="Search contacts"
         controls={<ViewToggle view={view} onChange={setView} />}

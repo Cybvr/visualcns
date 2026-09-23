@@ -15,6 +15,9 @@ interface PageTitleContextValue {
   setTitleNode: Dispatch<SetStateAction<ReactNode | null>>
   actions: ReactNode
   setActions: Dispatch<SetStateAction<ReactNode>>
+  /** When set, the page's actions stand in for the header's default search and create buttons on phones. */
+  replacesMobileDefaults: boolean
+  setReplacesMobileDefaults: Dispatch<SetStateAction<boolean>>
 }
 
 const PageTitleContext = createContext<PageTitleContextValue | null>(null)
@@ -23,7 +26,11 @@ export function PageTitleProvider({ children }: { children: ReactNode }) {
   const [override, setOverride] = useState<PageHeaderOverride | null>(null)
   const [titleNode, setTitleNode] = useState<ReactNode | null>(null)
   const [actions, setActions] = useState<ReactNode>(null)
-  const value = useMemo(() => ({ override, setOverride, titleNode, setTitleNode, actions, setActions }), [override, titleNode, actions])
+  const [replacesMobileDefaults, setReplacesMobileDefaults] = useState(false)
+  const value = useMemo(
+    () => ({ override, setOverride, titleNode, setTitleNode, actions, setActions, replacesMobileDefaults, setReplacesMobileDefaults }),
+    [override, titleNode, actions, replacesMobileDefaults],
+  )
   return <PageTitleContext.Provider value={value}>{children}</PageTitleContext.Provider>
 }
 

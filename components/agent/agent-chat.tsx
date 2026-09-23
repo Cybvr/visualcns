@@ -305,6 +305,7 @@ export function AgentChat({
   className?: string
 }) {
   const startingOptions = [
+    "Summary",
     "Create an invoice",
     "Create an estimate",
     "Create a contract",

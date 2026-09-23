@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { Copy, Eye, Loader2, Pencil, Plus, Trash2 } from "lucide-react"
+import { Copy, Eye, Loader2, Pencil, Plus, Receipt, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
@@ -22,6 +22,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
+import { MobileDataCard } from "@/components/dashboard/mobile-data-card"
 import {
   Table,
   TableBody,
@@ -179,9 +181,16 @@ export default function InvoicesPage() {
     <main className="mx-auto w-full max-w-5xl px-4 pt-4 pb-12 sm:px-6">
       <FilterBar
         {...bar}
+        mobileVariant="drawer"
+        headerOnMobile
+        showSearch={false}
         placeholder="Search invoices"
         actions={
-          adminView && <Button asChild variant="ghost" className="bg-transparent text-foreground hover:bg-transparent"><Link href="/dashboard/invoices/new"><Plus className="size-4" aria-hidden="true" />New invoice</Link></Button>
+          adminView && (
+            <Button asChild variant="ghost" size="icon" className="bg-transparent text-foreground hover:bg-transparent" aria-label="New invoice" title="New invoice">
+              <Link href="/dashboard/invoices/new"><Plus className="size-4" aria-hidden="true" /></Link>
+            </Button>
+          )
         }
       />
 
@@ -230,6 +239,46 @@ export default function InvoicesPage() {
                     onDelete={handleBulkDelete}
                   />
                 )}
+                <div className="space-y-2 sm:hidden">
+                  {visibleInvoices.map((invoice) => {
+                    const meta = invoiceStatusMeta[invoice.status] ?? invoiceStatusMeta.draft
+                    const href = adminView ? `/dashboard/invoices/${invoice.id}/edit` : `/dashboard/invoices/${invoice.id}`
+                    return (
+                      <MobileDataCard
+                        key={invoice.id}
+                        href={href}
+                        ariaLabel={`Open invoice ${invoice.invoiceNumber}`}
+                        title={
+                          <span className="flex items-center justify-between gap-2">
+                            <span className="truncate">{adminView ? invoice.client || invoice.invoiceNumber : invoice.invoiceNumber}</span>
+                            <span className="shrink-0 font-medium">{formatMoney(invoice.amount, invoice.currency)}</span>
+                          </span>
+                        }
+                        subtitle={
+                          <span className="flex items-center justify-between gap-2">
+                            <span className="truncate">{adminView ? invoice.invoiceNumber : invoice.project || formatDate(invoice.issuedOn)} · Due {formatDate(invoice.dueOn)}</span>
+                            <span className={cn("shrink-0 rounded-full px-1.5 py-px text-[10px] font-medium", meta.className)}>{meta.label}</span>
+                          </span>
+                        }
+                        icon={<Receipt className="size-5 text-blue-600 dark:text-blue-400" aria-hidden="true" />}
+                        menuLabel={`Options for ${invoice.invoiceNumber}`}
+                        menu={
+                          <>
+                            <DropdownMenuItem onSelect={() => router.push(`/dashboard/invoices/${invoice.id}`)}>View invoice</DropdownMenuItem>
+                            {adminView && (
+                              <>
+                                <DropdownMenuItem onSelect={() => router.push(`/dashboard/invoices/${invoice.id}/edit`)}>Edit invoice</DropdownMenuItem>
+                                <DropdownMenuItem onSelect={() => setDuplicateTarget(invoice)}>Duplicate</DropdownMenuItem>
+                                <DropdownMenuItem variant="destructive" onSelect={() => setConfirmDelete(invoice)}>Delete invoice</DropdownMenuItem>
+                              </>
+                            )}
+                          </>
+                        }
+                      />
+                    )
+                  })}
+                </div>
+                <div className="hidden sm:block">
                 <Table>
                 <TableHeader>
                   <TableRow>
@@ -361,6 +410,7 @@ export default function InvoicesPage() {
                   })}
                 </TableBody>
               </Table>
+              </div>
               </>
             )}
           </div>

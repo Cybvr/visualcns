@@ -343,28 +343,19 @@ export function InvoiceBuilder({ invoice, initialCompanyId }: { invoice?: Invoic
 
   return (
     <form onSubmit={submit} className="space-y-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <Link
-            href="/dashboard/invoices"
-            aria-label="Back to invoices"
-            className="inline-flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <ArrowLeft className="size-4" aria-hidden="true" />
-          </Link>
-          <h1 className="text-base font-semibold tracking-[-0.01em]">
-            {isEdit ? "Edit invoice" : "New invoice"} {invoiceNumber}
-          </h1>
-        </div>
-        <div className="flex items-center gap-3">
-          <Button type="button" variant="ghost" onClick={() => router.push("/dashboard/invoices")}>
-            Cancel
-          </Button>
-          <Button type="submit" disabled={saving}>
-            {saving && <Loader2 className="mr-2 size-4 animate-spin" />}
-            {isEdit ? "Save invoice" : "Create invoice"}
-          </Button>
-        </div>
+      <div className="flex items-center gap-2">
+        <Link
+          href="/dashboard/invoices"
+          aria-label="Back to invoices"
+          className="-ml-2 inline-flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <ArrowLeft className="size-4" aria-hidden="true" />
+        </Link>
+        <h1 className="min-w-0 flex-1 truncate text-base font-semibold tracking-[-0.01em]">{invoiceNumber}</h1>
+        <Button type="submit" size="sm" disabled={saving} className="shrink-0">
+          {saving && <Loader2 className="mr-1.5 size-4 animate-spin" />}
+          {isEdit ? "Save" : "Create"}
+        </Button>
       </div>
 
       <ShareLinkField
@@ -373,14 +364,14 @@ export function InvoiceBuilder({ invoice, initialCompanyId }: { invoice?: Invoic
         path={invoice ? `/share/invoices/${invoice.id}` : undefined}
       />
 
-      <div className="space-y-8 rounded-[14px] border border-border bg-card p-5 sm:p-6">
+      <div className="space-y-6">
 
-      <section className="grid gap-x-8 gap-y-5 sm:grid-cols-2">
-        <div className="space-y-4">
+      <section className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
+        <div className="space-y-3">
           <div>
             <Label htmlFor="client">Client</Label>
             <Select value={companyId} onValueChange={setCompanyId}>
-              <SelectTrigger id="client" className="mt-1">
+              <SelectTrigger id="client" className="mt-1 w-full">
                 <SelectValue placeholder={optionsLoading ? "Loading..." : "Choose a client"} />
               </SelectTrigger>
               <SelectContent>
@@ -432,11 +423,11 @@ export function InvoiceBuilder({ invoice, initialCompanyId }: { invoice?: Invoic
           </div>
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-3">
           <div>
             <Label htmlFor="project">Project</Label>
             <Select value={projectId} onValueChange={setProjectId}>
-              <SelectTrigger id="project" className="mt-1">
+              <SelectTrigger id="project" className="mt-1 w-full">
                 <SelectValue placeholder="Not tied to a project" />
               </SelectTrigger>
               <SelectContent>
@@ -460,7 +451,7 @@ export function InvoiceBuilder({ invoice, initialCompanyId }: { invoice?: Invoic
               className="mt-1"
             />
           </div>
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-2 gap-3">
             <div>
               <Label htmlFor="issued-on">Issued</Label>
               <Input
@@ -477,7 +468,7 @@ export function InvoiceBuilder({ invoice, initialCompanyId }: { invoice?: Invoic
                 value={String(termsDays)}
                 onValueChange={(value) => setTermsDays(Number.parseInt(value, 10))}
               >
-                <SelectTrigger id="terms" className="mt-1">
+                <SelectTrigger id="terms" className="mt-1 w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -490,11 +481,11 @@ export function InvoiceBuilder({ invoice, initialCompanyId }: { invoice?: Invoic
               </Select>
             </div>
           </div>
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-2 gap-3">
             <div>
               <Label htmlFor="currency">Currency</Label>
               <Select value={currency} onValueChange={setCurrency}>
-                <SelectTrigger id="currency" className="mt-1">
+                <SelectTrigger id="currency" className="mt-1 w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -509,7 +500,7 @@ export function InvoiceBuilder({ invoice, initialCompanyId }: { invoice?: Invoic
             <div>
               <Label htmlFor="status">Status</Label>
               <Select value={status} onValueChange={(value) => setStatus(value as InvoiceStatus)}>
-                <SelectTrigger id="status" className="mt-1">
+                <SelectTrigger id="status" className="mt-1 w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -526,7 +517,7 @@ export function InvoiceBuilder({ invoice, initialCompanyId }: { invoice?: Invoic
         </div>
       </section>
 
-      <div className="flex items-center justify-between gap-3 border-t border-border pt-6">
+      <div className="flex items-center justify-between gap-3 border-t border-border pt-5">
         <h2 className="text-sm font-medium">Items</h2>
         <div className="inline-flex rounded-[8px] bg-muted p-0.5">
           {(
@@ -579,7 +570,59 @@ export function InvoiceBuilder({ invoice, initialCompanyId }: { invoice?: Invoic
         </section>
       ) : (
       <section>
-        <div className="overflow-x-auto">
+        {/* Phones get one stacked block per line instead of a six-column table. */}
+        <div className="divide-y divide-border sm:hidden">
+          {lines.map((line) => {
+            const lineTotal = Math.round(toNumber(line.quantity) * toNumber(line.unitPrice) * 100)
+            return (
+              <div key={line.id} className="space-y-2 py-3 first:pt-0">
+                <div className="flex items-center gap-2">
+                  <Input
+                    value={line.description}
+                    onChange={(event) => updateLine(line.id, { description: event.target.value })}
+                    placeholder="Description"
+                    aria-label="Description"
+                    className="flex-1"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeLine(line.id)}
+                    disabled={lines.length === 1}
+                    aria-label="Remove line"
+                    className="inline-flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-40"
+                  >
+                    <Trash2 className="size-4" aria-hidden="true" />
+                  </button>
+                </div>
+                <div className="grid grid-cols-[1fr_1.5fr_1fr] gap-2">
+                  <Input
+                    value={line.quantity}
+                    onChange={(event) => updateLine(line.id, { quantity: event.target.value })}
+                    inputMode="decimal"
+                    placeholder="Qty"
+                    aria-label="Quantity"
+                  />
+                  <Input
+                    value={line.unitPrice}
+                    onChange={(event) => updateLine(line.id, { unitPrice: event.target.value })}
+                    inputMode="decimal"
+                    placeholder="Price"
+                    aria-label="Unit price"
+                  />
+                  <Input
+                    value={line.taxRate}
+                    onChange={(event) => updateLine(line.id, { taxRate: event.target.value })}
+                    inputMode="decimal"
+                    placeholder="Tax %"
+                    aria-label="Tax rate"
+                  />
+                </div>
+                <div className="text-right text-sm font-medium">{formatMoney(lineTotal, currency)}</div>
+              </div>
+            )
+          })}
+        </div>
+        <div className="hidden overflow-x-auto sm:block">
           <Table>
             <TableHeader>
               <TableRow>
@@ -649,7 +692,7 @@ export function InvoiceBuilder({ invoice, initialCompanyId }: { invoice?: Invoic
             </TableBody>
           </Table>
         </div>
-        <div className="border-t border-border p-3">
+        <div className="border-t border-border pt-2 sm:p-3">
           <Button
             type="button"
             variant="ghost"
@@ -663,8 +706,8 @@ export function InvoiceBuilder({ invoice, initialCompanyId }: { invoice?: Invoic
       </section>
       )}
 
-      <div className="grid gap-8 border-t border-border pt-6 lg:grid-cols-2">
-        <div className="space-y-4">
+      <div className="grid gap-6 border-t border-border pt-5 lg:grid-cols-2 lg:gap-8">
+        <div className="space-y-3">
           <div>
             <Label htmlFor="notes">Note to client</Label>
             <Textarea
@@ -688,7 +731,7 @@ export function InvoiceBuilder({ invoice, initialCompanyId }: { invoice?: Invoic
           </div>
         </div>
 
-        <div className="space-y-3 sm:pl-8">
+        <div className="space-y-3 lg:pl-8">
           {mode === "build" && (
             <>
             <div className="flex items-center justify-between text-sm">

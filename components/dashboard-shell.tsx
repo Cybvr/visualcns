@@ -130,7 +130,7 @@ export function DashboardShell({
   const [sidebarOpen, setSidebarOpen] = useState(!isDocumentRoute)
   const { open: agentOpen } = useAgent()
   const { user } = useAuth()
-  const { override: titleOverride, titleNode, actions: headerActions } = usePageHeaderOverride()
+  const { override: titleOverride, titleNode, actions: headerActions, replacesMobileDefaults } = usePageHeaderOverride()
   const [tenant, setTenant] = useState<Tenant | null>(null)
   const [createItem, setCreateItem] = useState<(typeof QUICK_CREATE_LINKS)[number] | null>(null)
   const [createName, setCreateName] = useState("")
@@ -231,7 +231,7 @@ export function DashboardShell({
               </h1>
             </div>
             <div className="ml-auto flex shrink-0 items-center gap-2">
-              {!isProjectDetailRoute && <DashboardSearchButton className="md:hidden" />}
+              {!isProjectDetailRoute && <DashboardSearchButton className={cn("md:hidden", replacesMobileDefaults && "max-sm:hidden")} />}
               {headerActions}
               {!isCompanyDetailRoute && !isProjectDetailRoute && (
                 <QuickCreateMenu
@@ -243,7 +243,7 @@ export function DashboardShell({
                       size="icon"
                       aria-label="Create new"
                       title="Create new"
-                      className="max-md:border-transparent max-md:bg-transparent max-md:shadow-none"
+                      className={cn("max-md:border-transparent max-md:bg-transparent max-md:shadow-none", replacesMobileDefaults && "max-sm:hidden")}
                     >
                       <Plus className="size-4" aria-hidden="true" />
                     </Button>

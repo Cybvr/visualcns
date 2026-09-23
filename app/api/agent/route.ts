@@ -74,6 +74,11 @@ account, including counts, lists, totals and lookups. Never say you cannot see t
 user to go look somewhere in the dashboard without calling the tool first. The tool already applies
 the caller's permissions, so just call it and answer from what it returns.
 
+When the user asks for a summary, overview, recap or catch-up, call workspace_summary once and write a
+short briefing from it: money outstanding and overdue, estimates and contracts awaiting a decision,
+projects and tasks that need attention, and recent or failed emails. Lead with what needs action, keep
+each area to a line or two, skip areas with nothing in them, and link records by their url.
+
 Creation tools are available for companies, projects, tasks, draft invoices, draft estimates, draft
 contracts and written company documents.
 
@@ -104,6 +109,8 @@ You can read this customer's own records with the query_workspace tool: their co
 tasks, invoices, estimates, contracts, written company documents and uploaded files. It is automatically restricted to their own
 company, so use it freely for any factual question about their account, including counts, lists and
 status. Never say you cannot see the data without calling the tool first. Never invent details.
+When they ask for a summary or overview, call workspace_summary once and give a short briefing that
+leads with anything waiting on them.
 
 You can also take three actions on the customer's behalf, and only these:
 - complete_task: mark one of their assigned tasks done (or reopen it) when they say it's finished.
@@ -134,6 +141,18 @@ const AGENT_TOOLS = [
         limit: { type: ["number", "null"], description: "Maximum records to return. Defaults to 100, capped at 300." },
       },
       required: ["collection"],
+      additionalProperties: false,
+    },
+  },
+  {
+    type: "function",
+    name: "workspace_summary",
+    description:
+      "One-call overview of the whole account: invoices, estimates and contracts (counts and money by status), projects and tasks (by status), and sent emails, each with its most recent items. Use this whenever the user asks for a summary, overview, recap, catch-up or 'where do things stand'.",
+    parameters: {
+      type: "object",
+      properties: {},
+      required: [],
       additionalProperties: false,
     },
   },
@@ -428,7 +447,9 @@ const AGENT_TOOLS = [
 
 /** Read-only lookups plus the few writes a client is allowed to make in the portal. */
 const CLIENT_ACTION_TOOLS = ["complete_task", "accept_estimate", "submit_task_feedback"]
-const PORTAL_TOOLS = AGENT_TOOLS.filter((tool) => tool.name === "query_workspace" || CLIENT_ACTION_TOOLS.includes(tool.name))
+const PORTAL_TOOLS = AGENT_TOOLS.filter(
+  (tool) => tool.name === "query_workspace" || tool.name === "workspace_summary" || CLIENT_ACTION_TOOLS.includes(tool.name),
+)
 
 /** Separates the assistant's text from a trailing inline form spec. */
 export const FORM_MARKER = "\n␞::ngai-form::"
@@ -545,6 +566,121 @@ async function runAgentTool(name: string, rawArgs: string, uid: string) {
       count: snapshot.size,
       scope: isAdmin ? "agency workspace" : "your company",
       records,
+    }
+  }
+
+  if (name === "workspace_summary") {
+    const companyId = typeof userData?.companyId === "string" ? userData.companyId : ""
+    if (!isAdmin && !companyId) throw new Error("Your account is not linked to a client workspace.")
+
+    // Same scoping as query_workspace: the tenant for admins, the caller's own company otherwise.
+    function scoped(collectionName: string) {
+      let query: FirebaseFirestore.Query = db.collection(collectionName)
+      if (!isSuperAdmin) query = query.where("tenantId", "==", tenantId)
+      if (!isAdmin) query = query.where("companyId", "==", companyId)
+      return query.limit(500).get()
+    }
+
+    const [invoices, estimates, contracts, projects, tasks, emails] = await Promise.all([
+      scoped("invoices"),
+      scoped("estimates"),
+      scoped("contracts"),
+      scoped("projects"),
+      scoped("tasks"),
+      // Outbound email history is agency-side, so clients don't get it.
+      isAdmin ? scoped("emailMessages") : Promise.resolve(null),
+    ])
+
+    const newest = (rows: FirebaseFirestore.DocumentData[], field: string) =>
+      [...rows].sort((a, b) => String(b[field] ?? "").localeCompare(String(a[field] ?? ""))).slice(0, 5)
+
+    /** Counts and money per status. Amounts are in minor units, grouped by currency. */
+    function billing(collectionName: string, snapshot: FirebaseFirestore.QuerySnapshot, numberField: string, dateField: string) {
+      const rows = snapshot.docs
+        .map((item) => ({ id: item.id, ...item.data() }) as FirebaseFirestore.DocumentData)
+        .filter((row) => isAdmin || row.status !== "draft")
+      const byStatus: Record<string, { count: number; totals: Record<string, number> }> = {}
+      for (const row of rows) {
+        const status = String(row.status || "unknown")
+        const currency = String(row.currency || "NGN")
+        byStatus[status] ??= { count: 0, totals: {} }
+        byStatus[status].count += 1
+        byStatus[status].totals[currency] = (byStatus[status].totals[currency] ?? 0) + (Number(row.amount) || 0)
+      }
+      return {
+        count: rows.length,
+        byStatus,
+        recent: newest(rows, dateField).map((row) => ({
+          number: row[numberField] || row.title || row.id,
+          client: row.client || "",
+          status: row.status,
+          amount: row.amount,
+          currency: row.currency,
+          date: row[dateField] || "",
+          url: recordUrl(collectionName, row.id),
+        })),
+      }
+    }
+
+    function statusCounts(snapshot: FirebaseFirestore.QuerySnapshot) {
+      const counts: Record<string, number> = {}
+      for (const item of snapshot.docs) {
+        const status = String(item.data().status || "unknown")
+        counts[status] = (counts[status] ?? 0) + 1
+      }
+      return { count: snapshot.size, byStatus: counts }
+    }
+
+    const invoiceSummary = billing("invoices", invoices, "invoiceNumber", "issuedOn")
+    const estimateSummary = billing("estimates", estimates, "estimateNumber", "issuedOn")
+    const contractSummary = billing("contracts", contracts, "title", "startsOn")
+
+    const emailRows = emails ? emails.docs.map((item) => item.data()) : []
+    const todayIso = today()
+    const openTasks = tasks.docs
+      .map((item) => ({ id: item.id, ...item.data() }) as FirebaseFirestore.DocumentData)
+      .filter((task) => task.status !== "done")
+
+    return {
+      type: "summary",
+      scope: isAdmin ? "agency workspace" : "your company",
+      today: todayIso,
+      note: "Money amounts are in minor units (divide by 100).",
+      invoices: invoiceSummary,
+      estimates: estimateSummary,
+      contracts: contractSummary,
+      projects: {
+        ...statusCounts(projects),
+        recent: newest(projects.docs.map((item) => ({ id: item.id, ...item.data() })), "createdAt").map((row) => ({
+          title: row.title,
+          client: row.client,
+          status: row.status,
+          dueDate: row.dueDate,
+          url: recordUrl("projects", row.id),
+        })),
+      },
+      tasks: {
+        ...statusCounts(tasks),
+        overdue: openTasks.filter((task) => task.dueDate && String(task.dueDate) < todayIso).length,
+        dueSoon: newest(openTasks.filter((task) => task.dueDate), "dueDate").reverse().map((task) => ({
+          title: task.title || task.name,
+          status: task.status,
+          dueDate: task.dueDate,
+        })),
+      },
+      emails: emails
+        ? {
+            count: emailRows.length,
+            scheduled: emailRows.filter((row) => row.status === "scheduled").length,
+            failed: emailRows.filter((row) => row.status === "failed").length,
+            recent: newest(emailRows, "createdAt").map((row) => ({
+              subject: row.subject,
+              to: row.companyName || row.to,
+              status: row.status || "sent",
+              sentAt: row.createdAt,
+            })),
+          }
+        : undefined,
     }
   }
 

@@ -766,8 +766,7 @@ export function CompanyPage({
             initialCompanyId={company.id}
             onCreated={async (project) => {
               await admin.reload()
-              updateParams({ tab: "projects", doc: null })
-              setSelectedProject(project)
+              router.push(`/dashboard/projects/${projectSlug(project)}`)
             }}
           />
 

@@ -239,6 +239,7 @@ export default function CompaniesPage() {
       <FilterBar
         {...bar}
         mobileVariant="drawer"
+        headerOnMobile
         showSearch={false}
         placeholder="Search clients"
         controls={<ViewToggle view={view} onChange={setView} />}

@@ -44,7 +44,8 @@ export function MobileDataCard({
       </span>
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm text-foreground">{title}</p>
-        {subtitle !== undefined && <p className="mt-0.5 truncate text-xs text-muted-foreground">{subtitle}</p>}
+        {/* div, not p: the dashboard-body rule forces p to inherit its font size */}
+        {subtitle !== undefined && <div className="mt-0.5 truncate text-xs text-muted-foreground">{subtitle}</div>}
       </div>
     </>
   )

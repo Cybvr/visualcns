@@ -1,7 +1,7 @@
 "use client"
 
-import { useMemo, useState, type ReactNode } from "react"
-import { ArrowDownWideNarrow, ArrowUpNarrowWide, Search, SlidersHorizontal, X } from "lucide-react"
+import { useEffect, useMemo, useState, type ReactNode } from "react"
+import { ArrowDownWideNarrow, ArrowUpNarrowWide, Check, Search, X } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -14,7 +14,6 @@ import {
 } from "@/components/ui/select"
 import {
   Dialog,
-  DialogClose,
   DialogContent,
   DialogDescription,
   DialogHeader,
@@ -23,13 +22,13 @@ import {
 } from "@/components/ui/dialog"
 import {
   Sheet,
-  SheetClose,
   SheetContent,
   SheetDescription,
   SheetHeader,
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet"
+import { usePageHeaderOverride } from "@/components/dashboard/page-title-context"
 import { cn } from "@/lib/utils"
 
 export type SortDirection = "asc" | "desc"
@@ -81,6 +80,8 @@ export type FilterBarProps = {
   mobileVariant?: "dialog" | "drawer"
   /** Hide the text search field, e.g. when a page relies on global search instead. Defaults to true. */
   showSearch?: boolean
+  /** On phones, move the search trigger and actions into the blue page header, replacing its default search and create buttons. */
+  headerOnMobile?: boolean
 }
 
 function compare(a: string | number | null | undefined, b: string | number | null | undefined) {
@@ -160,6 +161,7 @@ export function FilterBar({
   className,
   mobileVariant = "dialog",
   showSearch = true,
+  headerOnMobile = false,
 }: FilterBarProps) {
   const [filterOpen, setFilterOpen] = useState(false)
   const active = sorts.find((option) => option.value === sortKey)
@@ -167,163 +169,191 @@ export function FilterBar({
   const descLabel = active?.descLabel ?? "Descending"
   const directionLabel = direction === "asc" ? ascLabel : descLabel
   const hasControls = sorts.length > 0 || Boolean(children)
+  const sheetTitle = mobileFilters || children ? "Search and filter" : sorts.length > 0 ? "Search and sort" : "Search"
 
   const filterBody = (
     <>
       {(mobileFilters || children) && (
-        <div className="grid gap-3">
+        <div className="grid gap-3 border-b border-border pb-4">
           {mobileFilters || children}
         </div>
       )}
       {sorts.length > 0 && (
-        <>
-          <div className="space-y-1.5">
-            <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Sort by</p>
-            <Select value={sortKey} onValueChange={onSortKeyChange}>
-              <SelectTrigger className="w-full" aria-label="Sort by">
-                <SelectValue placeholder="Sort by" />
-              </SelectTrigger>
-              <SelectContent>
-                {sorts.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+        <div className="space-y-4 text-sm">
+          <div className="-mx-2 flex flex-col">
+            {sorts.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => onSortKeyChange(option.value)}
+                aria-pressed={option.value === sortKey}
+                className={cn(
+                  "flex h-10 items-center justify-between rounded-md px-2 text-left text-sm transition-colors hover:bg-muted",
+                  option.value === sortKey ? "font-medium text-foreground" : "text-muted-foreground",
+                )}
+              >
+                {option.label}
+                {option.value === sortKey && <Check className="size-4" aria-hidden="true" />}
+              </button>
+            ))}
           </div>
-          <div className="space-y-1.5">
-            <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Order</p>
-            <Select value={direction} onValueChange={(value) => onDirectionChange(value as SortDirection)}>
-              <SelectTrigger className="w-full" aria-label="Order">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="asc">
-                  <ArrowUpNarrowWide className="h-4 w-4" />
-                  {ascLabel}
-                </SelectItem>
-                <SelectItem value="desc">
-                  <ArrowDownWideNarrow className="h-4 w-4" />
-                  {descLabel}
-                </SelectItem>
-              </SelectContent>
-            </Select>
+          <div className="grid grid-cols-2 gap-1 rounded-lg bg-muted p-1" role="group" aria-label="Order">
+            {([["asc", ascLabel, ArrowUpNarrowWide], ["desc", descLabel, ArrowDownWideNarrow]] as const).map(([value, label, Icon]) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => onDirectionChange(value)}
+                aria-pressed={direction === value}
+                className={cn(
+                  "flex h-8 items-center justify-center gap-1.5 rounded-md text-sm transition-colors",
+                  direction === value ? "bg-background font-medium text-foreground shadow-sm" : "text-muted-foreground",
+                )}
+              >
+                <Icon className="size-4" aria-hidden="true" />
+                {label}
+              </button>
+            ))}
           </div>
-        </>
+        </div>
       )}
     </>
   )
 
+  const searchField = (
+    <div className="relative min-w-0">
+      <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+      <Input
+        type="search"
+        value={query}
+        onChange={(event) => onQueryChange(event.target.value)}
+        placeholder={placeholder}
+        aria-label={placeholder}
+        className="pl-9 [&::-webkit-search-cancel-button]:hidden"
+      />
+      {query && (
+        <button
+          type="button"
+          onClick={() => onQueryChange("")}
+          aria-label="Clear search"
+          className="absolute top-1/2 right-2 -translate-y-1/2 rounded-sm p-1 text-muted-foreground transition-colors hover:text-foreground"
+        >
+          <X className="h-3.5 w-3.5" />
+        </button>
+      )}
+    </div>
+  )
+
+  // On mobile, search, sort and filters all live in one sheet opened from a search icon.
+  const mobileTrigger = (
+    <Button
+      variant="ghost"
+      size="icon"
+      className={cn("sm:hidden bg-transparent shadow-none hover:bg-transparent", query && "text-accent")}
+      aria-label={sheetTitle}
+    >
+      <Search className="h-4 w-4" />
+    </Button>
+  )
+  const mobileBody = (
+    <div className="space-y-4">
+      {searchField}
+      {filterBody}
+    </div>
+  )
+
+  // Memoised on props only, so the header context update this triggers doesn't loop back into a new node.
+  const headerNode = useMemo(
+    () =>
+      headerOnMobile ? (
+        <div className="flex items-center gap-1 sm:hidden [&_a]:!text-current [&_button]:!text-current">
+          <Button type="button" variant="ghost" size="icon" aria-label={sheetTitle} onClick={() => setFilterOpen(true)} className="relative">
+            <Search className="size-4" aria-hidden="true" />
+            {query && <span className="absolute top-1.5 right-1.5 size-1.5 rounded-full bg-current" aria-hidden="true" />}
+          </Button>
+          {actions}
+        </div>
+      ) : null,
+    [headerOnMobile, sheetTitle, query, actions],
+  )
+  // Only touch the header when asked, so bars nested in pages with their own header actions leave them alone.
+  const { setActions, setReplacesMobileDefaults } = usePageHeaderOverride()
+  useEffect(() => {
+    if (!headerOnMobile) return
+    setActions(headerNode)
+    setReplacesMobileDefaults(true)
+    return () => {
+      setActions(null)
+      setReplacesMobileDefaults(false)
+    }
+  }, [headerOnMobile, headerNode, setActions, setReplacesMobileDefaults])
+
   return (
-    <div className={cn("mb-6 flex flex-wrap items-center gap-3", className)}>
+    <div className={cn("mb-6 flex flex-wrap items-center gap-3", headerOnMobile && !leading && !controls && "max-sm:hidden", className)}>
       <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
       {leading}
-      {showSearch && (
-        <div className={cn("relative min-w-0 flex-1 sm:max-w-xs", searchClassName)}>
-          <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            type="search"
-            value={query}
-            onChange={(event) => onQueryChange(event.target.value)}
-            placeholder={placeholder}
-            aria-label={placeholder}
-            className="pl-9 [&::-webkit-search-cancel-button]:hidden"
-          />
-          {query && (
-            <button
-              type="button"
-              onClick={() => onQueryChange("")}
-              aria-label="Clear search"
-              className="absolute top-1/2 right-2 -translate-y-1/2 rounded-sm p-1 text-muted-foreground transition-colors hover:text-foreground"
-            >
-              <X className="h-3.5 w-3.5" />
-            </button>
+      {showSearch && <div className={cn("hidden min-w-0 flex-1 sm:block sm:max-w-xs", searchClassName)}>{searchField}</div>}
+
+      {hasControls && (
+        <div className="hidden flex-wrap items-center gap-2 sm:flex">
+          {children}
+          {sorts.length > 0 && (
+            <>
+              <Select value={sortKey} onValueChange={onSortKeyChange}>
+                <SelectTrigger className="w-[170px]" aria-label="Sort by">
+                  <SelectValue placeholder="Sort by" />
+                </SelectTrigger>
+                <SelectContent>
+                  {sorts.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => onDirectionChange(direction === "asc" ? "desc" : "asc")}
+                aria-label={`Sort ${directionLabel.toLowerCase()}`}
+                title={directionLabel}
+              >
+                {direction === "asc" ? (
+                  <ArrowUpNarrowWide className="h-4 w-4" />
+                ) : (
+                  <ArrowDownWideNarrow className="h-4 w-4" />
+                )}
+              </Button>
+            </>
           )}
         </div>
       )}
-
-      {hasControls && (
-        <>
-          <div className="hidden flex-wrap items-center gap-2 sm:flex">
-            {children}
-            {sorts.length > 0 && (
-              <>
-                <Select value={sortKey} onValueChange={onSortKeyChange}>
-                  <SelectTrigger className="w-[170px]" aria-label="Sort by">
-                    <SelectValue placeholder="Sort by" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {sorts.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => onDirectionChange(direction === "asc" ? "desc" : "asc")}
-                  aria-label={`Sort ${directionLabel.toLowerCase()}`}
-                  title={directionLabel}
-                >
-                  {direction === "asc" ? (
-                    <ArrowUpNarrowWide className="h-4 w-4" />
-                  ) : (
-                    <ArrowDownWideNarrow className="h-4 w-4" />
-                  )}
-                </Button>
-              </>
-            )}
-          </div>
-
-          {mobileVariant === "drawer" ? (
-            <Sheet open={filterOpen} onOpenChange={setFilterOpen}>
-              <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="sm:hidden bg-transparent shadow-none hover:bg-transparent" aria-label="Sort and filter">
-                  <SlidersHorizontal className="h-4 w-4" />
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="bottom" className="max-h-[85vh] overflow-y-auto rounded-t-xl p-0">
-                <SheetHeader className="border-b px-6 pt-6 pb-4 text-left">
-                  <SheetTitle>Sort and filter</SheetTitle>
-                  <SheetDescription>Refine the list and choose how it is ordered.</SheetDescription>
-                </SheetHeader>
-                <div className="space-y-6 px-6 py-5">
-                  {filterBody}
-                  <SheetClose asChild>
-                    <Button className="w-full">Done</Button>
-                  </SheetClose>
-                </div>
-              </SheetContent>
-            </Sheet>
-          ) : (
-            <Dialog open={filterOpen} onOpenChange={setFilterOpen}>
-              <DialogTrigger asChild>
-                <Button variant="ghost" size="icon" className="sm:hidden bg-transparent shadow-none hover:bg-transparent" aria-label="Sort and filter">
-                  <SlidersHorizontal className="h-4 w-4" />
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-h-[min(82vh,42rem)] overflow-y-auto p-0 sm:max-w-md">
-                <DialogHeader className="border-b px-6 pt-6 pb-4">
-                  <DialogTitle>Sort and filter</DialogTitle>
-                  <DialogDescription>Refine the list and choose how it is ordered.</DialogDescription>
-                </DialogHeader>
-                <div className="space-y-6 px-6 py-5">
-                  {filterBody}
-                  <DialogClose asChild>
-                    <Button className="w-full">Done</Button>
-                  </DialogClose>
-                </div>
-              </DialogContent>
-            </Dialog>
-          )}
-        </>
-      )}
         {controls}
+
+        {mobileVariant === "drawer" ? (
+          <Sheet open={filterOpen} onOpenChange={setFilterOpen}>
+            {!headerOnMobile && <SheetTrigger asChild>{mobileTrigger}</SheetTrigger>}
+            <SheetContent side="bottom" className="max-h-[85vh] overflow-y-auto rounded-t-xl p-0">
+              <SheetHeader className="px-5 pt-5 pb-2 text-left">
+                <SheetTitle>{sheetTitle}</SheetTitle>
+                <SheetDescription className="sr-only">Search the list and choose how it is ordered.</SheetDescription>
+              </SheetHeader>
+              <div className="px-5 pb-6">{mobileBody}</div>
+            </SheetContent>
+          </Sheet>
+        ) : (
+          <Dialog open={filterOpen} onOpenChange={setFilterOpen}>
+            {!headerOnMobile && <DialogTrigger asChild>{mobileTrigger}</DialogTrigger>}
+            <DialogContent className="max-h-[min(82vh,42rem)] overflow-y-auto p-0 sm:max-w-md">
+              <DialogHeader className="px-5 pt-5 pb-2 text-left">
+                <DialogTitle>{sheetTitle}</DialogTitle>
+                <DialogDescription className="sr-only">Search the list and choose how it is ordered.</DialogDescription>
+              </DialogHeader>
+              <div className="px-5 pb-5">{mobileBody}</div>
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
-      {actions && <div className="ml-auto flex shrink-0 flex-wrap items-center justify-end gap-2">{actions}</div>}
+      {actions && <div className={cn("ml-auto flex shrink-0 flex-wrap items-center justify-end gap-2", headerOnMobile && "max-sm:hidden")}>{actions}</div>}
     </div>
   )
 }
