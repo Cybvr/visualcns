@@ -154,28 +154,21 @@ export function ContractBuilder({ contract, initialCompanyId }: { contract?: Con
 
   return (
     <form onSubmit={submit} className="space-y-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <Link
-            href="/dashboard/contracts"
-            aria-label="Back to contracts"
-            className="inline-flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <ArrowLeft className="size-4" aria-hidden="true" />
-          </Link>
-          <h1 className="text-base font-semibold tracking-[-0.01em]">
-            {isEdit ? "Edit contract" : "New contract"}
-          </h1>
-        </div>
-        <div className="flex items-center gap-3">
-          <Button type="button" variant="ghost" onClick={() => router.push("/dashboard/contracts")}>
-            Cancel
-          </Button>
-          <Button type="submit" disabled={saving}>
-            {saving && <Loader2 className="mr-2 size-4 animate-spin" />}
-            {isEdit ? "Save contract" : "Create contract"}
-          </Button>
-        </div>
+      <div className="flex items-center gap-2">
+        <Link
+          href="/dashboard/contracts"
+          aria-label="Back to contracts"
+          className="-ml-2 inline-flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <ArrowLeft className="size-4" aria-hidden="true" />
+        </Link>
+        <h1 className="min-w-0 flex-1 truncate text-base font-semibold tracking-[-0.01em]">
+          {title.trim() || (isEdit ? "Edit contract" : "New contract")}
+        </h1>
+        <Button type="submit" size="sm" disabled={saving} className="shrink-0">
+          {saving && <Loader2 className="mr-1.5 size-4 animate-spin" />}
+          {isEdit ? "Save" : "Create"}
+        </Button>
       </div>
 
       <ShareLinkField
@@ -184,7 +177,7 @@ export function ContractBuilder({ contract, initialCompanyId }: { contract?: Con
         path={contract ? `/share/contracts/${contract.id}` : undefined}
       />
 
-      <div className="space-y-8 rounded-[14px] border border-border bg-card p-5 sm:p-6">
+      <div className="space-y-8 sm:rounded-[14px] sm:border sm:border-border sm:bg-card sm:p-6">
         <section className="grid gap-x-8 gap-y-5 sm:grid-cols-2">
           <div className="space-y-4">
             <div>

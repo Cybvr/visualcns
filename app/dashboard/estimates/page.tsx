@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { Copy, Eye, Loader2, Pencil, Plus, Trash2 } from "lucide-react"
+import { ClipboardList, Copy, Eye, Loader2, Pencil, Plus, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
@@ -26,6 +26,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
+import { MobileDataCard } from "@/components/dashboard/mobile-data-card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import {
   createEstimate,
@@ -163,12 +165,18 @@ export default function EstimatesPage() {
     <main className="mx-auto w-full max-w-5xl px-4 pt-4 pb-12 sm:px-6">
       <FilterBar
         {...bar}
+        mobileVariant="drawer"
+        headerOnMobile
+        showSearch={false}
         placeholder="Search estimates"
         actions={
-          adminView && <Button asChild variant="ghost" className="bg-transparent text-foreground hover:bg-transparent"><Link href="/dashboard/estimates/new"><Plus className="size-4" aria-hidden="true" />New</Link></Button>
+          adminView && (
+            <Button asChild variant="ghost" size="icon" className="bg-transparent text-foreground hover:bg-transparent" aria-label="New estimate" title="New estimate">
+              <Link href="/dashboard/estimates/new"><Plus className="size-4" aria-hidden="true" /></Link>
+            </Button>
+          )
         }
       />
-      <p className="mb-6 text-sm text-muted-foreground">Price and scope work before it becomes an invoice.</p>
 
       {loading ? (
         <DashboardPageSkeleton rows={6} />
@@ -186,7 +194,7 @@ export default function EstimatesPage() {
         />
       ) : (
         <>
-          {awaiting > 0 && <p className="mt-6 rounded-[12px] bg-amber-500/10 px-4 py-3 text-sm leading-6 text-amber-900 dark:text-amber-200">{awaiting} estimate{awaiting === 1 ? "" : "s"} awaiting a response.</p>}
+          {awaiting > 0 && <p className="mt-6 rounded-[12px] bg-amber-500/10 px-4 py-3 text-sm leading-6 text-amber-900 dark:text-amber-200">{awaiting} estimate{awaiting === 1 ? "" : "s"} waiting on a reply.</p>}
           <div className="mt-6">
             {visibleEstimates.length === 0 ? <EmptySearchState label="No estimates match your search." /> : (
               <>
@@ -199,6 +207,45 @@ export default function EstimatesPage() {
                   onDelete={handleBulkDelete}
                 />
               )}
+              <div className="space-y-2 sm:hidden">
+                {visibleEstimates.map((estimate) => {
+                  const meta = estimateStatusMeta[estimate.status] ?? estimateStatusMeta.draft
+                  return (
+                    <MobileDataCard
+                      key={estimate.id}
+                      href={`/dashboard/estimates/${estimate.id}`}
+                      ariaLabel={`Open estimate ${estimate.estimateNumber}`}
+                      title={
+                        <span className="flex items-center justify-between gap-2">
+                          <span className="truncate">{estimate.title || estimate.estimateNumber}</span>
+                          <span className="shrink-0 font-medium">{formatMoney(estimate.amount, estimate.currency)}</span>
+                        </span>
+                      }
+                      subtitle={
+                        <span className="flex items-center justify-between gap-2">
+                          <span className="truncate">{adminView && estimate.client ? `${estimate.client} · ` : ""}Until {formatDate(estimate.validUntil)}</span>
+                          <span className={cn("shrink-0 rounded-full px-1.5 py-px text-[10px] font-medium", meta.className)}>{meta.label}</span>
+                        </span>
+                      }
+                      icon={<ClipboardList className="size-5 text-blue-600 dark:text-blue-400" aria-hidden="true" />}
+                      menuLabel={`Options for ${estimate.estimateNumber}`}
+                      menu={
+                        <>
+                          <DropdownMenuItem onSelect={() => router.push(`/dashboard/estimates/${estimate.id}`)}>View</DropdownMenuItem>
+                          {adminView && (
+                            <>
+                              <DropdownMenuItem onSelect={() => router.push(`/dashboard/estimates/${estimate.id}/edit`)}>Edit</DropdownMenuItem>
+                              <DropdownMenuItem onSelect={() => setDuplicateTarget(estimate)}>Duplicate</DropdownMenuItem>
+                              <DropdownMenuItem variant="destructive" onSelect={() => setConfirmDelete(estimate)}>Delete</DropdownMenuItem>
+                            </>
+                          )}
+                        </>
+                      }
+                    />
+                  )
+                })}
+              </div>
+              <div className="hidden sm:block">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -256,6 +303,7 @@ export default function EstimatesPage() {
                   })}
                 </TableBody>
               </Table>
+              </div>
               </>
             )}
           </div>

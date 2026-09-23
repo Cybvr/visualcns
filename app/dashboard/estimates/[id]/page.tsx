@@ -47,15 +47,15 @@ export default function EstimateDetailPage() {
 
   if (!user) return null
   if (loading) return <DashboardPageSkeleton variant="detail" />
-  if (failed || !estimate) return <main className="mx-auto w-full max-w-5xl px-4 py-10 sm:px-6"><Link href="/dashboard/estimates" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"><ArrowLeft className="size-4" aria-hidden="true" />Back to estimates</Link><p className="mt-12 text-sm text-muted-foreground">This estimate couldn’t be found or you don’t have access to it.</p></main>
+  if (failed || !estimate) return <main className="mx-auto w-full max-w-5xl px-4 py-10 sm:px-6"><Link href="/dashboard/estimates" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"><ArrowLeft className="size-4" aria-hidden="true" />Back</Link><p className="mt-12 text-sm text-muted-foreground">This estimate isn’t here, or you can’t see it.</p></main>
 
   return (
     <main className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6 sm:py-10">
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3 print:hidden">
-        <Link href="/dashboard/estimates" className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"><ArrowLeft className="size-4" aria-hidden="true" />Back to estimates</Link>
-        <div className="flex items-center gap-2">
-          {adminView && <Button asChild variant="outline" size="sm"><Link href={`/dashboard/estimates/${estimate.id}/edit`}><Pencil className="size-3.5" aria-hidden="true" />Edit estimate</Link></Button>}
-          {adminView && <ContextualEmailButton label="Send estimate" context={{ companyId: estimate.companyId, companyName: estimate.client, recipientEmail: estimate.preparedFor?.email, recipientName: estimate.preparedFor?.name, projectId: estimate.projectId, projectName: estimate.project, documentType: "estimate", documentId: estimate.id, documentTitle: estimate.title || estimate.estimateNumber, subject: `Estimate ${estimate.estimateNumber}`, ctaText: "Review estimate", ctaUrl: portalDocumentPath(estimate.companyId, "estimate", estimate.id) }} />}
+      <div className="mb-6 flex items-center justify-between gap-3 print:hidden">
+        <Link href="/dashboard/estimates" className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"><ArrowLeft className="size-4" aria-hidden="true" />Back</Link>
+        <div className="flex items-center gap-1.5">
+          {adminView && <Button asChild variant="outline" size="icon" aria-label="Edit" title="Edit"><Link href={`/dashboard/estimates/${estimate.id}/edit`}><Pencil className="size-4" aria-hidden="true" /></Link></Button>}
+          {adminView && <ContextualEmailButton size="icon" icon={false} label="Send estimate" context={{ companyId: estimate.companyId, companyName: estimate.client, recipientEmail: estimate.preparedFor?.email, recipientName: estimate.preparedFor?.name, projectId: estimate.projectId, projectName: estimate.project, documentType: "estimate", documentId: estimate.id, documentTitle: estimate.title || estimate.estimateNumber, subject: `Estimate ${estimate.estimateNumber}`, ctaText: "Review estimate", ctaUrl: portalDocumentPath(estimate.companyId, "estimate", estimate.id) }} />}
           <DocumentActions />
         </div>
       </div>

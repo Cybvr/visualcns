@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { Mail } from "lucide-react"
+import { Send } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { buildEmailComposeHref, type EmailComposeContext } from "@/lib/email-composer"
@@ -20,8 +20,7 @@ export function ContextualEmailButton({ context, label, variant = "outline", siz
   return (
     <Button asChild variant={variant} size={size} className={cn(className)} aria-label={label} title={label}>
       <Link href={buildEmailComposeHref(context)}>
-        {icon && <Mail className="size-4" aria-hidden="true" />}
-        {!icon && <Mail className="size-4" aria-hidden="true" />}
+        <Send className="size-4" aria-hidden="true" />
         <span className={!icon ? "sr-only" : undefined}>{label}</span>
       </Link>
     </Button>

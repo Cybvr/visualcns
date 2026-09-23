@@ -220,7 +220,7 @@ export default function InvoicesPage() {
         <>
           {outstanding > 0 && (
             <p className="mt-6 rounded-[12px] bg-amber-500/10 px-4 py-3 text-sm leading-6 text-amber-900 dark:text-amber-200">
-              {formatMoney(outstanding, currency)} outstanding across {unpaid.length} invoice
+              {formatMoney(outstanding, currency)} unpaid on {unpaid.length} invoice
               {unpaid.length === 1 ? "" : "s"}.
             </p>
           )}
@@ -264,12 +264,12 @@ export default function InvoicesPage() {
                         menuLabel={`Options for ${invoice.invoiceNumber}`}
                         menu={
                           <>
-                            <DropdownMenuItem onSelect={() => router.push(`/dashboard/invoices/${invoice.id}`)}>View invoice</DropdownMenuItem>
+                            <DropdownMenuItem onSelect={() => router.push(`/dashboard/invoices/${invoice.id}`)}>View</DropdownMenuItem>
                             {adminView && (
                               <>
-                                <DropdownMenuItem onSelect={() => router.push(`/dashboard/invoices/${invoice.id}/edit`)}>Edit invoice</DropdownMenuItem>
+                                <DropdownMenuItem onSelect={() => router.push(`/dashboard/invoices/${invoice.id}/edit`)}>Edit</DropdownMenuItem>
                                 <DropdownMenuItem onSelect={() => setDuplicateTarget(invoice)}>Duplicate</DropdownMenuItem>
-                                <DropdownMenuItem variant="destructive" onSelect={() => setConfirmDelete(invoice)}>Delete invoice</DropdownMenuItem>
+                                <DropdownMenuItem variant="destructive" onSelect={() => setConfirmDelete(invoice)}>Delete</DropdownMenuItem>
                               </>
                             )}
                           </>

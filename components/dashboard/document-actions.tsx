@@ -49,24 +49,20 @@ export function DocumentActions({
   return (
     <div className={className ?? "flex flex-wrap items-center gap-2 print:hidden"}>
       {url && (
-        <Button asChild variant="outline" size="sm">
+        <Button asChild variant="outline" size="icon" aria-label="Open original" title="Open original">
           <a href={url} target="_blank" rel="noreferrer">
-            Open original
-            <ExternalLink className="size-3.5" aria-hidden="true" />
+            <ExternalLink className="size-4" aria-hidden="true" />
           </a>
         </Button>
       )}
-      <Button type="button" variant="outline" size="sm" onClick={handleEmail}>
-        <Mail className="size-3.5" aria-hidden="true" />
-        Email
+      <Button type="button" variant="outline" size="icon" onClick={handleEmail} aria-label="Email" title="Email">
+        <Mail className="size-4" aria-hidden="true" />
       </Button>
-      <Button type="button" variant="outline" size="sm" onClick={() => void handleShare()}>
-        <Share2 className="size-3.5" aria-hidden="true" />
-        Share
+      <Button type="button" variant="outline" size="icon" onClick={() => void handleShare()} aria-label="Share" title="Share">
+        <Share2 className="size-4" aria-hidden="true" />
       </Button>
-      <Button type="button" variant="outline" size="sm" onClick={() => window.print()}>
-        <Printer className="size-3.5" aria-hidden="true" />
-        Print
+      <Button type="button" variant="outline" size="icon" onClick={() => window.print()} aria-label="Print" title="Print">
+        <Printer className="size-4" aria-hidden="true" />
       </Button>
     </div>
   )

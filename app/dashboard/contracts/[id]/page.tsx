@@ -57,18 +57,18 @@ export default function ContractDetailPage() {
   if (failed || !contract) {
     return (
       <main className="mx-auto w-full max-w-4xl px-4 py-10 sm:px-6">
-        <Link href="/dashboard/contracts" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"><ArrowLeft className="size-4" />Back to contracts</Link>
-        <p className="mt-12 text-sm text-muted-foreground">This contract couldn’t be found or you don’t have access to it.</p>
+        <Link href="/dashboard/contracts" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"><ArrowLeft className="size-4" aria-hidden="true" />Back</Link>
+        <p className="mt-12 text-sm text-muted-foreground">This contract isn’t here, or you can’t see it.</p>
       </main>
     )
   }
 
   return (
     <main className="mx-auto w-full max-w-4xl px-4 py-8 sm:px-6 sm:py-10">
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3 print:hidden">
-        <Link href="/dashboard/contracts" className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"><ArrowLeft className="size-4" />Back to contracts</Link>
-        <div className="flex items-center gap-2">
-          {isAdmin && !isImpersonating && <ContextualEmailButton label="Send contract" context={{ companyId: contract.companyId, companyName: contract.client, projectId: contract.projectId, projectName: contract.project, documentType: "contract", documentId: contract.id, documentTitle: contract.title, subject: contract.title, ctaText: "Review contract", ctaUrl: portalDocumentPath(contract.companyId, "contract", contract.id) }} />}
+      <div className="mb-6 flex items-center justify-between gap-3 print:hidden">
+        <Link href="/dashboard/contracts" className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"><ArrowLeft className="size-4" aria-hidden="true" />Back</Link>
+        <div className="flex items-center gap-1.5">
+          {isAdmin && !isImpersonating && <ContextualEmailButton size="icon" icon={false} label="Send contract" context={{ companyId: contract.companyId, companyName: contract.client, projectId: contract.projectId, projectName: contract.project, documentType: "contract", documentId: contract.id, documentTitle: contract.title, subject: contract.title, ctaText: "Review contract", ctaUrl: portalDocumentPath(contract.companyId, "contract", contract.id) }} />}
           <DocumentActions url={contract.url} />
         </div>
       </div>

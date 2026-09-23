@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { Copy, Download, Eye, Loader2, Pencil, Plus, Trash2 } from "lucide-react"
+import { Copy, Download, Eye, FileSignature, Loader2, Pencil, Plus, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
@@ -22,6 +22,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
+import { MobileDataCard } from "@/components/dashboard/mobile-data-card"
 import {
   Table,
   TableBody,
@@ -183,9 +185,16 @@ export default function ContractsPage() {
     <main className="mx-auto w-full max-w-5xl px-4 pt-4 pb-12 sm:px-6">
       <FilterBar
         {...bar}
+        mobileVariant="drawer"
+        headerOnMobile
+        showSearch={false}
         placeholder="Search contracts"
         actions={
-          adminView && <Button asChild variant="ghost" className="bg-transparent text-foreground hover:bg-transparent"><Link href="/dashboard/contracts/new"><Plus className="size-4" aria-hidden="true" />New</Link></Button>
+          adminView && (
+            <Button asChild variant="ghost" size="icon" className="bg-transparent text-foreground hover:bg-transparent" aria-label="New contract" title="New contract">
+              <Link href="/dashboard/contracts/new"><Plus className="size-4" aria-hidden="true" /></Link>
+            </Button>
+          )
         }
       />
 
@@ -215,7 +224,7 @@ export default function ContractsPage() {
         <>
           {awaiting > 0 && (
             <p className="mt-6 rounded-[12px] bg-amber-500/10 px-4 py-3 text-sm leading-6 text-amber-900 dark:text-amber-200">
-              {awaiting} contract{awaiting === 1 ? "" : "s"} waiting on a signature.
+              {awaiting} contract{awaiting === 1 ? "" : "s"} to sign.
             </p>
           )}
 
@@ -233,6 +242,44 @@ export default function ContractsPage() {
                     onDelete={handleBulkDelete}
                   />
                 )}
+                <div className="space-y-2 sm:hidden">
+                  {visibleContracts.map((contract) => {
+                    const meta = contractStatusMeta[contract.status] ?? contractStatusMeta.draft
+                    const href = adminView ? `/dashboard/contracts/${contract.id}/edit` : `/dashboard/contracts/${contract.id}`
+                    return (
+                      <MobileDataCard
+                        key={contract.id}
+                        href={href}
+                        ariaLabel={`Open contract ${contract.title}`}
+                        title={contract.title}
+                        subtitle={
+                          <span className="flex items-center justify-between gap-2">
+                            <span className="truncate">{adminView ? contract.client || contract.project || "—" : contract.project || formatDate(contract.startsOn)}</span>
+                            <span className={cn("shrink-0 rounded-full px-1.5 py-px text-[10px] font-medium", meta.className)}>{meta.label}</span>
+                          </span>
+                        }
+                        icon={<FileSignature className="size-5 text-blue-600 dark:text-blue-400" aria-hidden="true" />}
+                        menuLabel={`Options for ${contract.title}`}
+                        menu={
+                          <>
+                            <DropdownMenuItem onSelect={() => router.push(`/dashboard/contracts/${contract.id}`)}>View</DropdownMenuItem>
+                            {contract.url && (
+                              <DropdownMenuItem onSelect={() => window.open(contract.url, "_blank", "noreferrer")}>Open file</DropdownMenuItem>
+                            )}
+                            {adminView && (
+                              <>
+                                <DropdownMenuItem onSelect={() => router.push(`/dashboard/contracts/${contract.id}/edit`)}>Edit</DropdownMenuItem>
+                                <DropdownMenuItem onSelect={() => setDuplicateTarget(contract)}>Duplicate</DropdownMenuItem>
+                                <DropdownMenuItem variant="destructive" onSelect={() => setConfirmDelete(contract)}>Delete</DropdownMenuItem>
+                              </>
+                            )}
+                          </>
+                        }
+                      />
+                    )
+                  })}
+                </div>
+                <div className="hidden sm:block">
                 <Table>
                 <TableHeader>
                   <TableRow>
@@ -378,6 +425,7 @@ export default function ContractsPage() {
                   })}
                 </TableBody>
               </Table>
+              </div>
               </>
             )}
           </div>
