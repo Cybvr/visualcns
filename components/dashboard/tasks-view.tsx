@@ -307,9 +307,8 @@ export function TasksView({
   }
 
   return (
-    <section id="tasks" className="mt-10 scroll-mt-20">
-      <div className="flex items-center justify-between gap-4">
-        <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">Tasks</h2>
+    <section id="tasks" className="mt-4 scroll-mt-20">
+      <div className="flex items-center justify-start">
         <div className="flex items-center gap-1 rounded-lg border border-border p-0.5">
           <button
             type="button"
@@ -338,7 +337,7 @@ export function TasksView({
         </div>
       </div>
 
-      <div className="mt-4">
+      <div className="mt-3">
         {view === "board" ? (
           <DndContext
             sensors={sensors}

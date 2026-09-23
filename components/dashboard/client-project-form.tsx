@@ -161,7 +161,7 @@ export function ClientProjectForm({ project, initialCompanyId, onSaved, onCancel
           </Select>
           {!clientsLoading && companies.length === 0 && (
             <p className="text-xs text-muted-foreground">
-              No companies yet. Add one under Companies first.
+              No clients yet. Add one under Clients first.
             </p>
           )}
         </div>

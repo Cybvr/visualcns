@@ -20,7 +20,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { Textarea } from "@/components/ui/textarea"
-import { projectSlug, slugify, updateProject, type Project } from "@/lib/projects"
+import { projectSlug, projectStatusMeta, slugify, updateProject, type Project, type ProjectStatus } from "@/lib/projects"
 import { cn } from "@/lib/utils"
 
 /** A pill toggle: solid with a check when on, outlined with a dot when off. */
@@ -63,6 +63,7 @@ type FormState = {
   isCaseStudy: boolean
   caseStudyStatus: "draft" | "published"
   featured: boolean
+  status: ProjectStatus
   title: string
   slug: string
   client: string
@@ -82,6 +83,7 @@ function formStateFrom(project: Project): FormState {
     isCaseStudy: project.isCaseStudy ?? false,
     caseStudyStatus: project.caseStudyStatus === "published" ? "published" : "draft",
     featured: project.featured ?? false,
+    status: project.status,
     title: project.title ?? "",
     slug: projectSlug(project),
     client: project.client ?? "",
@@ -141,6 +143,7 @@ export function CaseStudyForm({
         isCaseStudy: form.isCaseStudy,
         caseStudyStatus: form.caseStudyStatus,
         featured: form.featured,
+        status: form.status,
         title: form.title.trim(),
         slug: slugify(form.slug) || slugify(form.title),
         client: form.client.trim(),
@@ -170,7 +173,7 @@ export function CaseStudyForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-4">
           <div className="flex flex-wrap gap-2">
             <ToggleChip
               label="Case studies"
@@ -183,6 +186,20 @@ export function CaseStudyForm({
               active={form.caseStudyStatus === "published"}
               onClick={() => set("caseStudyStatus", form.caseStudyStatus === "published" ? "draft" : "published")}
             />
+          </div>
+
+          <div className="max-w-xs space-y-1.5">
+            <Label htmlFor="status">Status</Label>
+            <select
+              id="status"
+              value={form.status}
+              onChange={(event) => set("status", event.target.value as ProjectStatus)}
+              className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              {(Object.keys(projectStatusMeta) as ProjectStatus[]).map((value) => (
+                <option key={value} value={value}>{projectStatusMeta[value].label}</option>
+              ))}
+            </select>
           </div>
 
           <div className="space-y-4">

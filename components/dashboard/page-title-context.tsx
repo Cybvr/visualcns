@@ -1,6 +1,6 @@
 "use client"
 
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react"
+import { createContext, useContext, useEffect, useMemo, useState, type Dispatch, type ReactNode, type SetStateAction } from "react"
 
 export interface PageHeaderOverride {
   title: string
@@ -10,14 +10,20 @@ export interface PageHeaderOverride {
 
 interface PageTitleContextValue {
   override: PageHeaderOverride | null
-  setOverride: (next: PageHeaderOverride | null) => void
+  setOverride: Dispatch<SetStateAction<PageHeaderOverride | null>>
+  titleNode: ReactNode | null
+  setTitleNode: Dispatch<SetStateAction<ReactNode | null>>
+  actions: ReactNode
+  setActions: Dispatch<SetStateAction<ReactNode>>
 }
 
 const PageTitleContext = createContext<PageTitleContextValue | null>(null)
 
 export function PageTitleProvider({ children }: { children: ReactNode }) {
   const [override, setOverride] = useState<PageHeaderOverride | null>(null)
-  const value = useMemo(() => ({ override, setOverride }), [override])
+  const [titleNode, setTitleNode] = useState<ReactNode | null>(null)
+  const [actions, setActions] = useState<ReactNode>(null)
+  const value = useMemo(() => ({ override, setOverride, titleNode, setTitleNode, actions, setActions }), [override, titleNode, actions])
   return <PageTitleContext.Provider value={value}>{children}</PageTitleContext.Provider>
 }
 
@@ -40,4 +46,24 @@ export function usePageTitle(title: string | null, homeHref?: string) {
     return () => setOverride(null)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [title, homeHref])
+}
+
+/** Adds temporary actions to the dashboard header while the current page is mounted. */
+export function usePageHeaderActions(actions: ReactNode) {
+  const { setActions } = usePageHeaderOverride()
+
+  useEffect(() => {
+    setActions(actions)
+    return () => setActions(null)
+  }, [actions, setActions])
+}
+
+/** Replaces the dashboard header title with an interactive title control. */
+export function usePageHeaderTitle(titleNode: ReactNode | null) {
+  const { setTitleNode } = usePageHeaderOverride()
+
+  useEffect(() => {
+    setTitleNode(titleNode)
+    return () => setTitleNode(null)
+  }, [titleNode, setTitleNode])
 }

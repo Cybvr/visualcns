@@ -1,16 +1,16 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
-import { ArrowLeft, Pencil } from "lucide-react"
+import Link from "next/link"
+import { useCallback, useEffect, useMemo, useState } from "react"
+import { Mail, MoreVertical, Share2 } from "lucide-react"
 
 import { CaseStudyForm } from "@/components/dashboard/case-study-form"
-import { CaseStudyOverview } from "@/components/dashboard/case-study-overview"
-import { ContextualEmailButton } from "@/components/dashboard/contextual-email-button"
 import { ProjectShareButton } from "@/components/dashboard/project-share-button"
 import { TasksView } from "@/components/dashboard/tasks-view"
-import { ProjectCover } from "@/components/project-card"
-import { Button } from "@/components/ui/button"
-import { deleteProjectWithTasks, projectStatusMeta, type Project } from "@/lib/projects"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { usePageHeaderActions, usePageHeaderTitle } from "@/components/dashboard/page-title-context"
+import { buildEmailComposeHref } from "@/lib/email-composer"
+import { deleteProjectWithTasks, renameProject, slugify, type Project } from "@/lib/projects"
 import { deleteTask, getTasksByCompanyId, tsToMillis, updateTask, type Task } from "@/lib/tasks"
 import { cn } from "@/lib/utils"
 import { portalPath } from "@/lib/portal-model"
@@ -21,17 +21,14 @@ interface ProjectDetailProps {
   publicView?: boolean
   companyId?: string
   clientName?: string
-  backLabel?: string
-  onBack: () => void
   onProjectPatched?: (patch: Partial<Project>) => void
   onProjectDeleted?: () => void | Promise<void>
 }
 
 /**
  * The full single-project workspace: cover, share/view actions, and the
- * Overview/Tasks tabs for admins. Shared by the standalone
- * /dashboard/projects/[slug] page and the company page's inline project view,
- * so task fetching and mutation lives here once instead of in both places.
+ * Tasks/About tabs for admins on the standalone project workspace. The
+ * company Projects tab routes here so the project has one focused surface.
  */
 export function ProjectDetail({
   project,
@@ -39,15 +36,77 @@ export function ProjectDetail({
   publicView = false,
   companyId = "",
   clientName = "",
-  backLabel = "Back",
-  onBack,
   onProjectPatched,
   onProjectDeleted,
 }: ProjectDetailProps) {
   const [tasks, setTasks] = useState<Task[]>([])
   const [deleting, setDeleting] = useState<string | null>(null)
-  const [tab, setTab] = useState<"overview" | "tasks">("overview")
-  const [editing, setEditing] = useState(false)
+  const [tab, setTab] = useState<"tasks" | "about">("tasks")
+  const [shareOpen, setShareOpen] = useState(false)
+  const [titleDraft, setTitleDraft] = useState(project.title)
+  const [titleEditing, setTitleEditing] = useState(false)
+  const [titleSaving, setTitleSaving] = useState(false)
+
+  useEffect(() => {
+    setTitleDraft(project.title)
+  }, [project.id, project.title])
+
+  const saveTitle = useCallback(async () => {
+    const nextTitle = titleDraft.trim()
+    if (!nextTitle || nextTitle === project.title || titleSaving) {
+      setTitleDraft(project.title)
+      setTitleEditing(false)
+      return
+    }
+
+    setTitleSaving(true)
+    try {
+      await renameProject(project.id, nextTitle)
+      onProjectPatched?.({ title: nextTitle, slug: slugify(nextTitle) })
+      setTitleEditing(false)
+    } catch (error) {
+      console.error("Error renaming project:", error)
+      setTitleDraft(project.title)
+    } finally {
+      setTitleSaving(false)
+    }
+  }, [onProjectPatched, project.id, project.title, titleDraft, titleSaving])
+
+  const titleNode = useMemo(
+    () => titleEditing ? (
+      <input
+        autoFocus
+        value={titleDraft}
+        disabled={titleSaving}
+        aria-label="Project name"
+        onChange={(event) => setTitleDraft(event.target.value)}
+        onBlur={() => void saveTitle()}
+        onKeyDown={(event) => {
+          if (event.key === "Enter") {
+            event.preventDefault()
+            void saveTitle()
+          }
+          if (event.key === "Escape") {
+            setTitleDraft(project.title)
+            setTitleEditing(false)
+          }
+        }}
+        className="h-9 w-full min-w-0 bg-transparent px-0 text-inherit outline-none placeholder:text-current/60"
+      />
+    ) : (
+      <button
+        type="button"
+        onClick={() => setTitleEditing(true)}
+        title="Rename project"
+        className="block max-w-full truncate text-left outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        {project.title}
+      </button>
+    ),
+    [project.title, saveTitle, titleDraft, titleEditing, titleSaving],
+  )
+
+  usePageHeaderTitle(isAdmin ? titleNode : null)
 
   const fetchTasks = useCallback(async () => {
     if (publicView) {
@@ -91,7 +150,64 @@ export function ProjectDetail({
     await onProjectDeleted()
   }
 
-  const meta = projectStatusMeta[project.status]
+  const headerActions = useMemo(() => {
+    if (!isAdmin) return null
+
+    return (
+      <div className="flex items-center gap-1">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              type="button"
+              aria-label="More actions"
+              title="More actions"
+              className="flex size-10 items-center justify-center rounded-xl text-current outline-none transition-colors hover:bg-black/5 focus-visible:ring-2 focus-visible:ring-ring max-md:text-primary-foreground max-md:hover:bg-white/10"
+            >
+              <MoreVertical className="size-5" aria-hidden="true" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuItem asChild>
+              <Link
+                href={buildEmailComposeHref({
+                  companyId: project.companyId || companyId,
+                  companyName: project.client || clientName,
+                  projectId: project.id,
+                  projectName: project.title,
+                  documentType: "project",
+                  documentId: project.id,
+                  subject: `${project.title} update`,
+                  ctaText: "Open project workspace",
+                  ctaUrl: `${portalPath(project.companyId || companyId)}/projects/${encodeURIComponent(project.slug || project.id)}`,
+                })}
+              >
+                <Mail className="size-4" aria-hidden="true" />
+                Send project update
+              </Link>
+            </DropdownMenuItem>
+            {!publicView && (
+              <DropdownMenuItem onSelect={() => setShareOpen(true)}>
+                <Share2 className="size-4" aria-hidden="true" />
+                {project.isPublic ? "Update sharing" : "Share project"}
+              </DropdownMenuItem>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+        {!publicView && (
+          <ProjectShareButton
+            project={project}
+            stepCount={tasks.length}
+            onChanged={fetchTasks}
+            open={shareOpen}
+            onOpenChange={setShareOpen}
+            showTrigger={false}
+          />
+        )}
+      </div>
+    )
+  }, [clientName, companyId, fetchTasks, isAdmin, project, publicView, shareOpen, tasks.length])
+
+  usePageHeaderActions(headerActions)
 
   const tasksPanel = (
     <TasksView
@@ -106,72 +222,17 @@ export function ProjectDetail({
     />
   )
 
-  const category = project.category ?? []
-  // "Back to Projects" -> "Projects", so the crumb reads "Projects / Title"
-  // instead of repeating the word "Back".
-  const crumb = backLabel.replace(/^Back(\s+to)?\s*/i, "").trim()
-
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-muted/60 px-4 py-2.5">
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={onBack}
-            aria-label={backLabel}
-            title={backLabel}
-            className="inline-flex items-center justify-center text-muted-foreground outline-none transition-colors hover:text-foreground"
-          >
-            <ArrowLeft className="size-4" aria-hidden="true" />
-          </button>
-          <span className="text-xs text-muted-foreground">
-            {crumb && `${crumb} / `}
-            {project.title}
-          </span>
-        </div>
-
-        <div className="flex items-center gap-2">
-          {isAdmin && tab === "overview" && (
-            <Button
-              type="button"
-              size="icon"
-              variant={editing ? "outline" : "default"}
-              onClick={() => setEditing((current) => !current)}
-              aria-label={editing ? "Cancel editing" : "Edit project"}
-              title={editing ? "Cancel editing" : "Edit project"}
-            >
-              <Pencil className="size-4" aria-hidden="true" />
-            </Button>
-          )}
-          {isAdmin && (
-            <ContextualEmailButton
-              label="Send project update"
-              context={{
-                companyId: project.companyId || companyId,
-                companyName: project.client || clientName,
-                projectId: project.id,
-                projectName: project.title,
-                documentType: "project",
-                documentId: project.id,
-                subject: `${project.title} update`,
-                ctaText: "Open project workspace",
-                ctaUrl: `${portalPath(project.companyId || companyId)}/projects/${encodeURIComponent(project.slug || project.id)}`,
-              }}
-            />
-          )}
-          {!publicView && <ProjectShareButton project={project} stepCount={tasks.length} onChanged={fetchTasks} />}
-        </div>
-      </div>
-
       {isAdmin || publicView ? (
-        <div className="grid gap-6 sm:grid-cols-[160px_1fr]">
-          <nav className="flex gap-1 overflow-x-auto sm:flex-col sm:overflow-visible">
+        <div>
+          <nav className="flex gap-6 border-b border-border" aria-label="Project sections">
             {(
               publicView
-                ? ([{ key: "overview", label: "Overview" }] as const)
+                ? ([{ key: "about", label: "About" }] as const)
                 : ([
-                    { key: "overview", label: "Overview" },
                     { key: "tasks", label: "Tasks" },
+                    { key: "about", label: "About" },
                   ] as const)
             ).map((item) => (
               <button
@@ -179,10 +240,10 @@ export function ProjectDetail({
                 type="button"
                 onClick={() => setTab(item.key)}
                 className={cn(
-                  "shrink-0 rounded-md px-3 py-2 text-left text-sm font-medium outline-none transition-colors",
+                  "relative -mb-px shrink-0 px-0 py-2 text-base font-medium outline-none transition-colors",
                   tab === item.key
-                    ? "bg-secondary text-foreground"
-                    : "text-muted-foreground hover:bg-secondary/60 hover:text-foreground",
+                    ? "border-b-2 border-foreground text-foreground"
+                    : "text-muted-foreground hover:text-foreground",
                 )}
               >
                 {item.label}
@@ -190,40 +251,13 @@ export function ProjectDetail({
             ))}
           </nav>
 
-          <div className="min-w-0">
-            {tab === "overview" ? (
-              editing && isAdmin ? (
-                <CaseStudyForm
-                  project={project}
-                  onSaved={(patch) => {
-                    onProjectPatched?.(patch)
-                    setEditing(false)
-                  }}
-                  onDelete={handleDeleteProject}
-                />
-              ) : (
-                <div className="space-y-6">
-                  <div className="flex items-center gap-3">
-                    <div className="size-14 shrink-0 overflow-hidden rounded-lg">
-                      <ProjectCover project={project} />
-                    </div>
-                    <div>
-                      <h1 className="text-lg font-semibold">{project.title}</h1>
-                      <div className="mt-1 flex flex-wrap items-center gap-2">
-                        {category.length > 0 && (
-                          <span className="text-sm text-muted-foreground">{category.join(", ")}</span>
-                        )}
-                        {!publicView && (
-                          <span className={cn("rounded-full px-2.5 py-1 text-xs font-medium", meta.className)}>
-                            {meta.label}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                  <CaseStudyOverview project={project} />
-                </div>
-              )
+          <div className="min-w-0 pt-4">
+            {tab === "about" ? (
+              <CaseStudyForm
+                project={project}
+                onSaved={onProjectPatched}
+                onDelete={handleDeleteProject}
+              />
             ) : (
               tasksPanel
             )}

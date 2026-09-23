@@ -190,7 +190,7 @@
 
   @media (min-width: 768px) {
     .peer[data-state="expanded"] ~ .portal-content-area {
-      --portal-content-left: 16rem;
+      --portal-content-left: 14rem;
     }
 
     .peer[data-state="collapsed"] ~ .portal-content-area {
@@ -236,6 +236,28 @@
     font-size: var(--surface-nav-size) !important;
     line-height: var(--surface-nav-line-height) !important;
     font-weight: 500 !important;
+  }
+
+  .sidebar-nav-label {
+    font-size: 0.8125rem !important;
+    line-height: 1.25rem !important;
+  }
+
+  .sidebar-recent-label {
+    font-size: 0.8125rem !important;
+    line-height: 1.25rem !important;
+  }
+
+  @media (max-width: 767px) {
+    .sidebar-nav-label {
+      font-size: 0.875rem !important;
+      line-height: 1.5rem !important;
+    }
+
+    .sidebar-recent-label {
+      font-size: 0.875rem !important;
+      line-height: 1.5rem !important;
+    }
   }
 
   .surface-section-label {

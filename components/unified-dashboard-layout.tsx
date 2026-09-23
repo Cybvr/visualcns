@@ -3,8 +3,8 @@
 import { Suspense, useEffect, type ReactNode } from "react"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
-import { Eye, Loader2, LogOut } from "lucide-react"
-import { FiBriefcase, FiCheckSquare, FiFileText, FiFolder, FiHome, FiMail, FiMessageCircle, FiUsers } from "react-icons/fi"
+import { Eye, Loader2, LogOut, Pencil } from "lucide-react"
+import { FiBriefcase, FiCheckSquare, FiFileText, FiMail, FiUsers } from "react-icons/fi"
 import { AuthProvider, useAuth } from "@/components/auth-provider"
 import { AgentDock } from "@/components/agent/agent-dock"
 import { AgentProvider } from "@/components/agent/agent-context"
@@ -14,13 +14,11 @@ import { PageTitleProvider } from "@/components/dashboard/page-title-context"
 import { LegacyClientRedirect } from "@/components/portal/legacy-client-redirect"
 
 const DASHBOARD_NAV: NavLink[] = [
-  { label: "Home", href: "/dashboard", icon: FiHome },
-  { label: "Companies", href: "/dashboard/companies", icon: FiBriefcase, adminOnly: true },
+  { label: "New Chat", href: "/dashboard/agent", icon: Pencil, startsNewChat: true },
+  { label: "Clients", href: "/dashboard/clients", icon: FiBriefcase, adminOnly: true },
   { label: "Contacts", href: "/dashboard/users", icon: FiUsers, adminOnly: true },
   { label: "Email", href: "/dashboard/email", icon: FiMail },
-  { label: "Ngai", href: "/dashboard/agent", icon: FiMessageCircle, opensAgent: true },
   { label: "Documents", href: "/dashboard/documents", icon: FiFileText },
-  { label: "Projects", href: "/dashboard/projects", icon: FiFolder },
   { label: "Tasks", href: "/dashboard/tasks", icon: FiCheckSquare },
 ]
 

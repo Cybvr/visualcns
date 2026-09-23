@@ -3,6 +3,6 @@ import type { ReactNode } from "react"
 
 export const metadata: Metadata = { title: "Clients" }
 
-export default function CompaniesLayout({ children }: { children: ReactNode }) {
+export default function ClientsLayout({ children }: { children: ReactNode }) {
   return children
 }

@@ -2,13 +2,12 @@
 
 import { useRef, useState } from "react"
 import Link from "next/link"
-import { Loader2, Plus } from "lucide-react"
+import { Loader2 } from "lucide-react"
 import { FaFolderOpen } from "react-icons/fa"
 
 import { FirstRunState } from "@/components/dashboard/empty-state"
 import { MobileDataCard } from "@/components/dashboard/mobile-data-card"
 import { ReactIcon } from "@/components/react-icon"
-import { ProjectCard } from "@/components/project-card"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -29,23 +28,8 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet"
 import { cn } from "@/lib/utils"
-import {
-  deleteProjectWithTasks,
-  duplicateProject,
-  projectSlug,
-  projectStatusMeta,
-  renameProject,
-  type Project,
-} from "@/lib/projects"
+import { deleteProjectWithTasks, duplicateProject, projectSlug, renameProject, type Project } from "@/lib/projects"
 import { getTasksByProjectAndCompanyId, taskStatusMeta, type Task } from "@/lib/tasks"
-
-function ProgressBar({ value }: { value: number }) {
-  return (
-    <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
-      <div className="h-full rounded-full bg-accent" style={{ width: `${value}%` }} />
-    </div>
-  )
-}
 
 export function ProjectsView({
   projects,
@@ -148,14 +132,13 @@ export function ProjectsView({
         />
       ) : (
       <>
-        <div className="mt-2 space-y-2 sm:hidden">
+        <div className="mt-2 space-y-2">
           {projects.map((project) => {
-            const meta = projectStatusMeta[project.status]
             return (
               <MobileDataCard
                 key={project.id}
                 title={project.title}
-                subtitle={[project.client || project.companyId, project.service, meta.label].filter(Boolean).join(" · ")}
+                subtitle={project.dueDate || "No due date"}
                 icon={<ReactIcon icon={FaFolderOpen} className="size-5 text-amber-600 dark:text-amber-400" aria-hidden="true" />}
                 href={`/dashboard/projects/${projectSlug(project)}`}
                 ariaLabel={`Open ${project.title}`}
@@ -171,91 +154,6 @@ export function ProjectsView({
               />
             )
           })}
-        </div>
-
-        <div className="mt-4 hidden grid-cols-1 gap-3 sm:grid sm:grid-cols-3 lg:grid-cols-4">
-        {projects.map((project) => {
-          const meta = projectStatusMeta[project.status]
-          return (
-            <ProjectCard
-              key={project.id}
-              project={project}
-              href={`/dashboard/projects/${projectSlug(project)}`}
-              footer={
-                <>
-                  <span
-                    className={cn("mb-2 inline-block w-fit rounded-full px-2 py-0.5 text-xs font-medium", meta.className)}
-                  >
-                    {meta.label}
-                  </span>
-                  <ProgressBar value={project.progress} />
-                  <div className="mt-1 flex justify-between text-[11px] text-muted-foreground">
-                    <span>{project.progress}%</span>
-                    <span className="truncate">Due {project.dueDate}</span>
-                  </div>
-                </>
-              }
-              menu={
-                onChanged ? (
-                  <>
-                    <DropdownMenuItem onSelect={() => openTaskPreview(project)}>
-                      Preview tasks
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onSelect={() => {
-                        setTitle(project.title)
-                        setError(null)
-                        setRenaming(project)
-                      }}
-                    >
-                      Rename
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onSelect={(event) => {
-                        event.preventDefault()
-                        run(() => duplicateProject(project), "The project could not be duplicated.")
-                      }}
-                    >
-                      Duplicate
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      variant="destructive"
-                      onSelect={() => {
-                        setError(null)
-                        setDeleting(project)
-                      }}
-                    >
-                      Delete
-                    </DropdownMenuItem>
-                  </>
-                ) : undefined
-              }
-            />
-          )
-        })}
-
-        {onNewProject ? (
-          <button
-            type="button"
-            onClick={onNewProject}
-            className="group flex min-h-[180px] flex-col items-center justify-center gap-3 rounded-[14px] border border-dashed border-border bg-card p-4 text-center outline-none transition-colors hover:border-foreground/30 hover:bg-muted/40 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-          >
-            <span className="flex size-10 items-center justify-center rounded-full bg-foreground text-background transition-transform group-hover:scale-105">
-              <Plus className="size-5" aria-hidden="true" />
-            </span>
-            <span className="text-sm font-medium text-foreground">Create a new project</span>
-          </button>
-        ) : (
-          <Link
-            href="/dashboard/projects?new=1"
-            className="group flex min-h-[180px] flex-col items-center justify-center gap-3 rounded-[14px] border border-dashed border-border bg-card p-4 text-center outline-none transition-colors hover:border-foreground/30 hover:bg-muted/40 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-          >
-            <span className="flex size-10 items-center justify-center rounded-full bg-foreground text-background transition-transform group-hover:scale-105">
-              <Plus className="size-5" aria-hidden="true" />
-            </span>
-            <span className="text-sm font-medium text-foreground">Create a new project</span>
-          </Link>
-        )}
         </div>
       </>
       )}

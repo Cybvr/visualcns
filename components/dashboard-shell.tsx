@@ -3,11 +3,10 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { Bell, Briefcase, Building2, CircleHelp, FileText, Home, ListTodo, Plus, Receipt, ScrollText, Users } from "lucide-react"
+import { ArrowLeft, Bell, Briefcase, Building2, FileText, Home, ListTodo, Plus, Receipt, ScrollText, Users } from "lucide-react"
 import { FiFileText, FiHome, FiMail, FiMessageCircle } from "react-icons/fi"
 
 import { useAgent } from "@/components/agent/agent-context"
-import { AgentHeaderButton } from "@/components/agent/agent-header-button"
 import { AppSidebar, type NavLink } from "@/components/app-sidebar"
 import { NgaiSidePanel } from "@/components/agent/ngai-side-panel"
 import { MobileFooterNav, type MobileFooterNavItem } from "@/components/mobile-footer-nav"
@@ -44,7 +43,7 @@ import {
 export type { NavLink }
 
 const QUICK_CREATE_LINKS = [
-  { label: "Company", href: "/dashboard/companies", icon: Building2 },
+  { label: "Client", href: "/dashboard/clients", icon: Building2 },
   { label: "New Contact", href: "/dashboard/users", icon: Users },
   { label: "Project", href: "/dashboard/projects", icon: Briefcase },
   { label: "Task", href: "/dashboard/tasks", icon: ListTodo },
@@ -127,12 +126,15 @@ export function DashboardShell({
   // Document detail and editor screens keep the focused layout, while the
   // navigation remains available as a collapsed icon rail.
   const isDocumentRoute = /^\/dashboard\/documents\/[^/]+/.test(pathname ?? "")
+  const isProjectDetailRoute = /^\/dashboard\/projects\/[^/]+$/.test(pathname ?? "")
+  const isCompanyDetailRoute = /^\/dashboard\/(?:companies|clients)\/[^/]+$/.test(pathname ?? "")
+  const isAgentRoute = /^\/dashboard\/agent(?:\/[^/]+)?$/.test(pathname ?? "")
   const isEmailRoute = pathname === "/dashboard/email"
   const hideHeader = isDocumentRoute
   const [sidebarOpen, setSidebarOpen] = useState(!isDocumentRoute)
   const { open: agentOpen } = useAgent()
   const { user } = useAuth()
-  const { override: titleOverride } = usePageHeaderOverride()
+  const { override: titleOverride, titleNode, actions: headerActions } = usePageHeaderOverride()
   const [tenant, setTenant] = useState<Tenant | null>(null)
   const [createItem, setCreateItem] = useState<(typeof QUICK_CREATE_LINKS)[number] | null>(null)
   const [createName, setCreateName] = useState("")
@@ -189,8 +191,8 @@ export function DashboardShell({
         {/* overflow-y-auto: this column is the scroll container, not the body */}
         <SidebarInset
           className={cn(
-            "overflow-y-auto md:pb-6",
-            !isEmailRoute && "pb-[calc(4.5rem+env(safe-area-inset-bottom))]",
+            isAgentRoute ? "overflow-hidden md:pb-0" : "overflow-y-auto md:pb-6",
+            !isEmailRoute && "max-md:pb-[calc(4.5rem+env(safe-area-inset-bottom))]",
             pathname === "/dashboard/email" && "lg:min-h-0 lg:overflow-hidden lg:pb-0",
           )}
         >
@@ -202,8 +204,20 @@ export function DashboardShell({
             )}
           >
             <div className="flex shrink-0 items-center gap-2 md:hidden">
-              <SidebarTrigger className="-ml-1" />
-              <Separator orientation="vertical" className="max-md:bg-primary-foreground/30 data-[orientation=vertical]:h-4" />
+              {isProjectDetailRoute ? (
+                <button
+                  type="button"
+                  onClick={() => (window.history.length > 1 ? router.back() : router.push("/dashboard/projects"))}
+                  aria-label="Back to projects"
+                  title="Back to projects"
+                  className="flex size-8 items-center justify-center rounded-md text-primary-foreground outline-none transition-colors hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <ArrowLeft className="size-5" aria-hidden="true" />
+                </button>
+              ) : (
+                <SidebarTrigger className="-ml-1" />
+              )}
+              {!isProjectDetailRoute && <Separator orientation="vertical" className="max-md:bg-primary-foreground/30 data-[orientation=vertical]:h-4" />}
             </div>
             <div className="flex min-w-0 items-center gap-1">
               {titleOverride?.homeHref && (
@@ -217,40 +231,32 @@ export function DashboardShell({
                 </Link>
               )}
               <h1 className="surface-title min-w-0 truncate">
-                {titleOverride?.title ?? dashboardPageTitle(pathname ?? "/dashboard")}
+                {titleNode ?? titleOverride?.title ?? dashboardPageTitle(pathname ?? "/dashboard")}
               </h1>
             </div>
             <div className="ml-auto flex shrink-0 items-center gap-2">
-              <DashboardSearchButton className="md:hidden" />
-              <QuickCreateMenu
-                onSelect={selectQuickCreate}
-                trigger={
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon"
-                    aria-label="Create new"
-                    title="Create new"
-                    className="max-md:border-transparent max-md:bg-transparent max-md:shadow-none"
-                  >
-                    <Plus className="size-4" aria-hidden="true" />
-                  </Button>
-                }
-              />
-              <Button asChild variant="outline" className="surface-nav hidden sm:inline-flex">
-                <Link href="/pricing" aria-label="Upgrade" title="Upgrade">
-                  <span>Upgrade</span>
-                </Link>
-              </Button>
-              <Button asChild variant="ghost" size="icon" className="hidden sm:inline-flex">
-                <Link href="/faq" aria-label="Help">
-                  <CircleHelp className="size-4" aria-hidden="true" />
-                </Link>
-              </Button>
+              {!isProjectDetailRoute && <DashboardSearchButton className="md:hidden" />}
+              {headerActions}
+              {!isCompanyDetailRoute && !isProjectDetailRoute && (
+                <QuickCreateMenu
+                  onSelect={selectQuickCreate}
+                  trigger={
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      aria-label="Create new"
+                      title="Create new"
+                      className="max-md:border-transparent max-md:bg-transparent max-md:shadow-none"
+                    >
+                      <Plus className="size-4" aria-hidden="true" />
+                    </Button>
+                  }
+                />
+              )}
               <Button type="button" variant="ghost" size="icon" className="hidden sm:inline-flex" aria-label="Notifications">
                 <Bell className="size-4" aria-hidden="true" />
               </Button>
-          <AgentHeaderButton className="ml-0" />
             </div>
           </header>
           {children}

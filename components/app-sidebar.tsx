@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { FiChevronRight } from "react-icons/fi"
 import type { ComponentType, ReactNode } from "react"
 
@@ -33,9 +33,9 @@ import {
 // On mobile the sidebar is a slide-over sheet, so nav rows need finger-sized
 // hit areas. max-md: keeps the desktop rail untouched.
 const mobileNavButton =
-  "surface-nav h-7 max-md:h-10 max-md:gap-2.5 max-md:px-2.5 [&>svg]:max-md:size-4"
+  "surface-nav h-6 max-md:h-10 max-md:gap-2.5 max-md:px-2.5 [&>svg]:max-md:size-4"
 const mobileNavSubButton =
-  "surface-nav max-md:h-9 max-md:gap-2.5 max-md:px-2.5 [&>svg]:max-md:size-4"
+  "surface-nav h-6 max-md:h-9 max-md:gap-2.5 max-md:px-2.5 [&>svg]:max-md:size-4"
 
 export type NavLink = {
   label: string
@@ -48,6 +48,8 @@ export type NavLink = {
   superAdminOnly?: boolean
   /** Opens the shared Ngai panel instead of navigating to a duplicate page. */
   opensAgent?: boolean
+  /** Clears the current conversation before opening the full Agent page. */
+  startsNewChat?: boolean
   /** When present the item is a collapsible dropdown and href is only its default destination. */
   items?: Array<{ label: string; href: string; icon: ComponentType<{ className?: string }>; adminOnly?: boolean }>
 }
@@ -74,8 +76,9 @@ export function AppSidebar({
   brandLogoUrl?: string
 }) {
   const pathname = usePathname()
+  const router = useRouter()
   const { isImpersonating, stopViewingAs } = useAuth()
-  const { open: agentOpen, setOpen: setAgentOpen } = useAgent()
+  const { open: agentOpen, setOpen: setAgentOpen, conversations, activeConversationId, reset, selectConversation } = useAgent()
   const { isMobile, setOpenMobile } = useSidebar()
 
   // Tapping a destination on mobile should dismiss the slide-over sheet.
@@ -102,7 +105,7 @@ export function AppSidebar({
               <SidebarMenuItem>
                 <SidebarMenuButton size="lg" asChild>
                   <Link href={rootHref}>
-                    <BrandLockup logoSize={24} gapClassName="gap-1" brandName={brandName} logoUrl={brandLogoUrl} />
+                    <BrandLockup logoSize={20} wordmarkScale={0.9} gapClassName="gap-1" brandName={brandName} logoUrl={brandLogoUrl} />
                     {subtitle && <span className="truncate text-xs text-muted-foreground">{subtitle}</span>}
                   </Link>
                 </SidebarMenuButton>
@@ -113,7 +116,7 @@ export function AppSidebar({
         </SidebarHeader>
         <SidebarContent>
           <SidebarGroup className="group-data-[collapsible=icon]:p-1">
-            <SidebarMenu className="gap-0.5">
+            <SidebarMenu className="gap-1">
               {navLinks.map((link) => (
                 <React.Fragment key={link.href}>
                   {link.sectionLabel && (
@@ -132,7 +135,7 @@ export function AppSidebar({
                       <CollapsibleTrigger asChild>
                         <SidebarMenuButton tooltip={link.label} className={mobileNavButton}>
                           <link.icon className="h-4 w-4" />
-                          <span>{link.label}</span>
+                          <span className="sidebar-nav-label">{link.label}</span>
                           <ReactIcon icon={FiChevronRight} className="ml-auto h-4 w-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
                         </SidebarMenuButton>
                       </CollapsibleTrigger>
@@ -143,7 +146,7 @@ export function AppSidebar({
                               <SidebarMenuSubButton asChild isActive={isActive(pathname, item.href, rootHref)} className={mobileNavSubButton}>
                                 <Link href={item.href} onClick={() => handleNavigate(item.adminOnly)}>
                                   <item.icon className="h-4 w-4" />
-                                  <span>{item.label}</span>
+                                  <span className="sidebar-nav-label">{item.label}</span>
                                 </Link>
                               </SidebarMenuSubButton>
                             </SidebarMenuSubItem>
@@ -154,7 +157,22 @@ export function AppSidebar({
                   </Collapsible>
                 ) : (
                   <SidebarMenuItem key={link.href}>
-                    {link.opensAgent ? (
+                    {link.startsNewChat ? (
+                      <SidebarMenuButton
+                        type="button"
+                        isActive={isActive(pathname, link.href, rootHref)}
+                        tooltip={link.label}
+                        className={mobileNavButton}
+                        onClick={() => {
+                          reset()
+                          handleNavigate(link.adminOnly)
+                          if (pathname !== link.href) router.push(link.href)
+                        }}
+                      >
+                        <link.icon className="h-4 w-4" />
+                        <span className="sidebar-nav-label">{link.label}</span>
+                      </SidebarMenuButton>
+                    ) : link.opensAgent ? (
                       <SidebarMenuButton
                         type="button"
                         isActive={agentOpen}
@@ -163,13 +181,13 @@ export function AppSidebar({
                         onClick={() => handleNavigate(link.adminOnly, true)}
                       >
                         <link.icon className="h-4 w-4" />
-                        <span>{link.label}</span>
+                        <span className="sidebar-nav-label">{link.label}</span>
                       </SidebarMenuButton>
                     ) : (
                       <SidebarMenuButton asChild isActive={isActive(pathname, link.href, rootHref)} tooltip={link.label} className={mobileNavButton}>
                         <Link href={link.href} onClick={() => handleNavigate(link.adminOnly)}>
                           <link.icon className="h-4 w-4" />
-                          <span>{link.label}</span>
+                          <span className="sidebar-nav-label">{link.label}</span>
                         </Link>
                       </SidebarMenuButton>
                     )}
@@ -178,6 +196,30 @@ export function AppSidebar({
                 </React.Fragment>
               ))}
             </SidebarMenu>
+            {conversations.length > 0 && (
+              <div className="mt-3 border-t border-border pt-3 group-data-[collapsible=icon]:hidden">
+                <p className="surface-section-label px-2 pb-1.5">Recents</p>
+                <SidebarMenu className="gap-1">
+                  {conversations.slice(0, 5).map((conversation) => (
+                    <SidebarMenuItem key={conversation.id}>
+                      <SidebarMenuButton
+                        type="button"
+                        tooltip={conversation.title}
+                        isActive={conversation.id === activeConversationId}
+                        className="surface-nav sidebar-recent-button h-6 px-2 max-md:h-8"
+                        onClick={() => {
+                          selectConversation(conversation.id)
+                          handleNavigate(false)
+                          router.push(`/dashboard/agent/${encodeURIComponent(conversation.id)}`)
+                        }}
+                      >
+                        <span className="sidebar-recent-label truncate">{conversation.title}</span>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))}
+                </SidebarMenu>
+              </div>
+            )}
             {navExtra && <div className="mt-2 group-data-[collapsible=icon]:hidden">{navExtra}</div>}
           </SidebarGroup>
         </SidebarContent>

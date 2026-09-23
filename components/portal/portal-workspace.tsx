@@ -231,7 +231,7 @@ function PortalNavUser() {
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild><Link href={`${portalPath(companySlug)}?tab=account`}><Settings />Account settings</Link></DropdownMenuItem>
-            {isAdmin && <DropdownMenuItem onClick={() => { stopViewingAs(); router.push("/dashboard/companies") }}><ArrowLeft />Back to agency</DropdownMenuItem>}
+            {isAdmin && <DropdownMenuItem onClick={() => { stopViewingAs(); router.push("/dashboard/clients") }}><ArrowLeft />Back to agency</DropdownMenuItem>}
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => void signOut()}><LogOut />Log out</DropdownMenuItem>
           </DropdownMenuContent>

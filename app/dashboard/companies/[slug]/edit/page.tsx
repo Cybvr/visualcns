@@ -78,7 +78,7 @@ export default function CompanyEditPage() {
         updateUser(client.uid, { company: name }),
       ])
       await reload()
-      router.push(`/dashboard/companies/${userRef(client)}`)
+      router.push(`/dashboard/clients/${userRef(client)}`)
     } catch (error) {
       console.error("Error saving company:", error)
       setSaveError(error instanceof Error ? error.message : "The company could not be saved.")
@@ -91,7 +91,7 @@ export default function CompanyEditPage() {
     setDeleting(true)
     try {
       await deleteUser(client.uid)
-      router.push("/dashboard/companies")
+      router.push("/dashboard/clients")
     } catch (deleteError) {
       console.error("Error deleting company:", deleteError)
       setSaveError(deleteError instanceof Error ? deleteError.message : "The company could not be removed.")
@@ -168,7 +168,7 @@ export default function CompanyEditPage() {
           <Button
             type="button"
             variant="outline"
-            onClick={() => router.push(`/dashboard/companies/${userRef(client)}`)}
+            onClick={() => router.push(`/dashboard/clients/${userRef(client)}`)}
             disabled={saving || deleting}
           >
             Cancel

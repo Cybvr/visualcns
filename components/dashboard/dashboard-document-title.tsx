@@ -27,10 +27,11 @@ export function dashboardPageTitle(pathname: string): string {
       if (record === "team") return "Team"
       return "Account"
     case "agent":
-      return "Ngai"
+      return "Agent"
     case "companies":
-      if (!record) return "Companies"
-      return action === "edit" ? "Edit Company" : "Company"
+    case "clients":
+      if (!record) return "Clients"
+      return action === "edit" ? "Edit Client" : "Client"
     case "contracts":
       if (!record) return "Contracts"
       if (record === "new") return "New Contract"

@@ -24,6 +24,6 @@ export default function PortalEntry() {
     return () => { active = false }
   }, [appUser?.companyId, isAdmin, isImpersonating, router])
   if (state === "loading") return <PortalLoading />
-  if (state === "admin") return <PortalNotice title="Choose a client to preview"><p>Open a company and select Client portal to manage sharing or preview their workspace.</p><Link className="mt-5 inline-block font-medium text-foreground underline underline-offset-4" href="/dashboard/companies">Go to companies</Link></PortalNotice>
+  if (state === "admin") return <PortalNotice title="Choose a client to preview"><p>Open a client and select Client portal to manage sharing or preview their workspace.</p><Link className="mt-5 inline-block font-medium text-foreground underline underline-offset-4" href="/dashboard/clients">Go to clients</Link></PortalNotice>
   return <PortalNotice title={state === "error" ? "We couldn’t load your workspace" : "Your workspace isn’t ready yet"}><p>{state === "error" ? "Check your connection and refresh to try again." : "Ask your agency to link this account to your company. Use the email they invited."}</p></PortalNotice>
 }

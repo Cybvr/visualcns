@@ -25,12 +25,18 @@ export function ProjectShareButton({
   project,
   stepCount,
   onChanged,
+  open,
+  onOpenChange,
+  showTrigger = true,
 }: {
   project: Project
   stepCount: number
   onChanged: () => Promise<void>
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
+  showTrigger?: boolean
 }) {
-  const [open, setOpen] = useState(false)
+  const [internalOpen, setInternalOpen] = useState(false)
   const [summary, setSummary] = useState(project.summary ?? "")
   const [price, setPrice] = useState(project.price ? String(project.price) : "")
   const [timeline, setTimeline] = useState(project.timeline ?? "")
@@ -49,7 +55,8 @@ export function ProjectShareButton({
         paymentHref: paymentHref.trim(),
       })
       await onChanged()
-      setOpen(false)
+      if (onOpenChange) onOpenChange(false)
+      else setInternalOpen(false)
     } catch (caughtError) {
       setError(caughtError instanceof Error ? caughtError.message : "The project could not be shared.")
     } finally {
@@ -63,7 +70,8 @@ export function ProjectShareButton({
     try {
       await unpublishTemplate(project.id)
       await onChanged()
-      setOpen(false)
+      if (onOpenChange) onOpenChange(false)
+      else setInternalOpen(false)
     } catch (caughtError) {
       setError(caughtError instanceof Error ? caughtError.message : "The template could not be taken down.")
     } finally {
@@ -71,14 +79,19 @@ export function ProjectShareButton({
     }
   }
 
+  const dialogOpen = open ?? internalOpen
+  const handleOpenChange = onOpenChange ?? setInternalOpen
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="shrink-0">
-          <Share2 className="size-4" aria-hidden="true" />
-          {project.isPublic ? "Shared" : "Share"}
-        </Button>
-      </DialogTrigger>
+    <Dialog open={dialogOpen} onOpenChange={handleOpenChange}>
+      {showTrigger && (
+        <DialogTrigger asChild>
+          <Button variant="outline" size="sm" className="shrink-0">
+            <Share2 className="size-4" aria-hidden="true" />
+            {project.isPublic ? "Shared" : "Share"}
+          </Button>
+        </DialogTrigger>
+      )}
 
       <DialogContent className="max-w-md">
         <DialogHeader>

@@ -2,7 +2,7 @@ import type { ReactNode } from "react"
 import { ExternalLink } from "lucide-react"
 
 import { Separator } from "@/components/ui/separator"
-import type { Project } from "@/lib/projects"
+import { projectStatusMeta, type Project } from "@/lib/projects"
 
 /** Strips the scheme, leading www, and trailing slash so a URL reads like a domain. */
 function displayUrl(url: string): string {
@@ -19,8 +19,8 @@ function Pill({ children }: { children: ReactNode }) {
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <div className="space-y-1.5">
-      <p className="text-sm text-muted-foreground">{label}</p>
+    <div className="space-y-2">
+      <p className="text-sm font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
       {children}
     </div>
   )
@@ -34,15 +34,19 @@ export function CaseStudyOverview({ project }: { project: Project }) {
   const category = project.category ?? []
   const technologies = project.technologies ?? []
   const tags = project.tags ?? []
+  const status = projectStatusMeta[project.status]
 
   return (
     <div className="space-y-6">
       <div className="space-y-4">
+        <Field label="Status">
+          <span className={`inline-flex rounded-full px-3 py-1 text-sm font-medium ${status.className}`}>{status.label}</span>
+        </Field>
         <Field label="Excerpt">
-          <p className="text-sm leading-relaxed">{project.excerpt || "—"}</p>
+          <p className="text-lg leading-relaxed sm:text-xl">{project.excerpt || "—"}</p>
         </Field>
         <Field label="Description">
-          <p className="text-sm leading-relaxed">{project.description || "—"}</p>
+          <p className="text-lg leading-relaxed sm:text-xl">{project.description || "—"}</p>
         </Field>
       </div>
 

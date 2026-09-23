@@ -569,8 +569,19 @@ export function AgentChat({
               ))}
             </div>
           )}
-          <div className="flex items-end gap-2">
+          <div className="space-y-2">
             <input ref={fileInput} type="file" accept={ACCEPT_ATTR} multiple onChange={handleFiles} className="hidden" />
+            <Textarea
+              ref={textInput}
+              value={input}
+              onChange={(event) => setInput(event.target.value)}
+              onKeyDown={handleKeyDown}
+              rows={2}
+              placeholder="Ask Ngai"
+              aria-label="Message Ngai"
+              className="min-h-16 w-full max-h-56 resize-none rounded-lg border-0 bg-transparent px-2 py-2 shadow-none focus-visible:border-transparent focus-visible:ring-0"
+            />
+            <div className="flex items-center justify-between">
             <Button
               type="button"
               size="icon"
@@ -582,16 +593,6 @@ export function AgentChat({
             >
               <Plus className="size-5" aria-hidden="true" />
             </Button>
-            <Textarea
-              ref={textInput}
-              value={input}
-              onChange={(event) => setInput(event.target.value)}
-              onKeyDown={handleKeyDown}
-              rows={4}
-              placeholder="Ask Ngai"
-              aria-label="Message Ngai"
-              className="max-h-56 min-h-24 resize-none rounded-lg border-0 bg-transparent px-2 py-2 shadow-none focus-visible:border-transparent focus-visible:ring-0"
-            />
             <Button
               type="submit"
               size="icon"
@@ -601,6 +602,7 @@ export function AgentChat({
             >
               <ArrowUp className="size-4" aria-hidden="true" />
             </Button>
+            </div>
           </div>
           {attachError && <p role="alert" className="px-1 text-xs text-destructive">{attachError}</p>}
         </form>

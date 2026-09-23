@@ -16,7 +16,7 @@ function CompanyLayoutBody({ children }: { children: ReactNode }) {
   const pathname = usePathname()
   const isEditRoute = pathname?.endsWith("/edit") ?? false
 
-  usePageTitle(!loading && client ? name : null, "/dashboard/companies")
+  usePageTitle(!loading && client ? name : null, "/dashboard/clients")
 
   if (loading) {
     return (
@@ -30,13 +30,13 @@ function CompanyLayoutBody({ children }: { children: ReactNode }) {
     return (
       <main className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6">
         <Link
-          href="/dashboard/companies"
+          href="/dashboard/clients"
           className="inline-flex items-center gap-1.5 text-sm text-muted-foreground outline-none transition-colors hover:text-foreground"
         >
           <ArrowLeft className="size-4" aria-hidden="true" />
           Back
         </Link>
-        <p className="mt-8 text-sm text-muted-foreground">{error ?? "This company could not be loaded."}</p>
+        <p className="mt-8 text-sm text-muted-foreground">{error ?? "This client could not be loaded."}</p>
       </main>
     )
   }

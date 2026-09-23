@@ -11,7 +11,7 @@ import {
 } from "@/lib/billing"
 import { companyDocumentKindMeta, companyDocumentStatusMeta, type CompanyDocument } from "@/lib/company-documents"
 import { CompanyEmptyState } from "@/components/company/empty-state"
-import { DOC_BADGE, DocTile } from "@/components/company/document-tile"
+import { MobileDataCard } from "@/components/dashboard/mobile-data-card"
 import { SectionAddButton } from "@/components/company/section-add-button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 
@@ -68,12 +68,14 @@ export function CompanyDocuments({
             const status = companyDocumentStatusMeta[document.status] ?? companyDocumentStatusMeta.draft
             const kind = companyDocumentKindMeta[document.kind]?.label ?? "Document"
             return (
-              <DocTile
+              <MobileDataCard
                 key={`document-${document.id}`}
-                icon={FileText}
-                badgeClass={DOC_BADGE.document}
                 title={document.title || "Document"}
                 subtitle={`${kind} · ${status.label}`}
+                ariaLabel={`Open ${document.title || "Document"}`}
+                icon={<FileText className="size-5 text-blue-600 dark:text-blue-400" aria-hidden="true" />}
+                menuLabel={`Options for ${document.title || "Document"}`}
+                menu={<DropdownMenuItem onSelect={() => onSelect("document", document.id)}>Open document</DropdownMenuItem>}
                 onClick={() => onSelect("document", document.id)}
               />
             )
@@ -82,12 +84,14 @@ export function CompanyDocuments({
           {invoices.map((invoice) => {
             const status = invoiceStatusMeta[invoice.status]
             return (
-              <DocTile
+              <MobileDataCard
                 key={`invoice-${invoice.id}`}
-                icon={Receipt}
-                badgeClass={DOC_BADGE.invoice}
                 title={invoice.invoiceNumber || "Invoice"}
                 subtitle={`${formatMoney(invoice.amount, invoice.currency)} · ${status.label}`}
+                ariaLabel={`Open invoice ${invoice.invoiceNumber || ""}`}
+                icon={<Receipt className="size-5 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />}
+                menuLabel={`Options for ${invoice.invoiceNumber || "Invoice"}`}
+                menu={<DropdownMenuItem onSelect={() => onSelect("invoice", invoice.id)}>Open invoice</DropdownMenuItem>}
                 onClick={() => onSelect("invoice", invoice.id)}
               />
             )
@@ -96,12 +100,14 @@ export function CompanyDocuments({
           {contracts.map((contract) => {
             const status = contractStatusMeta[contract.status]
             return (
-              <DocTile
+              <MobileDataCard
                 key={`contract-${contract.id}`}
-                icon={FileSignature}
-                badgeClass={DOC_BADGE.contract}
                 title={contract.title || "Contract"}
                 subtitle={`Contract · ${status.label}`}
+                ariaLabel={`Open ${contract.title || "Contract"}`}
+                icon={<FileSignature className="size-5 text-indigo-600 dark:text-indigo-400" aria-hidden="true" />}
+                menuLabel={`Options for ${contract.title || "Contract"}`}
+                menu={<DropdownMenuItem onSelect={() => onSelect("contract", contract.id)}>Open contract</DropdownMenuItem>}
                 onClick={() => onSelect("contract", contract.id)}
               />
             )
@@ -110,12 +116,14 @@ export function CompanyDocuments({
           {estimates.map((estimate) => {
             const status = estimateStatusMeta[estimate.status]
             return (
-              <DocTile
+              <MobileDataCard
                 key={`estimate-${estimate.id}`}
-                icon={ClipboardList}
-                badgeClass={DOC_BADGE.estimate}
                 title={estimate.estimateNumber || estimate.title || "Estimate"}
                 subtitle={`${formatMoney(estimate.amount, estimate.currency)} · ${status.label}`}
+                ariaLabel={`Open estimate ${estimate.estimateNumber || estimate.title || ""}`}
+                icon={<ClipboardList className="size-5 text-amber-600 dark:text-amber-400" aria-hidden="true" />}
+                menuLabel={`Options for ${estimate.estimateNumber || estimate.title || "Estimate"}`}
+                menu={<DropdownMenuItem onSelect={() => onSelect("estimate", estimate.id)}>Open estimate</DropdownMenuItem>}
                 onClick={() => onSelect("estimate", estimate.id)}
               />
             )

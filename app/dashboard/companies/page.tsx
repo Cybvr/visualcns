@@ -80,7 +80,7 @@ export default function CompaniesPage() {
   const [bulkDeleting, setBulkDeleting] = useState(false)
   const [pendingDelete, setPendingDelete] = useState<CompanyRow | null>(null)
   const [creating, setCreating] = useState(false)
-  const [view, setView] = useViewMode("companies")
+  const [view, setView] = useViewMode("clients")
 
   async function fetchCompanies() {
     setError(null)
@@ -91,7 +91,7 @@ export default function CompaniesPage() {
       setOrganizations(allOrgs)
     } catch (fetchError) {
       console.error("Error fetching companies:", fetchError)
-      setError(fetchError instanceof Error ? fetchError.message : "Companies could not be loaded.")
+      setError(fetchError instanceof Error ? fetchError.message : "Clients could not be loaded.")
     } finally {
       setLoading(false)
     }
@@ -190,7 +190,7 @@ export default function CompaniesPage() {
       await fetchCompanies()
     } catch (deleteError) {
       console.error("Error deleting company:", deleteError)
-      setError(deleteError instanceof Error ? deleteError.message : "The company could not be removed. Try again.")
+      setError(deleteError instanceof Error ? deleteError.message : "The client could not be removed. Try again.")
     } finally {
       setDeleting(null)
     }
@@ -215,7 +215,7 @@ export default function CompaniesPage() {
       await fetchCompanies()
     } catch (deleteError) {
       console.error("Error deleting companies:", deleteError)
-      setError(deleteError instanceof Error ? deleteError.message : "Some companies could not be removed. Try again.")
+      setError(deleteError instanceof Error ? deleteError.message : "Some clients could not be removed. Try again.")
     } finally {
       setBulkDeleting(false)
     }
@@ -225,7 +225,7 @@ export default function CompaniesPage() {
     // Company pages are addressed by the organization slug. A user slug can
     // differ from it (for example, sadaya vs sadaya-client), which would make
     // the same company appear at two different dashboard URLs.
-    return `/dashboard/companies/${row.slug || (row.user ? userRef(row.user) : row.id)}`
+    return `/dashboard/clients/${row.slug || (row.user ? userRef(row.user) : row.id)}`
   }
 
   function handleViewWorkspace(row: CompanyRow) {
@@ -240,10 +240,10 @@ export default function CompaniesPage() {
         {...bar}
         mobileVariant="drawer"
         showSearch={false}
-        placeholder="Search companies"
+        placeholder="Search clients"
         controls={<ViewToggle view={view} onChange={setView} />}
         actions={
-          <Button variant="ghost" size="icon" className="bg-transparent text-foreground hover:bg-transparent" onClick={() => setCreating(true)} aria-label="Add company" title="Add company">
+          <Button variant="ghost" size="icon" className="bg-transparent text-foreground hover:bg-transparent" onClick={() => setCreating(true)} aria-label="Add client" title="Add client">
             <Plus className="size-4" aria-hidden="true" />
           </Button>
         }
@@ -266,20 +266,20 @@ export default function CompaniesPage() {
             <span className="flex h-11 w-11 items-center justify-center rounded-full bg-muted">
               <Building2 className="h-5 w-5 text-muted-foreground" />
             </span>
-            <h2 className="mt-4 font-medium">No companies yet</h2>
+            <h2 className="mt-4 font-medium">No clients yet</h2>
             <p className="mt-1 max-w-sm text-sm text-muted-foreground">
-              Add a company to create a workspace for their projects, tasks, and documents.
+              Add a client to create a workspace for their projects, tasks, and documents.
             </p>
             <Button className="mt-5" onClick={() => setCreating(true)}>
               <Plus className="mr-2 h-4 w-4" />
-              Add Company
+              Add Client
             </Button>
           </CardContent>
         </Card>
       ) : visibleCompanies.length === 0 ? (
         <Card>
           <CardContent className="py-16 text-center text-sm text-muted-foreground">
-            No companies match your search.
+            No clients match your search.
           </CardContent>
         </Card>
       ) : view === "grid" ? (
@@ -299,9 +299,9 @@ export default function CompaniesPage() {
               menuLabel={`Options for ${row.name}`}
               menu={
                 <>
-                  <DropdownMenuItem onSelect={() => router.push(companyHref(row))}>Open company</DropdownMenuItem>
-                  <DropdownMenuItem onSelect={() => router.push(`${companyHref(row)}/edit`)}>Edit company</DropdownMenuItem>
-                  <DropdownMenuItem variant="destructive" onSelect={() => setPendingDelete(row)}>Remove company</DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => router.push(companyHref(row))}>Open client</DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => router.push(`${companyHref(row)}/edit`)}>Edit client</DropdownMenuItem>
+                  <DropdownMenuItem variant="destructive" onSelect={() => setPendingDelete(row)}>Remove client</DropdownMenuItem>
                 </>
               }
             />
@@ -321,9 +321,9 @@ export default function CompaniesPage() {
                 menuLabel={`Options for ${row.name}`}
                 menu={
                   <>
-                    <DropdownMenuItem onSelect={() => router.push(companyHref(row))}>Open company</DropdownMenuItem>
-                    <DropdownMenuItem onSelect={() => router.push(`${companyHref(row)}/edit`)}>Edit company</DropdownMenuItem>
-                    <DropdownMenuItem variant="destructive" onSelect={() => setPendingDelete(row)}>Remove company</DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => router.push(companyHref(row))}>Open client</DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => router.push(`${companyHref(row)}/edit`)}>Edit client</DropdownMenuItem>
+                    <DropdownMenuItem variant="destructive" onSelect={() => setPendingDelete(row)}>Remove client</DropdownMenuItem>
                   </>
                 }
               />
@@ -333,8 +333,8 @@ export default function CompaniesPage() {
           <div className="hidden rounded-lg border border-border sm:block">
           <TableBulkBar
             count={selection.selectedCount}
-            noun="company"
-            nounPlural="companies"
+            noun="client"
+            nounPlural="clients"
             deleting={bulkDeleting}
             onClear={selection.clear}
             onDelete={handleBulkDelete}
@@ -344,13 +344,13 @@ export default function CompaniesPage() {
               <TableRow>
                 <TableHead className="w-10">
                   <Checkbox
-                    aria-label="Select all companies"
+                    aria-label="Select all clients"
                     checked={selection.allSelected}
                     indeterminate={selection.someSelected}
                     onChange={selection.toggleAll}
                   />
                 </TableHead>
-                <TableHead>Company</TableHead>
+                <TableHead>Client</TableHead>
                 <TableHead>Category</TableHead>
                 <TableHead>Projects</TableHead>
                 <TableHead>Date added</TableHead>
@@ -415,7 +415,7 @@ export default function CompaniesPage() {
                         size="icon"
                         className="h-8 w-8 text-muted-foreground hover:text-foreground"
                         onClick={() => router.push(`${companyHref(row)}/edit`)}
-                        aria-label="Edit company"
+                        aria-label="Edit client"
                       >
                         <Pencil className="h-3.5 w-3.5" />
                       </Button>
@@ -424,7 +424,7 @@ export default function CompaniesPage() {
                         size="icon"
                         className="h-8 w-8 text-muted-foreground hover:text-destructive"
                         onClick={() => setPendingDelete(row)}
-                        aria-label="Remove company"
+                        aria-label="Remove client"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
@@ -441,10 +441,10 @@ export default function CompaniesPage() {
       <AlertDialog open={Boolean(pendingDelete)} onOpenChange={(open) => !open && !deleting && setPendingDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Remove company?</AlertDialogTitle>
+            <AlertDialogTitle>Remove client?</AlertDialogTitle>
             <AlertDialogDescription>
-              This removes {pendingDelete?.name ?? "this company"}&apos;s account. Their projects, tasks, and documents
-              will remain in the database, but the company will no longer appear here. This cannot be undone.
+              This removes {pendingDelete?.name ?? "this client"}&apos;s account. Their projects, tasks, and documents
+              will remain in the database, but the client will no longer appear here. This cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -457,7 +457,7 @@ export default function CompaniesPage() {
               }}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {deleting ? "Removing…" : "Remove Company"}
+              {deleting ? "Removing…" : "Remove Client"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -469,7 +469,7 @@ export default function CompaniesPage() {
         onClose={() => setCreating(false)}
         onSaved={(workspaceId) => {
           setCreating(false)
-          router.push(`/dashboard/companies/${workspaceId}`)
+          router.push(`/dashboard/clients/${workspaceId}`)
         }}
       />
     </main>

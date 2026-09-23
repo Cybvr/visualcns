@@ -37,7 +37,7 @@ export default function ProjectDetailPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
 
-  usePageTitle(project?.title ?? null, "/dashboard/projects")
+  usePageTitle(project?.title ?? null)
 
   const fetchProject = useCallback(async () => {
     if (!slug) return
@@ -56,6 +56,13 @@ export default function ProjectDetailPage() {
   useEffect(() => {
     fetchProject()
   }, [fetchProject])
+
+  const handleProjectPatched = useCallback((patch: Partial<Project>) => {
+    setProject((current) => (current ? { ...current, ...patch } : current))
+    // The page is addressed by slug, so a renamed project moves
+    // the URL with it rather than leaving a stale address.
+    if (patch.slug && patch.slug !== slug) router.replace(`/dashboard/projects/${patch.slug}`)
+  }, [router, slug])
 
   if (!user) return null
 
@@ -90,13 +97,7 @@ export default function ProjectDetailPage() {
         isAdmin={isAdmin}
         companyId={companyId}
         clientName={clientName}
-        onBack={() => (window.history.length > 1 ? router.back() : router.push("/dashboard"))}
-        onProjectPatched={(patch) => {
-          setProject((current) => (current ? { ...current, ...patch } : current))
-          // The page is addressed by slug, so a renamed project moves
-          // the URL with it rather than leaving a stale address.
-          if (patch.slug && patch.slug !== slug) router.replace(`/dashboard/projects/${patch.slug}`)
-        }}
+        onProjectPatched={handleProjectPatched}
         onProjectDeleted={() => router.push("/dashboard/projects")}
       />
     </main>

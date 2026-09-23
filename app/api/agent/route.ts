@@ -453,7 +453,7 @@ function recordUrl(collectionName: string, id: string) {
   if (collectionName === "estimates") return `/dashboard/estimates/${id}/edit`
   if (collectionName === "contracts") return `/dashboard/contracts/${id}/edit`
   if (collectionName === "companyDocuments") return `/dashboard/documents/${id}/edit`
-  if (collectionName === "organizations") return `/dashboard/companies/${id}`
+  if (collectionName === "organizations") return `/dashboard/clients/${id}`
   if (collectionName === "projects") return `/dashboard/projects/${id}`
   return "/dashboard/tasks"
 }
@@ -704,7 +704,7 @@ async function runAgentTool(name: string, rawArgs: string, uid: string) {
       createdAt: now,
       updatedAt: now,
     })
-    return { type: "company", id: ref.id, name, url: `/dashboard/companies/${ref.id}` }
+    return { type: "company", id: ref.id, name, url: `/dashboard/clients/${ref.id}` }
   }
 
   if (name === "create_project") {
@@ -825,7 +825,7 @@ async function runAgentTool(name: string, rawArgs: string, uid: string) {
       type: fileType,
       createdAt: now,
     })
-    return { type: "file", id: ref.id, title, client, url: `/dashboard/companies/${companyId}` }
+    return { type: "file", id: ref.id, title, client, url: `/dashboard/clients/${companyId}` }
   }
 
   throw new Error(`Unknown agent tool: ${name}`)

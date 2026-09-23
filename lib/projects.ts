@@ -237,7 +237,7 @@ export async function deleteProjectWithTasks(projectId: string): Promise<void> {
 
 /** Renames a project, and keeps the denormalized project name on its tasks in step. */
 export async function renameProject(projectId: string, title: string): Promise<void> {
-  await updateProject(projectId, { title })
+  await updateProject(projectId, { title, slug: slugify(title) })
 
   const tasks = await getTasksByProjectId(projectId)
   for (const task of tasks) {

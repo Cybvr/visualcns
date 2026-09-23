@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
-import { ArrowLeft, Briefcase, User as UserIcon } from "lucide-react"
+import { ArrowLeft, Briefcase, ExternalLink, FolderOpen, Mail, MoreVertical, Share2, User as UserIcon } from "lucide-react"
 import { toast } from "sonner"
 
 import { CompanyDocuments, type CompanyDocumentKind } from "@/components/company/company-documents"
@@ -20,10 +20,10 @@ import { InvoiceDocument } from "@/components/dashboard/invoice-document"
 import { NewPersonDialog } from "@/components/dashboard/new-person-dialog"
 import { NewDocumentDialog } from "@/components/dashboard/new-document-dialog"
 import { NewProjectDialog } from "@/components/dashboard/new-project-dialog"
-import { ProjectDetail } from "@/components/dashboard/project-detail"
-import { ContextualEmailButton } from "@/components/dashboard/contextual-email-button"
+import { MobileDataCard } from "@/components/dashboard/mobile-data-card"
+import { GridCard, GridCardList } from "@/components/dashboard/grid-card"
+import { ProjectCover } from "@/components/project-card"
 import { UserEditorSheet } from "@/components/dashboard/user-editor-sheet"
-import { ProjectCard } from "@/components/project-card"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -35,16 +35,17 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import type { Contract, Estimate, Invoice } from "@/lib/billing"
 import { getBusinessProfile, type BusinessProfile } from "@/lib/business-profile"
 import type { CompanyDocument } from "@/lib/company-documents"
-import { projectStatusMeta, type Project } from "@/lib/projects"
+import { deleteProjectWithTasks, duplicateProject, projectSlug, renameProject, type Project } from "@/lib/projects"
 import { deleteUser, type AppUser } from "@/lib/users"
-import { cn } from "@/lib/utils"
+import { buildEmailComposeHref } from "@/lib/email-composer"
 import { PortalPublishingPanel } from "@/components/portal/portal-publishing"
+import { usePageHeaderActions } from "@/components/dashboard/page-title-context"
 
 const SECTIONS = [
   { key: "projects", label: "Projects" },
@@ -94,20 +95,6 @@ export interface CompanyPageAdmin {
   reload: () => Promise<void>
 }
 
-function personProject(person: CompanyPagePerson, company: CompanyPageCompany): Project {
-  return {
-    id: person.id,
-    companyId: company.id,
-    client: company.name,
-    title: person.name,
-    service: person.subtitle || "Team member",
-    status: "in-progress",
-    progress: 0,
-    dueDate: "",
-    thumbnailUrl: person.photoUrl,
-  }
-}
-
 /**
  * The complete company experience used by both dashboard and public routes.
  * Supplying `admin` reveals private actions; omitting it keeps this same block
@@ -153,7 +140,10 @@ export function CompanyPage({
     return null
   }, [docKind, docId, invoices, contracts, estimates, documents])
 
-  const [selectedProject, setSelectedProject] = useState<Project | null>(null)
+  const [renamingProject, setRenamingProject] = useState<Project | null>(null)
+  const [projectTitleDraft, setProjectTitleDraft] = useState("")
+  const [deletingProject, setDeletingProject] = useState<Project | null>(null)
+  const [projectActionBusy, setProjectActionBusy] = useState(false)
   const [addingPerson, setAddingPerson] = useState(false)
   const [selectingExistingPerson, setSelectingExistingPerson] = useState(false)
   const [existingPersonQuery, setExistingPersonQuery] = useState("")
@@ -186,7 +176,6 @@ export function CompanyPage({
 
   function handleSectionChange(key: SectionKey) {
     updateParams({ tab: key === "projects" ? null : key, doc: null })
-    if (key !== "projects") setSelectedProject(null)
   }
 
   function handleSelectDocument(kind: CompanyDocumentKind, id: string) {
@@ -266,40 +255,103 @@ export function CompanyPage({
     tags: company.tags,
     primaryContactId: company.primaryContactId,
   }
+  const showCompanySidebar = Boolean(profile.industry)
+
+  async function handleDuplicateProject(project: Project) {
+    if (!admin || projectActionBusy) return
+    setProjectActionBusy(true)
+    try {
+      await duplicateProject(project)
+      await admin.reload()
+      toast.success("Project duplicated")
+    } catch (duplicateError) {
+      console.error("Error duplicating project:", duplicateError)
+      toast.error("The project could not be duplicated.")
+    } finally {
+      setProjectActionBusy(false)
+    }
+  }
+
+  async function handleRenameProject() {
+    if (!admin || !renamingProject || projectActionBusy) return
+    const title = projectTitleDraft.trim()
+    if (!title || title === renamingProject.title) return
+    setProjectActionBusy(true)
+    try {
+      await renameProject(renamingProject.id, title)
+      setRenamingProject(null)
+      await admin.reload()
+      toast.success("Project renamed")
+    } catch (renameError) {
+      console.error("Error renaming project:", renameError)
+      toast.error("The project could not be renamed.")
+    } finally {
+      setProjectActionBusy(false)
+    }
+  }
+
+  async function handleDeleteProject() {
+    if (!admin || !deletingProject || projectActionBusy) return
+    setProjectActionBusy(true)
+    try {
+      await deleteProjectWithTasks(deletingProject.id)
+      setDeletingProject(null)
+      await admin.reload()
+      toast.success("Project deleted")
+    } catch (deleteError) {
+      console.error("Error deleting project:", deleteError)
+      toast.error("The project could not be deleted.")
+    } finally {
+      setProjectActionBusy(false)
+    }
+  }
+
+  const headerActions = useMemo(() => admin ? (
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button
+            type="button"
+            aria-label="More actions"
+            title="More actions"
+            className="flex size-10 items-center justify-center rounded-xl bg-transparent text-current outline-none transition-colors hover:bg-black/5 focus-visible:ring-2 focus-visible:ring-ring max-md:text-primary-foreground max-md:hover:bg-white/10"
+          >
+            <MoreVertical className="size-5" aria-hidden="true" />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-56">
+          <DropdownMenuItem asChild>
+            <Link href={buildEmailComposeHref({
+              companyId: company.id,
+              companyName: company.name,
+              recipientEmail: primaryContact?.adminUser?.email,
+              recipientName: primaryContact?.adminUser?.displayName || primaryContact?.name,
+              ctaText: "Open your client portal",
+              ctaUrl: admin.sharePath,
+            })}>
+              <Mail className="size-4" aria-hidden="true" />
+              Email
+            </Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => setShareOpen(true)}>
+            <Share2 className="size-4" aria-hidden="true" />
+            Share
+          </DropdownMenuItem>
+          <DropdownMenuItem asChild>
+            <Link href={admin.sharePath} target="_blank" rel="noreferrer">
+              <ExternalLink className="size-4" aria-hidden="true" />
+              Open page
+            </Link>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    ) : null, [admin, company.id, company.name, primaryContact])
+
+  usePageHeaderActions(headerActions)
 
   return (
     <main className="mx-auto min-h-screen w-full max-w-7xl px-4 pb-16 pt-6 sm:px-6">
-      <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
-        <CompanySidebar
-          company={profile}
-          admin={
-            admin
-              ? {
-                  onSave: admin.onUpdateCompany,
-                  onAddPerson: () => setAddingPerson(true),
-                  onNewProject: () => setCreatingProject(true),
-                  onShare: () => setShareOpen(true),
-                  viewHref: admin.sharePath,
-                  extraAction: (
-                    <ContextualEmailButton
-                      label="Email"
-                      variant="default"
-                      size="lg"
-                      className="flex-1 rounded-xl"
-                      context={{
-                        companyId: company.id,
-                        companyName: company.name,
-                        recipientEmail: primaryContact?.adminUser?.email,
-                        recipientName: primaryContact?.adminUser?.displayName || primaryContact?.name,
-                        ctaText: "Open your client portal",
-                        ctaUrl: admin.sharePath,
-                      }}
-                    />
-                  ),
-                }
-              : undefined
-          }
-        />
+      <div className={showCompanySidebar ? "grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)]" : "block"}>
+        {showCompanySidebar && <CompanySidebar company={profile} />}
 
         <div className="min-w-0">
           <div className="print:hidden">
@@ -351,17 +403,14 @@ export function CompanyPage({
               ) : (
                 <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                   {people.map((person) => (
-                    <ProjectCard
+                    <MobileDataCard
                       key={person.id}
-                      project={personProject(person, company)}
                       onClick={admin && person.adminUser ? () => setEditingPerson(person.adminUser ?? null) : undefined}
-                      footer={
-                        person.role ? (
-                          <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium capitalize text-muted-foreground">
-                            {person.role}
-                          </span>
-                        ) : undefined
-                      }
+                      ariaLabel={`Open ${person.name}`}
+                      title={person.name}
+                      subtitle={person.subtitle || person.role || "Team member"}
+                      imageUrl={person.photoUrl}
+                      icon={<UserIcon className="size-5 text-violet-600 dark:text-violet-400" aria-hidden="true" />}
                       menuLabel={`Options for ${person.name}`}
                       menu={
                         admin && person.adminUser ? (
@@ -388,76 +437,91 @@ export function CompanyPage({
 
           {section === "projects" && (
             <div className="mt-4">
-              {selectedProject ? (
-                <ProjectDetail
-                  project={selectedProject}
-                  isAdmin={Boolean(admin)}
-                  publicView={!admin}
-                  companyId={company.id}
-                  clientName={company.name}
-                  backLabel="Back to Projects"
-                  onBack={() => setSelectedProject(null)}
-                  onProjectPatched={
-                    admin
-                      ? (patch) => {
-                          setSelectedProject((current) => (current ? { ...current, ...patch } : current))
-                          void admin.reload()
-                        }
-                      : undefined
-                  }
-                  onProjectDeleted={
-                    admin
-                      ? async () => {
-                          setSelectedProject(null)
-                          await admin.reload()
-                        }
-                      : undefined
-                  }
+              <div className="flex items-center justify-between gap-4">
+                <h2 className="sr-only">Projects</h2>
+                <span className="text-sm text-muted-foreground">
+                  {projects.length} project{projects.length === 1 ? "" : "s"}
+                </span>
+                {admin && <SectionAddButton onClick={() => setCreatingProject(true)} label="New project" />}
+              </div>
+
+              {projects.length === 0 ? (
+                <CompanyEmptyState
+                  icon={Briefcase}
+                  title={admin ? "No projects yet" : emptyProjectsLabel}
+                  action={admin ? <SectionAddButton onClick={() => setCreatingProject(true)} label="New project" /> : undefined}
                 />
               ) : (
                 <>
-                  <div className="flex items-center justify-between gap-4">
-                    <h2 className="sr-only">Projects</h2>
-                    <span className="text-sm text-muted-foreground">
-                      {projects.length} project{projects.length === 1 ? "" : "s"}
-                    </span>
-                    {admin && <SectionAddButton onClick={() => setCreatingProject(true)} label="New project" />}
+                  <div className="mt-4 space-y-2 sm:hidden">
+                    {projects.map((project) => (
+                      <MobileDataCard
+                        key={project.id}
+                        onClick={() => router.push(`/dashboard/projects/${projectSlug(project)}`)}
+                        ariaLabel={`Open ${project.title}`}
+                        title={project.title}
+                        subtitle={project.dueDate || "No due date"}
+                        icon={<FolderOpen className="size-5 text-amber-600 dark:text-amber-400" aria-hidden="true" />}
+                        menuLabel={`Options for ${project.title}`}
+                        menu={
+                          admin ? (
+                            <>
+                              <DropdownMenuItem
+                                onSelect={() => {
+                                  setProjectTitleDraft(project.title)
+                                  setRenamingProject(project)
+                                }}
+                              >
+                                Rename
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onSelect={() => void handleDuplicateProject(project)}>
+                                Duplicate
+                              </DropdownMenuItem>
+                              <DropdownMenuItem variant="destructive" onSelect={() => setDeletingProject(project)}>
+                                Delete
+                              </DropdownMenuItem>
+                            </>
+                          ) : undefined
+                        }
+                      />
+                    ))}
                   </div>
 
-                  {projects.length === 0 ? (
-                    <CompanyEmptyState
-                      icon={Briefcase}
-                      title={admin ? "No projects yet" : emptyProjectsLabel}
-                      action={admin ? <SectionAddButton onClick={() => setCreatingProject(true)} label="New project" /> : undefined}
-                    />
-                  ) : (
-                    <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                      {projects.map((project) => {
-                        const meta = projectStatusMeta[project.status] ?? projectStatusMeta["in-progress"]
-                        return (
-                          <ProjectCard
-                            key={project.id}
-                            project={project}
-                            onClick={() => setSelectedProject(project)}
-                            footer={
-                              admin ? (
-                                <div className="flex flex-wrap items-center gap-1.5">
-                                  <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-medium", meta.className)}>
-                                    {meta.label}
-                                  </span>
-                                  {project.isCaseStudy && (
-                                    <span className="rounded-full bg-violet-100 px-2 py-0.5 text-[11px] font-medium text-violet-700 dark:bg-violet-950 dark:text-violet-200">
-                                      Case study
-                                    </span>
-                                  )}
-                                </div>
-                              ) : undefined
-                            }
-                          />
-                        )
-                      })}
-                    </div>
-                  )}
+                  <div className="mt-4 hidden sm:block">
+                    <GridCardList>
+                      {projects.map((project) => (
+                        <GridCard
+                          key={project.id}
+                          href={`/dashboard/projects/${projectSlug(project)}`}
+                          ariaLabel={`Open ${project.title}`}
+                          title={project.title}
+                          icon={<FolderOpen className="size-4 text-amber-600 dark:text-amber-400" aria-hidden="true" />}
+                          preview={<ProjectCover project={project} />}
+                          menuLabel={`Options for ${project.title}`}
+                          menu={
+                            admin ? (
+                              <>
+                                <DropdownMenuItem
+                                  onSelect={() => {
+                                    setProjectTitleDraft(project.title)
+                                    setRenamingProject(project)
+                                  }}
+                                >
+                                  Rename
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onSelect={() => void handleDuplicateProject(project)}>
+                                  Duplicate
+                                </DropdownMenuItem>
+                                <DropdownMenuItem variant="destructive" onSelect={() => setDeletingProject(project)}>
+                                  Delete
+                                </DropdownMenuItem>
+                              </>
+                            ) : undefined
+                          }
+                        />
+                      ))}
+                    </GridCardList>
+                  </div>
                 </>
               )}
             </div>
@@ -633,6 +697,64 @@ export function CompanyPage({
                   className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                 >
                   {removing ? "Removing…" : "Remove person"}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+
+          <Dialog
+            open={Boolean(renamingProject)}
+            onOpenChange={(open) => !open && !projectActionBusy && setRenamingProject(null)}
+          >
+            <DialogContent className="max-w-sm">
+              <DialogHeader>
+                <DialogTitle>Rename project</DialogTitle>
+                <DialogDescription>Choose a new name for {renamingProject?.title}.</DialogDescription>
+              </DialogHeader>
+              <Input
+                value={projectTitleDraft}
+                onChange={(event) => setProjectTitleDraft(event.target.value)}
+                maxLength={120}
+                autoFocus
+                aria-label="Project name"
+              />
+              <DialogFooter>
+                <Button type="button" variant="ghost" onClick={() => setRenamingProject(null)} disabled={projectActionBusy}>
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  onClick={() => void handleRenameProject()}
+                  disabled={projectActionBusy || !projectTitleDraft.trim() || projectTitleDraft.trim() === renamingProject?.title}
+                >
+                  {projectActionBusy ? "Saving…" : "Save"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          <AlertDialog
+            open={Boolean(deletingProject)}
+            onOpenChange={(open) => !open && !projectActionBusy && setDeletingProject(null)}
+          >
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete {deletingProject?.title}?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This removes the project and every task filed under it. This cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel disabled={projectActionBusy}>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  disabled={projectActionBusy}
+                  onClick={(event) => {
+                    event.preventDefault()
+                    void handleDeleteProject()
+                  }}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  {projectActionBusy ? "Deleting…" : "Delete project"}
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>

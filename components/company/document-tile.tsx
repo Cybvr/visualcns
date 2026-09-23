@@ -1,7 +1,9 @@
 import Link from "next/link"
-import { File, type LucideIcon } from "lucide-react"
+import { File, MoreHorizontal, type LucideIcon } from "lucide-react"
+import type { ReactNode } from "react"
 
 import { cn } from "@/lib/utils"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 
 /** Badge tints per document kind, shared by every surface that lists documents. */
 export const DOC_BADGE = {
@@ -23,6 +25,8 @@ export function DocTile({
   subtitle,
   href,
   onClick,
+  menu,
+  menuLabel,
 }: {
   /** Footer badge icon; defaults to a plain file. */
   icon?: LucideIcon
@@ -31,6 +35,8 @@ export function DocTile({
   subtitle: string
   href?: string
   onClick?: () => void
+  menu?: ReactNode
+  menuLabel?: string
 }) {
   const BadgeIcon = Icon ?? File
   const className =
@@ -53,6 +59,24 @@ export function DocTile({
     </>
   )
 
-  if (href) return <Link href={href} className={className}>{inner}</Link>
-  return <button type="button" onClick={onClick} className={className}>{inner}</button>
+  return (
+    <div className="group relative flex h-full">
+      {href ? <Link href={href} className={className}>{inner}</Link> : <button type="button" onClick={onClick} className={className}>{inner}</button>}
+      {menu && (
+        <DropdownMenu modal={false}>
+          <DropdownMenuTrigger asChild>
+            <button
+              type="button"
+              aria-label={menuLabel ?? `Options for ${title}`}
+              title={menuLabel ?? `Options for ${title}`}
+              className="absolute right-3 top-3 z-10 flex size-8 items-center justify-center rounded-full bg-background/80 text-foreground opacity-100 outline-none backdrop-blur transition-opacity hover:bg-background focus-visible:ring-2 focus-visible:ring-ring sm:opacity-0 sm:group-hover:opacity-100 data-[state=open]:opacity-100"
+            >
+              <MoreHorizontal className="size-4" aria-hidden="true" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">{menu}</DropdownMenuContent>
+        </DropdownMenu>
+      )}
+    </div>
+  )
 }
