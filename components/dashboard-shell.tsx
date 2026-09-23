@@ -5,7 +5,7 @@ import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { ArrowLeft, Bell, Briefcase, Building2, FileText, Home, ListTodo, Plus, Receipt, ScrollText, Users } from "lucide-react"
 import Image from "next/image"
-import { FiFileText, FiHome, FiMail, FiUser } from "react-icons/fi"
+import { FiCheckSquare, FiFileText, FiMail, FiUser } from "react-icons/fi"
 
 import { useAgent } from "@/components/agent/agent-context"
 import { AppSidebar, type NavLink } from "@/components/app-sidebar"
@@ -77,12 +77,12 @@ function DashboardMobileFooterNav({ rootHref }: { rootHref: string }) {
   const { setOpen: setAgentOpen } = useAgent()
 
   const items: MobileFooterNavItem[] = [
-    { key: "home", label: "Home", icon: FiHome, href: rootHref },
+    { key: "tasks", label: "Tasks", icon: FiCheckSquare, href: "/dashboard/tasks" },
     { key: "email", label: "Emails", icon: FiMail, href: "/dashboard/email" },
     {
       key: "ngai",
       render: ({ className }) => (
-        <Link href="/dashboard/agent" aria-label="Ngai" onClick={() => setAgentOpen(false)} className={cn(className, "-mt-5")}>
+        <Link href={rootHref} aria-label="Ngai" onClick={() => setAgentOpen(false)} className={cn(className, "-mt-5")}>
           <span className="flex size-14 items-center justify-center rounded-full border-4 border-background bg-background shadow-lg ring-1 ring-border">
             <Image src="/ngai-logo.png" alt="" width={32} height={32} />
           </span>
@@ -124,7 +124,8 @@ export function DashboardShell({
   const isDocumentRoute = /^\/dashboard\/documents\/[^/]+/.test(pathname ?? "")
   const isProjectDetailRoute = /^\/dashboard\/projects\/[^/]+$/.test(pathname ?? "")
   const isCompanyDetailRoute = /^\/dashboard\/(?:companies|clients)\/[^/]+$/.test(pathname ?? "")
-  const isAgentRoute = /^\/dashboard\/agent(?:\/[^/]+)?$/.test(pathname ?? "")
+  // The dashboard home is Ngai too, so it gets the same full-height chat layout.
+  const isAgentRoute = pathname === "/dashboard" || /^\/dashboard\/agent(?:\/[^/]+)?$/.test(pathname ?? "")
   const isEmailRoute = pathname === "/dashboard/email"
   const hideHeader = isDocumentRoute
   const [sidebarOpen, setSidebarOpen] = useState(!isDocumentRoute)

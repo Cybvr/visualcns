@@ -494,14 +494,14 @@ export function AgentChat({
             <h1 className={cn("mt-4 font-sans tracking-[-0.02em] sm:mt-6", compact ? "text-xl" : "text-2xl sm:text-3xl")}>
               Welcome to Ngai, {firstName}
             </h1>
-            <div className={cn("mt-4 flex flex-wrap justify-center gap-x-1.5 gap-y-0.5 text-[10px] leading-4 sm:mt-5", compact ? "max-w-[18rem]" : "max-w-xl")}>
+            <div className={cn("mt-4 flex flex-wrap justify-center gap-x-1.5 gap-y-0.5 text-[10px] leading-4 sm:mt-6 md:gap-x-3 md:gap-y-2 md:text-base md:leading-6", compact ? "max-w-[18rem]" : "max-w-2xl")}>
               {startingOptions.map((option) => (
                 <button
                   key={option}
                   type="button"
                   onClick={() => onSend(option)}
                   disabled={sending}
-                  className="border-b border-border px-1 py-0.5 font-medium transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
+                  className="border-b border-border px-1 py-0.5 font-medium md:px-2 md:py-1 transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {option}
                 </button>

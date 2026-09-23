@@ -28,6 +28,8 @@ export function dashboardPageTitle(pathname: string): string {
       return "Account"
     case "agent":
       return "Agent"
+    case "overview":
+      return "Overview"
     case "companies":
     case "clients":
       if (!record) return "Clients"

@@ -59,6 +59,7 @@ const COLLECTION_NAME = "users"
  */
 const RESERVED_SLUGS = new Set([
   "agent",
+  "overview",
   "drive",
   "email",
   "seo",
