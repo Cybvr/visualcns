@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, type ReactNode } from "react"
 import { createPortal } from "react-dom"
-import { ArrowDown, ArrowDownWideNarrow, ArrowUp, ArrowUpNarrowWide, Check, Search, X } from "lucide-react"
+import { ArrowDown, ArrowUp, Search, X } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -171,51 +171,13 @@ export function FilterBar({
   const ascLabel = active?.ascLabel ?? "Ascending"
   const descLabel = active?.descLabel ?? "Descending"
   const directionLabel = direction === "asc" ? ascLabel : descLabel
-  const sheetTitle = mobileFilters || children ? "Search and filter" : sorts.length > 0 ? "Search and sort" : "Search"
+  const sheetTitle = mobileFilters || children ? "Search and filter" : "Search"
 
   const filterBody = (
     <>
       {(mobileFilters || children) && (
         <div className="grid gap-3 border-b border-border pb-4">
           {mobileFilters || children}
-        </div>
-      )}
-      {sorts.length > 0 && (
-        <div className="space-y-4 text-sm">
-          <div className="-mx-2 flex flex-col">
-            {sorts.map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                onClick={() => onSortKeyChange(option.value)}
-                aria-pressed={option.value === sortKey}
-                className={cn(
-                  "flex h-10 items-center justify-between rounded-md px-2 text-left text-sm transition-colors hover:bg-muted",
-                  option.value === sortKey ? "font-medium text-foreground" : "text-muted-foreground",
-                )}
-              >
-                {option.label}
-                {option.value === sortKey && <Check className="size-4" aria-hidden="true" />}
-              </button>
-            ))}
-          </div>
-          <div className="grid grid-cols-2 gap-1 rounded-lg bg-muted p-1" role="group" aria-label="Order">
-            {([["asc", ascLabel, ArrowUpNarrowWide], ["desc", descLabel, ArrowDownWideNarrow]] as const).map(([value, label, Icon]) => (
-              <button
-                key={value}
-                type="button"
-                onClick={() => onDirectionChange(value)}
-                aria-pressed={direction === value}
-                className={cn(
-                  "flex h-8 items-center justify-center gap-1.5 rounded-md text-sm transition-colors",
-                  direction === value ? "bg-background font-medium text-foreground shadow-sm" : "text-muted-foreground",
-                )}
-              >
-                <Icon className="size-4" aria-hidden="true" />
-                {label}
-              </button>
-            ))}
-          </div>
         </div>
       )}
     </>
@@ -225,7 +187,7 @@ export function FilterBar({
   const sortMenu = sorts.length > 0 && (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="hidden shrink-0 gap-2 px-2 sm:inline-flex" aria-label={`Sort by ${active?.label ?? ""}, ${directionLabel}`}>
+        <Button variant="ghost" className="shrink-0 gap-2 px-2" aria-label={`Sort by ${active?.label ?? ""}, ${directionLabel}`}>
           {active?.label ?? "Sort"}
           <span className="flex size-7 items-center justify-center rounded-full bg-muted">
             {direction === "asc" ? <ArrowUp className="size-4" /> : <ArrowDown className="size-4" />}
@@ -317,7 +279,7 @@ export function FilterBar({
   return (
     <>
     {headerPortal}
-    <div className={cn("mb-6 flex flex-wrap items-center gap-3", headerOnMobile && !leading && !controls && "max-sm:hidden", className)}>
+    <div className={cn("mb-6 flex flex-wrap items-center gap-3", headerOnMobile && !leading && !controls && sorts.length === 0 && "max-sm:hidden", className)}>
       <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
       {leading}
       {sortMenu}
