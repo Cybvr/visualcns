@@ -2,17 +2,19 @@
 
 import { useEffect, useMemo, useState, type ReactNode } from "react"
 import { createPortal } from "react-dom"
-import { ArrowDownWideNarrow, ArrowUpNarrowWide, Check, Search, X } from "lucide-react"
+import { ArrowDown, ArrowDownWideNarrow, ArrowUp, ArrowUpNarrowWide, Check, Search, X } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import {
   Dialog,
   DialogContent,
@@ -169,7 +171,6 @@ export function FilterBar({
   const ascLabel = active?.ascLabel ?? "Ascending"
   const descLabel = active?.descLabel ?? "Descending"
   const directionLabel = direction === "asc" ? ascLabel : descLabel
-  const hasControls = sorts.length > 0 || Boolean(children)
   const sheetTitle = mobileFilters || children ? "Search and filter" : sorts.length > 0 ? "Search and sort" : "Search"
 
   const filterBody = (
@@ -218,6 +219,35 @@ export function FilterBar({
         </div>
       )}
     </>
+  )
+
+  // Drive-style sort button: shows the active field and direction, opens a menu for both.
+  const sortMenu = sorts.length > 0 && (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" className="hidden shrink-0 gap-2 px-2 sm:inline-flex" aria-label={`Sort by ${active?.label ?? ""}, ${directionLabel}`}>
+          {active?.label ?? "Sort"}
+          <span className="flex size-7 items-center justify-center rounded-full bg-muted">
+            {direction === "asc" ? <ArrowUp className="size-4" /> : <ArrowDown className="size-4" />}
+          </span>
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="w-56">
+        <DropdownMenuLabel>Sort by</DropdownMenuLabel>
+        <DropdownMenuRadioGroup value={sortKey} onValueChange={onSortKeyChange}>
+          {sorts.map((option) => (
+            <DropdownMenuRadioItem key={option.value} value={option.value}>
+              {option.label}
+            </DropdownMenuRadioItem>
+          ))}
+        </DropdownMenuRadioGroup>
+        <DropdownMenuSeparator />
+        <DropdownMenuRadioGroup value={direction} onValueChange={(value) => onDirectionChange(value as SortDirection)}>
+          <DropdownMenuRadioItem value="asc">{ascLabel}</DropdownMenuRadioItem>
+          <DropdownMenuRadioItem value="desc">{descLabel}</DropdownMenuRadioItem>
+        </DropdownMenuRadioGroup>
+      </DropdownMenuContent>
+    </DropdownMenu>
   )
 
   const searchField = (
@@ -290,43 +320,8 @@ export function FilterBar({
     <div className={cn("mb-6 flex flex-wrap items-center gap-3", headerOnMobile && !leading && !controls && "max-sm:hidden", className)}>
       <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
       {leading}
+      {sortMenu}
       {showSearch && <div className={cn("hidden min-w-0 flex-1 sm:block sm:max-w-xs", searchClassName)}>{searchField}</div>}
-
-      {hasControls && (
-        <div className="hidden flex-wrap items-center gap-2 sm:flex">
-          {children}
-          {sorts.length > 0 && (
-            <>
-              <Select value={sortKey} onValueChange={onSortKeyChange}>
-                <SelectTrigger className="w-[170px]" aria-label="Sort by">
-                  <SelectValue placeholder="Sort by" />
-                </SelectTrigger>
-                <SelectContent>
-                  {sorts.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => onDirectionChange(direction === "asc" ? "desc" : "asc")}
-                aria-label={`Sort ${directionLabel.toLowerCase()}`}
-                title={directionLabel}
-              >
-                {direction === "asc" ? (
-                  <ArrowUpNarrowWide className="h-4 w-4" />
-                ) : (
-                  <ArrowDownWideNarrow className="h-4 w-4" />
-                )}
-              </Button>
-            </>
-          )}
-        </div>
-      )}
-        {controls}
 
         {mobileVariant === "drawer" ? (
           <Sheet open={filterOpen} onOpenChange={setFilterOpen}>
@@ -352,7 +347,13 @@ export function FilterBar({
           </Dialog>
         )}
       </div>
-      {actions && <div className={cn("ml-auto flex shrink-0 flex-wrap items-center justify-end gap-2", headerOnMobile && "max-sm:hidden")}>{actions}</div>}
+      {(children || controls || actions) && (
+        <div className="ml-auto flex shrink-0 flex-wrap items-center justify-end gap-2">
+          {children && <div className="hidden flex-wrap items-center gap-2 sm:flex">{children}</div>}
+          {controls}
+          {actions && <div className={cn("flex flex-wrap items-center gap-2", headerOnMobile && "max-sm:hidden")}>{actions}</div>}
+        </div>
+      )}
     </div>
     </>
   )
