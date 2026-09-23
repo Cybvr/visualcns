@@ -4,7 +4,8 @@ import { useEffect, useState, type FormEvent, type ReactNode } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { ArrowLeft, Bell, Briefcase, Building2, FileText, Home, ListTodo, Plus, Receipt, ScrollText, Users } from "lucide-react"
-import { FiFileText, FiHome, FiMail, FiMessageCircle } from "react-icons/fi"
+import Image from "next/image"
+import { FiFileText, FiHome, FiMail, FiUser } from "react-icons/fi"
 
 import { useAgent } from "@/components/agent/agent-context"
 import { AppSidebar, type NavLink } from "@/components/app-sidebar"
@@ -54,7 +55,7 @@ const QUICK_CREATE_LINKS = [
   { label: "Document", href: "/dashboard/documents", icon: FileText },
 ] as const
 
-/** The "create new…" dropdown, shared by the header's Plus button and the mobile footer's center Plus. */
+/** The "create new…" dropdown, opened from the header's Plus button. */
 function QuickCreateMenu({ trigger, onSelect }: { trigger: ReactNode; onSelect: (label: string) => void }) {
   return (
     <DropdownMenu>
@@ -72,29 +73,24 @@ function QuickCreateMenu({ trigger, onSelect }: { trigger: ReactNode; onSelect: 
 }
 
 /** Bottom tab bar for mobile, replacing the floating Ngai composer. Must render inside SidebarProvider. */
-function DashboardMobileFooterNav({ rootHref, onQuickCreate }: { rootHref: string; onQuickCreate: (label: string) => void }) {
-  const { open: agentOpen, setOpen: setAgentOpen } = useAgent()
+function DashboardMobileFooterNav({ rootHref }: { rootHref: string }) {
+  const { setOpen: setAgentOpen } = useAgent()
 
   const items: MobileFooterNavItem[] = [
     { key: "home", label: "Home", icon: FiHome, href: rootHref },
     { key: "email", label: "Emails", icon: FiMail, href: "/dashboard/email" },
     {
-      key: "create",
+      key: "ngai",
       render: ({ className }) => (
-        <QuickCreateMenu
-          onSelect={onQuickCreate}
-          trigger={
-            <button type="button" aria-label="Create new" className={cn(className, "-mt-5")}>
-              <span className="flex size-14 items-center justify-center rounded-full border-4 border-background bg-foreground text-background shadow-lg">
-                <Plus className="size-7" aria-hidden="true" />
-              </span>
-            </button>
-          }
-        />
+        <button type="button" aria-label="Open Ngai" onClick={() => setAgentOpen(true)} className={cn(className, "-mt-5")}>
+          <span className="flex size-14 items-center justify-center rounded-full border-4 border-background bg-background shadow-lg ring-1 ring-border">
+            <Image src="/ngai-logo.png" alt="" width={32} height={32} />
+          </span>
+        </button>
       ),
     },
     { key: "documents", label: "Documents", icon: FiFileText, href: "/dashboard/documents" },
-    { key: "ngai", label: "Ngai", icon: FiMessageCircle, onClick: () => setAgentOpen(true), isActive: agentOpen },
+    { key: "profile", label: "Profile", icon: FiUser, href: "/dashboard/account/profile" },
   ]
 
   return <MobileFooterNav items={items} />
@@ -183,7 +179,7 @@ export function DashboardShell({
         open={agentOpen ? false : sidebarOpen}
         onOpenChange={setSidebarOpen}
         className={cn(
-          "min-h-0 flex-1",
+          "!min-h-0 flex-1",
           banner && "[&_[data-slot=sidebar-container]]:top-10 [&_[data-slot=sidebar-container]]:h-[calc(100svh-2.5rem)]"
         )}
       >
@@ -191,7 +187,7 @@ export function DashboardShell({
         {/* overflow-y-auto: this column is the scroll container, not the body */}
         <SidebarInset
           className={cn(
-            isAgentRoute ? "overflow-hidden md:pb-0" : "overflow-y-auto md:pb-6",
+            isAgentRoute ? "overflow-y-auto md:overflow-hidden md:pb-0" : "overflow-y-auto md:pb-6",
             !isEmailRoute && "max-md:pb-[calc(4.5rem+env(safe-area-inset-bottom))]",
             pathname === "/dashboard/email" && "lg:min-h-0 lg:overflow-hidden lg:pb-0",
           )}
@@ -262,7 +258,7 @@ export function DashboardShell({
           {children}
         </SidebarInset>
         <NgaiSidePanel />
-        {!isEmailRoute && <DashboardMobileFooterNav rootHref={rootHref} onQuickCreate={selectQuickCreate} />}
+        {!isEmailRoute && <DashboardMobileFooterNav rootHref={rootHref} />}
       </SidebarProvider>
 
       <Dialog

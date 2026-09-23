@@ -33,9 +33,9 @@ import {
 // On mobile the sidebar is a slide-over sheet, so nav rows need finger-sized
 // hit areas. max-md: keeps the desktop rail untouched.
 const mobileNavButton =
-  "surface-nav h-6 max-md:h-10 max-md:gap-2.5 max-md:px-2.5 [&>svg]:max-md:size-4"
+  "surface-nav h-6 max-md:h-8 max-md:gap-2 max-md:px-2 [&>svg]:max-md:size-4 max-md:[&>.sidebar-nav-label]:!text-[13px] max-md:[&>.sidebar-nav-label]:!leading-5"
 const mobileNavSubButton =
-  "surface-nav h-6 max-md:h-9 max-md:gap-2.5 max-md:px-2.5 [&>svg]:max-md:size-4"
+  "surface-nav h-6 max-md:h-7 max-md:gap-2 max-md:px-2 [&>svg]:max-md:size-4 max-md:[&>.sidebar-nav-label]:!text-[13px] max-md:[&>.sidebar-nav-label]:!leading-5"
 
 export type NavLink = {
   label: string
@@ -80,6 +80,7 @@ export function AppSidebar({
   const { isImpersonating, stopViewingAs } = useAuth()
   const { open: agentOpen, setOpen: setAgentOpen, conversations, activeConversationId, reset, selectConversation } = useAgent()
   const { isMobile, setOpenMobile } = useSidebar()
+  const brandHref = isMobile ? "/dashboard/agent" : rootHref
 
   // Tapping a destination on mobile should dismiss the slide-over sheet.
   function handleNavigate(adminOnly = false, opensAgent = false) {
@@ -104,7 +105,7 @@ export function AppSidebar({
             <SidebarMenu className="min-w-0 flex-1 group-data-[collapsible=icon]:hidden">
               <SidebarMenuItem>
                 <SidebarMenuButton size="lg" asChild>
-                  <Link href={rootHref}>
+                  <Link href={brandHref} onClick={() => handleNavigate()}>
                     <BrandLockup logoSize={20} wordmarkScale={0.9} gapClassName="gap-1" brandName={brandName} logoUrl={brandLogoUrl} />
                     {subtitle && <span className="truncate text-xs text-muted-foreground">{subtitle}</span>}
                   </Link>
@@ -116,7 +117,7 @@ export function AppSidebar({
         </SidebarHeader>
         <SidebarContent>
           <SidebarGroup className="group-data-[collapsible=icon]:p-1">
-            <SidebarMenu className="gap-1">
+            <SidebarMenu className="gap-1 max-md:gap-0.5">
               {navLinks.map((link) => (
                 <React.Fragment key={link.href}>
                   {link.sectionLabel && (
@@ -197,16 +198,16 @@ export function AppSidebar({
               ))}
             </SidebarMenu>
             {conversations.length > 0 && (
-              <div className="mt-3 border-t border-border pt-3 group-data-[collapsible=icon]:hidden">
+              <div className="mt-3 border-t border-border pt-3 max-md:mt-2 max-md:pt-2 group-data-[collapsible=icon]:hidden">
                 <p className="surface-section-label px-2 pb-1.5">Recents</p>
-                <SidebarMenu className="gap-1">
-                  {conversations.slice(0, 5).map((conversation) => (
+                <SidebarMenu className="gap-1 max-md:gap-0.5">
+                  {conversations.slice(0, isMobile ? 3 : 5).map((conversation) => (
                     <SidebarMenuItem key={conversation.id}>
                       <SidebarMenuButton
                         type="button"
                         tooltip={conversation.title}
                         isActive={conversation.id === activeConversationId}
-                        className="surface-nav sidebar-recent-button h-6 px-2 max-md:h-8"
+                        className="surface-nav sidebar-recent-button h-6 px-2 max-md:h-7 max-md:[&>.sidebar-recent-label]:!text-[13px] max-md:[&>.sidebar-recent-label]:!leading-5"
                         onClick={() => {
                           selectConversation(conversation.id)
                           handleNavigate(false)

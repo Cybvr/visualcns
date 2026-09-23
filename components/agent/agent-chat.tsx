@@ -2,7 +2,7 @@
 
 import Image from "next/image"
 import { useEffect, useRef, useState, type ChangeEvent, type DragEvent, type FormEvent, type KeyboardEvent, type ReactNode } from "react"
-import { ArrowUp, FileText, Loader2, Plus, UploadCloud, X } from "lucide-react"
+import { ArrowUp, FileText, Loader2, Mic, Plus, UploadCloud, X } from "lucide-react"
 
 import type { AgentConversation, AgentFile, AgentForm, AgentMessage } from "@/components/agent/agent-context"
 import { uploadFileToStorage } from "@/lib/documents"
@@ -246,6 +246,25 @@ type ComposerAttachment = { name: string; url: string; mimeType: string }
 const ACCEPT_ATTR = ".pdf,image/*,.doc,.docx,.xls,.xlsx,.csv,.txt"
 const ALLOWED_EXTENSION = /\.(pdf|png|jpe?g|gif|webp|heic|heif|svg|doc|docx|xls|xlsx|csv|txt)$/i
 
+/** The slice of the Web Speech API the composer's voice button uses. */
+type SpeechRecognitionLike = {
+  lang: string
+  interimResults: boolean
+  continuous: boolean
+  onresult: ((event: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void) | null
+  onend: (() => void) | null
+  onerror: (() => void) | null
+  start: () => void
+  stop: () => void
+  abort: () => void
+}
+
+function getSpeechRecognition(): (new () => SpeechRecognitionLike) | null {
+  if (typeof window === "undefined") return null
+  const w = window as unknown as { SpeechRecognition?: new () => SpeechRecognitionLike; webkitSpeechRecognition?: new () => SpeechRecognitionLike }
+  return w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null
+}
+
 function isAllowedFile(file: File): boolean {
   return file.type.startsWith("image/") || file.type === "application/pdf" || ALLOWED_EXTENSION.test(file.name)
 }
@@ -272,6 +291,7 @@ export function AgentChat({
   onSelectConversation,
   onNewChat,
   compact = false,
+  className,
 }: {
   messages: AgentMessage[]
   conversations: AgentConversation[]
@@ -282,6 +302,7 @@ export function AgentChat({
   onSelectConversation: (id: string) => void
   onNewChat: () => void
   compact?: boolean
+  className?: string
 }) {
   const startingOptions = [
     "Create an invoice",
@@ -308,6 +329,54 @@ export function AgentChat({
   useEffect(() => {
     transcriptEnd.current?.scrollIntoView({ behavior: "smooth", block: "end" })
   }, [messages, sending])
+
+  // Grow the composer with its content, from one line up to four, then scroll.
+  useEffect(() => {
+    const el = textInput.current
+    if (!el) return
+    const style = getComputedStyle(el)
+    const lineHeight = parseFloat(style.lineHeight) || 20
+    const maxHeight = lineHeight * 4 + parseFloat(style.paddingTop) + parseFloat(style.paddingBottom)
+    el.style.height = "auto"
+    el.style.height = `${Math.min(el.scrollHeight, maxHeight)}px`
+  }, [input])
+
+  const [listening, setListening] = useState(false)
+  const [voiceSupported, setVoiceSupported] = useState(false)
+  const recognition = useRef<SpeechRecognitionLike | null>(null)
+
+  useEffect(() => {
+    setVoiceSupported(Boolean(getSpeechRecognition()))
+    return () => recognition.current?.abort()
+  }, [])
+
+  function toggleVoice() {
+    if (listening) {
+      recognition.current?.stop()
+      return
+    }
+    const Recognition = getSpeechRecognition()
+    if (!Recognition) return
+    const instance = new Recognition()
+    const base = input.trim()
+    instance.lang = navigator.language || "en-US"
+    instance.interimResults = true
+    instance.continuous = true
+    instance.onresult = (event) => {
+      let spoken = ""
+      for (let i = 0; i < event.results.length; i++) spoken += event.results[i][0].transcript
+      setInput([base, spoken.trim()].filter(Boolean).join(" "))
+    }
+    instance.onend = () => {
+      setListening(false)
+      recognition.current = null
+      textInput.current?.focus()
+    }
+    instance.onerror = () => setListening(false)
+    recognition.current = instance
+    setListening(true)
+    instance.start()
+  }
 
   async function uploadFiles(fileList: File[]) {
     const files = fileList.filter(isAllowedFile)
@@ -402,7 +471,7 @@ export function AgentChat({
 
   return (
     <div
-      className={cn("dashboard-body relative flex h-full flex-col font-sans [&_*]:font-sans", compact ? "bg-background" : "agent-surface")}
+      className={cn("dashboard-body relative flex h-full min-h-0 flex-col md:overflow-hidden font-sans [&_*]:font-sans", compact ? "bg-background" : "agent-surface", className)}
       onDragEnter={handleDragEnter}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
@@ -418,23 +487,20 @@ export function AgentChat({
         </div>
       )}
       {messages.length === 0 ? (
-        <div className={cn("flex min-h-0 flex-1 items-center justify-center overflow-y-auto text-center", compact ? "px-4 py-6" : "px-4 pb-16 sm:px-6")}>
-          <div className="flex max-w-lg flex-col items-center">
-            <Image src="/ngai-logo.png" alt="Ngai" width={compact ? 36 : 48} height={compact ? 36 : 48} priority />
-            <h1 className={cn("mt-6 font-sans tracking-[-0.02em]", compact ? "text-xl" : "text-2xl sm:text-3xl")}>
+        <div className={cn("scrollbar-none flex min-h-0 flex-1 flex-col overflow-y-auto text-center", compact ? "px-4 py-6" : "px-4 py-6 sm:px-6 sm:pb-16")}>
+          <div className="m-auto flex max-w-lg flex-col items-center">
+            <Image src="/ngai-logo.png" alt="Ngai" width={compact ? 36 : 48} height={compact ? 36 : 48} className={compact ? undefined : "size-10 sm:size-12"} priority />
+            <h1 className={cn("mt-4 font-sans tracking-[-0.02em] sm:mt-6", compact ? "text-xl" : "text-2xl sm:text-3xl")}>
               Welcome to Ngai, {firstName}
             </h1>
-            <p className={cn("mt-2 text-muted-foreground", compact ? "text-sm" : "text-base sm:text-lg")}>
-              Ask about your projects, tasks, files, or billing—and take action when you’re ready.
-            </p>
-            <div className={cn("mt-6 flex flex-wrap justify-center gap-2", compact ? "max-w-[18rem]" : "max-w-xl")}>
+            <div className={cn("mt-4 flex flex-wrap justify-center gap-x-1.5 gap-y-0.5 text-[10px] leading-4 sm:mt-5", compact ? "max-w-[18rem]" : "max-w-xl")}>
               {startingOptions.map((option) => (
                 <button
                   key={option}
                   type="button"
                   onClick={() => onSend(option)}
                   disabled={sending}
-                  className="rounded-full border border-border px-3 py-2 text-xs font-medium transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
+                  className="border-b border-border px-1 py-0.5 font-medium transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {option}
                 </button>
@@ -514,7 +580,7 @@ export function AgentChat({
         </div>
       )}
 
-      <div className={cn("shrink-0", compact ? "bg-transparent px-4 pb-4 pt-2" : "px-4 pb-5 pt-3 sm:px-6 sm:pb-7")}>
+      <div className={cn("shrink-0", compact ? "bg-transparent px-4 pb-4 pt-2" : "px-4 pb-3 pt-2 sm:px-6 sm:pb-7 sm:pt-3")}>
         <form
           onSubmit={submit}
           className={cn(
@@ -576,10 +642,10 @@ export function AgentChat({
               value={input}
               onChange={(event) => setInput(event.target.value)}
               onKeyDown={handleKeyDown}
-              rows={2}
+              rows={1}
               placeholder="Ask Ngai"
               aria-label="Message Ngai"
-              className="min-h-16 w-full max-h-56 resize-none rounded-lg border-0 bg-transparent px-2 py-2 shadow-none focus-visible:border-transparent focus-visible:ring-0"
+              className="min-h-0 w-full resize-none overflow-y-auto rounded-lg border-0 bg-transparent px-2 py-2 shadow-none [field-sizing:fixed] focus-visible:border-transparent focus-visible:ring-0"
             />
             <div className="flex items-center justify-between">
             <Button
@@ -593,6 +659,24 @@ export function AgentChat({
             >
               <Plus className="size-5" aria-hidden="true" />
             </Button>
+            <div className="flex items-center gap-1">
+            {voiceSupported && (
+              <Button
+                type="button"
+                size="icon"
+                variant="ghost"
+                aria-label={listening ? "Stop voice input" : "Voice input"}
+                aria-pressed={listening}
+                disabled={streaming}
+                onClick={toggleVoice}
+                className={cn(
+                  "size-10 shrink-0 rounded-full hover:bg-muted hover:text-foreground",
+                  listening ? "text-destructive" : "text-muted-foreground",
+                )}
+              >
+                <Mic className={cn("size-5", listening && "animate-pulse")} aria-hidden="true" />
+              </Button>
+            )}
             <Button
               type="submit"
               size="icon"
@@ -602,6 +686,7 @@ export function AgentChat({
             >
               <ArrowUp className="size-4" aria-hidden="true" />
             </Button>
+            </div>
             </div>
           </div>
           {attachError && <p role="alert" className="px-1 text-xs text-destructive">{attachError}</p>}

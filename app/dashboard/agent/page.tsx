@@ -7,18 +7,15 @@ import { useAgent } from "@/components/agent/agent-context"
 export default function AgentPage() {
   const { messages, conversations, activeConversationId, sending, firstName, send, reset, selectConversation } = useAgent()
 
-  return (
-    <main className="mx-auto flex min-h-0 w-full max-w-4xl flex-1 flex-col px-4 py-6 sm:px-6">
-      <AgentChat
-        messages={messages}
-        conversations={conversations}
-        activeConversationId={activeConversationId}
-        sending={sending}
-        firstName={firstName}
-        onSend={send}
-        onSelectConversation={selectConversation}
-        onNewChat={reset}
-      />
-    </main>
-  )
+  return <AgentChat
+    className="mx-auto w-full max-w-4xl flex-1 sm:px-6 sm:py-6"
+    messages={messages}
+    conversations={conversations}
+    activeConversationId={activeConversationId}
+    sending={sending}
+    firstName={firstName}
+    onSend={send}
+    onSelectConversation={selectConversation}
+    onNewChat={reset}
+  />
 }
