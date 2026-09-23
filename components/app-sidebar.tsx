@@ -94,12 +94,12 @@ export function AppSidebar({
     <Sidebar
       collapsible="icon"
       className={cn(
-        "bg-background text-muted-foreground group-data-[side=left]:border-r-0 [&_[data-slot=sidebar-inner]]:bg-background",
+        "bg-card text-muted-foreground group-data-[side=left]:border-r-0 [&_[data-slot=sidebar-inner]]:bg-card",
         className,
       )}
       {...props}
     >
-      <div className="group/sidebar m-2 flex min-h-0 flex-1 flex-col overflow-hidden rounded-[16px] bg-card text-muted-foreground group-data-[collapsible=icon]:m-1 group-data-[collapsible=icon]:rounded-[12px]">
+      <div className="group/sidebar flex min-h-0 flex-1 flex-col overflow-hidden text-muted-foreground">
         <SidebarHeader className="group-data-[collapsible=icon]:p-1">
           <div className="flex h-12 items-center gap-2 group-data-[collapsible=icon]:justify-center">
             <SidebarMenu className="min-w-0 flex-1 group-data-[collapsible=icon]:hidden">
@@ -198,8 +198,8 @@ export function AppSidebar({
               ))}
             </SidebarMenu>
             {conversations.length > 0 && (
-              <div className="mt-3 border-t border-border pt-3 max-md:mt-2 max-md:pt-2 group-data-[collapsible=icon]:hidden">
-                <p className="surface-section-label px-2 pb-1.5">Recents</p>
+              <div className="mt-6 group-data-[collapsible=icon]:hidden">
+                <div className="px-2 pb-1 text-[11px] font-medium leading-4 text-muted-foreground">Recents</div>
                 <SidebarMenu className="gap-1 max-md:gap-0.5">
                   {conversations.slice(0, isMobile ? 3 : 5).map((conversation) => (
                     <SidebarMenuItem key={conversation.id}>
