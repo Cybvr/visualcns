@@ -58,19 +58,34 @@ export async function POST(request: NextRequest) {
       .limit(1)
       .get()
     const owner = ownerSnapshot.empty ? null : ownerSnapshot.docs[0]
+    if (!tenantSnapshot.exists && !owner) return NextResponse.json({ error: "That organization is not available." }, { status: 404 })
     const existing = await db.collection("users").doc(decoded.uid).get()
     const existingData = existing.data() || {}
+    const existingTenantId = typeof existingData.tenantId === "string" ? existingData.tenantId : ""
+    const isUnclaimedWorkspace =
+      existingData.role === "admin" &&
+      existingTenantId === decoded.uid &&
+      existingData.companyId === decoded.uid &&
+      existingData.welcomeEmailPending === true
+    if (existingTenantId && existingTenantId !== workspaceId && !isUnclaimedWorkspace) {
+      return NextResponse.json({ error: "This account already belongs to another organization." }, { status: 409 })
+    }
+    const attachWorkspace = !existingTenantId || isUnclaimedWorkspace
+    const workspaceCompanyId = owner?.id || existingData.companyId || decoded.uid
+    const workspaceCompany = owner?.data().name || tenantData.name || existingData.company || ""
 
     await db.collection("users").doc(decoded.uid).set({
       email: decoded.email || existingData.email || "",
       displayName: decoded.name || existingData.displayName || "",
       photoURL: decoded.picture || existingData.photoURL || "",
-      role: "admin",
-      tenantId: workspaceId,
-      companyId: owner?.id || existingData.companyId || decoded.uid,
-      company: owner?.data().name || tenantData.name || existingData.company || "",
-      onboardingStatus: "active",
-      welcomeEmailPending: FieldValue.delete(),
+      ...(attachWorkspace ? {
+        role: "admin",
+        tenantId: workspaceId,
+        companyId: workspaceCompanyId,
+        company: workspaceCompany,
+        onboardingStatus: "active",
+        welcomeEmailPending: FieldValue.delete(),
+      } : {}),
       updatedAt: FieldValue.serverTimestamp(),
       createdAt: existingData.createdAt || FieldValue.serverTimestamp(),
     }, { merge: true })

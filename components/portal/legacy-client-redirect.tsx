@@ -14,11 +14,13 @@ export function LegacyClientRedirect() {
   const [failed, setFailed] = useState(false)
   useEffect(() => {
     let active = true
-    if (!appUser?.companyId) { router.replace("/portal"); return }
+    if (!appUser?.companyId) { setFailed(true); return }
     getOrganization(appUser.companyId).then(org => {
-      if (active) router.replace(org ? legacyDashboardDestination(organizationRef(org), pathname, search) : "/portal")
+      if (!active) return
+      if (org) router.replace(legacyDashboardDestination(organizationRef(org), pathname, search))
+      else setFailed(true)
     }).catch(() => { if (active) setFailed(true) })
     return () => { active = false }
   }, [appUser?.companyId, pathname, search, router])
-  return failed ? <PortalNotice title="We couldn’t open your portal">Refresh to try again.</PortalNotice> : <PortalLoading />
+  return failed ? <PortalNotice title="This client has no linked workspace"><p>Link this account to a company before previewing it.</p></PortalNotice> : <PortalLoading />
 }

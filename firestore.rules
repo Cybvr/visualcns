@@ -14,6 +14,17 @@ service cloud.firestore {
     function tenantAdmin(data) { return isAdmin() && (isSuperAdmin() || sameTenant(data) || legacyData(data)); }
     function companyId() { return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.companyId; }
     function owns(data) { return sameTenant(data) && data.get('companyId', '') == companyId(); }
+    function pendingSelfCreate(uid) {
+      return signedIn() && request.auth.uid == uid
+        && request.resource.data.get('onboardingStatus', '') == 'pending-invite'
+        && request.resource.data.keys().hasOnly(['email', 'displayName', 'photoURL', 'createdAt', 'updatedAt', 'onboardingStatus']);
+    }
+    function pendingSelfUpdate(uid) {
+      return signedIn() && request.auth.uid == uid
+        && resource.data.get('onboardingStatus', '') == 'pending-invite'
+        && request.resource.data.get('onboardingStatus', '') == 'pending-invite'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['email', 'displayName', 'photoURL', 'updatedAt']);
+    }
     function visibleProject(projectId) {
       return signedIn() && sameTenant(get(/databases/$(database)/documents/portalProjects/$(projectId)).data)
         && get(/databases/$(database)/documents/portalProjects/$(projectId)).data.companyId == companyId();
@@ -57,11 +68,11 @@ service cloud.firestore {
       allow read: if tenantAdmin(resource.data) || (signedIn() && request.auth.uid == uid);
       allow create: if (isAdmin() && request.resource.data.tenantId == tenantId()) || (signedIn() && request.auth.uid == uid
         && request.resource.data.role in ['admin', 'client'] && request.resource.data.companyId == uid
-        && request.resource.data.tenantId == request.auth.uid);
+        && request.resource.data.tenantId == request.auth.uid) || pendingSelfCreate(uid);
       allow update: if tenantAdmin(resource.data) || (signedIn() && request.auth.uid == uid
         && request.resource.data.role == resource.data.role
         && request.resource.data.tenantId == resource.data.get('tenantId', tenantId())
-        && request.resource.data.companyId == resource.data.get('companyId', uid));
+        && request.resource.data.companyId == resource.data.get('companyId', uid)) || pendingSelfUpdate(uid);
       allow delete: if tenantAdmin(resource.data);
     }
 

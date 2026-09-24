@@ -133,8 +133,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const viewAsUid = typeof window !== "undefined" ? sessionStorage.getItem(VIEW_AS_KEY) : null
           if ((doc?.role === "admin" || doc?.role === "superadmin") && viewAsUid && viewAsUid !== u.uid) {
             try {
-              setImpersonated(await getUser(viewAsUid))
+              const target = await getUser(viewAsUid)
+              const sameTenant = doc.role === "superadmin" || target?.tenantId === doc.tenantId
+              if (target?.role === "client" && target.companyId && sameTenant) setImpersonated(target)
+              else {
+                sessionStorage.removeItem(VIEW_AS_KEY)
+                setImpersonated(null)
+              }
             } catch {
+              sessionStorage.removeItem(VIEW_AS_KEY)
               setImpersonated(null)
             }
           } else {
@@ -156,7 +163,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   async function signInWithGoogle(agencyName = "", createWorkspace = false, workspaceId = "") {
-    const authenticatedUser = auth.currentUser || (await signInWithPopup(auth, googleProvider)).user
+    const authenticatedUser = (await signInWithPopup(auth, googleProvider)).user
     if (workspaceId) {
       const idToken = await authenticatedUser.getIdToken()
       const response = await fetch("/api/auth/workspaces", {
@@ -225,7 +232,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isImpersonating = isAdmin && impersonated !== null
 
   function viewAsUser(target: AppUser) {
-    if (!isAdmin) return
+    if (!isAdmin || target.role !== "client" || !target.companyId || (role !== "superadmin" && target.tenantId !== realAppUser?.tenantId)) return
     sessionStorage.setItem(VIEW_AS_KEY, target.uid)
     setImpersonated(target)
   }
