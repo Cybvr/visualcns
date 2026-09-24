@@ -188,6 +188,7 @@ export function DashboardShell({
         {/* overflow-y-auto: this column is the scroll container, not the body */}
         <SidebarInset
           className={cn(
+            "min-h-0",
             isAgentRoute ? "overflow-y-auto md:overflow-hidden md:pb-0" : "overflow-y-auto md:pb-6",
             !isEmailRoute && "max-md:pb-[calc(4.5rem+env(safe-area-inset-bottom))]",
             pathname === "/dashboard/email" && "lg:min-h-0 lg:overflow-hidden lg:pb-0",
