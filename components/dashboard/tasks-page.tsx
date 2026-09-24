@@ -258,7 +258,7 @@ export default function TasksAdminPage() {
                         <Checkbox
                           aria-label={`Select ${t.name || "task"}`}
                           checked={selection.isSelected(t.id)}
-                          onChange={() => selection.toggle(t.id)}
+                          onChange={(event) => selection.toggle(t.id, event.shiftKey)}
                         />
                       </TableCell>
                       <TableCell className="max-w-0 font-medium">

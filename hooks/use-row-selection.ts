@@ -7,18 +7,33 @@ import { useCallback, useMemo, useState } from "react"
  */
 export function useRowSelection<T>(items: T[], getId: (item: T) => string) {
   const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [anchorId, setAnchorId] = useState<string | null>(null)
   const ids = useMemo(() => items.map(getId), [items, getId])
 
-  const toggle = useCallback((id: string) => {
+  const toggle = useCallback((id: string, shiftKey = false) => {
     setSelected((prev) => {
       const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
+      const index = ids.indexOf(id)
+      const anchorIndex = anchorId ? ids.indexOf(anchorId) : -1
+
+      if (shiftKey && index !== -1 && anchorIndex !== -1) {
+        const start = Math.min(index, anchorIndex)
+        const end = Math.max(index, anchorIndex)
+        ids.slice(start, end + 1).forEach((itemId) => next.add(itemId))
+      } else if (next.has(id)) {
+        next.delete(id)
+      } else {
+        next.add(id)
+      }
       return next
     })
-  }, [])
+    setAnchorId(id)
+  }, [anchorId, ids])
 
-  const clear = useCallback(() => setSelected(new Set()), [])
+  const clear = useCallback(() => {
+    setSelected(new Set())
+    setAnchorId(null)
+  }, [])
 
   const toggleAll = useCallback(() => {
     setSelected((prev) => {
