@@ -39,6 +39,8 @@ export interface Task {
    * anyone so the public templates page can list the steps of the workflow.
    */
   isPublic?: boolean
+  /** Allows this individual task to be opened from a public share link. */
+  shareEnabled?: boolean
   /** Set when the task was auto-created to track a billing document. */
   sourceKind?: "invoice" | "estimate" | "contract"
   /** Firestore id of the billing document this task tracks. */

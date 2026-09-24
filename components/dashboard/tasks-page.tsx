@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import {
@@ -43,7 +44,7 @@ import {
 } from "@/lib/tasks"
 import { DashboardPageSkeleton } from "@/components/dashboard/dashboard-page-skeleton"
 import { getProjects, type Project } from "@/lib/projects"
-import { Badge, InlineProject, InlineSelect, InlineText } from "@/components/inline-table-cells"
+import { Badge, InlineProject, InlineSelect } from "@/components/inline-table-cells"
 import { TaskForm } from "@/components/dashboard/task-form"
 import { EmptySearchState, FirstRunState } from "@/components/dashboard/empty-state"
 import { FilterBar, useFilterBar, type SortOption } from "@/components/dashboard/filter-bar"
@@ -85,6 +86,7 @@ function searchTask(t: Task) {
 }
 
 export default function TasksAdminPage() {
+  const router = useRouter()
   const [tasks, setTasks] = useState<Task[]>([])
   const [projects, setProjects] = useState<Project[]>([])
   const [loading, setLoading] = useState(true)
@@ -211,7 +213,7 @@ export default function TasksAdminPage() {
                       title={t.name || "Untitled task"}
                       subtitle={[t.client || t.companyId, t.project, taskStatusMeta[t.status]?.label].filter(Boolean).join(" · ") || undefined}
                       icon={<ListTodo className="size-5 text-muted-foreground" aria-hidden="true" />}
-                      onClick={() => setSelectedId(t.id)}
+                      onClick={() => router.push(`/dashboard/tasks/${encodeURIComponent(t.id)}`)}
                       ariaLabel={`Open ${t.name || "task"}`}
                       menuLabel={`Options for ${t.name || "task"}`}
                       menu={
@@ -253,7 +255,11 @@ export default function TasksAdminPage() {
                 </TableHeader>
                 <TableBody>
                   {visibleTasks.map((t) => (
-                    <TableRow key={t.id}>
+                    <TableRow
+                      key={t.id}
+                      className="cursor-pointer"
+                      onClick={() => router.push(`/dashboard/tasks/${encodeURIComponent(t.id)}`)}
+                    >
                       <TableCell onClick={(e) => e.stopPropagation()}>
                         <Checkbox
                           aria-label={`Select ${t.name || "task"}`}
@@ -262,17 +268,23 @@ export default function TasksAdminPage() {
                         />
                       </TableCell>
                       <TableCell className="max-w-0 font-medium">
-                        <InlineText value={t.name} onCommit={(name) => handlePatch(t.id, { name })} />
+                        <button
+                          type="button"
+                          className="w-full truncate rounded px-1 py-0.5 text-left font-medium hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                          onClick={() => router.push(`/dashboard/tasks/${encodeURIComponent(t.id)}`)}
+                        >
+                          {t.name || "Untitled task"}
+                        </button>
                       </TableCell>
                       <TableCell className="max-w-0 truncate text-muted-foreground">{t.client || t.companyId || "—"}</TableCell>
-                      <TableCell className="max-w-0 overflow-hidden">
+                      <TableCell className="max-w-0 overflow-hidden" onClick={(event) => event.stopPropagation()}>
                         <InlineProject
                           projectId={t.projectId}
                           projects={projects.filter((p) => p.companyId === t.companyId)}
                           onChange={(p) => handlePatch(t.id, { projectId: p.id, project: p.title })}
                         />
                       </TableCell>
-                      <TableCell className="whitespace-nowrap">
+                      <TableCell className="whitespace-nowrap" onClick={(event) => event.stopPropagation()}>
                         <InlineSelect
                           value={t.status}
                           options={STATUS_OPTIONS}
@@ -285,7 +297,7 @@ export default function TasksAdminPage() {
                           }
                         />
                       </TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="text-right" onClick={(event) => event.stopPropagation()}>
                         <div className="flex justify-end gap-1">
                           <Button
                             variant="ghost"
