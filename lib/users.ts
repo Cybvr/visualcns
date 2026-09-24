@@ -198,41 +198,42 @@ export async function upsertUserOnLogin(profile: {
   displayName: string | null
   photoURL: string | null
   agencyName?: string
+  createWorkspace?: boolean
 }): Promise<AppUser | null> {
   const ref = doc(db, COLLECTION_NAME, profile.uid)
   const existing = await getDoc(ref)
+  const existingData = existing.data() || {}
+  const createWorkspace = profile.createWorkspace === true
+  const canClaimWorkspace = createWorkspace && !existingData.role && !existingData.tenantId
 
   const base: Record<string, unknown> = {
     email: profile.email ?? "",
-    displayName: profile.displayName || existing.data()?.displayName || "",
-    photoURL: profile.photoURL || existing.data()?.photoURL || "",
+    displayName: profile.displayName || existingData.displayName || "",
+    photoURL: profile.photoURL || existingData.photoURL || "",
     updatedAt: Timestamp.now(),
   }
   if (!existing.exists()) {
-    // First login: default everyone to "client". Admins are promoted manually.
-    // Only set on create so a return login never demotes an admin.
-    // A self-serve signup creates a new tenant owner. Client accounts are
-    // created by an existing tenant admin through the dashboard.
-    base.role = "admin"
     base.createdAt = Timestamp.now()
+    base.onboardingStatus = "pending-invite"
+  }
+  if (canClaimWorkspace) {
+    base.role = "admin"
     base.welcomeEmailPending = true
+    base.onboardingStatus = "active"
+    base.tenantId = profile.uid
+    base.companyId = profile.uid
     if (profile.agencyName?.trim()) base.company = profile.agencyName.trim()
   }
-  // New self-serve accounts start their own tenant. Legacy accounts stay in
-  // the migration bucket until the admin migration endpoint assigns them.
-  if (!existing.exists()) base.tenantId = profile.uid
-  else if (!existing.data()?.tenantId) base.tenantId = LEGACY_TENANT_ID
-  // Every user needs a companyId to have a workspace: it's what tasks/projects
-  // are scoped by and what the Firestore rules match on (myCompanyId()). Default
-  // it to the uid so each account gets its own space; backfill older docs that
-  // predate this. An admin can still point several users at one shared companyId.
-  if (!existing.exists() || !existing.data()?.companyId) {
+  // Existing legacy accounts still need a migration tenant, but an uninvited
+  // first-time account must remain unassigned until an invite is accepted.
+  if (existing.exists() && existingData.role && !existingData.tenantId) base.tenantId = LEGACY_TENANT_ID
+  if (existing.exists() && existingData.role && !existingData.companyId) {
     base.companyId = profile.uid
   }
 
   // Same idea for the URL segment: new accounts get one, and older docs that
   // predate slugs are backfilled on their next login.
-  if (!existing.exists() || !existing.data()?.slug) {
+  if ((canClaimWorkspace || existingData.role) && (!existing.exists() || !existingData.slug)) {
     const preferred = profile.displayName || (profile.email ?? "").split("@")[0] || "user"
     // Self provisioning cannot query other users under the access rules.
     base.slug = `${preferred.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "user"}-${profile.uid}`

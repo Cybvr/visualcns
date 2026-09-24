@@ -77,9 +77,9 @@ type AuthContextValue = {
   viewAsUser: (target: AppUser) => void
   /** Stop previewing and return to the admin's own account. */
   stopViewingAs: () => void
-  signUpWithEmail: (name: string, email: string, password: string, agencyName?: string) => Promise<void>
+  signUpWithEmail: (name: string, email: string, password: string, agencyName?: string, createWorkspace?: boolean) => Promise<void>
   signInWithEmail: (email: string, password: string) => Promise<void>
-  signInWithGoogle: () => Promise<void>
+  signInWithGoogle: (agencyName?: string, createWorkspace?: boolean, workspaceId?: string) => Promise<void>
   signOut: () => Promise<void>
 }
 
@@ -155,15 +155,46 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return unsubscribe
   }, [])
 
-  async function signInWithGoogle() {
-    await signInWithPopup(auth, googleProvider)
+  async function signInWithGoogle(agencyName = "", createWorkspace = false, workspaceId = "") {
+    const authenticatedUser = auth.currentUser || (await signInWithPopup(auth, googleProvider)).user
+    if (workspaceId) {
+      const idToken = await authenticatedUser.getIdToken()
+      const response = await fetch("/api/auth/workspaces", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${idToken}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ workspaceId }),
+      })
+      const data = await response.json() as { error?: string; status?: string }
+      if (!response.ok) throw new Error(data.error || "Could not join organization")
+      const doc = await upsertUserOnLogin({
+        uid: authenticatedUser.uid,
+        email: authenticatedUser.email,
+        displayName: authenticatedUser.displayName,
+        photoURL: authenticatedUser.photoURL,
+      })
+      setRealAppUser(doc)
+      setTenantStatus((data.status as TenantStatus | undefined) || "trial")
+      return
+    }
+    if (createWorkspace) {
+      const doc = await upsertUserOnLogin({
+        uid: authenticatedUser.uid,
+        email: authenticatedUser.email,
+        displayName: authenticatedUser.displayName,
+        photoURL: authenticatedUser.photoURL,
+        agencyName,
+        createWorkspace: true,
+      })
+      setRealAppUser(doc)
+      setTenantStatus("trial")
+    }
   }
 
   async function signInWithEmail(email: string, password: string) {
     await signInWithEmailAndPassword(auth, email, password)
   }
 
-  async function signUpWithEmail(name: string, email: string, password: string, agencyName?: string) {
+  async function signUpWithEmail(name: string, email: string, password: string, agencyName = "", createWorkspace = false) {
     const credential = await createUserWithEmailAndPassword(auth, email, password)
     const displayName = name.trim()
 
@@ -171,13 +202,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await updateProfile(credential.user, { displayName })
     }
 
-    await upsertUserOnLogin({
+    const doc = await upsertUserOnLogin({
       uid: credential.user.uid,
       email: credential.user.email,
       displayName,
       photoURL: credential.user.photoURL,
-      agencyName,
+      agencyName: createWorkspace ? agencyName : undefined,
+      createWorkspace,
     })
+    setRealAppUser(doc)
+    if (createWorkspace) setTenantStatus("trial")
   }
 
   async function signOut() {

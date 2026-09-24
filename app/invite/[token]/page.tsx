@@ -2,14 +2,13 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { useParams, useRouter } from "next/navigation"
+import { useParams } from "next/navigation"
 import { Loader2 } from "lucide-react"
 import { useAuth } from "@/components/auth-provider"
 import { Button } from "@/components/ui/button"
 
 export default function InvitePage() {
   const params = useParams<{ token: string }>()
-  const router = useRouter()
   const { user, loading } = useAuth()
   const [state, setState] = useState<"loading" | "ready" | "done" | "error">("loading")
   const [error, setError] = useState("")
@@ -25,10 +24,10 @@ export default function InvitePage() {
     })).then(async (response) => {
       const data = await response.json()
       if (!response.ok) throw new Error(data.error || "Could not accept invite")
-      if (active) { setState("done"); setTimeout(() => router.replace("/dashboard"), 800) }
+      if (active) { setState("done"); setTimeout(() => window.location.replace("/dashboard"), 800) }
     }).catch((acceptError) => { if (active) { setError(acceptError instanceof Error ? acceptError.message : "Could not accept invite"); setState("error") } })
     return () => { active = false }
-  }, [loading, user, params.token, router])
+  }, [loading, user, params.token])
 
   return <main className="flex min-h-svh items-center justify-center px-4"><section className="w-full max-w-md space-y-4 border border-border p-7 text-center">
     {state === "loading" && <Loader2 className="mx-auto size-6 animate-spin" />}

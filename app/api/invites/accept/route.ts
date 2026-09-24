@@ -35,7 +35,16 @@ export async function POST(request: NextRequest) {
     const userRef = db.collection("users").doc(decoded.uid)
     const existing = await userRef.get()
     const existingData = existing.data() || {}
-    if (existingData.tenantId && existingData.tenantId !== data.tenantId) return NextResponse.json({ error: "This account already belongs to another agency." }, { status: 409 })
+    // Older first-time sign-ins were incorrectly provisioned as an admin of a
+    // one-user workspace. Treat that untouched workspace as unassigned so the
+    // invite can attach the account to the agency that invited it.
+    const isUnclaimedWorkspace =
+      existingData.role === "admin" &&
+      data.role !== "admin" &&
+      existingData.tenantId === decoded.uid &&
+      existingData.companyId === decoded.uid &&
+      existingData.welcomeEmailPending === true
+    if (existingData.tenantId && existingData.tenantId !== data.tenantId && !isUnclaimedWorkspace) return NextResponse.json({ error: "This account already belongs to another agency." }, { status: 409 })
     await userRef.set({
       email: decoded.email || data.email,
       displayName: decoded.name || existingData.displayName || "",
@@ -44,6 +53,7 @@ export async function POST(request: NextRequest) {
       tenantId: data.tenantId,
       companyId: data.companyId || existingData.companyId || decoded.uid,
       company: data.company || existingData.company || "",
+      onboardingStatus: "active",
       updatedAt: FieldValue.serverTimestamp(),
       createdAt: existingData.createdAt || FieldValue.serverTimestamp(),
     }, { merge: true })
