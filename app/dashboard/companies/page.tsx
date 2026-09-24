@@ -240,7 +240,6 @@ export default function CompaniesPage() {
         {...bar}
         mobileVariant="drawer"
         headerOnMobile
-        showSearch={false}
         placeholder="Search clients"
         controls={<ViewToggle view={view} onChange={setView} />}
         actions={

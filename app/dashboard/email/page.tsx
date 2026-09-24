@@ -1372,7 +1372,6 @@ export default function EmailPage() {
           mobileVariant="drawer"
           headerOnMobile
           className="mb-2"
-          showSearch={false}
           placeholder={tab === "inbox" ? "Search inbox" : tab === "messages" ? "Search sent" : tab === "templates" ? "Search templates" : "Search lists"}
           searchClassName={tab === "messages" || tab === "inbox" ? "sm:max-w-[16rem]" : undefined}
           actions={

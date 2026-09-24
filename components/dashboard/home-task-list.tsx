@@ -60,6 +60,7 @@ export function HomeTaskList({
             return (
               <li key={task.id}>
                 <MobileDataCard
+                  variant="task"
                   title={task.name}
                   subtitle={[task.project, dueDate ? `Due ${dueDate}` : ""].filter(Boolean).join(" · ") || undefined}
                   icon={<ListTodo className="size-5 text-blue-600 dark:text-blue-400" aria-hidden="true" />}

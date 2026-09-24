@@ -29,7 +29,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet"
-import { Pencil, Plus, Trash2, Loader2 } from "lucide-react"
+import { ListTodo, Pencil, Plus, Trash2, Loader2 } from "lucide-react"
 import {
   getTasks,
   deleteTask,
@@ -51,6 +51,8 @@ import { FilterBar, useFilterBar, type SortOption } from "@/components/dashboard
 import { TableBulkBar } from "@/components/dashboard/table-bulk-bar"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useRowSelection } from "@/hooks/use-row-selection"
+import { MobileDataCard } from "@/components/dashboard/mobile-data-card"
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 
 const STATUS_OPTIONS: TaskStatus[] = ["todo", "in-progress", "review", "done"]
 const PRIORITY_OPTIONS: TaskPriority[] = ["low", "medium", "high"]
@@ -92,6 +94,7 @@ export default function TasksAdminPage() {
   const [deleting, setDeleting] = useState<string | null>(null)
   const [bulkDeleting, setBulkDeleting] = useState(false)
   const [selectedId, setSelectedId] = useState<string | "new" | null>(null)
+  const [deleteId, setDeleteId] = useState<string | null>(null)
 
   async function fetchData() {
     setError(null)
@@ -119,6 +122,7 @@ export default function TasksAdminPage() {
       await deleteTask(id)
       setTasks((prev) => prev.filter((t) => t.id !== id))
       if (selectedId === id) setSelectedId(null)
+      if (deleteId === id) setDeleteId(null)
     } catch (err) {
       console.error("Error deleting task:", err)
     } finally {
@@ -200,7 +204,30 @@ export default function TasksAdminPage() {
           {visibleTasks.length === 0 ? (
             <EmptySearchState label="No tasks match your search." />
           ) : (
-            <div className="rounded-lg border border-border">
+            <>
+              <ul className="sm:hidden">
+                {visibleTasks.map((t) => (
+                  <li key={t.id}>
+                    <MobileDataCard
+                      variant="task"
+                      title={t.name || "Untitled task"}
+                      subtitle={[t.client || t.companyId, t.project, taskStatusMeta[t.status]?.label].filter(Boolean).join(" · ") || undefined}
+                      icon={<ListTodo className="size-5 text-muted-foreground" aria-hidden="true" />}
+                      onClick={() => setSelectedId(t.id)}
+                      ariaLabel={`Open ${t.name || "task"}`}
+                      menuLabel={`Options for ${t.name || "task"}`}
+                      menu={
+                        <>
+                          <DropdownMenuItem onSelect={() => setSelectedId(t.id)}>Edit task</DropdownMenuItem>
+                          <DropdownMenuItem onSelect={() => setDeleteId(t.id)}>Delete task</DropdownMenuItem>
+                        </>
+                      }
+                    />
+                  </li>
+                ))}
+              </ul>
+
+              <div className="hidden rounded-lg border border-border sm:block">
               <TableBulkBar
                 count={selection.selectedCount}
                 noun="task"
@@ -326,10 +353,31 @@ export default function TasksAdminPage() {
                   ))}
                 </TableBody>
               </Table>
-            </div>
+              </div>
+            </>
           )}
         </>
       )}
+
+      <AlertDialog open={deleteId !== null} onOpenChange={(open) => !open && setDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete task?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This permanently deletes &quot;{visibleTasks.find((task) => task.id === deleteId)?.name || "this task"}&quot;. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteId && void handleDelete(deleteId)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteId && deleting === deleteId ? <Loader2 className="h-4 w-4 animate-spin" /> : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <Sheet open={selectedId !== null} onOpenChange={(open) => !open && setSelectedId(null)}>
         <SheetContent side="right" className="inset-y-2 right-2 h-[calc(100%-1rem)] w-[calc(100%-1rem)] gap-0 overflow-y-auto rounded-lg border sm:max-w-lg">

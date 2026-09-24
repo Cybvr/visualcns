@@ -183,7 +183,6 @@ export default function InvoicesPage() {
         {...bar}
         mobileVariant="drawer"
         headerOnMobile
-        showSearch={false}
         placeholder="Search invoices"
         actions={
           adminView && (

@@ -1,28 +1,22 @@
 "use client"
 
-import { useEffect, useRef, useState, type FormEvent } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Loader2 } from "lucide-react"
 import { BrandLockup } from "@/components/brand-lockup"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import { useAuth } from "@/components/auth-provider"
 import { authErrorMessage, GoogleIcon } from "@/components/auth-ui"
 import { safeReturnTo } from "@/lib/portal-model"
 
-type AuthAction = "email" | "google" | "reset" | null
+type AuthAction = "google" | null
 
 export default function LoginPage() {
   const router = useRouter()
-  const emailInputRef = useRef<HTMLInputElement>(null)
-  const { user, isAdmin, loading, signInWithEmail, signInWithGoogle } = useAuth()
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
+  const { user, isAdmin, loading, signInWithGoogle } = useAuth()
   const [action, setAction] = useState<AuthAction>(null)
   const [error, setError] = useState<string | null>(null)
-  const [notice, setNotice] = useState<string | null>(null)
 
   useEffect(() => {
     if (!loading && user) {
@@ -31,24 +25,9 @@ export default function LoginPage() {
     }
   }, [loading, user, isAdmin, router])
 
-  async function handleEmailSignIn(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    setAction("email")
-    setError(null)
-    setNotice(null)
-    try {
-      await signInWithEmail(email.trim(), password)
-    } catch (err) {
-      setError(authErrorMessage(err))
-    } finally {
-      setAction(null)
-    }
-  }
-
   async function handleGoogleSignIn() {
     setAction("google")
     setError(null)
-    setNotice(null)
     try {
       await signInWithGoogle()
     } catch (err) {
@@ -59,34 +38,6 @@ export default function LoginPage() {
       } else {
         setError(authErrorMessage(err))
       }
-    } finally {
-      setAction(null)
-    }
-  }
-
-  async function handlePasswordReset() {
-    const trimmedEmail = email.trim()
-    setError(null)
-    setNotice(null)
-
-    if (!trimmedEmail) {
-      setError("Enter your email address first.")
-      emailInputRef.current?.focus()
-      return
-    }
-
-    setAction("reset")
-    try {
-      const response = await fetch("/api/auth/password-reset", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: trimmedEmail }),
-      })
-      const result = (await response.json().catch(() => ({}))) as { error?: string }
-      if (!response.ok) throw new Error(result.error || "We couldn’t send the reset email. Please try again.")
-      setNotice(`If an account exists for ${trimmedEmail}, a password reset link has been sent.`)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : authErrorMessage(err))
     } finally {
       setAction(null)
     }
@@ -108,7 +59,7 @@ export default function LoginPage() {
 
         <div className="mb-6 mt-7">
           <h1 id="login-heading" className="text-center text-3xl tracking-[-0.02em] text-foreground">
-            Sign in to VisualHQ
+            Sign in
           </h1>
         </div>
 
@@ -134,75 +85,9 @@ export default function LoginPage() {
           )}
         </Button>
 
-        <div className="my-5 flex items-center gap-4" aria-hidden="true">
-          <div className="h-px flex-1 bg-border" />
-          <span className="text-xs uppercase tracking-[0.14em] text-muted-foreground">or</span>
-          <div className="h-px flex-1 bg-border" />
-        </div>
-
-        <form className="space-y-4" onSubmit={handleEmailSignIn}>
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <Input
-              ref={emailInputRef}
-              id="email"
-              name="email"
-              type="email"
-              autoComplete="email"
-              inputMode="email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              className="h-10 rounded-none bg-background text-base md:text-sm"
-              disabled={busy}
-              required
-            />
-          </div>
-
-          <div className="space-y-2">
-            <div className="flex items-center justify-between gap-4">
-              <Label htmlFor="password">Password</Label>
-              <button
-                type="button"
-                className="text-sm font-medium text-accent outline-none hover:underline focus-visible:underline disabled:pointer-events-none disabled:opacity-50"
-                onClick={handlePasswordReset}
-                disabled={busy}
-              >
-                {action === "reset" ? "Sending…" : "Forgot password?"}
-              </button>
-            </div>
-            <Input
-              id="password"
-              name="password"
-              type="password"
-              autoComplete="current-password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              className="h-10 rounded-none bg-background text-base md:text-sm"
-              disabled={busy}
-              required
-            />
-          </div>
-
-          <Button type="submit" size="lg" className="h-10 w-full" disabled={busy} aria-busy={action === "email"}>
-            {action === "email" ? (
-              <>
-                <Loader2 className="size-4 animate-spin" aria-hidden="true" />
-                Signing in…
-              </>
-            ) : (
-              "Sign in"
-            )}
-          </Button>
-        </form>
-
         {error && (
           <p role="alert" className="mt-4 text-sm leading-5 text-destructive">
             {error}
-          </p>
-        )}
-        {notice && (
-          <p role="status" className="mt-4 text-sm leading-5 text-muted-foreground">
-            {notice}
           </p>
         )}
 

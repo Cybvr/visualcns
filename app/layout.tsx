@@ -20,6 +20,7 @@ const poppins = Poppins({
 })
 
 const FAVICON_URL = "/visualhqlogo.svg"
+const SHARED_LOGO_URL = "/visualhqlogo.svg"
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://visualcns.com"),
@@ -37,8 +38,15 @@ export const metadata: Metadata = {
     url: "https://visualcns.com",
     siteName: "VisualCNS",
     type: "website",
+    images: [{ url: SHARED_LOGO_URL, width: 500, height: 500, alt: "VisualHQ" }],
   },
-  generator: "v0.app",
+  twitter: {
+    card: "summary",
+    title: "VisualCNS - Software Systems for Modern Businesses",
+    description:
+      "VisualCNS builds software systems, product businesses, and AI-enabled tools from Lagos for modern teams.",
+    images: [SHARED_LOGO_URL],
+  },
   applicationName: "VisualCNS",
   appleWebApp: {
     capable: true,

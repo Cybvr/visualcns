@@ -314,7 +314,6 @@ export default function DocumentsPage() {
         {...bar}
         mobileVariant="drawer"
         headerOnMobile
-        showSearch={false}
         controls={tab !== "media" && <ViewToggle view={view} onChange={setView} />}
         actions={
           adminView && (

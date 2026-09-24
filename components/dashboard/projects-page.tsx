@@ -140,7 +140,6 @@ export default function ProjectsAdminPage() {
         {...bar}
         mobileVariant="drawer"
         headerOnMobile
-        showSearch={false}
         placeholder="Search projects"
         controls={<ViewToggle view={view} onChange={setView} />}
         actions={
