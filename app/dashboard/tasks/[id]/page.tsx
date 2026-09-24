@@ -71,31 +71,25 @@ export default function TaskEditPage() {
         )}
       </div>
 
-      <Card className="mt-4">
-        <CardHeader className="border-b border-border">
-          <CardTitle>Edit task</CardTitle>
-        </CardHeader>
-        <CardContent className="pt-6">
-          {error && <p className="mb-4 text-sm text-destructive" role="alert">{error}</p>}
+      <section className="mt-6">
+        <h1 className="text-xl font-semibold">Edit task</h1>
+        {error && <p className="mt-3 text-sm text-destructive" role="alert">{error}</p>}
+        <div className="mt-6">
           <TaskForm
             task={task}
             onSaved={(savedId) => router.replace(`/dashboard/tasks/${encodeURIComponent(savedId)}`)}
             onCancel={() => router.push("/dashboard/tasks")}
           />
-        </CardContent>
-      </Card>
+        </div>
+      </section>
 
-      <Card className="mt-4">
-        <CardHeader>
-          <CardTitle className="text-base">Public sharing</CardTitle>
-          <p className="text-sm text-muted-foreground">Anyone with the link can view this task without signing in.</p>
-        </CardHeader>
-        <CardContent>
-          <div className={sharing ? "pointer-events-none opacity-60" : undefined}>
-            <ShareLinkField enabled={Boolean(task.shareEnabled)} onEnabledChange={(value) => void setPublic(value)} path={publicPath} />
-          </div>
-        </CardContent>
-      </Card>
+      <section className="mt-8 border-t border-border pt-6">
+        <h2 className="text-base font-semibold">Public sharing</h2>
+        <p className="mt-1 text-sm text-muted-foreground">Anyone with the link can view this task without signing in.</p>
+        <div className={`mt-4 ${sharing ? "pointer-events-none opacity-60" : ""}`}>
+          <ShareLinkField enabled={Boolean(task.shareEnabled)} onEnabledChange={(value) => void setPublic(value)} path={publicPath} />
+        </div>
+      </section>
     </main>
   )
 }
