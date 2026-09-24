@@ -134,8 +134,11 @@ export default function UsersAdminPage() {
   }
 
   function handleViewAs(u: AppUser) {
+    const canViewClient = u.role === "client" && Boolean(u.companyId)
+    const canViewAdmin = (u.role === "admin" || u.role === "superadmin") && Boolean(u.tenantId)
+    if (!canViewClient && !canViewAdmin) return
     viewAsUser(u)
-    router.push("/dashboard")
+    router.push(canViewClient ? `/portal/${encodeURIComponent(u.companyId as string)}` : "/dashboard/overview")
   }
 
   const { results: visibleUsers, bar } = useFilterBar({
@@ -329,15 +332,17 @@ export default function UsersAdminPage() {
                       </TableCell>
                       <TableCell className="text-muted-foreground">{companyNameOf(u) || "—"}</TableCell>
                       <TableCell onClick={(e) => e.stopPropagation()}>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-8"
-                          onClick={() => handleViewAs(u)}
-                        >
-                          <Eye className="mr-2 h-3.5 w-3.5" />
-                          View as
-                        </Button>
+                        {((u.role === "client" && u.companyId) || ((u.role === "admin" || u.role === "superadmin") && u.tenantId)) ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-8"
+                            onClick={() => handleViewAs(u)}
+                          >
+                            <Eye className="mr-2 h-3.5 w-3.5" />
+                            View as
+                          </Button>
+                        ) : <span className="text-xs text-muted-foreground">—</span>}
                       </TableCell>
                       <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                         <div className="flex justify-end gap-1">

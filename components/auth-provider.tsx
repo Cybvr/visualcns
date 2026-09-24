@@ -68,10 +68,12 @@ type AuthContextValue = {
   role: UserRole | null
   loading: boolean
   isAdmin: boolean
-  /** True when an admin is previewing the dashboard as another user. */
+  /** True when an admin is viewing the app as another user. */
+  isViewingAs: boolean
+  /** True when an admin is viewing the client portal as another user. */
   isImpersonating: boolean
   tenantStatus: TenantStatus | null
-  /** The user being previewed, when impersonating. */
+  /** The user being viewed, when an admin is using "View as". */
   impersonatedUser: AppUser | null
   /** Admin-only: start previewing the app as `target`. */
   viewAsUser: (target: AppUser) => void
@@ -135,7 +137,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             try {
               const target = await getUser(viewAsUid)
               const sameTenant = doc.role === "superadmin" || target?.tenantId === doc.tenantId
-              if (target?.role === "client" && target.companyId && sameTenant) setImpersonated(target)
+              const canViewTarget = sameTenant && (
+                (target?.role === "client" && Boolean(target.companyId)) ||
+                ((target?.role === "admin" || target?.role === "superadmin") && Boolean(target.tenantId))
+              )
+              if (canViewTarget) setImpersonated(target)
               else {
                 sessionStorage.removeItem(VIEW_AS_KEY)
                 setImpersonated(null)
@@ -229,10 +235,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const role = realAppUser?.role ?? null
   const isAdmin = role === "admin" || role === "superadmin"
-  const isImpersonating = isAdmin && impersonated !== null
+  const isViewingAs = isAdmin && impersonated !== null
+  const isImpersonating = isViewingAs && impersonated?.role === "client"
 
   function viewAsUser(target: AppUser) {
-    if (!isAdmin || target.role !== "client" || !target.companyId || (role !== "superadmin" && target.tenantId !== realAppUser?.tenantId)) return
+    const canViewClient = target.role === "client" && Boolean(target.companyId)
+    const canViewAdmin = (target.role === "admin" || target.role === "superadmin") && Boolean(target.tenantId)
+    if (!isAdmin || (!canViewClient && !canViewAdmin) || (role !== "superadmin" && target.tenantId !== realAppUser?.tenantId)) return
     sessionStorage.setItem(VIEW_AS_KEY, target.uid)
     setImpersonated(target)
   }
@@ -246,13 +255,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     <AuthContext.Provider
       value={{
         user,
-        appUser: isImpersonating ? impersonated : realAppUser,
+        appUser: isViewingAs ? impersonated : realAppUser,
         role,
         loading,
         isAdmin,
+        isViewingAs,
         isImpersonating,
         tenantStatus,
-        impersonatedUser: isImpersonating ? impersonated : null,
+        impersonatedUser: isViewingAs ? impersonated : null,
         viewAsUser,
         stopViewingAs,
         signUpWithEmail,

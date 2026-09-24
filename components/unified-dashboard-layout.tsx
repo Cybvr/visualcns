@@ -23,7 +23,7 @@ const DASHBOARD_NAV: NavLink[] = [
 ]
 
 function UnifiedDashboardShell({ children, requireAdmin = false }: { children: ReactNode; requireAdmin?: boolean }) {
-  const { user, appUser, role, isAdmin, isImpersonating, impersonatedUser, stopViewingAs, loading, signOut, tenantStatus } = useAuth()
+  const { user, appUser, role, isAdmin, isImpersonating, isViewingAs, impersonatedUser, stopViewingAs, loading, signOut, tenantStatus } = useAuth()
   const router = useRouter()
 
   useEffect(() => {
@@ -74,7 +74,7 @@ function UnifiedDashboardShell({ children, requireAdmin = false }: { children: R
             ...link,
             items: link.items?.filter((item) => !item.adminOnly || isAdmin),
           }))}
-        banner={isImpersonating ? (
+        banner={isViewingAs ? (
           <div className="flex h-10 items-center justify-between gap-3 border-b border-amber-200 bg-amber-50 px-4 text-sm text-amber-900 dark:border-amber-500/30 dark:bg-amber-950 dark:text-amber-200 sm:px-6">
             <span className="flex min-w-0 items-center gap-2">
               <Eye className="h-4 w-4 shrink-0" />

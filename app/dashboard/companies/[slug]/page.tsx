@@ -79,8 +79,12 @@ export default function DashboardCompanyPage() {
           ? {
               sharePath: `/portal/${encodeURIComponent(organization?.slug || workspaceId)}`,
               onViewWorkspace: (person) => {
+                const canViewClient = person.role === "client" && Boolean(person.companyId)
+                const canViewAdmin = (person.role === "admin" || person.role === "superadmin") && Boolean(person.tenantId)
+                if (!canViewClient && !canViewAdmin) return
                 viewAsUser(person)
-                router.push(`/portal/${encodeURIComponent(organization?.slug || workspaceId)}`)
+                const clientWorkspace = organization?.slug || person.companyId
+                router.push(canViewClient ? `/portal/${encodeURIComponent(clientWorkspace as string)}` : "/dashboard/overview")
               },
               onMediaChange: async (media) => {
                 await updateOrganization(workspaceId, { media })

@@ -23,7 +23,7 @@ import {
 
 export function NavUser() {
   const { isMobile } = useSidebar()
-  const { user, appUser, isImpersonating, signOut } = useAuth()
+  const { user, appUser, isViewingAs, signOut } = useAuth()
 
   const name = appUser?.displayName || appUser?.company || user?.displayName || "Account"
   const email = appUser?.email || user?.email || ""
@@ -73,7 +73,7 @@ export function NavUser() {
                   <span className="truncate font-medium">{name}</span>
                   <span className="truncate text-xs">{email}</span>
                   <span className="truncate text-xs text-muted-foreground">{role}</span>
-                  {isImpersonating && <span className="truncate text-[10px] text-amber-700">Viewing as client</span>}
+                  {isViewingAs && <span className="truncate text-[10px] text-amber-700">Viewing as {appUser?.role === "client" ? "client" : "admin"}</span>}
                 </div>
               </div>
             </DropdownMenuLabel>

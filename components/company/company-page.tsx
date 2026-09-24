@@ -416,9 +416,12 @@ export function CompanyPage({
                         admin && person.adminUser ? (
                           <>
                             <DropdownMenuItem onSelect={() => setEditingPerson(person.adminUser ?? null)}>Edit</DropdownMenuItem>
-                            <DropdownMenuItem onSelect={() => person.adminUser && admin.onViewWorkspace(person.adminUser)}>
-                              View workspace
-                            </DropdownMenuItem>
+                            {((person.adminUser.role === "client" && person.adminUser.companyId) ||
+                              ((person.adminUser.role === "admin" || person.adminUser.role === "superadmin") && person.adminUser.tenantId)) && (
+                              <DropdownMenuItem onSelect={() => admin.onViewWorkspace(person.adminUser as AppUser)}>
+                                View as
+                              </DropdownMenuItem>
+                            )}
                             <DropdownMenuItem
                               variant="destructive"
                               onSelect={() => setPendingRemove(person.adminUser ?? null)}
