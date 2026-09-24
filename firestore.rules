@@ -82,14 +82,15 @@ service cloud.firestore {
     }
 
     // Deliberately published, allowlisted client views; no internal note fields.
+    // resource is null for a missing doc; admins check existence before publishing.
     match /portalProjects/{id} {
-      allow read: if tenantAdmin(resource.data) || owns(resource.data);
+      allow read: if (resource == null && isAdmin()) || tenantAdmin(resource.data) || owns(resource.data);
       allow create: if isAdmin() && sameTenant(request.resource.data);
       allow update: if tenantAdmin(resource.data) && sameTenant(request.resource.data);
       allow delete: if tenantAdmin(resource.data);
     }
     match /portalTasks/{id} {
-      allow read: if tenantAdmin(resource.data) || (owns(resource.data) && visibleProject(resource.data.projectId));
+      allow read: if (resource == null && isAdmin()) || tenantAdmin(resource.data) || (owns(resource.data) && visibleProject(resource.data.projectId));
       allow create: if isAdmin() && sameTenant(request.resource.data);
       allow delete: if tenantAdmin(resource.data);
       allow update: if tenantAdmin(resource.data) || (owns(resource.data) && visibleProject(resource.data.projectId)

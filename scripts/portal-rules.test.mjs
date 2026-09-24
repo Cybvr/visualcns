@@ -93,6 +93,12 @@ test('files and memberships cannot be accessed or reassigned across companies',a
   await assertFails(updateDoc(doc(a,'users/client-a'),{role:'admin'}))
   await assertFails(deleteDoc(doc(a,'users/client-a')))
 })
+test('admins can check a portal copy exists before creating a task, clients cannot',async()=>{
+  await assertSucceeds(getDoc(doc(admin,'portalTasks/new-task')))
+  await assertSucceeds(getDoc(doc(admin,'portalProjects/new-project')))
+  await assertFails(getDoc(doc(a,'portalTasks/new-task')))
+  await assertFails(getDoc(doc(anon,'portalProjects/new-project')))
+})
 test('unsharing a project revokes its task and feedback access',async()=>{
   await assertSucceeds(deleteDoc(doc(admin,'portalProjects/p-a')))
   await assertFails(getDoc(doc(a,'portalTasks/t-a')))

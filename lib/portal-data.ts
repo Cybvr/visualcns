@@ -53,12 +53,14 @@ export async function ensureTaskShared(task: Task) {
   const taskRef = doc(db, "portalTasks", task.id)
   const [projSnap, taskSnap] = await Promise.all([getDoc(projectRef), getDoc(taskRef)])
 
+  const tenantId = task.tenantId || await getCurrentTenantId()
   if (!projSnap.exists()) {
     const project = await getProject(task.projectId)
-    if (project) await writeBatch(db).set(projectRef, projectForPortal(project, "")).commit()
+    // Older projects have no tenantId; the rules need the writer's tenant on the copy.
+    if (project) await writeBatch(db).set(projectRef, { ...projectForPortal(project, ""), tenantId: project.tenantId || tenantId }).commit()
   }
 
-  const safe = { tenantId: task.tenantId || await getCurrentTenantId(), companyId: task.companyId, projectId: task.projectId, name: task.name, status: task.status, dueDate: task.dueDate || "" }
+  const safe = { tenantId, companyId: task.companyId, projectId: task.projectId, name: task.name, status: task.status, dueDate: task.dueDate || "" }
   if (taskSnap.exists()) {
     await writeBatch(db).update(taskRef, safe).commit()
   } else {
