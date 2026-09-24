@@ -5,6 +5,7 @@ import { useParams } from "next/navigation"
 import { Loader2 } from "lucide-react"
 
 import { Badge } from "@/components/inline-table-cells"
+import { TaskContent } from "@/components/dashboard/task-content"
 import { getTask, taskPriorityMeta, taskStatusMeta, type Task } from "@/lib/tasks"
 
 export default function SharedTaskPage() {
@@ -64,9 +65,7 @@ export default function SharedTaskPage() {
           </header>
           <div className="px-6 py-7 sm:px-8">
             <h2 className="text-sm font-semibold">Details</h2>
-            <div className="mt-3 whitespace-pre-wrap break-words text-sm leading-6 text-muted-foreground">
-              {task.content || "No details added."}
-            </div>
+            <TaskContent value={task.content || ""} className="mt-3" />
           </div>
         </article>
         <p className="mt-6 text-center text-xs text-muted-foreground">Shared publicly by VisualHQ</p>

@@ -6,7 +6,6 @@ import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent } from "@/components/ui/card"
 import {
   Select,
@@ -30,6 +29,8 @@ import {
 import { getProjects, getProjectsByCompanyId, createProject, type Project } from "@/lib/projects"
 import { getUsers, type AppUser } from "@/lib/users"
 import { cn } from "@/lib/utils"
+import { RichTextEditor } from "@/components/dashboard/rich-text-editor"
+import { taskContentHtml } from "@/components/dashboard/task-content"
 
 type FormState = {
   name: string
@@ -444,13 +445,12 @@ export function TaskForm({ task, fixedClient, defaults, onSaved, onCancel }: Tas
         </div>
 
         <div className="space-y-1.5">
-          <Label htmlFor="content">Content</Label>
-          <Textarea
-            id="content"
-            value={form.content}
-            onChange={(e) => set("content", e.target.value)}
+          <Label>Content</Label>
+          <RichTextEditor
+            value={taskContentHtml(form.content)}
+            onChange={(content) => set("content", content)}
             placeholder="Notes, links, details of the work..."
-            rows={8}
+            compact
           />
         </div>
 
