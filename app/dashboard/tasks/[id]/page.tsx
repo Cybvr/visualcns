@@ -8,7 +8,8 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/inline-table-cells"
 import { ShareLinkField } from "@/components/dashboard/share-link-field"
-import { TaskContent } from "@/components/dashboard/task-content"
+import { RichTextEditor } from "@/components/dashboard/rich-text-editor"
+import { taskContentHtml } from "@/components/dashboard/task-content"
 import { getTask, taskPriorityMeta, taskStatusMeta, updateTask, type Task } from "@/lib/tasks"
 
 export default function TaskDetailPage() {
@@ -16,6 +17,8 @@ export default function TaskDetailPage() {
   const router = useRouter()
   const [task, setTask] = useState<Task | null>(null)
   const [loading, setLoading] = useState(true)
+  const [contentDraft, setContentDraft] = useState("")
+  const [savingContent, setSavingContent] = useState(false)
   const [sharing, setSharing] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -26,6 +29,7 @@ export default function TaskDetailPage() {
     try {
       const found = await getTask(id)
       setTask(found)
+      setContentDraft(found?.content ?? "")
       if (!found) setError("This task could not be found.")
     } catch (caughtError) {
       setTask(null)
@@ -50,6 +54,20 @@ export default function TaskDetailPage() {
       setError(caughtError instanceof Error ? caughtError.message : "The public link could not be updated.")
     } finally {
       setSharing(false)
+    }
+  }
+
+  async function saveContent() {
+    if (!task) return
+    setSavingContent(true)
+    setError(null)
+    try {
+      await updateTask(task.id, { content: contentDraft })
+      setTask((current) => current ? { ...current, content: contentDraft } : current)
+    } catch (caughtError) {
+      setError(caughtError instanceof Error ? caughtError.message : "The task content could not be saved.")
+    } finally {
+      setSavingContent(false)
     }
   }
 
@@ -108,7 +126,18 @@ export default function TaskDetailPage() {
 
           <section className="space-y-2">
             <h2 className="text-sm font-semibold">Details</h2>
-            <TaskContent value={task.content || ""} />
+            <RichTextEditor
+              value={taskContentHtml(contentDraft)}
+              onChange={setContentDraft}
+              placeholder="Notes, links, details of the work..."
+              compact
+            />
+            <div className="flex justify-end">
+              <Button size="sm" onClick={() => void saveContent()} disabled={savingContent}>
+                {savingContent && <Loader2 className="mr-2 size-4 animate-spin" />}
+                Save details
+              </Button>
+            </div>
           </section>
 
           <section className="space-y-2 border-t border-border pt-5">
