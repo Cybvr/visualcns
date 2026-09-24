@@ -19,7 +19,7 @@ export default function SharedTaskPage() {
     getTask(id)
       .then((found) => {
         if (active) {
-          setTask(found?.shareEnabled ? found : null)
+          setTask(found && (found.shareEnabled || found.isPublic) ? found : null)
           setLoading(false)
         }
       })

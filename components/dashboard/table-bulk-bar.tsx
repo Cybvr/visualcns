@@ -40,7 +40,7 @@ export function TableBulkBar({
   const plural = nounPlural ?? `${noun}s`
   const label = `${count} ${count === 1 ? noun : plural}`
   return (
-    <div className="mb-3 flex items-center justify-between gap-3 rounded-lg border border-border bg-muted/40 px-3 py-2">
+    <div className="sticky top-14 z-20 mb-3 flex items-center justify-between gap-3 rounded-lg border border-border bg-muted/95 px-3 py-2 shadow-sm backdrop-blur-sm">
       <span className="text-sm font-medium">{count} selected</span>
       <div className="flex items-center gap-2">
         <Button variant="ghost" size="sm" onClick={onClear}>Clear</Button>

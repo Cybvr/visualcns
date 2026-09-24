@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import {
@@ -30,11 +30,10 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet"
-import { ListTodo, Pencil, Plus, Trash2, Loader2 } from "lucide-react"
+import { ListTodo, Maximize2, Pencil, Plus, Trash2, Loader2 } from "lucide-react"
 import {
   getTasks,
   deleteTask,
-  updateTask,
   taskStatusMeta,
   taskPriorityMeta,
   tsToMillis,
@@ -43,8 +42,7 @@ import {
   type TaskPriority,
 } from "@/lib/tasks"
 import { DashboardPageSkeleton } from "@/components/dashboard/dashboard-page-skeleton"
-import { getProjects, type Project } from "@/lib/projects"
-import { Badge, InlineProject, InlineSelect } from "@/components/inline-table-cells"
+import { Badge } from "@/components/inline-table-cells"
 import { TaskForm } from "@/components/dashboard/task-form"
 import { EmptySearchState, FirstRunState } from "@/components/dashboard/empty-state"
 import { FilterBar, useFilterBar, type SortOption } from "@/components/dashboard/filter-bar"
@@ -53,8 +51,6 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { useRowSelection } from "@/hooks/use-row-selection"
 import { MobileDataCard } from "@/components/dashboard/mobile-data-card"
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
-
-const STATUS_OPTIONS: TaskStatus[] = ["todo", "in-progress", "review", "done"]
 
 const STATUS_RANK: Record<TaskStatus, number> = { todo: 0, "in-progress": 1, review: 2, done: 3 }
 const PRIORITY_RANK: Record<TaskPriority, number> = { low: 0, medium: 1, high: 2 }
@@ -86,9 +82,7 @@ function searchTask(t: Task) {
 }
 
 export default function TasksAdminPage() {
-  const router = useRouter()
   const [tasks, setTasks] = useState<Task[]>([])
-  const [projects, setProjects] = useState<Project[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
@@ -99,11 +93,10 @@ export default function TasksAdminPage() {
   async function fetchData() {
     setError(null)
     try {
-      const [taskData, projectData] = await Promise.all([getTasks(), getProjects()])
+      const taskData = await getTasks()
       // Newest first, like Notion's default
       taskData.sort((a, b) => tsToMillis(b.createdAt) - tsToMillis(a.createdAt))
       setTasks(taskData)
-      setProjects(projectData)
     } catch (err) {
       console.error("Error fetching tasks:", err)
       setError(err instanceof Error ? err.message : "Failed to load tasks.")
@@ -127,17 +120,6 @@ export default function TasksAdminPage() {
       console.error("Error deleting task:", err)
     } finally {
       setDeleting(null)
-    }
-  }
-
-  // Inline table edits: optimistic, then persist; refetch to revert on failure.
-  async function handlePatch(id: string, patch: Partial<Task>) {
-    setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, ...patch } : t)))
-    try {
-      await updateTask(id, patch)
-    } catch (err) {
-      console.error("Error updating task:", err)
-      fetchData()
     }
   }
 
@@ -205,15 +187,14 @@ export default function TasksAdminPage() {
             <EmptySearchState label="No tasks match your search." />
           ) : (
             <>
-              <ul className="sm:hidden">
+              <ul className="space-y-2 sm:hidden">
                 {visibleTasks.map((t) => (
                   <li key={t.id}>
                     <MobileDataCard
-                      variant="task"
                       title={t.name || "Untitled task"}
                       subtitle={[t.client || t.companyId, t.project, taskStatusMeta[t.status]?.label].filter(Boolean).join(" · ") || undefined}
                       icon={<ListTodo className="size-5 text-muted-foreground" aria-hidden="true" />}
-                      onClick={() => router.push(`/dashboard/tasks/${encodeURIComponent(t.id)}`)}
+                      onClick={() => setSelectedId(t.id)}
                       ariaLabel={`Open ${t.name || "task"}`}
                       menuLabel={`Options for ${t.name || "task"}`}
                       menu={
@@ -258,7 +239,7 @@ export default function TasksAdminPage() {
                     <TableRow
                       key={t.id}
                       className="cursor-pointer"
-                      onClick={() => router.push(`/dashboard/tasks/${encodeURIComponent(t.id)}`)}
+                      onClick={() => setSelectedId(t.id)}
                     >
                       <TableCell onClick={(e) => e.stopPropagation()}>
                         <Checkbox
@@ -270,32 +251,18 @@ export default function TasksAdminPage() {
                       <TableCell className="max-w-0 font-medium">
                         <button
                           type="button"
-                          className="w-full truncate rounded px-1 py-0.5 text-left font-medium hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                          onClick={() => router.push(`/dashboard/tasks/${encodeURIComponent(t.id)}`)}
+                          className="w-full truncate rounded px-1 py-0.5 text-left font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                          onClick={() => setSelectedId(t.id)}
                         >
                           {t.name || "Untitled task"}
                         </button>
                       </TableCell>
                       <TableCell className="max-w-0 truncate text-muted-foreground">{t.client || t.companyId || "—"}</TableCell>
-                      <TableCell className="max-w-0 overflow-hidden" onClick={(event) => event.stopPropagation()}>
-                        <InlineProject
-                          projectId={t.projectId}
-                          projects={projects.filter((p) => p.companyId === t.companyId)}
-                          onChange={(p) => handlePatch(t.id, { projectId: p.id, project: p.title })}
-                        />
-                      </TableCell>
-                      <TableCell className="whitespace-nowrap" onClick={(event) => event.stopPropagation()}>
-                        <InlineSelect
-                          value={t.status}
-                          options={STATUS_OPTIONS}
-                          onChange={(status) => handlePatch(t.id, { status })}
-                          renderOption={(s) => taskStatusMeta[s].label}
-                          trigger={
-                            <Badge className={(taskStatusMeta[t.status] ?? taskStatusMeta.todo).className}>
-                              {(taskStatusMeta[t.status] ?? taskStatusMeta.todo).label}
-                            </Badge>
-                          }
-                        />
+                      <TableCell className="max-w-0 truncate text-muted-foreground">{t.project || "—"}</TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        <Badge className={(taskStatusMeta[t.status] ?? taskStatusMeta.todo).className}>
+                          {(taskStatusMeta[t.status] ?? taskStatusMeta.todo).label}
+                        </Badge>
                       </TableCell>
                       <TableCell className="text-right" onClick={(event) => event.stopPropagation()}>
                         <div className="flex justify-end gap-1">
@@ -372,10 +339,21 @@ export default function TasksAdminPage() {
       <Sheet open={selectedId !== null} onOpenChange={(open) => !open && setSelectedId(null)}>
         <SheetContent side="right" className="inset-y-2 right-2 h-[calc(100%-1rem)] w-[calc(100%-1rem)] gap-0 overflow-y-auto rounded-lg border sm:max-w-lg">
           <SheetHeader className="border-b">
-            <SheetTitle>{selectedId === "new" ? "New task" : "Edit task"}</SheetTitle>
-            <SheetDescription>
-              {selectedId === "new" ? "Create a task for any client." : selectedTask?.name ?? ""}
-            </SheetDescription>
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <SheetTitle>{selectedId === "new" ? "New task" : "Edit task"}</SheetTitle>
+                <SheetDescription>
+                  {selectedId === "new" ? "Create a task for any client." : selectedTask?.name ?? ""}
+                </SheetDescription>
+              </div>
+              {selectedTask && (
+                <Button variant="ghost" size="icon" asChild className="shrink-0" title="Open full task page">
+                  <Link href={`/dashboard/tasks/${encodeURIComponent(selectedTask.id)}`} aria-label="Open full task page">
+                    <Maximize2 className="size-4" aria-hidden="true" />
+                  </Link>
+                </Button>
+              )}
+            </div>
           </SheetHeader>
           <div className="p-4">
             {selectedId !== null && (

@@ -123,6 +123,8 @@ export function DashboardShell({
   // navigation remains available as a collapsed icon rail.
   const isDocumentRoute = /^\/dashboard\/documents\/[^/]+/.test(pathname ?? "")
   const isProjectDetailRoute = /^\/dashboard\/projects\/[^/]+$/.test(pathname ?? "")
+  const isTaskDetailRoute = /^\/dashboard\/tasks\/[^/]+$/.test(pathname ?? "")
+  const isBackDetailRoute = isProjectDetailRoute || isTaskDetailRoute
   const isCompanyDetailRoute = /^\/dashboard\/(?:companies|clients)\/[^/]+$/.test(pathname ?? "")
   // The dashboard home is Ngai too, so it gets the same full-height chat layout.
   const isAgentRoute = pathname === "/dashboard" || /^\/dashboard\/agent(?:\/[^/]+)?$/.test(pathname ?? "")
@@ -202,12 +204,18 @@ export function DashboardShell({
             )}
           >
             <div className="flex shrink-0 items-center gap-2 md:hidden">
-              {isProjectDetailRoute ? (
+              {isBackDetailRoute ? (
                 <button
                   type="button"
-                  onClick={() => (window.history.length > 1 ? router.back() : router.push("/dashboard/projects"))}
-                  aria-label="Back to projects"
-                  title="Back to projects"
+                  onClick={() => {
+                    if (window.history.length > 1) {
+                      router.back()
+                    } else {
+                      router.push(isTaskDetailRoute ? "/dashboard/tasks" : "/dashboard/projects")
+                    }
+                  }}
+                  aria-label={isTaskDetailRoute ? "Back to tasks" : "Back to projects"}
+                  title={isTaskDetailRoute ? "Back to tasks" : "Back to projects"}
                   className="flex size-8 items-center justify-center rounded-md text-primary-foreground outline-none transition-colors hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <ArrowLeft className="size-5" aria-hidden="true" />
@@ -233,10 +241,10 @@ export function DashboardShell({
               </h1>
             </div>
             <div className="ml-auto flex shrink-0 items-center gap-2">
-              {!isProjectDetailRoute && <DashboardSearchButton className={cn("md:hidden", replacesMobileDefaults && "max-sm:hidden")} />}
+              {!isBackDetailRoute && <DashboardSearchButton className={cn("md:hidden", replacesMobileDefaults && "max-sm:hidden")} />}
               <div ref={setHeaderSlot} className="contents" />
               {headerActions}
-              {!isCompanyDetailRoute && !isProjectDetailRoute && (
+              {!isCompanyDetailRoute && !isBackDetailRoute && (
                 <QuickCreateMenu
                   onSelect={selectQuickCreate}
                   trigger={

@@ -27,7 +27,7 @@ export function ShareLinkField({
 
   return (
     <div className="flex flex-wrap items-center justify-between gap-2">
-      <Label htmlFor="share-toggle" className="text-sm font-medium" title="Anyone with the link can view this without an account">
+      <Label htmlFor="share-toggle" className="text-sm font-medium">
         Public link
       </Label>
       <div className="flex flex-wrap items-center gap-2">

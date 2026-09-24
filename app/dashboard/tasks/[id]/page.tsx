@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
-import { ArrowLeft, ExternalLink, Loader2 } from "lucide-react"
+import { ArrowLeft, ExternalLink, Loader2, Share2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { ShareLinkField } from "@/components/dashboard/share-link-field"
 import { TaskForm } from "@/components/dashboard/task-form"
 import { getTask, updateTask, type Task } from "@/lib/tasks"
@@ -15,31 +16,43 @@ export default function TaskEditPage() {
   const router = useRouter()
   const [task, setTask] = useState<Task | null>(null)
   const [loading, setLoading] = useState(true)
-  const [sharing, setSharing] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [shareOpen, setShareOpen] = useState(false)
+  const [shareEnabled, setShareEnabled] = useState(false)
+  const [shareSaving, setShareSaving] = useState(false)
+  const [shareError, setShareError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!id) return
     getTask(id)
       .then((found) => {
         setTask(found)
+        setShareEnabled(Boolean(found?.shareEnabled))
         if (!found) setError("This task could not be found.")
       })
       .catch((caughtError) => setError(caughtError instanceof Error ? caughtError.message : "This task could not be loaded."))
       .finally(() => setLoading(false))
   }, [id])
 
-  async function setPublic(value: boolean) {
+  function openShare() {
     if (!task) return
-    setSharing(true)
-    setError(null)
+    setShareEnabled(Boolean(task.shareEnabled))
+    setShareError(null)
+    setShareOpen(true)
+  }
+
+  async function saveSharing() {
+    if (!task) return
+    setShareSaving(true)
+    setShareError(null)
     try {
-      await updateTask(task.id, { shareEnabled: value })
-      setTask((current) => current ? { ...current, shareEnabled: value } : current)
+      await updateTask(task.id, { shareEnabled })
+      setTask((current) => current ? { ...current, shareEnabled } : current)
+      setShareOpen(false)
     } catch (caughtError) {
-      setError(caughtError instanceof Error ? caughtError.message : "The public link could not be updated.")
+      setShareError(caughtError instanceof Error ? caughtError.message : "The task sharing settings could not be updated.")
     } finally {
-      setSharing(false)
+      setShareSaving(false)
     }
   }
 
@@ -50,7 +63,6 @@ export default function TaskEditPage() {
   if (!task) {
     return (
       <main className="mx-auto w-full max-w-3xl px-4 py-8 sm:px-6">
-        <Button variant="ghost" onClick={() => router.push("/dashboard/tasks")}><ArrowLeft className="mr-2 size-4" />Back to tasks</Button>
         <Card className="mt-6">
           <CardContent className="py-12 text-center text-sm text-muted-foreground">{error || "This task could not be found."}</CardContent>
         </Card>
@@ -62,19 +74,27 @@ export default function TaskEditPage() {
 
   return (
     <main className="mx-auto w-full max-w-3xl px-4 pb-12 pt-4 sm:px-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <Button variant="ghost" onClick={() => router.push("/dashboard/tasks")}><ArrowLeft className="mr-2 size-4" />Back to tasks</Button>
-        {task.shareEnabled && (
-          <Button variant="outline" size="sm" asChild>
-            <a href={publicPath} target="_blank" rel="noreferrer"><ExternalLink className="mr-2 size-4" />Open public link</a>
+      <div className="flex items-center justify-between gap-3">
+        <Button variant="ghost" size="sm" onClick={() => router.push("/dashboard/tasks")}>
+          <ArrowLeft className="mr-2 size-4" aria-hidden="true" />
+          Back to tasks
+        </Button>
+        <div className="flex justify-end gap-2">
+          <Button variant="outline" size="sm" onClick={openShare}>
+            <Share2 className="mr-2 size-4" aria-hidden="true" />
+            Share
           </Button>
-        )}
+          {task.shareEnabled && (
+            <Button variant="outline" size="sm" asChild>
+              <a href={publicPath} target="_blank" rel="noreferrer"><ExternalLink className="mr-2 size-4" />Open public link</a>
+            </Button>
+          )}
+        </div>
       </div>
 
       <section className="mt-6">
-        <h1 className="text-xl font-semibold">Edit task</h1>
         {error && <p className="mt-3 text-sm text-destructive" role="alert">{error}</p>}
-        <div className="mt-6">
+        <div className={error ? "mt-6" : undefined}>
           <TaskForm
             task={task}
             onSaved={(savedId) => router.replace(`/dashboard/tasks/${encodeURIComponent(savedId)}`)}
@@ -83,13 +103,23 @@ export default function TaskEditPage() {
         </div>
       </section>
 
-      <section className="mt-8 border-t border-border pt-6">
-        <h2 className="text-base font-semibold">Public sharing</h2>
-        <p className="mt-1 text-sm text-muted-foreground">Anyone with the link can view this task without signing in.</p>
-        <div className={`mt-4 ${sharing ? "pointer-events-none opacity-60" : ""}`}>
-          <ShareLinkField enabled={Boolean(task.shareEnabled)} onEnabledChange={(value) => void setPublic(value)} path={publicPath} />
-        </div>
-      </section>
+      <Dialog open={shareOpen} onOpenChange={setShareOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Share task</DialogTitle>
+            <DialogDescription>Control access to this task with a public link.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <ShareLinkField enabled={shareEnabled} onEnabledChange={setShareEnabled} path={publicPath} />
+            {shareError && <p className="text-sm text-destructive" role="alert">{shareError}</p>}
+            <div className="flex justify-end border-t border-border pt-4">
+              <Button onClick={() => void saveSharing()} disabled={shareSaving}>
+                {shareSaving ? "Saving" : "Save sharing"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </main>
   )
 }

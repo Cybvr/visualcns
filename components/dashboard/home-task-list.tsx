@@ -54,13 +54,12 @@ export function HomeTaskList({
           No tasks yet.
         </p>
       ) : (
-        <ul className="mt-3 grid grid-cols-1 gap-2">
+        <ul className="mt-3 space-y-2">
           {tasks.map((task) => {
             const dueDate = formatDueDate(task.dueDate)
             return (
               <li key={task.id}>
                 <MobileDataCard
-                  variant="task"
                   title={task.name}
                   subtitle={[task.project, dueDate ? `Due ${dueDate}` : ""].filter(Boolean).join(" · ") || undefined}
                   icon={<ListTodo className="size-5 text-blue-600 dark:text-blue-400" aria-hidden="true" />}

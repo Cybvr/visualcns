@@ -1,7 +1,11 @@
 "use client"
 
+import Link from "next/link"
+import { Maximize2 } from "lucide-react"
+
 import { TaskForm } from "@/components/dashboard/task-form"
 import { TaskComments } from "@/components/dashboard/task-comments"
+import { Button } from "@/components/ui/button"
 import {
   Sheet,
   SheetContent,
@@ -35,12 +39,23 @@ export function TaskEditorSheet({
         className="inset-y-2 right-2 h-[calc(100%-1rem)] w-[calc(100%-1rem)] gap-0 overflow-y-auto rounded-lg border sm:max-w-lg"
       >
         <SheetHeader className="border-b border-border">
-          <SheetTitle>{task ? "Edit task" : "New task"}</SheetTitle>
-          <SheetDescription>
-            {task
-              ? "Update the details of this task."
-              : "Add a task to your board. It will show up under the chosen status."}
-          </SheetDescription>
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <SheetTitle>{task ? "Edit task" : "New task"}</SheetTitle>
+              <SheetDescription>
+                {task
+                  ? "Update the details of this task."
+                  : "Add a task to your board. It will show up under the chosen status."}
+              </SheetDescription>
+            </div>
+            {task && (
+              <Button variant="ghost" size="icon" asChild className="shrink-0" title="Open full task page">
+                <Link href={`/dashboard/tasks/${encodeURIComponent(task.id)}`} aria-label="Open full task page">
+                  <Maximize2 className="size-4" aria-hidden="true" />
+                </Link>
+              </Button>
+            )}
+          </div>
         </SheetHeader>
         <div className="p-4">
           {open && (
