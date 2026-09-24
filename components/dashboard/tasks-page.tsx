@@ -37,14 +37,13 @@ import {
   taskStatusMeta,
   taskPriorityMeta,
   tsToMillis,
-  formatTimestamp,
   type Task,
   type TaskStatus,
   type TaskPriority,
 } from "@/lib/tasks"
 import { DashboardPageSkeleton } from "@/components/dashboard/dashboard-page-skeleton"
 import { getProjects, type Project } from "@/lib/projects"
-import { Badge, InlineDate, InlineProject, InlineSelect, InlineText } from "@/components/inline-table-cells"
+import { Badge, InlineProject, InlineSelect, InlineText } from "@/components/inline-table-cells"
 import { TaskForm } from "@/components/dashboard/task-form"
 import { EmptySearchState, FirstRunState } from "@/components/dashboard/empty-state"
 import { FilterBar, useFilterBar, type SortOption } from "@/components/dashboard/filter-bar"
@@ -55,7 +54,6 @@ import { MobileDataCard } from "@/components/dashboard/mobile-data-card"
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 
 const STATUS_OPTIONS: TaskStatus[] = ["todo", "in-progress", "review", "done"]
-const PRIORITY_OPTIONS: TaskPriority[] = ["low", "medium", "high"]
 
 const STATUS_RANK: Record<TaskStatus, number> = { todo: 0, "in-progress": 1, review: 2, done: 3 }
 const PRIORITY_RANK: Record<TaskPriority, number> = { low: 0, medium: 1, high: 2 }
@@ -235,7 +233,7 @@ export default function TasksAdminPage() {
                 onClear={selection.clear}
                 onDelete={handleBulkDelete}
               />
-              <Table>
+              <Table className="table-fixed">
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-10">
@@ -246,14 +244,11 @@ export default function TasksAdminPage() {
                         onChange={selection.toggleAll}
                       />
                     </TableHead>
-                    <TableHead>Task</TableHead>
-                    <TableHead>Client</TableHead>
-                    <TableHead>Project</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Priority</TableHead>
-                    <TableHead>Created</TableHead>
-                    <TableHead>Due</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                    <TableHead className="w-[40%]">Task</TableHead>
+                    <TableHead className="w-[18%]">Client</TableHead>
+                    <TableHead className="w-[24%]">Project</TableHead>
+                    <TableHead className="w-32">Status</TableHead>
+                    <TableHead className="w-20 text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -266,18 +261,18 @@ export default function TasksAdminPage() {
                           onChange={() => selection.toggle(t.id)}
                         />
                       </TableCell>
-                      <TableCell className="font-medium">
+                      <TableCell className="max-w-0 font-medium">
                         <InlineText value={t.name} onCommit={(name) => handlePatch(t.id, { name })} />
                       </TableCell>
-                      <TableCell className="text-muted-foreground">{t.client || t.companyId || "—"}</TableCell>
-                      <TableCell>
+                      <TableCell className="max-w-0 truncate text-muted-foreground">{t.client || t.companyId || "—"}</TableCell>
+                      <TableCell className="max-w-0 overflow-hidden">
                         <InlineProject
                           projectId={t.projectId}
                           projects={projects.filter((p) => p.companyId === t.companyId)}
                           onChange={(p) => handlePatch(t.id, { projectId: p.id, project: p.title })}
                         />
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="whitespace-nowrap">
                         <InlineSelect
                           value={t.status}
                           options={STATUS_OPTIONS}
@@ -289,23 +284,6 @@ export default function TasksAdminPage() {
                             </Badge>
                           }
                         />
-                      </TableCell>
-                      <TableCell>
-                        <InlineSelect
-                          value={t.priority}
-                          options={PRIORITY_OPTIONS}
-                          onChange={(priority) => handlePatch(t.id, { priority })}
-                          renderOption={(p) => taskPriorityMeta[p].label}
-                          trigger={
-                            <Badge className={(taskPriorityMeta[t.priority] ?? taskPriorityMeta.medium).className}>
-                              {(taskPriorityMeta[t.priority] ?? taskPriorityMeta.medium).label}
-                            </Badge>
-                          }
-                        />
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">{formatTimestamp(t.createdAt)}</TableCell>
-                      <TableCell>
-                        <InlineDate value={t.dueDate} onCommit={(dueDate) => handlePatch(t.id, { dueDate })} />
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-1">
