@@ -123,7 +123,7 @@ type AuthContextValue = {
   stopViewingAs: () => void
   signUpWithEmail: (name: string, email: string, password: string, agencyName?: string, createWorkspace?: boolean) => Promise<void>
   signInWithEmail: (email: string, password: string) => Promise<void>
-  signInWithGoogle: (agencyName?: string, createWorkspace?: boolean, workspaceId?: string) => Promise<void>
+  signInWithGoogle: (agencyName?: string, createWorkspace?: boolean) => Promise<void>
   signOut: () => Promise<void>
 }
 
@@ -200,27 +200,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return unsubscribe
   }, [])
 
-  async function signInWithGoogle(agencyName = "", createWorkspace = false, workspaceId = "") {
+  async function signInWithGoogle(agencyName = "", createWorkspace = false) {
     const authenticatedUser = (await signInWithPopup(auth, googleProvider)).user
-    if (workspaceId) {
-      const idToken = await authenticatedUser.getIdToken()
-      const response = await fetch("/api/auth/workspaces", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${idToken}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ workspaceId }),
-      })
-      const data = await response.json() as { error?: string; status?: string }
-      if (!response.ok) throw new Error(data.error || "Could not join organization")
-      const doc = await upsertUserOnLogin({
-        uid: authenticatedUser.uid,
-        email: authenticatedUser.email,
-        displayName: authenticatedUser.displayName,
-        photoURL: authenticatedUser.photoURL,
-      })
-      setRealAppUser(doc)
-      setTenantStatus((data.status as TenantStatus | undefined) || "trial")
-      return
-    }
     if (createWorkspace) {
       const doc = await upsertUserOnLogin({
         uid: authenticatedUser.uid,

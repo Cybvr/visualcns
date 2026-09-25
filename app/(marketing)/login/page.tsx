@@ -12,66 +12,26 @@ import { safeReturnTo } from "@/lib/portal-model"
 
 type AuthAction = "google" | null
 
-type WorkspaceOption = {
-  id: string
-  name: string
-  logoUrl?: string
-}
-
 export default function LoginPage() {
   const router = useRouter()
-  const { user, appUser, isAdmin, loading, signInWithGoogle } = useAuth()
-  const [workspaces, setWorkspaces] = useState<WorkspaceOption[]>([])
-  const [selectedWorkspace, setSelectedWorkspace] = useState("")
-  const [workspacesLoading, setWorkspacesLoading] = useState(true)
+  const { user, appUser, isAdmin, loading, signInWithGoogle, signOut } = useAuth()
   const [action, setAction] = useState<AuthAction>(null)
   const [error, setError] = useState<string | null>(null)
+  // Signed in, but nobody has invited this account yet and it hasn't created a workspace.
+  const notSetUp = Boolean(user && appUser && (!appUser.role || !appUser.tenantId))
 
   useEffect(() => {
-    let active = true
-    fetch("/api/auth/workspaces", { cache: "no-store" })
-      .then(async (response) => {
-        const data = await response.json() as { workspaces?: WorkspaceOption[]; error?: string }
-        if (!response.ok) throw new Error(data.error || "Could not load organizations")
-        if (active) {
-          const options = data.workspaces || []
-          setWorkspaces(options)
-          setSelectedWorkspace(options[0]?.id || "")
-        }
-      })
-      .catch((loadError) => {
-        if (active) setError(loadError instanceof Error ? loadError.message : "Could not load organizations")
-      })
-      .finally(() => { if (active) setWorkspacesLoading(false) })
-    return () => { active = false }
-  }, [])
-
-  useEffect(() => {
-    const needsWorkspaceSelection = Boolean(
-      user &&
-      appUser &&
-      (!appUser.role || !appUser.tenantId || (
-        appUser.role === "admin" &&
-        appUser.tenantId === user.uid &&
-        appUser.companyId === user.uid &&
-        appUser.welcomeEmailPending
-      )),
-    )
-    if (!loading && !action && user && !needsWorkspaceSelection) {
+    if (!loading && !action && user && !notSetUp) {
       const requested = safeReturnTo(new URLSearchParams(window.location.search).get("next"))
       router.replace(requested || (isAdmin ? "/dashboard" : "/portal"))
     }
-  }, [loading, user, appUser, isAdmin, router, action])
+  }, [loading, user, notSetUp, isAdmin, router, action])
 
   async function handleGoogleSignIn() {
-    if (!selectedWorkspace) {
-      setError("Choose your organization first.")
-      return
-    }
     setAction("google")
     setError(null)
     try {
-      await signInWithGoogle("", false, selectedWorkspace)
+      await signInWithGoogle()
     } catch (err) {
       const message = err instanceof Error ? err.message : "Sign-in failed. Please try again."
       // Popup closed by user isn't an error worth showing loudly
@@ -85,7 +45,7 @@ export default function LoginPage() {
     }
   }
 
-  const busy = loading || workspacesLoading || action !== null
+  const busy = loading || action !== null
 
   return (
     <main className="flex min-h-svh items-center justify-center bg-muted/40 px-4 py-8">
@@ -103,21 +63,14 @@ export default function LoginPage() {
           <h1 id="login-heading" className="text-center text-3xl tracking-[-0.02em] text-foreground">
             Sign in
           </h1>
-          <p className="mt-2 text-center text-sm text-muted-foreground">Choose your organization to continue.</p>
         </div>
 
-        <div className="mb-4 space-y-2">
-          <label htmlFor="workspace" className="text-sm font-medium text-foreground">Organization</label>
-          <select
-            id="workspace"
-            value={selectedWorkspace}
-            onChange={(event) => setSelectedWorkspace(event.target.value)}
-            disabled={busy || workspaces.length === 0}
-            className="h-10 w-full rounded-none border border-input bg-background px-3 text-base text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring md:text-sm"
-          >
-            {workspaces.length === 0 ? <option value="">No organizations available</option> : workspaces.map((workspace) => <option key={workspace.id} value={workspace.id}>{workspace.name}</option>)}
-          </select>
-        </div>
+        {notSetUp && !action && (
+          <div role="status" className="mb-4 border border-border bg-muted/40 p-3 text-sm leading-5 text-muted-foreground">
+            <p>You’re signed in as {user?.email || "this account"}, but it isn’t linked to a workspace yet. Open the invite link you were sent, or ask the person who shared this link to invite this email.</p>
+            <button type="button" className="mt-2 font-medium text-foreground underline underline-offset-4" onClick={() => void signOut()}>Use a different account</button>
+          </div>
+        )}
 
         <Button
           type="button"
