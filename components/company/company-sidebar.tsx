@@ -94,9 +94,13 @@ export function CompanySidebar({
 export function CompanyDetails({
   company,
   onSave,
+  hideTags = false,
+  hideDescription = false,
 }: {
   company: CompanySidebarCompany
   onSave?: (patch: CompanyDetailsPatch) => Promise<void>
+  hideTags?: boolean
+  hideDescription?: boolean
 }) {
   const [addingTag, setAddingTag] = useState(false)
   const [tagDraft, setTagDraft] = useState("")
@@ -141,8 +145,8 @@ export function CompanyDetails({
   return (
     <div>
       {onSave ? (
-          <div className="divide-y divide-border/60">
-            <div className="surface-body flex items-start justify-between gap-3 py-2.5">
+          <div>
+            {!hideTags && <div className="surface-body flex items-start justify-between gap-3 py-2.5">
               <span className="shrink-0 pt-0.5 text-muted-foreground">Tags</span>
               <div className="flex flex-1 flex-wrap items-center justify-end gap-1.5">
                 {(company.tags ?? []).map((tag) => (
@@ -190,7 +194,7 @@ export function CompanyDetails({
                   </button>
                 )}
               </div>
-            </div>
+            </div>}
             <DetailsRow label="Domain">
               <Input
                 key={company.website ?? ""}
@@ -200,7 +204,7 @@ export function CompanyDetails({
                 className="surface-body h-7 border-transparent bg-transparent px-2 text-right shadow-none hover:border-input focus-visible:border-ring"
               />
             </DetailsRow>
-            <DetailsRow label="Description">
+            {!hideDescription && <DetailsRow label="Description">
               <Input
                 key={company.description ?? ""}
                 defaultValue={company.description ?? ""}
@@ -208,7 +212,7 @@ export function CompanyDetails({
                 placeholder="Add a description"
                 className="surface-body h-7 border-transparent bg-transparent px-2 text-right shadow-none hover:border-input focus-visible:border-ring"
               />
-            </DetailsRow>
+            </DetailsRow>}
             <DetailsRow label="Industry">
               <Select
                 value={company.industry ?? ""}
@@ -272,8 +276,8 @@ export function CompanyDetails({
             </DetailsRow>
           </div>
         ) : (
-          <div className="divide-y divide-border/60">
-            <div className="surface-body flex items-center justify-between gap-3 py-2.5">
+          <div>
+            {!hideTags && <div className="surface-body flex items-center justify-between gap-3 py-2.5">
               <span className="shrink-0 text-muted-foreground">Tags</span>
               {(company.tags?.length ?? 0) > 0 ? (
                 <div className="flex flex-wrap items-center justify-end gap-1.5">
@@ -286,9 +290,9 @@ export function CompanyDetails({
               ) : (
                 <span className="text-muted-foreground/60">Not set</span>
               )}
-            </div>
+            </div>}
             <DetailRow label="Domain" value={company.website} editable={false} />
-            <DetailRow label="Description" value={company.description} editable={false} />
+            {!hideDescription && <DetailRow label="Description" value={company.description} editable={false} />}
             <DetailRow label="Industry" value={company.industry} editable={false} />
             <DetailRow label="Location" value={company.location} editable={false} />
             <DetailRow

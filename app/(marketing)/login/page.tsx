@@ -8,6 +8,7 @@ import { BrandLockup } from "@/components/brand-lockup"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/components/auth-provider"
 import { authErrorMessage, GoogleIcon } from "@/components/auth-ui"
+import { getOrganization, organizationRef } from "@/lib/organizations"
 import { safeReturnTo } from "@/lib/portal-model"
 
 type AuthAction = "google" | null
@@ -57,10 +58,28 @@ export default function LoginPage() {
         appUser.welcomeEmailPending
       )),
     )
-    if (!loading && !action && user && !needsWorkspaceSelection) {
-      const requested = safeReturnTo(new URLSearchParams(window.location.search).get("next"))
-      router.replace(requested || (isAdmin ? "/dashboard" : "/portal"))
+    if (loading || action || !user || needsWorkspaceSelection) return
+
+    const requested = safeReturnTo(new URLSearchParams(window.location.search).get("next"))
+    if (requested) {
+      router.replace(requested)
+      return
     }
+    if (isAdmin) {
+      router.replace("/dashboard")
+      return
+    }
+    if (!appUser?.companyId) return
+
+    let active = true
+    getOrganization(appUser.companyId)
+      .then((organization) => {
+        if (active) router.replace(organization ? `/${encodeURIComponent(organizationRef(organization))}` : "/")
+      })
+      .catch(() => {
+        if (active) router.replace("/")
+      })
+    return () => { active = false }
   }, [loading, user, appUser, isAdmin, router, action])
 
   async function handleGoogleSignIn() {

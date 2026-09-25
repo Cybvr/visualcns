@@ -138,7 +138,7 @@ export default function UsersAdminPage() {
     const canViewAdmin = (u.role === "admin" || u.role === "superadmin") && Boolean(u.tenantId)
     if (!canViewClient && !canViewAdmin) return
     viewAsUser(u)
-    router.push(canViewClient ? `/portal/${encodeURIComponent(u.companyId as string)}` : "/dashboard/overview")
+    router.push(canViewClient ? `/${encodeURIComponent(u.companyId as string)}` : "/dashboard/overview")
   }
 
   const { results: visibleUsers, bar } = useFilterBar({

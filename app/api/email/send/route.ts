@@ -108,8 +108,8 @@ function brandedEmail(content: string, subject: string, input: unknown, senderAd
   }
   const websiteUrl = absoluteWebUrl(brand.website, SITE_ORIGIN)
   const ctaSource = ctaInput && typeof ctaInput === "object" ? ctaInput as Record<string, unknown> : {}
-  const ctaText = safeBrandValue(ctaSource.text, "Open your client portal") || "Open your client portal"
-  const ctaUrl = absoluteWebUrl(safeBrandValue(ctaSource.url), `${SITE_ORIGIN}/portal`)
+  const ctaText = safeBrandValue(ctaSource.text, "Open your company page") || "Open your company page"
+  const ctaUrl = absoluteWebUrl(safeBrandValue(ctaSource.url), `${SITE_ORIGIN}/`)
   const contactItems = brand.address ? escapeHtml(brand.address) : ""
   const websiteLink = brand.website
     ? `<a href="${escapeHtml(websiteUrl)}" style="color:#5f6472;text-decoration:underline;">${escapeHtml(brand.website)}</a>`
@@ -484,8 +484,8 @@ export async function POST(request: Request) {
   ].join("")
   const brandSource = payload.brand && typeof payload.brand === "object" ? payload.brand as Record<string, unknown> : {}
   const ctaSource = payload.cta && typeof payload.cta === "object" ? payload.cta as Record<string, unknown> : {}
-  const ctaText = safeBrandValue(ctaSource.text, "Open your client portal") || "Open your client portal"
-  const ctaUrl = absoluteWebUrl(safeBrandValue(ctaSource.url), `${SITE_ORIGIN}/portal`)
+  const ctaText = safeBrandValue(ctaSource.text, "Open your company page") || "Open your company page"
+  const ctaUrl = absoluteWebUrl(safeBrandValue(ctaSource.url), `${SITE_ORIGIN}/`)
   const footerText = [
     safeBrandValue(brandSource.name, "VisualCNS") || "VisualCNS",
     safeBrandValue(brandSource.address, "Lagos, Nigeria"),

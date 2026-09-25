@@ -1,16 +1,18 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useState, type ReactNode } from "react"
 import Link from "next/link"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
-import { ArrowLeft, Briefcase, ExternalLink, FolderOpen, Mail, MoreVertical, Share2, User as UserIcon } from "lucide-react"
+import { ArrowLeft, Briefcase, ExternalLink, FolderOpen, Mail, MoreVertical, Share2, User as UserIcon, X } from "lucide-react"
 import { toast } from "sonner"
 
 import { CompanyDocuments, type CompanyDocumentKind } from "@/components/company/company-documents"
 import { CompanyDocumentView } from "@/components/dashboard/company-document-view"
 import { CompanyEmptyState } from "@/components/company/empty-state"
 import { CompanyMedia } from "@/components/company/company-media"
-import { CompanyDetails, CompanySidebar, type CompanyDetailsPatch } from "@/components/company/company-sidebar"
+import { CompanyDetails, type CompanyDetailsPatch } from "@/components/company/company-sidebar"
+import { CompanyProfileHeader } from "@/components/company/company-profile-header"
+import { ImageDropzone } from "@/components/image-dropzone"
 import { SectionAddButton } from "@/components/company/section-add-button"
 import { SectionNav } from "@/components/company/section-nav"
 import { ContractDocument } from "@/components/dashboard/contract-document"
@@ -38,6 +40,7 @@ import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import type { Contract, Estimate, Invoice } from "@/lib/billing"
 import { getBusinessProfile, type BusinessProfile } from "@/lib/business-profile"
 import type { CompanyDocument } from "@/lib/company-documents"
@@ -57,6 +60,108 @@ const SECTIONS = [
 
 type SectionKey = (typeof SECTIONS)[number]["key"]
 
+function ProfileCard({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <section className="rounded-2xl bg-card p-5 sm:p-7">
+      <h2 className="text-xl font-semibold tracking-[-0.02em] text-foreground">{title}</h2>
+      <div className="mt-5">{children}</div>
+    </section>
+  )
+}
+
+function CompanyAboutCard({ description, onSave }: { description?: string; onSave?: (patch: CompanyDetailsPatch) => Promise<void> }) {
+  const [draft, setDraft] = useState(description ?? "")
+
+  useEffect(() => setDraft(description ?? ""), [description])
+
+  return (
+    <ProfileCard title="About">
+      {onSave ? (
+        <Textarea
+          value={draft}
+          onChange={(event) => setDraft(event.target.value)}
+          onBlur={() => {
+            const next = draft.trim()
+            if (next !== (description ?? "")) void onSave({ description: next })
+          }}
+          placeholder="Add a description"
+          className="min-h-28 resize-y border-transparent bg-transparent px-0 text-sm leading-6 shadow-none focus-visible:border-transparent focus-visible:ring-0"
+          aria-label="Company description"
+        />
+      ) : (
+        <p className="whitespace-pre-wrap text-sm leading-6 text-foreground">
+          {description || "No description yet."}
+        </p>
+      )}
+    </ProfileCard>
+  )
+}
+
+function CompanyTagsCard({ tags = [], onSave }: { tags?: string[]; onSave?: (patch: CompanyDetailsPatch) => Promise<void> }) {
+  const [adding, setAdding] = useState(false)
+  const [draft, setDraft] = useState("")
+
+  function addTag() {
+    const next = draft.trim()
+    setDraft("")
+    setAdding(false)
+    if (!next || tags.includes(next) || !onSave) return
+    void onSave({ tags: [...tags, next] })
+  }
+
+  return (
+    <ProfileCard title="Tags">
+      <div className="flex flex-wrap gap-2">
+        {tags.map((tag) => (
+          <span key={tag} className="inline-flex items-center gap-1.5 rounded-full bg-muted px-3 py-1.5 text-sm font-medium text-foreground">
+            {tag}
+            {onSave && (
+              <button
+                type="button"
+                onClick={() => void onSave({ tags: tags.filter((item) => item !== tag) })}
+                aria-label={`Remove ${tag} tag`}
+                className="text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <X className="size-3.5" aria-hidden="true" />
+              </button>
+            )}
+          </span>
+        ))}
+        {onSave && (adding ? (
+          <input
+            autoFocus
+            value={draft}
+            onChange={(event) => setDraft(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault()
+                addTag()
+              }
+              if (event.key === "Escape") {
+                setDraft("")
+                setAdding(false)
+              }
+            }}
+            onBlur={addTag}
+            placeholder="Tag name"
+            className="h-9 w-28 rounded-full bg-muted px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            aria-label="New tag"
+          />
+        ) : (
+          <button
+            type="button"
+            onClick={() => setAdding(true)}
+            className="rounded-full bg-muted px-3 py-1.5 text-sm text-muted-foreground outline-none transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            + Add tag
+          </button>
+        ))}
+        {!tags.length && !onSave && <span className="text-sm text-muted-foreground">No tags yet.</span>}
+      </div>
+    </ProfileCard>
+  )
+}
+
 export interface CompanyPagePerson {
   id: string
   name: string
@@ -69,6 +174,7 @@ export interface CompanyPagePerson {
 export interface CompanyPageCompany {
   id: string
   name: string
+  slug?: string
   logoUrl?: string
   categoryLabel: string
   industry?: string
@@ -153,6 +259,8 @@ export function CompanyPage({
   const [removing, setRemoving] = useState(false)
   const [creatingDocument, setCreatingDocument] = useState(false)
   const [creatingProject, setCreatingProject] = useState(false)
+  const [logoEditOpen, setLogoEditOpen] = useState(false)
+  const [mediaAddOpen, setMediaAddOpen] = useState(false)
   const [shareOpen, setShareOpen] = useState(false)
   const [issuer, setIssuer] = useState<BusinessProfile | null>(null)
 
@@ -255,8 +363,6 @@ export function CompanyPage({
     tags: company.tags,
     primaryContactId: company.primaryContactId,
   }
-  const showCompanySidebar = Boolean(profile.industry)
-
   async function handleDuplicateProject(project: Project) {
     if (!admin || projectActionBusy) return
     setProjectActionBusy(true)
@@ -325,7 +431,7 @@ export function CompanyPage({
               companyName: company.name,
               recipientEmail: primaryContact?.adminUser?.email,
               recipientName: primaryContact?.adminUser?.displayName || primaryContact?.name,
-              ctaText: "Open your client portal",
+              ctaText: "Open your company page",
               ctaUrl: admin.sharePath,
             })}>
               <Mail className="size-4" aria-hidden="true" />
@@ -349,23 +455,52 @@ export function CompanyPage({
   usePageHeaderActions(headerActions)
 
   return (
-    <main className="mx-auto min-h-screen w-full max-w-7xl px-4 pb-16 pt-6 sm:px-6">
-      <div className={showCompanySidebar ? "grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)]" : "block"}>
-        {showCompanySidebar && <CompanySidebar company={profile} />}
+    <main className="mx-auto min-h-screen w-full max-w-7xl px-4 pb-16 pt-2 sm:px-6 sm:pt-3">
+      <CompanyProfileHeader
+        name={company.name}
+        handle={company.slug || admin?.sharePath.split("/").filter(Boolean).pop()}
+        categoryLabel={company.categoryLabel}
+        logoUrl={company.logoUrl}
+        coverUrl={company.media?.find((url) => url && url !== company.logoUrl)}
+        location={company.location}
+        website={company.website}
+        linkedIn={company.linkedIn}
+        contactCount={people.length}
+        publicPath={admin?.sharePath}
+        admin={Boolean(admin)}
+        onShare={admin ? () => setShareOpen(true) : undefined}
+        onEdit={admin ? () => router.push(`${pathname}/edit`) : undefined}
+        onChangeLogo={admin ? () => setLogoEditOpen(true) : undefined}
+        onChangeCover={admin ? () => {
+          setMediaAddOpen(true)
+          handleSectionChange("media")
+        } : undefined}
+      />
 
-        <div className="min-w-0">
-          <div className="print:hidden">
-            <SectionNav sections={SECTIONS} active={section} onChange={handleSectionChange} />
-          </div>
+      <div className="mt-4 print:hidden">
+        <SectionNav sections={SECTIONS} active={section} onChange={handleSectionChange} className="gap-7" />
+      </div>
 
+      <div className="min-w-0">
           {section === "about" && (
-            <div className="mt-4">
-              <CompanyDetails company={profile} onSave={admin?.onUpdateCompany} />
+            <div className="mt-5 grid gap-6 lg:grid-cols-[minmax(0,0.72fr)_minmax(0,1.28fr)]">
+              <div className="space-y-6">
+                <CompanyAboutCard description={company.description} onSave={admin?.onUpdateCompany} />
+                <CompanyTagsCard tags={company.tags} onSave={admin?.onUpdateCompany} />
+              </div>
+              <ProfileCard title="Details">
+                <CompanyDetails
+                  company={profile}
+                  onSave={admin?.onUpdateCompany}
+                  hideTags
+                  hideDescription
+                />
+              </ProfileCard>
             </div>
           )}
 
           {section === "team" && (
-            <div className="mt-4">
+            <div className="mt-5">
               <div className="flex items-center justify-between gap-4">
                 <h2 className="sr-only">Team</h2>
                 <span className="text-sm text-muted-foreground">
@@ -439,7 +574,7 @@ export function CompanyPage({
           )}
 
           {section === "projects" && (
-            <div className="mt-4">
+            <div className="mt-5">
               <div className="flex items-center justify-between gap-4">
                 <h2 className="sr-only">Projects</h2>
                 <span className="text-sm text-muted-foreground">
@@ -531,18 +666,20 @@ export function CompanyPage({
           )}
 
           {section === "media" && (
-            <CompanyMedia
+            <div className="mt-5"><CompanyMedia
               logoUrl={company.logoUrl}
               projects={projects}
               uploaded={company.media ?? []}
               onUploadedChange={
                 admin?.onMediaChange ? (urls) => void admin.onMediaChange?.(urls) : undefined
               }
-            />
+              openAdd={mediaAddOpen}
+              onOpenAddChange={setMediaAddOpen}
+            /></div>
           )}
 
           {section === "documents" && (
-            <div className="mt-4">
+            <div className="mt-5">
               {selectedDocument ? (
                 <div>
                   <div className="mb-4 flex flex-wrap items-center justify-between gap-3 print:hidden">
@@ -597,11 +734,27 @@ export function CompanyPage({
               )}
             </div>
           )}
-        </div>
       </div>
 
       {admin && (
         <>
+          <Dialog open={logoEditOpen} onOpenChange={setLogoEditOpen}>
+            <DialogContent className="max-w-sm">
+              <DialogHeader>
+                <DialogTitle>Company image</DialogTitle>
+                <DialogDescription>Choose the image shown beside the company name.</DialogDescription>
+              </DialogHeader>
+              <ImageDropzone
+                compact
+                label="Logo"
+                value={company.logoUrl || ""}
+                onChange={(url) => {
+                  void admin.onUpdateCompany({ logoUrl: url }).then(() => setLogoEditOpen(false))
+                }}
+              />
+            </DialogContent>
+          </Dialog>
+
           <NewDocumentDialog
             open={creatingDocument}
             onOpenChange={setCreatingDocument}
@@ -776,11 +929,11 @@ export function CompanyPage({
           <Dialog open={shareOpen} onOpenChange={setShareOpen}>
             <DialogContent className="max-h-[85vh] max-w-2xl overflow-y-auto">
               <DialogHeader>
-                <DialogTitle>Share client portal</DialogTitle>
-                <DialogDescription>Control what {company.name} sees after signing in, then share their workspace link.</DialogDescription>
+                <DialogTitle>Share company page</DialogTitle>
+                <DialogDescription>Control what {company.name} sees after signing in, then share their company page link.</DialogDescription>
               </DialogHeader>
               <ShareLink value={absoluteUrl(admin.sharePath)} label="Workspace link" />
-              <p className="text-xs text-muted-foreground">Clients sign in with their invited account. Previously shared company links continue to open this portal.</p>
+              <p className="text-xs text-muted-foreground">Clients sign in with their invited account. Previously shared company links continue to open this company page.</p>
               <div className="border-t border-border pt-4">
                 <PortalPublishingPanel companyId={company.id} projects={projects} people={people} active={shareOpen} />
               </div>

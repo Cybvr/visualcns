@@ -1,5 +1,6 @@
-import { PortalWorkspace } from "@/components/portal/portal-workspace"
+import { redirect } from "next/navigation"
 
-export default function CompanyPortalPage() {
-  return <PortalWorkspace section="overview" />
+export default async function CompanyPortalPage({ params }: { params: Promise<{ companySlug: string }> }) {
+  const { companySlug } = await params
+  redirect(`/${encodeURIComponent(companySlug)}`)
 }

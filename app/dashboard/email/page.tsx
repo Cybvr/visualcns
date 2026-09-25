@@ -763,8 +763,8 @@ export default function EmailPage() {
     const address = businessProfile?.address || "Lagos, Nigeria"
     const website = businessProfile?.website || "visualcns.com"
     const websiteUrl = website.startsWith("http") ? website : `https://${website}`
-    const ctaUrl = composeContext?.ctaUrl || `${origin}/portal`
-    const ctaText = composeContext?.ctaText || "Open your client portal"
+    const ctaUrl = composeContext?.ctaUrl || `${origin}/`
+    const ctaText = composeContext?.ctaText || "Open your company page"
     return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>html{color-scheme:light}body{margin:0;padding:0;background:#f3f4f7;color:#20232d;font-family:Arial,Helvetica,sans-serif}table{border-collapse:collapse}img{display:block;max-width:100%;height:auto;max-height:56px;object-fit:contain;object-position:left center}p{margin:0 0 1em}ul,ol{padding-left:1.5rem}a{color:#1649d8}</style></head><body><table role="presentation" width="100%" style="width:100%;background:#f3f4f7"><tr><td align="center" style="padding:28px 12px"><table role="presentation" width="600" style="width:100%;max-width:600px;background:#fff"><tr><td style="padding:22px 28px;height:56px;line-height:0"><img src="${escapeHtmlAttribute(absoluteLogoUrl)}" width="320" alt="${escapeHtmlAttribute(brandName)}" style="display:block;width:320px;max-width:100%;height:auto;max-height:56px;object-fit:contain;object-position:left center;border:0"></td></tr><tr><td style="padding:8px 28px 12px;font-size:15px;line-height:1.65;overflow-wrap:anywhere"><h1 style="margin:0 0 18px;font-size:24px;line-height:1.25;color:#20232d">${escapeHtml(subject || "(No subject)")}</h1>${content}</td></tr><tr><td style="padding:0 28px 30px"><a href="${escapeHtmlAttribute(ctaUrl)}" style="display:inline-block;background:#111318;border-radius:999px;color:#fff;padding:12px 20px;font-size:14px;font-weight:700;line-height:20px;text-decoration:none">${escapeHtml(ctaText)}</a></td></tr><tr><td style="padding:20px 28px;background:#f8f8fa;border-top:1px solid #e7e8ec;font-size:12px;line-height:1.6;color:#6d7280"><strong style="color:#303440">${escapeHtml(brandName)}</strong><br>${escapeHtml(address)}<br><a href="${escapeHtmlAttribute(websiteUrl)}" style="color:#5f6472">${escapeHtml(website)}</a></td></tr></table></td></tr></table></body></html>`
   }
 
@@ -1065,7 +1065,7 @@ export default function EmailPage() {
           html: bodyHtml,
           brand: businessProfile,
           cta: composeContext?.ctaUrl
-            ? { text: composeContext.ctaText || "Open your client portal", url: composeContext.ctaUrl }
+            ? { text: composeContext.ctaText || "Open your company page", url: composeContext.ctaUrl }
             : undefined,
           companyId: composeContext?.companyId,
           projectId: composeContext?.projectId,
@@ -1238,9 +1238,9 @@ export default function EmailPage() {
         "<p>Hi there,</p>" +
         "<p>We’ve added a new section to your portal called Insights.</p>" +
         "<p>It gives you practical suggestions for growing your business across four areas: your website, your social media, your brand and design, and your content and marketing. Each suggestion is based on your account and the work we’re already doing together, so they’re specific to you rather than generic advice.</p>" +
-        "<p>You can open Insights any time from your portal, and refresh it whenever you’d like a fresh set of ideas.</p>" +
+        "<p>You can open Insights any time from your company page, and refresh it whenever you’d like a fresh set of ideas.</p>" +
         "<p>Take a look when you have a moment, and let us know which suggestions you’d like us to take on. We’re happy to talk any of them through.</p>" +
-        "<p><a href=\"/portal\" style=\"display:inline-block;background:#2856d9;color:#ffffff;text-decoration:none;font-weight:600;padding:12px 22px;border-radius:10px\">Open your portal</a></p>" +
+        "<p><a href=\"/\" style=\"display:inline-block;background:#2856d9;color:#ffffff;text-decoration:none;font-weight:600;padding:12px 22px;border-radius:10px\">Open company page</a></p>" +
         "<p>Best regards,<br />The VisualCNS team</p>",
       updatedAt: new Date().toISOString(),
     }

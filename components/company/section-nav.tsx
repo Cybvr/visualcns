@@ -1,5 +1,7 @@
 "use client"
 
+import { cn } from "@/lib/utils"
+
 export interface SectionNavItem<K extends string> {
   key: K
   label: string
@@ -10,13 +12,15 @@ export function SectionNav<K extends string>({
   sections,
   active,
   onChange,
+  className,
 }: {
   sections: readonly SectionNavItem<K>[]
   active: K
   onChange: (key: K) => void
+  className?: string
 }) {
   return (
-    <nav className="scrollbar-none flex items-end justify-start gap-4 overflow-x-auto p-0">
+    <nav className={cn("scrollbar-none flex items-end justify-start gap-4 overflow-x-auto p-0", className)}>
       {sections.map((s) => (
         <button
           key={s.key}

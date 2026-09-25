@@ -1,7 +1,7 @@
 "use client"
 
 import Image from "next/image"
-import { useEffect, useRef, useState, type ChangeEvent, type DragEvent, type FormEvent, type KeyboardEvent, type ReactNode } from "react"
+import { useEffect, useRef, useState, type ChangeEvent, type ClipboardEvent, type DragEvent, type FormEvent, type KeyboardEvent, type ReactNode } from "react"
 import { ArrowUp, FileText, Loader2, Mic, Plus, UploadCloud, X } from "lucide-react"
 
 import type { AgentConversation, AgentFile, AgentForm, AgentMessage } from "@/components/agent/agent-context"
@@ -409,6 +409,24 @@ export function AgentChat({
     void uploadFiles(files)
   }
 
+  function handlePaste(event: ClipboardEvent<HTMLTextAreaElement>) {
+    if (streaming || uploading) return
+
+    const files = Array.from(event.clipboardData?.items ?? [])
+      .filter((item) => item.kind === "file" && item.type.startsWith("image/"))
+      .map((item) => item.getAsFile())
+      .filter((file): file is File => Boolean(file))
+      .map((file, index) => {
+        if (file.name) return file
+        const extension = file.type.split("/")[1]?.split("+")[0] || "png"
+        return new File([file], `pasted-image-${Date.now()}-${index}.${extension}`, { type: file.type })
+      })
+
+    if (!files.length) return
+    event.preventDefault()
+    void uploadFiles(files)
+  }
+
   function hasFiles(event: DragEvent<HTMLDivElement>) {
     return Array.from(event.dataTransfer?.types ?? []).includes("Files")
   }
@@ -482,7 +500,7 @@ export function AgentChat({
         <div className="pointer-events-none absolute inset-0 z-50 flex items-center justify-center bg-background/85 p-4 backdrop-blur-sm">
           <div className="flex w-full max-w-sm flex-col items-center gap-3 rounded-[16px] border-2 border-dashed border-accent px-6 py-10 text-center">
             <UploadCloud className="size-8 text-accent" aria-hidden="true" />
-            <p className="text-sm font-medium">Drop files to attach</p>
+            <p className="text-sm font-medium">Drop files or paste an image</p>
             <p className="text-xs text-muted-foreground">PDFs and images can be read. Other files can be filed to a company.</p>
           </div>
         </div>
@@ -643,6 +661,7 @@ export function AgentChat({
               value={input}
               onChange={(event) => setInput(event.target.value)}
               onKeyDown={handleKeyDown}
+              onPaste={handlePaste}
               rows={1}
               placeholder="Ask Ngai"
               aria-label="Message Ngai"

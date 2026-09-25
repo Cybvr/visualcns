@@ -39,6 +39,8 @@ export function CompanyMedia({
   projects,
   uploaded = [],
   onUploadedChange,
+  openAdd = false,
+  onOpenAddChange,
 }: {
   logoUrl?: string
   projects: Project[]
@@ -46,6 +48,9 @@ export function CompanyMedia({
   uploaded?: string[]
   /** Present only for admins; wiring it in turns the section into an editor. */
   onUploadedChange?: (urls: string[]) => void
+  /** Opens the existing uploader from an action outside the Media section. */
+  openAdd?: boolean
+  onOpenAddChange?: (open: boolean) => void
 }) {
   const isAdmin = Boolean(onUploadedChange)
   const [addOpen, setAddOpen] = useState(false)
@@ -85,7 +90,13 @@ export function CompanyMedia({
       </div>
 
       {isAdmin && (
-        <Dialog open={addOpen} onOpenChange={setAddOpen}>
+        <Dialog
+          open={addOpen || openAdd}
+          onOpenChange={(open) => {
+            setAddOpen(open)
+            onOpenAddChange?.(open)
+          }}
+        >
           <DialogContent className="max-w-lg">
             <DialogHeader>
               <DialogTitle>Add media</DialogTitle>

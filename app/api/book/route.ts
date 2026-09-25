@@ -15,8 +15,8 @@ const FALLBACK_WELCOME = {
   body:
     "<p>Hi [Customer Name],</p>" +
     "<p>Thanks for reaching out — we've got your request and someone from our team will be in touch shortly to talk through your project.</p>" +
-    "<p>In the meantime, you're welcome to explore your client portal.</p>" +
-    `<p><a href="${SITE_ORIGIN}/portal" style="display:inline-block;background:#0E32FC;color:#ffffff;text-decoration:none;font-weight:600;padding:12px 22px;border-radius:10px">Open your portal</a></p>` +
+    "<p>In the meantime, you're welcome to explore your company page.</p>" +
+    `<p><a href="${SITE_ORIGIN}/" style="display:inline-block;background:#0E32FC;color:#ffffff;text-decoration:none;font-weight:600;padding:12px 22px;border-radius:10px">Open company page</a></p>` +
     "<p>Best regards,<br />The VisualCNS team</p>",
 }
 

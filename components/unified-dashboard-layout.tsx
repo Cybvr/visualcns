@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, type ReactNode } from "react"
 import Image from "next/image"
-import { useRouter } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { Eye, Loader2, LogOut, Pencil } from "lucide-react"
 import { FiBriefcase, FiCheckSquare, FiFileText, FiMail, FiUsers } from "react-icons/fi"
 import { AuthProvider, useAuth } from "@/components/auth-provider"
@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button"
 import { DashboardShell, type NavLink } from "@/components/dashboard-shell"
 import { PageTitleProvider } from "@/components/dashboard/page-title-context"
 import { LegacyClientRedirect } from "@/components/portal/legacy-client-redirect"
+import { TaskSignInGate } from "@/components/dashboard/task-sign-in-gate"
 
 const DASHBOARD_NAV: NavLink[] = [
   { label: "New Chat", href: "/dashboard/agent", icon: Pencil, startsNewChat: true },
@@ -25,16 +26,20 @@ const DASHBOARD_NAV: NavLink[] = [
 function UnifiedDashboardShell({ children, requireAdmin = false }: { children: ReactNode; requireAdmin?: boolean }) {
   const { user, appUser, role, isAdmin, isImpersonating, isViewingAs, impersonatedUser, stopViewingAs, loading, signOut, tenantStatus } = useAuth()
   const router = useRouter()
+  const pathname = usePathname()
+  const isTaskDetailRoute = /^\/dashboard\/tasks\/[^/]+$/.test(pathname ?? "")
 
   useEffect(() => {
     if (loading) return
-    if (!user) router.replace(`/login?next=${encodeURIComponent(window.location.pathname + window.location.search)}`)
+    if (!user && !isTaskDetailRoute) router.replace(`/login?next=${encodeURIComponent(window.location.pathname + window.location.search)}`)
     else if (requireAdmin && !isAdmin) router.replace("/dashboard")
-  }, [loading, user, isAdmin, requireAdmin, router])
+  }, [loading, user, isAdmin, requireAdmin, router, isTaskDetailRoute])
 
-  if (loading || !user) {
+  if (loading) {
     return <div className="flex min-h-screen items-center justify-center bg-background"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
   }
+
+  if (!user) return isTaskDetailRoute ? <TaskSignInGate /> : <div className="flex min-h-screen items-center justify-center bg-background"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
 
   if (requireAdmin && !isAdmin) return null
 

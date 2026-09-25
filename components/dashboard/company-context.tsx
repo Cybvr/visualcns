@@ -69,9 +69,9 @@ const CompanyContext = createContext<CompanyState | null>(null)
  * whole `[slug]` route tree, so the view page and the edit page share one
  * fetch instead of each doing their own.
  */
-export function CompanyProvider({ children }: { children: ReactNode }) {
-  const params = useParams<{ slug: string }>()
-  const ref = params?.slug ?? ""
+export function CompanyProvider({ children, companyRef }: { children: ReactNode; companyRef?: string }) {
+  const params = useParams<{ slug?: string; clientSlug?: string }>()
+  const ref = companyRef ?? params?.slug ?? params?.clientSlug ?? ""
 
   const [client, setClient] = useState<AppUser | null>(null)
   const [organization, setOrganization] = useState<Organization | null>(null)

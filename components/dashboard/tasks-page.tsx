@@ -347,7 +347,7 @@ export default function TasksAdminPage() {
                 </SheetDescription>
               </div>
               {selectedTask && (
-                <Button variant="ghost" size="icon" asChild className="shrink-0" title="Open full task page">
+                <Button variant="ghost" size="icon" asChild className="mr-8 shrink-0" title="Open full task page">
                   <Link href={`/dashboard/tasks/${encodeURIComponent(selectedTask.id)}`} aria-label="Open full task page">
                     <Maximize2 className="size-4" aria-hidden="true" />
                   </Link>

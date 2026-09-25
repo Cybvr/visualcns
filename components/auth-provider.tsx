@@ -13,7 +13,7 @@ import {
 import { auth, googleProvider } from "@/lib/firebase"
 import { ensureAdminBusinessOrganization } from "@/lib/business-profile"
 import { getUser, upsertUserOnLogin, type AppUser, type UserRole } from "@/lib/users"
-import { portalPath } from "@/lib/portal-model"
+import { getOrganization, organizationRef } from "@/lib/organizations"
 import { getTenant, type TenantStatus } from "@/lib/tenants"
 import { LEGACY_TENANT_ID } from "@/lib/tenancy"
 
@@ -40,6 +40,8 @@ async function sendWelcomeEmailIfPending(firebaseUser: User, appUser: AppUser | 
   if (!appUser?.welcomeEmailPending || appUser.welcomeEmailSentAt || appUser.role !== "client" || !appUser.email) return
   try {
     const idToken = await firebaseUser.getIdToken()
+    const organization = appUser.companyId ? await getOrganization(appUser.companyId).catch(() => null) : null
+    const companyRef = organization ? organizationRef(organization) : (appUser.companyId || appUser.uid)
     await fetch("/api/email/send", {
       method: "POST",
       headers: { Authorization: `Bearer ${idToken}`, "Content-Type": "application/json" },
@@ -47,7 +49,7 @@ async function sendWelcomeEmailIfPending(firebaseUser: User, appUser: AppUser | 
         welcome: true,
         templateId: "welcome-client-portal",
         to: appUser.email,
-        cta: { text: "Open your client portal", url: `${portalPath(appUser.companyId || appUser.uid)}` },
+        cta: { text: "Open your company page", url: `/${encodeURIComponent(companyRef)}` },
       }),
     })
   } catch (error) {

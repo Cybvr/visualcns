@@ -231,7 +231,7 @@ export default function CompaniesPage() {
   function handleViewWorkspace(row: CompanyRow) {
     if (!row.user || row.user.role !== "client" || !row.user.companyId) return
     viewAsUser(row.user)
-    router.push(`/portal/${encodeURIComponent(row.slug || row.user.companyId)}`)
+    router.push(`/${encodeURIComponent(row.slug || row.user.companyId)}`)
   }
 
   return (

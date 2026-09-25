@@ -44,10 +44,10 @@ export function readEmailComposeContext(params: URLSearchParams): EmailComposeCo
 export function contextualEmailBody(context: EmailComposeContext) {
   const recipient = context.recipientName || "there"
   if (context.documentTitle) {
-    return `Hi ${recipient},\n\n${context.documentTitle} is ready for you to review. Please use the button below to open it in your client portal.\n\nBest regards,\nVisualCNS Team`
+    return `Hi ${recipient},\n\n${context.documentTitle} is ready for you to review. Please use the button below to open it from your company page.\n\nBest regards,\nVisualCNS Team`
   }
   if (context.projectName) {
-    return `Hi ${recipient},\n\nHere is an update on ${context.projectName}. Please use the button below to open the project workspace in your client portal.\n\nBest regards,\nVisualCNS Team`
+    return `Hi ${recipient},\n\nHere is an update on ${context.projectName}. Please use the button below to open the project workspace from your company page.\n\nBest regards,\nVisualCNS Team`
   }
-  return `Hi ${recipient},\n\nPlease use the button below to open your client portal.\n\nBest regards,\nVisualCNS Team`
+  return `Hi ${recipient},\n\nPlease use the button below to open your company page.\n\nBest regards,\nVisualCNS Team`
 }

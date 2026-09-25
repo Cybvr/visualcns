@@ -81,6 +81,8 @@ export function AppSidebar({
   const { open: agentOpen, setOpen: setAgentOpen, conversations, activeConversationId, reset, selectConversation } = useAgent()
   const { isMobile, setOpenMobile } = useSidebar()
   const brandHref = isMobile ? "/dashboard/agent" : rootHref
+  const displayedBrandName = brandName?.trim() || "VisualCNS"
+  const showSubtitle = Boolean(subtitle?.trim() && subtitle.trim().toLowerCase() !== displayedBrandName.toLowerCase())
 
   // Tapping a destination on mobile should dismiss the slide-over sheet.
   function handleNavigate(adminOnly = false, opensAgent = false) {
@@ -106,8 +108,8 @@ export function AppSidebar({
               <SidebarMenuItem>
                 <SidebarMenuButton size="lg" asChild>
                   <Link href={brandHref} onClick={() => handleNavigate()}>
-                    <BrandLockup logoSize={20} wordmarkScale={0.9} gapClassName="gap-1" brandName={brandName} logoUrl={brandLogoUrl} />
-                    {subtitle && <span className="truncate text-xs text-muted-foreground">{subtitle}</span>}
+                    <BrandLockup logoSize={20} wordmarkScale={0.9} gapClassName="gap-1" brandName={displayedBrandName} logoUrl={brandLogoUrl} />
+                    {showSubtitle && <span className="truncate text-xs text-muted-foreground">{subtitle}</span>}
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
