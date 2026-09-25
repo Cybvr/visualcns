@@ -304,7 +304,7 @@ export default function InvoicesPage() {
                         subtitle={
                           <span className="flex flex-col gap-1">
                             <span className="flex items-center justify-between gap-2">
-                              <span className="truncate">{adminView ? `${invoice.invoiceNumber} · ${organizationNameById.get(invoice.companyId) || "—"}` : invoice.project || formatDate(invoice.issuedOn)} · Due {formatDate(invoice.dueOn)}</span>
+                              <span className="truncate">{adminView ? organizationNameById.get(invoice.companyId) || "—" : invoice.project || formatDate(invoice.issuedOn)} · Due {formatDate(invoice.dueOn)}</span>
                               <span className={cn("shrink-0 rounded-full px-1.5 py-px text-[10px] font-medium", meta.className)}>{meta.label}</span>
                             </span>
                             <span className="font-medium text-foreground">{formatMoney(invoice.amount, invoice.currency)}</span>
