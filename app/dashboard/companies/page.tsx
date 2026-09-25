@@ -62,6 +62,8 @@ type CompanyRow = {
   /** The client account behind this company, when there is one. */
   user?: AppUser
   hasOrg: boolean
+  /** Your own business. It is never removable from this list. */
+  isOwner?: boolean
 }
 
 function normalize(value?: string): string {
@@ -138,6 +140,7 @@ export default function CompaniesPage() {
         : row
       keep.user = keep.user ?? existing.user ?? row.user
       keep.logoUrl = keep.logoUrl || existing.logoUrl || row.logoUrl
+      keep.isOwner = Boolean(existing.isOwner || row.isOwner)
       rows.set(key, keep)
     }
 
@@ -153,6 +156,7 @@ export default function CompaniesPage() {
         createdAt: org.createdAt,
         user: userByWorkspace.get(org.id),
         hasOrg: true,
+        isOwner: org.isOwner === true,
       })
     }
     return [...rows.values()]
@@ -177,10 +181,12 @@ export default function CompaniesPage() {
     defaultSort: "name",
   })
 
-  const selection = useRowSelection(visibleCompanies, (row) => row.id)
+  // Your own business can't be removed, so it can't be selected for bulk delete either.
+  const removableCompanies = useMemo(() => visibleCompanies.filter((row) => !row.isOwner), [visibleCompanies])
+  const selection = useRowSelection(removableCompanies, (row) => row.id)
 
   async function handleDelete(row: CompanyRow) {
-    if (deleting) return
+    if (deleting || row.isOwner) return
     setDeleting(row.id)
     setError(null)
     try {
@@ -206,7 +212,7 @@ export default function CompaniesPage() {
       await Promise.all(
         ids.map(async (id) => {
           const row = byId.get(id)
-          if (!row) return
+          if (!row || row.isOwner) return
           if (row.hasOrg) await deleteOrganization(row.id)
           if (row.user) await deleteUser(row.user.uid)
         }),
@@ -301,7 +307,7 @@ export default function CompaniesPage() {
                 <>
                   <DropdownMenuItem onSelect={() => router.push(companyHref(row))}>Open client</DropdownMenuItem>
                   <DropdownMenuItem onSelect={() => router.push(`${companyHref(row)}/edit`)}>Edit client</DropdownMenuItem>
-                  <DropdownMenuItem variant="destructive" onSelect={() => setPendingDelete(row)}>Remove client</DropdownMenuItem>
+                  {!row.isOwner && <DropdownMenuItem variant="destructive" onSelect={() => setPendingDelete(row)}>Remove client</DropdownMenuItem>}
                 </>
               }
             />
@@ -323,7 +329,7 @@ export default function CompaniesPage() {
                   <>
                     <DropdownMenuItem onSelect={() => router.push(companyHref(row))}>Open client</DropdownMenuItem>
                     <DropdownMenuItem onSelect={() => router.push(`${companyHref(row)}/edit`)}>Edit client</DropdownMenuItem>
-                    <DropdownMenuItem variant="destructive" onSelect={() => setPendingDelete(row)}>Remove client</DropdownMenuItem>
+                    {!row.isOwner && <DropdownMenuItem variant="destructive" onSelect={() => setPendingDelete(row)}>Remove client</DropdownMenuItem>}
                   </>
                 }
               />
@@ -366,11 +372,13 @@ export default function CompaniesPage() {
                   onClick={() => router.push(companyHref(row))}
                 >
                   <TableCell onClick={(e) => e.stopPropagation()}>
-                    <Checkbox
-                      aria-label={`Select ${row.name}`}
-                      checked={selection.isSelected(row.id)}
-                      onChange={() => selection.toggle(row.id)}
-                    />
+                    {!row.isOwner && (
+                      <Checkbox
+                        aria-label={`Select ${row.name}`}
+                        checked={selection.isSelected(row.id)}
+                        onChange={() => selection.toggle(row.id)}
+                      />
+                    )}
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-3">
@@ -419,15 +427,17 @@ export default function CompaniesPage() {
                       >
                         <Pencil className="h-3.5 w-3.5" />
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                        onClick={() => setPendingDelete(row)}
-                        aria-label="Remove client"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
+                      {!row.isOwner && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                          onClick={() => setPendingDelete(row)}
+                          aria-label="Remove client"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
                     </div>
                   </TableCell>
                 </TableRow>

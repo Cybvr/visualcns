@@ -55,7 +55,7 @@ service cloud.firestore {
       allow read: if tenantAdmin(resource.data) || resource.data.get('publicVisible', false) == true;
       allow create: if tenantAdmin(request.resource.data) || (isAdmin() && request.resource.data.tenantId == tenantId());
       allow update: if tenantAdmin(resource.data) && request.resource.data.tenantId == resource.data.get('tenantId', tenantId());
-      allow delete: if tenantAdmin(resource.data);
+      allow delete: if tenantAdmin(resource.data) && resource.data.get('isOwner', false) != true;
     }
     match /settings/{id} {
       allow read: if tenantAdmin(resource.data);
