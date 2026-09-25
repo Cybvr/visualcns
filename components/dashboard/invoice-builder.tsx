@@ -294,7 +294,7 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate }: {
       taxNumber: billToTaxNumber,
     },
     poReference,
-    lineItems: mode === "link" ? [] : lineItems.filter((item) => item.title.trim() || item.description.trim()),
+    lineItems: mode === "link" ? [] : lineItems.filter((item) => item.title?.trim() || item.description.trim()),
     discount,
     subtotal: totals.subtotal,
     discountTotal: totals.discountTotal,
