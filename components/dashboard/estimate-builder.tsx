@@ -20,9 +20,11 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
-import { ArrowLeft, GripVertical, Loader2, Plus, Trash2 } from "lucide-react"
+import { ArrowLeft, Download, Eye, GripVertical, Loader2, Plus, Printer, Trash2 } from "lucide-react"
 
 import { DangerZone } from "@/components/dashboard/danger-zone"
+import { EstimateDocument } from "@/components/dashboard/estimate-document"
+import { downloadEstimatePdf } from "@/components/dashboard/estimate-pdf"
 import { RichTextEditor } from "@/components/dashboard/rich-text-editor"
 import { ShareLinkField } from "@/components/dashboard/share-link-field"
 import { Button } from "@/components/ui/button"
@@ -37,6 +39,8 @@ import {
 } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { getBusinessProfile, type BusinessProfile } from "@/lib/business-profile"
 import { getOrganizations, type Organization } from "@/lib/organizations"
 import {
   createEstimate,
@@ -171,8 +175,11 @@ export function EstimateBuilder({ estimate, initialCompanyId }: { estimate?: Est
   const [clients, setClients] = useState<AppUser[]>([])
   const [organizations, setOrganizations] = useState<Organization[]>([])
   const [projects, setProjects] = useState<Project[]>([])
+  const [issuer, setIssuer] = useState<BusinessProfile | null>(null)
   const [optionsLoading, setOptionsLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [pdfDownloading, setPdfDownloading] = useState(false)
+  const [previewOpen, setPreviewOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const lineSensors = useSensors(
@@ -191,8 +198,8 @@ export function EstimateBuilder({ estimate, initialCompanyId }: { estimate?: Est
 
   useEffect(() => {
     let active = true
-    Promise.all([getUsers(), getProjects(), getOrganizations()])
-      .then(([userList, projectList, organizationList]) => {
+    Promise.all([getUsers(), getProjects(), getOrganizations(), getBusinessProfile()])
+      .then(([userList, projectList, organizationList, profile]) => {
         if (!active) return
         // Several people can share a workspace, so this is narrowed to one
         // entry per companyId - otherwise the same company lists twice (and
@@ -206,6 +213,7 @@ export function EstimateBuilder({ estimate, initialCompanyId }: { estimate?: Est
         setClients(nextClients)
         setOrganizations(organizationList)
         setProjects(projectList)
+        setIssuer(profile)
 
         const selectedCompanyId = estimate?.companyId || initialCompanyId || ""
         const selectedClient = nextClients.find((client) => client.companyId === selectedCompanyId)
@@ -242,6 +250,44 @@ export function EstimateBuilder({ estimate, initialCompanyId }: { estimate?: Est
     () => lines.reduce((sum, line) => sum + (line.optional ? moneyToMinorUnits(line.amount) : 0), 0),
     [lines],
   )
+
+  const selectedClient = clients.find((entry) => entry.companyId === companyId)
+  const selectedProject = projects.find((entry) => entry.id === projectId)
+  const draftEstimate: Estimate = {
+    ...(estimate ?? {}),
+    id: estimate?.id ?? "preview",
+    companyId,
+    client: selectedClient?.company || selectedClient?.displayName || preparedForName,
+    estimateNumber: estimateNumber || "Estimate preview",
+    title,
+    projectId: projectId || "",
+    project: selectedProject?.title || "",
+    status,
+    preparedFor: {
+      name: preparedForName,
+      email: preparedForEmail,
+      address: preparedForAddress,
+    },
+    scope,
+    lineItems: lines
+      .filter((line) => line.description.trim() || moneyToMinorUnits(line.amount) > 0)
+      .map((line) => ({
+        id: line.id,
+        description: line.description.trim(),
+        details: line.details.trim(),
+        billing: line.billing.trim() || "One-time",
+        optional: line.optional,
+        amount: moneyToMinorUnits(line.amount),
+      })),
+    amount: requiredTotal,
+    currency,
+    issuedOn,
+    validUntil,
+    terms,
+    paymentDetails,
+    notes,
+    shareEnabled,
+  }
 
   function selectClient(value: string) {
     setCompanyId(value)
@@ -334,8 +380,23 @@ export function EstimateBuilder({ estimate, initialCompanyId }: { estimate?: Est
     router.push("/dashboard/estimates")
   }
 
+  async function handleDownloadPdf() {
+    if (pdfDownloading) return
+    setPdfDownloading(true)
+    setError(null)
+    try {
+      await downloadEstimatePdf({ estimate: draftEstimate, issuer: issuer ?? undefined })
+    } catch (downloadError) {
+      console.error("Error creating estimate PDF:", downloadError)
+      setError("Couldn’t create the PDF. Try again.")
+    } finally {
+      setPdfDownloading(false)
+    }
+  }
+
   return (
-    <form onSubmit={submit} className="space-y-5">
+    <>
+    <form onSubmit={submit} className="estimate-editor space-y-5 print:hidden">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-2">
           <Link
@@ -351,6 +412,12 @@ export function EstimateBuilder({ estimate, initialCompanyId }: { estimate?: Est
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <Button type="button" variant="outline" size="icon" title="Preview estimate" aria-label="Preview estimate" onClick={() => setPreviewOpen(true)}>
+            <Eye className="size-4" aria-hidden="true" />
+          </Button>
+          <Button type="button" variant="outline" size="icon" title="Print estimate" aria-label="Print estimate" onClick={() => window.print()}>
+            <Printer className="size-4" aria-hidden="true" />
+          </Button>
           <Button type="button" variant="ghost" onClick={() => router.push("/dashboard/estimates")}>Cancel</Button>
           <Button type="submit" disabled={saving}>
             {saving && <Loader2 className="mr-2 size-4 animate-spin" aria-hidden="true" />}
@@ -544,5 +611,26 @@ export function EstimateBuilder({ estimate, initialCompanyId }: { estimate?: Est
         />
       )}
     </form>
+
+    <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+      <DialogContent className="max-h-[90vh] max-w-5xl overflow-y-auto print:hidden">
+        <DialogHeader>
+          <DialogTitle>Estimate preview</DialogTitle>
+          <DialogDescription>Review the estimate with your current edits before saving or downloading.</DialogDescription>
+        </DialogHeader>
+        <EstimateDocument estimate={draftEstimate} issuer={issuer ?? undefined} />
+        <DialogFooter>
+          <Button type="button" onClick={() => void handleDownloadPdf()} disabled={pdfDownloading}>
+            {pdfDownloading ? <Loader2 className="mr-1.5 size-4 animate-spin" aria-hidden="true" /> : <Download className="mr-1.5 size-4" aria-hidden="true" />}
+            Download PDF
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+
+    <div className="hidden print:block print:bg-white print:p-0">
+      <EstimateDocument estimate={draftEstimate} issuer={issuer ?? undefined} />
+    </div>
+    </>
   )
 }
