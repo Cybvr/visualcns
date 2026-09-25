@@ -36,6 +36,10 @@ export async function DELETE(request: NextRequest) {
     const requested = typeof body.tenantId === "string" ? body.tenantId.trim() : ownTenant
     if (role !== "superadmin" && requested !== ownTenant) throw new Error("You can only delete your own tenant")
     if (body.confirmation !== `DELETE ${requested}`) return NextResponse.json({ error: `Type DELETE ${requested} to confirm.` }, { status: 400 })
+    // Deleting a tenant removes its user docs, so never let it take a superadmin
+    // account with it; that would lock platform operators out.
+    const superadmins = await db.collection("users").where("tenantId", "==", requested).where("role", "==", "superadmin").limit(1).get()
+    if (!superadmins.empty) return NextResponse.json({ error: "This organization has a superadmin account. Move or demote it before deleting." }, { status: 400 })
     for (const name of COLLECTIONS) {
       const snapshot = await db.collection(name).where("tenantId", "==", requested).get()
       for (let index = 0; index < snapshot.docs.length; index += 400) {
