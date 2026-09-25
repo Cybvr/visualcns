@@ -17,7 +17,7 @@ export default function DashboardCompanyPage() {
   useEffect(() => {
     if (!isAdmin) return
     getUsers()
-      .then((users) => setAllContacts(users.filter((person) => Boolean(person.displayName?.trim() || person.email?.trim()))))
+      .then(setAllContacts)
       .catch(() => setAllContacts([]))
   }, [isAdmin])
   const {
@@ -68,8 +68,8 @@ export default function DashboardCompanyPage() {
       }))}
       allContacts={allContacts.map((person) => ({
         id: person.uid,
-        name: person.displayName || person.email || "Unnamed person",
-        subtitle: person.email || "No email address",
+        name: person.displayName || person.company || person.email || person.phone || "Unnamed person",
+        subtitle: [person.email, person.phone, person.company].filter(Boolean).join(" · ") || "No contact details",
         email: person.email,
         phone: person.phone,
         role: person.role || "client",

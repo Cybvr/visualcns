@@ -50,6 +50,50 @@ import { useRowSelection } from "@/hooks/use-row-selection"
 import { tsToMillis } from "@/lib/tasks"
 import { cn } from "@/lib/utils"
 import { getOrganizations, type Organization } from "@/lib/organizations"
+import { getExchangeRate } from "@/lib/currency"
+
+function OutstandingSummary({ invoices }: { invoices: Invoice[] }) {
+  const unpaid = invoices.filter((invoice) => invoice.status === "sent" || invoice.status === "overdue")
+  const targetCurrency = unpaid[0]?.currency || "USD"
+  const currencies = [...new Set(unpaid.map((invoice) => invoice.currency || "USD"))]
+  const [summary, setSummary] = useState<{ amount: number; currency: string; converted: boolean } | null>(null)
+  const [conversionError, setConversionError] = useState(false)
+
+  useEffect(() => {
+    let active = true
+    setSummary(null)
+    setConversionError(false)
+    if (!unpaid.length) return () => { active = false }
+
+    async function calculate() {
+      try {
+        const rates = Object.fromEntries(
+          await Promise.all(
+            currencies
+              .filter((currency) => currency !== targetCurrency)
+              .map(async (currency) => [currency, await getExchangeRate(currency, targetCurrency)] as const),
+          ),
+        )
+        const amount = unpaid.reduce((total, invoice) => total + Math.round((invoice.amount ?? 0) * (rates[invoice.currency || "USD"] ?? 1)), 0)
+        if (active) setSummary({ amount, currency: targetCurrency, converted: currencies.length > 1 })
+      } catch {
+        if (active) setConversionError(true)
+      }
+    }
+
+    void calculate()
+    return () => { active = false }
+  }, [invoices, targetCurrency, currencies.join(",")])
+
+  if (!unpaid.length) return null
+  if (conversionError) {
+    const totals = currencies.map((currency) => `${formatMoney(unpaid.filter((invoice) => (invoice.currency || "USD") === currency).reduce((total, invoice) => total + (invoice.amount ?? 0), 0), currency)}`).join(" · ")
+    return <p className="mt-6 rounded-[12px] bg-amber-500/10 px-4 py-3 text-sm leading-6 text-amber-900 dark:text-amber-200">{totals} outstanding across {unpaid.length} invoices. Conversion unavailable, so currencies are shown separately.</p>
+  }
+  if (!summary) return <p className="mt-6 rounded-[12px] bg-amber-500/10 px-4 py-3 text-sm leading-6 text-amber-900 dark:text-amber-200">Calculating outstanding balance across {unpaid.length} invoices…</p>
+
+  return <p className="mt-6 rounded-[12px] bg-amber-500/10 px-4 py-3 text-sm leading-6 text-amber-900 dark:text-amber-200" title={summary.converted ? "Converted using daily reference exchange rates." : undefined}>{formatMoney(summary.amount, summary.currency)} outstanding across {unpaid.length} invoice{unpaid.length === 1 ? "" : "s"}{summary.converted ? ` (converted to ${summary.currency})` : ""}.</p>
+}
 
 const INVOICE_SORTS: SortOption<Invoice>[] = [
   { value: "updatedAt", label: "Last modified", get: (i) => tsToMillis(i.updatedAt), ascLabel: "Oldest", descLabel: "Newest" },
@@ -189,10 +233,6 @@ export default function InvoicesPage() {
 
   if (!user) return null
 
-  const unpaid = invoices.filter((invoice) => invoice.status === "sent" || invoice.status === "overdue")
-  const outstanding = unpaid.reduce((total, invoice) => total + (invoice.amount ?? 0), 0)
-  const currency = invoices[0]?.currency || "USD"
-
   return (
     <main className="mx-auto w-full max-w-5xl px-4 pt-4 pb-12 sm:px-6">
       <FilterBar
@@ -233,12 +273,7 @@ export default function InvoicesPage() {
         />
       ) : (
         <>
-          {outstanding > 0 && (
-            <p className="mt-6 rounded-[12px] bg-amber-500/10 px-4 py-3 text-sm leading-6 text-amber-900 dark:text-amber-200">
-              {formatMoney(outstanding, currency)} outstanding across {unpaid.length} invoice
-              {unpaid.length === 1 ? "" : "s"}.
-            </p>
-          )}
+          <OutstandingSummary invoices={invoices} />
 
           <div className="mt-6">
             {visibleInvoices.length === 0 ? (
@@ -376,8 +411,10 @@ export default function InvoicesPage() {
                             {meta.label}
                           </span>
                         </TableCell>
-                        <TableCell className="whitespace-nowrap text-right font-medium">
-                          {formatMoney(invoice.amount, invoice.currency)}
+                        <TableCell className="max-w-0 overflow-hidden text-right font-medium">
+                          <span className="block truncate" title={formatMoney(invoice.amount, invoice.currency)}>
+                            {formatMoney(invoice.amount, invoice.currency)}
+                          </span>
                         </TableCell>
                         <TableCell className="w-24">
                           <div className="flex items-center justify-end gap-1.5">

@@ -372,12 +372,12 @@ export function CompanyPage({
     || people.find((person) => person.adminUser?.email)
 
   const availableExistingContacts = (allContacts ?? [])
-    .filter((person) => person.role !== "admin" && person.role !== "superadmin" && !people.some((current) => current.id === person.id))
+    .filter((person) => !people.some((current) => current.id === person.id))
 
   const existingContacts = availableExistingContacts
     .filter((person) => {
       const query = existingPersonQuery.trim().toLowerCase()
-      return !query || `${person.name} ${person.subtitle ?? ""}`.toLowerCase().includes(query)
+      return !query || [person.name, person.subtitle, person.email, person.phone].filter(Boolean).join(" ").toLowerCase().includes(query)
     })
 
   const clientTeamMembers = useMemo<Array<{ person: CompanyPagePerson; projects: string[] }>>(
@@ -677,7 +677,8 @@ export function CompanyPage({
                                   checked={teamContactIds.includes(person.id)}
                                   disabled={teamSaving}
                                   onChange={(event) => {
-                                    setTeamContactIds((current) => event.currentTarget.checked
+                                    const checked = event.currentTarget.checked
+                                    setTeamContactIds((current) => checked
                                       ? [...current, person.id]
                                       : current.filter((id) => id !== person.id))
                                   }}
