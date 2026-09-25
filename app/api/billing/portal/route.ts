@@ -1,3 +1,4 @@
+import { requireAgencyId } from "@/lib/require-agency-id"
 import { NextRequest, NextResponse } from "next/server"
 import { adminServices } from "@/lib/firebase-admin"
 
@@ -11,8 +12,8 @@ export async function POST(request: NextRequest) {
     const decoded = await auth.verifyIdToken(token)
     const user = (await db.collection("users").doc(decoded.uid).get()).data() || {}
     if (user.role !== "admin" && user.role !== "superadmin") throw new Error("Admin access required")
-    const tenantId = typeof user.tenantId === "string" && user.tenantId ? user.tenantId : "legacy-visualcns"
-    const customer = (await db.collection("tenants").doc(tenantId).get()).data()?.stripeCustomerId
+    const agencyId = requireAgencyId(user)
+    const customer = (await db.collection("agencies").doc(agencyId).get()).data()?.stripeCustomerId
     if (!customer || !process.env.STRIPE_SECRET_KEY) return NextResponse.json({ error: "No billing account is connected yet." }, { status: 400 })
     const origin = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3069"
     const form = new URLSearchParams({ customer: String(customer), return_url: `${origin}/dashboard/account/billing` })

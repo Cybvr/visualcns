@@ -1,3 +1,4 @@
+import { requireAgencyId } from "@/lib/require-agency-id"
 import { NextRequest, NextResponse } from "next/server"
 import { cert, getApps, initializeApp } from "firebase-admin/app"
 import { getAuth } from "firebase-admin/auth"
@@ -22,11 +23,11 @@ async function caller(request: NextRequest) {
   const snapshot = await db.collection("users").doc(decoded.uid).get()
   const data = snapshot.data() || {}
   if (data.role !== "admin" && data.role !== "superadmin") throw new Error("Admin access required")
-  return { auth, db, tenantId: typeof data.tenantId === "string" && data.tenantId ? data.tenantId : "legacy-visualcns" }
+  return { auth, db, agencyId: requireAgencyId(data) }
 }
 
 /**
- * Adds a team member to the caller's tenant straight away: creates their
+ * Adds a team member to the caller's agency straight away: creates their
  * login if they don't have one, gives them admin access, and returns a link
  * they use to set their password.
  */
@@ -37,7 +38,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "Admin access required" }, { status: 403 })
   }
-  const { auth, db, tenantId } = context
+  const { auth, db, agencyId } = context
   try {
     const body = await request.json() as { email?: unknown; name?: unknown }
     const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : ""
@@ -54,7 +55,7 @@ export async function POST(request: NextRequest) {
     const ref = db.collection("users").doc(account.uid)
     const existing = await ref.get()
     const data = existing.data() || {}
-    if (data.tenantId && data.tenantId !== tenantId) {
+    if (data.agencyId && data.agencyId !== agencyId) {
       return NextResponse.json({ error: "This person already belongs to another workspace." }, { status: 409 })
     }
     if (data.role === "admin" || data.role === "superadmin") {
@@ -65,7 +66,7 @@ export async function POST(request: NextRequest) {
       email,
       displayName: name || data.displayName || account.displayName || "",
       role: "admin",
-      tenantId,
+      agencyId,
       companyId: data.companyId || account.uid,
       updatedAt: FieldValue.serverTimestamp(),
       ...(existing.exists ? {} : { createdAt: FieldValue.serverTimestamp() }),

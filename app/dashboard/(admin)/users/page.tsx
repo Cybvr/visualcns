@@ -135,7 +135,7 @@ export default function UsersAdminPage() {
 
   function handleViewAs(u: AppUser) {
     const canViewClient = u.role === "client" && Boolean(u.companyId)
-    const canViewAdmin = (u.role === "admin" || u.role === "superadmin") && Boolean(u.tenantId)
+    const canViewAdmin = (u.role === "admin" || u.role === "superadmin") && Boolean(u.agencyId)
     if (!canViewClient && !canViewAdmin) return
     viewAsUser(u)
     router.push(canViewClient ? `/${encodeURIComponent(u.companyId as string)}` : "/dashboard/overview")
@@ -332,7 +332,7 @@ export default function UsersAdminPage() {
                       </TableCell>
                       <TableCell className="text-muted-foreground">{companyNameOf(u) || "—"}</TableCell>
                       <TableCell onClick={(e) => e.stopPropagation()}>
-                        {((u.role === "client" && u.companyId) || ((u.role === "admin" || u.role === "superadmin") && u.tenantId)) ? (
+                        {((u.role === "client" && u.companyId) || ((u.role === "admin" || u.role === "superadmin") && u.agencyId)) ? (
                           <Button
                             variant="outline"
                             size="sm"

@@ -133,7 +133,7 @@ export function DashboardShell({
   const hideHeader = isDocumentRoute
   const [sidebarOpen, setSidebarOpen] = useState(!isDocumentRoute)
   const { open: agentOpen } = useAgent()
-  const { tenant } = useAuth()
+  const { agency } = useAuth()
   const { override: titleOverride, titleNode, actions: headerActions, replacesMobileDefaults, setHeaderSlot } = usePageHeaderOverride()
   const [createItem, setCreateItem] = useState<(typeof QUICK_CREATE_LINKS)[number] | null>(null)
   const [createName, setCreateName] = useState("")
@@ -179,7 +179,7 @@ export function DashboardShell({
           banner && "[&_[data-slot=sidebar-container]]:top-10 [&_[data-slot=sidebar-container]]:h-[calc(100svh-2.5rem)]"
         )}
       >
-        <AppSidebar navLinks={navLinks} rootHref={rootHref} subtitle={subtitle} navExtra={navExtra} brandName={tenant?.name} brandLogoUrl={tenant?.logoUrl} />
+        <AppSidebar navLinks={navLinks} rootHref={rootHref} subtitle={subtitle} navExtra={navExtra} brandName={agency?.name} brandLogoUrl={agency?.logoUrl} />
         {/* overflow-y-auto: this column is the scroll container, not the body */}
         <SidebarInset
           className={cn(

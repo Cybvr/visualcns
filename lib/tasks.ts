@@ -11,7 +11,7 @@ import {
   Timestamp,
 } from "firebase/firestore"
 import { db } from "./firebase"
-import { getCurrentTenantId } from "./tenancy"
+import { getCurrentAgencyId } from "./agency-scope"
 import { ensureTaskShared, deleteAgencyRecord } from "./portal-data"
 
 export type TaskStatus = "todo" | "in-progress" | "review" | "done"
@@ -19,7 +19,7 @@ export type TaskPriority = "low" | "medium" | "high"
 
 export interface Task {
   id: string
-  tenantId?: string
+  agencyId?: string
   name: string
   /** Matches the companyId on a user's Firestore doc */
   companyId: string
@@ -95,15 +95,15 @@ export function formatTimestamp(value: unknown): string {
 const COLLECTION_NAME = "tasks"
 
 export async function getTasks(): Promise<Task[]> {
-  const tenantId = await getCurrentTenantId()
-  const snapshot = await getDocs(query(collection(db, COLLECTION_NAME), where("tenantId", "==", tenantId)))
+  const agencyId = await getCurrentAgencyId()
+  const snapshot = await getDocs(query(collection(db, COLLECTION_NAME), where("agencyId", "==", agencyId)))
   return snapshot.docs.map((d) => ({ ...(d.data() as object), id: d.id })) as Task[]
 }
 
 export async function getTasksByCompanyId(companyId: string): Promise<Task[]> {
   if (!companyId) return []
-  const tenantId = await getCurrentTenantId()
-  const snapshot = await getDocs(query(collection(db, COLLECTION_NAME), where("tenantId", "==", tenantId), where("companyId", "==", companyId)))
+  const agencyId = await getCurrentAgencyId()
+  const snapshot = await getDocs(query(collection(db, COLLECTION_NAME), where("agencyId", "==", agencyId), where("companyId", "==", companyId)))
   const tasks = snapshot.docs.map((d) => ({ ...(d.data() as object), id: d.id })) as Task[]
   return tasks.sort((a, b) => tsToMillis(b.updatedAt) - tsToMillis(a.updatedAt))
 }
@@ -114,8 +114,8 @@ export async function getTasksByCompanyId(companyId: string): Promise<Task[]> {
  */
 export async function getTasksByProjectId(projectId: string): Promise<Task[]> {
   if (!projectId) return []
-  const tenantId = await getCurrentTenantId()
-  const snapshot = await getDocs(query(collection(db, COLLECTION_NAME), where("tenantId", "==", tenantId), where("projectId", "==", projectId)))
+  const agencyId = await getCurrentAgencyId()
+  const snapshot = await getDocs(query(collection(db, COLLECTION_NAME), where("agencyId", "==", agencyId), where("projectId", "==", projectId)))
   const tasks = snapshot.docs.map((d) => ({ ...(d.data() as object), id: d.id })) as Task[]
   return tasks.sort((a, b) => tsToMillis(a.createdAt) - tsToMillis(b.createdAt))
 }
@@ -129,7 +129,7 @@ export async function getTasksByProjectAndCompanyId(projectId: string, companyId
   const snapshot = await getDocs(
     query(
       collection(db, COLLECTION_NAME),
-      where("tenantId", "==", await getCurrentTenantId()),
+      where("agencyId", "==", await getCurrentAgencyId()),
       where("projectId", "==", projectId),
       where("companyId", "==", companyId),
     ),
@@ -159,16 +159,16 @@ export async function getTask(id: string): Promise<Task | null> {
 }
 
 export async function createTask(data: Omit<Task, "id" | "createdAt" | "updatedAt">): Promise<string> {
-  const tenantId = await getCurrentTenantId()
+  const agencyId = await getCurrentAgencyId()
   const now = Timestamp.now()
   const ref = await addDoc(collection(db, COLLECTION_NAME), {
     ...data,
-    tenantId,
+    agencyId,
     createdAt: now,
     updatedAt: now,
   })
   // Client tasks show in the portal automatically - no separate publish step.
-  await ensureTaskShared({ ...(data as Task), id: ref.id, tenantId, createdAt: now, updatedAt: now })
+  await ensureTaskShared({ ...(data as Task), id: ref.id, agencyId, createdAt: now, updatedAt: now })
   return ref.id
 }
 
@@ -201,7 +201,7 @@ export async function ensureBillingTask(params: {
 }): Promise<void> {
   const { kind, sourceId, companyId, client, projectId, project, title, isDraft, dueDate } = params
   if (isDraft || !projectId || !companyId || !sourceId) return
-  const existing = await getDocs(query(collection(db, COLLECTION_NAME), where("tenantId", "==", await getCurrentTenantId()), where("sourceId", "==", sourceId)))
+  const existing = await getDocs(query(collection(db, COLLECTION_NAME), where("agencyId", "==", await getCurrentAgencyId()), where("sourceId", "==", sourceId)))
   if (existing.docs.some((d) => (d.data() as Task).sourceKind === kind)) return
   await createTask({
     name: title,

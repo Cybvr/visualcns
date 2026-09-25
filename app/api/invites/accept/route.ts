@@ -41,16 +41,16 @@ export async function POST(request: NextRequest) {
     const isUnclaimedWorkspace =
       existingData.role === "admin" &&
       data.role !== "admin" &&
-      existingData.tenantId === decoded.uid &&
+      existingData.agencyId === decoded.uid &&
       existingData.companyId === decoded.uid &&
       existingData.welcomeEmailPending === true
-    if (existingData.tenantId && existingData.tenantId !== data.tenantId && !isUnclaimedWorkspace) return NextResponse.json({ error: "This account already belongs to another agency." }, { status: 409 })
+    if (existingData.agencyId && existingData.agencyId !== data.agencyId && !isUnclaimedWorkspace) return NextResponse.json({ error: "This account already belongs to another agency." }, { status: 409 })
     await userRef.set({
       email: decoded.email || data.email,
       displayName: decoded.name || existingData.displayName || "",
       photoURL: decoded.picture || existingData.photoURL || "",
       role: data.role === "admin" ? "admin" : "client",
-      tenantId: data.tenantId,
+      agencyId: data.agencyId,
       companyId: data.companyId || existingData.companyId || decoded.uid,
       company: data.company || existingData.company || "",
       onboardingStatus: "active",
@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
       createdAt: existingData.createdAt || FieldValue.serverTimestamp(),
     }, { merge: true })
     await invite.ref.update({ status: "accepted", acceptedBy: decoded.uid, acceptedAt: FieldValue.serverTimestamp() })
-    return NextResponse.json({ ok: true, tenantId: data.tenantId, companyId: data.companyId || decoded.uid })
+    return NextResponse.json({ ok: true, agencyId: data.agencyId, companyId: data.companyId || decoded.uid })
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "Invite acceptance failed" }, { status: 403 })
   }

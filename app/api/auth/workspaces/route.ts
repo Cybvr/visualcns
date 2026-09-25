@@ -7,29 +7,14 @@ export const runtime = "nodejs"
 export async function GET() {
   try {
     const { db } = adminServices()
-    const [tenantSnapshot, organizationSnapshot] = await Promise.all([
-      db.collection("tenants").get(),
-      db.collection("organizations").get(),
-    ])
+    const agencySnapshot = await db.collection("agencies").get()
     const workspaces = new Map<string, { id: string; name: string; logoUrl: string }>()
 
-    for (const item of tenantSnapshot.docs) {
+    for (const item of agencySnapshot.docs) {
       const data = item.data()
       if (data.deletedAt) continue
       workspaces.set(item.id, {
         id: item.id,
-        name: typeof data.name === "string" && data.name.trim() ? data.name.trim() : "VisualHQ workspace",
-        logoUrl: typeof data.logoUrl === "string" ? data.logoUrl : "",
-      })
-    }
-
-    // Older workspaces may have an owner organization but no tenant document.
-    for (const item of organizationSnapshot.docs) {
-      const data = item.data()
-      const tenantId = typeof data.tenantId === "string" ? data.tenantId.trim() : ""
-      if (!tenantId || workspaces.has(tenantId)) continue
-      workspaces.set(tenantId, {
-        id: tenantId,
         name: typeof data.name === "string" && data.name.trim() ? data.name.trim() : "VisualHQ workspace",
         logoUrl: typeof data.logoUrl === "string" ? data.logoUrl : "",
       })
@@ -50,29 +35,29 @@ export async function POST(request: NextRequest) {
 
     const { auth, db } = adminServices()
     const decoded = await auth.verifyIdToken(bearer)
-    const tenantSnapshot = await db.collection("tenants").doc(workspaceId).get()
-    const tenantData = tenantSnapshot.data() || {}
+    const agencySnapshot = await db.collection("agencies").doc(workspaceId).get()
+    const agencyData = agencySnapshot.data() || {}
     const ownerSnapshot = await db.collection("organizations")
-      .where("tenantId", "==", workspaceId)
+      .where("agencyId", "==", workspaceId)
       .where("isOwner", "==", true)
       .limit(1)
       .get()
     const owner = ownerSnapshot.empty ? null : ownerSnapshot.docs[0]
-    if (!tenantSnapshot.exists && !owner) return NextResponse.json({ error: "That organization is not available." }, { status: 404 })
+    if (!agencySnapshot.exists) return NextResponse.json({ error: "That agency is not available." }, { status: 404 })
     const existing = await db.collection("users").doc(decoded.uid).get()
     const existingData = existing.data() || {}
-    const existingTenantId = typeof existingData.tenantId === "string" ? existingData.tenantId : ""
+    const existingAgencyId = typeof existingData.agencyId === "string" ? existingData.agencyId : ""
     const isUnclaimedWorkspace =
       existingData.role === "admin" &&
-      existingTenantId === decoded.uid &&
+      existingAgencyId === decoded.uid &&
       existingData.companyId === decoded.uid &&
       existingData.welcomeEmailPending === true
-    if (existingTenantId && existingTenantId !== workspaceId && !isUnclaimedWorkspace) {
+    if (existingAgencyId && existingAgencyId !== workspaceId && !isUnclaimedWorkspace) {
       return NextResponse.json({ error: "This account already belongs to another organization." }, { status: 409 })
     }
-    const attachWorkspace = !existingTenantId || isUnclaimedWorkspace
+    const attachWorkspace = !existingAgencyId || isUnclaimedWorkspace
     const workspaceCompanyId = owner?.id || existingData.companyId || decoded.uid
-    const workspaceCompany = owner?.data().name || tenantData.name || existingData.company || ""
+    const workspaceCompany = owner?.data().name || agencyData.name || existingData.company || ""
 
     await db.collection("users").doc(decoded.uid).set({
       email: decoded.email || existingData.email || "",
@@ -80,7 +65,7 @@ export async function POST(request: NextRequest) {
       photoURL: decoded.picture || existingData.photoURL || "",
       ...(attachWorkspace ? {
         role: "admin",
-        tenantId: workspaceId,
+        agencyId: workspaceId,
         companyId: workspaceCompanyId,
         company: workspaceCompany,
         onboardingStatus: "active",
@@ -93,7 +78,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       ok: true,
       workspaceId,
-      status: typeof tenantData.status === "string" ? tenantData.status : "trial",
+      status: typeof agencyData.status === "string" ? agencyData.status : "trial",
     })
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "Could not join organization" }, { status: 403 })

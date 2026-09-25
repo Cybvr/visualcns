@@ -2,7 +2,7 @@ import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:
 import { FieldValue } from "firebase-admin/firestore"
 import { adminServices } from "@/lib/firebase-admin"
 
-const MASTER_KEY = createHash("sha256").update(process.env.TENANT_SECRETS_KEY || process.env.FIREBASE_PRIVATE_KEY || "visualhq-tenant-secrets").digest()
+const MASTER_KEY = createHash("sha256").update(process.env.AGENCY_SECRETS_KEY || process.env.FIREBASE_PRIVATE_KEY || "visualhq-agency-secrets").digest()
 
 function encrypt(value: string) {
   const iv = randomBytes(12)
@@ -19,24 +19,24 @@ function decrypt(value: string) {
   return Buffer.concat([decipher.update(Buffer.from(encryptedValue, "base64url")), decipher.final()]).toString("utf8")
 }
 
-export async function getTenantSecret(tenantId: string, name: string, fallback = "") {
+export async function getAgencySecret(agencyId: string, name: string, fallback = "") {
   const { db } = adminServices()
-  const snapshot = await db.collection("tenantSecrets").doc(tenantId).get()
+  const snapshot = await db.collection("agencySecrets").doc(agencyId).get()
   const stored = snapshot.data()?.[name]
   return typeof stored === "string" && stored ? decrypt(stored) : fallback
 }
 
-export async function setTenantSecret(tenantId: string, name: string, value: string) {
+export async function setAgencySecret(agencyId: string, name: string, value: string) {
   const { db } = adminServices()
-  await db.collection("tenantSecrets").doc(tenantId).set({ [name]: value ? encrypt(value) : FieldValue.delete(), updatedAt: FieldValue.serverTimestamp() }, { merge: true })
+  await db.collection("agencySecrets").doc(agencyId).set({ [name]: value ? encrypt(value) : FieldValue.delete(), updatedAt: FieldValue.serverTimestamp() }, { merge: true })
 }
 
-export async function recordTenantUsage(tenantId: string, metric: string, amount = 1) {
+export async function recordAgencyUsage(agencyId: string, metric: string, amount = 1) {
   const { db } = adminServices()
-  const ref = db.collection("tenantUsage").doc(tenantId)
+  const ref = db.collection("agencyUsage").doc(agencyId)
   await db.runTransaction(async (transaction) => {
     const snapshot = await transaction.get(ref)
     const current = snapshot.data() || {}
-    transaction.set(ref, { tenantId, [metric]: Number(current[metric] || 0) + amount, updatedAt: FieldValue.serverTimestamp() }, { merge: true })
+    transaction.set(ref, { agencyId, [metric]: Number(current[metric] || 0) + amount, updatedAt: FieldValue.serverTimestamp() }, { merge: true })
   })
 }

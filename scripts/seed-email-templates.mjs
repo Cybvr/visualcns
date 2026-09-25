@@ -106,21 +106,22 @@ async function resolveOwner() {
   if (snapshot.empty) throw new Error(`No users doc for ${OWNER_EMAIL}`);
   const owner = snapshot.docs[0];
   const data = owner.data();
+  if (!data.agencyId) throw new Error(`No agencyId for ${OWNER_EMAIL}`);
   return {
     companyId: data.companyId || owner.id,
     createdBy: owner.id,
-    tenantId: data.tenantId || 'legacy-visualcns',
+    agencyId: data.agencyId,
   };
 }
 
 async function seed() {
   console.log('Seeding email templates...');
-  const { companyId, createdBy, tenantId } = await resolveOwner();
+  const { companyId, createdBy, agencyId } = await resolveOwner();
   const updatedAt = new Date().toISOString();
 
   for (const template of templates) {
     try {
-      const record = { ...template, companyId, createdBy, tenantId, updatedAt };
+      const record = { ...template, companyId, createdBy, agencyId, updatedAt };
       await setDoc(doc(db, 'emailTemplates', `${companyId}__${template.id}`), record, { merge: true });
       console.log(`Seeded ${template.id}`);
     } catch (e) {

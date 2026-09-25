@@ -11,13 +11,13 @@ import {
 } from "firebase/firestore"
 import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage"
 import { db, storage } from "./firebase"
-import { getCurrentTenantId } from "./tenancy"
+import { getCurrentAgencyId } from "./agency-scope"
 import type { Contract } from "./billing"
 import { prepareImageForUpload } from "./image-upload"
 
 export interface SharedDocument {
   id: string
-  tenantId?: string
+  agencyId?: string
   title: string
   url: string
   description?: string
@@ -53,7 +53,7 @@ const COLLECTION_NAME = "documents"
 
 /** Every shared document — used by the admin Drive page. */
 export async function getDocuments(): Promise<SharedDocument[]> {
-  const snapshot = await getDocs(query(collection(db, COLLECTION_NAME), where("tenantId", "==", await getCurrentTenantId())))
+  const snapshot = await getDocs(query(collection(db, COLLECTION_NAME), where("agencyId", "==", await getCurrentAgencyId())))
   const docs = snapshot.docs.map((d) => ({ ...(d.data() as object), id: d.id })) as SharedDocument[]
   return docs.sort((a, b) => (b.createdAt?.toMillis() ?? 0) - (a.createdAt?.toMillis() ?? 0))
 }
@@ -61,7 +61,7 @@ export async function getDocuments(): Promise<SharedDocument[]> {
 /** The documents a client can see: theirs plus anything shared with everyone. */
 export async function getDocumentsForClient(companyId: string, userId: string): Promise<SharedDocument[]> {
   const queries = [
-    getDocs(query(collection(db, COLLECTION_NAME), where("tenantId", "==", await getCurrentTenantId()), where("companyId", "==", companyId))),
+    getDocs(query(collection(db, COLLECTION_NAME), where("agencyId", "==", await getCurrentAgencyId()), where("companyId", "==", companyId))),
     getDocs(query(collection(db, COLLECTION_NAME), where("sharedWithUserIds", "array-contains", userId))),
   ]
   const snapshots = await Promise.all(queries)
@@ -76,7 +76,7 @@ export async function createDocument(data: Omit<SharedDocument, "id" | "createdA
   const cleaned = Object.fromEntries(Object.entries(data).filter(([, value]) => value !== undefined))
   const ref = await addDoc(collection(db, COLLECTION_NAME), {
     ...cleaned,
-    tenantId: await getCurrentTenantId(),
+    agencyId: await getCurrentAgencyId(),
     createdAt: Timestamp.now(),
   })
   return ref.id

@@ -27,7 +27,7 @@ export function BrandLockup({
   return (
     <span className={cn("inline-flex items-center", gapClassName, className)}>
       {logoUrl.startsWith("http") ? (
-        // Tenant logos can be hosted by the configured upload provider.
+        // Agency logos can be hosted by the configured upload provider.
         // eslint-disable-next-line @next/next/no-img-element
         <img src={logoUrl} alt={brandName} width={logoSize} height={logoSize} className={cn("shrink-0 object-contain", invert && "brightness-0 invert")} />
       ) : (

@@ -31,7 +31,7 @@ function initial(value: string) {
 }
 
 /**
- * The people who run this tenant: everyone with admin access, plus admin
+ * The people who run this agency: everyone with admin access, plus admin
  * invites that haven't been used yet. Adding someone gives them access right
  * away and returns a link for them to set a password.
  */

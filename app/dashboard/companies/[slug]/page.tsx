@@ -87,7 +87,7 @@ export default function DashboardCompanyPage() {
               sharePath: `/${encodeURIComponent(organization?.slug || workspaceId)}`,
               onViewWorkspace: (person) => {
                 const canViewClient = person.role === "client" && Boolean(person.companyId)
-                const canViewAdmin = (person.role === "admin" || person.role === "superadmin") && Boolean(person.tenantId)
+                const canViewAdmin = (person.role === "admin" || person.role === "superadmin") && Boolean(person.agencyId)
                 if (!canViewClient && !canViewAdmin) return
                 viewAsUser(person)
                 const clientWorkspace = organization?.slug || person.companyId

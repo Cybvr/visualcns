@@ -14,7 +14,7 @@ const join = (...parts: Array<string | undefined | null>) => parts.filter(Boolea
 const keywords = (...parts: Array<string | undefined | null>) => parts.filter(Boolean).join(" ")
 
 /**
- * Dashboard-wide content search. The admin surface is tenant-scoped by every
+ * Dashboard-wide content search. The admin surface is agency-scoped by every
  * loader, so a signed-in admin searches their whole workspace. Data is fetched
  * once, the first time the palette is opened.
  */

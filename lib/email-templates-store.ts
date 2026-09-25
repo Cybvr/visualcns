@@ -2,12 +2,12 @@ import { deleteDoc, doc, getDocs, collection, query, setDoc, where } from "fireb
 
 import { db } from "./firebase"
 import type { EmailTemplateSeed } from "./email-templates"
-import { getCurrentTenantId } from "./tenancy"
+import { getCurrentAgencyId } from "./agency-scope"
 
 const COLLECTION_NAME = "emailTemplates"
 
 export type EmailTemplateRecord = EmailTemplateSeed & {
-  tenantId?: string
+  agencyId?: string
   companyId: string
   createdBy: string
   updatedAt: string
@@ -15,14 +15,14 @@ export type EmailTemplateRecord = EmailTemplateSeed & {
 
 export async function getEmailTemplates(companyId: string): Promise<EmailTemplateRecord[]> {
   if (!companyId) return []
-  const snapshot = await getDocs(query(collection(db, COLLECTION_NAME), where("tenantId", "==", await getCurrentTenantId()), where("companyId", "==", companyId)))
+  const snapshot = await getDocs(query(collection(db, COLLECTION_NAME), where("agencyId", "==", await getCurrentAgencyId()), where("companyId", "==", companyId)))
   return snapshot.docs
     .map((item) => ({ ...(item.data() as Omit<EmailTemplateRecord, "id">), id: (item.data().id as string | undefined) || item.id }))
     .sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt))
 }
 
 export async function saveEmailTemplate(template: EmailTemplateRecord): Promise<void> {
-  await setDoc(doc(db, COLLECTION_NAME, `${template.companyId}__${template.id}`), { ...template, tenantId: await getCurrentTenantId() }, { merge: true })
+  await setDoc(doc(db, COLLECTION_NAME, `${template.companyId}__${template.id}`), { ...template, agencyId: await getCurrentAgencyId() }, { merge: true })
 }
 
 export async function deleteEmailTemplate(id: string, companyId: string): Promise<void> {

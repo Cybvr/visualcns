@@ -1,8 +1,9 @@
+import { getSiteAgencyId, requireAgencyId } from "@/lib/require-agency-id"
 import OpenAI from "openai"
 import { cert, getApps, initializeApp } from "firebase-admin/app"
 import { getAuth as getAdminAuth } from "firebase-admin/auth"
 import { FieldPath, FieldValue, getFirestore as getAdminFirestore } from "firebase-admin/firestore"
-import { getTenantSecret, recordTenantUsage } from "@/lib/server/tenant-secrets"
+import { getAgencySecret, recordAgencyUsage } from "@/lib/server/agency-secrets"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -516,8 +517,8 @@ function numberValue(args: Record<string, unknown>, key: string, fallback = 0): 
   return Number.isFinite(value) ? value : fallback
 }
 
-async function nextDocumentNumber(db: ReturnType<typeof getAdminFirestore>, collectionName: string, prefix: string, tenantId: string) {
-  const snapshot = await db.collection(collectionName).where("tenantId", "==", tenantId).get()
+async function nextDocumentNumber(db: ReturnType<typeof getAdminFirestore>, collectionName: string, prefix: string, agencyId: string) {
+  const snapshot = await db.collection(collectionName).where("agencyId", "==", agencyId).get()
   let highest = 0
   for (const item of snapshot.docs) {
     const value = String(item.data()[collectionName === "invoices" ? "invoiceNumber" : "estimateNumber"] || "")
@@ -537,7 +538,7 @@ async function runAgentTool(name: string, rawArgs: string, uid: string) {
 
   const isAdmin = userData?.role === "admin" || userData?.role === "superadmin"
   const isSuperAdmin = userData?.role === "superadmin"
-  const tenantId = typeof userData?.tenantId === "string" && userData.tenantId ? userData.tenantId : "legacy-visualcns"
+  const agencyId = requireAgencyId(userData)
 
   if (name === "query_workspace") {
     const readArgs = JSON.parse(rawArgs) as Record<string, unknown>
@@ -547,10 +548,10 @@ async function runAgentTool(name: string, rawArgs: string, uid: string) {
     }
     const limit = Math.min(Math.max(Number(readArgs.limit) || 100, 1), 300)
 
-    // An admin reads the tenant collection. Everyone else is pinned to their own
+    // An admin reads the agency collection. Everyone else is pinned to their own
     // company, so a client can ask about their own work and nothing else.
     let query: FirebaseFirestore.Query = db.collection(collectionName)
-    if (!isSuperAdmin) query = query.where("tenantId", "==", tenantId)
+    if (!isSuperAdmin) query = query.where("agencyId", "==", agencyId)
     if (!isAdmin) {
       const companyId = typeof userData?.companyId === "string" ? userData.companyId : ""
       if (!companyId) throw new Error("Your account is not linked to a client workspace.")
@@ -575,10 +576,10 @@ async function runAgentTool(name: string, rawArgs: string, uid: string) {
     const companyId = typeof userData?.companyId === "string" ? userData.companyId : ""
     if (!isAdmin && !companyId) throw new Error("Your account is not linked to a client workspace.")
 
-    // Same scoping as query_workspace: the tenant for admins, the caller's own company otherwise.
+    // Same scoping as query_workspace: the agency for admins, the caller's own company otherwise.
     function scoped(collectionName: string) {
       let query: FirebaseFirestore.Query = db.collection(collectionName)
-      if (!isSuperAdmin) query = query.where("tenantId", "==", tenantId)
+      if (!isSuperAdmin) query = query.where("agencyId", "==", agencyId)
       if (!isAdmin) query = query.where("companyId", "==", companyId)
       return query.limit(500).get()
     }
@@ -701,7 +702,7 @@ async function runAgentTool(name: string, rawArgs: string, uid: string) {
     if (!portalSnap.exists) throw new Error("That task isn't shared with you.")
     const portal = portalSnap.data() as FirebaseFirestore.DocumentData
     if (!isAdmin) {
-      if (portal.tenantId !== tenantId || portal.companyId !== callerCompanyId) throw new Error("You can only update your own tasks.")
+      if (portal.agencyId !== agencyId || portal.companyId !== callerCompanyId) throw new Error("You can only update your own tasks.")
       if (portal.assigneeUid && portal.assigneeUid !== uid) throw new Error("That task is assigned to someone else.")
     }
     const status = done ? "done" : "todo"
@@ -720,7 +721,7 @@ async function runAgentTool(name: string, rawArgs: string, uid: string) {
     const snap = await ref.get()
     if (!snap.exists) throw new Error("That estimate no longer exists.")
     const estimate = snap.data() as FirebaseFirestore.DocumentData
-    if (!isSuperAdmin && (estimate.tenantId !== tenantId || (!isAdmin && estimate.companyId !== callerCompanyId))) throw new Error("You can only accept your own estimates.")
+    if (!isSuperAdmin && (estimate.agencyId !== agencyId || (!isAdmin && estimate.companyId !== callerCompanyId))) throw new Error("You can only accept your own estimates.")
     if (estimate.status === "draft") throw new Error("That estimate isn't available to accept yet.")
     await ref.set({ status: "accepted", acceptedAt: FieldValue.serverTimestamp(), updatedAt: FieldValue.serverTimestamp() }, { merge: true })
     return { type: "estimate_accepted", id }
@@ -733,9 +734,9 @@ async function runAgentTool(name: string, rawArgs: string, uid: string) {
     const portalSnap = await db.collection("portalTasks").doc(id).get()
     if (!portalSnap.exists) throw new Error("That task isn't shared with you.")
     const portal = portalSnap.data() as FirebaseFirestore.DocumentData
-    if (!isSuperAdmin && (portal.tenantId !== tenantId || (!isAdmin && portal.companyId !== callerCompanyId))) throw new Error("You can only comment on your own tasks.")
+    if (!isSuperAdmin && (portal.agencyId !== agencyId || (!isAdmin && portal.companyId !== callerCompanyId))) throw new Error("You can only comment on your own tasks.")
     await db.collection("portalComments").add({
-      tenantId,
+      agencyId,
       companyId: portal.companyId ?? callerCompanyId,
       taskId: id,
       authorUid: uid,
@@ -770,12 +771,12 @@ async function runAgentTool(name: string, rawArgs: string, uid: string) {
       throw new Error("patchJson must be a JSON object of fields to set.")
     }
     // Identity and audit fields are never rewritten from a patch.
-    for (const key of ["id", "createdAt", "tenantId", "companyId", "invoiceNumber", "estimateNumber"]) delete patch[key]
+    for (const key of ["id", "createdAt", "agencyId", "companyId", "invoiceNumber", "estimateNumber"]) delete patch[key]
 
     const ref = db.collection(collectionName).doc(id)
     const existing = await ref.get()
     if (!existing.exists) throw new Error("That record no longer exists.")
-    if (!isSuperAdmin && existing.data()?.tenantId !== tenantId) throw new Error("That record belongs to another tenant.")
+    if (!isSuperAdmin && existing.data()?.agencyId !== agencyId) throw new Error("That record belongs to another agency.")
 
     // Recalculate money so stored totals always match the lines.
     if (Array.isArray(patch.lineItems)) {
@@ -838,7 +839,7 @@ async function runAgentTool(name: string, rawArgs: string, uid: string) {
       location: optionalText(args, "location"),
       description: optionalText(args, "description"),
       isOwner: false,
-      tenantId,
+      agencyId,
       createdAt: now,
       updatedAt: now,
     })
@@ -853,8 +854,8 @@ async function runAgentTool(name: string, rawArgs: string, uid: string) {
     const ref = db.collection("projects").doc()
     const dueDate = optionalText(args, "dueDate")
     const summary = optionalText(args, "summary")
-    await ref.set({ tenantId, companyId, client, title, service, status: "in-progress", progress: 0, dueDate, summary, isPublic: false, createdAt: now, updatedAt: now })
-    await db.collection("portalProjects").doc(ref.id).set({ tenantId, companyId, title, status: "in-progress", progress: 0, dueDate, thumbnailUrl: "", summary, legacySlug: title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") })
+    await ref.set({ agencyId, companyId, client, title, service, status: "in-progress", progress: 0, dueDate, summary, isPublic: false, createdAt: now, updatedAt: now })
+    await db.collection("portalProjects").doc(ref.id).set({ agencyId, companyId, title, status: "in-progress", progress: 0, dueDate, thumbnailUrl: "", summary, legacySlug: title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") })
     return { type: "project", id: ref.id, title, client, url: `/dashboard/projects/${ref.id}` }
   }
 
@@ -869,8 +870,8 @@ async function runAgentTool(name: string, rawArgs: string, uid: string) {
     const ref = db.collection("tasks").doc()
     const dueDate = optionalText(args, "dueDate")
     const content = optionalText(args, "content")
-    await ref.set({ tenantId, name: taskName, companyId, client, projectId, project, status: "todo", priority, dueDate, content, isPublic: false, createdAt: now, updatedAt: now })
-    await db.collection("portalTasks").doc(ref.id).set({ tenantId, companyId, projectId, name: taskName, status: "todo", dueDate, instructions: content, assigneeUid: "" })
+    await ref.set({ agencyId, name: taskName, companyId, client, projectId, project, status: "todo", priority, dueDate, content, isPublic: false, createdAt: now, updatedAt: now })
+    await db.collection("portalTasks").doc(ref.id).set({ agencyId, companyId, projectId, name: taskName, status: "todo", dueDate, instructions: content, assigneeUid: "" })
     return { type: "task", id: ref.id, name: taskName, project, url: `/dashboard/tasks` }
   }
 
@@ -885,10 +886,10 @@ async function runAgentTool(name: string, rawArgs: string, uid: string) {
     const subtotal = items.reduce((sum, item) => sum + Math.round(item.quantity * item.unitPrice), 0)
     const taxTotal = items.reduce((sum, item) => sum + Math.round((item.quantity * item.unitPrice * item.taxRate) / 100), 0)
     const ref = db.collection("invoices").doc()
-    const invoiceNumber = await nextDocumentNumber(db, "invoices", "INV", tenantId)
+    const invoiceNumber = await nextDocumentNumber(db, "invoices", "INV", agencyId)
     const currency = optionalText(args, "currency") || "NGN"
     const title = optionalText(args, "title")
-    await ref.set({ tenantId, companyId, client, title, invoiceNumber, projectId: optionalText(args, "projectId"), project: optionalText(args, "project"), status: "draft", lineItems: items, subtotal, discountTotal: 0, taxTotal, amount: subtotal + taxTotal, currency, issuedOn: optionalText(args, "issuedOn") || today(), dueOn: optionalText(args, "dueOn"), notes: optionalText(args, "notes"), createdAt: now, updatedAt: now })
+    await ref.set({ agencyId, companyId, client, title, invoiceNumber, projectId: optionalText(args, "projectId"), project: optionalText(args, "project"), status: "draft", lineItems: items, subtotal, discountTotal: 0, taxTotal, amount: subtotal + taxTotal, currency, issuedOn: optionalText(args, "issuedOn") || today(), dueOn: optionalText(args, "dueOn"), notes: optionalText(args, "notes"), createdAt: now, updatedAt: now })
     return { type: "invoice", id: ref.id, number: invoiceNumber, title, amount: subtotal + taxTotal, currency, status: "draft", url: `/dashboard/invoices/${ref.id}/edit` }
   }
 
@@ -902,8 +903,8 @@ async function runAgentTool(name: string, rawArgs: string, uid: string) {
       return { id: `line-${Date.now()}-${index}`, description: requireText(row, "description"), amount: numberValue(row, "amount"), ...(optionalText(row, "details") ? { details: optionalText(row, "details") } : {}) }
     })
     const ref = db.collection("estimates").doc()
-    const estimateNumber = await nextDocumentNumber(db, "estimates", "EST", tenantId)
-    await ref.set({ tenantId, companyId, client, estimateNumber, title, projectId: optionalText(args, "projectId"), project: optionalText(args, "project"), status: "draft", lineItems: items, amount: items.reduce((sum, item) => sum + item.amount, 0), currency: optionalText(args, "currency") || "NGN", issuedOn: optionalText(args, "issuedOn") || today(), validUntil: optionalText(args, "validUntil"), scope: optionalText(args, "scope"), terms: optionalText(args, "terms"), createdAt: now, updatedAt: now })
+    const estimateNumber = await nextDocumentNumber(db, "estimates", "EST", agencyId)
+    await ref.set({ agencyId, companyId, client, estimateNumber, title, projectId: optionalText(args, "projectId"), project: optionalText(args, "project"), status: "draft", lineItems: items, amount: items.reduce((sum, item) => sum + item.amount, 0), currency: optionalText(args, "currency") || "NGN", issuedOn: optionalText(args, "issuedOn") || today(), validUntil: optionalText(args, "validUntil"), scope: optionalText(args, "scope"), terms: optionalText(args, "terms"), createdAt: now, updatedAt: now })
     return { type: "estimate", id: ref.id, number: estimateNumber, title, status: "draft", url: `/dashboard/estimates/${ref.id}/edit` }
   }
 
@@ -912,7 +913,7 @@ async function runAgentTool(name: string, rawArgs: string, uid: string) {
     const client = requireText(args, "client")
     const title = requireText(args, "title")
     const ref = db.collection("contracts").doc()
-    await ref.set({ tenantId, companyId, client, title, body: optionalText(args, "body"), projectId: optionalText(args, "projectId"), project: optionalText(args, "project"), status: "draft", createdAt: now, updatedAt: now })
+    await ref.set({ agencyId, companyId, client, title, body: optionalText(args, "body"), projectId: optionalText(args, "projectId"), project: optionalText(args, "project"), status: "draft", createdAt: now, updatedAt: now })
     return { type: "contract", id: ref.id, title, status: "draft", url: `/dashboard/contracts/${ref.id}/edit` }
   }
 
@@ -926,7 +927,7 @@ async function runAgentTool(name: string, rawArgs: string, uid: string) {
     }
     const ref = db.collection("companyDocuments").doc()
     await ref.set({
-      tenantId,
+      agencyId,
       companyId,
       client,
       title,
@@ -953,7 +954,7 @@ async function runAgentTool(name: string, rawArgs: string, uid: string) {
     const fileType = mimeType.startsWith("image/") ? "image" : mimeType.startsWith("video/") ? "video" : "file"
     const ref = db.collection("documents").doc()
     await ref.set({
-      tenantId,
+      agencyId,
       companyId,
       client,
       title,
@@ -1005,14 +1006,14 @@ export async function POST(request: Request) {
   try {
     const authorization = request.headers.get("authorization") || ""
     let uid = ""
-    let tenantId = "legacy-visualcns"
+    let agencyId = getSiteAgencyId()
     if (authorization.startsWith("Bearer ")) {
       try {
         const services = adminServices()
         const decoded = await services.auth.verifyIdToken(authorization.slice(7))
         uid = decoded.uid
         const user = (await services.db.collection("users").doc(uid).get()).data() || {}
-        if (typeof user.tenantId === "string" && user.tenantId) tenantId = user.tenantId
+        agencyId = requireAgencyId(user)
       } catch (error) {
         console.error("Agent token verification failed", error)
         return new Response(JSON.stringify({ error: "Ngai could not verify your signed-in account." }), {
@@ -1022,7 +1023,7 @@ export async function POST(request: Request) {
       }
     }
 
-    const apiKey = await getTenantSecret(tenantId, "OPENAI_API_KEY", process.env.OPENAI_API_KEY || "")
+    const apiKey = await getAgencySecret(agencyId, "OPENAI_API_KEY", process.env.OPENAI_API_KEY || "")
     if (!apiKey) return new Response(JSON.stringify({ error: "The assistant is not configured yet." }), { status: 503, headers: { "content-type": "application/json" } })
     const client = new OpenAI({ apiKey })
 
@@ -1119,7 +1120,7 @@ export async function POST(request: Request) {
       })
     }
 
-    void recordTenantUsage(tenantId, "agentCalls").catch(() => undefined)
+    void recordAgencyUsage(agencyId, "agentCalls").catch(() => undefined)
     return textResponse(response.output_text?.trim() || "Sorry, I could not put that together. Could you say it again?")
   } catch (error) {
     console.error("Agent request error:", error)

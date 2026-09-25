@@ -3,15 +3,15 @@ import { db } from "./firebase"
 import type { PortalProject, PortalTask } from "./portal-model"
 import { getProject, type Project } from "./projects"
 import type { Task } from "./tasks"
-import { getCurrentTenantId } from "./tenancy"
+import { getCurrentAgencyId } from "./agency-scope"
 
 export async function getPortalProjects(companyId: string): Promise<PortalProject[]> {
-  const snapshot = await getDocs(query(collection(db, "portalProjects"), where("tenantId", "==", await getCurrentTenantId()), where("companyId", "==", companyId)))
+  const snapshot = await getDocs(query(collection(db, "portalProjects"), where("agencyId", "==", await getCurrentAgencyId()), where("companyId", "==", companyId)))
   return snapshot.docs.map(d => ({ ...d.data(), id: d.id }) as PortalProject)
 }
 
 export async function getPortalTasks(companyId: string, projectId: string): Promise<PortalTask[]> {
-  const snapshot = await getDocs(query(collection(db, "portalTasks"), where("tenantId", "==", await getCurrentTenantId()), where("companyId", "==", companyId), where("projectId", "==", projectId)))
+  const snapshot = await getDocs(query(collection(db, "portalTasks"), where("agencyId", "==", await getCurrentAgencyId()), where("companyId", "==", companyId), where("projectId", "==", projectId)))
   return snapshot.docs.map(d => ({ ...d.data(), id: d.id }) as PortalTask)
 }
 
@@ -28,7 +28,7 @@ export async function getPublicPortalTasks(companyId: string, projectId: string)
 
 /** Explicit allowlist: internal descriptions, earnings and task bodies never travel. */
 export function projectForPortal(project: Project, summary: string): Omit<PortalProject, "id"> {
-  return { tenantId: project.tenantId || "", companyId: project.companyId, title: project.title, status: project.status, progress: project.progress, dueDate: project.dueDate || "", thumbnailUrl: project.thumbnailUrl || "", summary, isPublic: project.isPublic === true, legacySlug: project.slug || project.title.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") }
+  return { agencyId: project.agencyId || "", companyId: project.companyId, title: project.title, status: project.status, progress: project.progress, dueDate: project.dueDate || "", thumbnailUrl: project.thumbnailUrl || "", summary, isPublic: project.isPublic === true, legacySlug: project.slug || project.title.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") }
 }
 
 export async function publishPortalProject(project: Project, summary: string) {
@@ -41,7 +41,7 @@ export async function unpublishPortalProject(projectId: string) {
 }
 
 export async function publishPortalTask(task: Task, instructions: string, assigneeUid: string) {
-  const data: Omit<PortalTask, "id"> = { tenantId: task.tenantId || "", companyId: task.companyId, projectId: task.projectId, name: task.name, status: task.status, dueDate: task.dueDate || "", instructions, assigneeUid, isPublic: task.isPublic === true, createdAt: task.createdAt, updatedAt: task.updatedAt }
+  const data: Omit<PortalTask, "id"> = { agencyId: task.agencyId || "", companyId: task.companyId, projectId: task.projectId, name: task.name, status: task.status, dueDate: task.dueDate || "", instructions, assigneeUid, isPublic: task.isPublic === true, createdAt: task.createdAt, updatedAt: task.updatedAt }
   await writeBatch(db).set(doc(db, "portalTasks", task.id), data).commit()
 }
 
@@ -64,14 +64,14 @@ export async function ensureTaskShared(task: Task) {
   const taskRef = doc(db, "portalTasks", task.id)
   const [projSnap, taskSnap] = await Promise.all([getDoc(projectRef), getDoc(taskRef)])
 
-  const tenantId = task.tenantId || await getCurrentTenantId()
+  const agencyId = task.agencyId || await getCurrentAgencyId()
   if (!projSnap.exists()) {
     const project = await getProject(task.projectId)
-    // Older projects have no tenantId; the rules need the writer's tenant on the copy.
-    if (project) await writeBatch(db).set(projectRef, { ...projectForPortal(project, ""), tenantId: project.tenantId || tenantId }).commit()
+    // Older projects have no agencyId; the rules need the writer's agency on the copy.
+    if (project) await writeBatch(db).set(projectRef, { ...projectForPortal(project, ""), agencyId: project.agencyId || agencyId }).commit()
   }
 
-  const safe = { tenantId, companyId: task.companyId, projectId: task.projectId, name: task.name, status: task.status, dueDate: task.dueDate || "", isPublic: task.isPublic === true, createdAt: task.createdAt || serverTimestamp(), updatedAt: task.updatedAt || serverTimestamp() }
+  const safe = { agencyId, companyId: task.companyId, projectId: task.projectId, name: task.name, status: task.status, dueDate: task.dueDate || "", isPublic: task.isPublic === true, createdAt: task.createdAt || serverTimestamp(), updatedAt: task.updatedAt || serverTimestamp() }
   if (taskSnap.exists()) {
     await writeBatch(db).update(taskRef, safe).commit()
   } else {

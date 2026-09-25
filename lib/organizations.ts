@@ -2,18 +2,18 @@ import { collection, deleteDoc, doc, getDoc, getDocs, query, setDoc, where, Time
 import { db } from "./firebase"
 import { auth } from "./firebase"
 import { slugify } from "./projects"
-import { getCurrentTenantId } from "./tenancy"
+import { getCurrentAgencyId } from "./agency-scope"
 
 /**
- * The company a user belongs to: the actual tenant that owns projects,
+ * The company a user belongs to: the actual agency that owns projects,
  * invoices, contracts, and documents. Its id is the same `companyId` those
  * collections already key off, so nothing about them changes.
  */
 export interface Organization {
   /** Firestore document id === the companyId used across projects/invoices/tasks. */
   id: string
-  tenantId?: string
-  /** Public company pages opt in explicitly; dashboard data remains tenant-scoped. */
+  agencyId?: string
+  /** Public company pages opt in explicitly; dashboard data remains agency-scoped. */
   publicVisible?: boolean
   name: string
   /** Marks the agency's own organization, used as the issuer on financial documents. */
@@ -115,13 +115,13 @@ export async function getOrganization(id: string): Promise<Organization | null> 
 }
 
 export async function getOrganizations(): Promise<Organization[]> {
-  const snapshot = await getDocs(query(collection(db, COLLECTION_NAME), where("tenantId", "==", await getCurrentTenantId())))
+  const snapshot = await getDocs(query(collection(db, COLLECTION_NAME), where("agencyId", "==", await getCurrentAgencyId())))
   return snapshot.docs.map((d) => ({ ...(d.data() as object), id: d.id })) as Organization[]
 }
 
 /** The agency organization used as the canonical public business profile. */
 export async function getOwnerOrganization(): Promise<Organization | null> {
-  const snapshot = await getDocs(query(collection(db, COLLECTION_NAME), where("tenantId", "==", await getCurrentTenantId()), where("isOwner", "==", true)))
+  const snapshot = await getDocs(query(collection(db, COLLECTION_NAME), where("agencyId", "==", await getCurrentAgencyId()), where("isOwner", "==", true)))
   if (snapshot.empty) return null
   const first = snapshot.docs[0]
   return { ...(first.data() as object), id: first.id } as Organization
@@ -129,17 +129,17 @@ export async function getOwnerOrganization(): Promise<Organization | null> {
 
 export async function getOrganizationBySlug(slug: string): Promise<Organization | null> {
   if (!slug) return null
-  let publicTenantId = ""
+  let publicAgencyId = ""
   if (!auth.currentUser && typeof window !== "undefined") {
     try {
-      const response = await fetch("/api/tenant/resolve", { cache: "no-store" })
-      if (response.ok) publicTenantId = String((await response.json()).tenant?.id || "")
+      const response = await fetch("/api/agency/resolve", { cache: "no-store" })
+      if (response.ok) publicAgencyId = String((await response.json()).agency?.id || "")
     } catch { /* Fall back to the shared public slug lookup. */ }
   }
   const snapshot = await getDocs(auth.currentUser
-    ? query(collection(db, COLLECTION_NAME), where("tenantId", "==", await getCurrentTenantId()), where("slug", "==", slug))
-    : publicTenantId
-      ? query(collection(db, COLLECTION_NAME), where("tenantId", "==", publicTenantId), where("publicVisible", "==", true), where("slug", "==", slug))
+    ? query(collection(db, COLLECTION_NAME), where("agencyId", "==", await getCurrentAgencyId()), where("slug", "==", slug))
+    : publicAgencyId
+      ? query(collection(db, COLLECTION_NAME), where("agencyId", "==", publicAgencyId), where("publicVisible", "==", true), where("slug", "==", slug))
       : query(collection(db, COLLECTION_NAME), where("publicVisible", "==", true), where("slug", "==", slug)))
   if (snapshot.empty) return null
   const first = snapshot.docs[0]
@@ -192,11 +192,11 @@ export async function createOrganization(
   data: Omit<Organization, "id" | "createdAt" | "updatedAt">,
 ): Promise<void> {
   const slug = data.slug || (await uniqueOrganizationSlug(data.name || id, id))
-  const tenantId = await getCurrentTenantId()
+  const agencyId = await getCurrentAgencyId()
   await setDoc(doc(db, COLLECTION_NAME, id), {
     ...data,
     publicVisible: data.publicVisible ?? true,
-    tenantId,
+    agencyId,
     slug,
     createdAt: Timestamp.now(),
     updatedAt: Timestamp.now(),
@@ -209,7 +209,7 @@ export async function updateOrganization(
 ): Promise<void> {
   await setDoc(
     doc(db, COLLECTION_NAME, id),
-    { ...data, tenantId: await getCurrentTenantId(), updatedAt: Timestamp.now() },
+    { ...data, agencyId: await getCurrentAgencyId(), updatedAt: Timestamp.now() },
     { merge: true },
   )
 }

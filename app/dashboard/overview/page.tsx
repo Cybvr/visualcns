@@ -32,7 +32,7 @@ function activityHref(item: ActivityItem): string | undefined {
 /**
  * Only a signed-in admin ever reaches this route: clients (and anyone being
  * impersonated) are redirected to the portal by UnifiedDashboardShell. So this
- * home page shows the whole tenant's projects/tasks/activity, the same scope
+ * home page shows the whole agency's projects/tasks/activity, the same scope
  * as the dedicated Projects and Tasks pages, not one company's alone.
  */
 export default function DashboardPage() {

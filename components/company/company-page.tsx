@@ -310,7 +310,7 @@ export function CompanyPage({
           const project = projectById.get(task.projectId)
           return {
             id: task.id,
-            tenantId: task.tenantId,
+            agencyId: task.agencyId,
             name: task.name,
             companyId: task.companyId,
             client: company.name,

@@ -9,7 +9,7 @@ import {
   updateOrganization,
   type Organization,
 } from "./organizations"
-import { ensureCurrentTenant } from "./tenants"
+import { ensureCurrentAgency } from "./agencies"
 
 const COLLECTION_NAME = "settings"
 const DOC_ID = "business"
@@ -78,7 +78,7 @@ export async function getBusinessProfile(): Promise<BusinessProfile> {
  * then the legacy settings document is removed.
  */
 export async function ensureAdminBusinessOrganization(seed: AdminBusinessSeed): Promise<Organization> {
-  await ensureCurrentTenant(seed.name || "VisualHQ workspace")
+  await ensureCurrentAgency(seed.name || "VisualHQ workspace")
   const [currentOwner, legacy] = await Promise.all([getOwnerOrganization(), getLegacyBusinessProfile()])
 
   if (currentOwner) {
