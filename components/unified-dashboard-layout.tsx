@@ -29,9 +29,9 @@ const DASHBOARD_NAV: NavLink[] = [
       { label: "Documents", href: "/dashboard/documents", icon: FileText },
       { label: "Invoices", href: "/dashboard/invoices", icon: Receipt },
       { label: "Estimates", href: "/dashboard/estimates", icon: ClipboardList },
+      { label: "Tasks", href: "/dashboard/tasks", icon: FiCheckSquare },
     ],
   },
-  { label: "Tasks", href: "/dashboard/tasks", icon: FiCheckSquare },
 ]
 
 function UnifiedDashboardShell({ children, requireAdmin = false }: { children: ReactNode; requireAdmin?: boolean }) {

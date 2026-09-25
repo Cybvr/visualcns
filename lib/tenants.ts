@@ -17,7 +17,6 @@ export interface Tenant {
   senderEmail?: string
   stripeCustomerId?: string
   stripeSubscriptionId?: string
-  migrationCompletedAt?: Timestamp
   deletedAt?: Timestamp
   createdAt?: Timestamp
   updatedAt?: Timestamp

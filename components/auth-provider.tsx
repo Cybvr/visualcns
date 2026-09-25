@@ -15,26 +15,10 @@ import { ensureAdminBusinessOrganization } from "@/lib/business-profile"
 import { getUser, upsertUserOnLogin, type AppUser, type UserRole } from "@/lib/users"
 import { getOrganization, organizationRef } from "@/lib/organizations"
 import { getTenant, type Tenant, type TenantStatus } from "@/lib/tenants"
-import { clearCurrentTenantId, LEGACY_TENANT_ID, primeCurrentTenantId } from "@/lib/tenancy"
+import { clearCurrentTenantId, primeCurrentTenantId } from "@/lib/tenancy"
 
 /** sessionStorage key holding the uid an admin is currently "viewing as". */
 const VIEW_AS_KEY = "viewAsUid"
-
-/** Backfill the pre-tenant database before tenant-filtered dashboard queries run. */
-async function migrateLegacyTenant(firebaseUser: User, appUser: AppUser | null) {
-  if (!appUser || (appUser.role !== "admin" && appUser.role !== "superadmin") || appUser.tenantId !== LEGACY_TENANT_ID) return
-  try {
-    const idToken = await firebaseUser.getIdToken()
-    const response = await fetch("/api/admin/tenant-migration", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${idToken}` },
-    })
-    if (!response.ok) console.warn("Legacy tenant migration was not completed", await response.text())
-  } catch (error) {
-    // Keep sign-in usable if the one-time backfill is temporarily unavailable.
-    console.warn("Legacy tenant migration could not run", error)
-  }
-}
 
 async function sendWelcomeEmailIfPending(firebaseUser: User, appUser: AppUser | null) {
   if (!appUser?.welcomeEmailPending || appUser.welcomeEmailSentAt || appUser.role !== "client" || !appUser.email) return
@@ -148,20 +132,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setImpersonated(null)
           }
 
-          // These are idempotent maintenance tasks. They should not hold the
-          // dashboard behind the auth spinner on every sign-in.
           if (doc?.role === "admin" || doc?.role === "superadmin") {
-            void Promise.all([
-              migrateLegacyTenant(u, doc),
-              ensureAdminBusinessOrganization({
-                id: doc.companyId || doc.uid,
-                name: doc.company || doc.displayName || undefined,
-                email: doc.email || undefined,
-                logoUrl: doc.photoURL || undefined,
-              }).catch((organizationError) => {
-                console.error("Error provisioning admin organization:", organizationError)
-              }),
-            ])
+            void ensureAdminBusinessOrganization({
+              id: doc.companyId || doc.uid,
+              name: doc.company || doc.displayName || undefined,
+              email: doc.email || undefined,
+              logoUrl: doc.photoURL || undefined,
+            }).catch((organizationError) => {
+              console.error("Error provisioning admin organization:", organizationError)
+            })
           }
         } catch (error) {
           console.error("Error provisioning user:", error)

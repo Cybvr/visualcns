@@ -375,7 +375,7 @@ export function CompanyPage({
       return !query || `${person.name} ${person.subtitle ?? ""}`.toLowerCase().includes(query)
     })
 
-  const projectTeamMembers = useMemo(() => {
+  const projectTeamMembers = useMemo<Array<{ person: CompanyPagePerson; projects: string[] }>>(() => {
     const peopleById = new Map(
       (allContacts ?? [])
         .filter((person) => person.adminUser)
