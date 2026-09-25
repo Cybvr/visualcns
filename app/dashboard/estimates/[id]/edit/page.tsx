@@ -38,5 +38,5 @@ export default function EditEstimatePage() {
     return <DashboardPageSkeleton variant="form" rows={5} />
   }
 
-  return <main className="mx-auto w-full max-w-6xl px-4 py-9 sm:px-6">{missing ? <p className="text-sm text-destructive">That estimate no longer exists.</p> : <EstimateBuilder estimate={estimate} />}</main>
+  return <main className="mx-auto w-full max-w-6xl px-0 py-2 sm:px-6 sm:py-9">{missing ? <p className="text-sm text-destructive">That estimate no longer exists.</p> : <EstimateBuilder estimate={estimate} />}</main>
 }

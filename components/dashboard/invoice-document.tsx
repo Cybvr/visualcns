@@ -27,7 +27,7 @@ export function InvoiceDocument({ invoice, issuer = INVOICE_ISSUER }: { invoice:
 
   return (
     <article className="mx-auto w-full max-w-4xl overflow-hidden rounded-md border border-border bg-card text-sm shadow-sm print:rounded-none print:border-0 print:shadow-none">
-      <header className="flex flex-col gap-8 border-b border-border px-6 py-8 sm:flex-row sm:items-start sm:justify-between sm:px-10">
+      <header className="flex flex-col gap-8 border-b border-border px-3 py-5 sm:flex-row sm:items-start sm:justify-between sm:px-10 sm:py-8">
         <div>
           <div className="flex items-center gap-3">
             {issuer.logoUrl ? (
@@ -49,7 +49,7 @@ export function InvoiceDocument({ invoice, issuer = INVOICE_ISSUER }: { invoice:
         </div>
       </header>
 
-      <div className="grid gap-8 px-6 py-8 sm:grid-cols-2 sm:px-10">
+      <div className="grid gap-8 px-3 py-6 sm:grid-cols-2 sm:px-10 sm:py-8">
         <section>
           <h2 className="text-sm font-medium uppercase tracking-[0.12em] text-muted-foreground">Bill to</h2>
           <p className="mt-2 font-medium">{invoice.billTo?.name || invoice.client || "—"}</p>
@@ -90,7 +90,7 @@ export function InvoiceDocument({ invoice, issuer = INVOICE_ISSUER }: { invoice:
         </div>
         <div className="border-y border-border lg:hidden">
           {invoice.lineItems.map((item) => (
-            <div key={item.id} className="space-y-3 border-b border-border px-6 py-4 last:border-b-0">
+            <div key={item.id} className="space-y-3 border-b border-border px-3 py-4 last:border-b-0">
               <div className="flex items-start justify-between gap-4">
                 <p className="min-w-0 whitespace-normal break-words font-medium leading-6">{item.description}</p>
                 <p className="shrink-0 text-right font-medium">{formatMoney(Math.round(item.quantity * item.unitPrice), invoice.currency)}</p>
@@ -111,7 +111,7 @@ export function InvoiceDocument({ invoice, issuer = INVOICE_ISSUER }: { invoice:
         </>
       )}
 
-      <div className="grid gap-8 px-6 py-8 sm:grid-cols-2 sm:px-10">
+      <div className="grid gap-8 px-3 py-6 sm:grid-cols-2 sm:px-10 sm:py-8">
         <div className="space-y-5 text-sm leading-6 text-muted-foreground">
           {invoice.notes && <div><h2 className="font-medium text-foreground">Note</h2><p className="mt-1 whitespace-pre-line">{invoice.notes}</p></div>}
           {invoice.paymentInstructions && <div><h2 className="font-medium text-foreground">Payment instructions</h2><p className="mt-1 whitespace-pre-line">{invoice.paymentInstructions}</p></div>}

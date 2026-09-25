@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState, type FormEvent } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { ArrowLeft, Download, Eye, Loader2, Plus, Printer, Share2, Trash2 } from "lucide-react"
+import { ArrowLeft, Download, Eye, Loader2, Plus, Printer, Save, Share2, Trash2 } from "lucide-react"
 
 import { DangerZone } from "@/components/dashboard/danger-zone"
 import { Button } from "@/components/ui/button"
@@ -438,13 +438,14 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate }: {
         <Button type="button" variant="outline" size="icon" title="Print invoice" aria-label="Print invoice" onClick={() => window.print()}>
           <Printer className="size-4" aria-hidden="true" />
         </Button>
-        <Button type="button" variant="outline" size="sm" onClick={() => setShareOpen(true)}>
-          <Share2 className="mr-1.5 size-4" aria-hidden="true" />
-          Share
+        <Button type="button" variant="outline" size="icon" title="Download PDF" aria-label="Download PDF" onClick={() => void handleDownloadPdf()} disabled={pdfDownloading}>
+          {pdfDownloading ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <Download className="size-4" aria-hidden="true" />}
         </Button>
-        <Button type="submit" size="sm" disabled={saving} className="shrink-0">
-          {saving && <Loader2 className="mr-1.5 size-4 animate-spin" />}
-          {isEdit ? "Save" : "Create"}
+        <Button type="button" variant="outline" size="icon" title="Share invoice" aria-label="Share invoice" onClick={() => setShareOpen(true)}>
+          <Share2 className="size-4" aria-hidden="true" />
+        </Button>
+        <Button type="submit" size="icon" title={isEdit ? "Save invoice" : "Create invoice"} aria-label={isEdit ? "Save invoice" : "Create invoice"} disabled={saving} className="shrink-0">
+          {saving ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <Save className="size-4" aria-hidden="true" />}
         </Button>
         {isEdit && invoice && (
           <DangerZone
@@ -458,7 +459,7 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate }: {
         )}
       </div>
 
-      <div className="mx-auto min-w-0 max-w-[52rem] space-y-3 rounded-md border border-border bg-background p-8">
+      <div className="mx-auto min-w-0 max-w-[52rem] space-y-3 rounded-md border border-border bg-background p-0 sm:p-8">
         <header className="invoice-editor-header flex items-start justify-between gap-8 border-b border-border pb-6">
           <div className="flex min-w-0 items-center gap-3">
             {issuer?.logoUrl ? (
@@ -935,7 +936,7 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate }: {
       </div>
 
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
-        <DialogContent className="max-h-[90vh] max-w-5xl overflow-y-auto print:hidden">
+        <DialogContent className="w-[calc(100vw-0.5rem)] max-h-[calc(100vh-0.5rem)] max-w-5xl overflow-x-hidden overflow-y-auto p-2 print:hidden sm:p-6">
           <DialogHeader>
             <DialogTitle>Invoice preview</DialogTitle>
             <DialogDescription>Preview the invoice with your current edits before saving or printing.</DialogDescription>

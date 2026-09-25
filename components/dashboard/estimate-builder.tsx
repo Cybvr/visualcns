@@ -20,7 +20,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
-import { ArrowLeft, Download, Eye, GripVertical, Loader2, Plus, Printer, Trash2 } from "lucide-react"
+import { ArrowLeft, Download, Eye, GripVertical, Loader2, Plus, Printer, Save, Share2, Trash2 } from "lucide-react"
 
 import { DangerZone } from "@/components/dashboard/danger-zone"
 import { EstimateDocument } from "@/components/dashboard/estimate-document"
@@ -180,6 +180,7 @@ export function EstimateBuilder({ estimate, initialCompanyId }: { estimate?: Est
   const [saving, setSaving] = useState(false)
   const [pdfDownloading, setPdfDownloading] = useState(false)
   const [previewOpen, setPreviewOpen] = useState(false)
+  const [shareOpen, setShareOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const lineSensors = useSensors(
@@ -418,21 +419,20 @@ export function EstimateBuilder({ estimate, initialCompanyId }: { estimate?: Est
           <Button type="button" variant="outline" size="icon" title="Print estimate" aria-label="Print estimate" onClick={() => window.print()}>
             <Printer className="size-4" aria-hidden="true" />
           </Button>
+          <Button type="button" variant="outline" size="icon" title="Download PDF" aria-label="Download PDF" onClick={() => void handleDownloadPdf()} disabled={pdfDownloading}>
+            {pdfDownloading ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <Download className="size-4" aria-hidden="true" />}
+          </Button>
+          <Button type="button" variant="outline" size="icon" title="Share estimate" aria-label="Share estimate" onClick={() => setShareOpen(true)}>
+            <Share2 className="size-4" aria-hidden="true" />
+          </Button>
           <Button type="button" variant="ghost" onClick={() => router.push("/dashboard/estimates")}>Cancel</Button>
-          <Button type="submit" disabled={saving}>
-            {saving && <Loader2 className="mr-2 size-4 animate-spin" aria-hidden="true" />}
-            {isEdit ? "Save estimate" : "Create estimate"}
+          <Button type="submit" size="icon" title={isEdit ? "Save estimate" : "Create estimate"} aria-label={isEdit ? "Save estimate" : "Create estimate"} disabled={saving}>
+            {saving ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <Save className="size-4" aria-hidden="true" />}
           </Button>
         </div>
       </div>
 
-      <ShareLinkField
-        enabled={shareEnabled}
-        onEnabledChange={setShareEnabled}
-        path={estimate ? `/share/estimates/${estimate.id}` : undefined}
-      />
-
-      <div className="space-y-8 rounded-[14px] border border-border bg-card p-5 sm:p-6">
+      <div className="space-y-8 rounded-[14px] border border-border bg-card p-0 sm:p-6">
         <section className="grid gap-6 lg:grid-cols-2">
           <div className="min-w-0 space-y-4">
             <div>
@@ -613,7 +613,7 @@ export function EstimateBuilder({ estimate, initialCompanyId }: { estimate?: Est
     </form>
 
     <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
-      <DialogContent className="max-h-[90vh] max-w-5xl overflow-y-auto print:hidden">
+      <DialogContent className="w-[calc(100vw-0.5rem)] max-h-[calc(100vh-0.5rem)] max-w-5xl overflow-x-hidden overflow-y-auto p-2 print:hidden sm:p-6">
         <DialogHeader>
           <DialogTitle>Estimate preview</DialogTitle>
           <DialogDescription>Review the estimate with your current edits before saving or downloading.</DialogDescription>
@@ -625,6 +625,21 @@ export function EstimateBuilder({ estimate, initialCompanyId }: { estimate?: Est
             Download PDF
           </Button>
         </DialogFooter>
+      </DialogContent>
+    </Dialog>
+
+    <Dialog open={shareOpen} onOpenChange={setShareOpen}>
+      <DialogContent className="w-[calc(100vw-0.5rem)] max-w-md p-3 sm:p-6">
+        <DialogHeader>
+          <DialogTitle>Share estimate</DialogTitle>
+          <DialogDescription>Control access to this estimate with a public link.</DialogDescription>
+        </DialogHeader>
+        <ShareLinkField
+          enabled={shareEnabled}
+          onEnabledChange={setShareEnabled}
+          path={estimate ? `/share/estimates/${estimate.id}` : undefined}
+        />
+        {!estimate && <p className="text-sm text-muted-foreground">Save the estimate first to generate its public link.</p>}
       </DialogContent>
     </Dialog>
 

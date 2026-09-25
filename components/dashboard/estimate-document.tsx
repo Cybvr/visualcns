@@ -36,7 +36,7 @@ export function EstimateDocument({
 
   return (
     <article className="mx-auto w-full max-w-4xl overflow-hidden rounded-md border border-border bg-card text-sm shadow-sm print:rounded-none print:border-0 print:shadow-none">
-      <header className="flex flex-col gap-8 border-b border-border px-6 py-8 sm:flex-row sm:items-start sm:justify-between sm:px-10">
+      <header className="flex flex-col gap-8 border-b border-border px-3 py-5 sm:flex-row sm:items-start sm:justify-between sm:px-10 sm:py-8">
         <div>
           <div className="flex items-center gap-3">
             {issuer.logoUrl ? (
@@ -62,7 +62,7 @@ export function EstimateDocument({
         </div>
       </header>
 
-      <section className="grid gap-8 px-6 py-8 sm:grid-cols-2 sm:px-10">
+      <section className="grid gap-8 px-3 py-6 sm:grid-cols-2 sm:px-10 sm:py-8">
         <div>
           <h2 className="text-sm font-medium uppercase tracking-[0.12em] text-muted-foreground">Prepared for</h2>
           <p className="mt-2 font-semibold">{estimate.preparedFor?.name || estimate.client}</p>
@@ -79,7 +79,7 @@ export function EstimateDocument({
         </div>
       </section>
 
-      <section className="px-6 pb-9 sm:px-10">
+      <section className="px-3 pb-7 sm:px-10 sm:pb-9">
         <h1 className="text-xl font-semibold tracking-[-0.025em] sm:text-2xl">{estimate.title}</h1>
         <div className="mt-4 border-t border-border" />
         {estimate.scope ? (
@@ -119,7 +119,7 @@ export function EstimateDocument({
 
       <div className="border-y border-border lg:hidden">
         {estimate.lineItems.map((item) => (
-          <div key={item.id} className="space-y-3 border-b border-border px-6 py-4 last:border-b-0">
+          <div key={item.id} className="space-y-3 border-b border-border px-3 py-4 last:border-b-0">
             <div className="flex items-start justify-between gap-4">
               <div className="min-w-0">
                 <p className="whitespace-normal break-words font-medium">{item.description}</p>
@@ -133,7 +133,7 @@ export function EstimateDocument({
         ))}
       </div>
 
-      <section className="grid gap-8 px-6 py-8 sm:grid-cols-[1fr_18rem] sm:px-10">
+      <section className="grid gap-8 px-3 py-6 sm:grid-cols-[1fr_18rem] sm:px-10 sm:py-8">
         <p className="max-w-[65ch] text-sm leading-6 text-muted-foreground">Optional items can be approved separately and will be added only if selected.</p>
         <dl className="space-y-3">
           <div className="flex justify-between gap-8 border-t border-neutral-300 pt-3 font-semibold"><dt>Base estimate</dt><dd>{formatMoney(estimate.amount, estimate.currency)}</dd></div>
@@ -141,7 +141,7 @@ export function EstimateDocument({
         </dl>
       </section>
 
-      <section className="grid gap-10 border-t border-border px-6 py-9 sm:grid-cols-2 sm:px-10">
+      <section className="grid gap-10 border-t border-border px-3 py-7 sm:grid-cols-2 sm:px-10 sm:py-9">
         <div>
           <h2 className="text-sm font-medium uppercase tracking-[0.12em] text-muted-foreground">Terms</h2>
           <TextLines value={estimate.terms} />
@@ -153,18 +153,18 @@ export function EstimateDocument({
       </section>
 
       {acceptanceAction && (
-        <section className="flex justify-end border-t border-neutral-200 px-6 py-6 sm:px-10 print:hidden">
+        <section className="flex justify-end border-t border-border px-3 py-6 sm:px-10 print:hidden">
           {acceptanceAction}
         </section>
       )}
 
       {estimate.notes && (
-        <section className="px-6 py-6 sm:px-10">
+        <section className="px-3 py-6 sm:px-10">
           <p className="max-w-[75ch] text-xs italic leading-5 text-muted-foreground">{estimate.notes}</p>
         </section>
       )}
 
-      <footer className="border-t border-border px-6 py-6 text-sm leading-6 text-muted-foreground sm:px-10">
+      <footer className="border-t border-border px-3 py-6 text-sm leading-6 text-muted-foreground sm:px-10">
         <p>{issuer.address}</p>
         {issuer.website && <p>{issuer.website}</p>}
         {issuer.phone && <p>{issuer.phone}</p>}
