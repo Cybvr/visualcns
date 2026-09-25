@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type FormEvent, type ReactNode } from "react"
 import Link from "next/link"
+import dynamic from "next/dynamic"
 import { usePathname, useRouter } from "next/navigation"
 import { ArrowLeft, Bell, Briefcase, Building2, FileText, Home, ListTodo, Plus, Receipt, ScrollText, Users } from "lucide-react"
 import Image from "next/image"
@@ -9,10 +10,8 @@ import { FiCheckSquare, FiFileText, FiMail, FiUser } from "react-icons/fi"
 
 import { useAgent } from "@/components/agent/agent-context"
 import { AppSidebar, type NavLink } from "@/components/app-sidebar"
-import { NgaiSidePanel } from "@/components/agent/ngai-side-panel"
 import { MobileFooterNav, type MobileFooterNavItem } from "@/components/mobile-footer-nav"
 import { DashboardSearchButton } from "@/components/dashboard/dashboard-search-button"
-import { NewDocumentDialog } from "@/components/dashboard/new-document-dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -34,6 +33,10 @@ import {
 import { cn } from "@/lib/utils"
 import { getTenant, type Tenant } from "@/lib/tenants"
 import { useAuth } from "@/components/auth-provider"
+
+// Loaded after the page itself so they don't slow down every dashboard page.
+const NgaiSidePanel = dynamic(() => import("@/components/agent/ngai-side-panel").then((m) => m.NgaiSidePanel))
+const NewDocumentDialog = dynamic(() => import("@/components/dashboard/new-document-dialog").then((m) => m.NewDocumentDialog))
 import {
   DropdownMenu,
   DropdownMenuContent,

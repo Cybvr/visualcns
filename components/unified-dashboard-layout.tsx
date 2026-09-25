@@ -2,16 +2,19 @@
 
 import { Suspense, useEffect, type ReactNode } from "react"
 import Image from "next/image"
+import dynamic from "next/dynamic"
 import { useRouter } from "next/navigation"
 import { Eye, Loader2, LogOut, Pencil } from "lucide-react"
 import { FiBriefcase, FiCheckSquare, FiFileText, FiMail, FiUsers } from "react-icons/fi"
 import { AuthProvider, useAuth } from "@/components/auth-provider"
-import { AgentDock } from "@/components/agent/agent-dock"
 import { AgentProvider } from "@/components/agent/agent-context"
 import { Button } from "@/components/ui/button"
 import { DashboardShell, type NavLink } from "@/components/dashboard-shell"
 import { PageTitleProvider } from "@/components/dashboard/page-title-context"
 import { LegacyClientRedirect } from "@/components/portal/legacy-client-redirect"
+
+// Loaded after the page itself so it doesn't slow down every dashboard page.
+const AgentDock = dynamic(() => import("@/components/agent/agent-dock").then((m) => m.AgentDock))
 
 const DASHBOARD_NAV: NavLink[] = [
   { label: "New Chat", href: "/dashboard/agent", icon: Pencil, startsNewChat: true },

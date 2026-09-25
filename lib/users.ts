@@ -11,7 +11,7 @@ import {
   Timestamp,
 } from "firebase/firestore"
 import { db } from "./firebase"
-import { getCurrentTenantId, LEGACY_TENANT_ID } from "./tenancy"
+import { beginTenantPrime, getCurrentTenantId, LEGACY_TENANT_ID, primeTenantId } from "./tenancy"
 
 export type UserRole = "admin" | "client" | "superadmin"
 
@@ -201,6 +201,7 @@ export async function upsertUserOnLogin(profile: {
   createWorkspace?: boolean
 }): Promise<AppUser | null> {
   const ref = doc(db, COLLECTION_NAME, profile.uid)
+  const primeSequence = beginTenantPrime()
   const existing = await getDoc(ref)
   const existingData = existing.data() || {}
   const createWorkspace = profile.createWorkspace === true
@@ -239,8 +240,19 @@ export async function upsertUserOnLogin(profile: {
     base.slug = `${preferred.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "user"}-${profile.uid}`
   }
 
-  await setDoc(ref, base, { merge: true })
+  const write = setDoc(ref, base, { merge: true })
+  // A plain profile refresh (name/email/photo/updatedAt) changes nothing the
+  // app or access rules depend on, so don't make sign-in wait for it. Anything
+  // else (new doc, role, tenant, company, slug) must land before we continue.
+  const profileOnly = existing.exists() && Object.keys(base).every((key) => PROFILE_REFRESH_FIELDS.has(key))
+  if (profileOnly) write.catch((error) => console.warn("Profile refresh could not be saved", error))
+  else await write
 
-  const after = await getDoc(ref)
-  return after.exists() ? ({ ...(after.data() as object), uid: after.id } as AppUser) : null
+  // Merge locally instead of re-reading: setDoc merge only replaces the
+  // top-level fields in `base`, so this matches what Firestore now holds.
+  const merged = { ...existingData, ...base, uid: profile.uid } as AppUser
+  primeTenantId(profile.uid, merged.tenantId, primeSequence)
+  return merged
 }
+
+const PROFILE_REFRESH_FIELDS = new Set(["email", "displayName", "photoURL", "updatedAt"])

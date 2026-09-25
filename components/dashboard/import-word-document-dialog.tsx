@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState, type ChangeEvent, type FormEvent } from "react"
 import { useRouter } from "next/navigation"
-import mammoth from "mammoth"
 import { FileUp, Loader2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -32,6 +31,8 @@ function fileTitle(name: string) {
 
 async function fileToHtml(file: File) {
   if (isMarkdown(file.name)) return markdownToHtml(await file.text()).trim()
+  // mammoth is large; only download it when someone actually imports a .docx.
+  const { default: mammoth } = await import("mammoth")
   return (await mammoth.convertToHtml({ arrayBuffer: await file.arrayBuffer() })).value.trim()
 }
 

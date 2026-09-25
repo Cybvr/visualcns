@@ -15,25 +15,67 @@ import { ensureAdminBusinessOrganization } from "@/lib/business-profile"
 import { getUser, upsertUserOnLogin, type AppUser, type UserRole } from "@/lib/users"
 import { portalPath } from "@/lib/portal-model"
 import { getTenant, type TenantStatus } from "@/lib/tenants"
-import { LEGACY_TENANT_ID } from "@/lib/tenancy"
+import { clearTenantCache, LEGACY_TENANT_ID } from "@/lib/tenancy"
 
 /** sessionStorage key holding the uid an admin is currently "viewing as". */
 const VIEW_AS_KEY = "viewAsUid"
+/** localStorage key prefix: legacy tenant migration confirmed done for a uid. */
+const MIGRATION_DONE_KEY = "legacyTenantMigrationDone"
+/** Storage key prefix: admin business organization confirmed to exist for a uid. */
+const ADMIN_ORG_READY_KEY = "adminOrganizationReady"
+
+// Storage can be unavailable (private mode, blocked site data); treat that as
+// "not remembered" so the original, slower path still runs.
+function readStorage(storage: Storage, key: string): boolean {
+  try { return storage.getItem(key) === "1" } catch { return false }
+}
+
+function writeStorage(storage: Storage, key: string) {
+  try { storage.setItem(key, "1") } catch { /* ignore */ }
+}
 
 /** Backfill the pre-tenant database before tenant-filtered dashboard queries run. */
 async function migrateLegacyTenant(firebaseUser: User, appUser: AppUser | null) {
   if (!appUser || (appUser.role !== "admin" && appUser.role !== "superadmin") || appUser.tenantId !== LEGACY_TENANT_ID) return
+  // The server marks the migration complete once it succeeds, after which the
+  // call is a no-op. Remember that on this device so later page loads skip it.
+  const doneKey = `${MIGRATION_DONE_KEY}:${firebaseUser.uid}`
+  if (readStorage(localStorage, doneKey)) return
   try {
     const idToken = await firebaseUser.getIdToken()
     const response = await fetch("/api/admin/tenant-migration", {
       method: "POST",
       headers: { Authorization: `Bearer ${idToken}` },
     })
-    if (!response.ok) console.warn("Legacy tenant migration was not completed", await response.text())
+    if (response.ok) writeStorage(localStorage, doneKey)
+    else console.warn("Legacy tenant migration was not completed", await response.text())
   } catch (error) {
     // Keep sign-in usable if the one-time backfill is temporarily unavailable.
     console.warn("Legacy tenant migration could not run", error)
   }
+}
+
+/**
+ * Make sure the admin owns a business organization. The first time on a
+ * device we wait for it, since a brand-new admin has none yet. After that it
+ * already exists, so it only runs as a background refresh, once per session.
+ */
+async function provisionAdminOrganization(uid: string, appUser: AppUser) {
+  const readyKey = `${ADMIN_ORG_READY_KEY}:${uid}`
+  const ready = readStorage(localStorage, readyKey)
+  if (ready && readStorage(sessionStorage, readyKey)) return
+  const run = ensureAdminBusinessOrganization({
+    id: appUser.companyId || appUser.uid,
+    name: appUser.company || appUser.displayName || undefined,
+    email: appUser.email || undefined,
+    logoUrl: appUser.photoURL || undefined,
+  }).then(() => {
+    writeStorage(localStorage, readyKey)
+    writeStorage(sessionStorage, readyKey)
+  }).catch((organizationError) => {
+    console.error("Error provisioning admin organization:", organizationError)
+  })
+  if (!ready) await run
 }
 
 async function sendWelcomeEmailIfPending(firebaseUser: User, appUser: AppUser | null) {
@@ -108,45 +150,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             displayName: u.displayName,
             photoURL: u.photoURL,
           })
+          const isAdminDoc = doc?.role === "admin" || doc?.role === "superadmin"
           await migrateLegacyTenant(u, doc)
-          if (doc?.role === "admin" || doc?.role === "superadmin") {
-            try {
-              await ensureAdminBusinessOrganization({
-                id: doc.companyId || doc.uid,
-                name: doc.company || doc.displayName || undefined,
-                email: doc.email || undefined,
-                logoUrl: doc.photoURL || undefined,
-              })
-            } catch (organizationError) {
-              console.error("Error provisioning admin organization:", organizationError)
-            }
-          }
+          if (isAdminDoc && doc) await provisionAdminOrganization(u.uid, doc)
+
+          // Tenant status and a restored "view as" target don't depend on
+          // each other, so load them side by side.
+          const viewAsUid = typeof window !== "undefined" ? sessionStorage.getItem(VIEW_AS_KEY) : null
+          const [tenantStatusValue, viewAsTarget] = await Promise.all([
+            (doc?.tenantId ? getTenant(doc.tenantId) : Promise.resolve(null))
+              .then((tenant) => tenant?.status || "trial" as TenantStatus)
+              .catch(() => "trial" as TenantStatus),
+            // Only admins can impersonate, and never themselves.
+            isAdminDoc && viewAsUid && viewAsUid !== u.uid
+              ? getUser(viewAsUid).then((target) => ({ target }), () => ({ target: null }))
+              : Promise.resolve(null),
+          ])
           setRealAppUser(doc)
-          try {
-            const tenant = doc?.tenantId ? await getTenant(doc.tenantId) : null
-            setTenantStatus(tenant?.status || "trial")
-          } catch {
-            setTenantStatus("trial")
-          }
+          setTenantStatus(tenantStatusValue)
           void sendWelcomeEmailIfPending(u, doc)
 
-          // Restore a "view as" selection made before navigating here. Only
-          // admins can impersonate, and never themselves.
-          const viewAsUid = typeof window !== "undefined" ? sessionStorage.getItem(VIEW_AS_KEY) : null
-          if ((doc?.role === "admin" || doc?.role === "superadmin") && viewAsUid && viewAsUid !== u.uid) {
-            try {
-              const target = await getUser(viewAsUid)
-              const sameTenant = doc.role === "superadmin" || target?.tenantId === doc.tenantId
-              const canViewTarget = sameTenant && (
-                (target?.role === "client" && Boolean(target.companyId)) ||
-                ((target?.role === "admin" || target?.role === "superadmin") && Boolean(target.tenantId))
-              )
-              if (canViewTarget) setImpersonated(target)
-              else {
-                sessionStorage.removeItem(VIEW_AS_KEY)
-                setImpersonated(null)
-              }
-            } catch {
+          if (viewAsTarget) {
+            const target = viewAsTarget.target
+            const sameTenant = doc?.role === "superadmin" || target?.tenantId === doc?.tenantId
+            const canViewTarget = sameTenant && (
+              (target?.role === "client" && Boolean(target.companyId)) ||
+              ((target?.role === "admin" || target?.role === "superadmin") && Boolean(target.tenantId))
+            )
+            if (canViewTarget) setImpersonated(target)
+            else {
               sessionStorage.removeItem(VIEW_AS_KEY)
               setImpersonated(null)
             }
@@ -230,6 +262,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   async function signOut() {
     sessionStorage.removeItem(VIEW_AS_KEY)
     setImpersonated(null)
+    clearTenantCache()
     await firebaseSignOut(auth)
   }
 
