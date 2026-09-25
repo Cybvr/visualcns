@@ -73,7 +73,7 @@ export default function AgencyOperationsPage() {
 
   return <main className="mx-auto w-full max-w-4xl px-4 py-10 sm:px-6">
     <AccountNav />
-    <h1 className="mt-7 text-xl font-semibold">Agency operations</h1>
+    <h1 className="mt-7 text-xl font-semibold">Agency management</h1>
     {error && <p className="mt-4 text-sm text-destructive">{error}</p>}
     <div className="mt-6 divide-y divide-border border border-border">
       {agencies.map((agency) => <div key={agency.id} className="flex flex-wrap items-center justify-between gap-4 p-4">

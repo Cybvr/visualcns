@@ -30,7 +30,7 @@ export default function CustomizationPage() {
     <main className="mx-auto w-full max-w-3xl px-4 py-9 sm:px-6">
       <AccountNav />
 
-      <AccountHeader title="Customization" />
+      <AccountHeader title="App settings" />
 
       <section className="mt-6">
         <h2 className="text-sm font-medium">Appearance</h2>

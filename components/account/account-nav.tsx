@@ -3,19 +3,18 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import type { ComponentType } from "react"
-import { ArrowLeft, Building2, ChevronRight, CreditCard, Database, LogOut, Palette, Server, Sparkles, UserRound, Users } from "lucide-react"
+import { ArrowLeft, ChevronRight, CreditCard, Database, LogOut, Palette, Server, Sparkles, UserRound, Users } from "lucide-react"
 
 import { useAuth } from "@/components/auth-provider"
 
 const LINKS: { label: string; href: string; icon: ComponentType<{ className?: string }>; adminOnly?: boolean; superAdminOnly?: boolean }[] = [
-  { label: "Profile", href: "/dashboard/account/profile", icon: UserRound },
-  { label: "Customization", href: "/dashboard/account/customization", icon: Palette },
-  { label: "Organization", href: "/dashboard/account/business", icon: Building2, adminOnly: true },
+  { label: "Profile Settings", href: "/dashboard/account/profile", icon: UserRound },
+  { label: "Agency Settings", href: "/dashboard/account/agency", icon: Sparkles, adminOnly: true },
+  { label: "Agency Management", href: "/dashboard/admin/agencies", icon: Server, superAdminOnly: true },
   { label: "Team", href: "/dashboard/account/team", icon: Users, adminOnly: true },
-  { label: "Agency", href: "/dashboard/account/agency", icon: Sparkles, adminOnly: true },
   { label: "Billing", href: "/dashboard/account/billing", icon: CreditCard, adminOnly: true },
+  { label: "App Settings", href: "/dashboard/account/customization", icon: Palette },
   { label: "Data", href: "/dashboard/account/data", icon: Database, adminOnly: true },
-  { label: "Agency operations", href: "/dashboard/admin/agencies", icon: Server, superAdminOnly: true },
 ]
 
 const MENU_HREF = "/dashboard/account"
