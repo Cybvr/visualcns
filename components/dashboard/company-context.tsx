@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react"
 import { useParams } from "next/navigation"
 
+import { useAuth } from "@/components/auth-provider"
 import {
   getContractsByCompanyId,
   getEstimatesByCompanyId,
@@ -14,7 +15,7 @@ import {
 import { getCompanyDocumentsByCompanyId, type CompanyDocument } from "@/lib/company-documents"
 import { getOrganization, getOrganizationByRef, updateOrganization, type Organization, type PublicTeamMember } from "@/lib/organizations"
 import { getProjectsByCompanyId, type Project } from "@/lib/projects"
-import { getUserByCompanyId, getUserByRef, getUsersByCompanyId, type AppUser } from "@/lib/users"
+import { getUserByCompanyId, getUserByRef, getUsers, getUsersByCompanyId, type AppUser } from "@/lib/users"
 
 export function clientName(client: AppUser): string {
   return client.company || client.displayName || client.email || "Unnamed company"
@@ -51,6 +52,7 @@ type CompanyState = {
   client: AppUser | null
   organization: Organization | null
   people: AppUser[]
+  publicTeam: PublicTeamMember[]
   projects: Project[]
   invoices: Invoice[]
   contracts: Contract[]
@@ -70,12 +72,14 @@ const CompanyContext = createContext<CompanyState | null>(null)
  * fetch instead of each doing their own.
  */
 export function CompanyProvider({ children, companyRef }: { children: ReactNode; companyRef?: string }) {
+  const { isAdmin } = useAuth()
   const params = useParams<{ slug?: string; clientSlug?: string }>()
   const ref = companyRef ?? params?.slug ?? params?.clientSlug ?? ""
 
   const [client, setClient] = useState<AppUser | null>(null)
   const [organization, setOrganization] = useState<Organization | null>(null)
   const [people, setPeople] = useState<AppUser[]>([])
+  const [publicTeam, setPublicTeam] = useState<PublicTeamMember[]>([])
   const [projects, setProjects] = useState<Project[]>([])
   const [invoices, setInvoices] = useState<Invoice[]>([])
   const [contracts, setContracts] = useState<Contract[]>([])
@@ -100,7 +104,7 @@ export function CompanyProvider({ children, companyRef }: { children: ReactNode;
         return
       }
       const workspace = found.companyId || resolvedOrg?.id || found.uid
-      const [foundOrg, foundPeople, foundProjects, foundInvoices, foundContracts, foundEstimates, foundDocuments] = await Promise.all([
+      const [foundOrg, foundPeople, foundProjects, foundInvoices, foundContracts, foundEstimates, foundDocuments, tenantUsers] = await Promise.all([
         resolvedOrg?.id === workspace ? Promise.resolve(resolvedOrg) : getOrganization(workspace),
         getUsersByCompanyId(workspace),
         getProjectsByCompanyId(workspace),
@@ -108,6 +112,7 @@ export function CompanyProvider({ children, companyRef }: { children: ReactNode;
         getContractsByCompanyId(workspace, true),
         getEstimatesByCompanyId(workspace, true),
         getCompanyDocumentsByCompanyId(workspace, true),
+        isAdmin ? getUsers() : Promise.resolve([] as AppUser[]),
       ])
       setClient(found)
       setOrganization(foundOrg)
@@ -119,11 +124,16 @@ export function CompanyProvider({ children, companyRef }: { children: ReactNode;
       setEstimates(foundEstimates)
       setDocuments(foundDocuments)
 
-      // Keep the public page's Team section in step with the real roster.
-      // Only an admin can write here, so this quietly no-ops for a client.
-      const publicTeam = toPublicTeam(profiled)
-      if (!samePublicTeam(foundOrg?.publicTeam, publicTeam)) {
-        updateOrganization(workspace, { publicTeam }).catch(() => {})
+      const assignedIds = new Set(foundProjects.flatMap((project) => project.teamMemberIds ?? []))
+      const nextPublicTeam = isAdmin
+        ? toPublicTeam(tenantUsers.filter((user) => assignedIds.has(user.uid)))
+        : foundOrg?.publicTeam ?? []
+      setPublicTeam(nextPublicTeam)
+
+      // Keep the public page's Team section limited to organization users
+      // assigned to at least one project. Only an admin can write here.
+      if (isAdmin && !samePublicTeam(foundOrg?.publicTeam, nextPublicTeam)) {
+        updateOrganization(workspace, { publicTeam: nextPublicTeam }).catch(() => {})
       }
     } catch (loadError) {
       console.error("Error loading company:", loadError)
@@ -131,7 +141,7 @@ export function CompanyProvider({ children, companyRef }: { children: ReactNode;
     } finally {
       setLoading(false)
     }
-  }, [ref])
+  }, [isAdmin, ref])
 
   useEffect(() => {
     void load()
@@ -145,6 +155,7 @@ export function CompanyProvider({ children, companyRef }: { children: ReactNode;
       client,
       organization,
       people,
+      publicTeam,
       projects,
       invoices,
       contracts,
@@ -155,7 +166,7 @@ export function CompanyProvider({ children, companyRef }: { children: ReactNode;
       categoryLabel: buildCategoryLabel(projects, organization),
       reload: load,
     }
-  }, [loading, error, client, organization, people, projects, invoices, contracts, estimates, documents, load])
+  }, [loading, error, client, organization, people, publicTeam, projects, invoices, contracts, estimates, documents, load])
 
   return <CompanyContext.Provider value={value}>{children}</CompanyContext.Provider>
 }

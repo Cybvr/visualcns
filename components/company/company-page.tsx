@@ -22,6 +22,7 @@ import { InvoiceDocument } from "@/components/dashboard/invoice-document"
 import { NewPersonDialog } from "@/components/dashboard/new-person-dialog"
 import { NewDocumentDialog } from "@/components/dashboard/new-document-dialog"
 import { NewProjectDialog } from "@/components/dashboard/new-project-dialog"
+import { ProjectDetail } from "@/components/dashboard/project-detail"
 import { MobileDataCard } from "@/components/dashboard/mobile-data-card"
 import { GridCard, GridCardList } from "@/components/dashboard/grid-card"
 import { ProjectCover } from "@/components/project-card"
@@ -44,7 +45,8 @@ import { Textarea } from "@/components/ui/textarea"
 import type { Contract, Estimate, Invoice } from "@/lib/billing"
 import { getBusinessProfile, type BusinessProfile } from "@/lib/business-profile"
 import type { CompanyDocument } from "@/lib/company-documents"
-import { deleteProjectWithTasks, duplicateProject, projectSlug, renameProject, type Project } from "@/lib/projects"
+import type { PublicTeamMember } from "@/lib/organizations"
+import { deleteProjectWithTasks, duplicateProject, renameProject, type Project } from "@/lib/projects"
 import { deleteUser, type AppUser } from "@/lib/users"
 import { buildEmailComposeHref } from "@/lib/email-composer"
 import { PortalPublishingPanel } from "@/components/portal/portal-publishing"
@@ -187,6 +189,7 @@ export interface CompanyPageCompany {
   tags?: string[]
   primaryContactId?: string
   media?: string[]
+  publicTeam?: PublicTeamMember[]
 }
 
 export interface CompanyPageAdmin {
@@ -261,6 +264,7 @@ export function CompanyPage({
   const [creatingProject, setCreatingProject] = useState(false)
   const [logoEditOpen, setLogoEditOpen] = useState(false)
   const [mediaAddOpen, setMediaAddOpen] = useState(false)
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null)
   const [shareOpen, setShareOpen] = useState(false)
   const [issuer, setIssuer] = useState<BusinessProfile | null>(null)
 
@@ -283,14 +287,11 @@ export function CompanyPage({
   }
 
   function handleSectionChange(key: SectionKey) {
+    if (key !== "projects") setSelectedProject(null)
     updateParams({ tab: key === "projects" ? null : key, doc: null })
   }
 
   function handleSelectDocument(kind: CompanyDocumentKind, id: string) {
-    if (admin) {
-      router.push(`/dashboard/${kind}s/${id}/edit`)
-      return
-    }
     updateParams({ tab: "documents", doc: `${kind}:${id}` })
   }
 
@@ -320,6 +321,40 @@ export function CompanyPage({
       const query = existingPersonQuery.trim().toLowerCase()
       return !query || `${person.name} ${person.subtitle ?? ""}`.toLowerCase().includes(query)
     })
+
+  const projectTeamMembers = useMemo(() => {
+    const peopleById = new Map(
+      (allContacts ?? [])
+        .filter((person) => person.adminUser)
+        .map((person) => [person.adminUser!.uid, person]),
+    )
+    const assignments = new Map<string, { person: CompanyPagePerson; projects: string[] }>()
+
+    for (const project of projects) {
+      for (const uid of project.teamMemberIds ?? []) {
+        const person = peopleById.get(uid)
+        if (!person) continue
+        const assignment = assignments.get(uid) ?? { person, projects: [] }
+        assignment.projects.push(project.title)
+        assignments.set(uid, assignment)
+      }
+    }
+
+    if (assignments.size > 0 || allContacts) {
+      return Array.from(assignments.values()).sort((a, b) => a.person.name.localeCompare(b.person.name))
+    }
+
+    return (company.publicTeam ?? []).map((member) => ({
+      person: {
+        id: member.uid,
+        name: member.name,
+        subtitle: member.role || "Team member",
+        role: member.role,
+        photoUrl: member.photoUrl,
+      },
+      projects: [],
+    }))
+  }, [allContacts, company.publicTeam, projects])
 
   async function handleAddExistingPerson(contactId: string) {
     if (!admin?.onAddExistingContact || addingExistingPersonId) return
@@ -455,10 +490,11 @@ export function CompanyPage({
   usePageHeaderActions(headerActions)
 
   return (
-    <main className="mx-auto min-h-screen w-full max-w-7xl px-4 pb-16 pt-2 sm:px-6 sm:pt-3">
+    <main className="mx-auto min-h-screen w-full max-w-7xl px-4 pb-16 pt-4 sm:px-6 sm:pt-6">
       <CompanyProfileHeader
         name={company.name}
         handle={company.slug || admin?.sharePath.split("/").filter(Boolean).pop()}
+        description={company.description}
         categoryLabel={company.categoryLabel}
         logoUrl={company.logoUrl}
         coverUrl={company.media?.find((url) => url && url !== company.logoUrl)}
@@ -475,11 +511,12 @@ export function CompanyPage({
           setMediaAddOpen(true)
           handleSectionChange("media")
         } : undefined}
+        tabs={(
+          <div className="mt-4 print:hidden">
+            <SectionNav sections={SECTIONS} active={section} onChange={handleSectionChange} className="gap-7" />
+          </div>
+        )}
       />
-
-      <div className="mt-4 print:hidden">
-        <SectionNav sections={SECTIONS} active={section} onChange={handleSectionChange} className="gap-7" />
-      </div>
 
       <div className="min-w-0">
           {section === "about" && (
@@ -503,69 +540,26 @@ export function CompanyPage({
             <div className="mt-5">
               <div className="flex items-center justify-between gap-4">
                 <h2 className="sr-only">Team</h2>
-                <span className="text-sm text-muted-foreground">
-                  {people.length} contact{people.length === 1 ? "" : "s"}
-                </span>
-                {admin && (
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <SectionAddButton label="Add person" />
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onSelect={() => setAddingPerson(true)}>New person</DropdownMenuItem>
-                      {admin.onAddExistingContact && (
-                        <DropdownMenuItem
-                          onSelect={() => {
-                            setExistingPersonQuery("")
-                            setSelectingExistingPerson(true)
-                          }}
-                        >
-                          Select existing contact
-                        </DropdownMenuItem>
-                      )}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                )}
+                <span className="sidebar-nav-label text-muted-foreground">Project team</span>
               </div>
 
-              {people.length === 0 ? (
+              {projectTeamMembers.length === 0 ? (
                 <CompanyEmptyState
                   icon={UserIcon}
-                  title="No contacts yet"
-                  description={admin ? "Add the first person to give them access to this workspace." : undefined}
-                  action={admin ? <SectionAddButton onClick={() => setAddingPerson(true)} label="Add person" /> : undefined}
+                  title="No project team yet"
+                  description={admin ? "Open a project and add organization users to its team." : undefined}
                 />
               ) : (
                 <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                  {people.map((person) => (
+                  {projectTeamMembers.map(({ person, projects: assignedProjects }) => (
                     <MobileDataCard
                       key={person.id}
-                      onClick={admin && person.adminUser ? () => setEditingPerson(person.adminUser ?? null) : undefined}
                       ariaLabel={`Open ${person.name}`}
                       title={person.name}
-                      subtitle={person.subtitle || person.role || "Team member"}
+                      subtitle={assignedProjects.join(" · ") || "Team member"}
                       imageUrl={person.photoUrl}
                       icon={<UserIcon className="size-5 text-violet-600 dark:text-violet-400" aria-hidden="true" />}
                       menuLabel={`Options for ${person.name}`}
-                      menu={
-                        admin && person.adminUser ? (
-                          <>
-                            <DropdownMenuItem onSelect={() => setEditingPerson(person.adminUser ?? null)}>Edit</DropdownMenuItem>
-                            {((person.adminUser.role === "client" && person.adminUser.companyId) ||
-                              ((person.adminUser.role === "admin" || person.adminUser.role === "superadmin") && person.adminUser.tenantId)) && (
-                              <DropdownMenuItem onSelect={() => admin.onViewWorkspace(person.adminUser as AppUser)}>
-                                View as
-                              </DropdownMenuItem>
-                            )}
-                            <DropdownMenuItem
-                              variant="destructive"
-                              onSelect={() => setPendingRemove(person.adminUser ?? null)}
-                            >
-                              Remove person
-                            </DropdownMenuItem>
-                          </>
-                        ) : undefined
-                      }
                     />
                   ))}
                 </div>
@@ -575,91 +569,98 @@ export function CompanyPage({
 
           {section === "projects" && (
             <div className="mt-5">
-              <div className="flex items-center justify-between gap-4">
-                <h2 className="sr-only">Projects</h2>
-                <span className="text-sm text-muted-foreground">
-                  {projects.length} project{projects.length === 1 ? "" : "s"}
-                </span>
-                {admin && <SectionAddButton onClick={() => setCreatingProject(true)} label="New project" />}
-              </div>
-
-              {projects.length === 0 ? (
-                <CompanyEmptyState
-                  icon={Briefcase}
-                  title={admin ? "No projects yet" : emptyProjectsLabel}
-                  action={admin ? <SectionAddButton onClick={() => setCreatingProject(true)} label="New project" /> : undefined}
-                />
+              {selectedProject ? (
+                <div>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedProject(null)}
+                    className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+                  >
+                    <ArrowLeft className="size-4" aria-hidden="true" />
+                    Back to Projects
+                  </button>
+                  <h2 className="mt-4 text-xl font-semibold tracking-[-0.02em]">{selectedProject.title}</h2>
+                  <div className="mt-4">
+                    <ProjectDetail
+                      project={selectedProject}
+                      isAdmin={Boolean(admin)}
+                      publicView={!admin}
+                      embedded
+                      companyId={company.id}
+                      clientName={company.name}
+                      onProjectPatched={(patch) => setSelectedProject((current) => current ? { ...current, ...patch } : current)}
+                      onProjectDeleted={admin ? async () => {
+                        await admin.reload()
+                        setSelectedProject(null)
+                      } : undefined}
+                    />
+                  </div>
+                </div>
               ) : (
                 <>
-                  <div className="mt-4 space-y-2 sm:hidden">
-                    {projects.map((project) => (
-                      <MobileDataCard
-                        key={project.id}
-                        onClick={() => router.push(`/dashboard/projects/${projectSlug(project)}`)}
-                        ariaLabel={`Open ${project.title}`}
-                        title={project.title}
-                        subtitle={project.dueDate || "No due date"}
-                        icon={<FolderOpen className="size-5 text-amber-600 dark:text-amber-400" aria-hidden="true" />}
-                        menuLabel={`Options for ${project.title}`}
-                        menu={
-                          admin ? (
-                            <>
-                              <DropdownMenuItem
-                                onSelect={() => {
-                                  setProjectTitleDraft(project.title)
-                                  setRenamingProject(project)
-                                }}
-                              >
-                                Rename
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onSelect={() => void handleDuplicateProject(project)}>
-                                Duplicate
-                              </DropdownMenuItem>
-                              <DropdownMenuItem variant="destructive" onSelect={() => setDeletingProject(project)}>
-                                Delete
-                              </DropdownMenuItem>
-                            </>
-                          ) : undefined
-                        }
-                      />
-                    ))}
+                  <div className="flex items-center justify-between gap-4">
+                    <h2 className="sr-only">Projects</h2>
+                    <span className="sidebar-nav-label text-muted-foreground">Projects</span>
+                    {admin && <SectionAddButton onClick={() => setCreatingProject(true)} label="New project" />}
                   </div>
 
-                  <div className="mt-4 hidden sm:block">
-                    <GridCardList>
-                      {projects.map((project) => (
-                        <GridCard
-                          key={project.id}
-                          href={`/dashboard/projects/${projectSlug(project)}`}
-                          ariaLabel={`Open ${project.title}`}
-                          title={project.title}
-                          icon={<FolderOpen className="size-4 text-amber-600 dark:text-amber-400" aria-hidden="true" />}
-                          preview={<ProjectCover project={project} />}
-                          menuLabel={`Options for ${project.title}`}
-                          menu={
-                            admin ? (
-                              <>
-                                <DropdownMenuItem
-                                  onSelect={() => {
-                                    setProjectTitleDraft(project.title)
-                                    setRenamingProject(project)
-                                  }}
-                                >
-                                  Rename
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onSelect={() => void handleDuplicateProject(project)}>
-                                  Duplicate
-                                </DropdownMenuItem>
-                                <DropdownMenuItem variant="destructive" onSelect={() => setDeletingProject(project)}>
-                                  Delete
-                                </DropdownMenuItem>
-                              </>
-                            ) : undefined
-                          }
-                        />
-                      ))}
-                    </GridCardList>
-                  </div>
+                  {projects.length === 0 ? (
+                    <CompanyEmptyState
+                      icon={Briefcase}
+                      title={admin ? "No projects yet" : emptyProjectsLabel}
+                      action={admin ? <SectionAddButton onClick={() => setCreatingProject(true)} label="New project" /> : undefined}
+                    />
+                  ) : (
+                    <>
+                      <div className="mt-4 space-y-2 sm:hidden">
+                        {projects.map((project) => (
+                          <MobileDataCard
+                            key={project.id}
+                            onClick={() => setSelectedProject(project)}
+                            ariaLabel={`Open ${project.title}`}
+                            title={project.title}
+                            subtitle={project.dueDate || "No due date"}
+                            icon={<FolderOpen className="size-5 text-amber-600 dark:text-amber-400" aria-hidden="true" />}
+                            menuLabel={`Options for ${project.title}`}
+                            menu={
+                              admin ? (
+                                <>
+                                  <DropdownMenuItem onSelect={() => { setProjectTitleDraft(project.title); setRenamingProject(project) }}>Rename</DropdownMenuItem>
+                                  <DropdownMenuItem onSelect={() => void handleDuplicateProject(project)}>Duplicate</DropdownMenuItem>
+                                  <DropdownMenuItem variant="destructive" onSelect={() => setDeletingProject(project)}>Delete</DropdownMenuItem>
+                                </>
+                              ) : undefined
+                            }
+                          />
+                        ))}
+                      </div>
+
+                      <div className="mt-4 hidden sm:block">
+                        <GridCardList>
+                          {projects.map((project) => (
+                            <GridCard
+                              key={project.id}
+                              onClick={() => setSelectedProject(project)}
+                              ariaLabel={`Open ${project.title}`}
+                              title={project.title}
+                              icon={<FolderOpen className="size-4 text-amber-600 dark:text-amber-400" aria-hidden="true" />}
+                              preview={<ProjectCover project={project} />}
+                              menuLabel={`Options for ${project.title}`}
+                              menu={
+                                admin ? (
+                                  <>
+                                    <DropdownMenuItem onSelect={() => { setProjectTitleDraft(project.title); setRenamingProject(project) }}>Rename</DropdownMenuItem>
+                                    <DropdownMenuItem onSelect={() => void handleDuplicateProject(project)}>Duplicate</DropdownMenuItem>
+                                    <DropdownMenuItem variant="destructive" onSelect={() => setDeletingProject(project)}>Delete</DropdownMenuItem>
+                                  </>
+                                ) : undefined
+                              }
+                            />
+                          ))}
+                        </GridCardList>
+                      </div>
+                    </>
+                  )}
                 </>
               )}
             </div>
@@ -922,7 +923,7 @@ export function CompanyPage({
             initialCompanyId={company.id}
             onCreated={async (project) => {
               await admin.reload()
-              router.push(`/dashboard/projects/${projectSlug(project)}`)
+              setSelectedProject(project)
             }}
           />
 

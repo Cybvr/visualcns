@@ -20,7 +20,7 @@ export function SectionNav<K extends string>({
   className?: string
 }) {
   return (
-    <nav className={cn("scrollbar-none flex items-end justify-start gap-4 overflow-x-auto p-0", className)}>
+    <nav className={cn("sidebar-nav-label scrollbar-none flex items-end justify-start gap-4 overflow-x-auto p-0", className)}>
       {sections.map((s) => (
         <button
           key={s.key}

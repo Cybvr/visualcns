@@ -85,7 +85,7 @@ export function CompanyMedia({
     <section className="mt-4" aria-labelledby="company-media-heading">
       <div className="flex items-center justify-between gap-4">
         <h2 id="company-media-heading" className="sr-only">Media</h2>
-        <span className="text-sm text-muted-foreground">{gallery.length} item{gallery.length === 1 ? "" : "s"}</span>
+        <span className="sidebar-nav-label text-muted-foreground">Media</span>
         {isAdmin && <SectionAddButton onClick={() => setAddOpen(true)} label="Add media" />}
       </div>
 

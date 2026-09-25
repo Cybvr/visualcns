@@ -53,6 +53,7 @@ export default function DashboardCompanyPage() {
         tags: organization?.tags,
         primaryContactId: organization?.primaryContactId,
         media: organization?.media,
+        publicTeam: organization?.publicTeam,
       }}
       people={people.map((person) => ({
         id: person.uid,

@@ -40,7 +40,7 @@ export function CompanyDocuments({
     <section className="mt-4" aria-labelledby="company-documents-heading">
       <div className="flex items-center justify-between gap-3">
         <h2 id="company-documents-heading" className="sr-only">Documents</h2>
-        <span className="text-sm text-muted-foreground">{count} document{count === 1 ? "" : "s"}</span>
+        <span className="sidebar-nav-label text-muted-foreground">Documents</span>
         {canAdd && onAdd && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

@@ -13,6 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Loader2 } from "lucide-react"
 import { getOrganizations } from "@/lib/organizations"
 import { createProject, updateProject, type Project, type ProjectStatus } from "@/lib/projects"
@@ -28,6 +29,7 @@ type FormState = {
   status: ProjectStatus
   progress: string
   dueDate: string
+  teamMemberIds: string[]
 }
 
 const EMPTY_FORM: FormState = {
@@ -38,6 +40,7 @@ const EMPTY_FORM: FormState = {
   status: "in-progress",
   progress: "0",
   dueDate: "",
+  teamMemberIds: [],
 }
 
 interface ClientProjectFormProps {
@@ -56,11 +59,19 @@ export function ClientProjectForm({ project, initialCompanyId, onSaved, onCancel
   const [error, setError] = useState<string | null>(null)
   const [form, setForm] = useState<FormState>(EMPTY_FORM)
   const [companies, setCompanies] = useState<CompanyOption[]>([])
+  const [teamMembers, setTeamMembers] = useState<{ uid: string; name: string }[]>([])
   const [clientsLoading, setClientsLoading] = useState(true)
 
   useEffect(() => {
     Promise.all([getUsers(), getOrganizations()])
       .then(([users, organizations]) => {
+        setTeamMembers(
+          users
+            .filter((user) => user.role === "admin" || user.role === "superadmin")
+            .filter((user) => Boolean(user.displayName?.trim() || user.email?.trim()))
+            .map((user) => ({ uid: user.uid, name: user.displayName || user.email }))
+            .sort((a, b) => a.name.localeCompare(b.name)),
+        )
         const orgNames = new Map(organizations.map((org) => [org.id, org.name]))
         // Several people can share a workspace, so this is deduped to one row
         // per companyId, preferring the organization's own name.
@@ -88,6 +99,7 @@ export function ClientProjectForm({ project, initialCompanyId, onSaved, onCancel
         status: project.status ?? EMPTY_FORM.status,
         progress: String(project.progress ?? 0),
         dueDate: project.dueDate ?? "",
+        teamMemberIds: project.teamMemberIds ?? [],
       })
     } else {
       setForm({ ...EMPTY_FORM, companyId: initialCompanyId ?? "" })
@@ -123,6 +135,7 @@ export function ClientProjectForm({ project, initialCompanyId, onSaved, onCancel
       status: form.status,
       progress: Math.min(100, Math.max(0, Number(form.progress) || 0)),
       dueDate: form.dueDate.trim(),
+      teamMemberIds: form.teamMemberIds,
     }
 
     setSaving(true)
@@ -192,6 +205,32 @@ export function ClientProjectForm({ project, initialCompanyId, onSaved, onCancel
           onChange={(e) => set("description", e.target.value)}
           placeholder="What's this project about?"
         />
+      </div>
+
+      <div className="space-y-2">
+        <Label>Team</Label>
+        <p className="text-sm text-muted-foreground">Add organization users working on this project.</p>
+        {teamMembers.length > 0 ? (
+          <div className="grid gap-2 sm:grid-cols-2">
+            {teamMembers.map((member) => (
+              <label key={member.uid} className="flex items-center gap-2 py-1 text-sm">
+                <Checkbox
+                  checked={form.teamMemberIds.includes(member.uid)}
+                  onChange={(event) => {
+                    const next = event.currentTarget.checked
+                      ? [...form.teamMemberIds, member.uid]
+                      : form.teamMemberIds.filter((uid) => uid !== member.uid)
+                    set("teamMemberIds", next)
+                  }}
+                  aria-label={`Assign ${member.name}`}
+                />
+                <span className="min-w-0 truncate">{member.name}</span>
+              </label>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">No organization team members available.</p>
+        )}
       </div>
 
       {error && <p className="text-sm text-destructive">{error}</p>}

@@ -35,6 +35,8 @@ export interface Project {
   status: ProjectStatus
   progress: number
   dueDate: string
+  /** Organization user ids assigned to this project. */
+  teamMemberIds?: string[]
   /** URL segment for the detail page. Derived from the title when unset. */
   slug?: string
   /** Cover image for the project card. Cards fall back to a lettered tile when unset. */

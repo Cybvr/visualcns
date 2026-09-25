@@ -6,6 +6,7 @@ import { Mail, MoreVertical, Share2 } from "lucide-react"
 
 import { CaseStudyForm } from "@/components/dashboard/case-study-form"
 import { ProjectShareButton } from "@/components/dashboard/project-share-button"
+import { ProjectTeamPicker } from "@/components/dashboard/project-team-picker"
 import { TasksView } from "@/components/dashboard/tasks-view"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { usePageHeaderActions, usePageHeaderTitle } from "@/components/dashboard/page-title-context"
@@ -21,6 +22,7 @@ interface ProjectDetailProps {
   publicView?: boolean
   companyId?: string
   clientName?: string
+  embedded?: boolean
   onProjectPatched?: (patch: Partial<Project>) => void
   onProjectDeleted?: () => void | Promise<void>
 }
@@ -36,12 +38,13 @@ export function ProjectDetail({
   publicView = false,
   companyId = "",
   clientName = "",
+  embedded = false,
   onProjectPatched,
   onProjectDeleted,
 }: ProjectDetailProps) {
   const [tasks, setTasks] = useState<Task[]>([])
   const [deleting, setDeleting] = useState<string | null>(null)
-  const [tab, setTab] = useState<"tasks" | "about">("tasks")
+  const [tab, setTab] = useState<"tasks" | "about">(publicView ? "about" : "tasks")
   const [shareOpen, setShareOpen] = useState(false)
   const [titleDraft, setTitleDraft] = useState(project.title)
   const [titleEditing, setTitleEditing] = useState(false)
@@ -106,7 +109,7 @@ export function ProjectDetail({
     [project.title, saveTitle, titleDraft, titleEditing, titleSaving],
   )
 
-  usePageHeaderTitle(isAdmin ? titleNode : null)
+  usePageHeaderTitle(!embedded && isAdmin ? titleNode : null)
 
   const fetchTasks = useCallback(async () => {
     if (publicView) {
@@ -207,7 +210,7 @@ export function ProjectDetail({
     )
   }, [clientName, companyId, fetchTasks, isAdmin, project, publicView, shareOpen, tasks.length])
 
-  usePageHeaderActions(headerActions)
+  usePageHeaderActions(embedded ? null : headerActions)
 
   const tasksPanel = (
     <TasksView
@@ -253,11 +256,30 @@ export function ProjectDetail({
 
           <div className="min-w-0 pt-4">
             {tab === "about" ? (
-              <CaseStudyForm
-                project={project}
-                onSaved={onProjectPatched}
-                onDelete={handleDeleteProject}
-              />
+              publicView ? (
+                <div className="space-y-5">
+                  {project.description || project.excerpt || project.summary ? (
+                    <p className="whitespace-pre-wrap text-sm leading-6 text-foreground">{project.description || project.excerpt || project.summary}</p>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">No project description yet.</p>
+                  )}
+                  <div className="grid gap-3 text-sm sm:grid-cols-2">
+                    <div><span className="text-muted-foreground">Service</span><p className="mt-1 font-medium">{project.service || "Not set"}</p></div>
+                    <div><span className="text-muted-foreground">Status</span><p className="mt-1 font-medium">{project.status}</p></div>
+                    <div><span className="text-muted-foreground">Progress</span><p className="mt-1 font-medium">{project.progress}%</p></div>
+                    <div><span className="text-muted-foreground">Due date</span><p className="mt-1 font-medium">{project.dueDate || "Not set"}</p></div>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  <ProjectTeamPicker project={project} onPatched={onProjectPatched} />
+                  <CaseStudyForm
+                    project={project}
+                    onSaved={onProjectPatched}
+                    onDelete={handleDeleteProject}
+                  />
+                </div>
+              )
             ) : (
               tasksPanel
             )}
