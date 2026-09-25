@@ -57,9 +57,9 @@ const PRIORITY_RANK: Record<TaskPriority, number> = { low: 0, medium: 1, high: 2
 
 const TASK_SORTS: SortOption<Task>[] = [
   {
-    value: "createdAt",
-    label: "Date created",
-    get: (t) => tsToMillis(t.createdAt),
+    value: "updatedAt",
+    label: "Last modified",
+    get: (t) => tsToMillis(t.updatedAt),
     ascLabel: "Oldest",
     descLabel: "Newest",
   },
@@ -95,7 +95,7 @@ export default function TasksAdminPage() {
     try {
       const taskData = await getTasks()
       // Newest first, like Notion's default
-      taskData.sort((a, b) => tsToMillis(b.createdAt) - tsToMillis(a.createdAt))
+      taskData.sort((a, b) => tsToMillis(b.updatedAt) - tsToMillis(a.updatedAt))
       setTasks(taskData)
     } catch (err) {
       console.error("Error fetching tasks:", err)
@@ -132,7 +132,7 @@ export default function TasksAdminPage() {
     items: tasks,
     search: searchTask,
     sorts: TASK_SORTS,
-    defaultSort: "createdAt",
+    defaultSort: "updatedAt",
     defaultDirection: "desc",
   })
 
@@ -208,7 +208,7 @@ export default function TasksAdminPage() {
                 ))}
               </ul>
 
-              <div className="hidden rounded-lg border border-border sm:block">
+              <div className="hidden overflow-x-hidden sm:block">
               <TableBulkBar
                 count={selection.selectedCount}
                 noun="task"
@@ -216,10 +216,10 @@ export default function TasksAdminPage() {
                 onClear={selection.clear}
                 onDelete={handleBulkDelete}
               />
-              <Table className="table-fixed">
+              <Table className="w-full table-fixed">
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-10">
+                    <TableHead className="w-10 px-2">
                       <Checkbox
                         aria-label="Select all tasks"
                         checked={selection.allSelected}
@@ -227,11 +227,11 @@ export default function TasksAdminPage() {
                         onChange={selection.toggleAll}
                       />
                     </TableHead>
-                    <TableHead className="w-[40%]">Task</TableHead>
-                    <TableHead className="w-[18%]">Client</TableHead>
+                    <TableHead className="w-[34%]">Task</TableHead>
+                    <TableHead className="w-[19%]">Client</TableHead>
                     <TableHead className="w-[24%]">Project</TableHead>
-                    <TableHead className="w-32">Status</TableHead>
-                    <TableHead className="w-20 text-right">Actions</TableHead>
+                    <TableHead className="w-[14%]">Status</TableHead>
+                    <TableHead className="w-24 text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -257,15 +257,15 @@ export default function TasksAdminPage() {
                           {t.name || "Untitled task"}
                         </button>
                       </TableCell>
-                      <TableCell className="max-w-0 truncate text-muted-foreground">{t.client || t.companyId || "—"}</TableCell>
-                      <TableCell className="max-w-0 truncate text-muted-foreground">{t.project || "—"}</TableCell>
+                      <TableCell className="max-w-0 text-muted-foreground"><span className="block truncate">{t.client || t.companyId || "—"}</span></TableCell>
+                      <TableCell className="max-w-0 text-muted-foreground"><span className="block truncate">{t.project || "—"}</span></TableCell>
                       <TableCell className="whitespace-nowrap">
                         <Badge className={(taskStatusMeta[t.status] ?? taskStatusMeta.todo).className}>
                           {(taskStatusMeta[t.status] ?? taskStatusMeta.todo).label}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right" onClick={(event) => event.stopPropagation()}>
-                        <div className="flex justify-end gap-1">
+                        <div className="flex justify-end gap-1.5">
                           <Button
                             variant="ghost"
                             size="icon"

@@ -2,11 +2,10 @@
 
 import { useEffect, useState } from "react"
 import { useParams } from "next/navigation"
-import { Loader2 } from "lucide-react"
-
 import { CompanyBanner } from "@/components/company/company-banner"
 import { ContractDocument } from "@/components/dashboard/contract-document"
 import { DocumentActions } from "@/components/dashboard/document-actions"
+import { Skeleton } from "@/components/ui/skeleton"
 import { getBusinessProfile, type BusinessProfile } from "@/lib/business-profile"
 import { getContract, type Contract } from "@/lib/billing"
 import { getOrganization, type Organization } from "@/lib/organizations"
@@ -56,8 +55,8 @@ export default function SharedContractPage() {
 
   if (loading) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-muted/30">
-        <Loader2 className="size-6 animate-spin text-muted-foreground" aria-hidden="true" />
+      <main className="min-h-screen bg-muted/30 px-4 py-10 sm:py-16" role="status" aria-label="Loading shared contract">
+        <div className="mx-auto max-w-5xl space-y-6"><Skeleton className="h-10 w-28" /><Skeleton className="h-32 w-full" /><Skeleton className="h-[32rem] w-full rounded-xl" /></div>
       </main>
     )
   }

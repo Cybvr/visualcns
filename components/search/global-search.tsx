@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
-import { Loader2, Search } from "lucide-react"
+import { Search } from "lucide-react"
 
 import {
   Command,
@@ -12,6 +12,7 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command"
+import { Skeleton } from "@/components/ui/skeleton"
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import {
   SidebarMenu,
@@ -143,9 +144,8 @@ export function GlobalSearchDialog({
           <CommandInput placeholder={placeholder} value={query} onValueChange={setQuery} />
           <CommandList className="max-h-[60vh]">
             {loading ? (
-              <div className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground">
-                <Loader2 className="size-4 animate-spin" aria-hidden="true" />
-                Loading…
+              <div className="space-y-3 p-3" role="status" aria-label="Loading search results">
+                <Skeleton className="h-9 w-full" /><Skeleton className="h-9 w-full" /><Skeleton className="h-9 w-full" />
               </div>
             ) : (
               <>

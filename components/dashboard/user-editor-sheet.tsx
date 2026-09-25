@@ -1,9 +1,8 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Loader2 } from "lucide-react"
-
 import { UserForm } from "@/components/dashboard/user-form"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
   Sheet,
   SheetContent,
@@ -88,8 +87,8 @@ export function UserEditorSheet({
         </SheetHeader>
 
         {loading ? (
-          <div className="flex items-center justify-center py-16">
-            <Loader2 className="size-6 animate-spin text-muted-foreground" />
+          <div className="space-y-4 p-4" role="status" aria-label="Loading user">
+            <Skeleton className="h-10 w-full" /><Skeleton className="h-10 w-full" /><Skeleton className="h-24 w-full" />
           </div>
         ) : failed ? (
           <p className="p-4 text-sm text-muted-foreground">

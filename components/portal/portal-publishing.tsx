@@ -1,11 +1,11 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Loader2 } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { Skeleton } from "@/components/ui/skeleton"
 import { Switch } from "@/components/ui/switch"
 import { getTasksByProjectId, type Task } from "@/lib/tasks"
 import type { Project } from "@/lib/projects"
@@ -50,7 +50,7 @@ function ProjectSharing({ project, initial, people, files, onChanged }: { projec
     catch { setError("Couldn’t save project sharing. Try again.") } finally { setSaving(false) }
   }
   return <div className="space-y-5"><div className="flex items-center justify-between gap-4"><Label htmlFor="project-visible">Show this project on the company page</Label><Switch id="project-visible" checked={shared} onCheckedChange={setShared} /></div><div><Label htmlFor="client-summary">Client project summary</Label><Textarea id="client-summary" className="mt-2" value={summary} onChange={e => setSummary(e.target.value)} maxLength={2000} placeholder="A short update your client can see." /></div><Button disabled={saving} onClick={() => void save()}>{saving ? "Saving…" : "Save project sharing"}</Button>{error && <p role="alert" className="text-sm text-destructive">{error}</p>}
-    {initial && <><h3 className="pt-3 text-sm font-semibold">Client tasks</h3>{loading ? <Loader2 className="size-5 animate-spin" /> : tasks.length ? tasks.map(task => <PublishTask key={task.id} task={task} initial={publishedTasks.find(item => item.id === task.id)} people={people} />) : null}
+    {initial && <><h3 className="pt-3 text-sm font-semibold">Client tasks</h3>{loading ? <div className="space-y-2" role="status" aria-label="Loading client tasks"><Skeleton className="h-10 w-full" /><Skeleton className="h-10 w-full" /></div> : tasks.length ? tasks.map(task => <PublishTask key={task.id} task={task} initial={publishedTasks.find(item => item.id === task.id)} people={people} />) : null}
     {files.length ? files.map(file => <label key={file.id} className="flex items-center gap-3 text-sm"><input type="checkbox" checked={file.projectId === project.id} onChange={async e => { try { await setDocumentProject(file.id, e.target.checked ? project.id : ""); onChanged() } catch { toast.error("Couldn’t update file sharing.") } }} />{file.title}{file.projectId && file.projectId !== project.id && <span className="text-xs text-muted-foreground">Assigned to another project</span>}</label>) : null}</>}
   </div>
 }
@@ -75,5 +75,5 @@ export function PortalPublishingPanel({ companyId, projects, people, active }: {
     return () => { live = false }
   }, [active, companyId, revision])
   const project = projects.find(item => item.id === selected)
-  return <div className="space-y-4">{error ? <p role="alert" className="text-sm text-destructive">{error}</p> : loading ? <Loader2 className="size-5 animate-spin" /> : <><div className="grid gap-2"><Label htmlFor="portal-project">Project</Label><select id="portal-project" value={selected} onChange={e => setSelected(e.target.value)} className="h-10 rounded-md border border-input bg-background px-3 text-sm"><option value="">Choose a project</option>{projects.map(item => <option key={item.id} value={item.id}>{item.title}{published.some(p => p.id === item.id) ? " · Shared" : ""}</option>)}</select></div>{project ? <ProjectSharing key={`${project.id}:${revision}`} project={project} initial={published.find(item => item.id === project.id)} people={people} files={files} onChanged={() => setRevision(n => n + 1)} /> : <p className="text-sm text-muted-foreground">Choose a project to share, or create one in the agency workspace.</p>}</>}</div>
+  return <div className="space-y-4">{error ? <p role="alert" className="text-sm text-destructive">{error}</p> : loading ? <div className="space-y-3" role="status" aria-label="Loading sharing settings"><Skeleton className="h-4 w-28" /><Skeleton className="h-10 w-full" /><Skeleton className="h-16 w-full" /></div> : <><div className="grid gap-2"><Label htmlFor="portal-project">Project</Label><select id="portal-project" value={selected} onChange={e => setSelected(e.target.value)} className="h-10 rounded-md border border-input bg-background px-3 text-sm"><option value="">Choose a project</option>{projects.map(item => <option key={item.id} value={item.id}>{item.title}{published.some(p => p.id === item.id) ? " · Shared" : ""}</option>)}</select></div>{project ? <ProjectSharing key={`${project.id}:${revision}`} project={project} initial={published.find(item => item.id === project.id)} people={people} files={files} onChanged={() => setRevision(n => n + 1)} /> : <p className="text-sm text-muted-foreground">Choose a project to share, or create one in the agency workspace.</p>}</>}</div>
 }

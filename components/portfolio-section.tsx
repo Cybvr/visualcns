@@ -2,11 +2,12 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { ArrowRight, Loader2 } from "lucide-react"
+import { ArrowRight } from "lucide-react"
 import { getCaseStudyProjects, type CaseStudyProject } from "@/lib/case-studies"
 import { PageHeading } from "@/components/page-heading"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { PortfolioGrid } from "@/components/portfolio-grid"
+import { Skeleton } from "@/components/ui/skeleton"
 
 const triggerClass =
   "w-fit gap-1 border-0 bg-transparent p-0 h-auto shadow-none focus-visible:ring-0 text-foreground [&>svg]:size-5 [&>svg]:opacity-100"
@@ -132,8 +133,8 @@ export function PortfolioSection({ showHero = true, inset = false, limit }: Port
       <section className={inset ? "pb-4" : "pb-24 md:pb-32"}>
         <div className={containerClass}>
           {loading ? (
-            <div className="flex items-center justify-center py-20">
-              <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+            <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4" role="status" aria-label="Loading case studies">
+              {Array.from({ length: 4 }, (_, index) => <div key={index} className="space-y-4"><Skeleton className="aspect-[4/3] w-full" /><Skeleton className="h-6 w-2/3" /><Skeleton className="h-4 w-1/2" /></div>)}
             </div>
           ) : filteredProjects.length === 0 ? (
             <p className="py-20 text-center text-muted-foreground">

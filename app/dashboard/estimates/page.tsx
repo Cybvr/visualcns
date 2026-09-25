@@ -42,7 +42,7 @@ import { tsToMillis } from "@/lib/tasks"
 import { cn } from "@/lib/utils"
 
 const ESTIMATE_SORTS: SortOption<Estimate>[] = [
-  { value: "createdAt", label: "Date created", get: (estimate) => tsToMillis(estimate.createdAt), ascLabel: "Oldest", descLabel: "Newest" },
+  { value: "updatedAt", label: "Last modified", get: (estimate) => tsToMillis(estimate.updatedAt), ascLabel: "Oldest", descLabel: "Newest" },
   { value: "estimateNumber", label: "Estimate no.", get: (estimate) => estimate.estimateNumber, ascLabel: "A–Z", descLabel: "Z–A" },
   { value: "client", label: "Client", get: (estimate) => estimate.client || estimate.companyId, ascLabel: "A–Z", descLabel: "Z–A" },
   { value: "amount", label: "Amount", get: (estimate) => estimate.amount, ascLabel: "Lowest", descLabel: "Highest" },
@@ -133,7 +133,7 @@ export default function EstimatesPage() {
     items: estimates,
     search: searchEstimate,
     sorts,
-    defaultSort: "createdAt",
+    defaultSort: "updatedAt",
     defaultDirection: "desc",
   })
 
@@ -199,11 +199,12 @@ export default function EstimatesPage() {
                   onDelete={handleBulkDelete}
                 />
               )}
-              <Table>
+              <div className="overflow-x-hidden">
+              <Table className="w-full table-fixed">
                 <TableHeader>
                   <TableRow>
                     {adminView && (
-                      <TableHead className="w-10">
+                      <TableHead className="w-10 px-2">
                         <Checkbox
                           aria-label="Select all estimates"
                           checked={selection.allSelected}
@@ -212,13 +213,13 @@ export default function EstimatesPage() {
                         />
                       </TableHead>
                     )}
-                    <TableHead>Estimate no.</TableHead>
-                    <TableHead>Title</TableHead>
-                    {adminView && <TableHead>Client</TableHead>}
-                    <TableHead>Amount</TableHead>
-                    <TableHead>Valid until</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead><span className="sr-only">Actions</span></TableHead>
+                    <TableHead className="w-[16%]">Estimate no.</TableHead>
+                    <TableHead className="w-[25%]">Title</TableHead>
+                    {adminView && <TableHead className="w-[18%]">Client</TableHead>}
+                    <TableHead className="w-[13%] text-right">Amount</TableHead>
+                    <TableHead className="w-[13%]">Valid until</TableHead>
+                    <TableHead className="w-[10%]">Status</TableHead>
+                    <TableHead className="w-24 text-right"><span className="sr-only">Actions</span></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -235,14 +236,14 @@ export default function EstimatesPage() {
                             />
                           </TableCell>
                         )}
-                        <TableCell className="font-medium"><Link href={`/dashboard/estimates/${estimate.id}`} className="rounded-sm outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring">{estimate.estimateNumber}</Link></TableCell>
-                        <TableCell>{estimate.title}</TableCell>
-                        {adminView && <TableCell>{estimate.companyId ? <button type="button" onClick={() => setClientSheet(estimate.companyId)} className="rounded-sm text-left outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring">{estimate.client || "Client"}</button> : "—"}</TableCell>}
-                        <TableCell>{formatMoney(estimate.amount, estimate.currency)}</TableCell>
-                        <TableCell>{formatDate(estimate.validUntil)}</TableCell>
-                        <TableCell><span className={cn("inline-flex rounded-full px-2 py-0.5 text-xs font-medium", meta.className)}>{meta.label}</span></TableCell>
-                        <TableCell>
-                          <div className="flex items-center justify-end gap-0.5">
+                        <TableCell className="max-w-0 font-medium"><span className="block truncate">{estimate.estimateNumber}</span></TableCell>
+                        <TableCell className="max-w-0"><Link href={`/dashboard/estimates/${estimate.id}`} className="block truncate rounded-sm outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring">{estimate.title || "Untitled estimate"}</Link></TableCell>
+                        {adminView && <TableCell className="max-w-0">{estimate.companyId ? <button type="button" onClick={() => setClientSheet(estimate.companyId)} className="block max-w-full truncate rounded-sm text-left outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring">{estimate.client || "Client"}</button> : "—"}</TableCell>}
+                        <TableCell className="whitespace-nowrap text-right">{formatMoney(estimate.amount, estimate.currency)}</TableCell>
+                        <TableCell className="whitespace-nowrap">{formatDate(estimate.validUntil)}</TableCell>
+                        <TableCell className="whitespace-nowrap"><span className={cn("inline-flex rounded-full px-2 py-0.5 text-xs font-medium", meta.className)}>{meta.label}</span></TableCell>
+                        <TableCell className="w-24">
+                          <div className="flex items-center justify-end gap-1.5">
                             <Link href={`/dashboard/estimates/${estimate.id}`} aria-label={`View estimate ${estimate.estimateNumber}`} className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"><Eye className="size-4" aria-hidden="true" /></Link>
                             {adminView && <>
                               <Link href={`/dashboard/estimates/${estimate.id}/edit`} aria-label={`Edit estimate ${estimate.estimateNumber}`} className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"><Pencil className="size-4" aria-hidden="true" /></Link>
@@ -256,6 +257,7 @@ export default function EstimatesPage() {
                   })}
                 </TableBody>
               </Table>
+              </div>
               </>
             )}
           </div>

@@ -6,8 +6,9 @@ import Link from "next/link"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
-import { ArrowLeft, ExternalLink, Loader2 } from "lucide-react"
+import { ArrowLeft, ExternalLink } from "lucide-react"
 import { getCaseStudyProjectBySlug, getCaseStudyProjects, type CaseStudyProject } from "@/lib/case-studies"
+import { Skeleton } from "@/components/ui/skeleton"
 
 const PLACEHOLDER = "/placeholder.svg?height=900&width=1600&query=project"
 const CONTAINER = "mx-auto max-w-7xl px-4 sm:px-8 md:px-20"
@@ -44,8 +45,8 @@ export default function SingleProjectPage() {
     return (
       <div className="min-h-screen">
         <Header />
-        <div className="flex items-center justify-center py-40">
-          <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+        <div className="mx-auto max-w-7xl space-y-6 px-4 py-24 sm:px-8 md:px-20" role="status" aria-label="Loading case study">
+          <Skeleton className="h-10 w-2/3" /><Skeleton className="h-96 w-full" /><Skeleton className="h-5 w-1/2" />
         </div>
         <Footer />
       </div>

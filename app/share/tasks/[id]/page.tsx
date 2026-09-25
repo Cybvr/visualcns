@@ -2,10 +2,9 @@
 
 import { useEffect, useState } from "react"
 import { useParams } from "next/navigation"
-import { Loader2 } from "lucide-react"
-
 import { Badge } from "@/components/inline-table-cells"
 import { TaskContent } from "@/components/dashboard/task-content"
+import { Skeleton } from "@/components/ui/skeleton"
 import { getTask, taskPriorityMeta, taskStatusMeta, type Task } from "@/lib/tasks"
 
 export default function SharedTaskPage() {
@@ -33,7 +32,7 @@ export default function SharedTaskPage() {
   }, [id])
 
   if (loading) {
-    return <main className="flex min-h-screen items-center justify-center bg-muted/30"><Loader2 className="size-6 animate-spin text-muted-foreground" aria-hidden="true" /></main>
+    return <main className="min-h-screen bg-muted/30 px-4 py-10 sm:py-16" role="status" aria-label="Loading shared task"><div className="mx-auto max-w-3xl space-y-5"><Skeleton className="h-5 w-40" /><div className="space-y-5 rounded-xl border border-border bg-background p-6 sm:p-8"><Skeleton className="h-9 w-2/3" /><Skeleton className="h-4 w-1/2" /><Skeleton className="h-32 w-full" /><Skeleton className="h-4 w-4/5" /></div></div></main>
   }
 
   if (!task) {

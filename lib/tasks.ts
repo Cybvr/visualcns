@@ -104,7 +104,8 @@ export async function getTasksByCompanyId(companyId: string): Promise<Task[]> {
   if (!companyId) return []
   const tenantId = await getCurrentTenantId()
   const snapshot = await getDocs(query(collection(db, COLLECTION_NAME), where("tenantId", "==", tenantId), where("companyId", "==", companyId)))
-  return snapshot.docs.map((d) => ({ ...(d.data() as object), id: d.id })) as Task[]
+  const tasks = snapshot.docs.map((d) => ({ ...(d.data() as object), id: d.id })) as Task[]
+  return tasks.sort((a, b) => tsToMillis(b.updatedAt) - tsToMillis(a.updatedAt))
 }
 
 /**

@@ -2,11 +2,12 @@
 
 import { useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
-import { ArrowLeft, ExternalLink, Loader2, Share2 } from "lucide-react"
+import { ArrowLeft, ExternalLink, Share2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { DashboardPageSkeleton } from "@/components/dashboard/dashboard-page-skeleton"
 import { ShareLinkField } from "@/components/dashboard/share-link-field"
 import { TaskForm } from "@/components/dashboard/task-form"
 import { getTask, updateTask, type Task } from "@/lib/tasks"
@@ -57,7 +58,7 @@ export default function TaskEditPage() {
   }
 
   if (loading) {
-    return <div className="flex min-h-[50vh] items-center justify-center"><Loader2 className="size-6 animate-spin text-muted-foreground" aria-hidden="true" /></div>
+    return <DashboardPageSkeleton variant="detail" />
   }
 
   if (!task) {

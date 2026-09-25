@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { Loader2 } from "lucide-react"
 import { getCaseStudyProjects, type CaseStudyProject } from "@/lib/case-studies"
+import { Skeleton } from "@/components/ui/skeleton"
 
 import "./portfolio.css"
 
@@ -55,8 +55,8 @@ export function PortfolioGrid({
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20" aria-label="Loading case studies">
-        <Loader2 className="size-8 animate-spin text-muted-foreground" aria-hidden="true" />
+      <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4" role="status" aria-label="Loading case studies">
+        {Array.from({ length: 4 }, (_, index) => <div key={index} className="space-y-4"><Skeleton className="aspect-[4/3] w-full" /><Skeleton className="h-6 w-2/3" /><Skeleton className="h-4 w-1/2" /></div>)}
       </div>
     )
   }

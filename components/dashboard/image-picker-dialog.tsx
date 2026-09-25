@@ -6,6 +6,7 @@ import { ImagePlus, Loader2, Search, Upload } from "lucide-react"
 import { useAuth } from "@/components/auth-provider"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Skeleton } from "@/components/ui/skeleton"
 import { Input } from "@/components/ui/input"
 import { createDocument, getDocuments, uploadFileToStorage, type SharedDocument } from "@/lib/documents"
 import { cn } from "@/lib/utils"
@@ -116,7 +117,7 @@ export function ImagePickerDialog({
         </div>
         <div className="max-h-[min(60vh,32rem)] min-h-48 overflow-y-auto p-5">
           {loading ? (
-            <div className="flex min-h-48 items-center justify-center text-sm text-muted-foreground"><Loader2 className="mr-2 size-4 animate-spin" />Loading Drive images…</div>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3" role="status" aria-label="Loading Drive images">{Array.from({ length: 6 }, (_, index) => <Skeleton key={index} className="aspect-[4/3] w-full rounded-xl" />)}</div>
           ) : visibleDocuments.length === 0 ? (
             <div className="flex min-h-48 flex-col items-center justify-center text-center">
               <ImagePlus className="size-6 text-muted-foreground" aria-hidden="true" />

@@ -2,12 +2,11 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { Loader2 } from "lucide-react"
-
 import { getTemplates, getTemplateSteps } from "@/lib/projects"
 import type { Currency } from "@/lib/plans"
 import { TemplateGallery, type TemplateCard } from "@/components/template-gallery"
 import { Button } from "@/components/ui/button"
+import { Skeleton } from "@/components/ui/skeleton"
 
 export function TemplatesSection() {
   const [currency, setCurrency] = useState<Currency>("USD")
@@ -65,8 +64,8 @@ export function TemplatesSection() {
       </div>
 
       {loading ? (
-        <div className="flex justify-center py-20">
-          <Loader2 className="size-6 animate-spin text-muted-foreground" />
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" role="status" aria-label="Loading templates">
+          {Array.from({ length: 6 }, (_, index) => <div key={index} className="space-y-3 rounded-2xl border border-border bg-card p-4"><Skeleton className="aspect-[4/3] w-full rounded-xl" /><Skeleton className="h-5 w-2/3" /><Skeleton className="h-4 w-1/2" /></div>)}
         </div>
       ) : templates.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border bg-card p-10 text-center">

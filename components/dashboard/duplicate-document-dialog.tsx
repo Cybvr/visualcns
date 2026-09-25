@@ -6,6 +6,7 @@ import { Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
+import { Skeleton } from "@/components/ui/skeleton"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { getProjects, type Project } from "@/lib/projects"
 import { getUsers, type AppUser } from "@/lib/users"
@@ -93,8 +94,8 @@ export function DuplicateDocumentDialog({
         </DialogHeader>
 
         {loading ? (
-          <div className="flex items-center justify-center py-8">
-            <Loader2 className="size-5 animate-spin text-muted-foreground" aria-hidden="true" />
+          <div className="space-y-3 py-4" role="status" aria-label="Loading document options">
+            <Skeleton className="h-4 w-28" /><Skeleton className="h-10 w-full" /><Skeleton className="h-10 w-full" />
           </div>
         ) : (
           <div className="space-y-4">

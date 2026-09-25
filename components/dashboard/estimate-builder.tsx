@@ -37,6 +37,7 @@ import {
 } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
+import { getOrganizations, type Organization } from "@/lib/organizations"
 import {
   createEstimate,
   deleteEstimate,
@@ -168,6 +169,7 @@ export function EstimateBuilder({ estimate, initialCompanyId }: { estimate?: Est
   const [shareEnabled, setShareEnabled] = useState(estimate?.shareEnabled ?? false)
 
   const [clients, setClients] = useState<AppUser[]>([])
+  const [organizations, setOrganizations] = useState<Organization[]>([])
   const [projects, setProjects] = useState<Project[]>([])
   const [optionsLoading, setOptionsLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -189,21 +191,41 @@ export function EstimateBuilder({ estimate, initialCompanyId }: { estimate?: Est
 
   useEffect(() => {
     let active = true
-    Promise.all([getUsers(), getProjects()])
-      .then(([userList, projectList]) => {
+    Promise.all([getUsers(), getProjects(), getOrganizations()])
+      .then(([userList, projectList, organizationList]) => {
         if (!active) return
         // Several people can share a workspace, so this is narrowed to one
         // entry per companyId - otherwise the same company lists twice (and
         // the duplicate companyId shows up as a duplicate React key).
         const seenWorkspaces = new Set<string>()
-        setClients(
-          userList.filter((user) => {
+        const nextClients = userList.filter((user) => {
             if (!user.companyId || seenWorkspaces.has(user.companyId)) return false
             seenWorkspaces.add(user.companyId)
             return true
-          }),
-        )
+          })
+        setClients(nextClients)
+        setOrganizations(organizationList)
         setProjects(projectList)
+
+        const selectedCompanyId = estimate?.companyId || initialCompanyId || ""
+        const selectedClient = nextClients.find((client) => client.companyId === selectedCompanyId)
+        const selectedOrganization = organizationList.find((organization) => organization.id === selectedCompanyId)
+        if (selectedClient || selectedOrganization) {
+          const details = {
+            name: selectedOrganization?.name || selectedClient?.company || selectedClient?.displayName || selectedClient?.email || "",
+            email: selectedOrganization?.email || selectedClient?.email || "",
+            address: selectedOrganization?.address || selectedOrganization?.website || selectedOrganization?.location || selectedClient?.website || "",
+          }
+          if (!isEdit) {
+            setPreparedForName(details.name)
+            setPreparedForEmail(details.email)
+            setPreparedForAddress(details.address)
+          } else {
+            if (!preparedForName.trim()) setPreparedForName(details.name)
+            if (!preparedForEmail.trim()) setPreparedForEmail(details.email)
+            if (!preparedForAddress.trim()) setPreparedForAddress(details.address)
+          }
+        }
       })
       .catch(() => active && setError("Couldn’t load clients and projects."))
       .finally(() => active && setOptionsLoading(false))
@@ -224,9 +246,11 @@ export function EstimateBuilder({ estimate, initialCompanyId }: { estimate?: Est
   function selectClient(value: string) {
     setCompanyId(value)
     const client = clients.find((entry) => entry.companyId === value)
-    if (client && !preparedForName.trim()) {
-      setPreparedForName(client.company || client.displayName || "")
-      setPreparedForEmail(client.email || "")
+    const organization = organizations.find((entry) => entry.id === value)
+    if (client || organization) {
+      setPreparedForName(organization?.name || client?.company || client?.displayName || client?.email || "")
+      setPreparedForEmail(organization?.email || client?.email || "")
+      setPreparedForAddress(organization?.address || organization?.website || organization?.location || client?.website || "")
     }
     if (projectId && projects.find((project) => project.id === projectId)?.companyId !== value) setProjectId("")
   }

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Loader2 } from "lucide-react"
+import { Loader2, Trash2 } from "lucide-react"
 
 import {
   AlertDialog,
@@ -25,12 +25,16 @@ export function DangerZone({
   confirmTitle,
   confirmDescription,
   onDelete,
+  compact = false,
+  iconOnly = false,
 }: {
   /** e.g. "invoice", used in "Delete invoice" */
   label: string
   confirmTitle: string
   confirmDescription: string
   onDelete: () => Promise<void>
+  compact?: boolean
+  iconOnly?: boolean
 }) {
   const [open, setOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
@@ -46,18 +50,20 @@ export function DangerZone({
   }
 
   return (
-    <div className="flex flex-col items-start justify-between gap-4 rounded-[14px] border border-destructive/30 bg-destructive/5 p-5 sm:flex-row sm:items-center sm:p-6">
-      <div>
+    <div className={compact ? "flex justify-start" : "flex flex-col items-start justify-between gap-4 rounded-[14px] border border-destructive/30 bg-destructive/5 p-5 sm:flex-row sm:items-center sm:p-6"}>
+      {!compact && <div>
         <h2 className="text-sm font-medium text-destructive">Danger zone</h2>
         <p className="mt-1 text-sm text-muted-foreground">Delete this {label}. This cannot be undone.</p>
-      </div>
+      </div>}
       <Button
         type="button"
         variant="outline"
-        className="shrink-0 border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
+        aria-label={`Delete ${label}`}
+        title={`Delete ${label}`}
+        className={iconOnly ? "size-8 shrink-0 border-destructive/40 p-0 text-destructive hover:bg-destructive/10 hover:text-destructive" : "shrink-0 border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"}
         onClick={() => setOpen(true)}
       >
-        Delete {label}
+        {iconOnly ? <Trash2 className="size-4" aria-hidden="true" /> : compact ? "Delete" : `Delete ${label}`}
       </Button>
 
       <AlertDialog open={open} onOpenChange={(next) => !deleting && setOpen(next)}>

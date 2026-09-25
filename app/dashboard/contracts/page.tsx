@@ -48,9 +48,9 @@ import { cn } from "@/lib/utils"
 
 const CONTRACT_SORTS: SortOption<Contract>[] = [
   {
-    value: "createdAt",
-    label: "Date created",
-    get: (c) => tsToMillis(c.createdAt),
+    value: "updatedAt",
+    label: "Last modified",
+    get: (c) => tsToMillis(c.updatedAt),
     ascLabel: "Oldest",
     descLabel: "Newest",
   },
@@ -152,7 +152,7 @@ export default function ContractsPage() {
     items: contracts,
     search: searchContract,
     sorts,
-    defaultSort: "createdAt",
+    defaultSort: "updatedAt",
     defaultDirection: "desc",
   })
 
@@ -233,11 +233,12 @@ export default function ContractsPage() {
                     onDelete={handleBulkDelete}
                   />
                 )}
-                <Table>
+                <div className="overflow-x-hidden">
+                <Table className="w-full table-fixed">
                 <TableHeader>
                   <TableRow>
                     {adminView && (
-                      <TableHead className="w-10">
+                      <TableHead className="w-10 px-2">
                         <Checkbox
                           aria-label="Select all contracts"
                           checked={selection.allSelected}
@@ -246,13 +247,13 @@ export default function ContractsPage() {
                         />
                       </TableHead>
                     )}
-                    <TableHead>Title</TableHead>
-                    {adminView && <TableHead>Client</TableHead>}
-                    <TableHead>Project</TableHead>
-                    <TableHead>Starts</TableHead>
-                    <TableHead>Ends</TableHead>
-                    <TableHead>Signed</TableHead>
-                    <TableHead>Status</TableHead>
+                    <TableHead className="w-[18%]">Title</TableHead>
+                    {adminView && <TableHead className="w-[15%]">Client</TableHead>}
+                    <TableHead className="w-[17%]">Project</TableHead>
+                    <TableHead className="w-[10%]">Starts</TableHead>
+                    <TableHead className="w-[10%]">Ends</TableHead>
+                    <TableHead className="w-[10%]">Signed</TableHead>
+                    <TableHead className="w-[10%]">Status</TableHead>
                     <TableHead className="w-24 text-right">
                       <span className="sr-only">Actions</span>
                     </TableHead>
@@ -272,30 +273,30 @@ export default function ContractsPage() {
                             />
                           </TableCell>
                         )}
-                        <TableCell className="font-medium">
+                        <TableCell className="max-w-0 font-medium">
                           {adminView ? (
                             <Link
                               href={`/dashboard/contracts/${contract.id}/edit`}
-                              className="rounded-sm outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring"
+                              className="block truncate rounded-sm outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring"
                             >
                               {contract.title}
                             </Link>
                           ) : (
                             <Link
                               href={`/dashboard/contracts/${contract.id}`}
-                              className="rounded-sm outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring"
+                              className="block truncate rounded-sm outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring"
                             >
                               {contract.title}
                             </Link>
                           )}
                         </TableCell>
                         {adminView && (
-                          <TableCell>
+                          <TableCell className="max-w-0">
                             {contract.companyId ? (
                               <button
                                 type="button"
                                 onClick={() => setClientSheet(contract.companyId)}
-                                className="rounded-sm text-left outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring"
+                                className="block max-w-full truncate rounded-sm text-left outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring"
                               >
                                 {contract.client || "Client"}
                               </button>
@@ -304,11 +305,11 @@ export default function ContractsPage() {
                             )}
                           </TableCell>
                         )}
-                        <TableCell>
+                        <TableCell className="max-w-0">
                           {contract.projectId ? (
                             <Link
                               href={`/dashboard/projects/${contract.projectId}`}
-                              className="rounded-sm outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring"
+                              className="block truncate rounded-sm outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring"
                             >
                               {contract.project || "Project"}
                             </Link>
@@ -316,16 +317,16 @@ export default function ContractsPage() {
                             "—"
                           )}
                         </TableCell>
-                        <TableCell>{formatDate(contract.startsOn)}</TableCell>
-                        <TableCell>{formatDate(contract.endsOn)}</TableCell>
-                        <TableCell>{formatDate(contract.signedOn)}</TableCell>
-                        <TableCell>
+                        <TableCell className="whitespace-nowrap">{formatDate(contract.startsOn)}</TableCell>
+                        <TableCell className="whitespace-nowrap">{formatDate(contract.endsOn)}</TableCell>
+                        <TableCell className="whitespace-nowrap">{formatDate(contract.signedOn)}</TableCell>
+                        <TableCell className="whitespace-nowrap">
                           <span className={cn("inline-flex rounded-full px-2 py-0.5 text-xs font-medium", meta.className)}>
                             {meta.label}
                           </span>
                         </TableCell>
-                        <TableCell>
-                          <div className="flex items-center justify-end gap-0.5">
+                        <TableCell className="w-24">
+                          <div className="flex items-center justify-end gap-1.5">
                             <Link
                               href={`/dashboard/contracts/${contract.id}`}
                               aria-label={`View contract ${contract.title}`}
@@ -378,6 +379,7 @@ export default function ContractsPage() {
                   })}
                 </TableBody>
               </Table>
+              </div>
               </>
             )}
           </div>

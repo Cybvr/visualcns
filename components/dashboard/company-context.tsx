@@ -18,7 +18,7 @@ import {
 import { getCompanyDocumentsByCompanyId, getPublicCompanyDocumentsByCompanyId, type CompanyDocument } from "@/lib/company-documents"
 import { getOrganization, getOrganizationByRef, getPublicOrganizationBySlug, updateOrganization, type Organization, type PublicTeamMember } from "@/lib/organizations"
 import { getProjectsByCompanyId, getPublicProjectsByCompanyId, type Project } from "@/lib/projects"
-import { getUserByCompanyId, getUserByRef, getUsers, getUsersByCompanyId, type AppUser } from "@/lib/users"
+import { getUserByCompanyId, getUserByRef, getUsersByCompanyId, type AppUser } from "@/lib/users"
 
 export function clientName(client: AppUser): string {
   return client.company || client.displayName || client.email || "Unnamed company"
@@ -115,7 +115,7 @@ export function CompanyProvider({ children, companyRef, publicView = false }: { 
         return
       }
       const workspace = found.companyId || resolvedOrg?.id || found.uid
-      const [foundOrg, foundPeople, foundProjects, foundInvoices, foundContracts, foundEstimates, foundDocuments, tenantUsers] = publicView
+      const [foundOrg, foundPeople, foundProjects, foundInvoices, foundContracts, foundEstimates, foundDocuments] = publicView
         ? await Promise.all([
             Promise.resolve(resolvedOrg),
             Promise.resolve([] as AppUser[]),
@@ -124,7 +124,6 @@ export function CompanyProvider({ children, companyRef, publicView = false }: { 
             getPublicContractsByCompanyId(workspace),
             getSharedEstimatesByCompanyId(workspace),
             getPublicCompanyDocumentsByCompanyId(workspace),
-            Promise.resolve([] as AppUser[]),
           ])
         : await Promise.all([
             resolvedOrg?.id === workspace ? Promise.resolve(resolvedOrg) : getOrganization(workspace),
@@ -134,10 +133,8 @@ export function CompanyProvider({ children, companyRef, publicView = false }: { 
             getContractsByCompanyId(workspace, true),
             getEstimatesByCompanyId(workspace, true),
             getCompanyDocumentsByCompanyId(workspace, true),
-            isAdmin ? getUsers() : Promise.resolve([] as AppUser[]),
           ])
       setClient(found)
-      setOrganization(foundOrg)
       const profiled = foundPeople.filter(hasProfile)
       setPeople(profiled)
       setProjects(foundProjects)
@@ -146,18 +143,20 @@ export function CompanyProvider({ children, companyRef, publicView = false }: { 
       setEstimates(foundEstimates)
       setDocuments(foundDocuments)
 
-      const assignedIds = new Set(foundProjects.flatMap((project) => project.teamMemberIds ?? []))
       const nextPublicTeam = publicView
         ? foundOrg?.publicTeam ?? []
         : isAdmin
-        ? toPublicTeam(tenantUsers.filter((user) => assignedIds.has(user.uid)))
+        ? toPublicTeam(profiled)
         : foundOrg?.publicTeam ?? []
+      setOrganization(foundOrg ? { ...foundOrg, publicTeam: nextPublicTeam } : foundOrg)
       setPublicTeam(nextPublicTeam)
 
-      // Keep the public page's Team section limited to assigned client users
-      // assigned to at least one project. Only an admin can write here.
+      // Keep the public page's Team section in sync with the client's team
+      // members. Projects can select from this same client-level team, but a
+      // person should not disappear from the public team just because they are
+      // not assigned to a project yet. Only an admin can write here.
       if (isAdmin && !samePublicTeam(foundOrg?.publicTeam, nextPublicTeam)) {
-        updateOrganization(workspace, { publicTeam: nextPublicTeam }).catch(() => {})
+        await updateOrganization(workspace, { publicTeam: nextPublicTeam }).catch(() => {})
       }
     } catch (loadError) {
       console.error("Error loading company:", loadError)

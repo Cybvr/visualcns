@@ -6,6 +6,7 @@ import { Loader2, Trash2 } from "lucide-react"
 import { useAuth } from "@/components/auth-provider"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
+import { Skeleton } from "@/components/ui/skeleton"
 import { createComment, deleteComment, getCommentsByTaskId, type Comment } from "@/lib/comments"
 import { formatTimestamp } from "@/lib/tasks"
 
@@ -97,9 +98,8 @@ export function TaskComments({ taskId, companyId }: { taskId: string; companyId:
       </h3>
 
       {loading ? (
-        <div className="flex items-center gap-2 py-4 text-sm text-muted-foreground">
-          <Loader2 className="size-4 animate-spin" aria-hidden="true" />
-          Loading comments
+        <div className="space-y-3 py-4" role="status" aria-label="Loading comments">
+          <Skeleton className="h-4 w-2/3" /><Skeleton className="h-4 w-4/5" /><Skeleton className="h-4 w-1/2" />
         </div>
       ) : comments.length === 0 ? (
         <p className="py-4 text-sm text-muted-foreground">No comments yet.</p>

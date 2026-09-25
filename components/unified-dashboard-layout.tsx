@@ -4,7 +4,7 @@ import dynamic from "next/dynamic"
 import { Suspense, useEffect, type ReactNode } from "react"
 import Image from "next/image"
 import { usePathname, useRouter } from "next/navigation"
-import { ClipboardList, Eye, FileText, Loader2, LogOut, Pencil, Receipt } from "lucide-react"
+import { ClipboardList, Eye, FileText, LogOut, Pencil, Receipt } from "lucide-react"
 import { FiBriefcase, FiCheckSquare, FiFileText, FiMail, FiUsers } from "react-icons/fi"
 import { AuthProvider, useAuth } from "@/components/auth-provider"
 import { AgentProvider } from "@/components/agent/agent-context"
@@ -13,6 +13,7 @@ import { DashboardShell, type NavLink } from "@/components/dashboard-shell"
 import { PageTitleProvider } from "@/components/dashboard/page-title-context"
 import { LegacyClientRedirect } from "@/components/portal/legacy-client-redirect"
 import { TaskSignInGate } from "@/components/dashboard/task-sign-in-gate"
+import { DashboardPageSkeleton } from "@/components/dashboard/dashboard-page-skeleton"
 
 const AgentDock = dynamic(() => import("@/components/agent/agent-dock").then((module) => module.AgentDock), { ssr: false })
 
@@ -47,10 +48,10 @@ function UnifiedDashboardShell({ children, requireAdmin = false }: { children: R
   }, [loading, user, isAdmin, requireAdmin, router, isTaskDetailRoute])
 
   if (loading) {
-    return <div className="flex min-h-screen items-center justify-center bg-background"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
+    return <div className="min-h-screen bg-background p-6"><DashboardPageSkeleton variant="home" rows={4} /></div>
   }
 
-  if (!user) return isTaskDetailRoute ? <TaskSignInGate /> : <div className="flex min-h-screen items-center justify-center bg-background"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
+  if (!user) return isTaskDetailRoute ? <TaskSignInGate /> : <div className="min-h-screen bg-background p-6"><DashboardPageSkeleton variant="home" rows={4} /></div>
 
   if (requireAdmin && !isAdmin) return null
 

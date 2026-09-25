@@ -1,23 +1,25 @@
 "use client"
 
-import { Loader2 } from "lucide-react"
 import { useParams } from "next/navigation"
 
 import { AuthProvider } from "@/components/auth-provider"
 import { CompanyPage } from "@/components/company/company-page"
 import { CompanyProvider, useCompanyState } from "@/components/dashboard/company-context"
 import { PageTitleProvider } from "@/components/dashboard/page-title-context"
+import { Skeleton } from "@/components/ui/skeleton"
 
 function LoadingState() {
-  return <div className="flex min-h-svh items-center justify-center bg-background"><Loader2 className="size-7 animate-spin text-muted-foreground" /></div>
+  return <div className="min-h-svh bg-background px-4 py-6" role="status" aria-label="Loading company page"><div className="mx-auto max-w-7xl space-y-5"><Skeleton className="h-32 w-full" /><div className="flex items-center gap-4"><Skeleton className="size-20 rounded-full" /><div className="space-y-2"><Skeleton className="h-6 w-56" /><Skeleton className="h-4 w-40" /></div></div><Skeleton className="h-10 w-full" /></div></div>
 }
 
 function CompanyPageContent() {
   const params = useParams<{ clientSlug: string }>()
-  const { loading, error, client, organization, people, projects, invoices, contracts, estimates, documents, workspaceId, name, categoryLabel } = useCompanyState()
+  const { loading, error, client, organization, projects, invoices, contracts, estimates, documents, workspaceId, name, categoryLabel } = useCompanyState()
 
   if (loading) return <LoadingState />
   if (error || !client) return <main className="mx-auto flex min-h-svh max-w-xl flex-col justify-center px-6"><h1 className="text-xl font-semibold">Company page unavailable</h1><p className="mt-2 text-sm text-muted-foreground">{error ?? "This company could not be loaded."}</p></main>
+
+  const publicPeople = organization?.publicTeam ?? []
 
   return (
     <PageTitleProvider>
@@ -41,12 +43,12 @@ function CompanyPageContent() {
           links: organization?.links,
           publicTeam: organization?.publicTeam,
         }}
-        people={people.map((person) => ({
+        people={publicPeople.map((person) => ({
           id: person.uid,
-          name: person.displayName || person.email || "Unnamed person",
-          subtitle: person.email || "No email address",
+          name: person.name,
+          subtitle: person.role || "Team member",
           role: person.role || "client",
-          photoUrl: person.photoURL,
+          photoUrl: person.photoUrl,
         }))}
         projects={projects}
         invoices={invoices}

@@ -47,9 +47,11 @@ import { FilterBar, useFilterBar, type SortOption } from "@/components/dashboard
 import { TableBulkBar } from "@/components/dashboard/table-bulk-bar"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useRowSelection } from "@/hooks/use-row-selection"
+import { tsToMillis } from "@/lib/tasks"
 import { cn } from "@/lib/utils"
 
 const INVOICE_SORTS: SortOption<Invoice>[] = [
+  { value: "updatedAt", label: "Last modified", get: (i) => tsToMillis(i.updatedAt), ascLabel: "Oldest", descLabel: "Newest" },
   { value: "issuedOn", label: "Issue date", get: (i) => i.issuedOn, ascLabel: "Oldest", descLabel: "Newest" },
   { value: "dueOn", label: "Due date", get: (i) => i.dueOn, ascLabel: "Soonest", descLabel: "Latest" },
   { value: "invoiceNumber", label: "Invoice no.", get: (i) => i.invoiceNumber, ascLabel: "A–Z", descLabel: "Z–A" },
@@ -148,7 +150,7 @@ export default function InvoicesPage() {
     items: invoices,
     search: searchInvoice,
     sorts,
-    defaultSort: "issuedOn",
+    defaultSort: "updatedAt",
     defaultDirection: "desc",
   })
 
@@ -277,12 +279,12 @@ export default function InvoicesPage() {
                     )
                   })}
                 </div>
-                <div className="hidden sm:block">
-                <Table>
+                <div className="hidden overflow-x-hidden sm:block">
+                <Table className="w-full table-fixed">
                 <TableHeader>
                   <TableRow>
                     {adminView && (
-                      <TableHead className="w-10">
+                      <TableHead className="w-10 px-2">
                         <Checkbox
                           aria-label="Select all invoices"
                           checked={selection.allSelected}
@@ -291,13 +293,13 @@ export default function InvoicesPage() {
                         />
                       </TableHead>
                     )}
-                    <TableHead>Invoice no.</TableHead>
-                    {adminView && <TableHead>Client</TableHead>}
-                    <TableHead>Project</TableHead>
-                    <TableHead>Issued</TableHead>
-                    <TableHead>Due</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Amount</TableHead>
+                    <TableHead className="w-[16%]">Invoice no.</TableHead>
+                    {adminView && <TableHead className="w-[14%]">Client</TableHead>}
+                    <TableHead className="w-[20%]">Project</TableHead>
+                    <TableHead className="w-[11%]">Issued</TableHead>
+                    <TableHead className="w-[11%]">Due</TableHead>
+                    <TableHead className="w-[10%]">Status</TableHead>
+                    <TableHead className="w-[13%] text-right">Amount</TableHead>
                     <TableHead className="w-24 text-right">
                       <span className="sr-only">Actions</span>
                     </TableHead>
@@ -317,25 +319,25 @@ export default function InvoicesPage() {
                             />
                           </TableCell>
                         )}
-                        <TableCell className="font-medium">
+                        <TableCell className="max-w-0 font-medium">
                           <Link
                             href={
                               adminView
                                 ? `/dashboard/invoices/${invoice.id}/edit`
                                 : `/dashboard/invoices/${invoice.id}`
                             }
-                            className="rounded-sm outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring"
+                            className="block truncate rounded-sm outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring"
                           >
                             {invoice.invoiceNumber}
                           </Link>
                         </TableCell>
                         {adminView && (
-                          <TableCell>
+                          <TableCell className="max-w-0">
                             {invoice.companyId ? (
                               <button
                                 type="button"
                                 onClick={() => setClientSheet(invoice.companyId)}
-                                className="rounded-sm text-left outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring"
+                                className="block max-w-full truncate rounded-sm text-left outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring"
                               >
                                 {invoice.client || "Client"}
                               </button>
@@ -344,11 +346,11 @@ export default function InvoicesPage() {
                             )}
                           </TableCell>
                         )}
-                        <TableCell>
+                        <TableCell className="max-w-0">
                           {invoice.projectId ? (
                             <Link
                               href={`/dashboard/projects/${invoice.projectId}`}
-                              className="rounded-sm outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring"
+                              className="block truncate rounded-sm outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring"
                             >
                               {invoice.project || "Project"}
                             </Link>
@@ -356,18 +358,18 @@ export default function InvoicesPage() {
                             "—"
                           )}
                         </TableCell>
-                        <TableCell>{formatDate(invoice.issuedOn)}</TableCell>
-                        <TableCell>{formatDate(invoice.dueOn)}</TableCell>
-                        <TableCell>
+                        <TableCell className="whitespace-nowrap">{formatDate(invoice.issuedOn)}</TableCell>
+                        <TableCell className="whitespace-nowrap">{formatDate(invoice.dueOn)}</TableCell>
+                        <TableCell className="whitespace-nowrap">
                           <span className={cn("inline-flex rounded-full px-2 py-0.5 text-xs font-medium", meta.className)}>
                             {meta.label}
                           </span>
                         </TableCell>
-                        <TableCell className="text-right font-medium">
+                        <TableCell className="whitespace-nowrap text-right font-medium">
                           {formatMoney(invoice.amount, invoice.currency)}
                         </TableCell>
-                        <TableCell>
-                          <div className="flex items-center justify-end gap-0.5">
+                        <TableCell className="w-24">
+                          <div className="flex items-center justify-end gap-1.5">
                             <Link
                               href={`/dashboard/invoices/${invoice.id}`}
                               aria-label={`View invoice ${invoice.invoiceNumber}`}

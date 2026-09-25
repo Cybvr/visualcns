@@ -9,6 +9,7 @@ import { FirstRunState } from "@/components/dashboard/empty-state"
 import { MobileDataCard } from "@/components/dashboard/mobile-data-card"
 import { ReactIcon } from "@/components/react-icon"
 import { Button } from "@/components/ui/button"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
   Dialog,
   DialogContent,
@@ -171,9 +172,8 @@ export function ProjectsView({
 
           <div className="flex-1 p-5">
             {previewLoading ? (
-              <div role="status" className="flex items-center gap-2 py-10 text-sm text-muted-foreground">
-                <Loader2 className="size-4 animate-spin" aria-hidden="true" />
-                Loading tasks…
+              <div role="status" aria-label="Loading tasks" className="space-y-3 py-10">
+                <Skeleton className="h-10 w-full" /><Skeleton className="h-10 w-full" /><Skeleton className="h-10 w-4/5" />
               </div>
             ) : previewError ? (
               <div className="py-8">

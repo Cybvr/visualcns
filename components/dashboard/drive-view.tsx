@@ -42,6 +42,7 @@ import {
 import { cn } from "@/lib/utils"
 import { EmptyState, EmptySearchState } from "@/components/dashboard/empty-state"
 import { DashboardPageSkeleton } from "@/components/dashboard/dashboard-page-skeleton"
+import { Skeleton } from "@/components/ui/skeleton"
 import { getUsers, type AppUser } from "@/lib/users"
 import {
   createDocument,
@@ -443,7 +444,7 @@ export function DriveView() {
               <div key={u.id} className="flex flex-col overflow-hidden rounded-2xl bg-[#edf2f8] p-3 dark:bg-muted">
                 <div className="mb-3 truncate px-1 text-sm font-medium">{u.name}</div>
                 <div className="relative flex aspect-[4/3] items-center justify-center overflow-hidden rounded-xl bg-background">
-                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                  <Skeleton className="size-16 rounded-xl" />
                   <div
                     className="absolute bottom-0 left-0 h-0.5 bg-primary transition-all"
                     style={{ width: `${u.progress}%` }}

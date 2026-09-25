@@ -2,11 +2,12 @@
 
 import type { ReactNode } from "react"
 import Link from "next/link"
-import { CheckCircle2, LogIn, Loader2 } from "lucide-react"
+import { CheckCircle2, LogIn } from "lucide-react"
 import { AuthProvider, useAuth } from "@/components/auth-provider"
 import { BrandLockup } from "@/components/brand-lockup"
 import { FinanceAppShell } from "@/components/finance/finance-app-shell"
 import { Button } from "@/components/ui/button"
+import { Skeleton } from "@/components/ui/skeleton"
 
 const signInHighlights = [
   "AI-assisted document review and QofE synthesis",
@@ -90,8 +91,8 @@ function FinanceWorkspace({ children }: { children: ReactNode }) {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <Loader2 className="size-8 animate-spin text-muted-foreground" />
+      <div className="min-h-screen bg-background p-6" role="status" aria-label="Loading finance dashboard">
+        <div className="mx-auto max-w-6xl space-y-5"><Skeleton className="h-8 w-48" /><Skeleton className="h-12 w-full" /><div className="grid gap-4 md:grid-cols-3"><Skeleton className="h-32 w-full" /><Skeleton className="h-32 w-full" /><Skeleton className="h-32 w-full" /></div></div>
       </div>
     )
   }

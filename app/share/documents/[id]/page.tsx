@@ -2,11 +2,10 @@
 
 import { useEffect, useState } from "react"
 import { useParams } from "next/navigation"
-import { Loader2 } from "lucide-react"
-
 import { CompanyBanner } from "@/components/company/company-banner"
 import { CompanyDocumentView } from "@/components/dashboard/company-document-view"
 import { DocumentActions } from "@/components/dashboard/document-actions"
+import { Skeleton } from "@/components/ui/skeleton"
 import { getBusinessProfile, type BusinessProfile } from "@/lib/business-profile"
 import { getCompanyDocument, type CompanyDocument } from "@/lib/company-documents"
 import { getOrganization, type Organization } from "@/lib/organizations"
@@ -47,8 +46,8 @@ export default function SharedDocumentPage() {
 
   if (loading) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-muted/30">
-        <Loader2 className="size-6 animate-spin text-muted-foreground" aria-hidden="true" />
+      <main className="min-h-screen bg-muted/30 px-4 py-10 sm:py-16" role="status" aria-label="Loading shared document">
+        <div className="mx-auto max-w-4xl space-y-6"><Skeleton className="h-10 w-28" /><Skeleton className="h-32 w-full" /><Skeleton className="h-[32rem] w-full rounded-xl" /></div>
       </main>
     )
   }

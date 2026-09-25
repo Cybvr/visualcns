@@ -66,7 +66,7 @@ function RowActions({
   clientName: string
 }) {
   return (
-    <div className="flex shrink-0 items-center gap-0.5">
+    <div className="flex shrink-0 items-center gap-1.5">
       <ContextualEmailButton
         label="Notify client"
         icon={false}
@@ -380,16 +380,16 @@ export function TasksView({
           </DndContext>
 
         ) : (
-          <div className="rounded-lg border border-border">
-            <Table>
+          <div className="overflow-x-hidden rounded-lg border border-border">
+            <Table className="w-full table-fixed">
               <TableHeader>
                 <TableRow>
-                  <TableHead>Task</TableHead>
-                  <TableHead>Project</TableHead>
-                  <TableHead>Priority</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Due</TableHead>
-                  <TableHead className="w-[88px] text-right">Actions</TableHead>
+                  <TableHead className="w-[32%]">Task</TableHead>
+                  <TableHead className="w-[24%]">Project</TableHead>
+                  <TableHead className="w-[14%]">Priority</TableHead>
+                  <TableHead className="w-[14%]">Status</TableHead>
+                  <TableHead className="w-[10%]">Due</TableHead>
+                  <TableHead className="w-24 text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -406,10 +406,10 @@ export function TasksView({
                 ) : (
                   tasks.map((t) => (
                     <TableRow key={t.id}>
-                      <TableCell className="font-medium">
+                      <TableCell className="max-w-0 font-medium">
                         <InlineText value={t.name} onCommit={(name) => onPatch(t.id, { name })} />
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="max-w-0">
                         <InlineProject
                           projectId={t.projectId}
                           projects={projects}

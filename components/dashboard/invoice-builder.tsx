@@ -1,9 +1,10 @@
 "use client"
 
 import { useEffect, useMemo, useState, type FormEvent } from "react"
+import Image from "next/image"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { ArrowLeft, Loader2, Plus, Trash2 } from "lucide-react"
+import { ArrowLeft, Eye, Loader2, Plus, Printer, Share2, Trash2 } from "lucide-react"
 
 import { DangerZone } from "@/components/dashboard/danger-zone"
 import { Button } from "@/components/ui/button"
@@ -31,7 +32,9 @@ import {
   type Invoice,
   type InvoiceLineItem,
   type InvoiceStatus,
+  type Estimate,
 } from "@/lib/billing"
+import { getBusinessProfile, type BusinessProfile } from "@/lib/business-profile"
 import {
   Table,
   TableBody,
@@ -43,6 +46,8 @@ import {
 import { getProjects, type Project } from "@/lib/projects"
 import { getUsers, type AppUser } from "@/lib/users"
 import { ShareLinkField } from "@/components/dashboard/share-link-field"
+import { InvoiceDocument } from "@/components/dashboard/invoice-document"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
 
 const CURRENCIES = [
@@ -70,6 +75,18 @@ function makeLine(): DraftLine {
   }
 }
 
+function estimateDraftLines(estimate?: Estimate): DraftLine[] {
+  if (!estimate?.lineItems?.length) return [makeLine()]
+  const billable = estimate.lineItems.filter((item) => !item.optional)
+  return (billable.length ? billable : estimate.lineItems).map((item) => ({
+    id: item.id,
+    description: [item.description, item.details].filter(Boolean).join(" — "),
+    quantity: "1",
+    unitPrice: ((item.amount ?? 0) / 100).toFixed(2),
+    taxRate: "0",
+  }))
+}
+
 function toNumber(value: string): number {
   const parsed = Number.parseFloat(value)
   return Number.isFinite(parsed) ? parsed : 0
@@ -79,19 +96,19 @@ function today(): string {
   return new Date().toISOString().slice(0, 10)
 }
 
-export function InvoiceBuilder({ invoice, initialCompanyId }: { invoice?: Invoice | null; initialCompanyId?: string }) {
+export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate }: { invoice?: Invoice | null; initialCompanyId?: string; initialEstimate?: Estimate }) {
   const router = useRouter()
   const isEdit = Boolean(invoice)
 
   const [invoiceNumber, setInvoiceNumber] = useState(invoice?.invoiceNumber ?? "")
-  const [companyId, setCompanyId] = useState(invoice?.companyId ?? initialCompanyId ?? "")
-  const [projectId, setProjectId] = useState(invoice?.projectId ?? "")
+  const [companyId, setCompanyId] = useState(invoice?.companyId ?? initialEstimate?.companyId ?? initialCompanyId ?? "")
+  const [projectId, setProjectId] = useState(invoice?.projectId ?? initialEstimate?.projectId ?? "")
   const [status, setStatus] = useState<InvoiceStatus>(invoice?.status ?? "draft")
-  const [currency, setCurrency] = useState(invoice?.currency || "USD")
+  const [currency, setCurrency] = useState(invoice?.currency || initialEstimate?.currency || "USD")
 
-  const [billToName, setBillToName] = useState(invoice?.billTo?.name ?? "")
-  const [billToEmail, setBillToEmail] = useState(invoice?.billTo?.email ?? "")
-  const [billToAddress, setBillToAddress] = useState(invoice?.billTo?.address ?? "")
+  const [billToName, setBillToName] = useState(invoice?.billTo?.name ?? initialEstimate?.preparedFor?.name ?? "")
+  const [billToEmail, setBillToEmail] = useState(invoice?.billTo?.email ?? initialEstimate?.preparedFor?.email ?? "")
+  const [billToAddress, setBillToAddress] = useState(invoice?.billTo?.address ?? initialEstimate?.preparedFor?.address ?? "")
   const [billToTaxNumber, setBillToTaxNumber] = useState(invoice?.billTo?.taxNumber ?? "")
   const [poReference, setPoReference] = useState(invoice?.poReference ?? "")
 
@@ -116,7 +133,7 @@ export function InvoiceBuilder({ invoice, initialCompanyId }: { invoice?: Invoic
         },
       ]
     }
-    return [makeLine()]
+    return estimateDraftLines(initialEstimate)
   })
 
   const [discountType, setDiscountType] = useState<"amount" | "percent">(
@@ -145,25 +162,28 @@ export function InvoiceBuilder({ invoice, initialCompanyId }: { invoice?: Invoic
       : "",
   )
 
-  const [issuedOn, setIssuedOn] = useState(invoice?.issuedOn || today())
+  const [issuedOn, setIssuedOn] = useState(invoice?.issuedOn || initialEstimate?.issuedOn || today())
   const [termsDays, setTermsDays] = useState(invoice?.paymentTermsDays ?? 14)
-  const [notes, setNotes] = useState(invoice?.notes ?? "")
-  const [paymentInstructions, setPaymentInstructions] = useState(invoice?.paymentInstructions ?? "")
+  const [notes, setNotes] = useState(invoice?.notes ?? initialEstimate?.notes ?? "")
+  const [paymentInstructions, setPaymentInstructions] = useState(invoice?.paymentInstructions ?? initialEstimate?.paymentDetails ?? "")
 
-  const [shareEnabled, setShareEnabled] = useState(invoice?.shareEnabled ?? false)
+  const [shareEnabled, setShareEnabled] = useState(invoice?.shareEnabled ?? initialEstimate?.shareEnabled ?? false)
 
   const [clients, setClients] = useState<AppUser[]>([])
   const [projects, setProjects] = useState<Project[]>([])
+  const [issuer, setIssuer] = useState<BusinessProfile | null>(null)
   const [optionsLoading, setOptionsLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [shareOpen, setShareOpen] = useState(false)
+  const [previewOpen, setPreviewOpen] = useState(false)
 
   const dueOn = dueDateFrom(issuedOn, termsDays)
 
   useEffect(() => {
     let active = true
-    Promise.all([getUsers(), getProjects()])
-      .then(([userList, projectList]) => {
+    Promise.all([getUsers(), getProjects(), getBusinessProfile()])
+      .then(([userList, projectList, profile]) => {
         if (!active) return
         // Several people can share a workspace, so this is narrowed to one
         // entry per companyId - otherwise the same company lists twice (and
@@ -177,6 +197,7 @@ export function InvoiceBuilder({ invoice, initialCompanyId }: { invoice?: Invoic
           }),
         )
         setProjects(projectList)
+        setIssuer(profile)
       })
       .catch(() => {
         if (active) setError("Couldn't load clients and projects.")
@@ -244,6 +265,41 @@ export function InvoiceBuilder({ invoice, initialCompanyId }: { invoice?: Invoic
       : computed
   const paid = Math.round(toNumber(amountPaid) * 100)
   const balance = Math.max(0, totals.total - paid)
+
+  const selectedClient = clients.find((entry) => entry.companyId === companyId)
+  const selectedProject = projects.find((entry) => entry.id === projectId)
+  const draftInvoice: Invoice = {
+    ...(invoice ?? {}),
+    id: invoice?.id ?? "preview",
+    companyId,
+    client: selectedClient?.company || selectedClient?.displayName || billToName,
+    invoiceNumber: invoiceNumber || "Invoice preview",
+    projectId: projectId || "",
+    project: selectedProject?.title || "",
+    status,
+    billTo: {
+      name: billToName,
+      email: billToEmail,
+      address: billToAddress,
+      taxNumber: billToTaxNumber,
+    },
+    poReference,
+    lineItems: mode === "link" ? [] : lineItems.filter((item) => item.description.trim()),
+    discount,
+    subtotal: totals.subtotal,
+    discountTotal: totals.discountTotal,
+    taxTotal: totals.taxTotal,
+    amountPaid: paid,
+    amount: totals.total,
+    currency,
+    issuedOn,
+    paymentTermsDays: termsDays,
+    dueOn,
+    notes,
+    paymentInstructions,
+    url,
+    shareEnabled,
+  }
 
   function updateLine(id: string, patch: Partial<DraftLine>) {
     setLines((current) => current.map((line) => (line.id === id ? { ...line, ...patch } : line)))
@@ -342,7 +398,8 @@ export function InvoiceBuilder({ invoice, initialCompanyId }: { invoice?: Invoic
   }
 
   return (
-    <form onSubmit={submit} className="space-y-5">
+    <>
+    <form onSubmit={submit} className="invoice-editor space-y-5 text-[0.8125rem] print:hidden">
       <div className="flex items-center gap-2">
         <Link
           href="/dashboard/invoices"
@@ -351,25 +408,65 @@ export function InvoiceBuilder({ invoice, initialCompanyId }: { invoice?: Invoic
         >
           <ArrowLeft className="size-4" aria-hidden="true" />
         </Link>
-        <h1 className="min-w-0 flex-1 truncate text-base font-semibold tracking-[-0.01em]">{invoiceNumber}</h1>
+        <h1 className="min-w-0 flex-1 truncate text-sm font-semibold tracking-[-0.01em]">{invoiceNumber}</h1>
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          title="Preview invoice"
+          aria-label="Preview invoice"
+          onClick={() => setPreviewOpen(true)}
+        >
+          <Eye className="size-4" aria-hidden="true" />
+        </Button>
+        <Button type="button" variant="outline" size="icon" title="Print invoice" aria-label="Print invoice" onClick={() => window.print()}>
+          <Printer className="size-4" aria-hidden="true" />
+        </Button>
+        <Button type="button" variant="outline" size="sm" onClick={() => setShareOpen(true)}>
+          <Share2 className="mr-1.5 size-4" aria-hidden="true" />
+          Share
+        </Button>
         <Button type="submit" size="sm" disabled={saving} className="shrink-0">
           {saving && <Loader2 className="mr-1.5 size-4 animate-spin" />}
           {isEdit ? "Save" : "Create"}
         </Button>
+        {isEdit && invoice && (
+          <DangerZone
+            label="invoice"
+            confirmTitle="Delete this invoice?"
+            confirmDescription={`${invoice.invoiceNumber} will be removed for good. This cannot be undone.`}
+            onDelete={handleDelete}
+            compact
+            iconOnly
+          />
+        )}
       </div>
 
-      <ShareLinkField
-        enabled={shareEnabled}
-        onEnabledChange={setShareEnabled}
-        path={invoice ? `/share/invoices/${invoice.id}` : undefined}
-      />
+      <div className="mx-auto min-w-0 max-w-[52rem] space-y-3 rounded-md border border-border bg-background p-8">
+        <header className="invoice-editor-header flex items-start justify-between gap-8 border-b border-border pb-6">
+          <div className="flex min-w-0 items-center gap-3">
+            {issuer?.logoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={issuer.logoUrl} alt="" width={52} height={52} className="size-[52px] shrink-0 rounded object-cover" />
+            ) : (
+              <Image src="/visualhqlogo.svg" alt="" width={52} height={52} className="size-[52px]" />
+            )}
+            <div className="min-w-0">
+              <p className="invoice-brand-name truncate">{issuer?.name || "Your company"}</p>
+              {issuer?.email && <p className="truncate text-muted-foreground">{issuer.email}</p>}
+            </div>
+          </div>
+          <div className="shrink-0 text-right">
+            <p className="font-medium">Invoice</p>
+            <p className="text-muted-foreground">{invoiceNumber}</p>
+          </div>
+        </header>
 
-      <div className="space-y-6">
-
-      <section className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
-        <div className="space-y-3">
+        <div className="rounded-md bg-card/50 p-5">
+        <section className="grid gap-4 pb-4 sm:grid-cols-2">
+        <div className="space-y-4">
           <div>
-            <Label htmlFor="client">Client</Label>
+            <Label htmlFor="client" className="sr-only">Client</Label>
             <Select value={companyId} onValueChange={setCompanyId}>
               <SelectTrigger id="client" className="mt-1 w-full">
                 <SelectValue placeholder={optionsLoading ? "Loading..." : "Choose a client"} />
@@ -384,48 +481,56 @@ export function InvoiceBuilder({ invoice, initialCompanyId }: { invoice?: Invoic
             </Select>
           </div>
           <div>
-            <Label htmlFor="bill-to">Bill to</Label>
+            <Label htmlFor="bill-to" className="sr-only">Bill to</Label>
             <Input
               id="bill-to"
               value={billToName}
               onChange={(event) => setBillToName(event.target.value)}
+              placeholder="Bill to"
               className="mt-1"
             />
           </div>
           <div>
-            <Label htmlFor="bill-email">Billing email</Label>
+            <Label htmlFor="bill-email" className="sr-only">Billing email</Label>
             <Input
               id="bill-email"
               type="email"
               value={billToEmail}
               onChange={(event) => setBillToEmail(event.target.value)}
+              placeholder="Billing email"
               className="mt-1"
             />
           </div>
+        </div>
+        <div className="space-y-4">
           <div>
-            <Label htmlFor="bill-address">Billing address</Label>
+            <Label htmlFor="bill-address" className="sr-only">Billing address</Label>
             <Textarea
               id="bill-address"
               value={billToAddress}
               onChange={(event) => setBillToAddress(event.target.value)}
+              placeholder="Billing address"
               rows={3}
               className="mt-1"
             />
           </div>
           <div>
-            <Label htmlFor="tax-number">Tax / VAT number</Label>
+            <Label htmlFor="tax-number" className="sr-only">Tax / VAT number</Label>
             <Input
               id="tax-number"
               value={billToTaxNumber}
               onChange={(event) => setBillToTaxNumber(event.target.value)}
+              placeholder="Tax / VAT number"
               className="mt-1"
             />
           </div>
         </div>
+      </section>
 
-        <div className="space-y-3">
+      <section className="grid gap-4 border-b border-border pb-4 sm:grid-cols-2">
+        <div className="space-y-4">
           <div>
-            <Label htmlFor="project">Project</Label>
+            <Label htmlFor="project" className="sr-only">Project</Label>
             <Select value={projectId} onValueChange={setProjectId}>
               <SelectTrigger id="project" className="mt-1 w-full">
                 <SelectValue placeholder="Not tied to a project" />
@@ -443,47 +548,48 @@ export function InvoiceBuilder({ invoice, initialCompanyId }: { invoice?: Invoic
             </Select>
           </div>
           <div>
-            <Label htmlFor="po">PO reference</Label>
+            <Label htmlFor="po" className="sr-only">PO reference</Label>
             <Input
               id="po"
               value={poReference}
               onChange={(event) => setPoReference(event.target.value)}
+              placeholder="PO reference"
               className="mt-1"
             />
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label htmlFor="issued-on">Issued</Label>
-              <Input
-                id="issued-on"
-                type="date"
-                value={issuedOn}
-                onChange={(event) => setIssuedOn(event.target.value)}
-                className="mt-1"
-              />
-            </div>
-            <div>
-              <Label htmlFor="terms">Payment terms</Label>
-              <Select
-                value={String(termsDays)}
-                onValueChange={(value) => setTermsDays(Number.parseInt(value, 10))}
-              >
-                <SelectTrigger id="terms" className="mt-1 w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {PAYMENT_TERM_OPTIONS.map((option) => (
-                    <SelectItem key={option.days} value={String(option.days)}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          <div>
+            <Label htmlFor="issued-on" className="sr-only">Issued</Label>
+            <Input
+              id="issued-on"
+              type="date"
+              value={issuedOn}
+              onChange={(event) => setIssuedOn(event.target.value)}
+              className="mt-1"
+            />
+          </div>
+        </div>
+        <div className="space-y-4">
+          <div>
+            <Label htmlFor="terms" className="sr-only">Payment terms</Label>
+            <Select
+              value={String(termsDays)}
+              onValueChange={(value) => setTermsDays(Number.parseInt(value, 10))}
+            >
+              <SelectTrigger id="terms" className="mt-1 w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {PAYMENT_TERM_OPTIONS.map((option) => (
+                  <SelectItem key={option.days} value={String(option.days)}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label htmlFor="currency">Currency</Label>
+              <Label htmlFor="currency" className="sr-only">Currency</Label>
               <Select value={currency} onValueChange={setCurrency}>
                 <SelectTrigger id="currency" className="mt-1 w-full">
                   <SelectValue />
@@ -498,7 +604,7 @@ export function InvoiceBuilder({ invoice, initialCompanyId }: { invoice?: Invoic
               </Select>
             </div>
             <div>
-              <Label htmlFor="status">Status</Label>
+              <Label htmlFor="status" className="sr-only">Status</Label>
               <Select value={status} onValueChange={(value) => setStatus(value as InvoiceStatus)}>
                 <SelectTrigger id="status" className="mt-1 w-full">
                   <SelectValue />
@@ -516,13 +622,14 @@ export function InvoiceBuilder({ invoice, initialCompanyId }: { invoice?: Invoic
           <p className="text-sm text-muted-foreground">Due {dueOn || "—"}</p>
         </div>
       </section>
+      </div>
 
-      <div className="flex items-center justify-between gap-3 border-t border-border pt-5">
-        <h2 className="text-sm font-medium">Items</h2>
+      <div className="flex items-center justify-between gap-3 border-t border-border pt-3">
+        <span className="text-sm font-medium">Invoice type</span>
         <div className="inline-flex rounded-[8px] bg-muted p-0.5">
           {(
             [
-              { value: "build", label: "Create" },
+              { value: "build", label: "Internal" },
               { value: "link", label: "Link" },
             ] as const
           ).map((option) => (
@@ -544,8 +651,16 @@ export function InvoiceBuilder({ invoice, initialCompanyId }: { invoice?: Invoic
         </div>
       </div>
 
+      {mode === "build" && (
+        <div className="border-t border-border pt-5">
+          <h2 className="text-sm font-medium">Invoice</h2>
+        </div>
+      )}
+
       {mode === "link" ? (
-        <section className="grid gap-4 sm:grid-cols-3">
+        <section className="space-y-4 border-t border-border pt-5">
+          <h2 className="text-sm font-medium">Linked invoice</h2>
+          <div className="grid gap-4 sm:grid-cols-3">
           <div className="sm:col-span-2">
             <Label htmlFor="invoice-url">Invoice link</Label>
             <Input
@@ -566,6 +681,7 @@ export function InvoiceBuilder({ invoice, initialCompanyId }: { invoice?: Invoic
               placeholder="1250.00"
               className="mt-1"
             />
+          </div>
           </div>
         </section>
       ) : (
@@ -706,8 +822,9 @@ export function InvoiceBuilder({ invoice, initialCompanyId }: { invoice?: Invoic
       </section>
       )}
 
-      <div className="grid gap-6 border-t border-border pt-5 lg:grid-cols-2 lg:gap-8">
-        <div className="space-y-3">
+      {mode === "build" && (
+      <div className="flex flex-col gap-6 border-t border-border pt-5">
+        <div className="order-2 grid w-full max-w-2xl gap-4 border-t border-border pt-3 sm:grid-cols-2">
           <div>
             <Label htmlFor="notes">Note to client</Label>
             <Textarea
@@ -731,7 +848,7 @@ export function InvoiceBuilder({ invoice, initialCompanyId }: { invoice?: Invoic
           </div>
         </div>
 
-        <div className="space-y-3 lg:pl-8">
+        <div className="order-1 ml-auto w-full max-w-md space-y-3">
           {mode === "build" && (
             <>
             <div className="flex items-center justify-between text-sm">
@@ -742,18 +859,7 @@ export function InvoiceBuilder({ invoice, initialCompanyId }: { invoice?: Invoic
             <div className="flex items-center justify-between gap-3 text-sm">
               <span className="text-muted-foreground">Discount</span>
               <div className="flex items-center gap-2">
-                <Select
-                  value={discountType}
-                  onValueChange={(value) => setDiscountType(value as "amount" | "percent")}
-                >
-                  <SelectTrigger className="h-8 w-20" aria-label="Discount type">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="amount">{currency}</SelectItem>
-                    <SelectItem value="percent">%</SelectItem>
-                  </SelectContent>
-                </Select>
+                <span className="text-muted-foreground">{discountType === "percent" ? "%" : currency}</span>
                 <Input
                   value={discountValue}
                   onChange={(event) => setDiscountValue(event.target.value)}
@@ -779,7 +885,7 @@ export function InvoiceBuilder({ invoice, initialCompanyId }: { invoice?: Invoic
             </>
           )}
 
-          <div className="flex items-center justify-between border-t border-border pt-3 text-base font-semibold">
+          <div className="flex items-center justify-between border-t border-border pt-3 text-sm font-semibold">
             <span>Total</span>
             <span>{formatMoney(totals.total, currency)}</span>
           </div>
@@ -804,18 +910,41 @@ export function InvoiceBuilder({ invoice, initialCompanyId }: { invoice?: Invoic
           </div>
         </div>
       </div>
+      )}
 
         {error && <p className="text-sm text-destructive">{error}</p>}
       </div>
 
-      {isEdit && invoice && (
-        <DangerZone
-          label="invoice"
-          confirmTitle="Delete this invoice?"
-          confirmDescription={`${invoice.invoiceNumber} will be removed for good. This cannot be undone.`}
-          onDelete={handleDelete}
-        />
-      )}
+      <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+        <DialogContent className="max-h-[90vh] max-w-5xl overflow-y-auto print:hidden">
+          <DialogHeader>
+            <DialogTitle>Invoice preview</DialogTitle>
+            <DialogDescription>Preview the invoice with your current edits before saving or printing.</DialogDescription>
+          </DialogHeader>
+          <InvoiceDocument invoice={draftInvoice} issuer={issuer ?? undefined} />
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={shareOpen} onOpenChange={setShareOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Share invoice</DialogTitle>
+            <DialogDescription>Control access to this invoice with a public link.</DialogDescription>
+          </DialogHeader>
+          <ShareLinkField
+            enabled={shareEnabled}
+            onEnabledChange={setShareEnabled}
+            path={invoice ? `/share/invoices/${invoice.id}` : undefined}
+          />
+          {!invoice && <p className="text-sm text-muted-foreground">Save the invoice first to generate its public link.</p>}
+        </DialogContent>
+      </Dialog>
+
     </form>
+
+    <div className="hidden print:block print:bg-white print:p-0">
+      <InvoiceDocument invoice={draftInvoice} issuer={issuer ?? undefined} />
+    </div>
+    </>
   )
 }

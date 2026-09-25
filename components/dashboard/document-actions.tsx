@@ -14,10 +14,12 @@ export function DocumentActions({
   url,
   title = "Document",
   className,
+  onShare,
 }: {
   url?: string
   title?: string
   className?: string
+  onShare?: () => void
 }) {
   function handleEmail() {
     const subject = encodeURIComponent(title)
@@ -60,7 +62,7 @@ export function DocumentActions({
         <Mail className="size-3.5" aria-hidden="true" />
         Email
       </Button>
-      <Button type="button" variant="outline" size="sm" onClick={() => void handleShare()}>
+      <Button type="button" variant="outline" size="sm" onClick={onShare ?? (() => void handleShare())}>
         <Share2 className="size-3.5" aria-hidden="true" />
         Share
       </Button>

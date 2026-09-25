@@ -99,7 +99,7 @@ function companyDocToRow(d: CompanyDocument, adminView: boolean): DocumentRow {
     companyId: d.companyId,
     statusLabel: meta.label,
     statusClassName: meta.className,
-    updatedAtMs: tsToMillis(d.updatedAt) || tsToMillis(d.createdAt),
+    updatedAtMs: tsToMillis(d.updatedAt),
     viewHref: `/dashboard/documents/${d.id}`,
     editHref: adminView ? `/dashboard/documents/${d.id}/edit` : undefined,
     source: d,
@@ -290,33 +290,34 @@ export default function DocumentsPage() {
             })}
           </div>
 
-          <Table className="hidden sm:table">
+          <div className="hidden overflow-x-hidden sm:block">
+          <Table className="w-full table-fixed">
             <TableHeader>
               <TableRow>
-                <TableHead>Title</TableHead>
-                {adminView && <TableHead>Company</TableHead>}
-                <TableHead>Updated</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead><span className="sr-only">Actions</span></TableHead>
+                <TableHead className="w-[38%]">Title</TableHead>
+                {adminView && <TableHead className="w-[22%]">Company</TableHead>}
+                <TableHead className="w-[15%]">Updated</TableHead>
+                <TableHead className="w-[15%]">Status</TableHead>
+                <TableHead className="w-24 text-right"><span className="sr-only">Actions</span></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {visibleRows.map((row) => (
                 <TableRow key={`${row.kind}-${row.id}`}>
-                  <TableCell className="font-medium">
-                    <Link href={row.editHref ?? row.viewHref} className="rounded-sm outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring">{row.title}</Link>
+                  <TableCell className="max-w-0 font-medium">
+                    <Link href={row.editHref ?? row.viewHref} className="block truncate rounded-sm outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring">{row.title}</Link>
                   </TableCell>
                   {adminView && (
-                    <TableCell>
+                    <TableCell className="max-w-0">
                       {row.companyId ? (
-                        <button type="button" onClick={() => setClientSheet(row.companyId)} className="rounded-sm text-left outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring">{row.company || "Company"}</button>
+                        <button type="button" onClick={() => setClientSheet(row.companyId)} className="block max-w-full truncate rounded-sm text-left outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring">{row.company || "Company"}</button>
                       ) : "—"}
                     </TableCell>
                   )}
-                  <TableCell>{row.updatedAtMs ? formatDate(new Date(row.updatedAtMs).toISOString().slice(0, 10)) : "—"}</TableCell>
-                  <TableCell>{row.statusLabel && <span className={cn("inline-flex rounded-full px-2 py-0.5 text-xs font-medium", row.statusClassName)}>{row.statusLabel}</span>}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center justify-end gap-0.5">
+                  <TableCell className="whitespace-nowrap">{row.updatedAtMs ? formatDate(new Date(row.updatedAtMs).toISOString().slice(0, 10)) : "—"}</TableCell>
+                  <TableCell className="whitespace-nowrap">{row.statusLabel && <span className={cn("inline-flex rounded-full px-2 py-0.5 text-xs font-medium", row.statusClassName)}>{row.statusLabel}</span>}</TableCell>
+                  <TableCell className="w-24">
+                    <div className="flex items-center justify-end gap-1.5">
                       <Link href={row.viewHref} aria-label={`View ${row.title}`} className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"><Eye className="size-4" aria-hidden="true" /></Link>
                       {adminView && row.editHref && (
                         <Link href={row.editHref} aria-label={`Edit ${row.title}`} className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"><Pencil className="size-4" aria-hidden="true" /></Link>
@@ -333,6 +334,7 @@ export default function DocumentsPage() {
               ))}
             </TableBody>
           </Table>
+          </div>
         </>
       )}
 

@@ -166,6 +166,29 @@
     font-size: inherit !important;
     line-height: inherit !important;
   }
+  .invoice-editor {
+    color: var(--muted-foreground) !important;
+    font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif !important;
+    font-size: var(--surface-nav-size) !important;
+    line-height: var(--surface-nav-line-height) !important;
+    font-weight: 500 !important;
+  }
+  .invoice-editor :where(p, button, label, input, textarea, select, option, span, h1, h2, h3, th, td) {
+    font-family: inherit !important;
+    font-size: inherit !important;
+    line-height: inherit !important;
+  }
+  .invoice-editor :where(label) {
+    color: var(--muted-foreground) !important;
+    font-size: 0.6875rem !important;
+    line-height: 1rem !important;
+    font-weight: 500 !important;
+  }
+  .invoice-editor .invoice-brand-name {
+    font-size: 1.25rem !important;
+    line-height: 1.75rem !important;
+    font-weight: 600 !important;
+  }
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-eb-garamond), ui-serif, Georgia, serif;
     font-weight: 400 !important;

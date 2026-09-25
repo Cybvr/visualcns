@@ -2,11 +2,10 @@
 
 import { useEffect, useState } from "react"
 import { useParams } from "next/navigation"
-import { Loader2 } from "lucide-react"
-
 import { DocumentActions } from "@/components/dashboard/document-actions"
 import { EstimateAcceptButton } from "@/components/dashboard/estimate-accept-button"
 import { EstimateDocument } from "@/components/dashboard/estimate-document"
+import { Skeleton } from "@/components/ui/skeleton"
 import { getEstimate, type Estimate } from "@/lib/billing"
 import { getBusinessProfile, type BusinessProfile } from "@/lib/business-profile"
 
@@ -47,8 +46,8 @@ export default function SharedEstimatePage() {
 
   if (loading) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-muted/30">
-        <Loader2 className="size-6 animate-spin text-muted-foreground" aria-hidden="true" />
+      <main className="min-h-screen bg-muted/30 px-4 py-10 sm:py-16" role="status" aria-label="Loading shared estimate">
+        <div className="mx-auto max-w-5xl space-y-6"><Skeleton className="h-10 w-28" /><Skeleton className="h-9 w-2/3" /><Skeleton className="h-[32rem] w-full rounded-xl" /></div>
       </main>
     )
   }

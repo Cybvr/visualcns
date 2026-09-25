@@ -8,6 +8,7 @@ import { Loader2 } from "lucide-react"
 
 import { BrandLockup } from "@/components/brand-lockup"
 import { Button } from "@/components/ui/button"
+import { Skeleton } from "@/components/ui/skeleton"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { auth } from "@/lib/firebase"
@@ -103,8 +104,8 @@ function ResetPasswordForm() {
         </div>
 
         {checking ? (
-          <div className="flex justify-center py-6" role="status" aria-label="Checking reset link">
-            <Loader2 className="size-5 animate-spin text-muted-foreground" />
+          <div className="space-y-3 py-6" role="status" aria-label="Checking reset link">
+            <Skeleton className="h-10 w-full" /><Skeleton className="h-10 w-full" />
           </div>
         ) : complete ? (
           <div className="space-y-5 text-center">
