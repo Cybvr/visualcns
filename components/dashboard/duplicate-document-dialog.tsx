@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { getProjects, type Project } from "@/lib/projects"
-import { getUsers, type AppUser } from "@/lib/users"
+import { getOrganizations, type Organization } from "@/lib/organizations"
 
 export interface DuplicateSelection {
   companyId: string
@@ -42,7 +42,7 @@ export function DuplicateDocumentDialog({
   submitting?: boolean
   onConfirm: (selection: DuplicateSelection) => void
 }) {
-  const [clients, setClients] = useState<AppUser[]>([])
+  const [organizations, setOrganizations] = useState<Organization[]>([])
   const [projects, setProjects] = useState<Project[]>([])
   const [loading, setLoading] = useState(true)
   const [companyId, setCompanyId] = useState(defaultCompanyId)
@@ -54,17 +54,10 @@ export function DuplicateDocumentDialog({
     setProjectId(defaultProjectId ?? "")
     let active = true
     setLoading(true)
-    Promise.all([getUsers(), getProjects()])
-      .then(([userList, projectList]) => {
+    Promise.all([getOrganizations(), getProjects()])
+      .then(([organizationList, projectList]) => {
         if (!active) return
-        const seenWorkspaces = new Set<string>()
-        setClients(
-          userList.filter((user) => {
-            if (!user.companyId || seenWorkspaces.has(user.companyId)) return false
-            seenWorkspaces.add(user.companyId)
-            return true
-          }),
-        )
+        setOrganizations(organizationList)
         setProjects(projectList)
       })
       .catch(() => {
@@ -77,7 +70,7 @@ export function DuplicateDocumentDialog({
     }
   }, [open, defaultCompanyId, defaultProjectId])
 
-  const selectedClient = clients.find((entry) => entry.companyId === companyId)
+  const selectedOrganization = organizations.find((entry) => entry.id === companyId)
   const selectedProject = projects.find((entry) => entry.id === projectId)
 
   function selectClient(value: string) {
@@ -106,9 +99,9 @@ export function DuplicateDocumentDialog({
                   <SelectValue placeholder="Choose a client" />
                 </SelectTrigger>
                 <SelectContent>
-                  {[...clients].sort((a, b) => (a.company || a.displayName || a.email || "").localeCompare(b.company || b.displayName || b.email || "", undefined, { sensitivity: "base" })).map((client) => (
-                    <SelectItem key={client.uid} value={client.companyId as string}>
-                      {client.company || client.displayName || client.email}
+                  {[...organizations].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" })).map((organization) => (
+                    <SelectItem key={organization.id} value={organization.id}>
+                      {organization.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -145,7 +138,7 @@ export function DuplicateDocumentDialog({
             onClick={() =>
               onConfirm({
                 companyId,
-                client: selectedClient?.company || selectedClient?.displayName || selectedClient?.email || "",
+                client: selectedOrganization?.name || "",
                 projectId,
                 project: selectedProject?.title || "",
               })

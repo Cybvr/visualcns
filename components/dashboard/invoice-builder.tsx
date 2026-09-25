@@ -61,6 +61,7 @@ const CURRENCIES = [
 /** Line items are held as strings while typing so a half-typed number survives. */
 type DraftLine = {
   id: string
+  title: string
   description: string
   quantity: string
   unitPrice: string
@@ -70,6 +71,7 @@ type DraftLine = {
 function makeLine(): DraftLine {
   return {
     id: Math.random().toString(36).slice(2, 10),
+    title: "",
     description: "",
     quantity: "1",
     unitPrice: "",
@@ -82,7 +84,8 @@ function estimateDraftLines(estimate?: Estimate): DraftLine[] {
   const billable = estimate.lineItems.filter((item) => !item.optional)
   return (billable.length ? billable : estimate.lineItems).map((item) => ({
     id: item.id,
-    description: [item.description, item.details].filter(Boolean).join(" — "),
+    title: item.description,
+    description: item.details ?? "",
     quantity: "1",
     unitPrice: ((item.amount ?? 0) / 100).toFixed(2),
     taxRate: "0",
@@ -103,6 +106,7 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate }: {
   const isEdit = Boolean(invoice)
 
   const [invoiceNumber, setInvoiceNumber] = useState(invoice?.invoiceNumber ?? "")
+  const [invoiceTitle, setInvoiceTitle] = useState(invoice?.title ?? initialEstimate?.title ?? "")
   const [companyId, setCompanyId] = useState(invoice?.companyId ?? initialEstimate?.companyId ?? initialCompanyId ?? "")
   const [projectId, setProjectId] = useState(invoice?.projectId ?? initialEstimate?.projectId ?? "")
   const [status, setStatus] = useState<InvoiceStatus>(invoice?.status ?? "draft")
@@ -118,7 +122,8 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate }: {
     if (invoice?.lineItems?.length) {
       return invoice.lineItems.map((item) => ({
         id: item.id,
-        description: item.description,
+        title: item.title ?? item.description,
+        description: item.title ? item.description : "",
         quantity: String(item.quantity ?? 1),
         unitPrice: ((item.unitPrice ?? 0) / 100).toFixed(2),
         taxRate: String(item.taxRate ?? 0),
@@ -225,10 +230,21 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate }: {
     setBillToEmail((current) => current || client.email || "")
   }, [companyId, clients, billToName])
 
+  useEffect(() => {
+    if (optionsLoading || !projectId) return
+    if (!projects.some((project) => project.id === projectId)) setProjectId("")
+  }, [optionsLoading, projectId, projects])
+
+  useEffect(() => {
+    if (optionsLoading || !companyId || !clients.length) return
+    if (!clients.some((client) => client.id === companyId)) setCompanyId("")
+  }, [clients, companyId, optionsLoading])
+
   const lineItems: InvoiceLineItem[] = useMemo(
     () =>
       lines.map((line) => ({
         id: line.id,
+        title: line.title.trim(),
         description: line.description.trim(),
         quantity: toNumber(line.quantity),
         unitPrice: Math.round(toNumber(line.unitPrice) * 100),
@@ -267,6 +283,7 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate }: {
     companyId,
     client: selectedClient?.name ?? "",
     invoiceNumber: invoiceNumber || "Invoice preview",
+    title: invoiceTitle,
     projectId: projectId || "",
     project: selectedProject?.title || "",
     status,
@@ -277,7 +294,7 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate }: {
       taxNumber: billToTaxNumber,
     },
     poReference,
-    lineItems: mode === "link" ? [] : lineItems.filter((item) => item.description.trim()),
+    lineItems: mode === "link" ? [] : lineItems.filter((item) => item.title.trim() || item.description.trim()),
     discount,
     subtotal: totals.subtotal,
     discountTotal: totals.discountTotal,
@@ -312,7 +329,7 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate }: {
     }
 
     const linked = mode === "link"
-    const billable = linked ? [] : lineItems.filter((item) => item.description && item.quantity > 0)
+    const billable = linked ? [] : lineItems.filter((item) => (item.title || item.description) && item.quantity > 0)
 
     if (linked && !url.trim()) {
       setError("Paste the link to the invoice.")
@@ -323,7 +340,7 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate }: {
       return
     }
     if (!linked && billable.length === 0) {
-      setError("Add at least one line with a description and a quantity.")
+      setError("Add at least one line with a title or description and a quantity.")
       return
     }
 
@@ -344,6 +361,7 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate }: {
 
       const payload = {
         invoiceNumber: number,
+        title: invoiceTitle.trim(),
         companyId,
         client: client?.name ?? "",
         projectId: projectId || "",
@@ -461,13 +479,23 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate }: {
               {issuer?.website && <p className="truncate text-muted-foreground">{issuer.website}</p>}
             </div>
           </div>
-          <div className="shrink-0 text-right">
+          <div className="min-w-0 shrink-0 text-right">
             <p className="font-medium">Invoice</p>
             <p className="text-muted-foreground">{invoiceNumber}</p>
           </div>
         </header>
 
         <div className="rounded-md bg-card/50 p-5">
+        <div className="mb-4 border-b border-border pb-4">
+          <Label htmlFor="invoice-title">Title</Label>
+          <Input
+            id="invoice-title"
+            value={invoiceTitle}
+            onChange={(event) => setInvoiceTitle(event.target.value)}
+            placeholder="Invoice title"
+            className="mt-1"
+          />
+        </div>
         <section className="grid gap-4 pb-4 sm:grid-cols-2">
         <div className="space-y-4">
           <div>
@@ -656,12 +684,6 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate }: {
         </div>
       </div>
 
-      {mode === "build" && (
-        <div className="border-t border-border pt-5">
-          <h2 className="text-sm font-medium">Invoice</h2>
-        </div>
-      )}
-
       {mode === "link" ? (
         <section className="space-y-4 border-t border-border pt-5">
           <h2 className="text-sm font-medium">Linked invoice</h2>
@@ -698,14 +720,22 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate }: {
             return (
               <div key={line.id} className="space-y-2 py-3 first:pt-0">
                 <div className="flex items-center gap-2">
-                  <Textarea
-                    value={line.description}
-                    onChange={(event) => updateLine(line.id, { description: event.target.value })}
-                    placeholder="Description"
-                    aria-label="Description"
-                    rows={2}
-                    className="min-h-12 flex-1 resize-none"
-                  />
+                  <div className="min-w-0 flex-1 space-y-2">
+                    <Input
+                      value={line.title}
+                      onChange={(event) => updateLine(line.id, { title: event.target.value })}
+                      placeholder="Item title"
+                      aria-label="Item title"
+                    />
+                    <Textarea
+                      value={line.description}
+                      onChange={(event) => updateLine(line.id, { description: event.target.value })}
+                      placeholder="Description"
+                      aria-label="Description"
+                      rows={2}
+                      className="min-h-12 resize-none"
+                    />
+                  </div>
                   <button
                     type="button"
                     onClick={() => removeLine(line.id)}
@@ -748,7 +778,7 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate }: {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Description</TableHead>
+                 <TableHead>Item</TableHead>
                 <TableHead className="w-20">Qty</TableHead>
                 <TableHead className="w-32">Unit price</TableHead>
                 <TableHead className="w-24">Tax %</TableHead>
@@ -762,14 +792,22 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate }: {
                 return (
                   <TableRow key={line.id}>
                     <TableCell>
-                      <Textarea
-                        value={line.description}
-                        onChange={(event) => updateLine(line.id, { description: event.target.value })}
-                        placeholder="Brand identity design"
-                        aria-label="Description"
-                        rows={2}
-                        className="min-h-12 resize-none"
-                      />
+                      <div className="space-y-2">
+                        <Input
+                          value={line.title}
+                          onChange={(event) => updateLine(line.id, { title: event.target.value })}
+                          placeholder="Item title"
+                          aria-label="Item title"
+                        />
+                        <Textarea
+                          value={line.description}
+                          onChange={(event) => updateLine(line.id, { description: event.target.value })}
+                          placeholder="Description"
+                          aria-label="Description"
+                          rows={2}
+                          className="min-h-12 resize-none"
+                        />
+                      </div>
                     </TableCell>
                     <TableCell>
                       <Input

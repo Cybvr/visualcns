@@ -231,7 +231,6 @@ const AGENT_TOOLS = [
         website: { type: ["string", "null"] },
         industry: { type: ["string", "null"] },
         location: { type: ["string", "null"] },
-        description: { type: ["string", "null"] },
       },
       required: ["name"],
       additionalProperties: false,
@@ -284,6 +283,8 @@ const AGENT_TOOLS = [
       properties: {
         companyId: { type: "string" },
         client: { type: "string" },
+        title: { type: ["string", "null"] },
+        description: { type: ["string", "null"] },
         currency: { type: "string" },
         issuedOn: { type: "string" },
         dueOn: { type: "string" },
@@ -294,6 +295,7 @@ const AGENT_TOOLS = [
           items: {
             type: "object",
             properties: {
+              title: { type: "string" },
               description: { type: "string" },
               quantity: { type: "number" },
               unitPrice: { type: "number" },
@@ -878,15 +880,16 @@ async function runAgentTool(name: string, rawArgs: string, uid: string) {
     const lineItems = Array.isArray(args.lineItems) ? args.lineItems : []
     const items = lineItems.map((item, index) => {
       const row = item as Record<string, unknown>
-      return { id: `line-${Date.now()}-${index}`, description: requireText(row, "description"), quantity: numberValue(row, "quantity", 1), unitPrice: numberValue(row, "unitPrice"), taxRate: numberValue(row, "taxRate") }
+      return { id: `line-${Date.now()}-${index}`, title: optionalText(row, "title") || requireText(row, "description"), description: optionalText(row, "description") || "", quantity: numberValue(row, "quantity", 1), unitPrice: numberValue(row, "unitPrice"), taxRate: numberValue(row, "taxRate") }
     })
     const subtotal = items.reduce((sum, item) => sum + Math.round(item.quantity * item.unitPrice), 0)
     const taxTotal = items.reduce((sum, item) => sum + Math.round((item.quantity * item.unitPrice * item.taxRate) / 100), 0)
     const ref = db.collection("invoices").doc()
     const invoiceNumber = await nextDocumentNumber(db, "invoices", "INV", tenantId)
     const currency = optionalText(args, "currency") || "NGN"
-    await ref.set({ tenantId, companyId, client, invoiceNumber, projectId: optionalText(args, "projectId"), project: optionalText(args, "project"), status: "draft", lineItems: items, subtotal, discountTotal: 0, taxTotal, amount: subtotal + taxTotal, currency, issuedOn: optionalText(args, "issuedOn") || today(), dueOn: optionalText(args, "dueOn"), notes: optionalText(args, "notes"), createdAt: now, updatedAt: now })
-    return { type: "invoice", id: ref.id, number: invoiceNumber, amount: subtotal + taxTotal, currency, status: "draft", url: `/dashboard/invoices/${ref.id}/edit` }
+    const title = optionalText(args, "title")
+    await ref.set({ tenantId, companyId, client, title, invoiceNumber, projectId: optionalText(args, "projectId"), project: optionalText(args, "project"), status: "draft", lineItems: items, subtotal, discountTotal: 0, taxTotal, amount: subtotal + taxTotal, currency, issuedOn: optionalText(args, "issuedOn") || today(), dueOn: optionalText(args, "dueOn"), notes: optionalText(args, "notes"), createdAt: now, updatedAt: now })
+    return { type: "invoice", id: ref.id, number: invoiceNumber, title, amount: subtotal + taxTotal, currency, status: "draft", url: `/dashboard/invoices/${ref.id}/edit` }
   }
 
   if (name === "create_estimate") {

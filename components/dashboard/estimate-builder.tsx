@@ -399,35 +399,37 @@ export function EstimateBuilder({ estimate, initialCompanyId }: { estimate?: Est
   return (
     <>
     <form onSubmit={submit} className="estimate-editor space-y-5 print:hidden">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-2">
-          <Link
-            href="/dashboard/estimates"
-            aria-label="Back to estimates"
-            className="inline-flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <ArrowLeft className="size-4" aria-hidden="true" />
-          </Link>
-          <div className="min-w-0">
-            <h1 className="truncate text-base font-semibold tracking-[-0.01em]">{isEdit ? "Edit estimate" : "New estimate"}</h1>
-            <p className="truncate text-xs text-muted-foreground">{estimateNumber || "Assigning number…"}</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button type="button" variant="outline" size="icon" title="Preview estimate" aria-label="Preview estimate" onClick={() => setPreviewOpen(true)}>
-            <Eye className="size-4" aria-hidden="true" />
-          </Button>
-          <Button type="button" variant="outline" size="icon" title="Download PDF" aria-label="Download PDF" onClick={() => void handleDownloadPdf()} disabled={pdfDownloading}>
-            {pdfDownloading ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <Printer className="size-4" aria-hidden="true" />}
-          </Button>
-          <Button type="button" variant="outline" size="icon" title="Share estimate" aria-label="Share estimate" onClick={() => setShareOpen(true)}>
-            <Share2 className="size-4" aria-hidden="true" />
-          </Button>
-          <Button type="button" variant="ghost" onClick={() => router.push("/dashboard/estimates")}>Cancel</Button>
-          <Button type="submit" size="icon" title={isEdit ? "Save estimate" : "Create estimate"} aria-label={isEdit ? "Save estimate" : "Create estimate"} disabled={saving}>
-            {saving ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <Save className="size-4" aria-hidden="true" />}
-          </Button>
-        </div>
+      <div className="flex items-center gap-2">
+        <Link
+          href="/dashboard/estimates"
+          aria-label="Back to estimates"
+          className="-ml-2 inline-flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <ArrowLeft className="size-4" aria-hidden="true" />
+        </Link>
+        <h1 className="min-w-0 flex-1 truncate text-sm font-semibold tracking-[-0.01em]">{estimateNumber || "New estimate"}</h1>
+        <Button type="button" variant="outline" size="icon" title="Preview estimate" aria-label="Preview estimate" onClick={() => setPreviewOpen(true)}>
+          <Eye className="size-4" aria-hidden="true" />
+        </Button>
+        <Button type="button" variant="outline" size="icon" title="Download PDF" aria-label="Download PDF" onClick={() => void handleDownloadPdf()} disabled={pdfDownloading}>
+          {pdfDownloading ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <Printer className="size-4" aria-hidden="true" />}
+        </Button>
+        <Button type="button" variant="outline" size="icon" title="Share estimate" aria-label="Share estimate" onClick={() => setShareOpen(true)}>
+          <Share2 className="size-4" aria-hidden="true" />
+        </Button>
+        <Button type="submit" size="icon" title={isEdit ? "Save estimate" : "Create estimate"} aria-label={isEdit ? "Save estimate" : "Create estimate"} disabled={saving} className="shrink-0">
+          {saving ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <Save className="size-4" aria-hidden="true" />}
+        </Button>
+        {isEdit && estimate && (
+          <DangerZone
+            label="estimate"
+            confirmTitle="Delete this estimate?"
+            confirmDescription={`${estimate.estimateNumber} will be removed for good. This cannot be undone.`}
+            onDelete={handleDelete}
+            compact
+            iconOnly
+          />
+        )}
       </div>
 
       <div className="space-y-8 rounded-[14px] border border-border bg-card p-3 sm:p-6">
@@ -600,14 +602,6 @@ export function EstimateBuilder({ estimate, initialCompanyId }: { estimate?: Est
         {error && <p className="text-sm text-destructive">{error}</p>}
       </div>
 
-      {isEdit && estimate && (
-        <DangerZone
-          label="estimate"
-          confirmTitle="Delete this estimate?"
-          confirmDescription={`${estimate.estimateNumber} will be removed for good. This cannot be undone.`}
-          onDelete={handleDelete}
-        />
-      )}
     </form>
 
     <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>

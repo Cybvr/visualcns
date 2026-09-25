@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { Copy, Eye, Loader2, Pencil, Plus, Trash2 } from "lucide-react"
+import { Copy, Eye, Loader2, Plus, Receipt, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
@@ -11,6 +11,7 @@ import { DuplicateDocumentDialog, type DuplicateSelection } from "@/components/d
 import { DashboardPageSkeleton } from "@/components/dashboard/dashboard-page-skeleton"
 import { EmptySearchState, FirstRunState } from "@/components/dashboard/empty-state"
 import { FilterBar, useFilterBar, type SortOption } from "@/components/dashboard/filter-bar"
+import { MobileDataCard } from "@/components/dashboard/mobile-data-card"
 import { TableBulkBar } from "@/components/dashboard/table-bulk-bar"
 import { UserEditorSheet } from "@/components/dashboard/user-editor-sheet"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -26,6 +27,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import {
   createEstimate,
@@ -102,7 +104,7 @@ export default function EstimatesPage() {
         project: selection.project,
       })
       setDuplicateTarget(null)
-      router.push(`/dashboard/estimates/${newId}/edit`)
+      router.push(`/dashboard/estimates/${newId}`)
     } catch (duplicateError) {
       console.error("Error duplicating estimate:", duplicateError)
       toast.error("Couldn't duplicate this estimate.")
@@ -199,7 +201,46 @@ export default function EstimatesPage() {
                   onDelete={handleBulkDelete}
                 />
               )}
-              <div className="overflow-x-hidden">
+              <div className="space-y-2 sm:hidden">
+                {visibleEstimates.map((estimate) => {
+                  const meta = estimateStatusMeta[estimate.status] ?? estimateStatusMeta.draft
+                  const href = `/dashboard/estimates/${estimate.id}`
+                  return (
+                    <MobileDataCard
+                      key={estimate.id}
+                      href={href}
+                      ariaLabel={`Open estimate ${estimate.estimateNumber}`}
+                      title={
+                        <span className="truncate">{estimate.title || "Untitled estimate"}</span>
+                      }
+                      subtitle={
+                        <span className="flex flex-col gap-1">
+                          <span className="flex items-center justify-between gap-2">
+                            <span className="truncate">{estimate.estimateNumber}{adminView && estimate.client ? ` · ${estimate.client}` : ""}</span>
+                            <span className={cn("shrink-0 rounded-full px-1.5 py-px text-[10px] font-medium", meta.className)}>{meta.label}</span>
+                          </span>
+                          <span className="font-medium text-foreground">{formatMoney(estimate.amount, estimate.currency)}</span>
+                        </span>
+                      }
+                      icon={<Eye className="size-5 text-blue-600 dark:text-blue-400" aria-hidden="true" />}
+                      menuLabel={`Options for ${estimate.estimateNumber}`}
+                      menu={
+                        <>
+                          <DropdownMenuItem onSelect={() => router.push(`/dashboard/estimates/${estimate.id}`)}>View estimate</DropdownMenuItem>
+                          {adminView && <DropdownMenuItem onSelect={() => router.push(`/dashboard/invoices/new?estimateId=${encodeURIComponent(estimate.id)}`)}>Convert to invoice</DropdownMenuItem>}
+                          {adminView && (
+                            <>
+                              <DropdownMenuItem onSelect={() => setDuplicateTarget(estimate)}>Duplicate</DropdownMenuItem>
+                              <DropdownMenuItem variant="destructive" onSelect={() => setConfirmDelete(estimate)}>Delete estimate</DropdownMenuItem>
+                            </>
+                          )}
+                        </>
+                      }
+                    />
+                  )
+                })}
+              </div>
+              <div className="hidden overflow-x-hidden sm:block">
               <Table className="w-full table-fixed">
                 <TableHeader>
                   <TableRow>
@@ -246,7 +287,7 @@ export default function EstimatesPage() {
                           <div className="flex items-center justify-end gap-1.5">
                             <Link href={`/dashboard/estimates/${estimate.id}`} aria-label={`View estimate ${estimate.estimateNumber}`} className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"><Eye className="size-4" aria-hidden="true" /></Link>
                             {adminView && <>
-                              <Link href={`/dashboard/estimates/${estimate.id}/edit`} aria-label={`Edit estimate ${estimate.estimateNumber}`} className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"><Pencil className="size-4" aria-hidden="true" /></Link>
+                              <Link href={`/dashboard/invoices/new?estimateId=${encodeURIComponent(estimate.id)}`} aria-label={`Convert ${estimate.estimateNumber} to invoice`} className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"><Receipt className="size-4" aria-hidden="true" /></Link>
                               <button type="button" onClick={() => setDuplicateTarget(estimate)} aria-label={`Duplicate estimate ${estimate.estimateNumber}`} className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"><Copy className="size-4" aria-hidden="true" /></button>
                               <button type="button" onClick={() => setConfirmDelete(estimate)} aria-label={`Delete estimate ${estimate.estimateNumber}`} className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-destructive focus-visible:ring-2 focus-visible:ring-ring"><Trash2 className="size-4" aria-hidden="true" /></button>
                             </>}

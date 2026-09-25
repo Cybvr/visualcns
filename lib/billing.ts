@@ -21,6 +21,8 @@ export type EstimateStatus = "draft" | "sent" | "accepted" | "declined" | "expir
 
 export interface InvoiceLineItem {
   id: string
+  /** Short line-item title shown prominently on the invoice. */
+  title?: string
   description: string
   quantity: number
   /** Minor units, so 125000 is 1,250.00 */
@@ -52,6 +54,8 @@ export interface Invoice {
   client: string
   /** Invoice number shown to the client, generated as INV-0001 upward */
   invoiceNumber: string
+  /** Short subject shown on the invoice and in the invoice editor. */
+  title?: string
   /** Optional link back to the project this bills for */
   projectId?: string
   project?: string
@@ -291,7 +295,7 @@ async function syncInvoiceTask(invoice: Invoice): Promise<void> {
     await ensureBillingTask({
       kind: "invoice", sourceId: invoice.id, companyId: invoice.companyId, client: invoice.client,
       projectId: invoice.projectId || "", project: invoice.project || "",
-      title: `Invoice ${invoice.invoiceNumber}`, isDraft: invoice.status === "draft", dueDate: invoice.dueOn,
+      title: invoice.title || `Invoice ${invoice.invoiceNumber}`, isDraft: invoice.status === "draft", dueDate: invoice.dueOn,
     })
   } catch (err) { console.error("Couldn't sync invoice task:", err) }
 }

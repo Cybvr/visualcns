@@ -64,13 +64,20 @@ export function InvoiceDocument({ invoice, issuer = INVOICE_ISSUER }: { invoice:
         </dl>
       </div>
 
+      {invoice.title && (
+        <section className="px-3 pb-7 sm:px-10 sm:pb-9">
+          <h1 className="text-xl font-semibold tracking-[-0.025em] sm:text-2xl">{invoice.title}</h1>
+          <div className="mt-4 border-t border-border" />
+        </section>
+      )}
+
       {invoice.lineItems && invoice.lineItems.length > 0 && (
         <>
         <div className="hidden border-y border-border lg:block">
           <Table className="table-fixed text-sm">
             <TableHeader>
               <TableRow>
-                <TableHead>Description</TableHead>
+               <TableHead>Item</TableHead>
                 <TableHead className="w-20 text-right">Qty</TableHead>
                 <TableHead className="w-32 text-right">Rate</TableHead>
                 <TableHead className="w-32 text-right">Amount</TableHead>
@@ -79,7 +86,10 @@ export function InvoiceDocument({ invoice, issuer = INVOICE_ISSUER }: { invoice:
             <TableBody>
               {invoice.lineItems.map((item) => (
                 <TableRow key={item.id}>
-                  <TableCell className="whitespace-normal break-words align-top font-medium">{item.description}</TableCell>
+                  <TableCell className="whitespace-normal break-words align-top">
+                    {item.title && <p className="font-medium">{item.title}</p>}
+                    {item.description && <p className={item.title ? "mt-1 text-muted-foreground" : "font-medium"}>{item.description}</p>}
+                  </TableCell>
                   <TableCell className="text-right text-muted-foreground">{item.quantity}</TableCell>
                   <TableCell className="text-right text-muted-foreground">{formatMoney(item.unitPrice, invoice.currency)}</TableCell>
                   <TableCell className="text-right">{formatMoney(Math.round(item.quantity * item.unitPrice), invoice.currency)}</TableCell>
@@ -92,7 +102,10 @@ export function InvoiceDocument({ invoice, issuer = INVOICE_ISSUER }: { invoice:
           {invoice.lineItems.map((item) => (
             <div key={item.id} className="space-y-3 border-b border-border px-3 py-4 last:border-b-0">
               <div className="flex items-start justify-between gap-4">
-                <p className="min-w-0 whitespace-normal break-words font-medium leading-6">{item.description}</p>
+                 <div className="min-w-0 whitespace-normal break-words leading-6">
+                   {item.title && <p className="font-medium">{item.title}</p>}
+                   {item.description && <p className={item.title ? "mt-1 text-sm text-muted-foreground" : "font-medium"}>{item.description}</p>}
+                 </div>
                 <p className="shrink-0 text-right font-medium">{formatMoney(Math.round(item.quantity * item.unitPrice), invoice.currency)}</p>
               </div>
               <dl className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-muted-foreground">

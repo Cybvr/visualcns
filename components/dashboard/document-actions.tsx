@@ -1,13 +1,12 @@
 "use client"
 
-import { ExternalLink, Mail, Printer, Share2 } from "lucide-react"
+import { ExternalLink, Mail, Share2 } from "lucide-react"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 
 /**
- * Email, share, and print actions for a public document. Saving as PDF goes
- * through the browser's own print dialog.
+ * Email and share actions for a public document.
  */
 export function DocumentActions({
   /** Set when the record is a link to a file held elsewhere. */
@@ -15,11 +14,13 @@ export function DocumentActions({
   title = "Document",
   className,
   onShare,
+  iconOnly = false,
 }: {
   url?: string
   title?: string
   className?: string
   onShare?: () => void
+  iconOnly?: boolean
 }) {
   function handleEmail() {
     const subject = encodeURIComponent(title)
@@ -51,24 +52,20 @@ export function DocumentActions({
   return (
     <div className={className ?? "flex flex-wrap items-center gap-2 print:hidden"}>
       {url && (
-        <Button asChild variant="outline" size="sm">
-          <a href={url} target="_blank" rel="noreferrer">
-            Open original
+        <Button asChild variant="outline" size="icon" className={iconOnly ? "size-9 p-0" : "sm:size-auto sm:px-3"}>
+          <a href={url} target="_blank" rel="noreferrer" aria-label="Open original" title="Open original">
+            <span className={iconOnly ? "sr-only" : "sr-only sm:not-sr-only"}>Open original</span>
             <ExternalLink className="size-3.5" aria-hidden="true" />
           </a>
         </Button>
       )}
-      <Button type="button" variant="outline" size="sm" onClick={handleEmail}>
+      <Button type="button" variant="outline" size="icon" onClick={handleEmail} aria-label="Email document" title="Email document" className={iconOnly ? "size-9 p-0" : "sm:size-auto sm:px-3"}>
         <Mail className="size-3.5" aria-hidden="true" />
-        Email
+        <span className={iconOnly ? "sr-only" : "sr-only sm:not-sr-only"}>Email</span>
       </Button>
-      <Button type="button" variant="outline" size="sm" onClick={onShare ?? (() => void handleShare())}>
+      <Button type="button" variant="outline" size="icon" onClick={onShare ?? (() => void handleShare())} aria-label="Share document" title="Share document" className={iconOnly ? "size-9 p-0" : "sm:size-auto sm:px-3"}>
         <Share2 className="size-3.5" aria-hidden="true" />
-        Share
-      </Button>
-      <Button type="button" variant="outline" size="sm" onClick={() => window.print()}>
-        <Printer className="size-3.5" aria-hidden="true" />
-        Print
+        <span className={iconOnly ? "sr-only" : "sr-only sm:not-sr-only"}>Share</span>
       </Button>
     </div>
   )

@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { Copy, Eye, Loader2, Pencil, Plus, Receipt, Trash2 } from "lucide-react"
+import { Copy, Eye, Loader2, Plus, Receipt, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
@@ -49,6 +49,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { useRowSelection } from "@/hooks/use-row-selection"
 import { tsToMillis } from "@/lib/tasks"
 import { cn } from "@/lib/utils"
+import { getOrganizations, type Organization } from "@/lib/organizations"
 
 const INVOICE_SORTS: SortOption<Invoice>[] = [
   { value: "updatedAt", label: "Last modified", get: (i) => tsToMillis(i.updatedAt), ascLabel: "Oldest", descLabel: "Newest" },
@@ -77,6 +78,7 @@ export default function InvoicesPage() {
   const adminView = isAdmin && !isImpersonating
 
   const [invoices, setInvoices] = useState<Invoice[]>([])
+  const [organizations, setOrganizations] = useState<Organization[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState<Invoice | null>(null)
@@ -89,7 +91,14 @@ export default function InvoicesPage() {
   const fetchData = useCallback(async () => {
     setError(false)
     try {
-      setInvoices(adminView ? await getInvoices() : await getInvoicesByCompanyId(companyId))
+      if (adminView) {
+        const [rows, organizationList] = await Promise.all([getInvoices(), getOrganizations()])
+        setInvoices(rows)
+        setOrganizations(organizationList)
+      } else {
+        setInvoices(await getInvoicesByCompanyId(companyId))
+        setOrganizations([])
+      }
     } catch (err) {
       console.error("Error loading invoices:", err)
       setError(true)
@@ -97,6 +106,11 @@ export default function InvoicesPage() {
       setLoading(false)
     }
   }, [adminView, companyId])
+
+  const organizationNameById = useMemo(
+    () => new Map(organizations.map((organization) => [organization.id, organization.name])),
+    [organizations],
+  )
 
   useEffect(() => {
     fetchData()
@@ -119,7 +133,7 @@ export default function InvoicesPage() {
         project: selection.project,
       })
       setDuplicateTarget(null)
-      router.push(`/dashboard/invoices/${newId}/edit`)
+      router.push(`/dashboard/invoices/${newId}`)
     } catch (err) {
       console.error("Error duplicating invoice:", err)
       toast.error("Couldn't duplicate this invoice.")
@@ -243,22 +257,22 @@ export default function InvoicesPage() {
                 <div className="space-y-2 sm:hidden">
                   {visibleInvoices.map((invoice) => {
                     const meta = invoiceStatusMeta[invoice.status] ?? invoiceStatusMeta.draft
-                    const href = adminView ? `/dashboard/invoices/${invoice.id}/edit` : `/dashboard/invoices/${invoice.id}`
+                    const href = `/dashboard/invoices/${invoice.id}`
                     return (
                       <MobileDataCard
                         key={invoice.id}
                         href={href}
                         ariaLabel={`Open invoice ${invoice.invoiceNumber}`}
                         title={
-                          <span className="flex items-center justify-between gap-2">
-                            <span className="truncate">{adminView ? invoice.client || invoice.invoiceNumber : invoice.invoiceNumber}</span>
-                            <span className="shrink-0 font-medium">{formatMoney(invoice.amount, invoice.currency)}</span>
-                          </span>
+                          <span className="truncate">{adminView ? invoice.title || "—" : invoice.invoiceNumber}</span>
                         }
                         subtitle={
-                          <span className="flex items-center justify-between gap-2">
-                            <span className="truncate">{adminView ? invoice.invoiceNumber : invoice.project || formatDate(invoice.issuedOn)} · Due {formatDate(invoice.dueOn)}</span>
-                            <span className={cn("shrink-0 rounded-full px-1.5 py-px text-[10px] font-medium", meta.className)}>{meta.label}</span>
+                          <span className="flex flex-col gap-1">
+                            <span className="flex items-center justify-between gap-2">
+                              <span className="truncate">{adminView ? `${invoice.invoiceNumber} · ${organizationNameById.get(invoice.companyId) || "—"}` : invoice.project || formatDate(invoice.issuedOn)} · Due {formatDate(invoice.dueOn)}</span>
+                              <span className={cn("shrink-0 rounded-full px-1.5 py-px text-[10px] font-medium", meta.className)}>{meta.label}</span>
+                            </span>
+                            <span className="font-medium text-foreground">{formatMoney(invoice.amount, invoice.currency)}</span>
                           </span>
                         }
                         icon={<Receipt className="size-5 text-blue-600 dark:text-blue-400" aria-hidden="true" />}
@@ -268,7 +282,6 @@ export default function InvoicesPage() {
                             <DropdownMenuItem onSelect={() => router.push(`/dashboard/invoices/${invoice.id}`)}>View invoice</DropdownMenuItem>
                             {adminView && (
                               <>
-                                <DropdownMenuItem onSelect={() => router.push(`/dashboard/invoices/${invoice.id}/edit`)}>Edit invoice</DropdownMenuItem>
                                 <DropdownMenuItem onSelect={() => setDuplicateTarget(invoice)}>Duplicate</DropdownMenuItem>
                                 <DropdownMenuItem variant="destructive" onSelect={() => setConfirmDelete(invoice)}>Delete invoice</DropdownMenuItem>
                               </>
@@ -294,6 +307,7 @@ export default function InvoicesPage() {
                       </TableHead>
                     )}
                     <TableHead className="w-[16%]">Invoice no.</TableHead>
+                    {adminView && <TableHead className="w-[18%]">Title</TableHead>}
                     {adminView && <TableHead className="w-[14%]">Client</TableHead>}
                     <TableHead className="w-[20%]">Project</TableHead>
                     <TableHead className="w-[11%]">Issued</TableHead>
@@ -321,25 +335,22 @@ export default function InvoicesPage() {
                         )}
                         <TableCell className="max-w-0 font-medium">
                           <Link
-                            href={
-                              adminView
-                                ? `/dashboard/invoices/${invoice.id}/edit`
-                                : `/dashboard/invoices/${invoice.id}`
-                            }
+                            href={`/dashboard/invoices/${invoice.id}`}
                             className="block truncate rounded-sm outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring"
                           >
                             {invoice.invoiceNumber}
                           </Link>
                         </TableCell>
+                        {adminView && <TableCell className="max-w-0"><span className="block truncate">{invoice.title || "—"}</span></TableCell>}
                         {adminView && (
                           <TableCell className="max-w-0">
-                            {invoice.companyId ? (
+                            {invoice.companyId && organizationNameById.has(invoice.companyId) ? (
                               <button
                                 type="button"
                                 onClick={() => setClientSheet(invoice.companyId)}
                                 className="block max-w-full truncate rounded-sm text-left outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring"
                               >
-                                {invoice.client || "Client"}
+                                {organizationNameById.get(invoice.companyId)}
                               </button>
                             ) : (
                               "—"
@@ -379,13 +390,6 @@ export default function InvoicesPage() {
                             </Link>
                             {adminView && (
                               <>
-                                <Link
-                                  href={`/dashboard/invoices/${invoice.id}/edit`}
-                                  aria-label={`Edit invoice ${invoice.invoiceNumber}`}
-                                  className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
-                                >
-                                  <Pencil className="size-4" aria-hidden="true" />
-                                </Link>
                                 <button
                                   type="button"
                                   onClick={() => setDuplicateTarget(invoice)}

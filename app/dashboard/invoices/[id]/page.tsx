@@ -9,6 +9,7 @@ import { useAuth } from "@/components/auth-provider"
 import { DashboardPageSkeleton } from "@/components/dashboard/dashboard-page-skeleton"
 import { DocumentActions } from "@/components/dashboard/document-actions"
 import { ContextualEmailButton } from "@/components/dashboard/contextual-email-button"
+import { InvoiceBuilder } from "@/components/dashboard/invoice-builder"
 import { InvoiceDocument } from "@/components/dashboard/invoice-document"
 import { usePageTitle } from "@/components/dashboard/page-title-context"
 import { getBusinessProfile, type BusinessProfile } from "@/lib/business-profile"
@@ -18,6 +19,7 @@ import { portalDocumentPath } from "@/lib/portal-model"
 export default function InvoiceDetailPage() {
   const { id } = useParams<{ id: string }>()
   const { user, appUser, isAdmin, isImpersonating } = useAuth()
+  const adminView = isAdmin && !isImpersonating
   const [invoice, setInvoice] = useState<Invoice | null>(null)
   const [issuer, setIssuer] = useState<BusinessProfile | null>(null)
   const [loading, setLoading] = useState(true)
@@ -37,7 +39,6 @@ export default function InvoiceDetailPage() {
           setInvoice(null)
           return
         }
-        const adminView = isAdmin && !isImpersonating
         const visible = adminView || (record.companyId === appUser.companyId && record.status !== "draft")
         setInvoice(visible ? record : null)
       })
@@ -59,6 +60,14 @@ export default function InvoiceDetailPage() {
       <main className="mx-auto w-full max-w-5xl px-4 py-10 sm:px-6">
         <Link href="/dashboard/invoices" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"><ArrowLeft className="size-4" />Back to invoices</Link>
         <p className="mt-12 text-sm text-muted-foreground">This invoice couldn’t be found or you don’t have access to it.</p>
+      </main>
+    )
+  }
+
+  if (adminView) {
+    return (
+      <main className="mx-auto w-full max-w-5xl px-3 py-2 sm:px-6 sm:py-9">
+        <InvoiceBuilder invoice={invoice} />
       </main>
     )
   }

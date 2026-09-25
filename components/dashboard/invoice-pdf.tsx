@@ -46,6 +46,10 @@ const styles = StyleSheet.create({
   metaList: { flexDirection: "row", flexWrap: "wrap", justifyContent: "flex-end" },
   metaItem: { marginBottom: 10, width: "48%" },
   metaItemRight: { textAlign: "right" },
+  titleSection: { borderBottomColor: "#d9dee5", borderBottomWidth: 1, paddingBottom: 18 },
+  title: { fontSize: 18, fontWeight: 700 },
+  itemTitle: { fontWeight: 700 },
+  itemDescription: { color: "#667085", fontSize: 9, lineHeight: 1.4, marginTop: 3 },
   table: { borderTopColor: "#d9dee5", borderTopWidth: 1 },
   tableHeader: {
     backgroundColor: "#f5f6f8",
@@ -126,6 +130,12 @@ export function InvoicePdf({ invoice, issuer }: { invoice: Invoice; issuer?: Inv
           </View>
         </View>
 
+        {invoice.title && (
+          <View style={styles.titleSection}>
+            <Text style={styles.title}>{invoice.title}</Text>
+          </View>
+        )}
+
         {!!invoice.lineItems?.length && (
           <View style={styles.table}>
             <View style={styles.tableHeader} fixed>
@@ -136,7 +146,10 @@ export function InvoicePdf({ invoice, issuer }: { invoice: Invoice; issuer?: Inv
             </View>
             {invoice.lineItems.map((item) => (
               <View key={item.id} style={styles.tableRow} wrap>
-                <Text style={styles.description}>{item.description || "-"}</Text>
+                <View style={styles.description}>
+                  {item.title && <Text style={styles.itemTitle}>{item.title}</Text>}
+                  {item.description && <Text style={item.title ? styles.itemDescription : styles.itemTitle}>{item.description}</Text>}
+                </View>
                 <Text style={styles.quantity}>{item.quantity}</Text>
                 <Text style={styles.rate}>{formatMoney(item.unitPrice, invoice.currency)}</Text>
                 <Text style={styles.amount}>{formatMoney(Math.round(item.quantity * item.unitPrice), invoice.currency)}</Text>

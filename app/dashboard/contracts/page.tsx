@@ -10,6 +10,7 @@ import { useAuth } from "@/components/auth-provider"
 import { DuplicateDocumentDialog, type DuplicateSelection } from "@/components/dashboard/duplicate-document-dialog"
 import { DashboardPageSkeleton } from "@/components/dashboard/dashboard-page-skeleton"
 import { EmptySearchState, FirstRunState } from "@/components/dashboard/empty-state"
+import { MobileDataCard } from "@/components/dashboard/mobile-data-card"
 import { UserEditorSheet } from "@/components/dashboard/user-editor-sheet"
 import {
   AlertDialog,
@@ -22,6 +23,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import {
   Table,
   TableBody,
@@ -233,7 +235,44 @@ export default function ContractsPage() {
                     onDelete={handleBulkDelete}
                   />
                 )}
-                <div className="overflow-x-hidden">
+                <div className="space-y-2 sm:hidden">
+                  {visibleContracts.map((contract) => {
+                    const meta = contractStatusMeta[contract.status] ?? contractStatusMeta.draft
+                    const href = adminView ? `/dashboard/contracts/${contract.id}/edit` : `/dashboard/contracts/${contract.id}`
+                    return (
+                      <MobileDataCard
+                        key={contract.id}
+                        href={href}
+                        ariaLabel={`Open contract ${contract.title}`}
+                        title={
+                          <span className="flex items-center justify-between gap-2">
+                            <span className="truncate">{contract.title}</span>
+                            <span className={cn("shrink-0 rounded-full px-1.5 py-px text-[10px] font-medium", meta.className)}>{meta.label}</span>
+                          </span>
+                        }
+                        subtitle={<span className="truncate">{[contract.client, contract.project, formatDate(contract.endsOn)].filter(Boolean).join(" · ") || "—"}</span>}
+                        icon={<Eye className="size-5 text-blue-600 dark:text-blue-400" aria-hidden="true" />}
+                        menuLabel={`Options for ${contract.title}`}
+                        menu={
+                          <>
+                            <DropdownMenuItem onSelect={() => router.push(`/dashboard/contracts/${contract.id}`)}>View contract</DropdownMenuItem>
+                            {contract.url && (
+                              <DropdownMenuItem onSelect={() => window.open(contract.url, "_blank", "noopener,noreferrer")}>Open source link</DropdownMenuItem>
+                            )}
+                            {adminView && (
+                              <>
+                                <DropdownMenuItem onSelect={() => router.push(`/dashboard/contracts/${contract.id}/edit`)}>Edit contract</DropdownMenuItem>
+                                <DropdownMenuItem onSelect={() => setDuplicateTarget(contract)}>Duplicate</DropdownMenuItem>
+                                <DropdownMenuItem variant="destructive" onSelect={() => setConfirmDelete(contract)}>Delete contract</DropdownMenuItem>
+                              </>
+                            )}
+                          </>
+                        }
+                      />
+                    )
+                  })}
+                </div>
+                <div className="hidden overflow-x-hidden sm:block">
                 <Table className="w-full table-fixed">
                 <TableHeader>
                   <TableRow>
