@@ -1,13 +1,13 @@
 import { collection, deleteDoc, doc, getDocs, query, setDoc, where } from "firebase/firestore"
 
 import { db } from "./firebase"
-import { getCurrentTenantId } from "./tenancy"
+import { getCurrentAgencyId } from "./agency-scope"
 
 const COLLECTION_NAME = "emailDrafts"
 
 export type EmailDraftRecord = {
   id: string
-  tenantId?: string
+  agencyId?: string
   companyId: string
   createdBy: string
   to?: string
@@ -22,7 +22,7 @@ export type EmailDraftRecord = {
 
 export async function getEmailDrafts(companyId: string): Promise<EmailDraftRecord[]> {
   if (!companyId) return []
-  const snapshot = await getDocs(query(collection(db, COLLECTION_NAME), where("tenantId", "==", await getCurrentTenantId()), where("companyId", "==", companyId)))
+  const snapshot = await getDocs(query(collection(db, COLLECTION_NAME), where("agencyId", "==", await getCurrentAgencyId()), where("companyId", "==", companyId)))
   return snapshot.docs
     .map((item) => ({ ...(item.data() as Omit<EmailDraftRecord, "id">), id: item.id }))
     .sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt))
@@ -30,7 +30,7 @@ export async function getEmailDrafts(companyId: string): Promise<EmailDraftRecor
 
 export async function saveEmailDraft(draft: EmailDraftRecord): Promise<void> {
   const record = Object.fromEntries(Object.entries(draft).filter(([, value]) => value !== undefined))
-  record.tenantId = await getCurrentTenantId()
+  record.agencyId = await getCurrentAgencyId()
   await setDoc(doc(db, COLLECTION_NAME, draft.id), record, { merge: true })
 }
 

@@ -4,7 +4,8 @@ import { FieldValue } from "firebase-admin/firestore"
 import { adminServices } from "@/lib/firebase-admin"
 import { normalizeSubscriptionEmail, subscriptionDocumentId, unsubscribeUrl } from "@/lib/email-unsubscribe"
 import { markdownToHtml } from "@/lib/markdown"
-import { getTenantSecret, recordTenantUsage } from "@/lib/server/tenant-secrets"
+import { getAgencySecret, recordAgencyUsage } from "@/lib/server/agency-secrets"
+import { requireAgencyId } from "@/lib/require-agency-id"
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const SITE_ORIGIN = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") || "https://www.visualcns.com"
@@ -203,9 +204,9 @@ async function getAdminCaller(idToken: string) {
   }
 }
 
-async function getMarketingRecipients(recipients: string[], tenantId: string) {
+async function getMarketingRecipients(recipients: string[], agencyId: string) {
   const { db } = adminServices()
-  const clientSnapshot = await db.collection("users").where("tenantId", "==", tenantId).where("role", "==", "client").get()
+  const clientSnapshot = await db.collection("users").where("agencyId", "==", agencyId).where("role", "==", "client").get()
   const subscribedByDefault = new Set(
     clientSnapshot.docs
       .map((item) => normalizeSubscriptionEmail(String(item.data().email || "")))
@@ -222,7 +223,7 @@ async function getMarketingRecipients(recipients: string[], tenantId: string) {
   return { db, allowedRecipients, suppressedRecipients, unknownRecipients }
 }
 
-async function markContextAsSent(db: ReturnType<typeof adminServices>["db"], context: EmailContext, tenantId: string) {
+async function markContextAsSent(db: ReturnType<typeof adminServices>["db"], context: EmailContext, agencyId: string) {
   if (!context.documentId || !context.documentType) return
   const collectionByType: Record<string, string> = {
     invoice: "invoices",
@@ -242,7 +243,7 @@ async function markContextAsSent(db: ReturnType<typeof adminServices>["db"], con
       : { lastCommunicationAt: new Date().toISOString() }
   const ref = db.collection(collectionName).doc(context.documentId)
   const snapshot = await ref.get()
-  if (!snapshot.exists || snapshot.data()?.tenantId !== tenantId) return
+  if (!snapshot.exists || snapshot.data()?.agencyId !== agencyId) return
   await ref.set(patch, { merge: true })
 }
 
@@ -396,20 +397,19 @@ export async function POST(request: Request) {
 
   let suppressedRecipients: string[] = []
   const caller = await getAdminCaller(idToken)
-  const tenantId = caller && typeof caller.data.tenantId === "string" && caller.data.tenantId
-    ? caller.data.tenantId
-    : "legacy-visualcns"
+  if (!caller) return NextResponse.json({ error: "Your account has no agency assigned." }, { status: 403 })
+  const agencyId = requireAgencyId(caller.data)
   if (caller && !payload.brand) {
-    const tenant = (await caller.db.collection("tenants").doc(tenantId).get()).data() || {}
+    const agency = (await caller.db.collection("agencies").doc(agencyId).get()).data() || {}
     payload.brand = {
-      name: typeof tenant.name === "string" ? tenant.name : undefined,
-      logoUrl: typeof tenant.logoUrl === "string" ? tenant.logoUrl : undefined,
-      email: typeof tenant.senderEmail === "string" ? tenant.senderEmail : undefined,
+      name: typeof agency.name === "string" ? agency.name : undefined,
+      logoUrl: typeof agency.logoUrl === "string" ? agency.logoUrl : undefined,
+      email: typeof agency.senderEmail === "string" ? agency.senderEmail : undefined,
     }
   }
-  apiKey = await getTenantSecret(tenantId, "RESEND_API_KEY", apiKey)
-  from = normalizeEmailAddress(await getTenantSecret(tenantId, "EMAIL_FROM", from))
-  replyTo = normalizeEmailAddress(await getTenantSecret(tenantId, "EMAIL_REPLY_TO", replyTo)) || from
+  apiKey = await getAgencySecret(agencyId, "RESEND_API_KEY", apiKey)
+  from = normalizeEmailAddress(await getAgencySecret(agencyId, "EMAIL_FROM", from))
+  replyTo = normalizeEmailAddress(await getAgencySecret(agencyId, "EMAIL_REPLY_TO", replyTo)) || from
   if (!apiKey || !from) {
     return NextResponse.json({ error: "Email sending is not configured for this agency." }, { status: 503 })
   }
@@ -418,7 +418,7 @@ export async function POST(request: Request) {
     if (!caller) return NextResponse.json({ error: "Your session has expired. Sign in again and retry." }, { status: 401 })
     const companyId = String(caller.data.companyId || caller.uid)
     const templateSnapshot = await caller.db.collection("emailTemplates").doc(`${companyId}__${templateId}`).get()
-    if (templateSnapshot.exists && templateSnapshot.data()?.tenantId !== tenantId) {
+    if (templateSnapshot.exists && templateSnapshot.data()?.agencyId !== agencyId) {
       return NextResponse.json({ error: "The welcome email template is not available." }, { status: 503 })
     }
     if (!templateSnapshot.exists) {
@@ -458,7 +458,7 @@ export async function POST(request: Request) {
     }
 
     try {
-      const marketing = await getMarketingRecipients(recipients, tenantId)
+      const marketing = await getMarketingRecipients(recipients, agencyId)
       if (marketing.unknownRecipients.length > 0) {
         return NextResponse.json(
           { error: `Marketing emails can only be sent to subscribed client or portal contacts. Not subscribed: ${marketing.unknownRecipients.join(", ")}` },
@@ -541,9 +541,9 @@ export async function POST(request: Request) {
       sent.push({ id: attempt.result.id, html: attempt.html, text: attempt.brandedText })
     }
     if (caller && context.documentId && !scheduledAtIso) {
-      try { await markContextAsSent(caller.db, context, tenantId) } catch { /* Sending remains successful if object sync is temporarily unavailable. */ }
+      try { await markContextAsSent(caller.db, context, agencyId) } catch { /* Sending remains successful if object sync is temporarily unavailable. */ }
     }
-    void recordTenantUsage(tenantId, "emailsSent", sent.length).catch(() => undefined)
+    void recordAgencyUsage(agencyId, "emailsSent", sent.length).catch(() => undefined)
     return NextResponse.json({
       id: sent[0].id,
       ids: sent.map((item) => item.id),
@@ -573,11 +573,11 @@ export async function POST(request: Request) {
   }
 
   if (caller && context.documentId && !scheduledAtIso) {
-    try { await markContextAsSent(caller.db, context, tenantId) } catch { /* Sending remains successful if object sync is temporarily unavailable. */ }
+    try { await markContextAsSent(caller.db, context, agencyId) } catch { /* Sending remains successful if object sync is temporarily unavailable. */ }
   }
   if (welcomeClaim) {
     try { await completeWelcomeEmail(welcomeClaim) } catch { /* The claim expires and can be retried if persistence is temporarily unavailable. */ }
   }
-  void recordTenantUsage(tenantId, "emailsSent", recipients.length).catch(() => undefined)
+  void recordAgencyUsage(agencyId, "emailsSent", recipients.length).catch(() => undefined)
   return NextResponse.json({ id: attempt.result.id, html: attempt.html, text: attempt.brandedText, replyTo: replyTo || null, scheduledAt: scheduledAtIso || null, context })
 }

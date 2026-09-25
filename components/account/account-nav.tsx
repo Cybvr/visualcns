@@ -15,7 +15,7 @@ const LINKS: { label: string; href: string; icon: ComponentType<{ className?: st
   { label: "Agency", href: "/dashboard/account/agency", icon: Sparkles, adminOnly: true },
   { label: "Billing", href: "/dashboard/account/billing", icon: CreditCard, adminOnly: true },
   { label: "Data", href: "/dashboard/account/data", icon: Database, adminOnly: true },
-  { label: "Tenant operations", href: "/dashboard/admin/tenants", icon: Server, superAdminOnly: true },
+  { label: "Agency operations", href: "/dashboard/admin/agencies", icon: Server, superAdminOnly: true },
 ]
 
 const MENU_HREF = "/dashboard/account"

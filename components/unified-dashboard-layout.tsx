@@ -36,7 +36,7 @@ const DASHBOARD_NAV: NavLink[] = [
 ]
 
 function UnifiedDashboardShell({ children, requireAdmin = false }: { children: ReactNode; requireAdmin?: boolean }) {
-  const { user, appUser, role, isAdmin, isImpersonating, isViewingAs, impersonatedUser, stopViewingAs, loading, signOut, tenantStatus } = useAuth()
+  const { user, appUser, role, isAdmin, isImpersonating, isViewingAs, impersonatedUser, stopViewingAs, loading, signOut, agencyStatus } = useAuth()
   const router = useRouter()
   const pathname = usePathname()
   const isTaskDetailRoute = /^\/dashboard\/tasks\/[^/]+$/.test(pathname ?? "")
@@ -55,7 +55,7 @@ function UnifiedDashboardShell({ children, requireAdmin = false }: { children: R
 
   if (requireAdmin && !isAdmin) return null
 
-  if (tenantStatus === "suspended" && role !== "superadmin") {
+  if (agencyStatus === "suspended" && role !== "superadmin") {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-background px-4 text-center">
         <Image src="/visualhqlogo.svg" alt="VisualHQ" width={36} height={36} />

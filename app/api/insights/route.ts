@@ -1,8 +1,9 @@
+import { requireAgencyId } from "@/lib/require-agency-id"
 import OpenAI from "openai"
 import { cert, getApps, initializeApp } from "firebase-admin/app"
 import { getAuth as getAdminAuth } from "firebase-admin/auth"
 import { FieldValue, getFirestore as getAdminFirestore } from "firebase-admin/firestore"
-import { getTenantSecret, recordTenantUsage } from "@/lib/server/tenant-secrets"
+import { getAgencySecret, recordAgencyUsage } from "@/lib/server/agency-secrets"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -85,12 +86,12 @@ function line(label: string, value: unknown) {
 }
 
 /** Builds a compact, safe description of the client for the model. */
-async function buildContext(db: FirebaseFirestore.Firestore, tenantId: string, companyId: string) {
+async function buildContext(db: FirebaseFirestore.Firestore, agencyId: string, companyId: string) {
   const [orgSnap, projectsSnap, tasksSnap, docsSnap] = await Promise.all([
     db.collection("organizations").doc(companyId).get(),
-    db.collection("projects").where("tenantId", "==", tenantId).where("companyId", "==", companyId).limit(50).get(),
-    db.collection("tasks").where("tenantId", "==", tenantId).where("companyId", "==", companyId).limit(80).get(),
-    db.collection("companyDocuments").where("tenantId", "==", tenantId).where("companyId", "==", companyId).limit(30).get(),
+    db.collection("projects").where("agencyId", "==", agencyId).where("companyId", "==", companyId).limit(50).get(),
+    db.collection("tasks").where("agencyId", "==", agencyId).where("companyId", "==", companyId).limit(80).get(),
+    db.collection("companyDocuments").where("agencyId", "==", agencyId).where("companyId", "==", companyId).limit(30).get(),
   ])
 
   const org = orgSnap.data() || {}
@@ -216,7 +217,7 @@ async function resolveCaller(request: Request, wantedCompanyId: string) {
 
   const role = String(userData.role || "")
   const isAdmin = role === "admin" || role === "superadmin"
-  const tenantId = typeof userData.tenantId === "string" && userData.tenantId ? userData.tenantId : "legacy-visualcns"
+  const agencyId = requireAgencyId(userData)
   const ownCompanyId = typeof userData.companyId === "string" ? userData.companyId : ""
 
   // A client only ever sees their own company. An admin may pass a companyId to
@@ -227,7 +228,7 @@ async function resolveCaller(request: Request, wantedCompanyId: string) {
     return { error: jsonResponse({ error: "You can only see your own recommendations." }, 403) }
   }
 
-  return { db, tenantId, companyId }
+  return { db, agencyId, companyId }
 }
 
 async function readStored(db: FirebaseFirestore.Firestore, companyId: string): Promise<StoredSet | null> {
@@ -238,11 +239,11 @@ async function readStored(db: FirebaseFirestore.Firestore, companyId: string): P
   return data
 }
 
-async function buildAndStore(db: FirebaseFirestore.Firestore, tenantId: string, companyId: string): Promise<Response> {
-  const apiKey = await getTenantSecret(tenantId, "OPENAI_API_KEY", process.env.OPENAI_API_KEY || "")
+async function buildAndStore(db: FirebaseFirestore.Firestore, agencyId: string, companyId: string): Promise<Response> {
+  const apiKey = await getAgencySecret(agencyId, "OPENAI_API_KEY", process.env.OPENAI_API_KEY || "")
   if (!apiKey) return jsonResponse({ error: "The recommendations engine is not set up yet." }, 503)
 
-  const { context, clientName } = await buildContext(db, tenantId, companyId)
+  const { context, clientName } = await buildContext(db, agencyId, companyId)
   let categories: StoredCategory[]
   try {
     categories = await generate(apiKey, context, clientName)
@@ -253,10 +254,10 @@ async function buildAndStore(db: FirebaseFirestore.Firestore, tenantId: string, 
 
   const generatedAt = new Date().toISOString()
   await db.collection("portalInsights").doc(companyId).set(
-    { tenantId, companyId, generatedAt, categories, updatedAt: FieldValue.serverTimestamp() },
+    { agencyId, companyId, generatedAt, categories, updatedAt: FieldValue.serverTimestamp() },
     { merge: true },
   )
-  void recordTenantUsage(tenantId, "insightRuns").catch(() => undefined)
+  void recordAgencyUsage(agencyId, "insightRuns").catch(() => undefined)
   return jsonResponse({ generatedAt, categories, cached: false })
 }
 
@@ -265,7 +266,7 @@ export async function GET(request: Request) {
   const wantedCompanyId = new URL(request.url).searchParams.get("companyId") || ""
   const caller = await resolveCaller(request, wantedCompanyId)
   if ("error" in caller) return caller.error
-  const { db, tenantId, companyId } = caller
+  const { db, agencyId, companyId } = caller
 
   const stored = await readStored(db, companyId)
   if (stored) {
@@ -274,7 +275,7 @@ export async function GET(request: Request) {
       return jsonResponse({ generatedAt: stored.generatedAt, categories: stored.categories, cached: true })
     }
   }
-  return buildAndStore(db, tenantId, companyId)
+  return buildAndStore(db, agencyId, companyId)
 }
 
 /** Force a fresh set, e.g. the client tapped "Refresh". */
@@ -287,6 +288,6 @@ export async function POST(request: Request) {
   }
   const caller = await resolveCaller(request, wantedCompanyId)
   if ("error" in caller) return caller.error
-  const { db, tenantId, companyId } = caller
-  return buildAndStore(db, tenantId, companyId)
+  const { db, agencyId, companyId } = caller
+  return buildAndStore(db, agencyId, companyId)
 }

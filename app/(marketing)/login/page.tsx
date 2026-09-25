@@ -51,9 +51,9 @@ export default function LoginPage() {
     const needsWorkspaceSelection = Boolean(
       user &&
       appUser &&
-      (!appUser.role || !appUser.tenantId || (
+      (!appUser.role || !appUser.agencyId || (
         appUser.role === "admin" &&
-        appUser.tenantId === user.uid &&
+        appUser.agencyId === user.uid &&
         appUser.companyId === user.uid &&
         appUser.welcomeEmailPending
       )),

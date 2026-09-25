@@ -14,8 +14,8 @@ import { auth, googleProvider } from "@/lib/firebase"
 import { ensureAdminBusinessOrganization } from "@/lib/business-profile"
 import { getUser, upsertUserOnLogin, type AppUser, type UserRole } from "@/lib/users"
 import { getOrganization, organizationRef } from "@/lib/organizations"
-import { getTenant, type Tenant, type TenantStatus } from "@/lib/tenants"
-import { clearCurrentTenantId, primeCurrentTenantId } from "@/lib/tenancy"
+import { getAgency, type Agency, type AgencyStatus } from "@/lib/agencies"
+import { clearCurrentAgencyId, primeCurrentAgencyId } from "@/lib/agency-scope"
 
 /** sessionStorage key holding the uid an admin is currently "viewing as". */
 const VIEW_AS_KEY = "viewAsUid"
@@ -58,8 +58,8 @@ type AuthContextValue = {
   isViewingAs: boolean
   /** True when an admin is viewing the client portal as another user. */
   isImpersonating: boolean
-  tenant: Tenant | null
-  tenantStatus: TenantStatus | null
+  agency: Agency | null
+  agencyStatus: AgencyStatus | null
   /** The user being viewed, when an admin is using "View as". */
   impersonatedUser: AppUser | null
   /** Admin-only: start previewing the app as `target`. */
@@ -81,8 +81,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // The doc of the user an admin is "viewing as", if any.
   const [impersonated, setImpersonated] = useState<AppUser | null>(null)
   const [loading, setLoading] = useState(true)
-  const [tenant, setTenant] = useState<Tenant | null>(null)
-  const [tenantStatus, setTenantStatus] = useState<TenantStatus | null>(null)
+  const [agency, setAgency] = useState<Agency | null>(null)
+  const [agencyStatus, setAgencyStatus] = useState<AgencyStatus | null>(null)
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (u) => {
@@ -96,15 +96,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             displayName: u.displayName,
             photoURL: u.photoURL,
           })
-          primeCurrentTenantId(u.uid, doc?.tenantId)
+          primeCurrentAgencyId(u.uid, doc?.agencyId)
           setRealAppUser(doc)
           try {
-            const tenantRecord = doc?.tenantId ? await getTenant(doc.tenantId) : null
-            setTenant(tenantRecord)
-            setTenantStatus(tenantRecord?.status || "trial")
+            const agencyRecord = doc?.agencyId ? await getAgency(doc.agencyId) : null
+            setAgency(agencyRecord)
+            setAgencyStatus(agencyRecord?.status || "trial")
           } catch {
-            setTenant(null)
-            setTenantStatus("trial")
+            setAgency(null)
+            setAgencyStatus("trial")
           }
           void sendWelcomeEmailIfPending(u, doc)
 
@@ -114,10 +114,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if ((doc?.role === "admin" || doc?.role === "superadmin") && viewAsUid && viewAsUid !== u.uid) {
             try {
               const target = await getUser(viewAsUid)
-              const sameTenant = doc.role === "superadmin" || target?.tenantId === doc.tenantId
-              const canViewTarget = sameTenant && (
+              const sameAgency = doc.role === "superadmin" || target?.agencyId === doc.agencyId
+              const canViewTarget = sameAgency && (
                 (target?.role === "client" && Boolean(target.companyId)) ||
-                ((target?.role === "admin" || target?.role === "superadmin") && Boolean(target.tenantId))
+                ((target?.role === "admin" || target?.role === "superadmin") && Boolean(target.agencyId))
               )
               if (canViewTarget) setImpersonated(target)
               else {
@@ -146,14 +146,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           console.error("Error provisioning user:", error)
           setRealAppUser(null)
           setImpersonated(null)
-          setTenant(null)
+          setAgency(null)
         }
       } else {
-        clearCurrentTenantId()
+        clearCurrentAgencyId()
         setRealAppUser(null)
         setImpersonated(null)
-        setTenant(null)
-        setTenantStatus(null)
+        setAgency(null)
+        setAgencyStatus(null)
       }
       setLoading(false)
     })
@@ -178,7 +178,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         photoURL: authenticatedUser.photoURL,
       })
       setRealAppUser(doc)
-      setTenantStatus((data.status as TenantStatus | undefined) || "trial")
+      setAgencyStatus((data.status as AgencyStatus | undefined) || "trial")
       return
     }
     if (createWorkspace) {
@@ -191,7 +191,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         createWorkspace: true,
       })
       setRealAppUser(doc)
-      setTenantStatus("trial")
+      setAgencyStatus("trial")
     }
   }
 
@@ -216,7 +216,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       createWorkspace,
     })
     setRealAppUser(doc)
-    if (createWorkspace) setTenantStatus("trial")
+    if (createWorkspace) setAgencyStatus("trial")
   }
 
   async function signOut() {
@@ -232,8 +232,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   function viewAsUser(target: AppUser) {
     const canViewClient = target.role === "client" && Boolean(target.companyId)
-    const canViewAdmin = (target.role === "admin" || target.role === "superadmin") && Boolean(target.tenantId)
-    if (!isAdmin || (!canViewClient && !canViewAdmin) || (role !== "superadmin" && target.tenantId !== realAppUser?.tenantId)) return
+    const canViewAdmin = (target.role === "admin" || target.role === "superadmin") && Boolean(target.agencyId)
+    if (!isAdmin || (!canViewClient && !canViewAdmin) || (role !== "superadmin" && target.agencyId !== realAppUser?.agencyId)) return
     sessionStorage.setItem(VIEW_AS_KEY, target.uid)
     setImpersonated(target)
   }
@@ -253,8 +253,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isAdmin,
         isViewingAs,
         isImpersonating,
-        tenant,
-        tenantStatus,
+        agency,
+        agencyStatus,
         impersonatedUser: isViewingAs ? impersonated : null,
         viewAsUser,
         stopViewingAs,

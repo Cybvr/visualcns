@@ -2,10 +2,10 @@ import { NextResponse } from "next/server"
 import { FieldValue } from "firebase-admin/firestore"
 
 import { adminServices } from "@/lib/firebase-admin"
+import { getSiteAgencyId } from "@/lib/require-agency-id"
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const WORK_TYPES = ["Design", "Strategy", "Marketing", "Animation"]
-const TENANT_ID = "legacy-visualcns"
 const OWNER_EMAIL = process.env.BOOKING_OWNER_EMAIL || "jide.pinheiro@gmail.com"
 const SITE_ORIGIN = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") || "https://www.visualcns.com"
 const WELCOME_TEMPLATE_ID = "welcome-client-portal"
@@ -35,6 +35,7 @@ function clean(value: unknown, max = 500) {
 }
 
 export async function POST(request: Request) {
+  const AGENCY_ID = getSiteAgencyId()
   let payload: {
     name?: unknown
     email?: unknown
@@ -96,7 +97,7 @@ export async function POST(request: Request) {
   try {
     const existing = await db
       .collection("users")
-      .where("tenantId", "==", TENANT_ID)
+      .where("agencyId", "==", AGENCY_ID)
       .where("email", "==", email)
       .limit(1)
       .get()
@@ -107,7 +108,7 @@ export async function POST(request: Request) {
         displayName: name,
         company,
         role: "client",
-        tenantId: TENANT_ID,
+        agencyId: AGENCY_ID,
         companyId: ref.id,
         source: "booking",
         lastBookingAt: FieldValue.serverTimestamp(),
@@ -136,7 +137,7 @@ export async function POST(request: Request) {
       let welcome = FALLBACK_WELCOME
       const owner = await db
         .collection("users")
-        .where("tenantId", "==", TENANT_ID)
+        .where("agencyId", "==", AGENCY_ID)
         .where("email", "==", OWNER_EMAIL)
         .limit(1)
         .get()
@@ -144,7 +145,7 @@ export async function POST(request: Request) {
       if (companyId) {
         const templateSnap = await db.collection("emailTemplates").doc(`${companyId}__${WELCOME_TEMPLATE_ID}`).get()
         const data = templateSnap.data()
-        if (templateSnap.exists && data?.tenantId === TENANT_ID && data.subject && data.body) {
+        if (templateSnap.exists && data?.agencyId === AGENCY_ID && data.subject && data.body) {
           welcome = { subject: String(data.subject), body: String(data.body) }
         }
       }

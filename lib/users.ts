@@ -11,7 +11,7 @@ import {
   Timestamp,
 } from "firebase/firestore"
 import { db } from "./firebase"
-import { getCurrentTenantId, LEGACY_TENANT_ID } from "./tenancy"
+import { getCurrentAgencyId } from "./agency-scope"
 
 export type UserRole = "admin" | "client" | "superadmin"
 
@@ -28,8 +28,8 @@ export interface AppUser {
   displayName?: string
   photoURL?: string
   role?: UserRole
-  /** Top-level tenant boundary. Never infer this from companyId. */
-  tenantId?: string
+  /** Top-level agency boundary. Never infer this from companyId. */
+  agencyId?: string
   company?: string
   /** The user's own dashboard URL segment, e.g. /dashboard/ada-obi */
   slug?: string
@@ -91,7 +91,7 @@ export function slugifyUser(value: string): string {
 
 export async function getUserBySlug(slug: string): Promise<AppUser | null> {
   if (!slug) return null
-  const snapshot = await getDocs(query(collection(db, COLLECTION_NAME), where("tenantId", "==", await getCurrentTenantId()), where("slug", "==", slug)))
+  const snapshot = await getDocs(query(collection(db, COLLECTION_NAME), where("agencyId", "==", await getCurrentAgencyId()), where("slug", "==", slug)))
   if (snapshot.empty) return null
   const first = snapshot.docs[0]
   return { ...(first.data() as object), uid: first.id } as AppUser
@@ -130,8 +130,8 @@ export async function uniqueUserSlug(preferred: string, forUid: string): Promise
 }
 
 export async function getUsers(): Promise<AppUser[]> {
-  const tenantId = await getCurrentTenantId()
-  const snapshot = await getDocs(query(collection(db, COLLECTION_NAME), where("tenantId", "==", tenantId)))
+  const agencyId = await getCurrentAgencyId()
+  const snapshot = await getDocs(query(collection(db, COLLECTION_NAME), where("agencyId", "==", agencyId)))
   return snapshot.docs.map((d) => ({ ...(d.data() as object), uid: d.id })) as AppUser[]
 }
 
@@ -141,8 +141,8 @@ export async function getUsers(): Promise<AppUser[]> {
  */
 export async function getUserByCompanyId(companyId: string): Promise<AppUser | null> {
   if (!companyId) return null
-  const tenantId = await getCurrentTenantId()
-  const snapshot = await getDocs(query(collection(db, COLLECTION_NAME), where("tenantId", "==", tenantId), where("companyId", "==", companyId)))
+  const agencyId = await getCurrentAgencyId()
+  const snapshot = await getDocs(query(collection(db, COLLECTION_NAME), where("agencyId", "==", agencyId), where("companyId", "==", companyId)))
   if (snapshot.empty) return null
   const first = snapshot.docs[0]
   return { ...(first.data() as object), uid: first.id } as AppUser
@@ -151,8 +151,8 @@ export async function getUserByCompanyId(companyId: string): Promise<AppUser | n
 /** Every person who belongs to a workspace, for the company's People tab. */
 export async function getUsersByCompanyId(companyId: string): Promise<AppUser[]> {
   if (!companyId) return []
-  const tenantId = await getCurrentTenantId()
-  const snapshot = await getDocs(query(collection(db, COLLECTION_NAME), where("tenantId", "==", tenantId), where("companyId", "==", companyId)))
+  const agencyId = await getCurrentAgencyId()
+  const snapshot = await getDocs(query(collection(db, COLLECTION_NAME), where("agencyId", "==", agencyId), where("companyId", "==", companyId)))
   return snapshot.docs.map((d) => ({ ...(d.data() as object), uid: d.id })) as AppUser[]
 }
 
@@ -164,10 +164,10 @@ export async function getUser(uid: string): Promise<AppUser | null> {
 
 /** Create a user doc keyed by uid (uid must match the person's Firebase Auth uid). */
 export async function createUser(uid: string, data: Omit<AppUser, "uid" | "createdAt" | "updatedAt">): Promise<void> {
-  const tenantId = await getCurrentTenantId()
+  const agencyId = await getCurrentAgencyId()
   await setDoc(doc(db, COLLECTION_NAME, uid), {
     ...data,
-    tenantId,
+    agencyId,
     createdAt: Timestamp.now(),
     updatedAt: Timestamp.now(),
   })
@@ -175,7 +175,7 @@ export async function createUser(uid: string, data: Omit<AppUser, "uid" | "creat
 
 export async function updateUser(uid: string, data: Partial<Omit<AppUser, "uid" | "createdAt">>): Promise<void> {
   const safeData = { ...data }
-  delete safeData.tenantId
+  delete safeData.agencyId
   await updateDoc(doc(db, COLLECTION_NAME, uid), {
     ...safeData,
     updatedAt: Timestamp.now(),
@@ -204,7 +204,7 @@ export async function upsertUserOnLogin(profile: {
   const existing = await getDoc(ref)
   const existingData = existing.data() || {}
   const createWorkspace = profile.createWorkspace === true
-  const canClaimWorkspace = createWorkspace && !existingData.role && !existingData.tenantId
+  const canClaimWorkspace = createWorkspace && !existingData.role && !existingData.agencyId
 
   const base: Record<string, unknown> = {
     email: profile.email ?? "",
@@ -220,13 +220,10 @@ export async function upsertUserOnLogin(profile: {
     base.role = "admin"
     base.welcomeEmailPending = true
     base.onboardingStatus = "active"
-    base.tenantId = profile.uid
+    base.agencyId = profile.uid
     base.companyId = profile.uid
     if (profile.agencyName?.trim()) base.company = profile.agencyName.trim()
   }
-  // Existing legacy accounts still need a migration tenant, but an uninvited
-  // first-time account must remain unassigned until an invite is accepted.
-  if (existing.exists() && existingData.role && !existingData.tenantId) base.tenantId = LEGACY_TENANT_ID
   if (existing.exists() && existingData.role && !existingData.companyId) {
     base.companyId = profile.uid
   }

@@ -11,7 +11,7 @@ import {
   Timestamp,
 } from "firebase/firestore"
 import { db } from "./firebase"
-import { getCurrentTenantId } from "./tenancy"
+import { getCurrentAgencyId } from "./agency-scope"
 import { syncPortalProject, deleteAgencyRecord } from "./portal-data"
 import {
   createTask,
@@ -26,7 +26,7 @@ export type ProjectStatus = "in-progress" | "review" | "done" | "on-hold"
 
 export interface Project {
   id: string
-  tenantId?: string
+  agencyId?: string
   /** Matches the companyId on a user's Firestore doc - which client owns this project */
   companyId: string
   client: string
@@ -97,14 +97,14 @@ export const projectStatusMeta: Record<ProjectStatus, { label: string; className
 const COLLECTION_NAME = "projects"
 
 export async function getProjects(): Promise<Project[]> {
-  const tenantId = await getCurrentTenantId()
-  const snapshot = await getDocs(query(collection(db, COLLECTION_NAME), where("tenantId", "==", tenantId)))
+  const agencyId = await getCurrentAgencyId()
+  const snapshot = await getDocs(query(collection(db, COLLECTION_NAME), where("agencyId", "==", agencyId)))
   return snapshot.docs.map((d) => ({ ...(d.data() as object), id: d.id })) as Project[]
 }
 
 export async function getProjectsByCompanyId(companyId: string): Promise<Project[]> {
   if (!companyId) return []
-  const snapshot = await getDocs(query(collection(db, COLLECTION_NAME), where("tenantId", "==", await getCurrentTenantId()), where("companyId", "==", companyId)))
+  const snapshot = await getDocs(query(collection(db, COLLECTION_NAME), where("agencyId", "==", await getCurrentAgencyId()), where("companyId", "==", companyId)))
   return snapshot.docs.map((d) => ({ ...(d.data() as object), id: d.id })) as Project[]
 }
 
@@ -116,7 +116,7 @@ export async function getPublicProjectsByCompanyId(companyId: string): Promise<P
     const data = d.data() as Record<string, unknown>
     return {
       id: d.id,
-      tenantId: typeof data.tenantId === "string" ? data.tenantId : undefined,
+      agencyId: typeof data.agencyId === "string" ? data.agencyId : undefined,
       companyId,
       client: typeof data.client === "string" ? data.client : "",
       title: typeof data.title === "string" ? data.title : "Untitled project",
@@ -181,7 +181,7 @@ export function projectSlug(project: Project): string {
 export async function getProjectBySlug(slug: string): Promise<Project | null> {
   if (!slug) return null
 
-  const stored = await getDocs(query(collection(db, COLLECTION_NAME), where("tenantId", "==", await getCurrentTenantId()), where("slug", "==", slug)))
+  const stored = await getDocs(query(collection(db, COLLECTION_NAME), where("agencyId", "==", await getCurrentAgencyId()), where("slug", "==", slug)))
   if (!stored.empty) {
     const first = stored.docs[0]
     return { ...(first.data() as object), id: first.id } as Project
@@ -192,10 +192,10 @@ export async function getProjectBySlug(slug: string): Promise<Project | null> {
 }
 
 export async function createProject(data: Omit<Project, "id" | "createdAt" | "updatedAt">): Promise<string> {
-  const tenantId = await getCurrentTenantId()
+  const agencyId = await getCurrentAgencyId()
   const ref = await addDoc(collection(db, COLLECTION_NAME), {
     ...data,
-    tenantId,
+    agencyId,
     createdAt: Timestamp.now(),
     updatedAt: Timestamp.now(),
   })
