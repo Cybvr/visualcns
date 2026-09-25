@@ -44,7 +44,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { getProjects, type Project } from "@/lib/projects"
-import { getUsers, type AppUser } from "@/lib/users"
+import { getOrganizations, type Organization } from "@/lib/organizations"
 import { ShareLinkField } from "@/components/dashboard/share-link-field"
 import { InvoiceDocument } from "@/components/dashboard/invoice-document"
 import { downloadInvoicePdf } from "@/components/dashboard/invoice-pdf"
@@ -171,7 +171,7 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate }: {
 
   const [shareEnabled, setShareEnabled] = useState(invoice?.shareEnabled ?? initialEstimate?.shareEnabled ?? false)
 
-  const [clients, setClients] = useState<AppUser[]>([])
+  const [clients, setClients] = useState<Organization[]>([])
   const [projects, setProjects] = useState<Project[]>([])
   const [issuer, setIssuer] = useState<BusinessProfile | null>(null)
   const [optionsLoading, setOptionsLoading] = useState(true)
@@ -185,20 +185,10 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate }: {
 
   useEffect(() => {
     let active = true
-    Promise.all([getUsers(), getProjects(), getBusinessProfile()])
-      .then(([userList, projectList, profile]) => {
+    Promise.all([getOrganizations(), getProjects(), getBusinessProfile()])
+      .then(([organizationList, projectList, profile]) => {
         if (!active) return
-        // Several people can share a workspace, so this is narrowed to one
-        // entry per companyId - otherwise the same company lists twice (and
-        // the duplicate companyId shows up as a duplicate React key).
-        const seenWorkspaces = new Set<string>()
-        setClients(
-          userList.filter((user) => {
-            if (!user.companyId || seenWorkspaces.has(user.companyId)) return false
-            seenWorkspaces.add(user.companyId)
-            return true
-          }),
-        )
+        setClients(organizationList)
         setProjects(projectList)
         setIssuer(profile)
       })
@@ -229,9 +219,9 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate }: {
   // Addressing details follow the chosen client until they are edited by hand.
   useEffect(() => {
     if (!companyId || billToName) return
-    const client = clients.find((entry) => entry.companyId === companyId)
+    const client = clients.find((entry) => entry.id === companyId)
     if (!client) return
-    setBillToName(client.company || client.displayName || "")
+    setBillToName(client.name)
     setBillToEmail((current) => current || client.email || "")
   }, [companyId, clients, billToName])
 
@@ -269,13 +259,13 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate }: {
   const paid = Math.round(toNumber(amountPaid) * 100)
   const balance = Math.max(0, totals.total - paid)
 
-  const selectedClient = clients.find((entry) => entry.companyId === companyId)
+  const selectedClient = clients.find((entry) => entry.id === companyId)
   const selectedProject = projects.find((entry) => entry.id === projectId)
   const draftInvoice: Invoice = {
     ...(invoice ?? {}),
     id: invoice?.id ?? "preview",
     companyId,
-    client: selectedClient?.company || selectedClient?.displayName || billToName,
+    client: selectedClient?.name ?? "",
     invoiceNumber: invoiceNumber || "Invoice preview",
     projectId: projectId || "",
     project: selectedProject?.title || "",
@@ -341,7 +331,7 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate }: {
     setError(null)
     try {
       const number = invoiceNumber.trim() || (await nextInvoiceNumber())
-      const client = clients.find((entry) => entry.companyId === companyId)
+      const client = clients.find((entry) => entry.id === companyId)
       const project = projects.find((entry) => entry.id === projectId)
       const finalTotals = linked
         ? {
@@ -355,7 +345,7 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate }: {
       const payload = {
         invoiceNumber: number,
         companyId,
-        client: client?.company || client?.displayName || "",
+        client: client?.name ?? "",
         projectId: projectId || "",
         project: project?.title || "",
         status,
@@ -487,9 +477,9 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate }: {
                 <SelectValue placeholder={optionsLoading ? "Loading..." : "Choose a client"} />
               </SelectTrigger>
               <SelectContent>
-                {[...clients].sort((a, b) => (a.company || a.displayName || a.email || "").localeCompare(b.company || b.displayName || b.email || "", undefined, { sensitivity: "base" })).map((client) => (
-                  <SelectItem key={client.uid} value={client.companyId as string}>
-                    {client.company || client.displayName || client.email}
+                {[...clients].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" })).map((client) => (
+                  <SelectItem key={client.id} value={client.id}>
+                    {client.name}
                   </SelectItem>
                 ))}
               </SelectContent>
