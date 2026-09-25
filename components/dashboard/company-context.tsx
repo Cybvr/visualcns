@@ -108,7 +108,14 @@ export function CompanyProvider({ children, companyRef, publicView = false }: { 
           ? ({ uid: resolvedOrg.id, email: resolvedOrg.email || "", displayName: resolvedOrg.name, company: resolvedOrg.name, companyId: resolvedOrg.id, role: "client" } as AppUser)
           : null
         : resolvedOrg
-          ? await getUserByCompanyId(resolvedOrg.id)
+          ? (await getUserByCompanyId(resolvedOrg.id)) ?? ({
+              uid: resolvedOrg.id,
+              email: resolvedOrg.email || "",
+              displayName: resolvedOrg.name,
+              company: resolvedOrg.name,
+              companyId: resolvedOrg.id,
+              role: "client",
+            } as AppUser)
           : await getUserByRef(ref)
       if (!found) {
         setError("That company doesn't exist, or it has been removed.")
