@@ -6,7 +6,7 @@ import { ArrowLeft } from "lucide-react"
 import { useAuth } from "@/components/auth-provider"
 import { usePortal } from "@/components/portal/portal-provider"
 import { PortalNotice } from "@/components/portal/portal-shell"
-import { PortalShellLayout, SignInPrompt } from "@/components/portal/portal-workspace"
+import { PortalShellLayout } from "@/components/portal/portal-workspace"
 import { InvoiceDocument } from "@/components/dashboard/invoice-document"
 import { ContractDocument } from "@/components/dashboard/contract-document"
 import { EstimateDocument } from "@/components/dashboard/estimate-document"
@@ -15,11 +15,13 @@ import { EstimateAcceptButton } from "@/components/dashboard/estimate-accept-but
 import { DocumentActions } from "@/components/dashboard/document-actions"
 import { getBusinessProfile, type BusinessProfile } from "@/lib/business-profile"
 import { portalPath, safeExternalUrl } from "@/lib/portal-model"
+import { usePortalKey } from "@/components/portal/portal-shell"
 
 export default function PortalDocumentPage() {
   const { companySlug, kind, id } = useParams<{ companySlug: string; kind: string; id: string }>()
   const data = usePortal()
   const { isAdmin } = useAuth()
+  const portalKey = usePortalKey()
   const [issuer, setIssuer] = useState<BusinessProfile>()
   useEffect(() => {
     // Share-link visitors can't read agency records directly; the link already carried the issuer.
@@ -41,7 +43,7 @@ export default function PortalDocumentPage() {
     {invoice && <InvoiceDocument invoice={invoice} issuer={issuer} />}
     {contract && <ContractDocument contract={contract} issuer={issuer} />}
     {written && <CompanyDocumentView document={written} issuer={issuer} />}
-    {estimate && <><EstimateDocument estimate={estimate} issuer={issuer} />{!isAdmin && <div className="mt-6 print:hidden">{data.publicView && estimate.status === "sent" ? <SignInPrompt action="to accept this estimate" /> : data.publicView ? null : <EstimateAcceptButton key={estimate.id} estimateId={estimate.id} status={estimate.status} onAccepted={data.reload} />}</div>}</>}
+    {estimate && <><EstimateDocument estimate={estimate} issuer={issuer} />{!isAdmin && <div className="mt-6 print:hidden"><EstimateAcceptButton key={estimate.id} estimateId={estimate.id} status={estimate.status} onAccepted={data.reload} portalKey={data.publicView ? portalKey : undefined} /></div>}</>}
     </div>
   </PortalShellLayout>
 }

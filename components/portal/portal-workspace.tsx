@@ -135,20 +135,7 @@ function Files({ files }: { files: SharedDocument[] }) {
 
 const TASK_STATUS_ORDER: TaskStatus[] = ["todo", "in-progress", "review", "done"]
 
-/** Where "Sign in" sends a share-link visitor, returning them to this page. */
-function useSignInHref() {
-  const pathname = usePathname()
-  return `/login?next=${encodeURIComponent(pathname)}`
-}
-
-/** Shown to share-link visitors in place of anything that needs an account. */
-export function SignInPrompt({ action }: { action: string }) {
-  const href = useSignInHref()
-  return <p className="text-sm text-muted-foreground"><Link href={href} className="font-medium text-foreground underline underline-offset-4">Sign in</Link> {action}.</p>
-}
-
 function TaskItem({ task, uid, canAct, onChanged, card = false }: { task: PortalTask; uid: string; canAct: boolean; onChanged: () => void; card?: boolean }) {
-  const { publicView } = usePortal()
   const [open, setOpen] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState("")
@@ -162,7 +149,7 @@ function TaskItem({ task, uid, canAct, onChanged, card = false }: { task: Portal
       <button aria-label={`Open feedback for ${task.name}`} aria-expanded={open} onClick={() => setOpen(value => !value)} className="rounded-md p-2 text-muted-foreground hover:bg-muted focus-visible:outline focus-visible:outline-2"><MessageSquare className="size-4" /></button>
     </div>
     {error && <p role="alert" className="mt-2 text-sm text-destructive">{error}</p>}
-    {open && <div className="ml-7 mt-4">{task.instructions && <p className="mb-5 whitespace-pre-wrap text-sm leading-6">{task.instructions}</p>}{publicView ? <SignInPrompt action="to see and leave feedback" /> : <PortalTaskFeedback task={task} canAct={canAct} />}</div>}
+    {open && <div className="ml-7 mt-4">{task.instructions && <p className="mb-5 whitespace-pre-wrap text-sm leading-6">{task.instructions}</p>}<PortalTaskFeedback task={task} canAct={canAct} /></div>}
   </li>
 }
 
@@ -217,8 +204,8 @@ function ActivityPanel({ items, hrefFor }: { items: ActivityItem[]; hrefFor: (it
 /** Footer account chip, styled like the dashboard's NavUser but with portal-only actions. */
 function PortalNavUser() {
   const { publicView } = usePortal()
-  const signInHref = useSignInHref()
-  if (publicView) return <SidebarMenu><SidebarMenuItem><SidebarMenuButton asChild><Link href={signInHref}><LogOut className="rotate-180" />Sign in</Link></SidebarMenuButton></SidebarMenuItem></SidebarMenu>
+  // A link visitor has no account, so there's nothing to show in the footer.
+  if (publicView) return null
   return <PortalAccountMenu />
 }
 
@@ -343,9 +330,12 @@ function PortalSearch({ company }: { company: string }) {
 /** The main portal navigation. Items are larger on mobile, and tapping one closes the mobile drawer. */
 function PortalTabNav({ company, activeTab }: { company: string; activeTab?: string }) {
   const { isMobile, setOpenMobile } = useSidebar()
+  const { publicView } = usePortal()
+  // Insights and Ngai need an account, so link visitors don't see those tabs.
+  const tabs = publicView ? COMPANY_TABS.filter(item => item !== "insights" && item !== "ngai") : COMPANY_TABS
   return (
     <SidebarMenu>
-      {COMPANY_TABS.map(item => {
+      {tabs.map(item => {
         const Icon = TAB_ICONS[item] ?? LayoutDashboard
         return (
           <SidebarMenuItem key={item}>
@@ -536,8 +526,8 @@ export function PortalWorkspaceView({ data, project, company, uid, canAct, tab, 
     {tab === "tasks" && <Tasks tasks={tasks} uid={uid} canAct={canAct} onChanged={onChanged} all />}
     {tab === "documents" && <div className="space-y-6"><CompanyDocuments company={company} documents={documents} /><Files files={files} /></div>}
     {tab === "media" && <CompanyMedia logoUrl={data.organization.logoUrl} projects={data.projects as unknown as Project[]} uploaded={data.organization.media ?? []} />}
-    {tab === "insights" && (publicView ? <Panel title="Insights"><SignInPrompt action="to see insights for your company" /></Panel> : <PortalInsights />)}
-    {tab === "ngai" && (publicView ? <Panel title="Ngai"><SignInPrompt action="to chat with Ngai" /></Panel> : <PortalNgai />)}
+    {tab === "insights" && !publicView && <PortalInsights />}
+    {tab === "ngai" && !publicView && <PortalNgai />}
     {tab === "account" && <About organization={data.organization} />}
   </PortalShellLayout>
 }
@@ -550,9 +540,13 @@ export function PortalWorkspace({ projectMode = false, section }: { projectMode?
   const search = useSearchParams()
   const router = useRouter()
   const project = projectMode ? data.projects.find(item => item.id === projectId || item.legacySlug === projectId) : undefined
-  const available = projectMode ? ["overview", "tasks", "documents"] : ["overview", "projects", "contacts", "tasks", "documents", "media", "insights", "ngai", "account"]
+  const available = projectMode
+    ? ["overview", "tasks", "documents"]
+    : (data.publicView
+        ? ["overview", "projects", "contacts", "tasks", "documents", "media", "account"]
+        : ["overview", "projects", "contacts", "tasks", "documents", "media", "insights", "ngai", "account"])
   const raw = section || search.get("tab") || "overview"
   const tab = available.includes(raw) ? raw : "overview"
   if (projectMode && !project) return <PortalNotice title="This project isn’t available">It may not have been shared with your company yet. <Link className="underline" href={portalPath(companySlug)}>Back to your company</Link></PortalNotice>
-  return <PortalWorkspaceView data={data} project={project} company={companySlug} uid={appUser?.uid || ""} canAct={!isAdmin && !data.publicView} tab={tab} onTab={value => router.push(`${pathname}${value === "overview" ? "" : `?tab=${value}`}`, { scroll: false })} onChanged={data.reload} />
+  return <PortalWorkspaceView data={data} project={project} company={companySlug} uid={appUser?.uid || ""} canAct={!isAdmin} tab={tab} onTab={value => router.push(`${pathname}${value === "overview" ? "" : `?tab=${value}`}`, { scroll: false })} onChanged={data.reload} />
 }

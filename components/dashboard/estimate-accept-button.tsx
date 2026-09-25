@@ -10,10 +10,13 @@ export function EstimateAcceptButton({
   estimateId,
   status,
   onAccepted,
+  portalKey,
 }: {
   estimateId: string
   status: EstimateStatus
   onAccepted?: () => void
+  /** When set, accept through the share link instead of a signed-in write. */
+  portalKey?: string
 }) {
   const [accepted, setAccepted] = useState(status === "accepted")
   const [accepting, setAccepting] = useState(false)
@@ -36,7 +39,16 @@ export function EstimateAcceptButton({
     setError(null)
 
     try {
-      await acceptEstimate(estimateId)
+      if (portalKey) {
+        const response = await fetch("/api/portal/public/accept-estimate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ key: portalKey, estimateId }),
+        })
+        if (!response.ok) throw new Error()
+      } else {
+        await acceptEstimate(estimateId)
+      }
       setAccepted(true)
       onAccepted?.()
     } catch (acceptError) {
