@@ -70,6 +70,7 @@ export function EmailListRow({
         <MobileDataCard
           title={title}
           subtitle={subject}
+          trailing={formattedDate && date ? <time dateTime={date}>{formattedDate}</time> : undefined}
           icon={(
             <Avatar className={cn("size-9", avatarTone)} aria-hidden="true">
               <AvatarFallback className="bg-transparent font-medium">{avatarInitials}</AvatarFallback>

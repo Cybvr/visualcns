@@ -14,6 +14,7 @@ type MobileDataCardProps = {
   imageAlt?: string
   menu?: ReactNode
   menuLabel?: string
+  trailing?: ReactNode
   selected?: boolean
   href?: string
   onClick?: () => void
@@ -29,6 +30,7 @@ export function MobileDataCard({
   imageAlt = "",
   menu,
   menuLabel = "More options",
+  trailing,
   selected = false,
   href,
   onClick,
@@ -87,6 +89,9 @@ export function MobileDataCard({
         />
       ) : null}
       <div className="pointer-events-none relative z-0 flex min-w-0 flex-1 items-center gap-3">{content}</div>
+      {trailing !== undefined && (
+        <div className="relative z-0 shrink-0 text-right text-xs text-muted-foreground">{trailing}</div>
+      )}
       {menu && (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
