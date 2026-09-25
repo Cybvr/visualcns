@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
     const existing = await ref.get()
     const data = existing.data() || {}
     if (data.agencyId && data.agencyId !== agencyId) {
-      return NextResponse.json({ error: "This person already belongs to another workspace." }, { status: 409 })
+      return NextResponse.json({ error: "This person already belongs to another agency." }, { status: 409 })
     }
     if (data.role === "admin" || data.role === "superadmin") {
       return NextResponse.json({ error: "This person is already on the team." }, { status: 409 })

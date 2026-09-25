@@ -1310,7 +1310,7 @@ export default function EmailPage() {
       try {
         await saveEmailList({ ...updatedList, companyId: workspaceId, createdBy: user?.uid || "" })
       } catch {
-        setListNotice({ tone: "error", text: "The list could not be saved to the workspace." })
+        setListNotice({ tone: "error", text: "The list could not be saved to the agency." })
         return
       }
       setListNotice({ tone: "success", text: "List updated." })
@@ -1322,7 +1322,7 @@ export default function EmailPage() {
       await saveEmailList({ ...list, companyId: workspaceId, createdBy: user?.uid || "" })
     } catch {
       setLists((current) => current.filter((item) => item.id !== list.id))
-      setListNotice({ tone: "error", text: "The list could not be saved to the workspace." })
+      setListNotice({ tone: "error", text: "The list could not be saved to the agency." })
       return
     }
     setEditingListId(list.id)
@@ -1335,7 +1335,7 @@ export default function EmailPage() {
       await deleteEmailList(listId)
       if (editingListId === listId) resetListEditor()
     } catch {
-      setListNotice({ tone: "error", text: "The list could not be deleted from the workspace." })
+      setListNotice({ tone: "error", text: "The list could not be deleted from the agency." })
     }
   }
 

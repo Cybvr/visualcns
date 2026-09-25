@@ -55,14 +55,14 @@ export function TemplatesView({
 
   async function handleUse(template: Project) {
     if (!companyId) {
-      setError("This account is not connected to a workspace yet.")
+      setError("This account is not connected to a company yet.")
       return
     }
 
     setApplying(template.id)
     setError(null)
     try {
-      await createProjectFromTemplate(template, companyId, clientName || "Client workspace")
+      await createProjectFromTemplate(template, companyId, clientName || "Client company")
       await onCreated()
     } catch (caughtError) {
       setError(caughtError instanceof Error ? caughtError.message : "The template could not be copied. Try again.")

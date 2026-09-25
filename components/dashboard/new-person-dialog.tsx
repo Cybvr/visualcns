@@ -42,7 +42,7 @@ export function NewPersonDialog({
           <DialogTitle>New {subjectLabel}</DialogTitle>
           <DialogDescription>
             {joinWorkspaceId
-              ? `Add someone to ${joinWorkspaceName || "this company"}'s workspace.`
+              ? `Add someone to ${joinWorkspaceName || "this company"}.`
               : `Create a new ${subjectLabel}.`}
           </DialogDescription>
         </DialogHeader>

@@ -222,7 +222,7 @@ const AGENT_TOOLS = [
   {
     type: "function",
     name: "create_company",
-    description: "Create a new client company in the agency workspace.",
+    description: "Create a new client company in the agency.",
     parameters: {
       type: "object",
       properties: {
@@ -533,7 +533,7 @@ async function runAgentTool(name: string, rawArgs: string, uid: string) {
   const userSnapshot = await db.collection("users").doc(uid).get()
   const userData = userSnapshot.data()
   if (!userSnapshot.exists) {
-    throw new Error("Your account is not ready for workspace tools.")
+    throw new Error("Your account is not ready for agency tools.")
   }
 
   const isAdmin = userData?.role === "admin" || userData?.role === "superadmin"
@@ -554,7 +554,7 @@ async function runAgentTool(name: string, rawArgs: string, uid: string) {
     if (!isSuperAdmin) query = query.where("agencyId", "==", agencyId)
     if (!isAdmin) {
       const companyId = typeof userData?.companyId === "string" ? userData.companyId : ""
-      if (!companyId) throw new Error("Your account is not linked to a client workspace.")
+      if (!companyId) throw new Error("Your account is not linked to a client company.")
       query =
         collectionName === "organizations"
           ? query.where(FieldPath.documentId(), "==", companyId)
@@ -567,14 +567,14 @@ async function runAgentTool(name: string, rawArgs: string, uid: string) {
       type: "records",
       collection: collectionName,
       count: snapshot.size,
-      scope: isAdmin ? "agency workspace" : "your company",
+      scope: isAdmin ? "your agency" : "your company",
       records,
     }
   }
 
   if (name === "workspace_summary") {
     const companyId = typeof userData?.companyId === "string" ? userData.companyId : ""
-    if (!isAdmin && !companyId) throw new Error("Your account is not linked to a client workspace.")
+    if (!isAdmin && !companyId) throw new Error("Your account is not linked to a client company.")
 
     // Same scoping as query_workspace: the agency for admins, the caller's own company otherwise.
     function scoped(collectionName: string) {
@@ -646,7 +646,7 @@ async function runAgentTool(name: string, rawArgs: string, uid: string) {
 
     return {
       type: "summary",
-      scope: isAdmin ? "agency workspace" : "your company",
+      scope: isAdmin ? "your agency" : "your company",
       today: todayIso,
       note: "Money amounts are in minor units (divide by 100).",
       invoices: invoiceSummary,
@@ -748,7 +748,7 @@ async function runAgentTool(name: string, rawArgs: string, uid: string) {
   }
 
   if (!isAdmin) {
-    throw new Error("Only an agency admin can change workspace records.")
+    throw new Error("Only an agency admin can change agency records.")
   }
 
   const args = JSON.parse(rawArgs) as Record<string, unknown>
@@ -1102,7 +1102,7 @@ export async function POST(request: Request) {
       for (const call of toolCalls) {
         let result: unknown
         try {
-          if (!uid) throw new Error("Please sign in before using workspace tools.")
+          if (!uid) throw new Error("Please sign in before using agency tools.")
           result = await runAgentTool(call.name || "", call.arguments || "{}", uid)
         } catch (error) {
           result = { error: error instanceof Error ? error.message : "That could not be completed." }

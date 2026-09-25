@@ -15,7 +15,7 @@ export async function GET() {
       if (data.deletedAt) continue
       workspaces.set(item.id, {
         id: item.id,
-        name: typeof data.name === "string" && data.name.trim() ? data.name.trim() : "VisualHQ workspace",
+        name: typeof data.name === "string" && data.name.trim() ? data.name.trim() : "VisualCNS agency",
         logoUrl: typeof data.logoUrl === "string" ? data.logoUrl : "",
       })
     }

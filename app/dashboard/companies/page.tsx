@@ -268,7 +268,7 @@ export default function CompaniesPage() {
             </span>
             <h2 className="mt-4 font-medium">No clients yet</h2>
             <p className="mt-1 max-w-sm text-sm text-muted-foreground">
-              Add a client to create a workspace for their projects, tasks, and documents.
+              Add a client to create a company for their projects, tasks, and documents.
             </p>
             <Button className="mt-5" onClick={() => setCreating(true)}>
               <Plus className="mr-2 h-4 w-4" />
@@ -354,7 +354,7 @@ export default function CompaniesPage() {
                 <TableHead>Category</TableHead>
                 <TableHead>Projects</TableHead>
                 <TableHead>Date added</TableHead>
-                <TableHead>Workspace</TableHead>
+                <TableHead>Company</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
