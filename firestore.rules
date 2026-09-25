@@ -229,7 +229,9 @@ service cloud.firestore {
       // no-account share link whatever its draft status. Non-public documents only ever
       // reach their own client once sent.
       allow get: if tenantAdmin(resource.data) || resource.data.get('shareEnabled', false) == true || (owns(resource.data) && resource.data.status != 'draft');
-      allow list: if tenantAdmin(resource.data) || (owns(resource.data) && resource.data.get('shareEnabled', false) == true);
+      allow list: if tenantAdmin(resource.data)
+        || resource.data.get('shareEnabled', false) == true
+        || (owns(resource.data) && resource.data.get('shareEnabled', false) == true);
       allow create: if isAdmin() && sameTenant(request.resource.data);
       allow update: if tenantAdmin(resource.data) && sameTenant(request.resource.data);
       allow delete: if tenantAdmin(resource.data);

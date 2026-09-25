@@ -92,7 +92,11 @@ export function CompanyProvider({ children, companyRef, publicView = false }: { 
   const [error, setError] = useState<string | null>(null)
 
   const load = useCallback(async () => {
-    if (!ref) return
+    if (!ref) {
+      setError("That company page could not be resolved.")
+      setLoading(false)
+      return
+    }
     setError(null)
     try {
       // Prefer the organization ref because company URLs use the organization's
@@ -150,7 +154,7 @@ export function CompanyProvider({ children, companyRef, publicView = false }: { 
         : foundOrg?.publicTeam ?? []
       setPublicTeam(nextPublicTeam)
 
-      // Keep the public page's Team section limited to organization users
+      // Keep the public page's Team section limited to assigned client users
       // assigned to at least one project. Only an admin can write here.
       if (isAdmin && !samePublicTeam(foundOrg?.publicTeam, nextPublicTeam)) {
         updateOrganization(workspace, { publicTeam: nextPublicTeam }).catch(() => {})

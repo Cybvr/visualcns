@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react"
 
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
-import { getUsers, type AppUser } from "@/lib/users"
+import { getUsersByCompanyId, type AppUser } from "@/lib/users"
 import { updateProject, type Project } from "@/lib/projects"
 
 export function ProjectTeamPicker({
@@ -24,12 +24,11 @@ export function ProjectTeamPicker({
 
   useEffect(() => {
     let active = true
-    getUsers()
+    getUsersByCompanyId(project.companyId)
       .then((allUsers) => {
         if (!active) return
         setUsers(
           allUsers
-            .filter((user) => user.role === "admin" || user.role === "superadmin")
             .filter((user) => Boolean(user.displayName?.trim() || user.email?.trim()))
             .sort((a, b) => (a.displayName || a.email).localeCompare(b.displayName || b.email)),
         )
@@ -40,7 +39,7 @@ export function ProjectTeamPicker({
     return () => {
       active = false
     }
-  }, [])
+  }, [project.companyId])
 
   const selectedSet = useMemo(() => new Set(selected), [selected])
 
@@ -64,9 +63,9 @@ export function ProjectTeamPicker({
   return (
     <div className="space-y-2">
       <Label>Team</Label>
-      <p className="text-sm text-muted-foreground">Add organization users working on this project.</p>
+      <p className="text-sm text-muted-foreground">Select from this client&apos;s team members.</p>
       {users.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No organization team members available.</p>
+        <p className="text-sm text-muted-foreground">No client team members available yet.</p>
       ) : (
         <div className="grid gap-2 sm:grid-cols-2">
           {users.map((user) => (

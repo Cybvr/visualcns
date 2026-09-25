@@ -59,19 +59,19 @@ export function ClientProjectForm({ project, initialCompanyId, onSaved, onCancel
   const [error, setError] = useState<string | null>(null)
   const [form, setForm] = useState<FormState>(EMPTY_FORM)
   const [companies, setCompanies] = useState<CompanyOption[]>([])
+  const [users, setUsers] = useState<{ uid: string; name: string; companyId?: string; role?: string }[]>([])
   const [teamMembers, setTeamMembers] = useState<{ uid: string; name: string }[]>([])
   const [clientsLoading, setClientsLoading] = useState(true)
 
   useEffect(() => {
     Promise.all([getUsers(), getOrganizations()])
       .then(([users, organizations]) => {
-        setTeamMembers(
-          users
-            .filter((user) => user.role === "admin" || user.role === "superadmin")
-            .filter((user) => Boolean(user.displayName?.trim() || user.email?.trim()))
-            .map((user) => ({ uid: user.uid, name: user.displayName || user.email }))
-            .sort((a, b) => a.name.localeCompare(b.name)),
-        )
+        setUsers(users.map((user) => ({
+          uid: user.uid,
+          name: user.displayName || user.email,
+          companyId: user.companyId,
+          role: user.role,
+        })))
         const orgNames = new Map(organizations.map((org) => [org.id, org.name]))
         // Several people can share a workspace, so this is deduped to one row
         // per companyId, preferring the organization's own name.
@@ -88,6 +88,15 @@ export function ClientProjectForm({ project, initialCompanyId, onSaved, onCancel
       .catch((err) => console.error("Error loading companies:", err))
       .finally(() => setClientsLoading(false))
   }, [])
+
+  useEffect(() => {
+    setTeamMembers(
+      users
+        .filter((user) => user.companyId === form.companyId && user.role === "client")
+        .map(({ uid, name }) => ({ uid, name }))
+        .sort((a, b) => a.name.localeCompare(b.name)),
+    )
+  }, [form.companyId, users])
 
   useEffect(() => {
     if (project) {
@@ -209,7 +218,7 @@ export function ClientProjectForm({ project, initialCompanyId, onSaved, onCancel
 
       <div className="space-y-2">
         <Label>Team</Label>
-        <p className="text-sm text-muted-foreground">Add organization users working on this project.</p>
+        <p className="text-sm text-muted-foreground">Select client team members working on this project.</p>
         {teamMembers.length > 0 ? (
           <div className="grid gap-2 sm:grid-cols-2">
             {teamMembers.map((member) => (
@@ -229,7 +238,7 @@ export function ClientProjectForm({ project, initialCompanyId, onSaved, onCancel
             ))}
           </div>
         ) : (
-          <p className="text-sm text-muted-foreground">No organization team members available.</p>
+          <p className="text-sm text-muted-foreground">No client team members available yet.</p>
         )}
       </div>
 

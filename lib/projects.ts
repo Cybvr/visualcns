@@ -35,7 +35,7 @@ export interface Project {
   status: ProjectStatus
   progress: number
   dueDate: string
-  /** Organization user ids assigned to this project. */
+  /** Client team member ids assigned to this project. */
   teamMemberIds?: string[]
   /** URL segment for the detail page. Derived from the title when unset. */
   slug?: string

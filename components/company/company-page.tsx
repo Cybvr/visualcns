@@ -40,6 +40,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
@@ -62,7 +63,7 @@ const SECTIONS = [
   { key: "projects", label: "Projects" },
   { key: "about", label: "About" },
   { key: "team", label: "Team" },
-  { key: "activity", label: "Activities" },
+  { key: "activity", label: "Activity" },
   { key: "media", label: "Media" },
   { key: "documents", label: "Documents" },
 ] as const
@@ -279,6 +280,10 @@ export function CompanyPage({
   const [shareOpen, setShareOpen] = useState(false)
   const [issuer, setIssuer] = useState<BusinessProfile | null>(null)
   const [activityTasks, setActivityTasks] = useState<Task[]>([])
+  const [teamDialogOpen, setTeamDialogOpen] = useState(false)
+  const [teamContactIds, setTeamContactIds] = useState<string[]>([])
+  const [teamSaving, setTeamSaving] = useState(false)
+  const [teamError, setTeamError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!isAdmin) return
@@ -367,7 +372,7 @@ export function CompanyPage({
     || people.find((person) => person.adminUser?.email)
 
   const availableExistingContacts = (allContacts ?? [])
-    .filter((person) => person.role !== "admin" && !people.some((current) => current.id === person.id))
+    .filter((person) => person.role !== "admin" && person.role !== "superadmin" && !people.some((current) => current.id === person.id))
 
   const existingContacts = availableExistingContacts
     .filter((person) => {
@@ -375,44 +380,46 @@ export function CompanyPage({
       return !query || `${person.name} ${person.subtitle ?? ""}`.toLowerCase().includes(query)
     })
 
-  const projectTeamMembers = useMemo<Array<{ person: CompanyPagePerson; projects: string[] }>>(() => {
-    const peopleById = new Map(
-      (allContacts ?? [])
-        .filter((person) => person.adminUser)
-        .map((person) => [person.adminUser!.uid, person]),
-    )
-    const assignments = new Map<string, { person: CompanyPagePerson; projects: string[] }>()
-
-    for (const project of projects) {
-      for (const uid of project.teamMemberIds ?? []) {
-        const person = peopleById.get(uid)
-        if (!person) continue
-        const assignment = assignments.get(uid) ?? { person, projects: [] }
-        assignment.projects.push(project.title)
-        assignments.set(uid, assignment)
-      }
-    }
-
-    if (assignments.size > 0 || allContacts) {
-      return Array.from(assignments.values()).sort((a, b) => a.person.name.localeCompare(b.person.name))
-    }
-
-    return (company.publicTeam ?? []).map((member) => ({
-      person: {
-        id: member.uid,
-        name: member.name,
-        subtitle: member.role || "Team member",
-        role: member.role,
-        photoUrl: member.photoUrl,
-      },
-      projects: [],
-    }))
-  }, [allContacts, company.publicTeam, projects])
+  const clientTeamMembers = useMemo<Array<{ person: CompanyPagePerson; projects: string[] }>>(
+    () => people
+      .map((person) => ({
+        person,
+        projects: projects
+          .filter((project) => project.teamMemberIds?.includes(person.id))
+          .map((project) => project.title),
+      }))
+      .sort((a, b) => a.person.name.localeCompare(b.person.name)),
+    [people, projects],
+  )
 
   const activity = useMemo(
     () => buildActivity({ projects, tasks: activityTasks, invoices, estimates, contracts, documents }),
     [activityTasks, contracts, documents, estimates, invoices, projects],
   )
+
+  function openTeamDialog() {
+    setTeamContactIds([])
+    setExistingPersonQuery("")
+    setTeamError(null)
+    setTeamDialogOpen(true)
+  }
+
+  async function saveTeamMembers() {
+    if (!admin?.onAddExistingContact || !teamContactIds.length || teamSaving) return
+    setTeamSaving(true)
+    setTeamError(null)
+    try {
+      for (const contactId of teamContactIds) {
+        await admin.onAddExistingContact(contactId)
+      }
+      await admin.reload()
+      setTeamDialogOpen(false)
+    } catch (saveError) {
+      setTeamError(saveError instanceof Error ? saveError.message : "Could not add the team members.")
+    } finally {
+      setTeamSaving(false)
+    }
+  }
 
   async function handleAddExistingPerson(contactId: string) {
     if (!admin?.onAddExistingContact || addingExistingPersonId) return
@@ -606,18 +613,19 @@ export function CompanyPage({
             <div className="mt-5">
               <div className="flex items-center justify-between gap-4">
                 <h2 className="sr-only">Team</h2>
-                <span className="sidebar-nav-label text-muted-foreground">Project team</span>
+                <span className="sidebar-nav-label text-muted-foreground">Team members</span>
+                {admin && <SectionAddButton label="Add team members" onClick={openTeamDialog} />}
               </div>
 
-              {projectTeamMembers.length === 0 ? (
+              {clientTeamMembers.length === 0 ? (
                 <CompanyEmptyState
                   icon={UserIcon}
-                  title="No project team yet"
-                  description={admin ? "Open a project and add organization users to its team." : undefined}
+                  title="No team members yet"
+                  description={admin ? "Use the add button to add contacts to this client." : undefined}
                 />
               ) : (
                 <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                  {projectTeamMembers.map(({ person, projects: assignedProjects }) => (
+                  {clientTeamMembers.map(({ person, projects: assignedProjects }) => (
                     <MobileDataCard
                       key={person.id}
                       ariaLabel={`Open ${person.name}`}
@@ -634,15 +642,83 @@ export function CompanyPage({
                   ))}
                 </div>
               )}
+
+              {admin && (
+                <Dialog
+                  open={teamDialogOpen}
+                  onOpenChange={(open) => {
+                    if (!teamSaving) setTeamDialogOpen(open)
+                  }}
+                >
+                  <DialogContent className="max-w-md">
+                    <DialogHeader>
+                      <DialogTitle>Add team members</DialogTitle>
+                      <DialogDescription>Select one or more existing contacts to add to this client&apos;s team.</DialogDescription>
+                    </DialogHeader>
+
+                    <div className="space-y-3">
+                      <Input
+                        autoFocus
+                        value={existingPersonQuery}
+                        onChange={(event) => setExistingPersonQuery(event.target.value)}
+                        placeholder="Search contacts"
+                        aria-label="Search contacts"
+                      />
+                      {existingContacts.length === 0 ? (
+                        <p className="rounded-lg border border-dashed border-border px-3 py-4 text-center text-sm text-muted-foreground">
+                          {availableExistingContacts.length ? "No contacts match your search." : "No unassigned contacts available."}
+                        </p>
+                      ) : (
+                        <div className="max-h-72 overflow-y-auto rounded-xl border border-border p-2">
+                          <div className="grid gap-1 sm:grid-cols-2">
+                            {existingContacts.map((person) => (
+                              <label key={person.id} className="flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors hover:bg-muted">
+                                <Checkbox
+                                  checked={teamContactIds.includes(person.id)}
+                                  disabled={teamSaving}
+                                  onChange={(event) => {
+                                    setTeamContactIds((current) => event.currentTarget.checked
+                                      ? [...current, person.id]
+                                      : current.filter((id) => id !== person.id))
+                                  }}
+                                  aria-label={`Add ${person.name} to the client team`}
+                                />
+                                <span className="min-w-0">
+                                  <span className="block truncate font-medium">{person.name}</span>
+                                  {person.email && <span className="block truncate text-xs text-muted-foreground">{person.email}</span>}
+                                </span>
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {teamError && <p className="text-sm text-destructive">{teamError}</p>}
+
+                    <DialogFooter>
+                      <Button type="button" variant="outline" onClick={() => setTeamDialogOpen(false)} disabled={teamSaving}>Cancel</Button>
+                      <Button type="button" onClick={() => void saveTeamMembers()} disabled={teamSaving || teamContactIds.length === 0}>
+                        {teamSaving ? "Adding…" : `Add team members${teamContactIds.length > 0 ? ` (${teamContactIds.length})` : ""}`}
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              )}
             </div>
           )}
 
           {section === "activity" && (
             <div className="mt-5">
+              <div className="flex items-center justify-between gap-4">
+                <h2 className="sr-only">Activity</h2>
+                <span className="sidebar-nav-label text-muted-foreground">Activity</span>
+              </div>
               <ActivityFeed
                 items={activity}
-                title="Activities"
                 emptyLabel="No recent activity for this company yet."
+                showHeader={false}
+                className="mt-4 sm:rounded-none sm:bg-transparent sm:p-0"
               />
             </div>
           )}
