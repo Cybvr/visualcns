@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState, type FormEvent } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { ArrowLeft, Eye, Loader2, Plus, Printer, Share2, Trash2 } from "lucide-react"
+import { ArrowLeft, Download, Eye, Loader2, Plus, Printer, Share2, Trash2 } from "lucide-react"
 
 import { DangerZone } from "@/components/dashboard/danger-zone"
 import { Button } from "@/components/ui/button"
@@ -47,7 +47,8 @@ import { getProjects, type Project } from "@/lib/projects"
 import { getUsers, type AppUser } from "@/lib/users"
 import { ShareLinkField } from "@/components/dashboard/share-link-field"
 import { InvoiceDocument } from "@/components/dashboard/invoice-document"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { downloadInvoicePdf } from "@/components/dashboard/invoice-pdf"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
 
 const CURRENCIES = [
@@ -174,6 +175,7 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate }: {
   const [issuer, setIssuer] = useState<BusinessProfile | null>(null)
   const [optionsLoading, setOptionsLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [pdfDownloading, setPdfDownloading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [shareOpen, setShareOpen] = useState(false)
   const [previewOpen, setPreviewOpen] = useState(false)
@@ -397,6 +399,20 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate }: {
     router.push("/dashboard/invoices")
   }
 
+  async function handleDownloadPdf() {
+    if (pdfDownloading) return
+    setPdfDownloading(true)
+    setError(null)
+    try {
+      await downloadInvoicePdf({ invoice: draftInvoice, issuer: issuer ?? undefined })
+    } catch (err) {
+      console.error("Error creating invoice PDF:", err)
+      setError("Couldn't create the PDF. Try again.")
+    } finally {
+      setPdfDownloading(false)
+    }
+  }
+
   return (
     <>
     <form onSubmit={submit} className="invoice-editor space-y-5 text-[0.8125rem] print:hidden">
@@ -453,7 +469,7 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate }: {
             )}
             <div className="min-w-0">
               <p className="invoice-brand-name truncate">{issuer?.name || "Your company"}</p>
-              {issuer?.email && <p className="truncate text-muted-foreground">{issuer.email}</p>}
+              {issuer?.website && <p className="truncate text-muted-foreground">{issuer.website}</p>}
             </div>
           </div>
           <div className="shrink-0 text-right">
@@ -687,18 +703,19 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate }: {
       ) : (
       <section>
         {/* Phones get one stacked block per line instead of a six-column table. */}
-        <div className="divide-y divide-border sm:hidden">
+        <div className="divide-y divide-border xl:hidden">
           {lines.map((line) => {
             const lineTotal = Math.round(toNumber(line.quantity) * toNumber(line.unitPrice) * 100)
             return (
               <div key={line.id} className="space-y-2 py-3 first:pt-0">
                 <div className="flex items-center gap-2">
-                  <Input
+                  <Textarea
                     value={line.description}
                     onChange={(event) => updateLine(line.id, { description: event.target.value })}
                     placeholder="Description"
                     aria-label="Description"
-                    className="flex-1"
+                    rows={2}
+                    className="min-h-12 flex-1 resize-none"
                   />
                   <button
                     type="button"
@@ -738,7 +755,7 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate }: {
             )
           })}
         </div>
-        <div className="hidden overflow-x-auto sm:block">
+        <div className="hidden overflow-x-auto xl:block">
           <Table>
             <TableHeader>
               <TableRow>
@@ -756,11 +773,13 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate }: {
                 return (
                   <TableRow key={line.id}>
                     <TableCell>
-                      <Input
+                      <Textarea
                         value={line.description}
                         onChange={(event) => updateLine(line.id, { description: event.target.value })}
                         placeholder="Brand identity design"
                         aria-label="Description"
+                        rows={2}
+                        className="min-h-12 resize-none"
                       />
                     </TableCell>
                     <TableCell>
@@ -922,6 +941,12 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate }: {
             <DialogDescription>Preview the invoice with your current edits before saving or printing.</DialogDescription>
           </DialogHeader>
           <InvoiceDocument invoice={draftInvoice} issuer={issuer ?? undefined} />
+          <DialogFooter>
+            <Button type="button" onClick={() => void handleDownloadPdf()} disabled={pdfDownloading}>
+              {pdfDownloading ? <Loader2 className="mr-1.5 size-4 animate-spin" aria-hidden="true" /> : <Download className="mr-1.5 size-4" aria-hidden="true" />}
+              Download PDF
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 

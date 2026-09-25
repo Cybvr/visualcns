@@ -39,7 +39,7 @@ export function InvoiceDocument({ invoice, issuer = INVOICE_ISSUER }: { invoice:
             <p className="text-sm font-semibold tracking-[-0.02em]">{issuer.name}</p>
           </div>
           <p className="mt-1 whitespace-pre-line text-sm leading-6 text-muted-foreground">{issuer.address}</p>
-          {issuer.email && <p className="text-sm text-muted-foreground">{issuer.email}</p>}
+          {issuer.website && <p className="text-sm text-muted-foreground">{issuer.website}</p>}
           {issuer.phone && <p className="text-sm text-muted-foreground">{issuer.phone}</p>}
         </div>
         <div className="sm:text-right">
@@ -65,20 +65,21 @@ export function InvoiceDocument({ invoice, issuer = INVOICE_ISSUER }: { invoice:
       </div>
 
       {invoice.lineItems && invoice.lineItems.length > 0 && (
-        <div className="overflow-x-auto border-y border-border">
-          <Table className="text-sm">
+        <>
+        <div className="hidden border-y border-border lg:block">
+          <Table className="table-fixed text-sm">
             <TableHeader>
               <TableRow>
                 <TableHead>Description</TableHead>
-                <TableHead className="text-right">Qty</TableHead>
-                <TableHead className="text-right">Rate</TableHead>
-                <TableHead className="text-right">Amount</TableHead>
+                <TableHead className="w-20 text-right">Qty</TableHead>
+                <TableHead className="w-32 text-right">Rate</TableHead>
+                <TableHead className="w-32 text-right">Amount</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {invoice.lineItems.map((item) => (
                 <TableRow key={item.id}>
-                  <TableCell className="font-medium">{item.description}</TableCell>
+                  <TableCell className="whitespace-normal break-words align-top font-medium">{item.description}</TableCell>
                   <TableCell className="text-right text-muted-foreground">{item.quantity}</TableCell>
                   <TableCell className="text-right text-muted-foreground">{formatMoney(item.unitPrice, invoice.currency)}</TableCell>
                   <TableCell className="text-right">{formatMoney(Math.round(item.quantity * item.unitPrice), invoice.currency)}</TableCell>
@@ -87,6 +88,27 @@ export function InvoiceDocument({ invoice, issuer = INVOICE_ISSUER }: { invoice:
             </TableBody>
           </Table>
         </div>
+        <div className="border-y border-border lg:hidden">
+          {invoice.lineItems.map((item) => (
+            <div key={item.id} className="space-y-3 border-b border-border px-6 py-4 last:border-b-0">
+              <div className="flex items-start justify-between gap-4">
+                <p className="min-w-0 whitespace-normal break-words font-medium leading-6">{item.description}</p>
+                <p className="shrink-0 text-right font-medium">{formatMoney(Math.round(item.quantity * item.unitPrice), invoice.currency)}</p>
+              </div>
+              <dl className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-muted-foreground">
+                <div>
+                  <dt>Qty</dt>
+                  <dd className="font-medium text-foreground">{item.quantity}</dd>
+                </div>
+                <div>
+                  <dt>Rate</dt>
+                  <dd className="font-medium text-foreground">{formatMoney(item.unitPrice, invoice.currency)}</dd>
+                </div>
+              </dl>
+            </div>
+          ))}
+        </div>
+        </>
       )}
 
       <div className="grid gap-8 px-6 py-8 sm:grid-cols-2 sm:px-10">
