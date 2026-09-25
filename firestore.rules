@@ -190,6 +190,7 @@ service cloud.firestore {
     match /invites/{id} { allow read, write: if false; }
     match /tenantSecrets/{id} { allow read, write: if false; }
     match /tenantUsage/{id} { allow read, write: if false; }
+    match /portalLinks/{id} { allow read, write: if false; }
 
     // Keep legacy single-document links. Anonymous collection browsing is closed.
     match /invoices/{id} {

@@ -19,6 +19,9 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null)
   // Signed in, but nobody has invited this account yet and it hasn't created a workspace.
   const notSetUp = Boolean(user && appUser && (!appUser.role || !appUser.tenantId))
+  // Where they came from (e.g. a shared portal page), so they can return to it.
+  const [returnTo, setReturnTo] = useState<string | null>(null)
+  useEffect(() => { setReturnTo(safeReturnTo(new URLSearchParams(window.location.search).get("next"))) }, [])
 
   useEffect(() => {
     if (!loading && !action && user && !notSetUp) {
@@ -67,8 +70,11 @@ export default function LoginPage() {
 
         {notSetUp && !action && (
           <div role="status" className="mb-4 border border-border bg-muted/40 p-3 text-sm leading-5 text-muted-foreground">
-            <p>You’re signed in as {user?.email || "this account"}, but it isn’t linked to a workspace yet. Open the invite link you were sent, or ask the person who shared this link to invite this email.</p>
-            <button type="button" className="mt-2 font-medium text-foreground underline underline-offset-4" onClick={() => void signOut()}>Use a different account</button>
+            <p>You’re signed in as {user?.email || "this account"}, but it isn’t linked to a workspace yet. Open the portal link your agency sent you, or ask them to add this email to your company.</p>
+            <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
+              {returnTo && <Link href={returnTo} className="font-medium text-foreground underline underline-offset-4">Go back</Link>}
+              <button type="button" className="font-medium text-foreground underline underline-offset-4" onClick={() => void signOut()}>Use a different account</button>
+            </div>
           </div>
         )}
 

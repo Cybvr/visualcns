@@ -5,6 +5,7 @@ import { adminServices } from "@/lib/firebase-admin"
 import { normalizeSubscriptionEmail, subscriptionDocumentId, unsubscribeUrl } from "@/lib/email-unsubscribe"
 import { markdownToHtml } from "@/lib/markdown"
 import { getTenantSecret, recordTenantUsage } from "@/lib/server/tenant-secrets"
+import { withPortalKey } from "@/lib/server/portal-links"
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const SITE_ORIGIN = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") || "https://www.visualcns.com"
@@ -406,6 +407,11 @@ export async function POST(request: Request) {
       logoUrl: typeof tenant.logoUrl === "string" ? tenant.logoUrl : undefined,
       email: typeof tenant.senderEmail === "string" ? tenant.senderEmail : undefined,
     }
+  }
+  // Portal buttons sent by the agency open without the client needing an account.
+  if (caller && (caller.data.role === "admin" || caller.data.role === "superadmin") && payload.cta && typeof payload.cta === "object") {
+    const cta = payload.cta as Record<string, unknown>
+    if (typeof cta.url === "string" && cta.url) payload.cta = { ...cta, url: await withPortalKey(caller.db, tenantId, cta.url, SITE_ORIGIN) }
   }
   apiKey = await getTenantSecret(tenantId, "RESEND_API_KEY", apiKey)
   from = normalizeEmailAddress(await getTenantSecret(tenantId, "EMAIL_FROM", from))

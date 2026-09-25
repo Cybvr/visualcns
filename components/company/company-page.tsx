@@ -46,6 +46,8 @@ import { deleteUser, type AppUser } from "@/lib/users"
 import { buildEmailComposeHref } from "@/lib/email-composer"
 import { PortalPublishingPanel } from "@/components/portal/portal-publishing"
 import { usePageHeaderActions } from "@/components/dashboard/page-title-context"
+import { useAuth } from "@/components/auth-provider"
+import { portalShareUrl } from "@/lib/portal-public"
 
 const SECTIONS = [
   { key: "projects", label: "Projects" },
@@ -154,6 +156,44 @@ export function CompanyPage({
   const [creatingDocument, setCreatingDocument] = useState(false)
   const [creatingProject, setCreatingProject] = useState(false)
   const [shareOpen, setShareOpen] = useState(false)
+  const { user } = useAuth()
+  // The secret part of the portal link. Anyone holding the full link can view
+  // this company's portal without signing in.
+  const [portalKey, setPortalKey] = useState("")
+  const [resettingLink, setResettingLink] = useState(false)
+  const canShare = Boolean(admin)
+  useEffect(() => {
+    if (!canShare || !user) return
+    let active = true
+    user.getIdToken()
+      .then((token) => fetch(`/api/admin/portal-link?companyId=${encodeURIComponent(company.id)}`, { headers: { Authorization: `Bearer ${token}` } }))
+      .then(async (response) => (response.ok ? await response.json() as { key?: string } : null))
+      .then((data) => { if (active && data?.key) setPortalKey(data.key) })
+      .catch(() => { /* the plain link still works for signed-in clients */ })
+    return () => { active = false }
+  }, [canShare, user, company.id])
+  const sharePath = admin ? portalShareUrl(admin.sharePath, portalKey) : ""
+
+  async function resetPortalLink() {
+    if (!user || resettingLink) return
+    if (!window.confirm("Make a new link? The current link will stop working for anyone who has it.")) return
+    setResettingLink(true)
+    try {
+      const response = await fetch("/api/admin/portal-link", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${await user.getIdToken()}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ companyId: company.id }),
+      })
+      const data = await response.json() as { key?: string; error?: string }
+      if (!response.ok || !data.key) throw new Error(data.error || "Could not reset the link")
+      setPortalKey(data.key)
+      toast.success("New link ready. The old one no longer works.")
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not reset the link")
+    } finally {
+      setResettingLink(false)
+    }
+  }
   const [issuer, setIssuer] = useState<BusinessProfile | null>(null)
 
   useEffect(() => {
@@ -326,7 +366,7 @@ export function CompanyPage({
               recipientEmail: primaryContact?.adminUser?.email,
               recipientName: primaryContact?.adminUser?.displayName || primaryContact?.name,
               ctaText: "Open your client portal",
-              ctaUrl: admin.sharePath,
+              ctaUrl: sharePath,
             })}>
               <Mail className="size-4" aria-hidden="true" />
               Email
@@ -337,7 +377,7 @@ export function CompanyPage({
             Share
           </DropdownMenuItem>
           <DropdownMenuItem asChild>
-            <Link href={admin.sharePath} target="_blank" rel="noreferrer">
+            <Link href={sharePath} target="_blank" rel="noreferrer">
               <ExternalLink className="size-4" aria-hidden="true" />
               Open page
             </Link>
@@ -777,10 +817,13 @@ export function CompanyPage({
             <DialogContent className="max-h-[85vh] max-w-2xl overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Share client portal</DialogTitle>
-                <DialogDescription>Control what {company.name} sees after signing in, then share their workspace link.</DialogDescription>
+                <DialogDescription>Choose what {company.name} sees, then send them this link. It opens their portal straight away, no sign-up needed.</DialogDescription>
               </DialogHeader>
-              <ShareLink value={absoluteUrl(admin.sharePath)} label="Workspace link" />
-              <p className="text-xs text-muted-foreground">Clients sign in with their invited account. Previously shared company links continue to open this portal.</p>
+              {portalKey ? <ShareLink value={absoluteUrl(sharePath)} label="Workspace link" /> : <p className="pt-2 text-sm text-muted-foreground">Preparing link…</p>}
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-xs text-muted-foreground">Anyone with this link can view the portal. They only need to sign in to leave feedback or accept estimates.</p>
+                <Button type="button" variant="ghost" size="sm" className="shrink-0" disabled={!portalKey || resettingLink} onClick={() => void resetPortalLink()}>{resettingLink ? "Resetting…" : "Reset link"}</Button>
+              </div>
               <div className="border-t border-border pt-4">
                 <PortalPublishingPanel companyId={company.id} projects={projects} people={people} active={shareOpen} />
               </div>

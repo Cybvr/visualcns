@@ -135,7 +135,20 @@ function Files({ files }: { files: SharedDocument[] }) {
 
 const TASK_STATUS_ORDER: TaskStatus[] = ["todo", "in-progress", "review", "done"]
 
+/** Where "Sign in" sends a share-link visitor, returning them to this page. */
+function useSignInHref() {
+  const pathname = usePathname()
+  return `/login?next=${encodeURIComponent(pathname)}`
+}
+
+/** Shown to share-link visitors in place of anything that needs an account. */
+export function SignInPrompt({ action }: { action: string }) {
+  const href = useSignInHref()
+  return <p className="text-sm text-muted-foreground"><Link href={href} className="font-medium text-foreground underline underline-offset-4">Sign in</Link> {action}.</p>
+}
+
 function TaskItem({ task, uid, canAct, onChanged, card = false }: { task: PortalTask; uid: string; canAct: boolean; onChanged: () => void; card?: boolean }) {
+  const { publicView } = usePortal()
   const [open, setOpen] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState("")
@@ -149,7 +162,7 @@ function TaskItem({ task, uid, canAct, onChanged, card = false }: { task: Portal
       <button aria-label={`Open feedback for ${task.name}`} aria-expanded={open} onClick={() => setOpen(value => !value)} className="rounded-md p-2 text-muted-foreground hover:bg-muted focus-visible:outline focus-visible:outline-2"><MessageSquare className="size-4" /></button>
     </div>
     {error && <p role="alert" className="mt-2 text-sm text-destructive">{error}</p>}
-    {open && <div className="ml-7 mt-4">{task.instructions && <p className="mb-5 whitespace-pre-wrap text-sm leading-6">{task.instructions}</p>}<PortalTaskFeedback task={task} canAct={canAct} /></div>}
+    {open && <div className="ml-7 mt-4">{task.instructions && <p className="mb-5 whitespace-pre-wrap text-sm leading-6">{task.instructions}</p>}{publicView ? <SignInPrompt action="to see and leave feedback" /> : <PortalTaskFeedback task={task} canAct={canAct} />}</div>}
   </li>
 }
 
@@ -203,6 +216,13 @@ function ActivityPanel({ items, hrefFor }: { items: ActivityItem[]; hrefFor: (it
 
 /** Footer account chip, styled like the dashboard's NavUser but with portal-only actions. */
 function PortalNavUser() {
+  const { publicView } = usePortal()
+  const signInHref = useSignInHref()
+  if (publicView) return <SidebarMenu><SidebarMenuItem><SidebarMenuButton asChild><Link href={signInHref}><LogOut className="rotate-180" />Sign in</Link></SidebarMenuButton></SidebarMenuItem></SidebarMenu>
+  return <PortalAccountMenu />
+}
+
+function PortalAccountMenu() {
   const { isMobile } = useSidebar()
   const { user, appUser, isAdmin, isImpersonating, signOut, stopViewingAs } = useAuth()
   const router = useRouter()
@@ -352,6 +372,8 @@ function PortalTabNav({ company, activeTab }: { company: string; activeTab?: str
 
 /** Header "Ask Ngai" button, shared with the dashboard. */
 function PortalNgaiButton() {
+  const { publicView } = usePortal()
+  if (publicView) return null
   return <AgentHeaderButton className="ml-auto" />
 }
 
@@ -359,13 +381,14 @@ function PortalNgaiButton() {
 function PortalMobileFooterNav({ company, activeTab }: { company: string; activeTab?: string }) {
   const { open: agentOpen, setOpen: setAgentOpen } = useAgent()
   const { setOpenMobile } = useSidebar()
+  const { publicView } = usePortal()
 
   const items: MobileFooterNavItem[] = [
     { key: "overview", label: "Overview", icon: LayoutDashboard, href: portalPath(company), isActive: activeTab === "overview" },
     { key: "documents", label: "Documents", icon: FileText, href: `${portalPath(company)}/documents`, isActive: activeTab === "documents" },
     { key: "ngai", label: "Ngai", icon: Sparkles, onClick: () => setAgentOpen(true), isActive: agentOpen || activeTab === "ngai" },
     { key: "menu", label: "Menu", icon: Menu, onClick: () => setOpenMobile(true) },
-  ]
+  ].filter(item => !(publicView && item.key === "ngai")) as MobileFooterNavItem[]
 
   return <MobileFooterNav items={items} />
 }
@@ -392,6 +415,7 @@ function PortalNgai() {
 /** The portal chrome: collapsible company sidebar + dashboard-style header, wrapping any page's content. */
 function PortalShellContents({ company, organization, activeTab, title, children }: { company: string; organization: Organization; activeTab?: string; title?: ReactNode; children: ReactNode }) {
   const { open: agentOpen } = useAgent()
+  const { publicView } = usePortal()
   const { open: sidebarOpen, setOpen: setSidebarOpen } = useSidebar()
   const sidebarStateBeforeAgent = useRef<boolean | null>(null)
 
@@ -454,8 +478,8 @@ function PortalShellContents({ company, organization, activeTab, title, children
       </header>
       <div className={cn("px-4 py-5 sm:px-6", activeTab !== "ngai" && "pb-[calc(4.5rem+env(safe-area-inset-bottom))] md:pb-5")}>{children}</div>
     </SidebarInset>
-    <NgaiSidePanel />
-    <AgentDock />
+    {!publicView && <NgaiSidePanel />}
+    {!publicView && <AgentDock />}
     <PortalMobileFooterNav company={company} activeTab={activeTab} />
   </>
 }
@@ -467,6 +491,7 @@ export function PortalShellLayout(props: { company: string; organization: Organi
 }
 
 export function PortalWorkspaceView({ data, project, company, uid, canAct, tab, onTab, onChanged }: { data: PortalData; project?: PortalProject; company: string; uid: string; canAct: boolean; tab: string; onTab: (tab: string) => void; onChanged: () => void }) {
+  const { publicView } = usePortal()
   const tasks = data.tasks.filter(item => !project || item.projectId === project.id)
   const invoices = data.invoices.filter(item => !project || item.projectId === project.id)
   const estimates = data.estimates.filter(item => !project || item.projectId === project.id)
@@ -511,8 +536,8 @@ export function PortalWorkspaceView({ data, project, company, uid, canAct, tab, 
     {tab === "tasks" && <Tasks tasks={tasks} uid={uid} canAct={canAct} onChanged={onChanged} all />}
     {tab === "documents" && <div className="space-y-6"><CompanyDocuments company={company} documents={documents} /><Files files={files} /></div>}
     {tab === "media" && <CompanyMedia logoUrl={data.organization.logoUrl} projects={data.projects as unknown as Project[]} uploaded={data.organization.media ?? []} />}
-    {tab === "insights" && <PortalInsights />}
-    {tab === "ngai" && <PortalNgai />}
+    {tab === "insights" && (publicView ? <Panel title="Insights"><SignInPrompt action="to see insights for your company" /></Panel> : <PortalInsights />)}
+    {tab === "ngai" && (publicView ? <Panel title="Ngai"><SignInPrompt action="to chat with Ngai" /></Panel> : <PortalNgai />)}
     {tab === "account" && <About organization={data.organization} />}
   </PortalShellLayout>
 }
@@ -529,5 +554,5 @@ export function PortalWorkspace({ projectMode = false, section }: { projectMode?
   const raw = section || search.get("tab") || "overview"
   const tab = available.includes(raw) ? raw : "overview"
   if (projectMode && !project) return <PortalNotice title="This project isn’t available">It may not have been shared with your company yet. <Link className="underline" href={portalPath(companySlug)}>Back to your company</Link></PortalNotice>
-  return <PortalWorkspaceView data={data} project={project} company={companySlug} uid={appUser?.uid || ""} canAct={!isAdmin} tab={tab} onTab={value => router.push(`${pathname}${value === "overview" ? "" : `?tab=${value}`}`, { scroll: false })} onChanged={data.reload} />
+  return <PortalWorkspaceView data={data} project={project} company={companySlug} uid={appUser?.uid || ""} canAct={!isAdmin && !data.publicView} tab={tab} onTab={value => router.push(`${pathname}${value === "overview" ? "" : `?tab=${value}`}`, { scroll: false })} onChanged={data.reload} />
 }

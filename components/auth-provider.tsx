@@ -15,7 +15,7 @@ import { ensureAdminBusinessOrganization } from "@/lib/business-profile"
 import { getUser, upsertUserOnLogin, type AppUser, type UserRole } from "@/lib/users"
 import { portalPath } from "@/lib/portal-model"
 import { getTenant, type TenantStatus } from "@/lib/tenants"
-import { clearTenantCache, LEGACY_TENANT_ID } from "@/lib/tenancy"
+import { clearTenantCache, LEGACY_TENANT_ID, primeTenantId } from "@/lib/tenancy"
 
 /** sessionStorage key holding the uid an admin is currently "viewing as". */
 const VIEW_AS_KEY = "viewAsUid"
@@ -76,6 +76,20 @@ async function provisionAdminOrganization(uid: string, appUser: AppUser) {
     console.error("Error provisioning admin organization:", organizationError)
   })
   if (!ready) await run
+}
+
+/** Ask the server to attach this account to an agency that already has its email. */
+async function linkAccountByEmail(firebaseUser: User): Promise<boolean> {
+  try {
+    const response = await fetch("/api/auth/link-account", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${await firebaseUser.getIdToken()}` },
+    })
+    const data = await response.json() as { linked?: boolean }
+    return response.ok && data.linked === true
+  } catch {
+    return false
+  }
 }
 
 async function sendWelcomeEmailIfPending(firebaseUser: User, appUser: AppUser | null) {
@@ -144,12 +158,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(u)
       if (u) {
         try {
-          const doc = await upsertUserOnLogin({
+          let doc = await upsertUserOnLogin({
             uid: u.uid,
             email: u.email,
             displayName: u.displayName,
             photoURL: u.photoURL,
           })
+          // New account the agency already knows by email: link it now so
+          // there's no invite step. Skipped on /signup, where the person is
+          // creating their own workspace.
+          if (doc && (!doc.role || !doc.tenantId) && u.emailVerified && !window.location.pathname.startsWith("/signup")) {
+            if (await linkAccountByEmail(u)) {
+              doc = await getUser(u.uid)
+              primeTenantId(u.uid, doc?.tenantId)
+            }
+          }
           const isAdminDoc = doc?.role === "admin" || doc?.role === "superadmin"
           await migrateLegacyTenant(u, doc)
           if (isAdminDoc && doc) await provisionAdminOrganization(u.uid, doc)
