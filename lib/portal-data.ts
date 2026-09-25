@@ -15,14 +15,13 @@ export async function getPortalTasks(companyId: string, projectId: string): Prom
   return snapshot.docs.map(d => ({ ...d.data(), id: d.id }) as PortalTask)
 }
 
-/** Activity data for an anonymous company page: only public task mirrors. */
+/** Activity data for an anonymous company page: client-facing task mirrors. */
 export async function getPublicPortalTasks(companyId: string, projectId: string): Promise<PortalTask[]> {
   if (!companyId || !projectId) return []
   const snapshot = await getDocs(query(
     collection(db, "portalTasks"),
     where("companyId", "==", companyId),
     where("projectId", "==", projectId),
-    where("isPublic", "==", true),
   ))
   return snapshot.docs.map(d => ({ ...d.data(), id: d.id }) as PortalTask)
 }

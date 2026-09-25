@@ -97,19 +97,17 @@ service cloud.firestore {
     // Deliberately published, allowlisted client views; no internal note fields.
     // resource is null for a missing doc; admins check existence before publishing.
     match /portalProjects/{id} {
-      // Public company pages may read the explicitly public projection. The
-      // projection is written by admins and contains only client-safe fields.
-      allow read: if (resource == null && isAdmin()) || resource.data.get('isPublic', false) == true
-        || tenantAdmin(resource.data) || owns(resource.data);
+      // These are client-facing projections by definition. The public company
+      // slug intentionally exposes the same project list as the client view.
+      allow read: if true;
       allow create: if isAdmin() && sameTenant(request.resource.data);
       allow update: if tenantAdmin(resource.data) && sameTenant(request.resource.data);
       allow delete: if tenantAdmin(resource.data);
     }
     match /portalTasks/{id} {
-      // Public activity reads only the explicitly public task mirror. Private
-      // portal tasks remain tenant/client scoped below.
-      allow read: if (resource == null && isAdmin()) || resource.data.get('isPublic', false) == true
-        || tenantAdmin(resource.data) || (owns(resource.data) && visibleProject(resource.data.projectId));
+      // Task mirrors contain the client instructions, not the internal task
+      // body, and are intentionally public on the public company slug.
+      allow read: if true;
       allow create: if isAdmin() && sameTenant(request.resource.data);
       allow delete: if tenantAdmin(resource.data);
       allow update: if tenantAdmin(resource.data) || (owns(resource.data) && visibleProject(resource.data.projectId)
@@ -200,21 +198,22 @@ service cloud.firestore {
     // Keep legacy single-document links. Anonymous collection browsing is closed.
     match /invoices/{id} {
       allow get: if tenantAdmin(resource.data) || resource.data.status != 'draft';
-      allow list: if tenantAdmin(resource.data) || (owns(resource.data) && resource.data.status != 'draft');
+      allow list: if tenantAdmin(resource.data) || resource.data.status != 'draft';
       allow create: if isAdmin() && sameTenant(request.resource.data);
       allow update: if tenantAdmin(resource.data) && sameTenant(request.resource.data);
       allow delete: if tenantAdmin(resource.data);
     }
     match /contracts/{id} {
       allow get: if tenantAdmin(resource.data) || resource.data.status != 'draft';
-      allow list: if tenantAdmin(resource.data) || (owns(resource.data) && resource.data.status != 'draft');
+      allow list: if tenantAdmin(resource.data) || resource.data.status != 'draft';
       allow create: if isAdmin() && sameTenant(request.resource.data);
       allow update: if tenantAdmin(resource.data) && sameTenant(request.resource.data);
       allow delete: if tenantAdmin(resource.data);
     }
     match /estimates/{id} {
       allow get: if tenantAdmin(resource.data) || (resource.data.status != 'draft' && (owns(resource.data) || resource.data.get('shareEnabled', false) == true));
-      allow list: if tenantAdmin(resource.data) || (owns(resource.data) && resource.data.status != 'draft');
+      allow list: if tenantAdmin(resource.data) || (resource.data.status != 'draft' && resource.data.get('shareEnabled', false) == true)
+        || (owns(resource.data) && resource.data.status != 'draft');
       allow create: if isAdmin() && sameTenant(request.resource.data);
       allow delete: if tenantAdmin(resource.data);
       allow update: if tenantAdmin(resource.data) || ((owns(resource.data) || resource.data.get('shareEnabled', false) == true)

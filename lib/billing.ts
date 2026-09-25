@@ -330,6 +330,13 @@ export async function getInvoicesByCompanyId(companyId: string, includeDrafts = 
   return byNewest(includeDrafts ? rows : rows.filter((row) => isVisibleToClient(row.status)))
 }
 
+/** Non-draft invoices shown on the public company page. */
+export async function getPublicInvoicesByCompanyId(companyId: string): Promise<Invoice[]> {
+  if (!companyId) return []
+  const snapshot = await getDocs(query(collection(db, INVOICES), where("companyId", "==", companyId), where("status", "!=", "draft")))
+  return byNewest(snapshot.docs.map((d) => toInvoice(d.id, d.data() as object)))
+}
+
 /**
  * The next invoice number in the INV-0001 sequence, taken from the highest number
  * already used so a deleted invoice never hands its number to a new one.
@@ -390,6 +397,13 @@ export async function getContractsByCompanyId(companyId: string, includeDrafts =
   return byNewest(includeDrafts ? rows : rows.filter((row) => isVisibleToClient(row.status)))
 }
 
+/** Non-draft contracts shown on the public company page. */
+export async function getPublicContractsByCompanyId(companyId: string): Promise<Contract[]> {
+  if (!companyId) return []
+  const snapshot = await getDocs(query(collection(db, CONTRACTS), where("companyId", "==", companyId), where("status", "!=", "draft")))
+  return byNewest(snapshot.docs.map((d) => ({ ...(d.data() as object), id: d.id })) as Contract[])
+}
+
 export async function getContract(id: string): Promise<Contract | null> {
   const snapshot = await getDoc(doc(db, CONTRACTS, id))
   if (!snapshot.exists()) return null
@@ -441,7 +455,7 @@ export async function getEstimatesByCompanyId(companyId: string, includeDrafts =
 export async function getSharedEstimatesByCompanyId(companyId: string): Promise<Estimate[]> {
   if (!companyId) return []
   const snapshot = await getDocs(
-    query(collection(db, ESTIMATES), where("companyId", "==", companyId), where("shareEnabled", "==", true)),
+    query(collection(db, ESTIMATES), where("companyId", "==", companyId), where("shareEnabled", "==", true), where("status", "!=", "draft")),
   )
   return byNewest(snapshot.docs.map((d) => ({ ...(d.data() as object), id: d.id })) as Estimate[])
 }
