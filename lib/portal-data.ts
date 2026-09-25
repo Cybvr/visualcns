@@ -15,9 +15,21 @@ export async function getPortalTasks(companyId: string, projectId: string): Prom
   return snapshot.docs.map(d => ({ ...d.data(), id: d.id }) as PortalTask)
 }
 
+/** Activity data for an anonymous company page: only public task mirrors. */
+export async function getPublicPortalTasks(companyId: string, projectId: string): Promise<PortalTask[]> {
+  if (!companyId || !projectId) return []
+  const snapshot = await getDocs(query(
+    collection(db, "portalTasks"),
+    where("companyId", "==", companyId),
+    where("projectId", "==", projectId),
+    where("isPublic", "==", true),
+  ))
+  return snapshot.docs.map(d => ({ ...d.data(), id: d.id }) as PortalTask)
+}
+
 /** Explicit allowlist: internal descriptions, earnings and task bodies never travel. */
 export function projectForPortal(project: Project, summary: string): Omit<PortalProject, "id"> {
-  return { tenantId: project.tenantId || "", companyId: project.companyId, title: project.title, status: project.status, progress: project.progress, dueDate: project.dueDate || "", thumbnailUrl: project.thumbnailUrl || "", summary, legacySlug: project.slug || project.title.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") }
+  return { tenantId: project.tenantId || "", companyId: project.companyId, title: project.title, status: project.status, progress: project.progress, dueDate: project.dueDate || "", thumbnailUrl: project.thumbnailUrl || "", summary, isPublic: project.isPublic === true, legacySlug: project.slug || project.title.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") }
 }
 
 export async function publishPortalProject(project: Project, summary: string) {
@@ -30,7 +42,7 @@ export async function unpublishPortalProject(projectId: string) {
 }
 
 export async function publishPortalTask(task: Task, instructions: string, assigneeUid: string) {
-  const data: Omit<PortalTask, "id"> = { tenantId: task.tenantId || "", companyId: task.companyId, projectId: task.projectId, name: task.name, status: task.status, dueDate: task.dueDate || "", instructions, assigneeUid, createdAt: task.createdAt, updatedAt: task.updatedAt }
+  const data: Omit<PortalTask, "id"> = { tenantId: task.tenantId || "", companyId: task.companyId, projectId: task.projectId, name: task.name, status: task.status, dueDate: task.dueDate || "", instructions, assigneeUid, isPublic: task.isPublic === true, createdAt: task.createdAt, updatedAt: task.updatedAt }
   await writeBatch(db).set(doc(db, "portalTasks", task.id), data).commit()
 }
 
@@ -60,7 +72,7 @@ export async function ensureTaskShared(task: Task) {
     if (project) await writeBatch(db).set(projectRef, { ...projectForPortal(project, ""), tenantId: project.tenantId || tenantId }).commit()
   }
 
-  const safe = { tenantId, companyId: task.companyId, projectId: task.projectId, name: task.name, status: task.status, dueDate: task.dueDate || "", createdAt: task.createdAt || serverTimestamp(), updatedAt: task.updatedAt || serverTimestamp() }
+  const safe = { tenantId, companyId: task.companyId, projectId: task.projectId, name: task.name, status: task.status, dueDate: task.dueDate || "", isPublic: task.isPublic === true, createdAt: task.createdAt || serverTimestamp(), updatedAt: task.updatedAt || serverTimestamp() }
   if (taskSnap.exists()) {
     await writeBatch(db).update(taskRef, safe).commit()
   } else {
@@ -83,8 +95,8 @@ export async function syncPortalProject(id: string, patch: Partial<Project>) {
   const batch = writeBatch(db).update(doc(db, "projects", id), { ...patch, updatedAt: serverTimestamp() })
   if (!existing.exists()) { await batch.commit(); return }
   if (patch.companyId && patch.companyId !== existing.data().companyId) { await batch.delete(ref).commit(); return }
-  const safe: Record<string, string | number> = {}
-  for (const key of ["title", "status", "progress", "dueDate", "thumbnailUrl"] as const) { const value = patch[key]; if (value !== undefined) safe[key] = value }
+  const safe: Record<string, string | number | boolean> = {}
+  for (const key of ["title", "status", "progress", "dueDate", "thumbnailUrl", "isPublic"] as const) { const value = patch[key]; if (value !== undefined) safe[key] = value }
   if (Object.keys(safe).length) batch.update(ref, safe)
   await batch.commit()
 }
@@ -98,8 +110,8 @@ export async function syncPortalTask(id: string, patch: Partial<Task>) {
     await batch.delete(ref).commit()
     return
   }
-  const safe: Record<string, string> = {}
-  for (const key of ["name", "status", "dueDate"] as const) { const value = patch[key]; if (value !== undefined) safe[key] = value }
+  const safe: Record<string, string | boolean> = {}
+  for (const key of ["name", "status", "dueDate", "isPublic"] as const) { const value = patch[key]; if (value !== undefined) safe[key] = value }
   if (Object.keys(safe).length) batch.update(ref, safe)
   await batch.commit()
 }

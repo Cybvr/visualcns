@@ -52,7 +52,7 @@ import type { CompanyLink, PublicTeamMember } from "@/lib/organizations"
 import { deleteProjectWithTasks, duplicateProject, renameProject, type Project } from "@/lib/projects"
 import { deleteUser, type AppUser } from "@/lib/users"
 import { getTasksByCompanyId, type Task } from "@/lib/tasks"
-import { getPortalTasks } from "@/lib/portal-data"
+import { getPortalTasks, getPublicPortalTasks } from "@/lib/portal-data"
 import type { PortalTask } from "@/lib/portal-model"
 import { buildEmailComposeHref } from "@/lib/email-composer"
 import { PortalPublishingPanel } from "@/components/portal/portal-publishing"
@@ -281,12 +281,13 @@ export function CompanyPage({
   const [activityTasks, setActivityTasks] = useState<Task[]>([])
 
   useEffect(() => {
+    if (!isAdmin) return
     getBusinessProfile()
       .then(setIssuer)
       .catch(() => {
         // Document header just stays without issuer details.
       })
-  }, [])
+  }, [isAdmin])
 
   useEffect(() => {
     let active = true
@@ -299,7 +300,7 @@ export function CompanyPage({
         }
 
         const projectById = new Map(projects.map((project) => [project.id, project]))
-        const taskGroups = await Promise.all(projects.map((project) => getPortalTasks(company.id, project.id)))
+        const taskGroups = await Promise.all(projects.map((project) => getPublicPortalTasks(company.id, project.id)))
         const tasks = taskGroups.flat().map((task: PortalTask) => {
           const project = projectById.get(task.projectId)
           return {

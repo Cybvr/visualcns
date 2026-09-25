@@ -12,6 +12,7 @@ export interface PortalProject {
   dueDate: string
   thumbnailUrl: string
   summary: string
+  isPublic?: boolean
   legacySlug?: string
 }
 
@@ -25,6 +26,7 @@ export interface PortalTask {
   dueDate: string
   instructions: string
   assigneeUid: string
+  isPublic?: boolean
   /** Mirrored from the dashboard task so activity can be ordered consistently. */
   createdAt?: unknown
   updatedAt?: unknown

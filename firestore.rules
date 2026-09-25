@@ -97,13 +97,19 @@ service cloud.firestore {
     // Deliberately published, allowlisted client views; no internal note fields.
     // resource is null for a missing doc; admins check existence before publishing.
     match /portalProjects/{id} {
-      allow read: if (resource == null && isAdmin()) || tenantAdmin(resource.data) || owns(resource.data);
+      // Public company pages may read the explicitly public projection. The
+      // projection is written by admins and contains only client-safe fields.
+      allow read: if (resource == null && isAdmin()) || resource.data.get('isPublic', false) == true
+        || tenantAdmin(resource.data) || owns(resource.data);
       allow create: if isAdmin() && sameTenant(request.resource.data);
       allow update: if tenantAdmin(resource.data) && sameTenant(request.resource.data);
       allow delete: if tenantAdmin(resource.data);
     }
     match /portalTasks/{id} {
-      allow read: if (resource == null && isAdmin()) || tenantAdmin(resource.data) || (owns(resource.data) && visibleProject(resource.data.projectId));
+      // Public activity reads only the explicitly public task mirror. Private
+      // portal tasks remain tenant/client scoped below.
+      allow read: if (resource == null && isAdmin()) || resource.data.get('isPublic', false) == true
+        || tenantAdmin(resource.data) || (owns(resource.data) && visibleProject(resource.data.projectId));
       allow create: if isAdmin() && sameTenant(request.resource.data);
       allow delete: if tenantAdmin(resource.data);
       allow update: if tenantAdmin(resource.data) || (owns(resource.data) && visibleProject(resource.data.projectId)
