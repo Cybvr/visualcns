@@ -132,7 +132,7 @@ export async function getCompanyDocumentsByCompanyId(companyId: string, includeD
 /** What a signed-in client sees in their portal: the documents turned public, drafts included. */
 export async function getPublicCompanyDocumentsByCompanyId(companyId: string): Promise<CompanyDocument[]> {
   if (!companyId) return []
-  const snapshot = await getDocs(query(collection(db, COMPANY_DOCUMENTS), where("tenantId", "==", await getCurrentTenantId()), where("companyId", "==", companyId), where("shareEnabled", "==", true)))
+  const snapshot = await getDocs(query(collection(db, COMPANY_DOCUMENTS), where("companyId", "==", companyId), where("shareEnabled", "==", true)))
   return byNewest(snapshot.docs.map((d) => toDocument(d.id, d.data() as object)))
 }
 

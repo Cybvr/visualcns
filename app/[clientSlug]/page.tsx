@@ -3,10 +3,9 @@
 import { Loader2 } from "lucide-react"
 import { useParams } from "next/navigation"
 
-import { AuthProvider, useAuth } from "@/components/auth-provider"
+import { AuthProvider } from "@/components/auth-provider"
 import { CompanyPage } from "@/components/company/company-page"
 import { CompanyProvider, useCompanyState } from "@/components/dashboard/company-context"
-import { TaskSignInGate } from "@/components/dashboard/task-sign-in-gate"
 import { PageTitleProvider } from "@/components/dashboard/page-title-context"
 
 function LoadingState() {
@@ -14,15 +13,11 @@ function LoadingState() {
 }
 
 function CompanyPageContent() {
-  const { appUser, isAdmin } = useAuth()
   const params = useParams<{ clientSlug: string }>()
   const { loading, error, client, organization, people, projects, invoices, contracts, estimates, documents, workspaceId, name, categoryLabel } = useCompanyState()
 
   if (loading) return <LoadingState />
   if (error || !client) return <main className="mx-auto flex min-h-svh max-w-xl flex-col justify-center px-6"><h1 className="text-xl font-semibold">Company page unavailable</h1><p className="mt-2 text-sm text-muted-foreground">{error ?? "This company could not be loaded."}</p></main>
-
-  const canView = isAdmin || appUser?.companyId === workspaceId
-  if (!canView) return <main className="mx-auto flex min-h-svh max-w-xl flex-col justify-center px-6"><h1 className="text-xl font-semibold">This company page isn’t available</h1><p className="mt-2 text-sm text-muted-foreground">Use the account your agency linked to this company.</p></main>
 
   return (
     <PageTitleProvider>
@@ -43,6 +38,7 @@ function CompanyPageContent() {
           tags: organization?.tags,
           primaryContactId: organization?.primaryContactId,
           media: organization?.media,
+          links: organization?.links,
           publicTeam: organization?.publicTeam,
         }}
         people={people.map((person) => ({
@@ -62,15 +58,11 @@ function CompanyPageContent() {
   )
 }
 
-function SignedInCompanyPage() {
-  const { user, loading } = useAuth()
+function PublicCompanyPageContent() {
   const params = useParams<{ clientSlug: string }>()
-  if (loading) return <LoadingState />
-  if (!user) return <TaskSignInGate />
-
-  return <CompanyProvider companyRef={params?.clientSlug}><CompanyPageContent /></CompanyProvider>
+  return <CompanyProvider companyRef={params?.clientSlug} publicView><CompanyPageContent /></CompanyProvider>
 }
 
 export default function PublicCompanyPage() {
-  return <AuthProvider><SignedInCompanyPage /></AuthProvider>
+  return <AuthProvider><PublicCompanyPageContent /></AuthProvider>
 }

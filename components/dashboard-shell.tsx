@@ -1,5 +1,6 @@
 "use client"
 
+import dynamic from "next/dynamic"
 import { useEffect, useState, type FormEvent, type ReactNode } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
@@ -9,7 +10,6 @@ import { FiCheckSquare, FiFileText, FiMail, FiUser } from "react-icons/fi"
 
 import { useAgent } from "@/components/agent/agent-context"
 import { AppSidebar, type NavLink } from "@/components/app-sidebar"
-import { NgaiSidePanel } from "@/components/agent/ngai-side-panel"
 import { MobileFooterNav, type MobileFooterNavItem } from "@/components/mobile-footer-nav"
 import { DashboardSearchButton } from "@/components/dashboard/dashboard-search-button"
 import { NewDocumentDialog } from "@/components/dashboard/new-document-dialog"
@@ -32,7 +32,6 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar"
 import { cn } from "@/lib/utils"
-import { getTenant, type Tenant } from "@/lib/tenants"
 import { useAuth } from "@/components/auth-provider"
 import {
   DropdownMenu,
@@ -40,6 +39,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+
+const NgaiSidePanel = dynamic(() => import("@/components/agent/ngai-side-panel").then((module) => module.NgaiSidePanel), { ssr: false })
 
 export type { NavLink }
 
@@ -132,9 +133,8 @@ export function DashboardShell({
   const hideHeader = isDocumentRoute
   const [sidebarOpen, setSidebarOpen] = useState(!isDocumentRoute)
   const { open: agentOpen } = useAgent()
-  const { user } = useAuth()
+  const { tenant } = useAuth()
   const { override: titleOverride, titleNode, actions: headerActions, replacesMobileDefaults, setHeaderSlot } = usePageHeaderOverride()
-  const [tenant, setTenant] = useState<Tenant | null>(null)
   const [createItem, setCreateItem] = useState<(typeof QUICK_CREATE_LINKS)[number] | null>(null)
   const [createName, setCreateName] = useState("")
   const [documentCreateOpen, setDocumentCreateOpen] = useState(false)
@@ -142,13 +142,6 @@ export function DashboardShell({
   useEffect(() => {
     setSidebarOpen(!isDocumentRoute)
   }, [isDocumentRoute])
-
-  useEffect(() => {
-    if (!user) { setTenant(null); return }
-    let active = true
-    void getTenant().then((value) => { if (active) setTenant(value) }).catch(() => { if (active) setTenant(null) })
-    return () => { active = false }
-  }, [user])
 
   function closeCreateModal() {
     setCreateItem(null)

@@ -159,14 +159,15 @@ export async function getTask(id: string): Promise<Task | null> {
 
 export async function createTask(data: Omit<Task, "id" | "createdAt" | "updatedAt">): Promise<string> {
   const tenantId = await getCurrentTenantId()
+  const now = Timestamp.now()
   const ref = await addDoc(collection(db, COLLECTION_NAME), {
     ...data,
     tenantId,
-    createdAt: Timestamp.now(),
-    updatedAt: Timestamp.now(),
+    createdAt: now,
+    updatedAt: now,
   })
   // Client tasks show in the portal automatically - no separate publish step.
-  await ensureTaskShared({ ...(data as Task), id: ref.id })
+  await ensureTaskShared({ ...(data as Task), id: ref.id, tenantId, createdAt: now, updatedAt: now })
   return ref.id
 }
 

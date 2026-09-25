@@ -1,12 +1,12 @@
 "use client"
 
+import dynamic from "next/dynamic"
 import { Suspense, useEffect, type ReactNode } from "react"
 import Image from "next/image"
 import { usePathname, useRouter } from "next/navigation"
-import { Eye, Loader2, LogOut, Pencil } from "lucide-react"
+import { ClipboardList, Eye, FileText, Loader2, LogOut, Pencil, Receipt } from "lucide-react"
 import { FiBriefcase, FiCheckSquare, FiFileText, FiMail, FiUsers } from "react-icons/fi"
 import { AuthProvider, useAuth } from "@/components/auth-provider"
-import { AgentDock } from "@/components/agent/agent-dock"
 import { AgentProvider } from "@/components/agent/agent-context"
 import { Button } from "@/components/ui/button"
 import { DashboardShell, type NavLink } from "@/components/dashboard-shell"
@@ -14,12 +14,23 @@ import { PageTitleProvider } from "@/components/dashboard/page-title-context"
 import { LegacyClientRedirect } from "@/components/portal/legacy-client-redirect"
 import { TaskSignInGate } from "@/components/dashboard/task-sign-in-gate"
 
+const AgentDock = dynamic(() => import("@/components/agent/agent-dock").then((module) => module.AgentDock), { ssr: false })
+
 const DASHBOARD_NAV: NavLink[] = [
   { label: "New Chat", href: "/dashboard/agent", icon: Pencil, startsNewChat: true },
   { label: "Clients", href: "/dashboard/clients", icon: FiBriefcase, adminOnly: true },
   { label: "Contacts", href: "/dashboard/users", icon: FiUsers, adminOnly: true },
   { label: "Email", href: "/dashboard/email", icon: FiMail },
-  { label: "Documents", href: "/dashboard/documents", icon: FiFileText },
+  {
+    label: "Documents",
+    href: "/dashboard/documents",
+    icon: FileText,
+    items: [
+      { label: "Documents", href: "/dashboard/documents", icon: FileText },
+      { label: "Invoices", href: "/dashboard/invoices", icon: Receipt },
+      { label: "Estimates", href: "/dashboard/estimates", icon: ClipboardList },
+    ],
+  },
   { label: "Tasks", href: "/dashboard/tasks", icon: FiCheckSquare },
 ]
 

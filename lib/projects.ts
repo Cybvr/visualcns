@@ -108,6 +108,13 @@ export async function getProjectsByCompanyId(companyId: string): Promise<Project
   return snapshot.docs.map((d) => ({ ...(d.data() as object), id: d.id })) as Project[]
 }
 
+/** Projects explicitly marked public for an anonymous company profile. */
+export async function getPublicProjectsByCompanyId(companyId: string): Promise<Project[]> {
+  if (!companyId) return []
+  const snapshot = await getDocs(query(collection(db, COLLECTION_NAME), where("companyId", "==", companyId), where("isPublic", "==", true)))
+  return snapshot.docs.map((d) => ({ ...(d.data() as object), id: d.id })) as Project[]
+}
+
 export async function getProject(id: string): Promise<Project | null> {
   const snapshot = await getDoc(doc(db, COLLECTION_NAME, id))
   if (!snapshot.exists()) return null

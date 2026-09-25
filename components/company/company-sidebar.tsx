@@ -11,7 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { INDUSTRIES } from "@/lib/industries"
-import { COMPANY_SIZES } from "@/lib/organizations"
+import { COMPANY_SIZES, type CompanyLink } from "@/lib/organizations"
 
 export interface CompanySidebarPerson {
   id: string
@@ -31,6 +31,7 @@ export interface CompanySidebarCompany {
   companySize?: string
   source?: string
   linkedIn?: string
+  links?: CompanyLink[]
   tags?: string[]
   primaryContactId?: string
 }
@@ -38,7 +39,7 @@ export interface CompanySidebarCompany {
 export type CompanyDetailsPatch = Partial<
   Pick<
     CompanySidebarCompany,
-    "name" | "logoUrl" | "tags" | "description" | "industry" | "location" | "website" | "companySize" | "source" | "linkedIn" | "primaryContactId"
+    "name" | "logoUrl" | "tags" | "description" | "industry" | "location" | "website" | "companySize" | "source" | "linkedIn" | "links" | "primaryContactId"
   >
 >
 

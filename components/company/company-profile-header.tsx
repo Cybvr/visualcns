@@ -99,7 +99,10 @@ export function CompanyProfileHeader({
         </div>
       </section>
 
-      <div className={`z-30 bg-background ${admin ? "sticky top-14" : "sticky top-0"} print:static`}>
+      <div
+        className={`sticky z-30 self-start bg-background ${admin ? "top-14" : "top-0"} print:static`}
+        style={{ position: "sticky", top: admin ? "3.5rem" : 0 }}
+      >
         <section className="px-4 pb-4 pt-4 sm:px-6 sm:pb-5 sm:pt-5">
         <div className="relative flex flex-col gap-3 sm:gap-4 md:flex-row md:items-end">
           <div className="relative -mt-12 size-20 shrink-0 overflow-hidden rounded-full bg-muted sm:-mt-16 sm:size-28">

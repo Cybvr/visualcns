@@ -12,9 +12,9 @@ import {
   type Estimate,
   type Invoice,
 } from "@/lib/billing"
-import { getCompanyDocumentsByCompanyId, type CompanyDocument } from "@/lib/company-documents"
-import { getOrganization, getOrganizationByRef, updateOrganization, type Organization, type PublicTeamMember } from "@/lib/organizations"
-import { getProjectsByCompanyId, type Project } from "@/lib/projects"
+import { getCompanyDocumentsByCompanyId, getPublicCompanyDocumentsByCompanyId, type CompanyDocument } from "@/lib/company-documents"
+import { getOrganization, getOrganizationByRef, getPublicOrganizationBySlug, updateOrganization, type Organization, type PublicTeamMember } from "@/lib/organizations"
+import { getProjectsByCompanyId, getPublicProjectsByCompanyId, type Project } from "@/lib/projects"
 import { getUserByCompanyId, getUserByRef, getUsers, getUsersByCompanyId, type AppUser } from "@/lib/users"
 
 export function clientName(client: AppUser): string {
@@ -71,7 +71,7 @@ const CompanyContext = createContext<CompanyState | null>(null)
  * whole `[slug]` route tree, so the view page and the edit page share one
  * fetch instead of each doing their own.
  */
-export function CompanyProvider({ children, companyRef }: { children: ReactNode; companyRef?: string }) {
+export function CompanyProvider({ children, companyRef, publicView = false }: { children: ReactNode; companyRef?: string; publicView?: boolean }) {
   const { isAdmin } = useAuth()
   const params = useParams<{ slug?: string; clientSlug?: string }>()
   const ref = companyRef ?? params?.slug ?? params?.clientSlug ?? ""
@@ -95,25 +95,40 @@ export function CompanyProvider({ children, companyRef }: { children: ReactNode;
       // Prefer the organization ref because company URLs use the organization's
       // canonical slug. Fall back to user refs so older /dashboard/{userSlug}
       // links and raw ids continue to resolve.
-      const resolvedOrg = await getOrganizationByRef(ref)
-      const found = resolvedOrg
-        ? await getUserByCompanyId(resolvedOrg.id)
-        : await getUserByRef(ref)
+      const resolvedOrg = publicView ? await getPublicOrganizationBySlug(ref) : await getOrganizationByRef(ref)
+      const found = publicView
+        ? resolvedOrg
+          ? ({ uid: resolvedOrg.id, email: resolvedOrg.email || "", displayName: resolvedOrg.name, company: resolvedOrg.name, companyId: resolvedOrg.id, role: "client" } as AppUser)
+          : null
+        : resolvedOrg
+          ? await getUserByCompanyId(resolvedOrg.id)
+          : await getUserByRef(ref)
       if (!found) {
         setError("That company doesn't exist, or it has been removed.")
         return
       }
       const workspace = found.companyId || resolvedOrg?.id || found.uid
-      const [foundOrg, foundPeople, foundProjects, foundInvoices, foundContracts, foundEstimates, foundDocuments, tenantUsers] = await Promise.all([
-        resolvedOrg?.id === workspace ? Promise.resolve(resolvedOrg) : getOrganization(workspace),
-        getUsersByCompanyId(workspace),
-        getProjectsByCompanyId(workspace),
-        getInvoicesByCompanyId(workspace, true),
-        getContractsByCompanyId(workspace, true),
-        getEstimatesByCompanyId(workspace, true),
-        getCompanyDocumentsByCompanyId(workspace, true),
-        isAdmin ? getUsers() : Promise.resolve([] as AppUser[]),
-      ])
+      const [foundOrg, foundPeople, foundProjects, foundInvoices, foundContracts, foundEstimates, foundDocuments, tenantUsers] = publicView
+        ? await Promise.all([
+            Promise.resolve(resolvedOrg),
+            Promise.resolve([] as AppUser[]),
+            getPublicProjectsByCompanyId(workspace),
+            Promise.resolve([] as Invoice[]),
+            Promise.resolve([] as Contract[]),
+            Promise.resolve([] as Estimate[]),
+            getPublicCompanyDocumentsByCompanyId(workspace),
+            Promise.resolve([] as AppUser[]),
+          ])
+        : await Promise.all([
+            resolvedOrg?.id === workspace ? Promise.resolve(resolvedOrg) : getOrganization(workspace),
+            getUsersByCompanyId(workspace),
+            getProjectsByCompanyId(workspace),
+            getInvoicesByCompanyId(workspace, true),
+            getContractsByCompanyId(workspace, true),
+            getEstimatesByCompanyId(workspace, true),
+            getCompanyDocumentsByCompanyId(workspace, true),
+            isAdmin ? getUsers() : Promise.resolve([] as AppUser[]),
+          ])
       setClient(found)
       setOrganization(foundOrg)
       const profiled = foundPeople.filter(hasProfile)
@@ -125,7 +140,9 @@ export function CompanyProvider({ children, companyRef }: { children: ReactNode;
       setDocuments(foundDocuments)
 
       const assignedIds = new Set(foundProjects.flatMap((project) => project.teamMemberIds ?? []))
-      const nextPublicTeam = isAdmin
+      const nextPublicTeam = publicView
+        ? foundOrg?.publicTeam ?? []
+        : isAdmin
         ? toPublicTeam(tenantUsers.filter((user) => assignedIds.has(user.uid)))
         : foundOrg?.publicTeam ?? []
       setPublicTeam(nextPublicTeam)
@@ -141,7 +158,7 @@ export function CompanyProvider({ children, companyRef }: { children: ReactNode;
     } finally {
       setLoading(false)
     }
-  }, [isAdmin, ref])
+  }, [isAdmin, publicView, ref])
 
   useEffect(() => {
     void load()

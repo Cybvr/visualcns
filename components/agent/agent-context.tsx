@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation"
 
 import { useAuth } from "@/components/auth-provider"
 import { db } from "@/lib/firebase"
-import { collection, doc, getDoc, getDocs, orderBy, query, setDoc, Timestamp } from "firebase/firestore"
+import { collection, doc, getDoc, getDocs, limit, orderBy, query, setDoc, Timestamp } from "firebase/firestore"
 
 /** One field in an inline form the agent asks the user to fill in. */
 export type AgentFormField = {
@@ -109,7 +109,7 @@ export function AgentProvider({ children }: { children: ReactNode }) {
     setMessages([])
     setConversations([])
     setActiveConversationId("")
-    void getDocs(query(collection(db, "agentConversations", user.uid, "chats"), orderBy("updatedAt", "desc")))
+    void getDocs(query(collection(db, "agentConversations", user.uid, "chats"), orderBy("updatedAt", "desc"), limit(12)))
       .then(async (snapshot) => {
         if (!active) return
         let restored: AgentConversation[] = snapshot.docs.map((chat) => {

@@ -30,7 +30,7 @@ export async function unpublishPortalProject(projectId: string) {
 }
 
 export async function publishPortalTask(task: Task, instructions: string, assigneeUid: string) {
-  const data: Omit<PortalTask, "id"> = { tenantId: task.tenantId || "", companyId: task.companyId, projectId: task.projectId, name: task.name, status: task.status, dueDate: task.dueDate || "", instructions, assigneeUid }
+  const data: Omit<PortalTask, "id"> = { tenantId: task.tenantId || "", companyId: task.companyId, projectId: task.projectId, name: task.name, status: task.status, dueDate: task.dueDate || "", instructions, assigneeUid, createdAt: task.createdAt, updatedAt: task.updatedAt }
   await writeBatch(db).set(doc(db, "portalTasks", task.id), data).commit()
 }
 
@@ -60,7 +60,7 @@ export async function ensureTaskShared(task: Task) {
     if (project) await writeBatch(db).set(projectRef, { ...projectForPortal(project, ""), tenantId: project.tenantId || tenantId }).commit()
   }
 
-  const safe = { tenantId, companyId: task.companyId, projectId: task.projectId, name: task.name, status: task.status, dueDate: task.dueDate || "" }
+  const safe = { tenantId, companyId: task.companyId, projectId: task.projectId, name: task.name, status: task.status, dueDate: task.dueDate || "", createdAt: task.createdAt || serverTimestamp(), updatedAt: task.updatedAt || serverTimestamp() }
   if (taskSnap.exists()) {
     await writeBatch(db).update(taskRef, safe).commit()
   } else {

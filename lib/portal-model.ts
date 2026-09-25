@@ -25,6 +25,9 @@ export interface PortalTask {
   dueDate: string
   instructions: string
   assigneeUid: string
+  /** Mirrored from the dashboard task so activity can be ordered consistently. */
+  createdAt?: unknown
+  updatedAt?: unknown
 }
 
 export const portalTabs = ["overview", "tasks", "documents", "billing"] as const

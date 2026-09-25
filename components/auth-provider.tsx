@@ -14,8 +14,8 @@ import { auth, googleProvider } from "@/lib/firebase"
 import { ensureAdminBusinessOrganization } from "@/lib/business-profile"
 import { getUser, upsertUserOnLogin, type AppUser, type UserRole } from "@/lib/users"
 import { getOrganization, organizationRef } from "@/lib/organizations"
-import { getTenant, type TenantStatus } from "@/lib/tenants"
-import { LEGACY_TENANT_ID } from "@/lib/tenancy"
+import { getTenant, type Tenant, type TenantStatus } from "@/lib/tenants"
+import { clearCurrentTenantId, LEGACY_TENANT_ID, primeCurrentTenantId } from "@/lib/tenancy"
 
 /** sessionStorage key holding the uid an admin is currently "viewing as". */
 const VIEW_AS_KEY = "viewAsUid"
@@ -74,6 +74,7 @@ type AuthContextValue = {
   isViewingAs: boolean
   /** True when an admin is viewing the client portal as another user. */
   isImpersonating: boolean
+  tenant: Tenant | null
   tenantStatus: TenantStatus | null
   /** The user being viewed, when an admin is using "View as". */
   impersonatedUser: AppUser | null
@@ -96,6 +97,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // The doc of the user an admin is "viewing as", if any.
   const [impersonated, setImpersonated] = useState<AppUser | null>(null)
   const [loading, setLoading] = useState(true)
+  const [tenant, setTenant] = useState<Tenant | null>(null)
   const [tenantStatus, setTenantStatus] = useState<TenantStatus | null>(null)
 
   useEffect(() => {
@@ -110,24 +112,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             displayName: u.displayName,
             photoURL: u.photoURL,
           })
-          await migrateLegacyTenant(u, doc)
-          if (doc?.role === "admin" || doc?.role === "superadmin") {
-            try {
-              await ensureAdminBusinessOrganization({
-                id: doc.companyId || doc.uid,
-                name: doc.company || doc.displayName || undefined,
-                email: doc.email || undefined,
-                logoUrl: doc.photoURL || undefined,
-              })
-            } catch (organizationError) {
-              console.error("Error provisioning admin organization:", organizationError)
-            }
-          }
+          primeCurrentTenantId(u.uid, doc?.tenantId)
           setRealAppUser(doc)
           try {
-            const tenant = doc?.tenantId ? await getTenant(doc.tenantId) : null
-            setTenantStatus(tenant?.status || "trial")
+            const tenantRecord = doc?.tenantId ? await getTenant(doc.tenantId) : null
+            setTenant(tenantRecord)
+            setTenantStatus(tenantRecord?.status || "trial")
           } catch {
+            setTenant(null)
             setTenantStatus("trial")
           }
           void sendWelcomeEmailIfPending(u, doc)
@@ -155,14 +147,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           } else {
             setImpersonated(null)
           }
+
+          // These are idempotent maintenance tasks. They should not hold the
+          // dashboard behind the auth spinner on every sign-in.
+          if (doc?.role === "admin" || doc?.role === "superadmin") {
+            void Promise.all([
+              migrateLegacyTenant(u, doc),
+              ensureAdminBusinessOrganization({
+                id: doc.companyId || doc.uid,
+                name: doc.company || doc.displayName || undefined,
+                email: doc.email || undefined,
+                logoUrl: doc.photoURL || undefined,
+              }).catch((organizationError) => {
+                console.error("Error provisioning admin organization:", organizationError)
+              }),
+            ])
+          }
         } catch (error) {
           console.error("Error provisioning user:", error)
           setRealAppUser(null)
           setImpersonated(null)
+          setTenant(null)
         }
       } else {
+        clearCurrentTenantId()
         setRealAppUser(null)
         setImpersonated(null)
+        setTenant(null)
         setTenantStatus(null)
       }
       setLoading(false)
@@ -263,6 +274,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isAdmin,
         isViewingAs,
         isImpersonating,
+        tenant,
         tenantStatus,
         impersonatedUser: isViewingAs ? impersonated : null,
         viewAsUser,

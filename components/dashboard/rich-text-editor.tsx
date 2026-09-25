@@ -113,6 +113,7 @@ export function RichTextEditor({
   scrollable = false,
   compact = false,
   flat = false,
+  borderless = false,
   allowHtml = false,
   contentHeader,
   contentFooter,
@@ -124,6 +125,7 @@ export function RichTextEditor({
   scrollable?: boolean
   compact?: boolean
   flat?: boolean
+  borderless?: boolean
   allowHtml?: boolean
   contentHeader?: ReactNode
   contentFooter?: ReactNode
@@ -179,7 +181,7 @@ export function RichTextEditor({
   }, [editor, value])
 
   if (!editor) {
-    return <div className={cn("min-h-72 rounded-[10px] border border-input", className)} />
+    return <div className={cn("min-h-72", !borderless && "rounded-[10px] border border-input", className)} />
   }
 
   const currentEditor = editor
@@ -230,10 +232,10 @@ export function RichTextEditor({
   return (
     <div className={cn(
       "flex min-h-0 flex-col overflow-hidden bg-background",
-      flat ? "rounded-none border-x-0 border-t-0 border-b border-input" : "rounded-[10px] border border-input",
+      borderless ? "rounded-none border-0" : flat ? "rounded-none border-x-0 border-t-0 border-b border-input" : "rounded-[10px] border border-input",
       className,
     )}>
-      <div className="flex min-w-0 items-center gap-1 border-b border-input px-2 py-1.5">
+      <div className={cn("flex min-w-0 items-center gap-1 px-2 py-1.5", !borderless && "border-b border-input")}>
         <div className="flex shrink-0 items-center gap-1 sm:hidden">
           {(BUTTONS[0] ?? []).map(renderToolbarButton)}
           <DropdownMenu>
@@ -259,7 +261,7 @@ export function RichTextEditor({
               {group.map(renderToolbarButton)}
             </div>
           ))}
-          <div className="flex shrink-0 items-center gap-1 border-l border-input pl-1">
+          <div className={cn("flex shrink-0 items-center gap-1 pl-1", !borderless && "border-l border-input")}>
             <button type="button" onClick={() => setImageDialogOpen(true)} aria-label={imageSelected ? "Replace image" : "Insert image"} title={imageSelected ? "Replace image" : "Insert image"} className={cn("inline-flex size-8 shrink-0 items-center justify-center rounded-md outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring", imageSelected ? "bg-muted text-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground")}>
               <ImagePlus className="size-4" aria-hidden="true" />
             </button>

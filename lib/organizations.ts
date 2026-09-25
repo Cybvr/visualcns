@@ -35,6 +35,8 @@ export interface Organization {
   primaryContactId?: string
   /** Images and videos an admin uploaded to the company page. */
   media?: string[]
+  /** External links shown in the company's About tab. */
+  links?: CompanyLink[]
   email?: string
   phone?: string
   address?: string
@@ -57,6 +59,12 @@ export interface PublicTeamMember {
   name: string
   role?: string
   photoUrl?: string
+}
+
+export interface CompanyLink {
+  id: string
+  label: string
+  url: string
 }
 
 /** Employee-count ranges offered for the Company Size field. */
@@ -133,6 +141,15 @@ export async function getOrganizationBySlug(slug: string): Promise<Organization 
     : publicTenantId
       ? query(collection(db, COLLECTION_NAME), where("tenantId", "==", publicTenantId), where("publicVisible", "==", true), where("slug", "==", slug))
       : query(collection(db, COLLECTION_NAME), where("publicVisible", "==", true), where("slug", "==", slug)))
+  if (snapshot.empty) return null
+  const first = snapshot.docs[0]
+  return { ...(first.data() as object), id: first.id } as Organization
+}
+
+/** Resolve a company slug for the public profile without requiring Firebase Auth. */
+export async function getPublicOrganizationBySlug(slug: string): Promise<Organization | null> {
+  if (!slug) return null
+  const snapshot = await getDocs(query(collection(db, COLLECTION_NAME), where("publicVisible", "==", true), where("slug", "==", slug)))
   if (snapshot.empty) return null
   const first = snapshot.docs[0]
   return { ...(first.data() as object), id: first.id } as Organization

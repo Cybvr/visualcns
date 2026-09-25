@@ -9,6 +9,7 @@ import { toast } from "sonner"
 import { CompanyDocuments, type CompanyDocumentKind } from "@/components/company/company-documents"
 import { CompanyDocumentView } from "@/components/dashboard/company-document-view"
 import { CompanyEmptyState } from "@/components/company/empty-state"
+import { CompanyLinks } from "@/components/company/company-links"
 import { CompanyMedia } from "@/components/company/company-media"
 import { CompanyDetails, type CompanyDetailsPatch } from "@/components/company/company-sidebar"
 import { CompanyProfileHeader } from "@/components/company/company-profile-header"
@@ -24,6 +25,7 @@ import { NewDocumentDialog } from "@/components/dashboard/new-document-dialog"
 import { NewProjectDialog } from "@/components/dashboard/new-project-dialog"
 import { ProjectDetail } from "@/components/dashboard/project-detail"
 import { MobileDataCard } from "@/components/dashboard/mobile-data-card"
+import { ActivityFeed } from "@/components/dashboard/activity-feed"
 import { GridCard, GridCardList } from "@/components/dashboard/grid-card"
 import { ProjectCover } from "@/components/project-card"
 import { UserEditorSheet } from "@/components/dashboard/user-editor-sheet"
@@ -45,9 +47,13 @@ import { Textarea } from "@/components/ui/textarea"
 import type { Contract, Estimate, Invoice } from "@/lib/billing"
 import { getBusinessProfile, type BusinessProfile } from "@/lib/business-profile"
 import type { CompanyDocument } from "@/lib/company-documents"
-import type { PublicTeamMember } from "@/lib/organizations"
+import { buildActivity } from "@/lib/activity"
+import type { CompanyLink, PublicTeamMember } from "@/lib/organizations"
 import { deleteProjectWithTasks, duplicateProject, renameProject, type Project } from "@/lib/projects"
 import { deleteUser, type AppUser } from "@/lib/users"
+import { getTasksByCompanyId, type Task } from "@/lib/tasks"
+import { getPortalTasks } from "@/lib/portal-data"
+import type { PortalTask } from "@/lib/portal-model"
 import { buildEmailComposeHref } from "@/lib/email-composer"
 import { PortalPublishingPanel } from "@/components/portal/portal-publishing"
 import { usePageHeaderActions } from "@/components/dashboard/page-title-context"
@@ -56,6 +62,7 @@ const SECTIONS = [
   { key: "projects", label: "Projects" },
   { key: "about", label: "About" },
   { key: "team", label: "Team" },
+  { key: "activity", label: "Activities" },
   { key: "media", label: "Media" },
   { key: "documents", label: "Documents" },
 ] as const
@@ -168,6 +175,8 @@ export interface CompanyPagePerson {
   id: string
   name: string
   subtitle?: string
+  email?: string
+  phone?: string
   role?: string
   photoUrl?: string
   adminUser?: AppUser
@@ -182,6 +191,7 @@ export interface CompanyPageCompany {
   industry?: string
   location?: string
   website?: string
+  links?: CompanyLink[]
   description?: string
   companySize?: string
   source?: string
@@ -236,6 +246,7 @@ export function CompanyPage({
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
+  const isAdmin = Boolean(admin)
 
   const tabParam = searchParams.get("tab")
   const section: SectionKey = SECTIONS.some((s) => s.key === tabParam) ? (tabParam as SectionKey) : "projects"
@@ -267,6 +278,7 @@ export function CompanyPage({
   const [selectedProject, setSelectedProject] = useState<Project | null>(null)
   const [shareOpen, setShareOpen] = useState(false)
   const [issuer, setIssuer] = useState<BusinessProfile | null>(null)
+  const [activityTasks, setActivityTasks] = useState<Task[]>([])
 
   useEffect(() => {
     getBusinessProfile()
@@ -275,6 +287,46 @@ export function CompanyPage({
         // Document header just stays without issuer details.
       })
   }, [])
+
+  useEffect(() => {
+    let active = true
+    async function loadActivityTasks() {
+      try {
+        if (isAdmin) {
+          const tasks = await getTasksByCompanyId(company.id)
+          if (active) setActivityTasks(tasks)
+          return
+        }
+
+        const projectById = new Map(projects.map((project) => [project.id, project]))
+        const taskGroups = await Promise.all(projects.map((project) => getPortalTasks(company.id, project.id)))
+        const tasks = taskGroups.flat().map((task: PortalTask) => {
+          const project = projectById.get(task.projectId)
+          return {
+            id: task.id,
+            tenantId: task.tenantId,
+            name: task.name,
+            companyId: task.companyId,
+            client: company.name,
+            projectId: task.projectId,
+            project: project?.title || "",
+            status: task.status,
+            priority: "medium" as const,
+            dueDate: task.dueDate,
+            content: task.instructions,
+            createdAt: (task.createdAt ?? project?.createdAt) as Task["createdAt"],
+            updatedAt: task.updatedAt as Task["updatedAt"],
+          } satisfies Task
+        })
+        if (active) setActivityTasks(tasks)
+      } catch {
+        if (active) setActivityTasks([])
+      }
+    }
+
+    void loadActivityTasks()
+    return () => { active = false }
+  }, [company.id, company.name, isAdmin, projects])
 
   function updateParams(next: Record<string, string | null>) {
     const params = new URLSearchParams(searchParams.toString())
@@ -355,6 +407,11 @@ export function CompanyPage({
       projects: [],
     }))
   }, [allContacts, company.publicTeam, projects])
+
+  const activity = useMemo(
+    () => buildActivity({ projects, tasks: activityTasks, invoices, estimates, contracts, documents }),
+    [activityTasks, contracts, documents, estimates, invoices, projects],
+  )
 
   async function handleAddExistingPerson(contactId: string) {
     if (!admin?.onAddExistingContact || addingExistingPersonId) return
@@ -490,7 +547,7 @@ export function CompanyPage({
   usePageHeaderActions(headerActions)
 
   return (
-    <main className="mx-auto min-h-screen w-full max-w-7xl px-4 pb-16 pt-4 sm:px-6 sm:pt-6">
+    <main className="mx-auto min-h-screen w-full max-w-7xl px-4 pb-[calc(7rem+env(safe-area-inset-bottom))] pt-4 sm:px-6 sm:pb-16 sm:pt-6">
       <CompanyProfileHeader
         name={company.name}
         handle={company.slug || admin?.sharePath.split("/").filter(Boolean).pop()}
@@ -520,19 +577,27 @@ export function CompanyPage({
 
       <div className="min-w-0">
           {section === "about" && (
-            <div className="mt-5 grid gap-6 lg:grid-cols-[minmax(0,0.72fr)_minmax(0,1.28fr)]">
-              <div className="space-y-6">
-                <CompanyAboutCard description={company.description} onSave={admin?.onUpdateCompany} />
-                <CompanyTagsCard tags={company.tags} onSave={admin?.onUpdateCompany} />
+            <div className="mt-5">
+              <div className="grid gap-6 lg:grid-cols-[minmax(0,0.72fr)_minmax(0,1.28fr)]">
+                <div className="space-y-6">
+                  <CompanyAboutCard description={company.description} onSave={admin?.onUpdateCompany} />
+                  <CompanyTagsCard tags={company.tags} onSave={admin?.onUpdateCompany} />
+                </div>
+                <ProfileCard title="Details">
+                  <CompanyDetails
+                    company={profile}
+                    onSave={admin?.onUpdateCompany}
+                    hideTags
+                    hideDescription
+                  />
+                </ProfileCard>
               </div>
-              <ProfileCard title="Details">
-                <CompanyDetails
-                  company={profile}
-                  onSave={admin?.onUpdateCompany}
-                  hideTags
-                  hideDescription
+              <div className="mt-6">
+                <CompanyLinks
+                  links={company.links}
+                  onSave={admin ? (links) => admin.onUpdateCompany({ links }) : undefined}
                 />
-              </ProfileCard>
+              </div>
             </div>
           )}
 
@@ -556,7 +621,11 @@ export function CompanyPage({
                       key={person.id}
                       ariaLabel={`Open ${person.name}`}
                       title={person.name}
-                      subtitle={assignedProjects.join(" · ") || "Team member"}
+                      subtitle={
+                        [person.email, person.phone, assignedProjects.length ? assignedProjects.join(", ") : null]
+                          .filter(Boolean)
+                          .join(" · ") || "Team member"
+                      }
                       imageUrl={person.photoUrl}
                       icon={<UserIcon className="size-5 text-violet-600 dark:text-violet-400" aria-hidden="true" />}
                       menuLabel={`Options for ${person.name}`}
@@ -564,6 +633,16 @@ export function CompanyPage({
                   ))}
                 </div>
               )}
+            </div>
+          )}
+
+          {section === "activity" && (
+            <div className="mt-5">
+              <ActivityFeed
+                items={activity}
+                title="Activities"
+                emptyLabel="No recent activity for this company yet."
+              />
             </div>
           )}
 

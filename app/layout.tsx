@@ -7,11 +7,10 @@ import { ThemeProvider } from "@/components/theme-provider"
 import { ServiceWorkerRegister } from "@/components/service-worker-register"
 import { Toaster } from "sonner"
 
-import { EB_Garamond, Geist_Mono, Inter, Outfit, Poppins } from "next/font/google"
+import { EB_Garamond, Geist_Mono, Inter, Poppins } from "next/font/google"
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" })
 const geistMono = Geist_Mono({ subsets: ["latin"], variable: "--font-geist-mono" })
-const outfit = Outfit({ subsets: ["latin"], variable: "--font-outfit" })
 const ebGaramond = EB_Garamond({ subsets: ["latin"], variable: "--font-eb-garamond" })
 const poppins = Poppins({
   subsets: ["latin"],
@@ -74,13 +73,8 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${inter.variable} ${geistMono.variable} ${outfit.variable} ${ebGaramond.variable} ${poppins.variable}`}
+      className={`${inter.variable} ${geistMono.variable} ${ebGaramond.variable} ${poppins.variable}`}
     >
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Geist+Pixel:wght@400&display=swap" rel="stylesheet" />
-      </head>
       <body className="font-sans antialiased">
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false} disableTransitionOnChange>
           {children}
