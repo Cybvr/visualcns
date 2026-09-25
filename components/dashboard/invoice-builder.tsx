@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState, type FormEvent } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { ArrowLeft, Download, Eye, Loader2, Plus, Printer, Save, Share2, Trash2 } from "lucide-react"
+import { ArrowLeft, Eye, Loader2, Plus, Printer, Save, Share2, Trash2 } from "lucide-react"
 
 import { DangerZone } from "@/components/dashboard/danger-zone"
 import { Button } from "@/components/ui/button"
@@ -48,6 +48,7 @@ import { getUsers, type AppUser } from "@/lib/users"
 import { ShareLinkField } from "@/components/dashboard/share-link-field"
 import { InvoiceDocument } from "@/components/dashboard/invoice-document"
 import { downloadInvoicePdf } from "@/components/dashboard/invoice-pdf"
+import { DocumentPreviewFrame } from "@/components/dashboard/document-preview-frame"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
 
@@ -435,11 +436,8 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate }: {
         >
           <Eye className="size-4" aria-hidden="true" />
         </Button>
-        <Button type="button" variant="outline" size="icon" title="Print invoice" aria-label="Print invoice" onClick={() => window.print()}>
-          <Printer className="size-4" aria-hidden="true" />
-        </Button>
         <Button type="button" variant="outline" size="icon" title="Download PDF" aria-label="Download PDF" onClick={() => void handleDownloadPdf()} disabled={pdfDownloading}>
-          {pdfDownloading ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <Download className="size-4" aria-hidden="true" />}
+          {pdfDownloading ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <Printer className="size-4" aria-hidden="true" />}
         </Button>
         <Button type="button" variant="outline" size="icon" title="Share invoice" aria-label="Share invoice" onClick={() => setShareOpen(true)}>
           <Share2 className="size-4" aria-hidden="true" />
@@ -459,7 +457,7 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate }: {
         )}
       </div>
 
-      <div className="mx-auto min-w-0 max-w-[52rem] space-y-3 rounded-md border border-border bg-background p-0 sm:p-8">
+      <div className="mx-auto min-w-0 max-w-[52rem] space-y-3 rounded-md border border-border bg-background p-3 sm:p-8">
         <header className="invoice-editor-header flex items-start justify-between gap-8 border-b border-border pb-6">
           <div className="flex min-w-0 items-center gap-3">
             {issuer?.logoUrl ? (
@@ -936,15 +934,17 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate }: {
       </div>
 
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
-        <DialogContent className="w-[calc(100vw-0.5rem)] max-h-[calc(100vh-0.5rem)] max-w-5xl overflow-x-hidden overflow-y-auto p-2 print:hidden sm:p-6">
+        <DialogContent className="w-[calc(100vw-0.5rem)] max-h-[calc(100vh-0.5rem)] max-w-5xl overflow-hidden p-2 print:hidden sm:p-6">
           <DialogHeader>
             <DialogTitle>Invoice preview</DialogTitle>
-            <DialogDescription>Preview the invoice with your current edits before saving or printing.</DialogDescription>
+            <DialogDescription>Preview the complete invoice with your current edits before saving or downloading.</DialogDescription>
           </DialogHeader>
-          <InvoiceDocument invoice={draftInvoice} issuer={issuer ?? undefined} />
+          <DocumentPreviewFrame>
+            <InvoiceDocument invoice={draftInvoice} issuer={issuer ?? undefined} />
+          </DocumentPreviewFrame>
           <DialogFooter>
             <Button type="button" onClick={() => void handleDownloadPdf()} disabled={pdfDownloading}>
-              {pdfDownloading ? <Loader2 className="mr-1.5 size-4 animate-spin" aria-hidden="true" /> : <Download className="mr-1.5 size-4" aria-hidden="true" />}
+              {pdfDownloading ? <Loader2 className="mr-1.5 size-4 animate-spin" aria-hidden="true" /> : <Printer className="mr-1.5 size-4" aria-hidden="true" />}
               Download PDF
             </Button>
           </DialogFooter>

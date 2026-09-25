@@ -20,11 +20,12 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
-import { ArrowLeft, Download, Eye, GripVertical, Loader2, Plus, Printer, Save, Share2, Trash2 } from "lucide-react"
+import { ArrowLeft, Eye, GripVertical, Loader2, Plus, Printer, Save, Share2, Trash2 } from "lucide-react"
 
 import { DangerZone } from "@/components/dashboard/danger-zone"
 import { EstimateDocument } from "@/components/dashboard/estimate-document"
 import { downloadEstimatePdf } from "@/components/dashboard/estimate-pdf"
+import { DocumentPreviewFrame } from "@/components/dashboard/document-preview-frame"
 import { RichTextEditor } from "@/components/dashboard/rich-text-editor"
 import { ShareLinkField } from "@/components/dashboard/share-link-field"
 import { Button } from "@/components/ui/button"
@@ -416,11 +417,8 @@ export function EstimateBuilder({ estimate, initialCompanyId }: { estimate?: Est
           <Button type="button" variant="outline" size="icon" title="Preview estimate" aria-label="Preview estimate" onClick={() => setPreviewOpen(true)}>
             <Eye className="size-4" aria-hidden="true" />
           </Button>
-          <Button type="button" variant="outline" size="icon" title="Print estimate" aria-label="Print estimate" onClick={() => window.print()}>
-            <Printer className="size-4" aria-hidden="true" />
-          </Button>
           <Button type="button" variant="outline" size="icon" title="Download PDF" aria-label="Download PDF" onClick={() => void handleDownloadPdf()} disabled={pdfDownloading}>
-            {pdfDownloading ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <Download className="size-4" aria-hidden="true" />}
+            {pdfDownloading ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <Printer className="size-4" aria-hidden="true" />}
           </Button>
           <Button type="button" variant="outline" size="icon" title="Share estimate" aria-label="Share estimate" onClick={() => setShareOpen(true)}>
             <Share2 className="size-4" aria-hidden="true" />
@@ -432,7 +430,7 @@ export function EstimateBuilder({ estimate, initialCompanyId }: { estimate?: Est
         </div>
       </div>
 
-      <div className="space-y-8 rounded-[14px] border border-border bg-card p-0 sm:p-6">
+      <div className="space-y-8 rounded-[14px] border border-border bg-card p-3 sm:p-6">
         <section className="grid gap-6 lg:grid-cols-2">
           <div className="min-w-0 space-y-4">
             <div>
@@ -613,15 +611,17 @@ export function EstimateBuilder({ estimate, initialCompanyId }: { estimate?: Est
     </form>
 
     <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
-      <DialogContent className="w-[calc(100vw-0.5rem)] max-h-[calc(100vh-0.5rem)] max-w-5xl overflow-x-hidden overflow-y-auto p-2 print:hidden sm:p-6">
+      <DialogContent className="w-[calc(100vw-0.5rem)] max-h-[calc(100vh-0.5rem)] max-w-5xl overflow-hidden p-2 print:hidden sm:p-6">
         <DialogHeader>
           <DialogTitle>Estimate preview</DialogTitle>
-          <DialogDescription>Review the estimate with your current edits before saving or downloading.</DialogDescription>
+          <DialogDescription>Preview the complete estimate with your current edits before saving or downloading.</DialogDescription>
         </DialogHeader>
-        <EstimateDocument estimate={draftEstimate} issuer={issuer ?? undefined} />
+        <DocumentPreviewFrame>
+          <EstimateDocument estimate={draftEstimate} issuer={issuer ?? undefined} />
+        </DocumentPreviewFrame>
         <DialogFooter>
           <Button type="button" onClick={() => void handleDownloadPdf()} disabled={pdfDownloading}>
-            {pdfDownloading ? <Loader2 className="mr-1.5 size-4 animate-spin" aria-hidden="true" /> : <Download className="mr-1.5 size-4" aria-hidden="true" />}
+            {pdfDownloading ? <Loader2 className="mr-1.5 size-4 animate-spin" aria-hidden="true" /> : <Printer className="mr-1.5 size-4" aria-hidden="true" />}
             Download PDF
           </Button>
         </DialogFooter>
