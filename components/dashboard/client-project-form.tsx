@@ -107,7 +107,7 @@ export function ClientProjectForm({ project, initialCompanyId, onSaved, onCancel
     setError(null)
   }, [project, initialCompanyId])
 
-  function set(field: keyof FormState, value: string) {
+  function set<K extends keyof FormState>(field: K, value: FormState[K]) {
     setForm((prev) => ({ ...prev, [field]: value }))
   }
 
