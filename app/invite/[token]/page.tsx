@@ -31,8 +31,8 @@ export default function InvitePage() {
 
   return <main className="flex min-h-svh items-center justify-center px-4"><section className="w-full max-w-md space-y-4 border border-border p-7 text-center">
     {state === "loading" && <div className="space-y-3" role="status" aria-label="Loading invitation"><Skeleton className="mx-auto h-7 w-48" /><Skeleton className="mx-auto h-4 w-64 max-w-full" /><Skeleton className="mx-auto h-10 w-36" /></div>}
-    {state === "ready" && <><h1 className="text-xl font-semibold">You’ve been invited</h1><p className="text-sm text-muted-foreground">Sign in or create your account with the invited email to join the agency workspace.</p><Button asChild><Link href={`/login?next=${encodeURIComponent(`/invite/${params.token}`)}`}>Sign in to accept</Link></Button><p className="text-sm text-muted-foreground">New here? <Link className="underline" href={`/signup?invite=${params.token}`}>Create an account</Link></p></>}
-    {state === "done" && <><h1 className="text-xl font-semibold">Invite accepted</h1><p className="text-sm text-muted-foreground">Taking you to your workspace…</p></>}
+    {state === "ready" && <><h1 className="text-xl font-semibold">You’ve been invited</h1><p className="text-sm text-muted-foreground">Sign in or create your account with the invited email to join the agency.</p><Button asChild><Link href={`/login?next=${encodeURIComponent(`/invite/${params.token}`)}`}>Sign in to accept</Link></Button><p className="text-sm text-muted-foreground">New here? <Link className="underline" href={`/signup?invite=${params.token}`}>Create an account</Link></p></>}
+    {state === "done" && <><h1 className="text-xl font-semibold">Invite accepted</h1><p className="text-sm text-muted-foreground">Taking you to your agency…</p></>}
     {state === "error" && <><h1 className="text-xl font-semibold">Invite unavailable</h1><p className="text-sm text-destructive">{error}</p><Button asChild variant="outline"><Link href="/login">Return to sign in</Link></Button></>}
   </section></main>
 }

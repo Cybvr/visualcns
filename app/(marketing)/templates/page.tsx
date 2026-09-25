@@ -7,7 +7,7 @@ import { TemplatesSection } from "@/components/templates-section"
 
 export const metadata: Metadata = {
   title: "Templates",
-  description: "Ready-made workflows you can set up in your workspace.",
+  description: "Ready-made workflows you can set up in your agency.",
 }
 
 export default function TemplatesPage() {
@@ -18,7 +18,7 @@ export default function TemplatesPage() {
         <div className="mx-auto max-w-7xl space-y-12 px-4 sm:px-8 md:px-20">
           <PageHeading
             title="Templates"
-            subtitle="Ready-made workflows. Pick one and we set it up in your workspace."
+            subtitle="Ready-made workflows. Pick one and we set it up in your agency."
           />
 
           <TemplatesSection />

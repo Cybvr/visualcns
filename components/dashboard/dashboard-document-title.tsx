@@ -22,8 +22,8 @@ export function dashboardPageTitle(pathname: string): string {
   switch (section) {
     case "account":
       if (record === "profile") return "Profile"
-      if (record === "customization") return "Customization"
-      if (record === "business") return "Organization"
+      if (record === "customization") return "App Settings"
+      if (record === "business") return "Agency Settings"
       if (record === "team") return "Team"
       return "Account"
     case "agent":

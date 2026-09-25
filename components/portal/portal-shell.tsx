@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 
 export function PortalLoading() {
-  return <div role="status" aria-label="Loading your workspace" className="mx-auto min-h-[50vh] max-w-5xl space-y-6 px-6 py-10"><Skeleton className="h-8 w-48" /><Skeleton className="h-4 w-72 max-w-full" /><div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"><Skeleton className="h-40 w-full rounded-xl" /><Skeleton className="h-40 w-full rounded-xl" /><Skeleton className="h-40 w-full rounded-xl" /></div></div>
+  return <div role="status" aria-label="Loading your company portal" className="mx-auto min-h-[50vh] max-w-5xl space-y-6 px-6 py-10"><Skeleton className="h-8 w-48" /><Skeleton className="h-4 w-72 max-w-full" /><div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"><Skeleton className="h-40 w-full rounded-xl" /><Skeleton className="h-40 w-full rounded-xl" /><Skeleton className="h-40 w-full rounded-xl" /></div></div>
 }
 
 export function PortalNotice({ title, children }: { title: string; children: ReactNode }) {

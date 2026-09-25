@@ -19,5 +19,5 @@ export function LegacyClientRedirect() {
     }).catch(() => { if (active) setFailed(true) })
     return () => { active = false }
   }, [appUser?.companyId, router])
-  return failed ? <PortalNotice title="This client has no linked workspace"><p>Link this account to a company before previewing it.</p></PortalNotice> : <PortalLoading />
+  return failed ? <PortalNotice title="This client has no linked company"><p>Link this account to a company before previewing it.</p></PortalNotice> : <PortalLoading />
 }

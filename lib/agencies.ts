@@ -34,7 +34,7 @@ export async function ensureCurrentAgency(name: string): Promise<Agency> {
   const existing = await getDoc(ref)
   const now = Timestamp.now()
   const data = {
-    name: (typeof existing.data()?.name === "string" && existing.data()?.name.trim()) || name.trim() || "VisualHQ workspace",
+    name: (typeof existing.data()?.name === "string" && existing.data()?.name.trim()) || name.trim() || "VisualCNS agency",
     status: (existing.data()?.status as AgencyStatus | undefined) || "trial",
     plan: existing.data()?.plan || "trial",
     createdAt: existing.data()?.createdAt || now,

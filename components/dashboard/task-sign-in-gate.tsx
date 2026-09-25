@@ -36,7 +36,7 @@ export function TaskSignInGate() {
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle>Hi, please do a quick sign in</DialogTitle>
-            <DialogDescription>Sign in to continue to your workspace.</DialogDescription>
+        <DialogDescription>Sign in to continue to your company portal.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <Button

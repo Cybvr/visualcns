@@ -81,7 +81,7 @@ export function TemplateGallery({
                     }}
                     disabled={applyingId !== null}
                   >
-                    Add to my workspace
+                    Add to my agency
                   </DropdownMenuItem>
                 )}
                 <DropdownMenuItem asChild>
@@ -153,7 +153,7 @@ export function TemplateGallery({
                       }}
                     >
                       {applyingId === project.id && <Loader2 className="animate-spin" aria-hidden="true" />}
-                      {applyingId === project.id ? "Adding" : "Add to my workspace"}
+                      {applyingId === project.id ? "Adding" : "Add to my agency"}
                     </Button>
                   )}
                 </div>

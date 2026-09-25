@@ -61,7 +61,6 @@ function isActive(pathname: string, href: string, rootHref: string) {
 export function AppSidebar({
   navLinks,
   rootHref,
-  subtitle,
   navExtra,
   brandName,
   brandLogoUrl,
@@ -70,7 +69,6 @@ export function AppSidebar({
 }: React.ComponentProps<typeof Sidebar> & {
   navLinks: NavLink[]
   rootHref: string
-  subtitle?: string
   navExtra?: ReactNode
   brandName?: string
   brandLogoUrl?: string
@@ -82,7 +80,6 @@ export function AppSidebar({
   const { isMobile, setOpenMobile } = useSidebar()
   const brandHref = isMobile ? "/dashboard/agent" : rootHref
   const displayedBrandName = brandName?.trim() || "VisualCNS"
-  const showSubtitle = Boolean(subtitle?.trim() && subtitle.trim().toLowerCase() !== displayedBrandName.toLowerCase())
 
   // Tapping a destination on mobile should dismiss the slide-over sheet.
   function handleNavigate(adminOnly = false, opensAgent = false) {
@@ -109,7 +106,6 @@ export function AppSidebar({
                 <SidebarMenuButton size="lg" asChild>
                   <Link href={brandHref} onClick={() => handleNavigate()}>
                     <BrandLockup logoSize={20} wordmarkScale={0.9} gapClassName="gap-1" brandName={displayedBrandName} logoUrl={brandLogoUrl} />
-                    {showSubtitle && <span className="truncate text-xs text-muted-foreground">{subtitle}</span>}
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>

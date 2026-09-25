@@ -1090,7 +1090,7 @@ export function CompanyPage({
                 <DialogTitle>Share company page</DialogTitle>
                 <DialogDescription>Control what {company.name} sees after signing in, then share their company page link.</DialogDescription>
               </DialogHeader>
-              <ShareLink value={absoluteUrl(admin.sharePath)} label="Workspace link" />
+              <ShareLink value={absoluteUrl(admin.sharePath)} label="Company link" />
               <p className="text-xs text-muted-foreground">Clients sign in with their invited account. Previously shared company links continue to open this company page.</p>
               <div className="border-t border-border pt-4">
                 <PortalPublishingPanel companyId={company.id} projects={projects} people={people} active={shareOpen} />

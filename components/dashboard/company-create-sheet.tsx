@@ -67,7 +67,7 @@ export function CompanyCreateSheet({
     setSaving(true)
     setError(null)
     try {
-      // Reuse a workspace that already carries this name instead of making a
+      // Reuse a company that already carries this name instead of making a
       // second one; the account starts with no contact, added from its page.
       const company = await findOrCreateCompany({
         name: form.name.trim(),
@@ -98,7 +98,7 @@ export function CompanyCreateSheet({
       <SheetContent className="w-full gap-0 p-0 sm:max-w-md">
         <SheetHeader className="border-b border-border">
           <SheetTitle>New company</SheetTitle>
-          <SheetDescription>Set up a workspace for a client.</SheetDescription>
+          <SheetDescription>Set up a company for a client.</SheetDescription>
         </SheetHeader>
 
         <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">

@@ -87,7 +87,7 @@ export function AccountNav() {
   return (
     <Link
       href={MENU_HREF}
-      className="-ml-2 inline-flex h-8 items-center gap-1.5 rounded-md px-2 text-sm text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+      className="-ml-2 inline-flex h-8 items-center gap-1.5 rounded-md px-2 text-sm text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring lg:hidden"
     >
       <ArrowLeft className="size-4" aria-hidden="true" />
       Settings

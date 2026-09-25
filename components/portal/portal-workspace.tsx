@@ -315,7 +315,7 @@ function PortalSearch({ company }: { company: string }) {
   return (
     <>
       <SearchTrigger onOpen={openSearch} />
-      <GlobalSearchDialog open={open} onOpenChange={setOpen} results={results} placeholder="Search this workspace…" />
+      <GlobalSearchDialog open={open} onOpenChange={setOpen} results={results} placeholder="Search this company…" />
     </>
   )
 }

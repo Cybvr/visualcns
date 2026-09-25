@@ -42,7 +42,7 @@ export function PortalProvider({ children }: { children: ReactNode }) {
         if (active) setResult({ key, data: { organization, projects, tasks: taskGroups.flat(), invoices, contracts, estimates, files: files.filter(file => file.companyId === organization.id), documents } })
       } catch (error) {
         console.error("Portal load failed", error)
-        if (active) setResult({ key, error: "We couldn’t load this workspace. Check your connection and try again." })
+        if (active) setResult({ key, error: "We couldn’t load this company portal. Check your connection and try again." })
       }
     }
     void load()
@@ -50,8 +50,8 @@ export function PortalProvider({ children }: { children: ReactNode }) {
   }, [key, companySlug, appUser?.uid, appUser?.companyId, isAdmin, isImpersonating])
 
   if (result.key !== key) return <PortalLoading />
-  if (result.denied) return <PortalNotice title="This workspace isn’t available to your account">Use the email your agency invited. If you need access, ask your agency to add you to this company.</PortalNotice>
-  if (result.error) return <PortalNotice title="Workspace unavailable"><p role="alert">{result.error}</p><Button className="mt-5" variant="outline" onClick={() => setRevision(n => n + 1)}>Try again</Button></PortalNotice>
+  if (result.denied) return <PortalNotice title="This company portal isn’t available to your account">Use the email your agency invited. If you need access, ask your agency to add you to this company.</PortalNotice>
+  if (result.error) return <PortalNotice title="Company portal unavailable"><p role="alert">{result.error}</p><Button className="mt-5" variant="outline" onClick={() => setRevision(n => n + 1)}>Try again</Button></PortalNotice>
   if (!result.data) return <PortalLoading />
   return <Context.Provider value={{ ...result.data, reload: () => setRevision(n => n + 1) }}>{children}</Context.Provider>
 }

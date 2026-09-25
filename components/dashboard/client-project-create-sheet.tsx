@@ -47,7 +47,7 @@ export function ClientProjectCreateSheet({
     const projectTitle = title.trim()
 
     if (!companyId) {
-      setError("This account is not connected to a workspace yet.")
+      setError("This account is not connected to a company yet.")
       return
     }
     if (!projectTitle) {
@@ -60,7 +60,7 @@ export function ClientProjectCreateSheet({
     try {
       await createProject({
         companyId,
-        client: clientName || "Client workspace",
+      client: clientName || "Client company",
         title: projectTitle,
         service: service.trim(),
         status: "in-progress",

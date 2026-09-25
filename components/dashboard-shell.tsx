@@ -102,7 +102,6 @@ function DashboardMobileFooterNav({ rootHref }: { rootHref: string }) {
  * block: SidebarProvider > AppSidebar + SidebarInset with a mobile opener.
  */
 export function DashboardShell({
-  subtitle,
   navLinks,
   rootHref,
   navExtra,
@@ -110,7 +109,6 @@ export function DashboardShell({
   children,
 }: {
   title: string
-  subtitle?: string
   navLinks: NavLink[]
   rootHref: string
   navExtra?: ReactNode
@@ -179,7 +177,7 @@ export function DashboardShell({
           banner && "[&_[data-slot=sidebar-container]]:top-10 [&_[data-slot=sidebar-container]]:h-[calc(100svh-2.5rem)]"
         )}
       >
-        <AppSidebar navLinks={navLinks} rootHref={rootHref} subtitle={subtitle} navExtra={navExtra} brandName={agency?.name} brandLogoUrl={agency?.logoUrl} />
+        <AppSidebar navLinks={navLinks} rootHref={rootHref} navExtra={navExtra} brandName={agency?.name} brandLogoUrl={agency?.logoUrl} />
         {/* overflow-y-auto: this column is the scroll container, not the body */}
         <SidebarInset
           className={cn(

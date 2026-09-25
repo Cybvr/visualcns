@@ -36,7 +36,7 @@ const DASHBOARD_NAV: NavLink[] = [
 ]
 
 function UnifiedDashboardShell({ children, requireAdmin = false }: { children: ReactNode; requireAdmin?: boolean }) {
-  const { user, appUser, role, isAdmin, isImpersonating, isViewingAs, impersonatedUser, stopViewingAs, loading, signOut, agencyStatus } = useAuth()
+  const { user, role, isAdmin, isImpersonating, isViewingAs, impersonatedUser, stopViewingAs, loading, signOut, agencyStatus } = useAuth()
   const router = useRouter()
   const pathname = usePathname()
   const isTaskDetailRoute = /^\/dashboard\/tasks\/[^/]+$/.test(pathname ?? "")
@@ -59,7 +59,7 @@ function UnifiedDashboardShell({ children, requireAdmin = false }: { children: R
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-background px-4 text-center">
         <Image src="/visualhqlogo.svg" alt="VisualHQ" width={36} height={36} />
-        <div><h1 className="text-lg font-semibold">Workspace suspended</h1><p className="mt-1 max-w-sm text-sm text-muted-foreground">This workspace is currently unavailable. Contact support to restore access.</p></div>
+        <div><h1 className="text-lg font-semibold">Agency suspended</h1><p className="mt-1 max-w-sm text-sm text-muted-foreground">This agency is currently unavailable. Contact support to restore access.</p></div>
         <Button variant="outline" onClick={signOut}><LogOut className="mr-2 h-4 w-4" />Sign out</Button>
       </div>
     )
@@ -73,7 +73,7 @@ function UnifiedDashboardShell({ children, requireAdmin = false }: { children: R
         <Image src="/visualhqlogo.svg" alt="VisualHQ" width={36} height={36} />
         <div>
           <h1 className="text-lg font-semibold">No dashboard for this account</h1>
-          <p className="mt-1 max-w-sm text-sm text-muted-foreground">{user.email} isn&apos;t set up with a workspace yet.</p>
+          <p className="mt-1 max-w-sm text-sm text-muted-foreground">{user.email} isn&apos;t assigned to an agency yet.</p>
         </div>
         <Button variant="outline" onClick={signOut}><LogOut className="mr-2 h-4 w-4" />Sign out</Button>
       </div>
@@ -83,7 +83,6 @@ function UnifiedDashboardShell({ children, requireAdmin = false }: { children: R
   return (
     <AgentProvider>
       <DashboardWithAgent
-        subtitle={appUser?.company || undefined}
         navLinks={DASHBOARD_NAV
           .filter((link) => !link.adminOnly || isAdmin)
           .filter((link) => !link.superAdminOnly || role === "superadmin")
@@ -112,12 +111,10 @@ function UnifiedDashboardShell({ children, requireAdmin = false }: { children: R
  * mobile), opened from the dashboard header.
  */
 function DashboardWithAgent({
-  subtitle,
   navLinks,
   banner,
   children,
 }: {
-  subtitle?: string
   navLinks: NavLink[]
   banner?: ReactNode
   children: ReactNode
@@ -125,7 +122,7 @@ function DashboardWithAgent({
   return (
     <>
       <PageTitleProvider>
-        <DashboardShell title="VisualCNS" subtitle={subtitle} navLinks={navLinks} rootHref="/dashboard" banner={banner}>
+        <DashboardShell title="VisualCNS" navLinks={navLinks} rootHref="/dashboard" banner={banner}>
           {children}
         </DashboardShell>
       </PageTitleProvider>

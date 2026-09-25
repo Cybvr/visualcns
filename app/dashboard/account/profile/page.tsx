@@ -39,7 +39,6 @@ export default function ProfilePage() {
   const { user, appUser } = useAuth()
 
   const [displayName, setDisplayName] = useState("")
-  const [company, setCompany] = useState("")
   const [photoURL, setPhotoURL] = useState("")
   const [slug, setSlug] = useState("")
   const [contact, setContact] = useState<Record<ContactKey, string>>({ phone: "", website: "", linkedIn: "", instagram: "", x: "" })
@@ -48,7 +47,6 @@ export default function ProfilePage() {
 
   useEffect(() => {
     setDisplayName(appUser?.displayName || "")
-    setCompany(appUser?.company || "")
     setPhotoURL(appUser?.photoURL || "")
     setSlug(appUser?.slug || "")
     setContact({
@@ -76,7 +74,6 @@ export default function ProfilePage() {
 
       await updateUser(appUser.uid, {
         displayName: displayName.trim(),
-        company: company.trim(),
         photoURL: photoURL.trim(),
         slug: finalSlug,
         phone: contact.phone.trim(),
@@ -112,9 +109,6 @@ export default function ProfilePage() {
       <form onSubmit={save} className="mt-6">
         <Row id="display-name" label="Name">
           <Input id="display-name" value={displayName} onChange={(event) => setDisplayName(event.target.value)} className={inlineInput} />
-        </Row>
-        <Row id="company" label="Workspace">
-          <Input id="company" value={company} onChange={(event) => setCompany(event.target.value)} className={inlineInput} />
         </Row>
         <Row id="slug" label="Handle">
           <span className="shrink-0 text-sm text-muted-foreground">www.visualcns.com/</span>

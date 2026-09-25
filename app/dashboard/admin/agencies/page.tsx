@@ -79,7 +79,7 @@ export default function AgencyOperationsPage() {
       {agencies.map((agency) => <div key={agency.id} className="flex flex-wrap items-center justify-between gap-4 p-4">
         <div><p className="font-medium">{agency.name || agency.id}</p><p className="text-xs text-muted-foreground">{agency.id} · {agency.plan || "trial"}</p></div>
         <div className="flex items-center gap-2">
-          <span className="text-xs text-muted-foreground">{agency.id === ownAgencyId ? "current workspace" : agency.status || "unknown"}</span>
+          <span className="text-xs text-muted-foreground">{agency.id === ownAgencyId ? "current agency" : agency.status || "unknown"}</span>
           {agency.id !== ownAgencyId && <>
             <Button size="sm" variant="outline" onClick={() => void setStatus(agency.id, agency.status === "suspended" ? "active" : "suspended")}>{agency.status === "suspended" ? "Reactivate" : "Suspend"}</Button>
             <Button size="sm" variant="destructive" onClick={() => setDeleteTarget(agency)}>Delete</Button>
@@ -93,7 +93,7 @@ export default function AgencyOperationsPage() {
         <AlertDialogHeader>
           <AlertDialogTitle>Delete this agency?</AlertDialogTitle>
           <AlertDialogDescription>
-            {deleteTarget?.name || deleteTarget?.id} and all of its workspace data will be permanently deleted. This cannot be undone.
+            {deleteTarget?.name || deleteTarget?.id} and all of its agency data will be permanently deleted. This cannot be undone.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

@@ -82,11 +82,11 @@ export function TemplatesSection() {
         <div>
           <p className="text-lg font-semibold">Want to build your own?</p>
           <p className="text-sm text-muted-foreground">
-            Create a project in your workspace, add the steps as tasks, and make it public to list it here.
+            Create a project in your agency, add the steps as tasks, and make it public to list it here.
           </p>
         </div>
         <Button asChild>
-          <Link href="/dashboard/projects">Open your workspace</Link>
+          <Link href="/dashboard/projects">Open your agency</Link>
         </Button>
       </div>
     </div>
