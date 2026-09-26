@@ -1,7 +1,7 @@
 "use client"
 
 import { useMemo, useState } from "react"
-import { ArrowRight, ExternalLink, RotateCcw } from "lucide-react"
+import { ArrowRight, ExternalLink, Printer, RotateCcw } from "lucide-react"
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts"
 
 import { BookNowModal } from "@/components/book-now-modal"
@@ -34,6 +34,14 @@ function nextMove(areas: AuditArea[]) {
   return "Book a strategy session to turn the strongest signal into a focused next move."
 }
 
+function actionFor(area: AuditArea) {
+  if (area.key === "website" && area.coverage === 0) return { title: "Add the primary website", detail: "Give the audit a public experience to inspect, then review whether the promise is clear within the first few seconds.", priority: "High" }
+  if (area.key === "social" && area.coverage === 0) return { title: "Connect the active social profile", detail: "Compare the message people see on social with the message on the website and company profile.", priority: "High" }
+  if (area.key === "foundation" && area.coverage < 100) return { title: "Clarify the company story", detail: "Add a concise description of the offer, audience, and reason to choose the business so the audit has a stronger strategic baseline.", priority: "Medium" }
+  if (area.key === "supporting" && area.coverage < 100) return { title: "Add supporting public sources", detail: "Connect the profiles, proof points, and channels that shape how the brand is discovered and trusted.", priority: "Medium" }
+  return { title: `Review ${area.label.toLowerCase()}`, detail: "Compare this signal with the other touchpoints and choose one change that will make the customer path easier to understand.", priority: "Medium" }
+}
+
 export function BrandHealthCheck({
   companyName,
   description,
@@ -48,6 +56,12 @@ export function BrandHealthCheck({
   links?: CompanyLink[]
 }) {
   const [reportReady, setReportReady] = useState(false)
+  const [generatedAt, setGeneratedAt] = useState<Date | null>(null)
+
+  function generateReport() {
+    setGeneratedAt(new Date())
+    setReportReady(true)
+  }
 
   const savedSources = useMemo(() => {
     const values = [
@@ -109,7 +123,7 @@ export function BrandHealthCheck({
               Generate a concise report from the company information already available in this workspace.
             </p>
             <div className="mt-6 flex flex-wrap items-center gap-3">
-              <Button type="button" onClick={() => setReportReady(true)}>
+              <Button type="button" onClick={generateReport}>
                 Generate audit report
                 <ArrowRight className="size-4" aria-hidden="true" />
               </Button>
@@ -144,17 +158,32 @@ export function BrandHealthCheck({
   }
 
   return (
-    <section className="mt-5 space-y-5">
-      <div className="py-5 sm:py-8">
+    <section className="mt-5 space-y-5 print:mt-0 print:space-y-8">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3 print:hidden">
+        <div className="flex flex-wrap items-center gap-2">
+          <Button type="button" variant="outline" size="sm" onClick={() => window.print()}>
+            <Printer className="size-4" aria-hidden="true" />
+            Print report
+          </Button>
+          <BookNowModal triggerLabel="Book a strategy session" triggerSize="sm" />
+        </div>
+        <Button type="button" variant="ghost" size="sm" onClick={() => setReportReady(false)}>
+          <RotateCcw className="size-4" aria-hidden="true" />
+          Run again
+        </Button>
+      </div>
+
+      <div className="border-b border-border pb-6 print:break-inside-avoid">
         <div className="flex flex-wrap items-start justify-between gap-5">
           <div>
             <p className="text-sm font-medium text-muted-foreground">Brand audit report</p>
             <h2 className="mt-2 text-2xl font-semibold tracking-[-0.03em] text-foreground sm:text-3xl">Where the brand is visible</h2>
             <p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">A source coverage report for {companyName}. It shows where there is enough public signal to make a useful read.</p>
           </div>
-          <div className="text-right text-foreground">
-            <p className="text-3xl font-semibold tracking-[-0.04em]">{report.coverage}%</p>
-            <p className="mt-1 text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">coverage</p>
+          <div className="text-right">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Prepared for</p>
+            <p className="mt-1 font-medium text-foreground">{companyName}</p>
+            {generatedAt && <p className="mt-1 text-xs text-muted-foreground">{generatedAt.toLocaleDateString()}</p>}
           </div>
         </div>
 
@@ -213,15 +242,36 @@ export function BrandHealthCheck({
         </div>
       </div>
 
+      <div className="border-t border-border pt-6 print:break-inside-avoid">
+        <div className="flex items-end justify-between gap-4">
+          <div>
+            <h3 className="text-xl font-semibold tracking-[-0.02em] text-foreground">Priority actions</h3>
+            <p className="mt-1 text-sm text-muted-foreground">A short working list for the next review cycle.</p>
+          </div>
+          <span className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">Owner: brand team</span>
+        </div>
+        <div className="mt-5 divide-y divide-border">
+          {report.areas.map((area, index) => {
+            const action = actionFor(area)
+            return (
+              <div key={`${area.key}-action`} className="grid gap-3 py-4 sm:grid-cols-[5rem_minmax(0,1fr)_auto] sm:items-start">
+                <span className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Priority {index + 1}</span>
+                <div>
+                  <p className="font-medium text-foreground">{action.title}</p>
+                  <p className="mt-1 max-w-2xl text-sm leading-5 text-muted-foreground">{action.detail}</p>
+                </div>
+                <span className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">{action.priority}</span>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+
       <div className="border-t border-border pt-5 sm:pt-6">
         <p className="text-sm font-medium text-foreground">Your next move</p>
         <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">{nextMove(report.areas)}</p>
-        <div className="mt-5 flex flex-wrap items-center gap-3">
-          <BookNowModal />
-          <Button type="button" variant="outline" onClick={() => setReportReady(false)}>
-            <RotateCcw className="size-4" aria-hidden="true" />
-            Run again
-          </Button>
+        <div className="mt-5 print:hidden">
+          <BookNowModal triggerLabel="Book a strategy session" triggerSize="sm" />
         </div>
       </div>
     </section>

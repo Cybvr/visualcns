@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import type { ComponentProps } from "react"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
@@ -30,7 +31,19 @@ const BUDGET_RANGES: Record<"USD" | "NGN", string[]> = {
   NGN: ["Under ₦1M", "₦1M – ₦5M", "₦5M – ₦15M", "₦15M – ₦40M", "₦40M+"],
 }
 
-export function BookNowModal() {
+type BookNowModalProps = {
+  triggerLabel?: string
+  triggerSize?: NonNullable<ComponentProps<typeof Button>["size"]>
+  triggerVariant?: NonNullable<ComponentProps<typeof Button>["variant"]>
+  triggerClassName?: string
+}
+
+export function BookNowModal({
+  triggerLabel = "Book now",
+  triggerSize = "lg",
+  triggerVariant = "default",
+  triggerClassName,
+}: BookNowModalProps = {}) {
   const [open, setOpen] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [name, setName] = useState("")
@@ -85,8 +98,8 @@ export function BookNowModal() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="lg" className="px-8">
-          Book now
+        <Button size={triggerSize} variant={triggerVariant} className={triggerClassName}>
+          {triggerLabel}
         </Button>
       </DialogTrigger>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
