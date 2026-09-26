@@ -198,7 +198,7 @@ function Card({
   return (
     <div id={`bh-${id}`} className={cn("scroll-mt-24 rounded-2xl border border-border bg-background p-3 sm:p-4", className)}>
       <div className="mb-1 flex items-center justify-between gap-2 px-1 sm:px-0">
-        <h3 className="font-semibold tracking-[-0.01em] text-foreground sm:text-lg">{title}</h3>
+        <h3 data-weight="semibold" className="font-semibold tracking-[-0.01em] text-foreground sm:text-lg">{title}</h3>
         {onToggleAll && total !== undefined && (
           <button
             type="button"
@@ -341,7 +341,7 @@ export function BrandHealthCheck({
         <div className="flex items-start gap-4">
           <div className="min-w-0 flex-1">
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Business health</p>
-            <h2 className="mt-1.5 text-xl font-semibold tracking-[-0.02em] text-foreground sm:text-3xl">
+            <h2 data-weight="semibold" className="mt-1.5 text-xl font-semibold tracking-[-0.02em] text-foreground sm:text-3xl">
               AI intelligence for {companyName}
             </h2>
             <p className="mt-1.5 text-sm leading-6 text-muted-foreground sm:text-base">

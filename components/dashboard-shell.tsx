@@ -190,7 +190,7 @@ export function DashboardShell({
         >
           <header
             className={cn(
-              "surface-nav sticky top-0 z-40 flex h-14 shrink-0 items-center gap-2 bg-background px-4 text-foreground",
+              "surface-nav sticky top-0 z-40 flex h-14 shrink-0 items-center gap-2 bg-background px-4 text-foreground max-md:border-b max-md:border-border",
               hideHeader && "md:hidden",
             )}
           >
@@ -214,7 +214,7 @@ export function DashboardShell({
               ) : (
                 <SidebarTrigger className="-ml-1" />
               )}
-              {!isProjectDetailRoute && <Separator orientation="vertical" className="data-[orientation=vertical]:h-4" />}
+              {!isProjectDetailRoute && <Separator orientation="vertical" className="data-[orientation=vertical]:h-4 max-md:data-[orientation=vertical]:h-6" />}
             </div>
             <div className="flex min-w-0 items-center gap-1">
               {titleOverride?.homeHref && (
@@ -222,17 +222,17 @@ export function DashboardShell({
                   href={titleOverride.homeHref}
                   aria-label="Home"
                   title="Home"
-                  className="flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground"
+                  className="flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground max-md:text-foreground"
                 >
-                  <Home className="size-4" aria-hidden="true" />
+                  <Home className="size-4 max-md:size-5" aria-hidden="true" />
                 </Link>
               )}
-              <h1 className="surface-title min-w-0 truncate">
+              <h1 className="surface-title min-w-0 truncate max-md:[--surface-title-size:17px]">
                 {titleNode ?? titleOverride?.title ?? dashboardPageTitle(pathname ?? "/dashboard")}
               </h1>
             </div>
             <div className="ml-auto flex shrink-0 items-center gap-2">
-              {!isBackDetailRoute && <DashboardSearchButton className={cn("md:hidden", replacesMobileDefaults && "max-sm:hidden")} />}
+              {!isBackDetailRoute && <DashboardSearchButton className={cn("size-10 md:hidden [&_svg]:size-5", replacesMobileDefaults && "max-sm:hidden")} />}
               <div ref={setHeaderSlot} className="contents" />
               {headerActions}
               {!isCompanyDetailRoute && !isBackDetailRoute && (

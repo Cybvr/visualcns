@@ -164,7 +164,7 @@ export function ProjectDetail({
               type="button"
               aria-label="More actions"
               title="More actions"
-              className="flex size-10 items-center justify-center rounded-xl text-current outline-none transition-colors hover:bg-black/5 focus-visible:ring-2 focus-visible:ring-ring max-md:text-primary-foreground max-md:hover:bg-white/10"
+              className="flex size-10 items-center justify-center rounded-xl text-current outline-none transition-colors hover:bg-black/5 focus-visible:ring-2 focus-visible:ring-ring"
             >
               <MoreVertical className="size-5" aria-hidden="true" />
             </button>

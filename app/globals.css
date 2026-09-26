@@ -33,6 +33,7 @@
   --destructive-foreground: oklch(1 0 180);
   --ring: oklch(0.567 0.237 267.896);
   --company-banner: #172554;
+  --page: #f7f8fa;
   --chart-1: oklch(0.567 0.237 267.896);
   --chart-2: oklch(0.915 0.011 276);
   --chart-3: oklch(0.866 0.024 275.781);
@@ -67,6 +68,7 @@
 .dark {
   --radius: 0.5rem;
   --background: oklch(0.134 0.016 272.261);
+  --page: oklch(0.17 0.016 272.261);
   --foreground: oklch(0.991 0.001 276.148);
   --muted: oklch(0.249 0.013 275.396);
   --muted-foreground: oklch(0.691 0.023 275.711);
@@ -126,6 +128,7 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
   --color-company-banner: var(--company-banner);
+  --color-page: var(--page);
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);
@@ -192,6 +195,13 @@
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-eb-garamond), ui-serif, Georgia, serif;
     font-weight: 400 !important;
+  }
+  /* Opt-in weights for headings, since the rule above pins them to 400. */
+  :is(h1, h2, h3, h4, h5, h6)[data-weight="bold"] {
+    font-weight: 700 !important;
+  }
+  :is(h1, h2, h3, h4, h5, h6)[data-weight="semibold"] {
+    font-weight: 600 !important;
   }
   .portal-surface h1, .portal-surface h2, .portal-surface h3 {
     font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;

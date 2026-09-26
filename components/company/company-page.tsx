@@ -525,7 +525,7 @@ export function CompanyPage({
             type="button"
             aria-label="More actions"
             title="More actions"
-            className="flex size-10 items-center justify-center rounded-xl bg-transparent text-current outline-none transition-colors hover:bg-black/5 focus-visible:ring-2 focus-visible:ring-ring max-md:text-primary-foreground max-md:hover:bg-white/10"
+            className="flex size-10 items-center justify-center rounded-xl bg-transparent text-current outline-none transition-colors hover:bg-black/5 focus-visible:ring-2 focus-visible:ring-ring"
           >
             <MoreVertical className="size-5" aria-hidden="true" />
           </button>
@@ -561,7 +561,7 @@ export function CompanyPage({
   usePageHeaderActions(headerActions)
 
   return (
-    <main className="mx-auto min-h-screen w-full max-w-7xl px-4 pb-[calc(7rem+env(safe-area-inset-bottom))] pt-4 sm:px-6 sm:pb-16 sm:pt-6">
+    <main className="mx-auto min-h-screen w-full max-w-7xl max-md:bg-page px-4 pb-[calc(7rem+env(safe-area-inset-bottom))] pt-4 sm:px-6 sm:pb-16 sm:pt-6">
       <CompanyProfileHeader
         name={company.name}
         handle={company.slug || admin?.sharePath.split("/").filter(Boolean).pop()}
@@ -582,11 +582,7 @@ export function CompanyPage({
           setMediaAddOpen(true)
           handleSectionChange("media")
         } : undefined}
-        tabs={(
-          <div className="mt-4 print:hidden">
-            <SectionNav sections={SECTIONS} active={section} onChange={handleSectionChange} className="gap-7" />
-          </div>
-        )}
+        tabs={<SectionNav sections={SECTIONS} active={section} onChange={handleSectionChange} />}
       />
 
       <div className="min-w-0">
