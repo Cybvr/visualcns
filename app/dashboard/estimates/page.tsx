@@ -40,11 +40,11 @@ import {
   nextEstimateNumber,
   type Estimate,
 } from "@/lib/billing"
-import { tsToMillis } from "@/lib/tasks"
+import { formatTimestamp, tsToMillis } from "@/lib/tasks"
 import { cn } from "@/lib/utils"
 
 const ESTIMATE_SORTS: SortOption<Estimate>[] = [
-  { value: "updatedAt", label: "Last modified", get: (estimate) => tsToMillis(estimate.updatedAt), ascLabel: "Oldest", descLabel: "Newest" },
+  { value: "updatedAt", label: "Last modified", get: (estimate) => Math.max(tsToMillis(estimate.updatedAt), tsToMillis(estimate.createdAt)), ascLabel: "Oldest", descLabel: "Newest" },
   { value: "estimateNumber", label: "Estimate no.", get: (estimate) => estimate.estimateNumber, ascLabel: "A–Z", descLabel: "Z–A" },
   { value: "client", label: "Client", get: (estimate) => estimate.client || estimate.companyId, ascLabel: "A–Z", descLabel: "Z–A" },
   { value: "amount", label: "Amount", get: (estimate) => estimate.amount, ascLabel: "Lowest", descLabel: "Highest" },
@@ -220,6 +220,7 @@ export default function EstimatesPage() {
                             <span className={cn("shrink-0 rounded-full px-1.5 py-px text-[10px] font-medium", meta.className)}>{meta.label}</span>
                           </span>
                           <span className="font-medium text-foreground">{formatMoney(estimate.amount, estimate.currency)}</span>
+                          <span>Modified {formatTimestamp(estimate.updatedAt ?? estimate.createdAt)}</span>
                         </span>
                       }
                       icon={<Eye className="size-5 text-blue-600 dark:text-blue-400" aria-hidden="true" />}

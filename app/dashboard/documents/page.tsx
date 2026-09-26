@@ -62,19 +62,6 @@ const KIND_ICON_COLOR: Record<CompanyDocumentKind, string> = {
   other: "text-muted-foreground",
 }
 
-function timeAgo(ms: number): string {
-  if (!ms) return ""
-  const diff = Date.now() - ms
-  if (diff < 60_000) return "just now"
-  const mins = Math.floor(diff / 60_000)
-  if (mins < 60) return `${mins} minute${mins === 1 ? "" : "s"} ago`
-  const hours = Math.floor(mins / 60)
-  if (hours < 24) return `${hours} hour${hours === 1 ? "" : "s"} ago`
-  const days = Math.floor(hours / 24)
-  if (days < 7) return `${days} day${days === 1 ? "" : "s"} ago`
-  return new Date(ms).toLocaleDateString("en-US", { month: "short", day: "numeric" })
-}
-
 interface DocumentRow {
   id: string
   kind: CompanyDocumentKind
@@ -99,7 +86,7 @@ function companyDocToRow(d: CompanyDocument, adminView: boolean): DocumentRow {
     companyId: d.companyId,
     statusLabel: meta.label,
     statusClassName: meta.className,
-    updatedAtMs: tsToMillis(d.updatedAt),
+    updatedAtMs: Math.max(tsToMillis(d.updatedAt), tsToMillis(d.createdAt)),
     viewHref: `/dashboard/documents/${d.id}`,
     editHref: adminView ? `/dashboard/documents/${d.id}/edit` : undefined,
     source: d,
@@ -274,7 +261,7 @@ export default function DocumentsPage() {
                   key={`${row.kind}-${row.id}`}
                   href={row.editHref ?? row.viewHref}
                   title={row.title}
-                  subtitle={timeAgo(row.updatedAtMs)}
+                  subtitle={row.updatedAtMs ? `Modified ${formatDate(new Date(row.updatedAtMs).toISOString().slice(0, 10))}` : "Not modified yet"}
                   icon={<ReactIcon icon={KindIcon} className={cn("size-5", KIND_ICON_COLOR[row.kind])} aria-hidden="true" />}
                   menuLabel={`Options for ${row.title}`}
                   menu={

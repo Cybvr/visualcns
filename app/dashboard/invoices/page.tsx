@@ -47,7 +47,7 @@ import { FilterBar, useFilterBar, type SortOption } from "@/components/dashboard
 import { TableBulkBar } from "@/components/dashboard/table-bulk-bar"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useRowSelection } from "@/hooks/use-row-selection"
-import { tsToMillis } from "@/lib/tasks"
+import { formatTimestamp, tsToMillis } from "@/lib/tasks"
 import { cn } from "@/lib/utils"
 import { getOrganizations, type Organization } from "@/lib/organizations"
 import { getExchangeRate } from "@/lib/currency"
@@ -96,7 +96,7 @@ function OutstandingSummary({ invoices }: { invoices: Invoice[] }) {
 }
 
 const INVOICE_SORTS: SortOption<Invoice>[] = [
-  { value: "updatedAt", label: "Last modified", get: (i) => tsToMillis(i.updatedAt), ascLabel: "Oldest", descLabel: "Newest" },
+  { value: "updatedAt", label: "Last modified", get: (i) => Math.max(tsToMillis(i.updatedAt), tsToMillis(i.createdAt)), ascLabel: "Oldest", descLabel: "Newest" },
   { value: "issuedOn", label: "Issue date", get: (i) => i.issuedOn, ascLabel: "Oldest", descLabel: "Newest" },
   { value: "dueOn", label: "Due date", get: (i) => i.dueOn, ascLabel: "Soonest", descLabel: "Latest" },
   { value: "invoiceNumber", label: "Invoice no.", get: (i) => i.invoiceNumber, ascLabel: "A–Z", descLabel: "Z–A" },
@@ -308,6 +308,7 @@ export default function InvoicesPage() {
                               <span className={cn("shrink-0 rounded-full px-1.5 py-px text-[10px] font-medium", meta.className)}>{meta.label}</span>
                             </span>
                             <span className="font-medium text-foreground">{formatMoney(invoice.amount, invoice.currency)}</span>
+                            <span>Modified {formatTimestamp(invoice.updatedAt ?? invoice.createdAt)}</span>
                           </span>
                         }
                         icon={<Receipt className="size-5 text-blue-600 dark:text-blue-400" aria-hidden="true" />}

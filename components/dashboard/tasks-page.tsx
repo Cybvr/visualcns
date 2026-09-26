@@ -36,6 +36,7 @@ import {
   deleteTask,
   taskStatusMeta,
   taskPriorityMeta,
+  formatTimestamp,
   tsToMillis,
   type Task,
   type TaskStatus,
@@ -59,7 +60,7 @@ const TASK_SORTS: SortOption<Task>[] = [
   {
     value: "updatedAt",
     label: "Last modified",
-    get: (t) => tsToMillis(t.updatedAt),
+    get: (t) => Math.max(tsToMillis(t.updatedAt), tsToMillis(t.createdAt)),
     ascLabel: "Oldest",
     descLabel: "Newest",
   },
@@ -95,7 +96,7 @@ export default function TasksAdminPage() {
     try {
       const taskData = await getTasks()
       // Newest first, like Notion's default
-      taskData.sort((a, b) => tsToMillis(b.updatedAt) - tsToMillis(a.updatedAt))
+      taskData.sort((a, b) => Math.max(tsToMillis(b.updatedAt), tsToMillis(b.createdAt)) - Math.max(tsToMillis(a.updatedAt), tsToMillis(a.createdAt)))
       setTasks(taskData)
     } catch (err) {
       console.error("Error fetching tasks:", err)
@@ -192,7 +193,7 @@ export default function TasksAdminPage() {
                   <li key={t.id}>
                     <MobileDataCard
                       title={t.name || "Untitled task"}
-                      subtitle={[t.client || t.companyId, t.project, taskStatusMeta[t.status]?.label].filter(Boolean).join(" · ") || undefined}
+                      subtitle={<span className="flex flex-col gap-1"><span>{[t.client || t.companyId, t.project, taskStatusMeta[t.status]?.label].filter(Boolean).join(" · ") || "—"}</span><span>Modified {formatTimestamp(t.updatedAt ?? t.createdAt)}</span></span>}
                       icon={<ListTodo className="size-5 text-muted-foreground" aria-hidden="true" />}
                       onClick={() => setSelectedId(t.id)}
                       ariaLabel={`Open ${t.name || "task"}`}

@@ -8,7 +8,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Badge, InlineDate, InlineProject, InlineSelect, InlineText } from "@/components/inline-table-cells"
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { taskPriorityMeta, taskStatusMeta, type Task, type TaskPriority, type TaskStatus } from "@/lib/tasks"
+import { formatTimestamp, taskPriorityMeta, taskStatusMeta, type Task, type TaskPriority, type TaskStatus } from "@/lib/tasks"
 import { type Project } from "@/lib/projects"
 import { portalPath } from "@/lib/portal-model"
 
@@ -110,7 +110,7 @@ export function TasksView({ tasks, projects, companyId, clientName, deleting, on
                   variant="task"
                   icon={<ListTodo className="size-5 text-violet-600 dark:text-violet-400" aria-hidden="true" />}
                   title={task.name}
-                  subtitle={<span className="flex flex-wrap items-center gap-x-2 gap-y-1"><span>{task.project || "No project"}</span><span>·</span><span>{status.label}</span><span>·</span><span>{priority.label}</span>{task.dueDate && <><span>·</span><span>Due {task.dueDate}</span></>}</span>}
+                  subtitle={<span className="flex flex-col gap-1"><span className="flex flex-wrap items-center gap-x-2 gap-y-1"><span>{task.project || "No project"}</span><span>·</span><span>{status.label}</span><span>·</span><span>{priority.label}</span>{task.dueDate && <><span>·</span><span>Due {task.dueDate}</span></>}</span><span>Modified {formatTimestamp(task.updatedAt ?? task.createdAt)}</span></span>}
                   menuLabel={`Options for ${task.name}`}
                   menu={<><DropdownMenuItem onSelect={() => openEdit(task.id)}>Edit task</DropdownMenuItem><DropdownMenuItem variant="destructive" onSelect={() => setMobileDeleteTarget(task)}>Delete task</DropdownMenuItem></>}
                 />

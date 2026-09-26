@@ -263,8 +263,12 @@ const INVOICES = "invoices"
 const CONTRACTS = "contracts"
 const ESTIMATES = "estimates"
 
-function byNewest<T extends { createdAt?: Timestamp }>(rows: T[]): T[] {
-  return rows.sort((a, b) => (b.createdAt?.toMillis() ?? 0) - (a.createdAt?.toMillis() ?? 0))
+function byNewest<T extends { createdAt?: Timestamp; updatedAt?: Timestamp }>(rows: T[]): T[] {
+  return rows.sort((a, b) => {
+    const aModified = Math.max(a.updatedAt?.toMillis() ?? 0, a.createdAt?.toMillis() ?? 0)
+    const bModified = Math.max(b.updatedAt?.toMillis() ?? 0, b.createdAt?.toMillis() ?? 0)
+    return bModified - aModified
+  })
 }
 
 /** Drafts stay internal, so a client only ever sees what has actually been issued. */

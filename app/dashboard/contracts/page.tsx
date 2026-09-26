@@ -45,14 +45,14 @@ import { FilterBar, useFilterBar, type SortOption } from "@/components/dashboard
 import { TableBulkBar } from "@/components/dashboard/table-bulk-bar"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useRowSelection } from "@/hooks/use-row-selection"
-import { tsToMillis } from "@/lib/tasks"
+import { formatTimestamp, tsToMillis } from "@/lib/tasks"
 import { cn } from "@/lib/utils"
 
 const CONTRACT_SORTS: SortOption<Contract>[] = [
   {
     value: "updatedAt",
     label: "Last modified",
-    get: (c) => tsToMillis(c.updatedAt),
+    get: (c) => Math.max(tsToMillis(c.updatedAt), tsToMillis(c.createdAt)),
     ascLabel: "Oldest",
     descLabel: "Newest",
   },
@@ -250,7 +250,7 @@ export default function ContractsPage() {
                             <span className={cn("shrink-0 rounded-full px-1.5 py-px text-[10px] font-medium", meta.className)}>{meta.label}</span>
                           </span>
                         }
-                        subtitle={<span className="truncate">{[contract.client, contract.project, formatDate(contract.endsOn)].filter(Boolean).join(" · ") || "—"}</span>}
+                        subtitle={<span className="flex flex-col gap-1"><span className="truncate">{[contract.client, contract.project, formatDate(contract.endsOn)].filter(Boolean).join(" · ") || "—"}</span><span>Modified {formatTimestamp(contract.updatedAt ?? contract.createdAt)}</span></span>}
                         icon={<Eye className="size-5 text-blue-600 dark:text-blue-400" aria-hidden="true" />}
                         menuLabel={`Options for ${contract.title}`}
                         menu={

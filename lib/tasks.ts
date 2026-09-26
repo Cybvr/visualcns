@@ -105,7 +105,7 @@ export async function getTasksByCompanyId(companyId: string): Promise<Task[]> {
   const agencyId = await getCurrentAgencyId()
   const snapshot = await getDocs(query(collection(db, COLLECTION_NAME), where("agencyId", "==", agencyId), where("companyId", "==", companyId)))
   const tasks = snapshot.docs.map((d) => ({ ...(d.data() as object), id: d.id })) as Task[]
-  return tasks.sort((a, b) => tsToMillis(b.updatedAt) - tsToMillis(a.updatedAt))
+  return tasks.sort((a, b) => Math.max(tsToMillis(b.updatedAt), tsToMillis(b.createdAt)) - Math.max(tsToMillis(a.updatedAt), tsToMillis(a.createdAt)))
 }
 
 /**
