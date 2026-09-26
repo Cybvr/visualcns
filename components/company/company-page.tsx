@@ -1110,6 +1110,7 @@ export function CompanyPage({
           </Dialog>
         </>
       )}
+      {admin && <div className="h-[calc(4.5rem+env(safe-area-inset-bottom))] md:hidden" aria-hidden="true" />}
     </main>
   )
 }
