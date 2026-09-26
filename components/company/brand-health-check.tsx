@@ -19,7 +19,11 @@ function hostOf(url: string) {
 }
 
 // Prototype data. Swap for the model's response once the audit route exists.
-function prototypeAudit(website: Source | undefined, social: Source | undefined): Audit | null {
+function prototypeAudit(website: Source | undefined, social: Source | undefined): Audit {
+  if (!website && !social) {
+    website = { label: "Website", url: "Website" }
+    social = { label: "Instagram", url: "instagram.com" }
+  }
   if (website && social) {
     return {
       grade: "B-",
@@ -42,18 +46,15 @@ function prototypeAudit(website: Source | undefined, social: Source | undefined)
       ],
     }
   }
-  if (social) {
-    return {
-      grade: "C",
-      verdict: "Active on social, but no website to send people to.",
-      findings: [
-        { tone: "fix", title: "No website", proof: "Interested customers have nowhere to go.", source: "Website" },
-        { tone: "fix", title: "Bio doesn't say what you do", proof: "Nine words, none about the offer.", source: social.label },
-        { tone: "good", title: "Posting regularly", proof: "Three posts a week for two months.", source: social.label },
-      ],
-    }
+  return {
+    grade: "C",
+    verdict: "Active on social, but no website to send people to.",
+    findings: [
+      { tone: "fix", title: "No website", proof: "Interested customers have nowhere to go.", source: "Website" },
+      { tone: "fix", title: "Bio doesn't say what you do", proof: "Nine words, none about the offer.", source: social!.label },
+      { tone: "good", title: "Posting regularly", proof: "Three posts a week for two months.", source: social!.label },
+    ],
   }
-  return null
 }
 
 function spokenSummary(companyName: string, audit: Audit) {
@@ -105,7 +106,7 @@ export function BrandHealthCheck({
   }
 
   function toggleListen() {
-    if (!audit || !("speechSynthesis" in window)) return
+    if (!("speechSynthesis" in window)) return
     if (speaking) {
       window.speechSynthesis.cancel()
       setSpeaking(false)
@@ -116,14 +117,6 @@ export function BrandHealthCheck({
     utterance.onerror = () => setSpeaking(false)
     window.speechSynthesis.speak(utterance)
     setSpeaking(true)
-  }
-
-  if (!audit) {
-    return (
-      <section className="mx-auto mt-10 max-w-md text-center">
-        <p className="text-lg font-medium text-foreground">Add your website to get a brand check.</p>
-      </section>
-    )
   }
 
   if (checking) {
