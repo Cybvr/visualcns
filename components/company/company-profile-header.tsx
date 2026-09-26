@@ -100,7 +100,7 @@ export function CompanyProfileHeader({
       </section>
 
       <div
-        className={`relative bg-background md:sticky md:z-30 md:self-start ${admin ? "md:top-14" : "md:top-0"} print:static`}
+        className="relative bg-background print:static"
       >
         <section className="px-4 pb-4 pt-4 sm:px-6 sm:pb-5 sm:pt-5">
         <div className="relative flex flex-col gap-3 sm:gap-4 md:flex-row md:items-end">
