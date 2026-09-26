@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button"
 import { useAuth } from "@/components/auth-provider"
 import { authErrorMessage, GoogleIcon } from "@/components/auth-ui"
 import { getOrganization, organizationRef } from "@/lib/organizations"
-import { safeReturnTo } from "@/lib/portal-model"
+import { safeReturnTo } from "@/lib/navigation"
 
 type AuthAction = "google" | null
 

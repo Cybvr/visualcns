@@ -14,7 +14,7 @@ import { buildEmailComposeHref } from "@/lib/email-composer"
 import { deleteProjectWithTasks, renameProject, slugify, type Project } from "@/lib/projects"
 import { deleteTask, getTasksByCompanyId, tsToMillis, updateTask, type Task } from "@/lib/tasks"
 import { cn } from "@/lib/utils"
-import { portalPath } from "@/lib/portal-model"
+import { companyPath } from "@/lib/navigation"
 
 interface ProjectDetailProps {
   project: Project
@@ -180,8 +180,8 @@ export function ProjectDetail({
                   documentType: "project",
                   documentId: project.id,
                   subject: `${project.title} update`,
-                  ctaText: "Open project workspace",
-                  ctaUrl: `${portalPath(project.companyId || companyId)}/projects/${encodeURIComponent(project.slug || project.id)}`,
+                  ctaText: "Open company page",
+                  ctaUrl: companyPath(project.companyId || companyId),
                 })}
               >
                 <Mail className="size-4" aria-hidden="true" />

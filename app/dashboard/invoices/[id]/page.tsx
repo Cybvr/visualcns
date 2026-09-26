@@ -14,7 +14,7 @@ import { InvoiceDocument } from "@/components/dashboard/invoice-document"
 import { usePageTitle } from "@/components/dashboard/page-title-context"
 import { getBusinessProfile, type BusinessProfile } from "@/lib/business-profile"
 import { getInvoice, type Invoice } from "@/lib/billing"
-import { portalDocumentPath } from "@/lib/portal-model"
+import { companyDocumentPath } from "@/lib/navigation"
 
 export default function InvoiceDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -77,7 +77,7 @@ export default function InvoiceDetailPage() {
       <div className="mb-6 flex items-center justify-between gap-4 print:hidden">
         <Link href="/dashboard/invoices" className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"><ArrowLeft className="size-4" />Back to invoices</Link>
         <div className="flex items-center gap-2">
-          {isAdmin && !isImpersonating && <ContextualEmailButton label="Send invoice" context={{ companyId: invoice.companyId, companyName: invoice.client, recipientEmail: invoice.billTo?.email, recipientName: invoice.billTo?.name, projectId: invoice.projectId, projectName: invoice.project, documentType: "invoice", documentId: invoice.id, documentTitle: invoice.invoiceNumber, subject: `Invoice ${invoice.invoiceNumber}`, ctaText: "View invoice", ctaUrl: portalDocumentPath(invoice.companyId, "invoice", invoice.id) }} />}
+          {isAdmin && !isImpersonating && <ContextualEmailButton label="Send invoice" context={{ companyId: invoice.companyId, companyName: invoice.client, recipientEmail: invoice.billTo?.email, recipientName: invoice.billTo?.name, projectId: invoice.projectId, projectName: invoice.project, documentType: "invoice", documentId: invoice.id, documentTitle: invoice.invoiceNumber, subject: `Invoice ${invoice.invoiceNumber}`, ctaText: "View invoice", ctaUrl: companyDocumentPath(invoice.companyId, "invoice", invoice.id) }} />}
           <DocumentActions url={invoice.url} />
         </div>
       </div>

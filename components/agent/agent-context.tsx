@@ -1,7 +1,6 @@
 "use client"
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type MutableRefObject, type ReactNode } from "react"
-import { usePathname } from "next/navigation"
 
 import { useAuth } from "@/components/auth-provider"
 import { db } from "@/lib/firebase"
@@ -89,7 +88,6 @@ function messageId(nextId: MutableRefObject<number>): string {
 
 export function AgentProvider({ children }: { children: ReactNode }) {
   const { appUser, user } = useAuth()
-  const pathname = usePathname()
   const [open, setOpen] = useState(false)
   const [messages, setMessages] = useState<AgentMessage[]>([])
   const [conversations, setConversations] = useState<AgentConversation[]>([])
@@ -209,7 +207,7 @@ export function AgentProvider({ children }: { children: ReactNode }) {
 
       void (async () => {
         try {
-          const surface = pathname?.startsWith("/portal") ? "client_portal" : "agency_dashboard"
+          const surface = "agency_dashboard"
           const response = await fetch("/api/agent", {
             method: "POST",
             headers: { "content-type": "application/json", Authorization: `Bearer ${await currentUser.getIdToken()}` },
@@ -254,7 +252,7 @@ export function AgentProvider({ children }: { children: ReactNode }) {
         }
       })()
     },
-    [messages, sending, firstName, pathname, activeConversationId, conversations, rememberConversation, user],
+    [messages, sending, firstName, activeConversationId, conversations, rememberConversation, user],
   )
 
   const reset = useCallback(() => {

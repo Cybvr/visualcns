@@ -10,7 +10,7 @@ import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { formatTimestamp, taskPriorityMeta, taskStatusMeta, type Task, type TaskPriority, type TaskStatus } from "@/lib/tasks"
 import { type Project } from "@/lib/projects"
-import { portalPath } from "@/lib/portal-model"
+import { companyPath } from "@/lib/navigation"
 
 const STATUS_OPTIONS: TaskStatus[] = ["todo", "in-progress", "review", "done"]
 const PRIORITY_OPTIONS: TaskPriority[] = ["low", "medium", "high"]
@@ -24,7 +24,7 @@ function RowActions({ task, onEdit, onDelete, deleting, companyId, clientName }:
         variant="ghost"
         size="icon"
         className="h-7 w-7 text-muted-foreground hover:bg-muted/80 hover:text-foreground"
-        context={{ companyId, companyName: clientName, projectId: task.projectId, projectName: task.project, documentType: "task", documentId: task.id, documentTitle: task.name, subject: `Task update: ${task.name}`, ctaText: "View tasks", ctaUrl: `${portalPath(companyId)}/tasks` }}
+        context={{ companyId, companyName: clientName, projectId: task.projectId, projectName: task.project, documentType: "task", documentId: task.id, documentTitle: task.name, subject: `Task update: ${task.name}`, ctaText: "Open company page", ctaUrl: companyPath(companyId) }}
       />
       <button type="button" onClick={onEdit} aria-label="Edit task" className="inline-flex size-7 items-center justify-center rounded-md text-muted-foreground hover:bg-muted/80 hover:text-foreground">
         <Pencil className="size-3.5" aria-hidden="true" />

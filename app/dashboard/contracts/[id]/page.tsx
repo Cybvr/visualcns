@@ -13,7 +13,7 @@ import { DocumentActions } from "@/components/dashboard/document-actions"
 import { usePageTitle } from "@/components/dashboard/page-title-context"
 import { getBusinessProfile, type BusinessProfile } from "@/lib/business-profile"
 import { getContract, type Contract } from "@/lib/billing"
-import { portalDocumentPath } from "@/lib/portal-model"
+import { companyDocumentPath } from "@/lib/navigation"
 
 export default function ContractDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -68,7 +68,7 @@ export default function ContractDetailPage() {
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3 print:hidden">
         <Link href="/dashboard/contracts" className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"><ArrowLeft className="size-4" />Back to contracts</Link>
         <div className="flex items-center gap-2">
-          {isAdmin && !isImpersonating && <ContextualEmailButton label="Send contract" context={{ companyId: contract.companyId, companyName: contract.client, projectId: contract.projectId, projectName: contract.project, documentType: "contract", documentId: contract.id, documentTitle: contract.title, subject: contract.title, ctaText: "Review contract", ctaUrl: portalDocumentPath(contract.companyId, "contract", contract.id) }} />}
+          {isAdmin && !isImpersonating && <ContextualEmailButton label="Send contract" context={{ companyId: contract.companyId, companyName: contract.client, projectId: contract.projectId, projectName: contract.project, documentType: "contract", documentId: contract.id, documentTitle: contract.title, subject: contract.title, ctaText: "Review contract", ctaUrl: companyDocumentPath(contract.companyId, "contract", contract.id) }} />}
           <DocumentActions url={contract.url} />
         </div>
       </div>
