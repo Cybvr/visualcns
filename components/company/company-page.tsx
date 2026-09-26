@@ -843,7 +843,12 @@ export function CompanyPage({
           )}
 
           {section === "brand-health" && (
-            <BrandHealthCheck companyName={company.name} />
+            <BrandHealthCheck
+              companyName={company.name}
+              website={company.website}
+              linkedIn={company.linkedIn}
+              links={company.links}
+            />
           )}
 
           {section === "documents" && (

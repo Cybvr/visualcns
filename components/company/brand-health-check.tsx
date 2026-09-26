@@ -1,9 +1,11 @@
 "use client"
 
 import { useMemo, useState } from "react"
-import { Activity, ArrowLeft, ArrowRight, CheckCircle2, RotateCcw } from "lucide-react"
+import { Activity, ArrowLeft, ArrowRight, CheckCircle2, ExternalLink, RotateCcw } from "lucide-react"
 
+import { BookNowModal } from "@/components/book-now-modal"
 import { Button } from "@/components/ui/button"
+import type { CompanyLink } from "@/lib/organizations"
 
 type BrandHealthQuestion = {
   key: string
@@ -61,10 +63,30 @@ function scoreWidth(score: number) {
   return `${Math.round((score / 3) * 100)}%`
 }
 
-export function BrandHealthCheck({ companyName }: { companyName: string }) {
+export function BrandHealthCheck({
+  companyName,
+  website,
+  linkedIn,
+  links = [],
+}: {
+  companyName: string
+  website?: string
+  linkedIn?: string
+  links?: CompanyLink[]
+}) {
   const [started, setStarted] = useState(false)
   const [step, setStep] = useState(0)
   const [answers, setAnswers] = useState<Record<string, number>>({})
+
+  const savedSources = useMemo(() => {
+    const values = [
+      website ? { label: "Website", url: website } : null,
+      linkedIn ? { label: "LinkedIn", url: linkedIn } : null,
+      ...links.map((link) => ({ label: link.label, url: link.url })),
+    ].filter((source): source is { label: string; url: string } => Boolean(source?.url?.trim()))
+
+    return values.filter((source, index) => values.findIndex((item) => item.url === source.url) === index)
+  }, [links, linkedIn, website])
 
   const finished = started && step >= QUESTIONS.length
   const current = QUESTIONS[step]
@@ -95,30 +117,56 @@ export function BrandHealthCheck({ companyName }: { companyName: string }) {
               <Activity className="size-5" aria-hidden="true" />
             </div>
             <h2 className="mt-5 max-w-xl text-2xl font-semibold tracking-[-0.03em] text-foreground sm:text-3xl">
-              Understand what is helping your brand move.
+              See what your brand is saying.
             </h2>
             <p className="mt-3 max-w-xl text-sm leading-6 text-muted-foreground">
-              Take a free four-question check for {companyName}. You’ll get a calm snapshot of your brand’s current health and one practical place to focus next.
+              Get a free, focused read for {companyName} and one clear place to improve next.
             </p>
-            <Button type="button" className="mt-6" onClick={begin}>
-              Start free health check
-              <ArrowRight className="size-4" aria-hidden="true" />
-            </Button>
+            <div className="mt-6 flex flex-wrap items-center gap-3">
+              <Button type="button" onClick={begin}>
+                Start free check
+                <ArrowRight className="size-4" aria-hidden="true" />
+              </Button>
+              <BookNowModal />
+            </div>
           </div>
 
           <div className="rounded-xl bg-muted/40 p-5 sm:p-6">
-            <p className="text-sm font-medium text-foreground">The check looks at</p>
-            <ul className="mt-4 space-y-3 text-sm text-muted-foreground">
-              {QUESTIONS.map((question) => (
-                <li key={question.key} className="flex items-center gap-3">
-                  <CheckCircle2 className="size-4 shrink-0 text-emerald-700" aria-hidden="true" />
-                  {question.label}
-                </li>
-              ))}
-            </ul>
-            <p className="mt-5 border-t border-border pt-4 text-xs leading-5 text-muted-foreground">
-              No sign-up or score-chasing. Just a useful starting point for a better conversation.
-            </p>
+            {savedSources.length > 0 ? (
+              <>
+                <p className="text-sm font-medium text-foreground">Using saved company details</p>
+                <div className="mt-4 space-y-2">
+                  {savedSources.map((source) => (
+                    <a
+                      key={`${source.label}-${source.url}`}
+                      href={source.url.startsWith("http") ? source.url : `https://${source.url}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex min-w-0 items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+                    >
+                      <CheckCircle2 className="size-4 shrink-0 text-emerald-700" aria-hidden="true" />
+                      <span className="truncate">{source.label}</span>
+                      <ExternalLink className="ml-auto size-3.5 shrink-0" aria-hidden="true" />
+                    </a>
+                  ))}
+                </div>
+                <p className="mt-5 border-t border-border pt-4 text-xs leading-5 text-muted-foreground">
+                  These details are already on the company record, so there’s nothing to re-enter. Add more links in About if needed.
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="text-sm font-medium text-foreground">A short read across</p>
+                <ul className="mt-4 space-y-3 text-sm text-muted-foreground">
+                  {QUESTIONS.map((question) => (
+                    <li key={question.key} className="flex items-center gap-3">
+                      <CheckCircle2 className="size-4 shrink-0 text-emerald-700" aria-hidden="true" />
+                      {question.label}
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
           </div>
         </div>
       </section>
@@ -160,12 +208,15 @@ export function BrandHealthCheck({ companyName }: { companyName: string }) {
         </div>
 
         <div className="rounded-2xl border border-border bg-muted/30 p-5 sm:p-6">
-          <p className="text-sm font-medium text-foreground">A sensible next move</p>
+          <p className="text-sm font-medium text-foreground">Make the next move</p>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">{nextMove(overallScore)}</p>
-          <Button type="button" variant="outline" className="mt-5" onClick={begin}>
-            <RotateCcw className="size-4" aria-hidden="true" />
-            Take the check again
-          </Button>
+          <div className="mt-5 flex flex-wrap items-center gap-3">
+            <BookNowModal />
+            <Button type="button" variant="outline" onClick={begin}>
+              <RotateCcw className="size-4" aria-hidden="true" />
+              Run again
+            </Button>
+          </div>
         </div>
       </section>
     )
@@ -202,10 +253,13 @@ export function BrandHealthCheck({ companyName }: { companyName: string }) {
       </div>
 
       {step > 0 && (
-        <button type="button" onClick={() => setStep((currentStep) => Math.max(0, currentStep - 1))} className="mt-8 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-          <ArrowLeft className="size-4" aria-hidden="true" />
-          Back
-        </button>
+        <div className="mt-8 flex flex-wrap items-center gap-5">
+          <button type="button" onClick={() => setStep((currentStep) => Math.max(0, currentStep - 1))} className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+            <ArrowLeft className="size-4" aria-hidden="true" />
+            Back
+          </button>
+          <BookNowModal />
+        </div>
       )}
     </section>
   )
