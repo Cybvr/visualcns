@@ -66,7 +66,7 @@ const SECTIONS = [
   { key: "team", label: "Team" },
   { key: "activity", label: "Activity" },
   { key: "media", label: "Media" },
-  { key: "brand-health", label: "Brand Health" },
+  { key: "brand-health", label: "Business Health" },
   { key: "documents", label: "Documents" },
 ] as const
 
