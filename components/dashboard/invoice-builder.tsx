@@ -19,7 +19,6 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import {
-  PAYMENT_DETAILS,
   PAYMENT_TERM_OPTIONS,
   computeTotals,
   createInvoice,
@@ -196,6 +195,11 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate }: {
         setClients(organizationList)
         setProjects(projectList)
         setIssuer(profile)
+        if (!isEdit) {
+          setTermsDays(profile.invoicePaymentTermsDays ?? 14)
+          setNotes(initialEstimate?.notes ?? profile.invoiceNotes ?? "")
+          setPaymentInstructions(initialEstimate?.paymentDetails ?? profile.invoicePaymentInstructions ?? "")
+        }
       })
       .catch(() => {
         if (active) setError("Couldn't load clients and projects.")
@@ -386,7 +390,7 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate }: {
         paymentTermsDays: termsDays,
         dueOn: dueDateFrom(issuedOn, termsDays),
         notes: notes.trim(),
-        paymentInstructions: paymentInstructions.trim() || PAYMENT_DETAILS[currency] || "",
+        paymentInstructions: paymentInstructions.trim(),
         url: url.trim(),
         shareEnabled,
       }
@@ -888,7 +892,7 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate }: {
               value={paymentInstructions}
               onChange={(event) => setPaymentInstructions(event.target.value)}
               rows={3}
-              placeholder={PAYMENT_DETAILS[currency] ?? ""}
+              placeholder="Add payment instructions for this invoice"
               className="mt-1"
             />
           </div>

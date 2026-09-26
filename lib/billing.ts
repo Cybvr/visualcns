@@ -200,13 +200,6 @@ export const INVOICE_ISSUER: InvoiceParty = {
   website: "visualcns.com",
 }
 
-/** Bank details shown for whichever currency the invoice is raised in. */
-export const PAYMENT_DETAILS: Record<string, string> = {
-  USD: "Bank transfer in USD. Account details are on the invoice PDF.",
-  NGN: "Bank transfer in NGN. Account details are on the invoice PDF.",
-  GBP: "Bank transfer in GBP. Account details are on the invoice PDF.",
-}
-
 export const PAYMENT_TERM_OPTIONS = [
   { days: 0, label: "Due on receipt" },
   { days: 7, label: "Net 7" },

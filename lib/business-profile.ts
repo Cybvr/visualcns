@@ -1,4 +1,4 @@
-import { deleteDoc, doc, getDoc } from "firebase/firestore"
+import { deleteDoc, doc, getDoc, Timestamp, writeBatch } from "firebase/firestore"
 import { db } from "./firebase"
 import { INVOICE_ISSUER, type InvoiceParty } from "./billing"
 import {
@@ -9,14 +9,24 @@ import {
   updateOrganization,
   type Organization,
 } from "./organizations"
-import { ensureCurrentAgency } from "./agencies"
+import { ensureCurrentAgency, getAgency, type Agency } from "./agencies"
+import { getCurrentAgencyId } from "./agency-scope"
 
 const COLLECTION_NAME = "settings"
 const DOC_ID = "business"
 
 export interface BusinessProfile extends InvoiceParty {
   logoUrl?: string
+  invoicePaymentTermsDays?: number
+  invoiceNotes?: string
+  invoicePaymentInstructions?: string
+  estimateTerms?: string
+  estimatePaymentDetails?: string
+  estimateNotes?: string
 }
+
+export const DEFAULT_ESTIMATE_TERMS = "Work begins after acceptance.\nA deposit may be required before work starts.\nPrices exclude taxes and third-party fees unless stated otherwise."
+export const DEFAULT_ESTIMATE_NOTES = "This estimate covers the services described above and is not an invoice. Pricing may be adjusted if the scope changes or new information materially affects delivery."
 
 export interface AdminBusinessSeed {
   id: string
@@ -34,6 +44,12 @@ function asBusinessProfile(source: Partial<BusinessProfile>): BusinessProfile {
     website: source.website ?? INVOICE_ISSUER.website,
     taxNumber: source.taxNumber,
     logoUrl: source.logoUrl,
+    invoicePaymentTermsDays: source.invoicePaymentTermsDays ?? 14,
+    invoiceNotes: source.invoiceNotes ?? "",
+    invoicePaymentInstructions: source.invoicePaymentInstructions ?? "",
+    estimateTerms: source.estimateTerms ?? DEFAULT_ESTIMATE_TERMS,
+    estimatePaymentDetails: source.estimatePaymentDetails ?? "",
+    estimateNotes: source.estimateNotes ?? DEFAULT_ESTIMATE_NOTES,
   }
 }
 
@@ -45,12 +61,18 @@ async function getLegacyBusinessProfile(): Promise<Partial<BusinessProfile> | nu
 function organizationProfile(organization: Organization): BusinessProfile {
   return asBusinessProfile({
     name: organization.name,
-    email: organization.email,
-    phone: organization.phone,
-    address: organization.address,
-    website: organization.website,
+    email: organization.email ?? "",
+    phone: organization.phone ?? "",
+    address: organization.address ?? "",
+    website: organization.website ?? "",
     taxNumber: organization.taxNumber,
     logoUrl: organization.logoUrl,
+    invoicePaymentTermsDays: organization.invoicePaymentTermsDays,
+    invoiceNotes: organization.invoiceNotes,
+    invoicePaymentInstructions: organization.invoicePaymentInstructions,
+    estimateTerms: organization.estimateTerms,
+    estimatePaymentDetails: organization.estimatePaymentDetails,
+    estimateNotes: organization.estimateNotes,
   })
 }
 
@@ -59,14 +81,33 @@ function organizationProfile(organization: Organization): BusinessProfile {
  * organization is canonical; the legacy settings document is read only until
  * an admin signs in and the one-time migration completes.
  */
-export async function getBusinessProfile(): Promise<BusinessProfile> {
+async function getPublicBusinessProfile(agencyId: string): Promise<BusinessProfile | null> {
+  const response = await fetch(`/api/agency/issuer?agencyId=${encodeURIComponent(agencyId)}`, { cache: "no-store" })
+  if (!response.ok) return null
+  const data = await response.json() as { profile?: Partial<BusinessProfile> }
+  return data.profile ? asBusinessProfile(data.profile) : null
+}
+
+export async function getBusinessProfile(agencyId?: string): Promise<BusinessProfile> {
   try {
+    if (agencyId) return (await getPublicBusinessProfile(agencyId)) ?? { ...INVOICE_ISSUER }
     const owner = await getOwnerOrganization()
-    if (owner) return organizationProfile(owner)
+    if (owner) {
+      const agency = await getAgency().catch(() => null)
+      return {
+        ...organizationProfile(owner),
+        name: agency?.name || owner.name,
+        logoUrl: agency?.logoUrl || owner.logoUrl,
+      }
+    }
 
     const legacy = await getLegacyBusinessProfile()
     return legacy ? asBusinessProfile(legacy) : { ...INVOICE_ISSUER }
   } catch (error) {
+    try {
+      const publicProfile = await getPublicBusinessProfile(agencyId || await getCurrentAgencyId())
+      if (publicProfile) return publicProfile
+    } catch { /* A missing public profile keeps the existing fallback. */ }
     console.error("Error loading business profile:", error)
     return { ...INVOICE_ISSUER }
   }
@@ -138,4 +179,18 @@ export async function updateBusinessProfile(data: Partial<BusinessProfile>): Pro
   const owner = await getOwnerOrganization()
   if (!owner) throw new Error("The owner organization has not been created yet.")
   await updateOrganization(owner.id, data)
+}
+
+/** Save the agency brand and document issuer/defaults together. */
+export async function updateAgencyBusinessSettings(
+  agencyData: Partial<Pick<Agency, "name" | "logoUrl" | "primaryColor" | "accentColor" | "subdomain" | "senderEmail">>,
+  businessData: Partial<BusinessProfile>,
+): Promise<void> {
+  const [agencyId, owner] = await Promise.all([getCurrentAgencyId(), getOwnerOrganization()])
+  if (!owner) throw new Error("The agency business profile has not been created yet.")
+  const batch = writeBatch(db)
+  const updatedAt = Timestamp.now()
+  batch.set(doc(db, "agencies", agencyId), { ...agencyData, updatedAt }, { merge: true })
+  batch.set(doc(db, "organizations", owner.id), { ...businessData, agencyId, updatedAt }, { merge: true })
+  await batch.commit()
 }

@@ -8,6 +8,7 @@ import { EstimateDocument } from "@/components/dashboard/estimate-document"
 import { Skeleton } from "@/components/ui/skeleton"
 import { getEstimate, type Estimate } from "@/lib/billing"
 import { getBusinessProfile, type BusinessProfile } from "@/lib/business-profile"
+import { getOrganization } from "@/lib/organizations"
 
 export default function SharedEstimatePage() {
   const { id = "" } = useParams<{ id: string }>()
@@ -25,10 +26,13 @@ export default function SharedEstimatePage() {
         setEstimate(visible)
         if (!active) return
         setLoading(false)
+        if (!visible) return
         // The issuer header is nice-to-have on top of the estimate itself, so
         // a failure here never blocks the document from showing.
         try {
-          setIssuer(await getBusinessProfile())
+          const agencyId = visible.agencyId || (await getOrganization(visible.companyId))?.agencyId
+          const profile = await getBusinessProfile(agencyId)
+          if (active) setIssuer(profile)
         } catch {
           // Header just stays without issuer details.
         }

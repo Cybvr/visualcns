@@ -21,7 +21,15 @@ export default function PortalDocumentPage() {
   const data = usePortal()
   const { isAdmin } = useAuth()
   const [issuer, setIssuer] = useState<BusinessProfile>()
-  useEffect(() => { let active = true; getBusinessProfile().then(value => { if (active && value) setIssuer(value) }).catch(() => {}); return () => { active = false } }, [])
+  useEffect(() => {
+    setIssuer(undefined)
+    if (!data.organization.agencyId) return
+    let active = true
+    getBusinessProfile(data.organization.agencyId)
+      .then((value) => { if (active) setIssuer(value) })
+      .catch(() => {})
+    return () => { active = false }
+  }, [data.organization.agencyId])
   const invoice = kind === "invoice" ? data.invoices.find(item => item.id === id) : undefined
   const contract = kind === "contract" ? data.contracts.find(item => item.id === id) : undefined
   const estimate = kind === "estimate" ? data.estimates.find(item => item.id === id) : undefined

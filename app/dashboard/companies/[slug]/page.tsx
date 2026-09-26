@@ -39,6 +39,7 @@ export default function DashboardCompanyPage() {
     <CompanyPage
       company={{
         id: workspaceId,
+        agencyId: organization?.agencyId,
         name,
         slug: organization?.slug || workspaceId,
         logoUrl: organization?.logoUrl || client.photoURL,

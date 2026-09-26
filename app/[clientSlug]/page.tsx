@@ -26,6 +26,7 @@ function CompanyPageContent() {
       <CompanyPage
         company={{
           id: workspaceId,
+          agencyId: organization?.agencyId,
           name,
           slug: params?.clientSlug,
           logoUrl: organization?.logoUrl || client.photoURL,

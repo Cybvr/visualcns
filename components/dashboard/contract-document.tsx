@@ -36,6 +36,7 @@ export function ContractDocument({ contract, issuer = INVOICE_ISSUER }: { contra
         <div>
           <p className="font-medium text-neutral-950">{issuer.name}</p>
           <p className="mt-1">Issuer</p>
+          {issuer.address && <p className="mt-1 whitespace-pre-line">{issuer.address}</p>}
           {issuer.email && <p className="mt-1">{issuer.email}</p>}
           {issuer.phone && <p>{issuer.phone}</p>}
         </div>

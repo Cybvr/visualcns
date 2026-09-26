@@ -11,6 +11,7 @@ import { CompanyDocumentView } from "@/components/dashboard/company-document-vie
 import { CompanyEmptyState } from "@/components/company/empty-state"
 import { CompanyLinks } from "@/components/company/company-links"
 import { CompanyMedia } from "@/components/company/company-media"
+import { BrandHealthCheck } from "@/components/company/brand-health-check"
 import { CompanyDetails, type CompanyDetailsPatch } from "@/components/company/company-sidebar"
 import { CompanyProfileHeader } from "@/components/company/company-profile-header"
 import { ImageDropzone } from "@/components/image-dropzone"
@@ -65,6 +66,7 @@ const SECTIONS = [
   { key: "team", label: "Team" },
   { key: "activity", label: "Activity" },
   { key: "media", label: "Media" },
+  { key: "brand-health", label: "Brand Health" },
   { key: "documents", label: "Documents" },
 ] as const
 
@@ -185,6 +187,7 @@ export interface CompanyPagePerson {
 
 export interface CompanyPageCompany {
   id: string
+  agencyId?: string
   name: string
   slug?: string
   logoUrl?: string
@@ -286,13 +289,16 @@ export function CompanyPage({
   const [teamError, setTeamError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!isAdmin) return
-    getBusinessProfile()
-      .then(setIssuer)
+    setIssuer(null)
+    if (!isAdmin && !company.agencyId) return
+    let active = true
+    getBusinessProfile(isAdmin ? undefined : company.agencyId)
+      .then((profile) => { if (active) setIssuer(profile) })
       .catch(() => {
         // Document header just stays without issuer details.
       })
-  }, [isAdmin])
+    return () => { active = false }
+  }, [isAdmin, company.agencyId])
 
   useEffect(() => {
     let active = true
@@ -836,6 +842,10 @@ export function CompanyPage({
             /></div>
           )}
 
+          {section === "brand-health" && (
+            <BrandHealthCheck companyName={company.name} />
+          )}
+
           {section === "documents" && (
             <div className="mt-5">
               {selectedDocument ? (
@@ -876,6 +886,7 @@ export function CompanyPage({
                   {selectedDocument.kind === "document" && (
                     <CompanyDocumentView
                       document={documents.find((d) => d.id === selectedDocument.id) as CompanyDocument}
+                      issuer={issuer ?? undefined}
                     />
                   )}
                 </div>

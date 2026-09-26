@@ -28,15 +28,14 @@ export default function SharedInvoicePage() {
         const visible = record && record.status !== "draft" ? record : null
         setInvoice(visible)
         setLoading(false)
+        if (!visible) return
         // Issuer/org headers are nice-to-have on top of the invoice itself,
         // so a failure here never blocks the document from showing.
-        const [profileResult, orgResult] = await Promise.allSettled([
-          getBusinessProfile(),
-          visible ? getOrganization(visible.companyId) : Promise.resolve(null),
-        ])
+        const organization = await getOrganization(visible.companyId).catch(() => null)
+        const profile = await getBusinessProfile(visible.agencyId || organization?.agencyId)
         if (!active) return
-        if (profileResult.status === "fulfilled") setIssuer(profileResult.value)
-        if (orgResult.status === "fulfilled") setOrganization(orgResult.value)
+        setIssuer(profile)
+        if (organization) setOrganization(organization)
       })
       .catch(() => {
         if (active) {

@@ -41,6 +41,12 @@ export interface Organization {
   phone?: string
   address?: string
   taxNumber?: string
+  invoicePaymentTermsDays?: number
+  invoiceNotes?: string
+  invoicePaymentInstructions?: string
+  estimateTerms?: string
+  estimatePaymentDetails?: string
+  estimateNotes?: string
   /** The public page's URL segment, e.g. visualcns.com/pan-atlantic-university */
   slug?: string
   /**

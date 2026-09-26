@@ -41,7 +41,7 @@ import {
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { getBusinessProfile, type BusinessProfile } from "@/lib/business-profile"
+import { DEFAULT_ESTIMATE_NOTES, DEFAULT_ESTIMATE_TERMS, getBusinessProfile, type BusinessProfile } from "@/lib/business-profile"
 import { getOrganizations, type Organization } from "@/lib/organizations"
 import {
   createEstimate,
@@ -62,9 +62,6 @@ const CURRENCIES = [
   { code: "NGN", symbol: "₦" },
   { code: "GBP", symbol: "£" },
 ] as const
-
-const DEFAULT_TERMS = "Work begins after acceptance.\nA deposit may be required before work starts.\nPrices exclude taxes and third-party fees unless stated otherwise."
-const DEFAULT_DISCLAIMER = "This estimate covers the services described above and is not an invoice. Pricing may be adjusted if the scope changes or new information materially affects delivery."
 
 type EditableLine = {
   id: string
@@ -168,9 +165,9 @@ export function EstimateBuilder({ estimate, initialCompanyId }: { estimate?: Est
   const [lines, setLines] = useState<EditableLine[]>(
     estimate?.lineItems?.length ? estimate.lineItems.map(toEditableLine) : [makeLine()],
   )
-  const [terms, setTerms] = useState(estimate?.terms ?? DEFAULT_TERMS)
+  const [terms, setTerms] = useState(estimate?.terms ?? DEFAULT_ESTIMATE_TERMS)
   const [paymentDetails, setPaymentDetails] = useState(estimate?.paymentDetails ?? "")
-  const [notes, setNotes] = useState(estimate?.notes ?? DEFAULT_DISCLAIMER)
+  const [notes, setNotes] = useState(estimate?.notes ?? DEFAULT_ESTIMATE_NOTES)
   const [shareEnabled, setShareEnabled] = useState(estimate?.shareEnabled ?? false)
 
   const [clients, setClients] = useState<AppUser[]>([])
@@ -216,6 +213,11 @@ export function EstimateBuilder({ estimate, initialCompanyId }: { estimate?: Est
         setOrganizations(organizationList)
         setProjects(projectList)
         setIssuer(profile)
+        if (!isEdit) {
+          setTerms(profile.estimateTerms ?? DEFAULT_ESTIMATE_TERMS)
+          setPaymentDetails(profile.estimatePaymentDetails ?? "")
+          setNotes(profile.estimateNotes ?? DEFAULT_ESTIMATE_NOTES)
+        }
 
         const selectedCompanyId = estimate?.companyId || initialCompanyId || ""
         const selectedClient = nextClients.find((client) => client.companyId === selectedCompanyId)
