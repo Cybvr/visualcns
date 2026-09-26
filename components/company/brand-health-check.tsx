@@ -100,7 +100,7 @@ export function BrandHealthCheck({
 
   if (!reportReady) {
     return (
-      <section className="mt-5 overflow-hidden rounded-2xl border border-border bg-card">
+      <section className="mt-5 overflow-hidden rounded-2xl bg-card">
         <div className="grid gap-8 p-5 sm:p-8 lg:grid-cols-[1.2fr_0.8fr] lg:items-center">
           <div>
             <div className="flex size-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700">
@@ -150,7 +150,7 @@ export function BrandHealthCheck({
 
   return (
     <section className="mt-5 space-y-5">
-      <div className="rounded-2xl border border-border bg-card p-5 sm:p-8">
+      <div className="rounded-2xl bg-card p-5 sm:p-8">
         <div className="flex flex-wrap items-start justify-between gap-5">
           <div>
             <p className="text-sm font-medium text-muted-foreground">Brand audit report</p>
@@ -178,7 +178,7 @@ export function BrandHealthCheck({
             <p className="mt-3 text-sm text-muted-foreground">{report.areas.filter((area) => area.coverage > 0).length} of {report.areas.length} audit areas have a public signal.</p>
           </div>
 
-          <div className="min-h-56 rounded-xl border border-border p-3 sm:p-4">
+          <div className="min-h-56 rounded-xl bg-muted/20 p-3 sm:p-4">
             <ResponsiveContainer width="100%" height={220}>
               <BarChart data={report.areas} margin={{ top: 12, right: 8, left: -22, bottom: 0 }}>
                 <CartesianGrid vertical={false} stroke="hsl(var(--border))" strokeDasharray="3 3" />
@@ -192,7 +192,7 @@ export function BrandHealthCheck({
         </div>
       </div>
 
-      <div className="rounded-2xl border border-border bg-card p-5 sm:p-8">
+      <div className="rounded-2xl bg-card p-5 sm:p-8">
         <div className="flex items-end justify-between gap-4">
           <div>
             <h3 className="text-xl font-semibold tracking-[-0.02em] text-foreground">Audit areas</h3>
@@ -219,7 +219,7 @@ export function BrandHealthCheck({
         </div>
       </div>
 
-      <div className="rounded-2xl border border-border bg-muted/30 p-5 sm:p-6">
+      <div className="rounded-2xl bg-muted/30 p-5 sm:p-6">
         <p className="text-sm font-medium text-foreground">Your next move</p>
         <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">{nextMove(report.areas)}</p>
         <div className="mt-5 flex flex-wrap items-center gap-3">

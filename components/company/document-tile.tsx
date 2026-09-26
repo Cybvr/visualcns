@@ -40,7 +40,7 @@ export function DocTile({
 }) {
   const BadgeIcon = Icon ?? File
   const className =
-    "group flex h-full flex-row items-center overflow-hidden rounded-xl border border-border/60 bg-card text-left outline-none transition-colors hover:border-foreground/30 hover:shadow-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 sm:flex-col sm:items-stretch"
+    "group flex h-full flex-row items-center overflow-hidden rounded-xl bg-card text-left outline-none transition-colors hover:bg-muted/30 hover:shadow-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 sm:flex-col sm:items-stretch"
 
   const inner = (
     <>
