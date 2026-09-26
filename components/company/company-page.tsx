@@ -11,7 +11,7 @@ import { CompanyDocumentView } from "@/components/dashboard/company-document-vie
 import { CompanyEmptyState } from "@/components/company/empty-state"
 import { CompanyLinks } from "@/components/company/company-links"
 import { CompanyMedia } from "@/components/company/company-media"
-import { BrandHealthCheck } from "@/components/company/brand-health-check"
+import { BusinessHealth } from "@/components/company/business-health"
 import { CompanyDetails, type CompanyDetailsPatch } from "@/components/company/company-sidebar"
 import { CompanyProfileHeader } from "@/components/company/company-profile-header"
 import { ImageDropzone } from "@/components/image-dropzone"
@@ -839,12 +839,9 @@ export function CompanyPage({
           )}
 
           {section === "brand-health" && (
-            <BrandHealthCheck
+            <BusinessHealth
               companyName={company.name}
-              description={company.description}
               website={company.website}
-              linkedIn={company.linkedIn}
-              links={company.links}
             />
           )}
 

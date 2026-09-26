@@ -28,7 +28,6 @@ import type { LucideIcon } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import type { CompanyLink } from "@/lib/organizations"
 
 // Prototype data. Firecrawl crawls and research will feed these shapes once the backend exists.
 
@@ -36,6 +35,7 @@ type Level = "high" | "medium" | "low"
 type Item = {
   id: string
   icon: LucideIcon
+  tone?: Hue
   title: string
   detail: string
   meta?: string
@@ -54,41 +54,41 @@ const LEVEL_BADGE: Record<Level, Item["badge"]> = {
 
 function sampleData(name: string, site: string) {
   const attention: Item[] = [
-    { id: "i1", icon: FileText, title: "Unclear positioning", detail: `The homepage doesn't say clearly what ${name} does or who it's for.`, badge: LEVEL_BADGE.high, more: `Headline reads "Excellence, delivered". Competitors lead with the service and city.`, source: site },
-    { id: "i2", icon: Search, title: "SEO improvements needed", detail: "4 pages have missing descriptions and 6 key searches aren't targeted.", badge: LEVEL_BADGE.medium, more: "Service pages share one title, so search results look identical.", source: `${site}/services` },
-    { id: "i3", icon: Link2, title: "Broken internal links", detail: "6 links are broken or redirect to the wrong page.", badge: LEVEL_BADGE.medium, more: "Mostly old blog posts pointing at removed service pages.", source: site },
-    { id: "i4", icon: Star, title: "Two unanswered reviews", detail: "Both mention slow replies.", badge: LEVEL_BADGE.medium, more: "Replying publicly softens the impact for new visitors.", source: "Google Business Profile" },
-    { id: "i5", icon: AlertCircle, title: "Slow on mobile", detail: "Homepage takes 6.8s to load on phones.", badge: LEVEL_BADGE.low, more: "Large uncompressed hero images.", source: site },
+    { id: "i1", icon: FileText, tone: "red", title: "Unclear positioning", detail: `The homepage doesn't say clearly what ${name} does or who it's for.`, badge: LEVEL_BADGE.high, more: `Headline reads "Excellence, delivered". Competitors lead with the service and city.`, source: site },
+    { id: "i2", icon: Search, tone: "red", title: "SEO improvements needed", detail: "4 pages have missing descriptions and 6 key searches aren't targeted.", badge: LEVEL_BADGE.medium, more: "Service pages share one title, so search results look identical.", source: `${site}/services` },
+    { id: "i3", icon: Link2, tone: "red", title: "Broken internal links", detail: "6 links are broken or redirect to the wrong page.", badge: LEVEL_BADGE.medium, more: "Mostly old blog posts pointing at removed service pages.", source: site },
+    { id: "i4", icon: Star, tone: "red", title: "Two unanswered reviews", detail: "Both mention slow replies.", badge: LEVEL_BADGE.medium, more: "Replying publicly softens the impact for new visitors.", source: "Google Business Profile" },
+    { id: "i5", icon: AlertCircle, tone: "red", title: "Slow on mobile", detail: "Homepage takes 6.8s to load on phones.", badge: LEVEL_BADGE.low, more: "Large uncompressed hero images.", source: site },
   ]
 
   const opportunities: Item[] = [
-    { id: "o1", icon: Handshake, title: "Potential partners", detail: "5 companies offering related services could be good referral partners.", badge: { label: "New", tone: "good" }, more: "Includes a new co-working space in Lekki listing preferred partners.", source: "LinkedIn, company sites" },
-    { id: "o2", icon: Calendar, title: "Relevant industry events", detail: "3 upcoming events in your target markets with speaker or exhibitor slots.", badge: LEVEL_BADGE.high, more: "West Africa Business Expo, Lagos, in 42 days is the strongest fit.", source: "Event listings" },
-    { id: "o3", icon: FileText, title: "Content opportunities", detail: "10 topics your audience searches for that no local competitor answers well.", badge: LEVEL_BADGE.high, more: `Top gap: "How to choose a…" guides, searched every month.`, source: "Search trends" },
-    { id: "o4", icon: Gavel, title: "Open tender", detail: "A state agency is looking for brand and campaign services.", badge: LEVEL_BADGE.high, meta: "Closes in 12 days", more: "Your services match 4 of 5 requirements.", source: "Procurement portal" },
-    { id: "o5", icon: TrendingUp, title: "SME digital growth grant", detail: "Up to ₦5m for small businesses investing in digital tools.", badge: LEVEL_BADGE.medium, meta: "Next review in 3 weeks", more: "You appear to meet the size and sector rules.", source: "Development bank site" },
+    { id: "o1", icon: Handshake, tone: "green", title: "Potential partners", detail: "5 companies offering related services could be good referral partners.", badge: { label: "New", tone: "good" }, more: "Includes a new co-working space in Lekki listing preferred partners.", source: "LinkedIn, company sites" },
+    { id: "o2", icon: Calendar, tone: "purple", title: "Relevant industry events", detail: "3 upcoming events in your target markets with speaker or exhibitor slots.", badge: LEVEL_BADGE.high, more: "West Africa Business Expo, Lagos, in 42 days is the strongest fit.", source: "Event listings" },
+    { id: "o3", icon: FileText, tone: "amber", title: "Content opportunities", detail: "10 topics your audience searches for that no local competitor answers well.", badge: LEVEL_BADGE.high, more: `Top gap: "How to choose a…" guides, searched every month.`, source: "Search trends" },
+    { id: "o4", icon: Gavel, tone: "green", title: "Open tender", detail: "A state agency is looking for brand and campaign services.", badge: LEVEL_BADGE.high, meta: "Closes in 12 days", more: "Your services match 4 of 5 requirements.", source: "Procurement portal" },
+    { id: "o5", icon: TrendingUp, tone: "amber", title: "SME digital growth grant", detail: "Up to ₦5m for small businesses investing in digital tools.", badge: LEVEL_BADGE.medium, meta: "Next review in 3 weeks", more: "You appear to meet the size and sector rules.", source: "Development bank site" },
   ]
 
   const market: Item[] = [
-    { id: "m1", icon: BarChart3, title: "2 competitors launched new packages", detail: "Fixed-price monthly plans, listed on their pricing pages.", meta: "1 day ago", source: "Competitor sites" },
-    { id: "m2", icon: Megaphone, title: "Growing demand in Abuja", detail: "Searches for your core service are up 38% in 3 months.", meta: "3 days ago", source: "Search trends" },
-    { id: "m3", icon: PenLine, title: "Competitor B repositioned toward SMEs", detail: "Rewrote homepage and about page to target your audience.", meta: "1 week ago", source: "Competitor site" },
-    { id: "m4", icon: AlertCircle, title: "New consent rules for marketing emails", detail: "Consent records required from next month.", meta: "2 weeks ago", source: "Industry news" },
+    { id: "m1", icon: BarChart3, tone: "blue", title: "2 competitors launched new packages", detail: "Fixed-price monthly plans, listed on their pricing pages.", meta: "1 day ago", source: "Competitor sites" },
+    { id: "m2", icon: Megaphone, tone: "blue", title: "Growing demand in Abuja", detail: "Searches for your core service are up 38% in 3 months.", meta: "3 days ago", source: "Search trends" },
+    { id: "m3", icon: PenLine, tone: "blue", title: "Competitor B repositioned toward SMEs", detail: "Rewrote homepage and about page to target your audience.", meta: "1 week ago", source: "Competitor site" },
+    { id: "m4", icon: AlertCircle, tone: "blue", title: "New consent rules for marketing emails", detail: "Consent records required from next month.", meta: "2 weeks ago", source: "Industry news" },
   ]
 
   const online: Item[] = [
-    { id: "p1", icon: Globe, title: "Website health", detail: "Technical issues: 2 · Pages scanned: 124", badge: { label: "Good", tone: "good" }, more: "Clear layout. Light on proof like case studies." },
-    { id: "p2", icon: Search, title: "Discoverability", detail: "SEO score: 62/100 · 4 missing descriptions", badge: { label: "Needs work", tone: "warn" }, more: `Ranks for "${name}" but not for any service + city searches.` },
-    { id: "p3", icon: PenLine, title: "Messaging", detail: "Headline and about page are generic", badge: { label: "Weak", tone: "bad" }, more: "Hard to tell who you're for within 5 seconds." },
-    { id: "p4", icon: FileText, title: "Products & services", detail: "All services listed · no prices or packages", badge: { label: "Good", tone: "good" }, more: "Competitors now show fixed prices." },
-    { id: "p5", icon: Megaphone, title: "Content", detail: "Blog last updated 5 months ago", badge: { label: "Needs work", tone: "warn" }, more: "Social posts steady, low engagement." },
+    { id: "p1", icon: Globe, tone: "blue", title: "Website health", detail: "Technical issues: 2 · Pages scanned: 124", badge: { label: "Good", tone: "good" }, more: "Clear layout. Light on proof like case studies." },
+    { id: "p2", icon: Search, tone: "blue", title: "Discoverability", detail: "SEO score: 62/100 · 4 missing descriptions", badge: { label: "Needs work", tone: "warn" }, more: `Ranks for "${name}" but not for any service + city searches.` },
+    { id: "p3", icon: PenLine, tone: "blue", title: "Messaging", detail: "Headline and about page are generic", badge: { label: "Weak", tone: "bad" }, more: "Hard to tell who you're for within 5 seconds." },
+    { id: "p4", icon: FileText, tone: "blue", title: "Products & services", detail: "All services listed · no prices or packages", badge: { label: "Good", tone: "good" }, more: "Competitors now show fixed prices." },
+    { id: "p5", icon: Megaphone, tone: "blue", title: "Content", detail: "Blog last updated 5 months ago", badge: { label: "Needs work", tone: "warn" }, more: "Social posts steady, low engagement." },
   ]
 
   const changes: Item[] = [
-    { id: "c1", icon: FilePlus, title: "2 new pages found on your website", detail: "Team page and a new case study.", meta: "2 hours ago" },
-    { id: "c2", icon: PenLine, title: "Homepage content updated", detail: "New hero images added. Mobile load time went from 4.1s to 6.8s.", meta: "1 day ago" },
-    { id: "c3", icon: BarChart3, title: "Competitor B rewrote their homepage", detail: "New headline and services order.", meta: "3 days ago" },
-    { id: "c4", icon: Gavel, title: "2 new tenders in your category", detail: "One is a strong fit.", meta: "4 days ago" },
+    { id: "c1", icon: FilePlus, tone: "green", title: "2 new pages found on your website", detail: "Team page and a new case study.", meta: "2 hours ago" },
+    { id: "c2", icon: PenLine, tone: "purple", title: "Homepage content updated", detail: "New hero images added. Mobile load time went from 4.1s to 6.8s.", meta: "1 day ago" },
+    { id: "c3", icon: BarChart3, tone: "blue", title: "Competitor B rewrote their homepage", detail: "New headline and services order.", meta: "3 days ago" },
+    { id: "c4", icon: Gavel, tone: "green", title: "2 new tenders in your category", detail: "One is a strong fit.", meta: "4 days ago" },
   ]
 
   const actions: Action[] = [
@@ -116,6 +116,17 @@ function sampleAnswer(question: string, name: string, site: string): Answer {
   }
 }
 
+type Hue = "red" | "green" | "blue" | "purple" | "amber"
+
+// Soft tints for icons and tiles, taken from the Business Health mock.
+const HUE: Record<Hue, { box: string; icon: string; tile: string }> = {
+  red: { box: "bg-red-100 dark:bg-red-950/50", icon: "text-red-500 dark:text-red-400", tile: "bg-red-50 border-red-100 dark:bg-red-950/30 dark:border-red-900/40" },
+  green: { box: "bg-emerald-100 dark:bg-emerald-950/50", icon: "text-emerald-600 dark:text-emerald-400", tile: "bg-emerald-50 border-emerald-100 dark:bg-emerald-950/30 dark:border-emerald-900/40" },
+  blue: { box: "bg-blue-100 dark:bg-blue-950/50", icon: "text-blue-600 dark:text-blue-400", tile: "bg-blue-50 border-blue-100 dark:bg-blue-950/30 dark:border-blue-900/40" },
+  purple: { box: "bg-violet-100 dark:bg-violet-950/50", icon: "text-violet-600 dark:text-violet-400", tile: "bg-violet-50 border-violet-100 dark:bg-violet-950/30 dark:border-violet-900/40" },
+  amber: { box: "bg-amber-100 dark:bg-amber-950/50", icon: "text-amber-600 dark:text-amber-400", tile: "bg-amber-50 border-amber-100 dark:bg-amber-950/30 dark:border-amber-900/40" },
+}
+
 const TONE: Record<NonNullable<Item["badge"]>["tone"], string> = {
   bad: "bg-red-500/10 text-red-700 dark:text-red-400",
   warn: "bg-amber-500/10 text-amber-700 dark:text-amber-400",
@@ -131,10 +142,10 @@ function Badge({ badge }: { badge: NonNullable<Item["badge"]> }) {
   )
 }
 
-function IconBox({ icon: Icon, className }: { icon: LucideIcon; className?: string }) {
+function IconBox({ icon: Icon, tone, className }: { icon: LucideIcon; tone?: Hue; className?: string }) {
   return (
-    <span className={cn("flex size-10 shrink-0 items-center justify-center rounded-xl bg-muted text-foreground", className)}>
-      <Icon className="size-5" aria-hidden="true" />
+    <span className={cn("flex size-10 shrink-0 items-center justify-center rounded-xl", tone ? HUE[tone].box : "bg-muted", className)}>
+      <Icon className={cn("size-5", tone ? HUE[tone].icon : "text-foreground")} aria-hidden="true" />
     </span>
   )
 }
@@ -149,7 +160,7 @@ function Row({ item, open, onToggle, onDismiss }: { item: Item; open: boolean; o
         aria-expanded={open}
         className="flex w-full items-start gap-3 rounded-xl p-2 text-left transition-colors hover:bg-muted/50 sm:p-3"
       >
-        <IconBox icon={item.icon} />
+        <IconBox icon={item.icon} tone={item.tone} />
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-2">
             <p className="font-medium text-foreground">{item.title}</p>
@@ -221,7 +232,13 @@ function ScoreRing({ score }: { score: number }) {
   return (
     <div className="relative size-24 shrink-0 sm:size-32" role="img" aria-label={`Health score ${score} out of 100`}>
       <svg viewBox="0 0 100 100" className="size-full -rotate-90">
-        <circle cx="50" cy="50" r={r} fill="none" strokeWidth="8" className="stroke-muted" />
+        <defs>
+          <linearGradient id="bh-ring" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#34d399" />
+            <stop offset="100%" stopColor="#10b981" />
+          </linearGradient>
+        </defs>
+        <circle cx="50" cy="50" r={r} fill="none" strokeWidth="8" className="stroke-emerald-500/15" />
         <circle
           cx="50"
           cy="50"
@@ -231,7 +248,8 @@ function ScoreRing({ score }: { score: number }) {
           strokeLinecap="round"
           strokeDasharray={c}
           strokeDashoffset={c * (1 - score / 100)}
-          className="stroke-foreground transition-[stroke-dashoffset] duration-700"
+          stroke="url(#bh-ring)"
+          className="transition-[stroke-dashoffset] duration-700"
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
@@ -251,15 +269,12 @@ function domainOf(url?: string) {
   }
 }
 
-export function BrandHealthCheck({
+export function BusinessHealth({
   companyName,
   website,
 }: {
   companyName: string
-  description?: string
   website?: string
-  linkedIn?: string
-  links?: CompanyLink[]
 }) {
   const site = domainOf(website) || "your website"
   const data = useMemo(() => sampleData(companyName, site), [companyName, site])
@@ -323,11 +338,11 @@ export function BrandHealthCheck({
   const openActions = data.actions.filter((action) => !done.has(action.id)).length
   const found = attention.length + opportunities.length
 
-  const stats: { id: string; icon: LucideIcon; value: number; label: string }[] = [
-    { id: "attention", icon: AlertCircle, value: attention.length, label: "Needs attention" },
-    { id: "opportunities", icon: TrendingUp, value: opportunities.length, label: "Opportunities" },
-    { id: "market", icon: BarChart3, value: data.market.length, label: "Market & competitors" },
-    { id: "online", icon: Globe, value: data.online.length, label: "Your business online" },
+  const stats: { id: string; icon: LucideIcon; tone: Hue; value: number; label: string }[] = [
+    { id: "attention", tone: "red", icon: AlertCircle, value: attention.length, label: "Needs attention" },
+    { id: "opportunities", tone: "green", icon: TrendingUp, value: opportunities.length, label: "Opportunities" },
+    { id: "market", tone: "blue", icon: BarChart3, value: data.market.length, label: "Market & competitors" },
+    { id: "online", tone: "purple", icon: Globe, value: data.online.length, label: "Your business online" },
   ]
 
   function jump(id: string) {
@@ -337,7 +352,7 @@ export function BrandHealthCheck({
   return (
     <section className="mt-5 space-y-3 sm:space-y-4">
       {/* Hero: what this is, the score, and when it last looked. */}
-      <div className="rounded-2xl border border-border bg-muted/40 p-4 sm:p-6">
+      <div className="rounded-2xl border border-rose-100 bg-gradient-to-br from-rose-50 via-orange-50 to-emerald-50 p-4 sm:p-6 dark:border-border dark:from-rose-950/30 dark:via-orange-950/20 dark:to-emerald-950/30">
         <div className="flex items-start gap-4">
           <div className="min-w-0 flex-1">
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Business health</p>
@@ -362,14 +377,14 @@ export function BrandHealthCheck({
       </div>
 
       {/* Briefing: opens to the summary and prioritised actions. */}
-      <div className="rounded-2xl border border-border bg-background">
+      <div className="rounded-2xl border border-blue-100 bg-gradient-to-r from-blue-50 to-violet-50 dark:border-blue-900/40 dark:from-blue-950/30 dark:to-violet-950/30">
         <button
           type="button"
           onClick={() => setBriefOpen((open) => !open)}
           aria-expanded={briefOpen}
           className="flex w-full items-center gap-3 p-4 text-left"
         >
-          <IconBox icon={Sparkles} />
+          <IconBox icon={Sparkles} tone="blue" className="bg-background dark:bg-background" />
           <div className="min-w-0 flex-1">
             <p className="font-semibold text-foreground">Here&apos;s what I found</p>
             <p className="text-sm text-muted-foreground">
@@ -379,7 +394,7 @@ export function BrandHealthCheck({
           <ChevronRight className={cn("size-5 shrink-0 text-muted-foreground transition-transform", briefOpen && "rotate-90")} aria-hidden="true" />
         </button>
         {briefOpen && (
-          <div className="border-t border-border p-4">
+          <div className="border-t border-blue-100 p-4 dark:border-blue-900/40">
             <p className="max-w-3xl text-[15px] leading-7 text-foreground">{data.summary}</p>
             <p className="mt-5 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
               Recommended actions · {done.size} of {data.actions.length} done
@@ -448,9 +463,9 @@ export function BrandHealthCheck({
             key={stat.id}
             type="button"
             onClick={() => jump(stat.id)}
-            className="flex items-start gap-2.5 rounded-2xl border border-border bg-background p-3 text-left transition-colors hover:bg-muted/50 sm:p-4"
+            className={cn("flex items-start gap-2.5 rounded-2xl border p-3 text-left transition-opacity hover:opacity-80 sm:p-4", HUE[stat.tone].tile)}
           >
-            <stat.icon className="mt-1 size-5 shrink-0 text-foreground" aria-hidden="true" />
+            <stat.icon className={cn("mt-1 size-5 shrink-0", HUE[stat.tone].icon)} aria-hidden="true" />
             <div className="min-w-0 flex-1">
               <p className="text-2xl font-semibold leading-tight text-foreground">{stat.value}</p>
               <p className="text-sm leading-5 text-muted-foreground">{stat.label}</p>
@@ -502,7 +517,7 @@ export function BrandHealthCheck({
                     className="flex-1 text-left"
                   >
                     <div className="flex items-center justify-between gap-2">
-                      <item.icon className="size-6 text-foreground" aria-hidden="true" />
+                      <IconBox icon={item.icon} tone={item.tone} className="size-9" />
                       <div className="flex items-center gap-1">
                         {item.badge && <Badge badge={item.badge} />}
                         <ChevronRight className={cn("size-4 text-muted-foreground transition-transform", open && "rotate-90")} aria-hidden="true" />
@@ -612,7 +627,7 @@ export function BrandHealthCheck({
           }}
           className="flex items-center gap-2 rounded-xl border border-border bg-muted/30 py-1.5 pl-3 pr-1.5"
         >
-          <Sparkles className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+          <Sparkles className="size-4 shrink-0 text-primary" aria-hidden="true" />
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
