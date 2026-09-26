@@ -845,6 +845,7 @@ export function CompanyPage({
           {section === "brand-health" && (
             <BrandHealthCheck
               companyName={company.name}
+              description={company.description}
               website={company.website}
               linkedIn={company.linkedIn}
               links={company.links}
