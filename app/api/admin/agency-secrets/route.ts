@@ -4,7 +4,7 @@ import { adminServices } from "@/lib/firebase-admin"
 import { getAgencySecret, setAgencySecret } from "@/lib/server/agency-secrets"
 
 export const runtime = "nodejs"
-const ALLOWED = ["OPENAI_API_KEY", "RESEND_API_KEY", "EMAIL_FROM", "EMAIL_REPLY_TO"] as const
+const ALLOWED = ["OPENAI_API_KEY", "FIRECRAWL_API_KEY", "RESEND_API_KEY", "EMAIL_FROM", "EMAIL_REPLY_TO"] as const
 
 async function authorize(request: NextRequest) {
   const token = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "")
@@ -19,7 +19,7 @@ async function authorize(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     const { agencyId } = await authorize(request)
-    const values = await Promise.all(ALLOWED.map(async (name) => [name, Boolean(await getAgencySecret(agencyId, name, name === "OPENAI_API_KEY" ? process.env.OPENAI_API_KEY : name === "RESEND_API_KEY" ? process.env.RESEND_API_KEY : name === "EMAIL_FROM" ? process.env.EMAIL_FROM : process.env.EMAIL_REPLY_TO))] as const))
+    const values = await Promise.all(ALLOWED.map(async (name) => [name, Boolean(await getAgencySecret(agencyId, name, name === "OPENAI_API_KEY" ? process.env.OPENAI_API_KEY : name === "FIRECRAWL_API_KEY" ? process.env.FIRECRAWL_API_KEY : name === "RESEND_API_KEY" ? process.env.RESEND_API_KEY : name === "EMAIL_FROM" ? process.env.EMAIL_FROM : process.env.EMAIL_REPLY_TO))] as const))
     return NextResponse.json({ secrets: Object.fromEntries(values) })
   } catch (error) { return NextResponse.json({ error: error instanceof Error ? error.message : "Unauthorized" }, { status: 403 }) }
 }

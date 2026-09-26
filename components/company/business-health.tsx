@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   AlertCircle,
   ArrowUp,
@@ -30,23 +30,13 @@ import type { LucideIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { ANALYSE_AREAS, BusinessHealthIntro, type BusinessDetails } from "@/components/company/business-health-intro"
+import { useAuth } from "@/components/auth-provider"
+import type { BHAction, BHAnswer, BHIcon, BHItem, BHLevel, BHReport, BHState } from "@/lib/business-health"
 
-// Prototype data. Firecrawl crawls and research will feed these shapes once the backend exists.
-
-type Level = "high" | "medium" | "low"
-type Item = {
-  id: string
-  icon: LucideIcon
-  tone?: Hue
-  title: string
-  detail: string
-  meta?: string
-  badge?: { label: string; tone: "bad" | "warn" | "good" | "plain" }
-  /** Shown when the row is opened: why it matters, where it came from. */
-  more?: string
-  source?: string
-}
-type Action = { id: string; priority: Level; title: string; why: string; evidence: string; steps: string[] }
+type Level = BHLevel
+type Item = Omit<BHItem, "icon"> & { icon: LucideIcon }
+type Action = BHAction
+type Answer = BHAnswer
 
 const LEVEL_BADGE: Record<Level, Item["badge"]> = {
   high: { label: "High", tone: "bad" },
@@ -54,68 +44,56 @@ const LEVEL_BADGE: Record<Level, Item["badge"]> = {
   low: { label: "Low", tone: "plain" },
 }
 
-function sampleData(name: string, site: string) {
-  const attention: Item[] = [
-    { id: "i1", icon: FileText, tone: "red", title: "Unclear positioning", detail: `The homepage doesn't say clearly what ${name} does or who it's for.`, badge: LEVEL_BADGE.high, more: `Headline reads "Excellence, delivered". Competitors lead with the service and city.`, source: site },
-    { id: "i2", icon: Search, tone: "red", title: "SEO improvements needed", detail: "4 pages have missing descriptions and 6 key searches aren't targeted.", badge: LEVEL_BADGE.medium, more: "Service pages share one title, so search results look identical.", source: `${site}/services` },
-    { id: "i3", icon: Link2, tone: "red", title: "Broken internal links", detail: "6 links are broken or redirect to the wrong page.", badge: LEVEL_BADGE.medium, more: "Mostly old blog posts pointing at removed service pages.", source: site },
-    { id: "i4", icon: Star, tone: "red", title: "Two unanswered reviews", detail: "Both mention slow replies.", badge: LEVEL_BADGE.medium, more: "Replying publicly softens the impact for new visitors.", source: "Google Business Profile" },
-    { id: "i5", icon: AlertCircle, tone: "red", title: "Slow on mobile", detail: "Homepage takes 6.8s to load on phones.", badge: LEVEL_BADGE.low, more: "Large uncompressed hero images.", source: site },
-  ]
-
-  const opportunities: Item[] = [
-    { id: "o1", icon: Handshake, tone: "green", title: "Potential partners", detail: "5 companies offering related services could be good referral partners.", badge: { label: "New", tone: "good" }, more: "Includes a new co-working space in Lekki listing preferred partners.", source: "LinkedIn, company sites" },
-    { id: "o2", icon: Calendar, tone: "purple", title: "Relevant industry events", detail: "3 upcoming events in your target markets with speaker or exhibitor slots.", badge: LEVEL_BADGE.high, more: "West Africa Business Expo, Lagos, in 42 days is the strongest fit.", source: "Event listings" },
-    { id: "o3", icon: FileText, tone: "amber", title: "Content opportunities", detail: "10 topics your audience searches for that no local competitor answers well.", badge: LEVEL_BADGE.high, more: `Top gap: "How to choose a…" guides, searched every month.`, source: "Search trends" },
-    { id: "o4", icon: Gavel, tone: "green", title: "Open tender", detail: "A state agency is looking for brand and campaign services.", badge: LEVEL_BADGE.high, meta: "Closes in 12 days", more: "Your services match 4 of 5 requirements.", source: "Procurement portal" },
-    { id: "o5", icon: TrendingUp, tone: "amber", title: "SME digital growth grant", detail: "Up to ₦5m for small businesses investing in digital tools.", badge: LEVEL_BADGE.medium, meta: "Next review in 3 weeks", more: "You appear to meet the size and sector rules.", source: "Development bank site" },
-  ]
-
-  const market: Item[] = [
-    { id: "m1", icon: BarChart3, tone: "blue", title: "2 competitors launched new packages", detail: "Fixed-price monthly plans, listed on their pricing pages.", meta: "1 day ago", source: "Competitor sites" },
-    { id: "m2", icon: Megaphone, tone: "blue", title: "Growing demand in Abuja", detail: "Searches for your core service are up 38% in 3 months.", meta: "3 days ago", source: "Search trends" },
-    { id: "m3", icon: PenLine, tone: "blue", title: "Competitor B repositioned toward SMEs", detail: "Rewrote homepage and about page to target your audience.", meta: "1 week ago", source: "Competitor site" },
-    { id: "m4", icon: AlertCircle, tone: "blue", title: "New consent rules for marketing emails", detail: "Consent records required from next month.", meta: "2 weeks ago", source: "Industry news" },
-  ]
-
-  const online: Item[] = [
-    { id: "p1", icon: Globe, tone: "blue", title: "Website health", detail: "Technical issues: 2 · Pages scanned: 124", badge: { label: "Good", tone: "good" }, more: "Clear layout. Light on proof like case studies." },
-    { id: "p2", icon: Search, tone: "blue", title: "Discoverability", detail: "SEO score: 62/100 · 4 missing descriptions", badge: { label: "Needs work", tone: "warn" }, more: `Ranks for "${name}" but not for any service + city searches.` },
-    { id: "p3", icon: PenLine, tone: "blue", title: "Messaging", detail: "Headline and about page are generic", badge: { label: "Weak", tone: "bad" }, more: "Hard to tell who you're for within 5 seconds." },
-    { id: "p4", icon: FileText, tone: "blue", title: "Products & services", detail: "All services listed · no prices or packages", badge: { label: "Good", tone: "good" }, more: "Competitors now show fixed prices." },
-    { id: "p5", icon: Megaphone, tone: "blue", title: "Content", detail: "Blog last updated 5 months ago", badge: { label: "Needs work", tone: "warn" }, more: "Social posts steady, low engagement." },
-  ]
-
-  const changes: Item[] = [
-    { id: "c1", icon: FilePlus, tone: "green", title: "2 new pages found on your website", detail: "Team page and a new case study.", meta: "2 hours ago" },
-    { id: "c2", icon: PenLine, tone: "purple", title: "Homepage content updated", detail: "New hero images added. Mobile load time went from 4.1s to 6.8s.", meta: "1 day ago" },
-    { id: "c3", icon: BarChart3, tone: "blue", title: "Competitor B rewrote their homepage", detail: "New headline and services order.", meta: "3 days ago" },
-    { id: "c4", icon: Gavel, tone: "green", title: "2 new tenders in your category", detail: "One is a strong fit.", meta: "4 days ago" },
-  ]
-
-  const actions: Action[] = [
-    { id: "a1", priority: "high", title: "Apply for the state agency tender", why: "Strong match and it closes soon.", evidence: "Closes in 12 days. Your services match 4 of 5 requirements.", steps: ["Download tender pack", "Pick 2 relevant case studies", "Assign someone to write the bid"] },
-    { id: "a2", priority: "high", title: "Rewrite the homepage headline", why: "Competitor B is now targeting your customers with clearer words.", evidence: "Generic headline. Competitor repositioned 1 week ago.", steps: ["Say what you do and for whom", "Add city or region", "Add one proof point"] },
-    { id: "a3", priority: "medium", title: "Fix service page titles and descriptions", why: "Quick win for showing up in search.", evidence: "4 of 6 service pages share one title.", steps: ["Write one title per service", "Add a short description for each", "Resubmit sitemap"] },
-    { id: "a4", priority: "medium", title: "Fix the 6 broken links", why: "Broken links hurt trust and search ranking.", evidence: "Found in old blog posts.", steps: ["Point links to current pages", "Redirect removed pages"] },
-    { id: "a5", priority: "low", title: "Reply to recent reviews", why: "Shows you respond, which is the exact complaint.", evidence: "2 reviews unanswered.", steps: ["Thank the reviewer", "Address the delay briefly"] },
-  ]
-
-  const summary = `${name} is steady but losing ground online. Your message is less clear than competitors who are moving toward your customers, and a few quick SEO fixes would help you get found. Two strong openings right now: a tender closing in 12 days and a large expo in 6 weeks.`
-
-  return { score: 78, pages: 124, summary, attention, opportunities, market, online, changes, actions }
+const ICON: Record<BHIcon, LucideIcon> = {
+  positioning: FileText,
+  seo: Search,
+  technical: Link2,
+  reputation: Star,
+  content: FileText,
+  market: BarChart3,
+  partner: Handshake,
+  event: Calendar,
+  tender: Gavel,
+  grant: TrendingUp,
+  competitor: BarChart3,
+  trend: TrendingUp,
+  news: Megaphone,
+  launch: Megaphone,
+  website: Globe,
+  messaging: PenLine,
+  offer: FileText,
+  page: FilePlus,
+  change: PenLine,
 }
+
+const toItem = (item: BHItem): Item => ({ ...item, icon: ICON[item.icon] ?? FileText })
 
 const ASK_SUGGESTIONS = ["Analyse my competitors", "Find relevant grants", "Show upcoming events", "Check my SEO"]
 
-type Answer = { question: string; text: string; sources: string[] }
+function timeAgo(iso: string) {
+  const minutes = Math.round((Date.now() - new Date(iso).getTime()) / 60000)
+  if (!Number.isFinite(minutes) || minutes < 1) return "just now"
+  if (minutes < 60) return `${minutes} minute${minutes === 1 ? "" : "s"} ago`
+  const hours = Math.round(minutes / 60)
+  if (hours < 24) return `${hours} hour${hours === 1 ? "" : "s"} ago`
+  const days = Math.round(hours / 24)
+  return `${days} day${days === 1 ? "" : "s"} ago`
+}
 
-function sampleAnswer(question: string, name: string, site: string): Answer {
-  return {
-    question,
-    text: `Here's what stands out for ${name}. The biggest gap is how you're found: competitors rank for service + city searches and you don't. Fixing page titles and publishing one strong guide would close most of it within a few months. Two competitors also changed their offer this month — one now lists fixed prices, which makes comparing easy for buyers.`,
-    sources: [site, "Competitor pricing pages", "Search trends"],
-  }
+function Source({ source }: { source: string }) {
+  const isUrl = /^https?:\/\//.test(source)
+  return (
+    <p className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
+      Source:{" "}
+      {isUrl ? (
+        <a href={source} target="_blank" rel="noreferrer" className="underline-offset-2 hover:text-foreground hover:underline">
+          {source.replace(/^https?:\/\/(www\.)?/, "")}
+        </a>
+      ) : (
+        source
+      )}
+    </p>
+  )
 }
 
 type Hue = "red" | "green" | "blue" | "purple" | "amber"
@@ -177,7 +155,7 @@ function Row({ item, open, onToggle, onDismiss }: { item: Item; open: boolean; o
         <div className="mb-2 ml-[3.25rem] mr-2 rounded-xl bg-muted/50 p-3 text-sm sm:ml-[3.75rem]">
           {item.more && <p className="text-foreground">{item.more}</p>}
           <div className="mt-2 flex items-center gap-2">
-            {item.source && <p className="min-w-0 flex-1 truncate text-xs text-muted-foreground">Source: {item.source}</p>}
+            {item.source && <Source source={item.source} />}
             {onDismiss && (
               <Button type="button" variant="ghost" size="sm" className="ml-auto h-7" onClick={onDismiss}>
                 <X className="size-3.5" aria-hidden="true" />
@@ -262,13 +240,13 @@ function ScoreRing({ score }: { score: number }) {
   )
 }
 
-function domainOf(url?: string) {
-  if (!url) return ""
-  try {
-    return new URL(url.startsWith("http") ? url : `https://${url}`).hostname.replace(/^www\./, "")
-  } catch {
-    return url
-  }
+function ErrorNote({ message }: { message: string }) {
+  return (
+    <p role="alert" className="mt-5 flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-300">
+      <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+      {message}
+    </p>
+  )
 }
 
 export function BusinessHealth({
@@ -281,12 +259,14 @@ export function BusinessHealth({
   onSave?: (patch: Partial<BusinessDetails>) => Promise<void>
 }) {
   const companyName = details.name
-  const website = details.website
-  const site = domainOf(website) || "your website"
-  const data = useMemo(() => sampleData(companyName, site), [companyName, site])
+  const { user } = useAuth()
 
+  const [report, setReport] = useState<BHReport | null>(null)
+  const [loading, setLoading] = useState(true)
   const [scanning, setScanning] = useState(false)
-  const [lastScan, setLastScan] = useState("2 hours ago")
+  const [error, setError] = useState("")
+  const [view, setView] = useState<"intro" | "dashboard">("intro")
+  const [step, setStep] = useState(0)
   const [briefOpen, setBriefOpen] = useState(false)
   const [done, setDone] = useState<Set<string>>(new Set())
   const [openRow, setOpenRow] = useState<string | null>(null)
@@ -296,63 +276,82 @@ export function BusinessHealth({
   const [query, setQuery] = useState("")
   const [asking, setAsking] = useState(false)
   const [answers, setAnswers] = useState<Answer[]>([])
-  const timers = useRef<ReturnType<typeof setTimeout>[]>([])
+  const progress = useRef<ReturnType<typeof setInterval> | null>(null)
 
-  // Until the first scan runs, the tab shows the intro. Remembered per browser for now;
-  // this moves to the saved scan once web research is connected.
-  const storageKey = `business-health:scanned:${companyId}`
-  const [view, setView] = useState<"intro" | "dashboard">("intro")
-  const [firstScan, setFirstScan] = useState(false)
-  const [step, setStep] = useState(0)
+  const call = useCallback(
+    async (init?: { method: "POST"; body: Record<string, unknown> }) => {
+      if (!user) throw new Error("Please sign in to use Business Health.")
+      const token = await user.getIdToken()
+      const response = await fetch(init ? "/api/business-health" : `/api/business-health?companyId=${encodeURIComponent(companyId)}`, {
+        method: init?.method ?? "GET",
+        headers: { Authorization: `Bearer ${token}`, ...(init ? { "content-type": "application/json" } : {}) },
+        ...(init ? { body: JSON.stringify({ companyId, ...init.body }) } : {}),
+      })
+      const body = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(body?.error || "Something went wrong. Please try again.")
+      return body
+    },
+    [companyId, user],
+  )
+
+  function applyState(state: BHState) {
+    setReport(state.report)
+    setDone(new Set(state.done))
+    setDismissed(new Set(state.dismissed))
+    setView(state.report ? "dashboard" : "intro")
+  }
 
   useEffect(() => {
-    try {
-      if (window.localStorage.getItem(storageKey)) setView("dashboard")
-    } catch {
-      // Storage can be blocked; the intro is a fine default.
+    let active = true
+    setLoading(true)
+    call()
+      .then((state: BHState) => active && applyState(state))
+      .catch((reason: Error) => active && setError(reason.message))
+      .finally(() => active && setLoading(false))
+    return () => {
+      active = false
     }
-  }, [storageKey])
+  }, [call])
 
-  useEffect(() => () => timers.current.forEach(clearTimeout), [])
+  useEffect(() => () => {
+    if (progress.current) clearInterval(progress.current)
+  }, [])
 
-  function later(fn: () => void, ms: number) {
-    timers.current.push(setTimeout(fn, ms))
-  }
-
-  function analyse() {
-    setFirstScan(true)
-    setStep(0)
-    ANALYSE_AREAS.forEach((_, index) => later(() => setStep(index + 1), 700 * (index + 1)))
-    later(() => {
-      try {
-        window.localStorage.setItem(storageKey, new Date().toISOString())
-      } catch {
-        // Ignore; the dashboard still shows for this visit.
-      }
-      setFirstScan(false)
-      setLastScan("just now")
-      setView("dashboard")
-      window.scrollTo({ top: 0, behavior: "smooth" })
-    }, 700 * (ANALYSE_AREAS.length + 1))
-  }
-
-  function scan() {
+  async function scan() {
+    if (scanning) return
     setScanning(true)
-    later(() => {
+    setError("")
+    setStep(0)
+    // The scan is one request; tick through the areas so people can see it working.
+    progress.current = setInterval(() => setStep((current) => Math.min(current + 1, ANALYSE_AREAS.length - 1)), 9000)
+    try {
+      const state = (await call({ method: "POST", body: { action: "scan" } })) as BHState
+      setStep(ANALYSE_AREAS.length)
+      applyState(state)
+      setExpanded(new Set())
+      setOpenRow(null)
+      window.scrollTo({ top: 0, behavior: "smooth" })
+    } catch (reason) {
+      setError((reason as Error).message)
+    } finally {
+      if (progress.current) clearInterval(progress.current)
       setScanning(false)
-      setLastScan("just now")
-    }, 1400)
+    }
   }
 
-  function ask(text: string) {
+  async function ask(text: string) {
     const question = text.trim()
     if (!question || asking) return
     setQuery("")
     setAsking(true)
-    later(() => {
-      setAnswers((current) => [sampleAnswer(question, companyName, site), ...current])
+    try {
+      const body = await call({ method: "POST", body: { action: "ask", question } })
+      setAnswers((current) => [body.answer as Answer, ...current])
+    } catch (reason) {
+      setAnswers((current) => [{ question, text: (reason as Error).message, sources: [] }, ...current])
+    } finally {
       setAsking(false)
-    }, 1200)
+    }
   }
 
   function toggleIn(setter: React.Dispatch<React.SetStateAction<Set<string>>>, id: string) {
@@ -364,6 +363,31 @@ export function BusinessHealth({
     })
   }
 
+  // Done and dismissed marks are saved with the report so they stick across visits.
+  function mark(kind: "done" | "dismissed", id: string) {
+    const current = kind === "done" ? done : dismissed
+    const next = new Set(current)
+    if (next.has(id)) next.delete(id)
+    else next.add(id)
+    ;(kind === "done" ? setDone : setDismissed)(next)
+    void call({ method: "POST", body: { action: "update", [kind]: Array.from(next) } }).catch(() => undefined)
+  }
+
+  const data = useMemo(
+    () => ({
+      score: report?.score ?? 0,
+      pages: report?.pages ?? 0,
+      summary: report?.summary ?? "",
+      attention: (report?.attention ?? []).map(toItem),
+      opportunities: (report?.opportunities ?? []).map(toItem),
+      market: (report?.market ?? []).map(toItem),
+      online: (report?.online ?? []).map(toItem),
+      changes: (report?.changes ?? []).map(toItem),
+      actions: report?.actions ?? [],
+    }),
+    [report],
+  )
+
   const visible = (items: Item[]) => items.filter((item) => !dismissed.has(item.id))
   const attention = visible(data.attention)
   const opportunities = visible(data.opportunities)
@@ -372,7 +396,7 @@ export function BusinessHealth({
     item,
     open: openRow === item.id,
     onToggle: () => setOpenRow(openRow === item.id ? null : item.id),
-    onDismiss: dismissable ? () => toggleIn(setDismissed, item.id) : undefined,
+    onDismiss: dismissable ? () => mark("dismissed", item.id) : undefined,
   })
 
   const openActions = data.actions.filter((action) => !done.has(action.id)).length
@@ -389,12 +413,40 @@ export function BusinessHealth({
     document.getElementById(`bh-${id}`)?.scrollIntoView({ behavior: "smooth", block: "start" })
   }
 
-  if (view === "intro") {
-    return <BusinessHealthIntro details={details} onSave={onSave} onAnalyse={analyse} scanning={firstScan} step={step} />
+  if (loading) {
+    return (
+      <p className="mt-10 flex items-center justify-center gap-2 text-sm text-muted-foreground">
+        <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+        Loading Business Health…
+      </p>
+    )
+  }
+
+  if (view === "intro" || !report) {
+    return (
+      <div>
+        {error && <ErrorNote message={error} />}
+        <BusinessHealthIntro
+          details={details}
+          onSave={onSave}
+          onAnalyse={() => void scan()}
+          onBack={report ? () => setView("dashboard") : undefined}
+          scanning={scanning}
+          step={step}
+        />
+      </div>
+    )
   }
 
   return (
     <section className="mt-5 space-y-3 sm:space-y-4">
+      {error && <ErrorNote message={error} />}
+      {scanning && (
+        <p className="flex items-center gap-2 rounded-xl border border-blue-100 bg-blue-50 px-3 py-2.5 text-sm text-blue-800 dark:border-blue-900/40 dark:bg-blue-950/30 dark:text-blue-200">
+          <Loader2 className="size-4 shrink-0 animate-spin" aria-hidden="true" />
+          Scanning your website and the web. This takes a minute or two; the report updates when it&apos;s done.
+        </p>
+      )}
       {/* Hero: what this is, the score, and when it last looked. */}
       <div className="rounded-2xl border border-rose-100 bg-gradient-to-br from-rose-50 via-orange-50 to-emerald-50 p-4 sm:p-6 dark:border-border dark:from-rose-950/30 dark:via-orange-950/20 dark:to-emerald-950/30">
         <div className="flex items-start gap-4">
@@ -411,7 +463,7 @@ export function BusinessHealth({
         </div>
         <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
           <p className="text-sm text-muted-foreground">
-            Last updated {lastScan} · Scanned {data.pages} pages
+            Last updated {timeAgo(report.scannedAt)} · Scanned {data.pages} pages · {report.sources} sources
           </p>
           <div className="flex gap-2">
             <Button type="button" variant="ghost" size="sm" onClick={() => setView("intro")}>
@@ -459,7 +511,7 @@ export function BusinessHealth({
                       <button
                         type="button"
                         aria-label={isDone ? "Mark as not done" : "Mark as done"}
-                        onClick={() => toggleIn(setDone, action.id)}
+                        onClick={() => mark("done", action.id)}
                         className={cn(
                           "mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full border transition-colors",
                           isDone ? "border-foreground bg-foreground text-background" : "border-border hover:border-foreground",
@@ -581,8 +633,8 @@ export function BusinessHealth({
                     <div className="mt-3 border-t border-border pt-3 text-sm">
                       {item.more && <p className="text-foreground">{item.more}</p>}
                       <div className="mt-2 flex items-center gap-2">
-                        {item.source && <p className="min-w-0 flex-1 truncate text-xs text-muted-foreground">Source: {item.source}</p>}
-                        <Button type="button" variant="ghost" size="sm" className="ml-auto h-7" onClick={() => toggleIn(setDismissed, item.id)}>
+                        {item.source && <Source source={item.source} />}
+                        <Button type="button" variant="ghost" size="sm" className="ml-auto h-7" onClick={() => mark("dismissed", item.id)}>
                           <X className="size-3.5" aria-hidden="true" />
                           Dismiss
                         </Button>
@@ -603,8 +655,9 @@ export function BusinessHealth({
           title="Market & competitors"
           total={data.market.length}
           expanded={expanded.has("market")}
-          onToggleAll={() => toggleIn(setExpanded, "market")}
+          onToggleAll={data.market.length > 2 ? () => toggleIn(setExpanded, "market") : undefined}
         >
+          {data.market.length === 0 && <p className="px-1 py-4 text-sm text-muted-foreground">No competitor or market news found this time.</p>}
           <ul>
             {limit("market", data.market, 2).map((item) => (
               <Row key={item.id} {...rowProps(item)} />
@@ -616,8 +669,9 @@ export function BusinessHealth({
           title="Your business online"
           total={data.online.length}
           expanded={expanded.has("online")}
-          onToggleAll={() => toggleIn(setExpanded, "online")}
+          onToggleAll={data.online.length > 2 ? () => toggleIn(setExpanded, "online") : undefined}
         >
+          {data.online.length === 0 && <p className="px-1 py-4 text-sm text-muted-foreground">Nothing to report yet.</p>}
           <ul>
             {limit("online", data.online, 2).map((item) => (
               <Row key={item.id} {...rowProps(item)} />
@@ -632,8 +686,9 @@ export function BusinessHealth({
         title="Recent changes"
         total={data.changes.length}
         expanded={expanded.has("changes")}
-        onToggleAll={() => toggleIn(setExpanded, "changes")}
+        onToggleAll={data.changes.length > 2 ? () => toggleIn(setExpanded, "changes") : undefined}
       >
+        {data.changes.length === 0 && <p className="px-1 py-4 text-sm text-muted-foreground">Changes show up here after your next scan.</p>}
         <ul className="grid sm:grid-cols-2 sm:gap-x-3">
           {limit("changes", data.changes, 2).map((item) => (
             <Row key={item.id} {...rowProps(item)} />
@@ -659,7 +714,13 @@ export function BusinessHealth({
                   </button>
                 </div>
                 <p className="mt-1.5 text-sm leading-6 text-muted-foreground">{answer.text}</p>
-                <p className="mt-2 text-xs text-muted-foreground">Sources: {answer.sources.join(" · ")}</p>
+                {answer.sources.length > 0 && (
+                  <div className="mt-2 flex flex-col gap-0.5">
+                    {answer.sources.map((source) => (
+                      <Source key={source} source={source} />
+                    ))}
+                  </div>
+                )}
               </div>
             ))}
             {asking && (
@@ -709,7 +770,7 @@ export function BusinessHealth({
         </div>
       </div>
 
-      <p className="px-1 text-xs text-muted-foreground">Sample data. Live results arrive once web research is connected.</p>
+      <p className="px-1 text-xs text-muted-foreground">Built from your website and public web sources. Check anything important before acting on it.</p>
     </section>
   )
 }

@@ -79,12 +79,15 @@ export function BusinessHealthIntro({
   details,
   onSave,
   onAnalyse,
+  onBack,
   scanning,
   step,
 }: {
   details: BusinessDetails
   onSave?: (patch: Partial<BusinessDetails>) => Promise<void>
   onAnalyse: () => void
+  /** Present once a report exists, to return to it without scanning. */
+  onBack?: () => void
   scanning: boolean
   /** How many areas the running scan has finished. */
   step: number
@@ -224,7 +227,7 @@ export function BusinessHealthIntro({
           </h3>
           <p className="mt-0.5 text-sm text-muted-foreground">
             {scanning
-              ? "Crawling your website and public sources. This takes a minute."
+              ? "Crawling your website and public sources. This takes a minute or two."
               : "We'll crawl your website and public sources to understand:"}
           </p>
           <ul className="mt-4 grid gap-4 sm:grid-cols-2">
@@ -254,7 +257,7 @@ export function BusinessHealthIntro({
       </div>
 
       {/* Start */}
-      <div className="rounded-2xl border border-border bg-background p-4 text-center sm:p-5">
+      <div className="flex flex-col items-center rounded-2xl border border-border bg-background p-4 text-center sm:p-5">
         <Button
           type="button"
           size="lg"
@@ -263,8 +266,13 @@ export function BusinessHealthIntro({
           className="h-12 w-full rounded-xl bg-foreground text-base text-background hover:bg-foreground/90 sm:mx-auto sm:max-w-md"
         >
           {scanning ? <Loader2 className="size-5 animate-spin" aria-hidden="true" /> : <Sparkles className="size-5" aria-hidden="true" />}
-          {scanning ? "Analysing your business…" : "Analyse my business"}
+          {scanning ? "Analysing your business…" : onBack ? "Run a new analysis" : "Analyse my business"}
         </Button>
+        {onBack && !scanning && (
+          <Button type="button" variant="ghost" onClick={onBack} className="mt-2 w-full sm:mx-auto sm:max-w-md">
+            Back to the report
+          </Button>
+        )}
         <p className="mt-2.5 text-sm text-muted-foreground">
           {missing
             ? "Add your website for the best results. We'll still check public sources."
