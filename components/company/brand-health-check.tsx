@@ -134,7 +134,7 @@ export function BrandHealthCheck({
           <div className="rounded-xl bg-muted/40 p-5 sm:p-6">
             {savedSources.length > 0 ? (
               <>
-                <p className="text-sm font-medium text-foreground">Using saved company details</p>
+                <p className="text-sm font-medium text-foreground">Available sources</p>
                 <div className="mt-4 space-y-2">
                   {savedSources.map((source) => (
                     <a
@@ -150,9 +150,6 @@ export function BrandHealthCheck({
                     </a>
                   ))}
                 </div>
-                <p className="mt-5 border-t border-border pt-4 text-xs leading-5 text-muted-foreground">
-                  These details are already on the company record, so there’s nothing to re-enter. Add more links in About if needed.
-                </p>
               </>
             ) : (
               <>
