@@ -1,7 +1,7 @@
 "use client"
 
 import { useMemo, useState } from "react"
-import { Activity, ArrowRight, BarChart3, CheckCircle2, ExternalLink, RotateCcw } from "lucide-react"
+import { ArrowRight, ExternalLink, RotateCcw } from "lucide-react"
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts"
 
 import { BookNowModal } from "@/components/book-now-modal"
@@ -100,17 +100,13 @@ export function BrandHealthCheck({
 
   if (!reportReady) {
     return (
-      <section className="mt-5 overflow-hidden">
-        <div className="grid gap-8 py-5 sm:py-8 lg:grid-cols-[1.2fr_0.8fr] lg:items-center">
+      <section className="mt-5">
+        <div className="grid gap-10 border-y border-border py-7 sm:py-9 lg:grid-cols-[1.2fr_0.8fr] lg:items-start">
           <div>
-            <div className="flex size-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700">
-              <BarChart3 className="size-5" aria-hidden="true" />
-            </div>
-            <h2 className="mt-5 max-w-xl text-2xl font-semibold tracking-[-0.03em] text-foreground sm:text-3xl">
-              Run a free brand audit.
-            </h2>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Brand audit</p>
+            <h2 className="mt-3 max-w-xl text-2xl font-semibold tracking-[-0.03em] text-foreground sm:text-3xl">Review the public signals behind {companyName}.</h2>
             <p className="mt-3 max-w-xl text-sm leading-6 text-muted-foreground">
-              Get a visual read on the public signals shaping {companyName}, with the clearest place to focus next.
+              Generate a concise report from the company information already available in this workspace.
             </p>
             <div className="mt-6 flex flex-wrap items-center gap-3">
               <Button type="button" onClick={() => setReportReady(true)}>
@@ -121,19 +117,18 @@ export function BrandHealthCheck({
             </div>
           </div>
 
-          <div className="py-1 sm:pl-6">
-            <p className="text-sm font-medium text-foreground">Sources ready to review</p>
+          <div className="border-t border-border pt-5 sm:border-l sm:border-t-0 sm:pl-6 sm:pt-0">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Sources available</p>
             {savedSources.length > 0 ? (
-              <div className="mt-4 space-y-2">
+              <div className="mt-3 divide-y divide-border border-y border-border">
                 {savedSources.map((source) => (
                   <a
                     key={`${source.label}-${source.url}`}
                     href={sourceHref(source.url)}
                     target="_blank"
                     rel="noreferrer"
-                    className="flex min-w-0 items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+                    className="flex min-w-0 items-center gap-2 py-2.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
                   >
-                    <CheckCircle2 className="size-4 shrink-0 text-emerald-700" aria-hidden="true" />
                     <span className="truncate">{source.label}</span>
                     <ExternalLink className="ml-auto size-3.5 shrink-0" aria-hidden="true" />
                   </a>
@@ -157,23 +152,22 @@ export function BrandHealthCheck({
             <h2 className="mt-2 text-2xl font-semibold tracking-[-0.03em] text-foreground sm:text-3xl">Where the brand is visible</h2>
             <p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">A source coverage report for {companyName}. It shows where there is enough public signal to make a useful read.</p>
           </div>
-          <div className="text-right text-emerald-700">
+          <div className="text-right text-foreground">
             <p className="text-3xl font-semibold tracking-[-0.04em]">{report.coverage}%</p>
-            <p className="mt-1 text-xs font-medium uppercase tracking-[0.14em] text-emerald-800">coverage</p>
+            <p className="mt-1 text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">coverage</p>
           </div>
         </div>
 
         <div className="mt-8 grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
-          <div className="py-4 sm:pr-6">
+          <div className="border-y border-border py-5 sm:border-y-0 sm:border-r sm:pr-8">
             <div className="flex items-center justify-between gap-4">
               <div>
-                <p className="text-sm font-medium text-foreground">Audit coverage</p>
-                <p className="mt-1 text-xs text-muted-foreground">Public sources available to inspect</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Audit coverage</p>
+                <p className="mt-2 text-sm text-muted-foreground">Public sources available to inspect</p>
               </div>
-              <Activity className="size-5 text-emerald-700" aria-hidden="true" />
             </div>
-            <div className="mt-6 h-3 overflow-hidden rounded-full bg-border" aria-hidden="true">
-              <div className="h-full rounded-full bg-emerald-700 transition-[width]" style={{ width: `${report.coverage}%` }} />
+            <div className="mt-6 h-1 overflow-hidden bg-muted" aria-hidden="true">
+              <div className="h-full bg-foreground transition-[width]" style={{ width: `${report.coverage}%` }} />
             </div>
             <p className="mt-3 text-sm text-muted-foreground">{report.areas.filter((area) => area.coverage > 0).length} of {report.areas.length} audit areas have a public signal.</p>
           </div>
@@ -181,11 +175,11 @@ export function BrandHealthCheck({
           <div className="min-h-56 py-3 sm:p-4">
             <ResponsiveContainer width="100%" height={220}>
               <BarChart data={report.areas} margin={{ top: 12, right: 8, left: -22, bottom: 0 }}>
-                <CartesianGrid vertical={false} stroke="hsl(var(--border))" strokeDasharray="3 3" />
+                <CartesianGrid vertical={false} stroke="hsl(var(--border))" strokeDasharray="2 4" />
                 <XAxis dataKey="shortLabel" axisLine={false} tickLine={false} tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }} />
                 <YAxis domain={[0, 100]} ticks={[0, 50, 100]} axisLine={false} tickLine={false} tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }} />
                 <Tooltip cursor={{ fill: "hsl(var(--muted))" }} formatter={(value) => [`${value}%`, "Coverage"]} />
-                <Bar dataKey="coverage" fill="#047857" radius={[5, 5, 0, 0]} maxBarSize={42} />
+                <Bar dataKey="coverage" fill="#334155" radius={[1, 1, 0, 0]} maxBarSize={42} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -198,7 +192,7 @@ export function BrandHealthCheck({
             <h3 className="text-xl font-semibold tracking-[-0.02em] text-foreground">Audit areas</h3>
             <p className="mt-1 text-sm text-muted-foreground">The signals currently available for each part of the brand.</p>
           </div>
-          <span className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">{report.areas.length} areas</span>
+          <span className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">{report.areas.length} areas reviewed</span>
         </div>
         <div className="mt-6 divide-y divide-border">
           {report.areas.map((area) => (
@@ -206,12 +200,12 @@ export function BrandHealthCheck({
               <div>
                 <div className="flex items-center gap-2">
                   <span className="font-medium text-foreground">{area.label}</span>
-                  <span className="text-xs text-muted-foreground">{coverageStatus(area.coverage)}</span>
+                  <span className="text-xs uppercase tracking-[0.12em] text-muted-foreground">{coverageStatus(area.coverage)}</span>
                 </div>
                 <p className="mt-1 text-sm leading-5 text-muted-foreground">{area.detail}</p>
               </div>
-              <div className="h-2 overflow-hidden rounded-full bg-border" aria-label={`${area.label}: ${area.coverage}% coverage`} role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={area.coverage}>
-                <div className="h-full rounded-full bg-emerald-700" style={{ width: `${area.coverage}%` }} />
+              <div className="h-1 overflow-hidden bg-muted" aria-label={`${area.label}: ${area.coverage}% coverage`} role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={area.coverage}>
+                <div className="h-full bg-foreground" style={{ width: `${area.coverage}%` }} />
               </div>
               <span className="text-right text-sm font-medium text-foreground">{area.coverage}%</span>
             </div>
