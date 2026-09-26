@@ -6,7 +6,7 @@ import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { ArrowLeft, Bell, Briefcase, Building2, FileText, Home, ListTodo, Plus, Receipt, ScrollText, Users } from "lucide-react"
 import Image from "next/image"
-import { FiCheckSquare, FiFileText, FiMail, FiUser } from "react-icons/fi"
+import { FiCheckSquare, FiMail, FiUser } from "react-icons/fi"
 
 import { useAgent } from "@/components/agent/agent-context"
 import { AppSidebar, type NavLink } from "@/components/app-sidebar"
@@ -90,7 +90,7 @@ function DashboardMobileFooterNav({ rootHref }: { rootHref: string }) {
         </Link>
       ),
     },
-    { key: "documents", label: "Documents", icon: FiFileText, href: "/dashboard/documents" },
+    { key: "invoices", label: "Invoices", icon: Receipt, href: "/dashboard/invoices" },
     { key: "profile", label: "Profile", icon: FiUser, href: "/dashboard/account" },
   ]
 

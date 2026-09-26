@@ -39,7 +39,7 @@ import { FilterBar, useFilterBar, type SortOption } from "@/components/dashboard
 import { TableBulkBar } from "@/components/dashboard/table-bulk-bar"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useRowSelection } from "@/hooks/use-row-selection"
-import { tsToMillis } from "@/lib/tasks"
+import { formatTimestamp, tsToMillis } from "@/lib/tasks"
 import { cn } from "@/lib/utils"
 
 export default function UsersAdminPage() {
@@ -72,6 +72,13 @@ export default function UsersAdminPage() {
       value: "createdAt",
       label: "Date added",
       get: (u) => tsToMillis(u.createdAt),
+      ascLabel: "Oldest",
+      descLabel: "Newest",
+    },
+    {
+      value: "updatedAt",
+      label: "Last modified",
+      get: (u) => Math.max(tsToMillis(u.updatedAt), tsToMillis(u.createdAt)),
       ascLabel: "Oldest",
       descLabel: "Newest",
     },
@@ -145,7 +152,8 @@ export default function UsersAdminPage() {
     items: users,
     search: searchUser,
     sorts: USER_SORTS,
-    defaultSort: "name",
+    defaultSort: "updatedAt",
+    defaultDirection: "desc",
   })
 
   const selection = useRowSelection(visibleUsers, (u) => u.uid)
@@ -243,7 +251,7 @@ export default function UsersAdminPage() {
                     onClick={() => setSelectedId(u.uid)}
                     ariaLabel={`Open ${u.displayName || u.email || "contact"}`}
                     title={u.displayName || u.email || "—"}
-                    subtitle={u.email || companyNameOf(u) || "—"}
+                    subtitle={<span className="flex flex-col gap-1"><span>{u.email || companyNameOf(u) || "—"}</span><span>Modified {formatTimestamp(u.updatedAt ?? u.createdAt)}</span></span>}
                     imageUrl={u.photoURL}
                     icon={<ReactIcon icon={FaUser} className="size-5 text-violet-600 dark:text-violet-400" aria-hidden="true" />}
                     menuLabel={`Options for ${u.displayName || u.email || "contact"}`}

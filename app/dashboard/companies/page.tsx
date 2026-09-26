@@ -59,6 +59,7 @@ type CompanyRow = {
   projectCount: number
   logoUrl?: string
   createdAt?: Timestamp
+  updatedAt?: Timestamp
   /** The client account behind this company, when there is one. */
   user?: AppUser
   hasOrg: boolean
@@ -151,6 +152,7 @@ export default function CompaniesPage() {
         projectCount: meta?.projectCount ?? 0,
         logoUrl: org.logoUrl || userByWorkspace.get(org.id)?.photoURL,
         createdAt: org.createdAt,
+        updatedAt: org.updatedAt,
         user: userByWorkspace.get(org.id),
         hasOrg: true,
       })
@@ -164,6 +166,7 @@ export default function CompaniesPage() {
       { value: "category", label: "Category", get: (row) => row.label, ascLabel: "A–Z", descLabel: "Z–A" },
       { value: "projects", label: "Projects", get: (row) => row.projectCount, ascLabel: "Fewest", descLabel: "Most" },
       { value: "createdAt", label: "Date added", get: (row) => tsToMillis(row.createdAt), ascLabel: "Oldest", descLabel: "Newest" },
+      { value: "updatedAt", label: "Last modified", get: (row) => Math.max(tsToMillis(row.updatedAt), tsToMillis(row.createdAt)), ascLabel: "Oldest", descLabel: "Newest" },
     ],
     [],
   )
@@ -174,7 +177,8 @@ export default function CompaniesPage() {
     items: companies,
     search,
     sorts,
-    defaultSort: "name",
+    defaultSort: "updatedAt",
+    defaultDirection: "desc",
   })
 
   const selection = useRowSelection(visibleCompanies, (row) => row.id)
@@ -315,7 +319,7 @@ export default function CompaniesPage() {
                 key={row.id}
                 href={companyHref(row)}
                 title={row.name}
-                subtitle={row.label || (row.projectCount ? `${row.projectCount} project${row.projectCount === 1 ? "" : "s"}` : "No projects yet")}
+                subtitle={<span className="flex flex-col gap-1"><span>{row.label || (row.projectCount ? `${row.projectCount} project${row.projectCount === 1 ? "" : "s"}` : "No projects yet")}</span><span>Modified {formatTimestamp(row.updatedAt ?? row.createdAt)}</span></span>}
                 imageUrl={row.logoUrl}
                 icon={<ReactIcon icon={FaBuilding} className="size-5 text-blue-600 dark:text-blue-400" aria-hidden="true" />}
                 menuLabel={`Options for ${row.name}`}
