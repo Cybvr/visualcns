@@ -58,6 +58,7 @@
     "embla-carousel-react": "8.5.1",
     "firebase": "latest",
     "firebase-admin": "^14.3.0",
+    "firecrawl": "^4.41.0",
     "input-otp": "1.4.1",
     "lucide-react": "^0.454.0",
     "mammoth": "^1.12.2",
