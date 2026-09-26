@@ -2,161 +2,242 @@
 
 import { useMemo, useRef, useState } from "react"
 import {
-  AlertTriangle,
-  ArrowRight,
-  Bookmark,
-  BookmarkCheck,
+  AlertCircle,
+  ArrowUp,
+  BarChart3,
+  Calendar,
   Check,
-  Eye,
+  ChevronRight,
+  FilePlus,
+  FileText,
+  Gavel,
   Globe,
-  History,
-  Lightbulb,
+  Handshake,
+  Link2,
   Loader2,
+  Megaphone,
+  PenLine,
   RefreshCw,
   Search,
   Sparkles,
-  Target,
+  Star,
   TrendingUp,
   X,
 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
 import type { CompanyLink } from "@/lib/organizations"
 
 // Prototype data. Firecrawl crawls and research will feed these shapes once the backend exists.
 
 type Level = "high" | "medium" | "low"
-
-type Issue = { id: string; area: string; title: string; detail: string; level: Level; source: string }
-type Opportunity = { id: string; kind: string; title: string; detail: string; when: string; fit: Level; source: string }
-type MarketItem = { id: string; who: string; kind: string; title: string; detail: string; when: string }
-type PresenceArea = { key: string; label: string; status: "good" | "fair" | "weak"; note: string }
-type Change = { id: string; scope: "Business" | "Market"; title: string; detail: string; when: string }
+type Item = {
+  id: string
+  icon: LucideIcon
+  title: string
+  detail: string
+  meta?: string
+  badge?: { label: string; tone: "bad" | "warn" | "good" | "plain" }
+  /** Shown when the row is opened: why it matters, where it came from. */
+  more?: string
+  source?: string
+}
 type Action = { id: string; priority: Level; title: string; why: string; evidence: string; steps: string[] }
 
+const LEVEL_BADGE: Record<Level, Item["badge"]> = {
+  high: { label: "High", tone: "bad" },
+  medium: { label: "Medium", tone: "warn" },
+  low: { label: "Low", tone: "plain" },
+}
+
 function sampleData(name: string, site: string) {
-  const issues: Issue[] = [
-    { id: "i1", area: "Website", title: "Homepage takes 6.8s to load on mobile", detail: "Large uncompressed hero images. Most visitors leave before it finishes.", level: "high", source: `${site}` },
-    { id: "i2", area: "SEO", title: "Services pages have no page titles or descriptions", detail: "4 of 6 service pages show the same title in search results.", level: "high", source: `${site}/services` },
-    { id: "i3", area: "Positioning", title: "Headline doesn't say what you do", detail: `"Excellence, delivered" could describe any company. Competitors lead with the service and city.`, level: "medium", source: `${site}` },
-    { id: "i4", area: "Reputation", title: "Two unanswered reviews in the last month", detail: "Both mention slow replies. Replying publicly softens the impact.", level: "medium", source: "Google Business Profile" },
-    { id: "i5", area: "Technical", title: "Contact form sends no confirmation", detail: "Form submits but shows no message, so people may send it twice or give up.", level: "low", source: `${site}/contact` },
+  const attention: Item[] = [
+    { id: "i1", icon: FileText, title: "Unclear positioning", detail: `The homepage doesn't say clearly what ${name} does or who it's for.`, badge: LEVEL_BADGE.high, more: `Headline reads "Excellence, delivered". Competitors lead with the service and city.`, source: site },
+    { id: "i2", icon: Search, title: "SEO improvements needed", detail: "4 pages have missing descriptions and 6 key searches aren't targeted.", badge: LEVEL_BADGE.medium, more: "Service pages share one title, so search results look identical.", source: `${site}/services` },
+    { id: "i3", icon: Link2, title: "Broken internal links", detail: "6 links are broken or redirect to the wrong page.", badge: LEVEL_BADGE.medium, more: "Mostly old blog posts pointing at removed service pages.", source: site },
+    { id: "i4", icon: Star, title: "Two unanswered reviews", detail: "Both mention slow replies.", badge: LEVEL_BADGE.medium, more: "Replying publicly softens the impact for new visitors.", source: "Google Business Profile" },
+    { id: "i5", icon: AlertCircle, title: "Slow on mobile", detail: "Homepage takes 6.8s to load on phones.", badge: LEVEL_BADGE.low, more: "Large uncompressed hero images.", source: site },
   ]
 
-  const opportunities: Opportunity[] = [
-    { id: "o1", kind: "Tender", title: "State agency — brand and campaign services", detail: "Open call for agencies with public sector work. Matches your services list.", when: "Closes in 12 days", fit: "high", source: "Public procurement portal" },
-    { id: "o2", kind: "Event", title: "West Africa Business Expo, Lagos", detail: "Exhibitor and speaker slots open. 200+ exhibitors, strong buyer turnout last year.", when: "In 42 days", fit: "high", source: "wabexpo.com" },
-    { id: "o3", kind: "Grant", title: "SME digital growth grant", detail: "Up to ₦5m for small businesses investing in digital tools. You appear to qualify.", when: "Rolling, next review in 3 weeks", fit: "medium", source: "Development bank site" },
-    { id: "o4", kind: "Partnership", title: "Co-working space looking for service partners", detail: "Newly opened space in Lekki is listing preferred partners for members.", when: "Posted 5 days ago", fit: "medium", source: "LinkedIn post" },
-    { id: "o5", kind: "Content", title: `"How to choose a …" guide gap`, detail: "People search this monthly and no local competitor has a good answer.", when: "Ongoing", fit: "medium", source: "Search trends" },
-    { id: "o6", kind: "Market", title: "Demand rising in Abuja", detail: "Searches for your core service in Abuja are up 38% in 3 months.", when: "Last 90 days", fit: "low", source: "Search trends" },
+  const opportunities: Item[] = [
+    { id: "o1", icon: Handshake, title: "Potential partners", detail: "5 companies offering related services could be good referral partners.", badge: { label: "New", tone: "good" }, more: "Includes a new co-working space in Lekki listing preferred partners.", source: "LinkedIn, company sites" },
+    { id: "o2", icon: Calendar, title: "Relevant industry events", detail: "3 upcoming events in your target markets with speaker or exhibitor slots.", badge: LEVEL_BADGE.high, more: "West Africa Business Expo, Lagos, in 42 days is the strongest fit.", source: "Event listings" },
+    { id: "o3", icon: FileText, title: "Content opportunities", detail: "10 topics your audience searches for that no local competitor answers well.", badge: LEVEL_BADGE.high, more: `Top gap: "How to choose a…" guides, searched every month.`, source: "Search trends" },
+    { id: "o4", icon: Gavel, title: "Open tender", detail: "A state agency is looking for brand and campaign services.", badge: LEVEL_BADGE.high, meta: "Closes in 12 days", more: "Your services match 4 of 5 requirements.", source: "Procurement portal" },
+    { id: "o5", icon: TrendingUp, title: "SME digital growth grant", detail: "Up to ₦5m for small businesses investing in digital tools.", badge: LEVEL_BADGE.medium, meta: "Next review in 3 weeks", more: "You appear to meet the size and sector rules.", source: "Development bank site" },
   ]
 
-  const market: MarketItem[] = [
-    { id: "m1", who: "Competitor A", kind: "Launch", title: "Launched a monthly retainer package", detail: "Fixed price, clearly listed on their pricing page.", when: "4 days ago" },
-    { id: "m2", who: "Competitor B", kind: "Positioning", title: "Now calls itself a 'growth partner for SMEs'", detail: "Rewrote homepage and about page. Moving toward your audience.", when: "1 week ago" },
-    { id: "m3", who: "Competitor C", kind: "Pricing", title: "Cut entry price by 20%", detail: "Starter plan dropped from ₦250k to ₦200k.", when: "2 weeks ago" },
-    { id: "m4", who: "Industry", kind: "Trend", title: "Short video overtaking static posts", detail: "Most-shared local business content this quarter is short video.", when: "This quarter" },
-    { id: "m5", who: "Industry", kind: "Development", title: "New data privacy rules for marketing emails", detail: "Consent records now required. Affects newsletters and outreach.", when: "Takes effect next month" },
+  const market: Item[] = [
+    { id: "m1", icon: BarChart3, title: "2 competitors launched new packages", detail: "Fixed-price monthly plans, listed on their pricing pages.", meta: "1 day ago", source: "Competitor sites" },
+    { id: "m2", icon: Megaphone, title: "Growing demand in Abuja", detail: "Searches for your core service are up 38% in 3 months.", meta: "3 days ago", source: "Search trends" },
+    { id: "m3", icon: PenLine, title: "Competitor B repositioned toward SMEs", detail: "Rewrote homepage and about page to target your audience.", meta: "1 week ago", source: "Competitor site" },
+    { id: "m4", icon: AlertCircle, title: "New consent rules for marketing emails", detail: "Consent records required from next month.", meta: "2 weeks ago", source: "Industry news" },
   ]
 
-  const presence: PresenceArea[] = [
-    { key: "website", label: "Website", status: "fair", note: "Clear layout, but slow on mobile and light on proof like case studies." },
-    { key: "offer", label: "Products & services", status: "good", note: "All services listed. Prices and packages are missing." },
-    { key: "messaging", label: "Messaging", status: "weak", note: "Headline and about page are generic. Hard to tell who you're for." },
-    { key: "discover", label: "Discoverability", status: "weak", note: `Ranks for "${name}" but not for any service + city searches.` },
-    { key: "content", label: "Content", status: "fair", note: "Blog last updated 5 months ago. Social posts steady, low engagement." },
+  const online: Item[] = [
+    { id: "p1", icon: Globe, title: "Website health", detail: "Technical issues: 2 · Pages scanned: 124", badge: { label: "Good", tone: "good" }, more: "Clear layout. Light on proof like case studies." },
+    { id: "p2", icon: Search, title: "Discoverability", detail: "SEO score: 62/100 · 4 missing descriptions", badge: { label: "Needs work", tone: "warn" }, more: `Ranks for "${name}" but not for any service + city searches.` },
+    { id: "p3", icon: PenLine, title: "Messaging", detail: "Headline and about page are generic", badge: { label: "Weak", tone: "bad" }, more: "Hard to tell who you're for within 5 seconds." },
+    { id: "p4", icon: FileText, title: "Products & services", detail: "All services listed · no prices or packages", badge: { label: "Good", tone: "good" }, more: "Competitors now show fixed prices." },
+    { id: "p5", icon: Megaphone, title: "Content", detail: "Blog last updated 5 months ago", badge: { label: "Needs work", tone: "warn" }, more: "Social posts steady, low engagement." },
   ]
 
-  const changes: Change[] = [
-    { id: "c1", scope: "Business", title: "New team page added to your site", detail: "3 new profiles. Search engines have picked it up.", when: "Since last scan" },
-    { id: "c2", scope: "Business", title: "Mobile load time got worse", detail: "4.1s → 6.8s after new homepage images.", when: "Since last scan" },
-    { id: "c3", scope: "Market", title: "Competitor B rewrote their homepage", detail: "New headline and services order.", when: "Since last scan" },
-    { id: "c4", scope: "Market", title: "2 new tenders in your category", detail: "One is a strong fit (see Opportunities).", when: "Since last scan" },
-    { id: "c5", scope: "Business", title: "One new Google review (4 stars)", detail: "Mentions good work, slow replies.", when: "Last week" },
+  const changes: Item[] = [
+    { id: "c1", icon: FilePlus, title: "2 new pages found on your website", detail: "Team page and a new case study.", meta: "2 hours ago" },
+    { id: "c2", icon: PenLine, title: "Homepage content updated", detail: "New hero images added. Mobile load time went from 4.1s to 6.8s.", meta: "1 day ago" },
+    { id: "c3", icon: BarChart3, title: "Competitor B rewrote their homepage", detail: "New headline and services order.", meta: "3 days ago" },
+    { id: "c4", icon: Gavel, title: "2 new tenders in your category", detail: "One is a strong fit.", meta: "4 days ago" },
   ]
 
   const actions: Action[] = [
-    { id: "a1", priority: "high", title: "Fix mobile speed on the homepage", why: "It's the first thing most visitors see, and it got worse this month.", evidence: "Load time 6.8s on mobile (was 4.1s).", steps: ["Compress hero images", "Lazy-load images below the fold", "Re-check speed after changes"] },
-    { id: "a2", priority: "high", title: "Apply for the state agency tender", why: "Strong match and it closes soon.", evidence: "Closes in 12 days. Your services match 4 of 5 requirements.", steps: ["Download tender pack", "Gather 2 relevant case studies", "Assign someone to write the bid"] },
-    { id: "a3", priority: "medium", title: "Rewrite the homepage headline", why: "Competitor B is now targeting the same customers with clearer words.", evidence: "Generic headline; competitor repositioned 1 week ago.", steps: ["Say what you do and for whom", "Add city or region", "Add one proof point"] },
-    { id: "a4", priority: "medium", title: "Add titles and descriptions to service pages", why: "Quick win for showing up in search.", evidence: "4 of 6 service pages share one title.", steps: ["Write one title per service", "Add a short description for each", "Resubmit sitemap"] },
-    { id: "a5", priority: "low", title: "Reply to recent reviews", why: "Shows you respond, which is the exact complaint.", evidence: "2 reviews unanswered in the last month.", steps: ["Thank the reviewer", "Address the delay briefly", "Invite them to get in touch"] },
+    { id: "a1", priority: "high", title: "Apply for the state agency tender", why: "Strong match and it closes soon.", evidence: "Closes in 12 days. Your services match 4 of 5 requirements.", steps: ["Download tender pack", "Pick 2 relevant case studies", "Assign someone to write the bid"] },
+    { id: "a2", priority: "high", title: "Rewrite the homepage headline", why: "Competitor B is now targeting your customers with clearer words.", evidence: "Generic headline. Competitor repositioned 1 week ago.", steps: ["Say what you do and for whom", "Add city or region", "Add one proof point"] },
+    { id: "a3", priority: "medium", title: "Fix service page titles and descriptions", why: "Quick win for showing up in search.", evidence: "4 of 6 service pages share one title.", steps: ["Write one title per service", "Add a short description for each", "Resubmit sitemap"] },
+    { id: "a4", priority: "medium", title: "Fix the 6 broken links", why: "Broken links hurt trust and search ranking.", evidence: "Found in old blog posts.", steps: ["Point links to current pages", "Redirect removed pages"] },
+    { id: "a5", priority: "low", title: "Reply to recent reviews", why: "Shows you respond, which is the exact complaint.", evidence: "2 reviews unanswered.", steps: ["Thank the reviewer", "Address the delay briefly"] },
   ]
 
-  const briefing = {
-    summary: `${name} is in a steady position but losing ground online. Your site is slower than last month and your message is less clear than competitors who are moving toward your customers. There are two strong openings right now: a public tender closing in 12 days and a large expo in 6 weeks.`,
-    points: [
-      "Competitor B repositioned toward SMEs — your core audience.",
-      "Mobile speed dropped after the new homepage images.",
-      "A tender matching your services closes in 12 days.",
-    ],
-  }
+  const summary = `${name} is steady but losing ground online. Your message is less clear than competitors who are moving toward your customers, and a few quick SEO fixes would help you get found. Two strong openings right now: a tender closing in 12 days and a large expo in 6 weeks.`
 
-  return { briefing, issues, opportunities, market, presence, changes, actions }
+  return { score: 78, pages: 124, summary, attention, opportunities, market, online, changes, actions }
 }
 
-const ASK_SUGGESTIONS = [
-  "What are competitors doing differently?",
-  "Find events we should attend",
-  "Why aren't we showing up in search?",
-  "Which tenders fit us best?",
-]
+const ASK_SUGGESTIONS = ["Analyse my competitors", "Find relevant grants", "Show upcoming events", "Check my SEO"]
 
 type Answer = { question: string; text: string; sources: string[] }
 
 function sampleAnswer(question: string, name: string, site: string): Answer {
   return {
     question,
-    text: `Here's what stands out for ${name}. The biggest gap is how you're found: competitors rank for service + city searches and you don't. Fixing page titles and publishing one strong guide would close most of it within a few months. Meanwhile, two competitors changed their offer this month — one now lists fixed-price packages, which makes comparison easy for buyers. Worth deciding whether to show prices too.`,
-    sources: [site, "Competitor A pricing page", "Search trends", "Google Business Profile"],
+    text: `Here's what stands out for ${name}. The biggest gap is how you're found: competitors rank for service + city searches and you don't. Fixing page titles and publishing one strong guide would close most of it within a few months. Two competitors also changed their offer this month — one now lists fixed prices, which makes comparing easy for buyers.`,
+    sources: [site, "Competitor pricing pages", "Search trends"],
   }
 }
 
-const LEVEL_STYLES: Record<Level, string> = {
-  high: "bg-red-500/10 text-red-700 dark:text-red-400",
-  medium: "bg-amber-500/10 text-amber-700 dark:text-amber-400",
-  low: "bg-muted text-muted-foreground",
+const TONE: Record<NonNullable<Item["badge"]>["tone"], string> = {
+  bad: "bg-red-500/10 text-red-700 dark:text-red-400",
+  warn: "bg-amber-500/10 text-amber-700 dark:text-amber-400",
+  good: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
+  plain: "bg-muted text-muted-foreground",
 }
 
-const STATUS_STYLES: Record<PresenceArea["status"], { label: string; dot: string }> = {
-  good: { label: "Good", dot: "bg-emerald-500" },
-  fair: { label: "Fair", dot: "bg-amber-500" },
-  weak: { label: "Weak", dot: "bg-red-500" },
-}
-
-const NAV = [
-  { id: "briefing", label: "Briefing" },
-  { id: "actions", label: "Actions" },
-  { id: "attention", label: "Needs attention" },
-  { id: "opportunities", label: "Opportunities" },
-  { id: "market", label: "Market" },
-  { id: "presence", label: "Online presence" },
-  { id: "changes", label: "Changes" },
-] as const
-
-function Pill({ children, className }: { children: React.ReactNode; className?: string }) {
+function Badge({ badge }: { badge: NonNullable<Item["badge"]> }) {
   return (
-    <span className={cn("inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-xs font-medium", className)}>
-      {children}
+    <span className={cn("inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-xs font-medium", TONE[badge.tone])}>
+      {badge.label}
     </span>
   )
 }
 
-function SectionHead({ id, icon: Icon, title, hint, right }: { id: string; icon: LucideIcon; title: string; hint?: string; right?: React.ReactNode }) {
+function IconBox({ icon: Icon, className }: { icon: LucideIcon; className?: string }) {
   return (
-    <div id={`bh-${id}`} className="flex scroll-mt-24 flex-wrap items-end justify-between gap-2">
-      <div className="flex items-center gap-2.5">
-        <Icon className="size-5 shrink-0 text-foreground" aria-hidden="true" />
-        <div>
-          <h3 className="font-semibold tracking-[-0.01em] text-foreground">{title}</h3>
-          {hint && <p className="text-sm text-muted-foreground">{hint}</p>}
+    <span className={cn("flex size-10 shrink-0 items-center justify-center rounded-xl bg-muted text-foreground", className)}>
+      <Icon className="size-5" aria-hidden="true" />
+    </span>
+  )
+}
+
+/** A tappable row that opens to show more detail and its source. */
+function Row({ item, open, onToggle, onDismiss }: { item: Item; open: boolean; onToggle: () => void; onDismiss?: () => void }) {
+  return (
+    <li>
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={open}
+        className="flex w-full items-start gap-3 rounded-xl p-2 text-left transition-colors hover:bg-muted/50 sm:p-3"
+      >
+        <IconBox icon={item.icon} />
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start justify-between gap-2">
+            <p className="font-medium text-foreground">{item.title}</p>
+            {item.badge && <Badge badge={item.badge} />}
+          </div>
+          <p className="mt-0.5 text-sm text-muted-foreground">{item.detail}</p>
+          {item.meta && <p className="mt-0.5 text-xs text-muted-foreground">{item.meta}</p>}
         </div>
+        <ChevronRight className={cn("mt-2.5 size-4 shrink-0 text-muted-foreground transition-transform", open && "rotate-90")} aria-hidden="true" />
+      </button>
+      {open && (item.more || item.source) && (
+        <div className="mb-2 ml-[3.25rem] mr-2 rounded-xl bg-muted/50 p-3 text-sm sm:ml-[3.75rem]">
+          {item.more && <p className="text-foreground">{item.more}</p>}
+          <div className="mt-2 flex items-center gap-2">
+            {item.source && <p className="min-w-0 flex-1 truncate text-xs text-muted-foreground">Source: {item.source}</p>}
+            {onDismiss && (
+              <Button type="button" variant="ghost" size="sm" className="ml-auto h-7" onClick={onDismiss}>
+                <X className="size-3.5" aria-hidden="true" />
+                Dismiss
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
+    </li>
+  )
+}
+
+function Card({
+  id,
+  title,
+  total,
+  expanded,
+  onToggleAll,
+  children,
+  className,
+}: {
+  id: string
+  title: string
+  total?: number
+  expanded?: boolean
+  onToggleAll?: () => void
+  children: React.ReactNode
+  className?: string
+}) {
+  return (
+    <div id={`bh-${id}`} className={cn("scroll-mt-24 rounded-2xl border border-border bg-background p-3 sm:p-4", className)}>
+      <div className="mb-1 flex items-center justify-between gap-2 px-1 sm:px-0">
+        <h3 className="font-semibold tracking-[-0.01em] text-foreground sm:text-lg">{title}</h3>
+        {onToggleAll && total !== undefined && (
+          <button
+            type="button"
+            onClick={onToggleAll}
+            className="flex shrink-0 items-center gap-0.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+          >
+            {expanded ? "Show less" : `See all (${total})`}
+            <ChevronRight className={cn("size-4 transition-transform", expanded && "-rotate-90")} aria-hidden="true" />
+          </button>
+        )}
       </div>
-      {right}
+      {children}
+    </div>
+  )
+}
+
+function ScoreRing({ score }: { score: number }) {
+  const r = 42
+  const c = 2 * Math.PI * r
+  return (
+    <div className="relative size-24 shrink-0 sm:size-32" role="img" aria-label={`Health score ${score} out of 100`}>
+      <svg viewBox="0 0 100 100" className="size-full -rotate-90">
+        <circle cx="50" cy="50" r={r} fill="none" strokeWidth="8" className="stroke-muted" />
+        <circle
+          cx="50"
+          cy="50"
+          r={r}
+          fill="none"
+          strokeWidth="8"
+          strokeLinecap="round"
+          strokeDasharray={c}
+          strokeDashoffset={c * (1 - score / 100)}
+          className="stroke-foreground transition-[stroke-dashoffset] duration-700"
+        />
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <span className="text-2xl font-semibold tracking-[-0.03em] text-foreground sm:text-4xl">{score}</span>
+        <span className="text-xs text-muted-foreground">/100</span>
+      </div>
     </div>
   )
 }
@@ -185,12 +266,12 @@ export function BrandHealthCheck({
 
   const [scanning, setScanning] = useState(false)
   const [lastScan, setLastScan] = useState("2 hours ago")
+  const [briefOpen, setBriefOpen] = useState(false)
   const [done, setDone] = useState<Set<string>>(new Set())
-  const [openAction, setOpenAction] = useState<string | null>(data.actions[0]?.id ?? null)
+  const [openRow, setOpenRow] = useState<string | null>(null)
+  const [openAction, setOpenAction] = useState<string | null>(null)
+  const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const [dismissed, setDismissed] = useState<Set<string>>(new Set())
-  const [saved, setSaved] = useState<Set<string>>(new Set())
-  const [kind, setKind] = useState<string>("All")
-  const [changeScope, setChangeScope] = useState<"All" | Change["scope"]>("All")
   const [query, setQuery] = useState("")
   const [asking, setAsking] = useState(false)
   const [answers, setAnswers] = useState<Answer[]>([])
@@ -219,7 +300,7 @@ export function BrandHealthCheck({
     }, 1200)
   }
 
-  function toggle(setter: React.Dispatch<React.SetStateAction<Set<string>>>, id: string) {
+  function toggleIn(setter: React.Dispatch<React.SetStateAction<Set<string>>>, id: string) {
     setter((current) => {
       const next = new Set(current)
       if (next.has(id)) next.delete(id)
@@ -228,21 +309,25 @@ export function BrandHealthCheck({
     })
   }
 
-  const issues = data.issues.filter((issue) => !dismissed.has(issue.id))
-  const kinds = ["All", ...Array.from(new Set(data.opportunities.map((item) => item.kind)))]
-  const opportunities = data.opportunities.filter(
-    (item) => !dismissed.has(item.id) && (kind === "All" || item.kind === kind),
-  )
-  const changes = data.changes.filter((item) => changeScope === "All" || item.scope === changeScope)
-  const openActions = data.actions.filter((action) => !done.has(action.id)).length
-  const competitors = data.market.filter((item) => item.who !== "Industry")
-  const industry = data.market.filter((item) => item.who === "Industry")
+  const visible = (items: Item[]) => items.filter((item) => !dismissed.has(item.id))
+  const attention = visible(data.attention)
+  const opportunities = visible(data.opportunities)
+  const limit = (key: string, items: Item[], count: number) => (expanded.has(key) ? items : items.slice(0, count))
+  const rowProps = (item: Item, dismissable = false) => ({
+    item,
+    open: openRow === item.id,
+    onToggle: () => setOpenRow(openRow === item.id ? null : item.id),
+    onDismiss: dismissable ? () => toggleIn(setDismissed, item.id) : undefined,
+  })
 
-  const stats = [
-    { id: "attention", label: "Need attention", value: issues.length },
-    { id: "opportunities", label: "Opportunities", value: data.opportunities.filter((o) => !dismissed.has(o.id)).length },
-    { id: "changes", label: "Changes", value: data.changes.length },
-    { id: "actions", label: "Open actions", value: openActions },
+  const openActions = data.actions.filter((action) => !done.has(action.id)).length
+  const found = attention.length + opportunities.length
+
+  const stats: { id: string; icon: LucideIcon; value: number; label: string }[] = [
+    { id: "attention", icon: AlertCircle, value: attention.length, label: "Needs attention" },
+    { id: "opportunities", icon: TrendingUp, value: opportunities.length, label: "Opportunities" },
+    { id: "market", icon: BarChart3, value: data.market.length, label: "Market & competitors" },
+    { id: "online", icon: Globe, value: data.online.length, label: "Your business online" },
   ]
 
   function jump(id: string) {
@@ -250,68 +335,253 @@ export function BrandHealthCheck({
   }
 
   return (
-    <section className="mt-5 space-y-8">
-      {/* Header: what this is and when it last looked. */}
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h2 className="text-xl font-semibold tracking-[-0.02em] text-foreground sm:text-2xl">Business Health</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Watching {companyName}, its website and its market. Last scan {lastScan} · 64 pages · 18 sources
-          </p>
+    <section className="mt-5 space-y-3 sm:space-y-4">
+      {/* Hero: what this is, the score, and when it last looked. */}
+      <div className="rounded-2xl border border-border bg-muted/40 p-4 sm:p-6">
+        <div className="flex items-start gap-4">
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Business health</p>
+            <h2 className="mt-1.5 text-xl font-semibold tracking-[-0.02em] text-foreground sm:text-3xl">
+              AI intelligence for {companyName}
+            </h2>
+            <p className="mt-1.5 text-sm leading-6 text-muted-foreground sm:text-base">
+              Discover what matters, fix issues, and find opportunities for growth.
+            </p>
+          </div>
+          <ScoreRing score={data.score} />
         </div>
-        <Button type="button" variant="outline" size="sm" onClick={scan} disabled={scanning}>
-          {scanning ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <RefreshCw className="size-4" aria-hidden="true" />}
-          {scanning ? "Scanning…" : "Scan now"}
-        </Button>
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+          <p className="text-sm text-muted-foreground">
+            Last updated {lastScan} · Scanned {data.pages} pages
+          </p>
+          <Button type="button" variant="outline" size="sm" onClick={scan} disabled={scanning} className="bg-background">
+            {scanning ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <RefreshCw className="size-4" aria-hidden="true" />}
+            {scanning ? "Scanning…" : "Run new scan"}
+          </Button>
+        </div>
       </div>
 
-      {/* Ask AI */}
-      <div className="rounded-2xl border border-border bg-muted/40 p-4 sm:p-5">
-        <form
-          onSubmit={(event) => {
-            event.preventDefault()
-            ask(query)
-          }}
-          className="flex gap-2"
+      {/* Briefing: opens to the summary and prioritised actions. */}
+      <div className="rounded-2xl border border-border bg-background">
+        <button
+          type="button"
+          onClick={() => setBriefOpen((open) => !open)}
+          aria-expanded={briefOpen}
+          className="flex w-full items-center gap-3 p-4 text-left"
         >
-          <div className="relative flex-1">
-            <Sparkles className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
-            <Input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder={`What should I look into for ${companyName}?`}
-              aria-label={`Ask AI about ${companyName}`}
-              className="bg-background pl-9"
-            />
+          <IconBox icon={Sparkles} />
+          <div className="min-w-0 flex-1">
+            <p className="font-semibold text-foreground">Here&apos;s what I found</p>
+            <p className="text-sm text-muted-foreground">
+              {found} things worth your attention · {openActions} recommended actions
+            </p>
           </div>
-          <Button type="submit" disabled={asking} className="shrink-0 bg-foreground text-background hover:bg-foreground/90">
-            {asking ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <Search className="size-4" aria-hidden="true" />}
-            Ask
-          </Button>
-        </form>
-        <div className="mt-3 flex flex-wrap gap-2">
-          {ASK_SUGGESTIONS.map((suggestion) => (
-            <button
-              key={suggestion}
-              type="button"
-              onClick={() => ask(suggestion)}
-              className="rounded-full border border-border bg-background px-3 py-1 text-sm text-foreground outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              {suggestion}
-            </button>
-          ))}
-        </div>
+          <ChevronRight className={cn("size-5 shrink-0 text-muted-foreground transition-transform", briefOpen && "rotate-90")} aria-hidden="true" />
+        </button>
+        {briefOpen && (
+          <div className="border-t border-border p-4">
+            <p className="max-w-3xl text-[15px] leading-7 text-foreground">{data.summary}</p>
+            <p className="mt-5 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+              Recommended actions · {done.size} of {data.actions.length} done
+            </p>
+            <ol className="mt-2 divide-y divide-border">
+              {data.actions.map((action, index) => {
+                const isDone = done.has(action.id)
+                const isOpen = openAction === action.id
+                return (
+                  <li key={action.id} className="py-3">
+                    <div className="flex items-start gap-3">
+                      <button
+                        type="button"
+                        aria-label={isDone ? "Mark as not done" : "Mark as done"}
+                        onClick={() => toggleIn(setDone, action.id)}
+                        className={cn(
+                          "mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full border transition-colors",
+                          isDone ? "border-foreground bg-foreground text-background" : "border-border hover:border-foreground",
+                        )}
+                      >
+                        {isDone && <Check className="size-3" aria-hidden="true" />}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setOpenAction(isOpen ? null : action.id)}
+                        aria-expanded={isOpen}
+                        className="min-w-0 flex-1 text-left"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <p className={cn("font-medium text-foreground", isDone && "text-muted-foreground line-through")}>
+                            {index + 1}. {action.title}
+                          </p>
+                          <Badge badge={LEVEL_BADGE[action.priority]!} />
+                        </div>
+                        <p className="mt-0.5 text-sm text-muted-foreground">{action.why}</p>
+                      </button>
+                    </div>
+                    {isOpen && !isDone && (
+                      <div className="ml-8 mt-3 grid gap-2 sm:grid-cols-2">
+                        <div className="rounded-xl bg-muted/50 p-3">
+                          <p className="text-xs font-medium text-muted-foreground">Evidence</p>
+                          <p className="mt-1 text-sm text-foreground">{action.evidence}</p>
+                        </div>
+                        <div className="rounded-xl bg-muted/50 p-3">
+                          <p className="text-xs font-medium text-muted-foreground">Next steps</p>
+                          <ul className="mt-1 space-y-0.5">
+                            {action.steps.map((step) => (
+                              <li key={step} className="text-sm text-foreground">• {step}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+                    )}
+                  </li>
+                )
+              })}
+            </ol>
+          </div>
+        )}
+      </div>
 
+      {/* Counts that jump to each section. */}
+      <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4">
+        {stats.map((stat) => (
+          <button
+            key={stat.id}
+            type="button"
+            onClick={() => jump(stat.id)}
+            className="flex items-start gap-2.5 rounded-2xl border border-border bg-background p-3 text-left transition-colors hover:bg-muted/50 sm:p-4"
+          >
+            <stat.icon className="mt-1 size-5 shrink-0 text-foreground" aria-hidden="true" />
+            <div className="min-w-0 flex-1">
+              <p className="text-2xl font-semibold leading-tight text-foreground">{stat.value}</p>
+              <p className="text-sm leading-5 text-muted-foreground">{stat.label}</p>
+            </div>
+            <ChevronRight className="mt-1.5 size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+          </button>
+        ))}
+      </div>
+
+      {/* Needs attention */}
+      <Card
+        id="attention"
+        title="Needs attention"
+        total={attention.length}
+        expanded={expanded.has("attention")}
+        onToggleAll={attention.length > 3 ? () => toggleIn(setExpanded, "attention") : undefined}
+      >
+        {attention.length === 0 ? (
+          <p className="px-1 py-4 text-sm text-muted-foreground">Nothing needs attention right now.</p>
+        ) : (
+          <ul>
+            {limit("attention", attention, 3).map((item) => (
+              <Row key={item.id} {...rowProps(item, true)} />
+            ))}
+          </ul>
+        )}
+      </Card>
+
+      {/* Top opportunities: cards in a row on desktop, stacked on mobile. */}
+      <Card
+        id="opportunities"
+        title="Top opportunities"
+        total={opportunities.length}
+        expanded={expanded.has("opportunities")}
+        onToggleAll={opportunities.length > 3 ? () => toggleIn(setExpanded, "opportunities") : undefined}
+      >
+        {opportunities.length === 0 ? (
+          <p className="px-1 py-4 text-sm text-muted-foreground">No open opportunities right now.</p>
+        ) : (
+          <ul className="mt-2 grid gap-2 sm:grid-cols-2 sm:gap-3 lg:grid-cols-3">
+            {limit("opportunities", opportunities, 3).map((item) => {
+              const open = openRow === item.id
+              return (
+                <li key={item.id} className="flex flex-col rounded-xl border border-border p-3 sm:p-4">
+                  <button
+                    type="button"
+                    onClick={() => setOpenRow(open ? null : item.id)}
+                    aria-expanded={open}
+                    className="flex-1 text-left"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <item.icon className="size-6 text-foreground" aria-hidden="true" />
+                      <div className="flex items-center gap-1">
+                        {item.badge && <Badge badge={item.badge} />}
+                        <ChevronRight className={cn("size-4 text-muted-foreground transition-transform", open && "rotate-90")} aria-hidden="true" />
+                      </div>
+                    </div>
+                    <p className="mt-3 font-medium text-foreground">{item.title}</p>
+                    <p className="mt-0.5 text-sm text-muted-foreground">{item.detail}</p>
+                    {item.meta && <p className="mt-1 text-xs text-muted-foreground">{item.meta}</p>}
+                  </button>
+                  {open && (
+                    <div className="mt-3 border-t border-border pt-3 text-sm">
+                      {item.more && <p className="text-foreground">{item.more}</p>}
+                      <div className="mt-2 flex items-center gap-2">
+                        {item.source && <p className="min-w-0 flex-1 truncate text-xs text-muted-foreground">Source: {item.source}</p>}
+                        <Button type="button" variant="ghost" size="sm" className="ml-auto h-7" onClick={() => toggleIn(setDismissed, item.id)}>
+                          <X className="size-3.5" aria-hidden="true" />
+                          Dismiss
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </li>
+              )
+            })}
+          </ul>
+        )}
+      </Card>
+
+      {/* Market and online presence side by side on desktop. */}
+      <div className="grid gap-3 sm:gap-4 lg:grid-cols-2">
+        <Card
+          id="market"
+          title="Market & competitors"
+          total={data.market.length}
+          expanded={expanded.has("market")}
+          onToggleAll={() => toggleIn(setExpanded, "market")}
+        >
+          <ul>
+            {limit("market", data.market, 2).map((item) => (
+              <Row key={item.id} {...rowProps(item)} />
+            ))}
+          </ul>
+        </Card>
+        <Card
+          id="online"
+          title="Your business online"
+          total={data.online.length}
+          expanded={expanded.has("online")}
+          onToggleAll={() => toggleIn(setExpanded, "online")}
+        >
+          <ul>
+            {limit("online", data.online, 2).map((item) => (
+              <Row key={item.id} {...rowProps(item)} />
+            ))}
+          </ul>
+        </Card>
+      </div>
+
+      {/* Recent changes since the last scan. */}
+      <Card
+        id="changes"
+        title="Recent changes"
+        total={data.changes.length}
+        expanded={expanded.has("changes")}
+        onToggleAll={() => toggleIn(setExpanded, "changes")}
+      >
+        <ul className="grid sm:grid-cols-2 sm:gap-x-3">
+          {limit("changes", data.changes, 2).map((item) => (
+            <Row key={item.id} {...rowProps(item)} />
+          ))}
+        </ul>
+      </Card>
+
+      {/* Ask AI */}
+      <div className="rounded-2xl border border-border bg-background p-3 sm:p-4">
         {(asking || answers.length > 0) && (
-          <div className="mt-4 space-y-3">
-            {asking && (
-              <p className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Loader2 className="size-4 animate-spin" aria-hidden="true" />
-                Researching…
-              </p>
-            )}
+          <div className="mb-3 space-y-2">
             {answers.map((answer, index) => (
-              <div key={`${answer.question}-${index}`} className="rounded-xl border border-border bg-background p-4">
+              <div key={`${answer.question}-${index}`} className="rounded-xl bg-muted/50 p-3 sm:p-4">
                 <div className="flex items-start justify-between gap-3">
                   <p className="text-sm font-medium text-foreground">{answer.question}</p>
                   <button
@@ -323,318 +593,58 @@ export function BrandHealthCheck({
                     <X className="size-4" aria-hidden="true" />
                   </button>
                 </div>
-                <p className="mt-2 text-sm leading-6 text-muted-foreground">{answer.text}</p>
-                <div className="mt-3 flex flex-wrap gap-1.5">
-                  {answer.sources.map((source) => (
-                    <Pill key={source} className="border border-border text-muted-foreground">{source}</Pill>
-                  ))}
-                </div>
+                <p className="mt-1.5 text-sm leading-6 text-muted-foreground">{answer.text}</p>
+                <p className="mt-2 text-xs text-muted-foreground">Sources: {answer.sources.join(" · ")}</p>
               </div>
             ))}
+            {asking && (
+              <p className="flex items-center gap-2 px-1 text-sm text-muted-foreground">
+                <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+                Researching…
+              </p>
+            )}
           </div>
         )}
-      </div>
-
-      {/* Jump links */}
-      <nav aria-label="Business Health sections" className="scrollbar-none -mb-4 flex gap-2 overflow-x-auto">
-        {NAV.map((item) => (
-          <button
-            key={item.id}
-            type="button"
-            onClick={() => jump(item.id)}
-            className="shrink-0 rounded-full px-3 py-1 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+        <form
+          onSubmit={(event) => {
+            event.preventDefault()
+            ask(query)
+          }}
+          className="flex items-center gap-2 rounded-xl border border-border bg-muted/30 py-1.5 pl-3 pr-1.5"
+        >
+          <Sparkles className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+          <input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder={`What should I look into for ${companyName}?`}
+            aria-label={`Ask AI about ${companyName}`}
+            className="min-w-0 flex-1 bg-transparent py-1.5 text-base text-foreground outline-none placeholder:text-muted-foreground sm:text-sm"
+          />
+          <Button
+            type="submit"
+            size="icon"
+            disabled={asking || !query.trim()}
+            aria-label="Ask"
+            className="size-9 shrink-0 rounded-lg bg-foreground text-background hover:bg-foreground/90"
           >
-            {item.label}
-          </button>
-        ))}
-      </nav>
-
-      {/* Business Briefing */}
-      <div className="space-y-4">
-        <SectionHead id="briefing" icon={Sparkles} title="Business briefing" hint="What matters right now" />
-        <div className="rounded-2xl border border-border p-5">
-          <p className="max-w-3xl text-[15px] leading-7 text-foreground">{data.briefing.summary}</p>
-          <ul className="mt-4 space-y-1.5">
-            {data.briefing.points.map((point) => (
-              <li key={point} className="flex gap-2 text-sm text-muted-foreground">
-                <ArrowRight className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-                {point}
-              </li>
-            ))}
-          </ul>
-          <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4">
-            {stats.map((stat) => (
-              <button
-                key={stat.id}
-                type="button"
-                onClick={() => jump(stat.id)}
-                className="rounded-xl bg-muted/50 px-3 py-2.5 text-left transition-colors hover:bg-muted"
-              >
-                <p className="text-xl font-semibold text-foreground">{stat.value}</p>
-                <p className="text-xs text-muted-foreground">{stat.label}</p>
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Recommended Actions */}
-      <div className="space-y-4">
-        <SectionHead
-          id="actions"
-          icon={Target}
-          title="Recommended actions"
-          hint="In order of priority, with the evidence behind each"
-          right={<span className="text-sm text-muted-foreground">{done.size} of {data.actions.length} done</span>}
-        />
-        <ol className="divide-y divide-border rounded-2xl border border-border">
-          {data.actions.map((action, index) => {
-            const isDone = done.has(action.id)
-            const isOpen = openAction === action.id
-            return (
-              <li key={action.id} className="p-4">
-                <div className="flex items-start gap-3">
-                  <button
-                    type="button"
-                    aria-label={isDone ? "Mark as not done" : "Mark as done"}
-                    onClick={() => toggle(setDone, action.id)}
-                    className={cn(
-                      "mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full border transition-colors",
-                      isDone ? "border-foreground bg-foreground text-background" : "border-border hover:border-foreground",
-                    )}
-                  >
-                    {isDone && <Check className="size-3" aria-hidden="true" />}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setOpenAction(isOpen ? null : action.id)}
-                    aria-expanded={isOpen}
-                    className="min-w-0 flex-1 text-left"
-                  >
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-sm text-muted-foreground">{index + 1}.</span>
-                      <p className={cn("font-medium text-foreground", isDone && "text-muted-foreground line-through")}>{action.title}</p>
-                      <Pill className={LEVEL_STYLES[action.priority]}>{action.priority}</Pill>
-                    </div>
-                    <p className="mt-0.5 text-sm text-muted-foreground">{action.why}</p>
-                  </button>
-                </div>
-                {isOpen && !isDone && (
-                  <div className="ml-8 mt-3 grid gap-3 sm:grid-cols-2">
-                    <div className="rounded-xl bg-muted/50 p-3">
-                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Evidence</p>
-                      <p className="mt-1 text-sm text-foreground">{action.evidence}</p>
-                    </div>
-                    <div className="rounded-xl bg-muted/50 p-3">
-                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Next steps</p>
-                      <ul className="mt-1 space-y-1">
-                        {action.steps.map((step) => (
-                          <li key={step} className="text-sm text-foreground">• {step}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  </div>
-                )}
-              </li>
-            )
-          })}
-        </ol>
-      </div>
-
-      <div className="grid gap-8 lg:grid-cols-2">
-        {/* Needs Attention */}
-        <div className="space-y-4">
-          <SectionHead id="attention" icon={AlertTriangle} title="Needs attention" hint="Problems found on your site and online" />
-          <ul className="space-y-2">
-            {issues.length === 0 && (
-              <li className="rounded-xl border border-dashed border-border px-4 py-6 text-center text-sm text-muted-foreground">
-                Nothing left here.
-              </li>
-            )}
-            {issues.map((issue) => (
-              <li key={issue.id} className="rounded-xl border border-border p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Pill className={LEVEL_STYLES[issue.level]}>{issue.level}</Pill>
-                      <span className="text-xs text-muted-foreground">{issue.area}</span>
-                    </div>
-                    <p className="mt-1.5 font-medium text-foreground">{issue.title}</p>
-                    <p className="mt-0.5 text-sm text-muted-foreground">{issue.detail}</p>
-                    <p className="mt-2 truncate text-xs text-muted-foreground">Found on {issue.source}</p>
-                  </div>
-                  <button
-                    type="button"
-                    aria-label="Dismiss"
-                    onClick={() => toggle(setDismissed, issue.id)}
-                    className="text-muted-foreground hover:text-foreground"
-                  >
-                    <X className="size-4" aria-hidden="true" />
-                  </button>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        {/* Opportunities */}
-        <div className="space-y-4">
-          <SectionHead id="opportunities" icon={Lightbulb} title="Opportunities" hint="Ways to grow found this week" />
-          <div className="scrollbar-none flex gap-1.5 overflow-x-auto">
-            {kinds.map((item) => (
-              <button
-                key={item}
-                type="button"
-                onClick={() => setKind(item)}
-                className={cn(
-                  "shrink-0 rounded-full border px-3 py-1 text-xs font-medium transition-colors",
-                  kind === item ? "border-foreground bg-foreground text-background" : "border-border text-muted-foreground hover:text-foreground",
-                )}
-              >
-                {item}
-              </button>
-            ))}
-          </div>
-          <ul className="space-y-2">
-            {opportunities.length === 0 && (
-              <li className="rounded-xl border border-dashed border-border px-4 py-6 text-center text-sm text-muted-foreground">
-                Nothing here right now.
-              </li>
-            )}
-            {opportunities.map((item) => {
-              const isSaved = saved.has(item.id)
-              return (
-                <li key={item.id} className="rounded-xl border border-border p-4">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Pill className="border border-border text-foreground">{item.kind}</Pill>
-                    <Pill className={LEVEL_STYLES[item.fit]}>{item.fit} fit</Pill>
-                    <span className="ml-auto text-xs text-muted-foreground">{item.when}</span>
-                  </div>
-                  <p className="mt-1.5 font-medium text-foreground">{item.title}</p>
-                  <p className="mt-0.5 text-sm text-muted-foreground">{item.detail}</p>
-                  <div className="mt-3 flex items-center gap-2">
-                    <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">{item.source}</span>
-                    <Button type="button" variant={isSaved ? "secondary" : "outline"} size="sm" onClick={() => toggle(setSaved, item.id)}>
-                      {isSaved ? <BookmarkCheck className="size-4" aria-hidden="true" /> : <Bookmark className="size-4" aria-hidden="true" />}
-                      {isSaved ? "Saved" : "Save"}
-                    </Button>
-                    <Button type="button" variant="ghost" size="sm" aria-label="Dismiss" onClick={() => toggle(setDismissed, item.id)}>
-                      <X className="size-4" aria-hidden="true" />
-                    </Button>
-                  </div>
-                </li>
-              )
-            })}
-          </ul>
-        </div>
-      </div>
-
-      {/* Market & Competitors */}
-      <div className="space-y-4">
-        <SectionHead id="market" icon={TrendingUp} title="Market & competitors" hint="What others in your space are doing" />
-        <div className="grid gap-4 lg:grid-cols-[2fr_1fr]">
-          <ul className="divide-y divide-border rounded-2xl border border-border">
-            {competitors.map((item) => (
-              <li key={item.id} className="flex gap-3 p-4">
-                <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-semibold text-foreground">
-                  {item.who.slice(-1)}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <p className="text-sm font-medium text-foreground">{item.who}</p>
-                    <Pill className="bg-muted text-muted-foreground">{item.kind}</Pill>
-                    <span className="ml-auto text-xs text-muted-foreground">{item.when}</span>
-                  </div>
-                  <p className="mt-1 text-sm text-foreground">{item.title}</p>
-                  <p className="text-sm text-muted-foreground">{item.detail}</p>
-                </div>
-              </li>
-            ))}
-          </ul>
-          <div className="rounded-2xl bg-muted/40 p-4">
-            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Industry & trends</p>
-            <ul className="mt-3 space-y-4">
-              {industry.map((item) => (
-                <li key={item.id}>
-                  <div className="flex items-center gap-2">
-                    <Pill className="bg-background text-muted-foreground">{item.kind}</Pill>
-                    <span className="text-xs text-muted-foreground">{item.when}</span>
-                  </div>
-                  <p className="mt-1 text-sm font-medium text-foreground">{item.title}</p>
-                  <p className="text-sm text-muted-foreground">{item.detail}</p>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      </div>
-
-      {/* Online Presence */}
-      <div className="space-y-4">
-        <SectionHead id="presence" icon={Globe} title="Online presence" hint={`How ${site} and your content come across`} />
-        <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-          {data.presence.map((area) => {
-            const status = STATUS_STYLES[area.status]
-            return (
-              <li key={area.key} className="rounded-xl border border-border p-4">
-                <p className="text-sm font-medium text-foreground">{area.label}</p>
-                <p className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
-                  <span className={cn("size-2 rounded-full", status.dot)} aria-hidden="true" />
-                  {status.label}
-                </p>
-                <p className="mt-2 text-sm leading-5 text-muted-foreground">{area.note}</p>
-              </li>
-            )
-          })}
-        </ul>
-      </div>
-
-      {/* Changes & Monitoring */}
-      <div className="space-y-4">
-        <SectionHead
-          id="changes"
-          icon={History}
-          title="Changes & monitoring"
-          hint="What's different since the last scan"
-          right={
-            <div className="flex gap-1.5">
-              {(["All", "Business", "Market"] as const).map((scope) => (
-                <button
-                  key={scope}
-                  type="button"
-                  onClick={() => setChangeScope(scope)}
-                  className={cn(
-                    "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
-                    changeScope === scope ? "border-foreground bg-foreground text-background" : "border-border text-muted-foreground hover:text-foreground",
-                  )}
-                >
-                  {scope}
-                </button>
-              ))}
-            </div>
-          }
-        />
-        <ol className="relative space-y-4 border-l border-border pl-5">
-          {changes.map((item) => (
-            <li key={item.id} className="relative">
-              <span className="absolute -left-[25px] top-1.5 size-2.5 rounded-full border-2 border-background bg-foreground" aria-hidden="true" />
-              <div className="flex flex-wrap items-center gap-2">
-                <p className="text-sm font-medium text-foreground">{item.title}</p>
-                <Pill className="bg-muted text-muted-foreground">{item.scope}</Pill>
-              </div>
-              <p className="text-sm text-muted-foreground">{item.detail} · {item.when}</p>
-            </li>
+            <ArrowUp className="size-4" aria-hidden="true" />
+          </Button>
+        </form>
+        <div className="scrollbar-none -mx-3 mt-3 flex gap-2 overflow-x-auto px-3 sm:mx-0 sm:flex-wrap sm:px-0">
+          {ASK_SUGGESTIONS.map((suggestion) => (
+            <button
+              key={suggestion}
+              type="button"
+              onClick={() => ask(suggestion)}
+              className="shrink-0 rounded-full border border-border px-3 py-1.5 text-sm text-foreground transition-colors hover:bg-muted"
+            >
+              {suggestion}
+            </button>
           ))}
-        </ol>
-        <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <Eye className="size-3.5" aria-hidden="true" />
-          Watching your site, 3 competitors, reviews, tenders and industry news. Scans weekly.
-        </p>
+        </div>
       </div>
 
-      <p className="border-t border-border pt-4 text-xs text-muted-foreground">
-        Sample data. Live results arrive once web research is connected.
-      </p>
+      <p className="px-1 text-xs text-muted-foreground">Sample data. Live results arrive once web research is connected.</p>
     </section>
   )
 }
