@@ -190,8 +190,7 @@ export function DashboardShell({
         >
           <header
             className={cn(
-              "surface-nav sticky top-0 z-40 flex h-14 shrink-0 items-center gap-2 bg-background px-4",
-              "max-md:bg-primary max-md:[--foreground:var(--primary-foreground)] max-md:[--muted-foreground:var(--primary-foreground)]",
+              "surface-nav sticky top-0 z-40 flex h-14 shrink-0 items-center gap-2 bg-background px-4 text-foreground",
               hideHeader && "md:hidden",
             )}
           >
@@ -208,14 +207,14 @@ export function DashboardShell({
                   }}
                   aria-label={isTaskDetailRoute ? "Back to tasks" : "Back to projects"}
                   title={isTaskDetailRoute ? "Back to tasks" : "Back to projects"}
-                  className="flex size-8 items-center justify-center rounded-md text-primary-foreground outline-none transition-colors hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-ring"
+                  className="flex size-8 items-center justify-center rounded-md text-foreground outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <ArrowLeft className="size-5" aria-hidden="true" />
                 </button>
               ) : (
                 <SidebarTrigger className="-ml-1" />
               )}
-              {!isProjectDetailRoute && <Separator orientation="vertical" className="max-md:bg-primary-foreground/30 data-[orientation=vertical]:h-4" />}
+              {!isProjectDetailRoute && <Separator orientation="vertical" className="data-[orientation=vertical]:h-4" />}
             </div>
             <div className="flex min-w-0 items-center gap-1">
               {titleOverride?.homeHref && (
