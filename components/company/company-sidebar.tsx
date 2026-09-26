@@ -28,6 +28,7 @@ export interface CompanySidebarCompany {
   location?: string
   website?: string
   description?: string
+  targetCustomers?: string
   companySize?: string
   source?: string
   linkedIn?: string
@@ -39,7 +40,7 @@ export interface CompanySidebarCompany {
 export type CompanyDetailsPatch = Partial<
   Pick<
     CompanySidebarCompany,
-    "name" | "logoUrl" | "tags" | "description" | "industry" | "location" | "website" | "companySize" | "source" | "linkedIn" | "links" | "primaryContactId"
+    "name" | "logoUrl" | "tags" | "description" | "targetCustomers" | "industry" | "location" | "website" | "companySize" | "source" | "linkedIn" | "links" | "primaryContactId"
   >
 >
 

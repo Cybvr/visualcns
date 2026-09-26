@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import {
   AlertCircle,
   ArrowUp,
@@ -17,6 +17,7 @@ import {
   Loader2,
   Megaphone,
   PenLine,
+  Pencil,
   RefreshCw,
   Search,
   Sparkles,
@@ -28,6 +29,7 @@ import type { LucideIcon } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import { ANALYSE_AREAS, BusinessHealthIntro, type BusinessDetails } from "@/components/company/business-health-intro"
 
 // Prototype data. Firecrawl crawls and research will feed these shapes once the backend exists.
 
@@ -270,12 +272,16 @@ function domainOf(url?: string) {
 }
 
 export function BusinessHealth({
-  companyName,
-  website,
+  companyId,
+  details,
+  onSave,
 }: {
-  companyName: string
-  website?: string
+  companyId: string
+  details: BusinessDetails
+  onSave?: (patch: Partial<BusinessDetails>) => Promise<void>
 }) {
+  const companyName = details.name
+  const website = details.website
   const site = domainOf(website) || "your website"
   const data = useMemo(() => sampleData(companyName, site), [companyName, site])
 
@@ -292,8 +298,42 @@ export function BusinessHealth({
   const [answers, setAnswers] = useState<Answer[]>([])
   const timers = useRef<ReturnType<typeof setTimeout>[]>([])
 
+  // Until the first scan runs, the tab shows the intro. Remembered per browser for now;
+  // this moves to the saved scan once web research is connected.
+  const storageKey = `business-health:scanned:${companyId}`
+  const [view, setView] = useState<"intro" | "dashboard">("intro")
+  const [firstScan, setFirstScan] = useState(false)
+  const [step, setStep] = useState(0)
+
+  useEffect(() => {
+    try {
+      if (window.localStorage.getItem(storageKey)) setView("dashboard")
+    } catch {
+      // Storage can be blocked; the intro is a fine default.
+    }
+  }, [storageKey])
+
+  useEffect(() => () => timers.current.forEach(clearTimeout), [])
+
   function later(fn: () => void, ms: number) {
     timers.current.push(setTimeout(fn, ms))
+  }
+
+  function analyse() {
+    setFirstScan(true)
+    setStep(0)
+    ANALYSE_AREAS.forEach((_, index) => later(() => setStep(index + 1), 700 * (index + 1)))
+    later(() => {
+      try {
+        window.localStorage.setItem(storageKey, new Date().toISOString())
+      } catch {
+        // Ignore; the dashboard still shows for this visit.
+      }
+      setFirstScan(false)
+      setLastScan("just now")
+      setView("dashboard")
+      window.scrollTo({ top: 0, behavior: "smooth" })
+    }, 700 * (ANALYSE_AREAS.length + 1))
   }
 
   function scan() {
@@ -349,6 +389,10 @@ export function BusinessHealth({
     document.getElementById(`bh-${id}`)?.scrollIntoView({ behavior: "smooth", block: "start" })
   }
 
+  if (view === "intro") {
+    return <BusinessHealthIntro details={details} onSave={onSave} onAnalyse={analyse} scanning={firstScan} step={step} />
+  }
+
   return (
     <section className="mt-5 space-y-3 sm:space-y-4">
       {/* Hero: what this is, the score, and when it last looked. */}
@@ -369,10 +413,16 @@ export function BusinessHealth({
           <p className="text-sm text-muted-foreground">
             Last updated {lastScan} · Scanned {data.pages} pages
           </p>
-          <Button type="button" variant="outline" size="sm" onClick={scan} disabled={scanning} className="bg-background">
-            {scanning ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <RefreshCw className="size-4" aria-hidden="true" />}
-            {scanning ? "Scanning…" : "Run new scan"}
-          </Button>
+          <div className="flex gap-2">
+            <Button type="button" variant="ghost" size="sm" onClick={() => setView("intro")}>
+              <Pencil className="size-4" aria-hidden="true" />
+              Business details
+            </Button>
+            <Button type="button" variant="outline" size="sm" onClick={scan} disabled={scanning} className="bg-background">
+              {scanning ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <RefreshCw className="size-4" aria-hidden="true" />}
+              {scanning ? "Scanning…" : "Run new scan"}
+            </Button>
+          </div>
         </div>
       </div>
 

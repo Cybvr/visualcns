@@ -197,6 +197,7 @@ export interface CompanyPageCompany {
   website?: string
   links?: CompanyLink[]
   description?: string
+  targetCustomers?: string
   companySize?: string
   source?: string
   linkedIn?: string
@@ -840,8 +841,17 @@ export function CompanyPage({
 
           {section === "brand-health" && (
             <BusinessHealth
-              companyName={company.name}
-              website={company.website}
+              companyId={company.id}
+              details={{
+                name: company.name,
+                logoUrl: company.logoUrl,
+                website: company.website,
+                industry: company.industry,
+                description: company.description,
+                targetCustomers: company.targetCustomers,
+                location: company.location,
+              }}
+              onSave={admin?.onUpdateCompany}
             />
           )}
 

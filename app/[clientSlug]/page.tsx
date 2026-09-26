@@ -35,6 +35,7 @@ function CompanyPageContent() {
           location: organization?.location,
           website: organization?.website,
           description: organization?.description,
+          targetCustomers: organization?.targetCustomers,
           companySize: organization?.companySize,
           source: organization?.source,
           linkedIn: organization?.linkedIn,
