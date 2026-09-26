@@ -362,7 +362,7 @@ function PortalMobileFooterNav({ company, activeTab }: { company: string; active
 
   const items: MobileFooterNavItem[] = [
     { key: "overview", label: "Overview", icon: LayoutDashboard, href: portalPath(company), isActive: activeTab === "overview" },
-    { key: "documents", label: "Documents", icon: FileText, href: `${portalPath(company)}/documents`, isActive: activeTab === "documents" },
+    { key: "invoices", label: "Invoices", icon: Receipt, href: `${portalPath(company)}/invoices`, isActive: activeTab === "invoices" },
     { key: "ngai", label: "Ngai", icon: Sparkles, onClick: () => setAgentOpen(true), isActive: agentOpen || activeTab === "ngai" },
     { key: "menu", label: "Menu", icon: Menu, onClick: () => setOpenMobile(true) },
   ]
@@ -509,6 +509,7 @@ export function PortalWorkspaceView({ data, project, company, uid, canAct, tab, 
     {tab === "projects" && projectList}
     {tab === "contacts" && <Contacts people={data.organization.publicTeam ?? []} />}
     {tab === "tasks" && <Tasks tasks={tasks} uid={uid} canAct={canAct} onChanged={onChanged} all />}
+    {tab === "invoices" && <BillingDocuments company={company} invoices={invoices} contracts={contracts} estimates={estimates} />}
     {tab === "documents" && <div className="space-y-6"><CompanyDocuments company={company} documents={documents} /><Files files={files} /></div>}
     {tab === "media" && <CompanyMedia logoUrl={data.organization.logoUrl} projects={data.projects as unknown as Project[]} uploaded={data.organization.media ?? []} />}
     {tab === "insights" && <PortalInsights />}
@@ -525,7 +526,7 @@ export function PortalWorkspace({ projectMode = false, section }: { projectMode?
   const search = useSearchParams()
   const router = useRouter()
   const project = projectMode ? data.projects.find(item => item.id === projectId || item.legacySlug === projectId) : undefined
-  const available = projectMode ? ["overview", "tasks", "documents"] : ["overview", "projects", "contacts", "tasks", "documents", "media", "insights", "ngai", "account"]
+  const available = projectMode ? ["overview", "tasks", "documents"] : ["overview", "projects", "contacts", "tasks", "documents", "invoices", "media", "insights", "ngai", "account"]
   const raw = section || search.get("tab") || "overview"
   const tab = available.includes(raw) ? raw : "overview"
   if (projectMode && !project) return <PortalNotice title="This project isn’t available">It may not have been shared with your company yet. <Link className="underline" href={portalPath(companySlug)}>Back to your company</Link></PortalNotice>
