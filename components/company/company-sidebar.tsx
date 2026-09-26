@@ -79,7 +79,7 @@ export function CompanySidebar({
 
   return (
     <aside className="min-w-0 space-y-4 print:hidden lg:sticky lg:top-6 lg:self-start">
-      <div className="rounded-2xl bg-card p-5">
+      <div className="py-2">
         <span className="surface-body inline-flex items-center rounded-full bg-muted px-2.5 py-1 font-medium">
           {company.industry}
         </span>

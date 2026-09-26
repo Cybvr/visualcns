@@ -50,7 +50,7 @@ export function CompanyLinks({
   }
 
   return (
-    <section className="rounded-2xl bg-card p-5 sm:p-7" aria-labelledby="company-links-heading">
+    <section className="py-2" aria-labelledby="company-links-heading">
       <div className="flex items-center justify-between gap-3">
         <h2 id="company-links-heading" className="text-xl font-semibold tracking-[-0.02em] text-foreground">Links</h2>
         {onSave && !adding && (

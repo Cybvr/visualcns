@@ -74,7 +74,7 @@ type SectionKey = (typeof SECTIONS)[number]["key"]
 
 function ProfileCard({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section className="rounded-2xl bg-card p-5 sm:p-7">
+    <section className="py-2">
       <h2 className="text-xl font-semibold tracking-[-0.02em] text-foreground">{title}</h2>
       <div className="mt-5">{children}</div>
     </section>
