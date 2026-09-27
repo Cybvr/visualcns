@@ -45,6 +45,8 @@ export interface Task {
   sourceKind?: "invoice" | "estimate" | "contract"
   /** Firestore id of the billing document this task tracks. */
   sourceId?: string
+  /** A private reminder the agency set (often through Ngai). Never shown to the client. */
+  reminder?: boolean
   createdAt?: Timestamp
   updatedAt?: Timestamp
 }

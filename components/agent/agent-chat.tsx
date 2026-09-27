@@ -2,9 +2,9 @@
 
 import Image from "next/image"
 import { useEffect, useRef, useState, type ChangeEvent, type ClipboardEvent, type DragEvent, type FormEvent, type KeyboardEvent, type ReactNode } from "react"
-import { ArrowUp, FileText, Loader2, Mic, Plus, UploadCloud, X } from "lucide-react"
+import { ArrowUp, Check, ChevronDown, FileText, ListChecks, Loader2, Mic, Plus, UploadCloud, X } from "lucide-react"
 
-import type { AgentConversation, AgentFile, AgentForm, AgentMessage } from "@/components/agent/agent-context"
+import type { AgentConversation, AgentFile, AgentForm, AgentMessage, AgentPlan } from "@/components/agent/agent-context"
 import { uploadFileToStorage } from "@/lib/documents"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -235,6 +235,84 @@ function AgentFormCard({ form, disabled, onSubmit }: { form: AgentForm; disabled
           </Button>
         )}
       </div>
+    </div>
+  )
+}
+
+/**
+ * What Ngai did while working. Live, the last line spins; afterwards the list
+ * folds into one line the user can open.
+ */
+function AgentSteps({ steps, live }: { steps: string[]; live: boolean }) {
+  const [open, setOpen] = useState(false)
+  if (!steps.length) return null
+
+  if (live) {
+    return (
+      <ol className="space-y-1.5 pt-1 text-sm text-muted-foreground" role="status" aria-live="polite">
+        {steps.map((label, index) => (
+          <li key={`${index}-${label}`} className="flex items-center gap-2">
+            {index === steps.length - 1 ? (
+              <Loader2 className="size-3.5 shrink-0 animate-spin" aria-hidden="true" />
+            ) : (
+              <Check className="size-3.5 shrink-0 text-emerald-600" aria-hidden="true" />
+            )}
+            <span className="min-w-0 truncate">{label}</span>
+          </li>
+        ))}
+      </ol>
+    )
+  }
+
+  return (
+    <div className="mb-2 text-xs text-muted-foreground">
+      <button
+        type="button"
+        onClick={() => setOpen((current) => !current)}
+        aria-expanded={open}
+        className="inline-flex items-center gap-1 rounded outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        {steps.length} step{steps.length === 1 ? "" : "s"}
+        <ChevronDown className={cn("size-3.5 transition-transform", open && "rotate-180")} aria-hidden="true" />
+      </button>
+      {open && (
+        <ol className="mt-1.5 space-y-1">
+          {steps.map((label, index) => (
+            <li key={`${index}-${label}`} className="flex items-center gap-2">
+              <Check className="size-3 shrink-0 text-emerald-600" aria-hidden="true" />
+              <span className="min-w-0 truncate">{label}</span>
+            </li>
+          ))}
+        </ol>
+      )}
+    </div>
+  )
+}
+
+/** A checklist Ngai wants approved before a big job. Go sends the approval back. */
+function AgentPlanCard({ plan, active, disabled, onSubmit }: { plan: AgentPlan; active: boolean; disabled: boolean; onSubmit: (text: string) => void }) {
+  return (
+    <div className="mt-3 w-full rounded-[16px] border border-border bg-card p-4">
+      <p className="flex items-center gap-2 font-medium">
+        <ListChecks className="size-4 shrink-0 text-primary" aria-hidden="true" />
+        <span className="min-w-0">{plan.title}</span>
+      </p>
+      <ol className="mt-3 space-y-2">
+        {plan.steps.map((item, index) => (
+          <li key={`${index}-${item}`} className="flex gap-2.5">
+            <span className="mt-px inline-flex size-5 shrink-0 items-center justify-center rounded-full bg-background text-xs tabular-nums text-muted-foreground">{index + 1}</span>
+            <span className="min-w-0">{item}</span>
+          </li>
+        ))}
+      </ol>
+      {active && (
+        <div className="mt-4 flex flex-wrap items-center justify-end gap-2">
+          <span className="mr-auto text-xs text-muted-foreground">Or type what to change.</span>
+          <Button type="button" size="sm" disabled={disabled} onClick={() => onSubmit("Go ahead with the plan.")}>
+            Go ahead
+          </Button>
+        </div>
+      )}
     </div>
   )
 }
@@ -534,7 +612,7 @@ export function AgentChat({
             compact ? "gap-5 px-4 py-5" : "max-w-3xl gap-7 px-4 py-8 sm:px-6",
           )}
         >
-          {messages.map((message) => (
+          {messages.map((message, messageIndex) => (
             <div
               key={message.id}
               className={cn("flex w-full", message.role === "user" ? "justify-end" : "items-start gap-3")}
@@ -543,10 +621,14 @@ export function AgentChat({
                 <Image src="/ngai-logo.png" alt="Ngai" width={28} height={28} className="mt-0.5 shrink-0 rounded-full" />
               )}
               {message.role === "assistant" && !message.content ? (
-                <span className="flex items-center gap-2 pt-1 text-sm text-muted-foreground" role="status" aria-live="polite">
-                  <Loader2 className="size-4 animate-spin" aria-hidden="true" />
-                  Thinking
-                </span>
+                message.steps?.length ? (
+                  <AgentSteps steps={message.steps} live />
+                ) : (
+                  <span className="flex items-center gap-2 pt-1 text-sm text-muted-foreground" role="status" aria-live="polite">
+                    <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+                    Thinking
+                  </span>
+                )
               ) : (
                 <div
                   className={cn(
@@ -586,10 +668,16 @@ export function AgentChat({
                       {message.content}
                     </>
                   ) : (
-                    <AgentMarkdown content={message.content} />
+                    <>
+                      {message.steps && message.steps.length > 0 && <AgentSteps steps={message.steps} live={false} />}
+                      <AgentMarkdown content={message.content} />
+                    </>
                   )}
                   {message.form && (
                     <AgentFormCard form={message.form} disabled={sending} onSubmit={onSend} />
+                  )}
+                  {message.plan && (
+                    <AgentPlanCard plan={message.plan} active={messageIndex === messages.length - 1} disabled={sending} onSubmit={onSend} />
                   )}
                 </div>
               )}

@@ -15,7 +15,9 @@ import { db } from "./firebase"
 import { getCurrentAgencyId } from "./agency-scope"
 
 export type CompanyDocumentStatus = "draft" | "sent" | "viewed" | "final"
-export type CompanyDocumentKind = "proposal" | "sow" | "brief" | "report" | "other"
+export type CompanyDocumentKind = "proposal" | "sow" | "brief" | "report" | "townhall" | "memo" | "press_release" | "meeting_notes" | "other"
+
+export const COMPANY_DOCUMENT_KINDS: CompanyDocumentKind[] = ["proposal", "sow", "brief", "report", "townhall", "memo", "press_release", "meeting_notes", "other"]
 
 /**
  * A written document sent to a company: a proposal, a statement of work, a
@@ -57,6 +59,10 @@ export const companyDocumentKindMeta: Record<CompanyDocumentKind, { label: strin
   sow: { label: "Statement of work" },
   brief: { label: "Brief" },
   report: { label: "Report" },
+  townhall: { label: "Town hall" },
+  memo: { label: "Memo" },
+  press_release: { label: "Press release" },
+  meeting_notes: { label: "Meeting notes" },
   other: { label: "Document" },
 }
 
@@ -93,6 +99,38 @@ export const COMPANY_DOCUMENT_TEMPLATES: { id: string; label: string; descriptio
     kind: "report",
     title: "Report",
     body: "<h2>Summary</h2><p></p><h2>What we did</h2><p></p><h2>Results</h2><p></p><h2>What we'd change</h2><p></p>",
+  },
+  {
+    id: "townhall",
+    label: "Town hall",
+    description: "Agenda, key messages and questions for an all-hands meeting.",
+    kind: "townhall",
+    title: "Town hall",
+    body: "<h2>Purpose</h2><p></p><h2>Date, time and place</h2><p></p><h2>Who is speaking</h2><ul><li></li></ul><h2>Agenda</h2><ol><li></li></ol><h2>Key messages</h2><ul><li></li></ul><h2>Expected questions and answers</h2><p></p><h2>After the meeting</h2><p></p>",
+  },
+  {
+    id: "memo",
+    label: "Memo",
+    description: "A short internal note: what's happening and what to do.",
+    kind: "memo",
+    title: "Memo",
+    body: "<p><strong>To:</strong> </p><p><strong>From:</strong> </p><p><strong>Date:</strong> </p><p><strong>Subject:</strong> </p><h2>Summary</h2><p></p><h2>Details</h2><p></p><h2>What you need to do</h2><p></p>",
+  },
+  {
+    id: "press_release",
+    label: "Press release",
+    description: "An announcement written for journalists and the public.",
+    kind: "press_release",
+    title: "Press release",
+    body: "<p><strong>FOR IMMEDIATE RELEASE</strong></p><h2>Headline</h2><p><em>Subheading</em></p><p><strong>City, date</strong> — </p><p></p><h2>Quote</h2><blockquote><p></p></blockquote><h2>About the company</h2><p></p><h2>Media contact</h2><p></p>",
+  },
+  {
+    id: "meeting_notes",
+    label: "Meeting notes",
+    description: "Who was there, what was decided and who does what next.",
+    kind: "meeting_notes",
+    title: "Meeting notes",
+    body: "<p><strong>Date:</strong> </p><p><strong>Attendees:</strong> </p><h2>Agenda</h2><ul><li></li></ul><h2>Discussion</h2><p></p><h2>Decisions</h2><ul><li></li></ul><h2>Action items</h2><ul><li></li></ul>",
   },
   {
     id: "blank",

@@ -1,15 +1,17 @@
 import { getSiteAgencyId, requireAgencyId } from "@/lib/require-agency-id"
 import OpenAI from "openai"
+import mammoth from "mammoth"
 import { cert, getApps, initializeApp } from "firebase-admin/app"
 import { getAuth as getAdminAuth } from "firebase-admin/auth"
 import { FieldPath, FieldValue, getFirestore as getAdminFirestore } from "firebase-admin/firestore"
 import { getAgencySecret, recordAgencyUsage } from "@/lib/server/agency-secrets"
+import { buildEmailComposeHref } from "@/lib/email-composer"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
 const MODEL = process.env.OPENAI_MODEL || "gpt-5.6-luna"
-const MAX_TOOL_ROUNDS = 12
+const MAX_TOOL_ROUNDS = 16
 
 type AttachedFile = { name?: string; url?: string; mimeType?: string }
 type ChatMessage = { role: "user" | "assistant"; content: string; images?: string[]; files?: AttachedFile[] }
@@ -99,7 +101,34 @@ you used.
 
 Pass looked-up clients and projects to collect_details as select options so the user picks a name
 and never types an ID. The user's answers arrive as their next message; act on them immediately.
-Never invent prices, dates or legal terms, just leave them out of the draft.`
+Never invent prices, dates or legal terms, just leave them out of the draft.
+
+How to work on anything about a named client:
+1. Call find_client with the name the user used (e.g. "falcon"). If several match and the context
+   doesn't settle it, ask with collect_details using the matched names as options.
+2. Call client_overview for that client before writing anything. It returns their details, people,
+   projects, open tasks, billing, written documents (with excerpts) and Drive files.
+3. If a written document or Drive file looks relevant, open it with read_file and use what it says.
+   Do not guess what a file contains from its name.
+4. Only then write or create. Base the content on what you read, and say briefly what you used.
+
+Big jobs: when a request needs more than three things created or changed, touches several clients, or
+you are unsure what the user wants, call propose_plan first with a short checklist of what you will do,
+then stop. When the user replies to go ahead, do the whole plan without asking again. Small jobs (one
+draft, one change, a question) never need a plan - just do them.
+
+Written documents can be: proposal, sow (statement of work), brief, report, townhall, memo,
+press_release, meeting_notes, or other. Pick the closest. Write a complete document - real headings and
+full paragraphs drawn from the client's records - never empty template sections.
+
+Emails: to write an email, call draft_email. It opens the email composer filled in, so the user reviews
+and sends it. Never say an email was sent. Reply with one line and the link.
+
+Reminders: when the user says "remind me", "follow up" or "don't let me forget", call create_reminder
+with a due date. Work out dates from today's date; ask only if no date is given or implied.
+
+Style: when the user says "remember", "always", "from now on" or "never" about how you should write,
+call remember_style with a short note in their words, then confirm in one line.`
 
 const PORTAL_PROMPT = `You are Ngai, the VisualCNS client portal assistant for customers working with an agency.
 Help customers understand their work with the agency and how to use the portal: their projects,
@@ -140,6 +169,8 @@ const AGENT_TOOLS = [
             "Which records to read. organizations = client companies, projects = projects, tasks = tasks, invoices/estimates/contracts = billing documents, companyDocuments = written company documents, documents = uploaded/shared files, users = people.",
         },
         limit: { type: ["number", "null"], description: "Maximum records to return. Defaults to 100, capped at 300." },
+        companyId: { type: ["string", "null"], description: "Only return records for this client company (id from find_client). Admins only." },
+        search: { type: ["string", "null"], description: "Only return records whose name, title, client, number or email contains this text." },
       },
       required: ["collection"],
       additionalProperties: false,
@@ -154,6 +185,105 @@ const AGENT_TOOLS = [
       type: "object",
       properties: {},
       required: [],
+      additionalProperties: false,
+    },
+  },
+  {
+    type: "function",
+    name: "find_client",
+    description: "Find a client company by the name the user used, even a partial or loose one like 'falcon'. Returns the best matches with their ids. Call this first whenever the user names a client.",
+    parameters: {
+      type: "object",
+      properties: { name: { type: "string", description: "The name or part of it, as the user said it." } },
+      required: ["name"],
+      additionalProperties: false,
+    },
+  },
+  {
+    type: "function",
+    name: "client_overview",
+    description: "Read everything the workspace holds about one client in a single call: company details, people, projects, open tasks, invoices, estimates, contracts, written documents (with excerpts) and Drive files. Call this before writing anything for a client.",
+    parameters: {
+      type: "object",
+      properties: {
+        companyId: { type: "string", description: "The client's id from find_client." },
+        client: { type: ["string", "null"], description: "The client's name, for the progress message." },
+      },
+      required: ["companyId"],
+      additionalProperties: false,
+    },
+  },
+  {
+    type: "function",
+    name: "read_file",
+    description: "Open one file or written document and read its full contents: a Drive file (PDF, image, Word, text, or a saved web link) or a written company document. Use ids from client_overview or query_workspace.",
+    parameters: {
+      type: "object",
+      properties: {
+        collection: { type: "string", enum: ["documents", "companyDocuments"], description: "documents = Drive files and links, companyDocuments = written documents." },
+        id: { type: "string" },
+      },
+      required: ["collection", "id"],
+      additionalProperties: false,
+    },
+  },
+  {
+    type: "function",
+    name: "propose_plan",
+    description: "Show the user a short checklist of what you are about to do and wait for them to say go. Use for big or unclear jobs only. This ends your turn.",
+    parameters: {
+      type: "object",
+      properties: {
+        title: { type: "string", description: "What the plan is for, e.g. 'Town hall pack for Falcon'." },
+        steps: { type: "array", items: { type: "string" }, description: "3 to 8 plain steps, each one thing you will do." },
+      },
+      required: ["title", "steps"],
+      additionalProperties: false,
+    },
+  },
+  {
+    type: "function",
+    name: "remember_style",
+    description: "Save a note about how this agency wants you to write (tone, spelling, sign-offs, layout, words to avoid). It is applied to everything you write from now on.",
+    parameters: {
+      type: "object",
+      properties: { note: { type: "string", description: "One short instruction, e.g. 'Use British spelling'." } },
+      required: ["note"],
+      additionalProperties: false,
+    },
+  },
+  {
+    type: "function",
+    name: "draft_email",
+    description: "Write an email and open it in the email composer for the user to review and send. Nothing is sent by this tool.",
+    parameters: {
+      type: "object",
+      properties: {
+        companyId: { type: ["string", "null"] },
+        client: { type: ["string", "null"] },
+        to: { type: ["string", "null"], description: "Recipient email, if known. Left empty, the client's email is used." },
+        recipientName: { type: ["string", "null"] },
+        subject: { type: "string" },
+        body: { type: "string", description: "Plain text with line breaks. Include greeting and sign-off." },
+      },
+      required: ["subject", "body"],
+      additionalProperties: false,
+    },
+  },
+  {
+    type: "function",
+    name: "create_reminder",
+    description: "Set a private reminder for the agency on a date. It shows in Tasks and is never visible to the client.",
+    parameters: {
+      type: "object",
+      properties: {
+        title: { type: "string", description: "What to do, e.g. 'Follow up with Falcon on the town hall doc'." },
+        dueDate: { type: "string", description: "YYYY-MM-DD" },
+        notes: { type: ["string", "null"] },
+        companyId: { type: ["string", "null"] },
+        client: { type: ["string", "null"] },
+      },
+      required: ["title", "dueDate"],
       additionalProperties: false,
     },
   },
@@ -373,7 +503,7 @@ const AGENT_TOOLS = [
         companyId: { type: "string" },
         client: { type: "string" },
         title: { type: "string" },
-        kind: { type: "string", enum: ["proposal", "sow", "brief", "report", "other"] },
+        kind: { type: "string", enum: ["proposal", "sow", "brief", "report", "townhall", "memo", "press_release", "meeting_notes", "other"] },
         projectId: { type: ["string", "null"] },
         project: { type: ["string", "null"] },
         summary: { type: ["string", "null"] },
@@ -456,6 +586,11 @@ const PORTAL_TOOLS = AGENT_TOOLS.filter(
 
 /** Separates the assistant's text from a trailing inline form spec. */
 export const FORM_MARKER = "\n␞::ngai-form::"
+/** Same, for a plan the user approves before Ngai carries it out. */
+const PLAN_MARKER = "\n␞::ngai-plan::"
+/** Each progress line streamed while Ngai works, then the answer itself. */
+const STEP_MARKER = "␞::ngai-step::"
+const ANSWER_MARKER = "␞::ngai-answer::"
 
 const READABLE_COLLECTIONS = [
   "organizations",
@@ -528,6 +663,143 @@ async function nextDocumentNumber(db: ReturnType<typeof getAdminFirestore>, coll
   return `${prefix}-${String(highest + 1).padStart(4, "0")}`
 }
 
+/** The fields a text search looks at. */
+function searchableText(data: FirebaseFirestore.DocumentData): string {
+  return ["name", "title", "client", "company", "displayName", "email", "invoiceNumber", "estimateNumber", "project"]
+    .map((key) => (typeof data[key] === "string" ? data[key] : ""))
+    .join(" ")
+    .toLowerCase()
+}
+
+function stripHtml(html: string): string {
+  return html
+    .replace(/<(script|style)[^>]*>[\s\S]*?<\/\1>/gi, " ")
+    .replace(/<\/(p|h[1-6]|li|tr|div|br)>/gi, "\n")
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&#39;|&apos;/g, "'")
+    .replace(/&quot;/g, '"')
+    .replace(/[ \t]+/g, " ")
+    .replace(/\n\s*\n+/g, "\n\n")
+    .trim()
+}
+
+function clip(text: string, max: number): string {
+  return text.length > max ? `${text.slice(0, max)}… [cut short]` : text
+}
+
+/** Refuses local and private network addresses, so a saved link can't reach internal services. */
+function isFetchableUrl(raw: string): boolean {
+  try {
+    const url = new URL(raw)
+    if (url.protocol !== "https:" && url.protocol !== "http:") return false
+    const host = url.hostname.toLowerCase()
+    if (host === "localhost" || host.endsWith(".local") || host.endsWith(".internal") || host === "metadata.google.internal") return false
+    if (/^(127\.|10\.|0\.|169\.254\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(host)) return false
+    if (host.includes(":") || host === "[::1]") return false
+    return true
+  } catch {
+    return false
+  }
+}
+
+/** Something to show the model after a tool call: a PDF or image it reads directly. */
+type ToolAttachment = { kind: "pdf" | "image"; url: string; name: string }
+
+async function readFileContents(url: string, title: string, declaredType: string): Promise<Record<string, unknown>> {
+  if (!isFetchableUrl(url)) throw new Error("That file's address can't be opened.")
+  const lowerUrl = url.split("?")[0].toLowerCase()
+  const byExtension = (ext: string) => lowerUrl.endsWith(ext) || decodeURIComponent(lowerUrl).endsWith(ext)
+
+  if (declaredType === "image" || /\.(png|jpe?g|gif|webp)$/.test(decodeURIComponent(lowerUrl))) {
+    return { type: "file_contents", title, format: "image", note: "The image is attached below for you to look at.", __attach: { kind: "image", url, name: title } }
+  }
+  if (byExtension(".pdf")) {
+    return { type: "file_contents", title, format: "pdf", note: "The PDF is attached below for you to read.", __attach: { kind: "pdf", url, name: `${title || "document"}.pdf` } }
+  }
+
+  const response = await fetch(url, { signal: AbortSignal.timeout(15000), redirect: "follow" })
+  if (!response.ok) throw new Error(`Couldn't open that file (error ${response.status}).`)
+  const size = Number(response.headers.get("content-length") || 0)
+  if (size > 20 * 1024 * 1024) throw new Error("That file is too big to read (over 20 MB).")
+  const contentType = (response.headers.get("content-type") || "").toLowerCase()
+
+  if (contentType.includes("application/pdf")) {
+    return { type: "file_contents", title, format: "pdf", note: "The PDF is attached below for you to read.", __attach: { kind: "pdf", url, name: `${title || "document"}.pdf` } }
+  }
+  if (contentType.startsWith("image/")) {
+    return { type: "file_contents", title, format: "image", note: "The image is attached below for you to look at.", __attach: { kind: "image", url, name: title } }
+  }
+  if (contentType.includes("wordprocessingml") || byExtension(".docx")) {
+    const buffer = Buffer.from(await response.arrayBuffer())
+    const { value } = await mammoth.extractRawText({ buffer })
+    return { type: "file_contents", title, format: "word", text: clip(value.trim(), 40000) }
+  }
+  if (contentType.includes("text/html")) {
+    return { type: "file_contents", title, format: "web page", text: clip(stripHtml(await response.text()), 30000) }
+  }
+  if (contentType.startsWith("text/") || contentType.includes("json") || contentType.includes("csv") || /\.(txt|md|csv|json)$/.test(lowerUrl)) {
+    return { type: "file_contents", title, format: "text", text: clip((await response.text()).trim(), 40000) }
+  }
+  throw new Error("That file type can't be read (only PDFs, images, Word, text and web pages). Ask the user what it says.")
+}
+
+async function ownerOrganization(db: ReturnType<typeof getAdminFirestore>, agencyId: string) {
+  const snapshot = await db.collection("organizations").where("agencyId", "==", agencyId).where("isOwner", "==", true).limit(1).get()
+  return snapshot.docs[0] ?? null
+}
+
+/** The agency's saved writing notes, added to Ngai's instructions on every turn. */
+async function agencyStyle(agencyId: string): Promise<string> {
+  try {
+    const { db } = adminServices()
+    const owner = await ownerOrganization(db, agencyId)
+    const style = owner?.data().ngaiStyle
+    return typeof style === "string" ? style.trim() : ""
+  } catch {
+    return ""
+  }
+}
+
+/** A short, human line shown in the chat while a tool runs. */
+function stepLabel(name: string, rawArgs: string): string {
+  let args: Record<string, unknown> = {}
+  try {
+    args = JSON.parse(rawArgs || "{}") as Record<string, unknown>
+  } catch {
+    // Fall back to the generic labels.
+  }
+  const text = (key: string) => (typeof args[key] === "string" ? String(args[key]).trim() : "")
+  const readable: Record<string, string> = {
+    organizations: "clients", projects: "projects", tasks: "tasks", invoices: "invoices", estimates: "estimates",
+    contracts: "contracts", companyDocuments: "documents", documents: "Drive files", users: "people",
+  }
+  switch (name) {
+    case "find_client": return `Looking up “${text("name")}”`
+    case "client_overview": return text("client") ? `Reading ${text("client")}'s records` : "Reading the client's records"
+    case "read_file": return "Opening a file"
+    case "query_workspace": return `Checking ${readable[text("collection")] ?? "records"}${text("search") ? ` for “${text("search")}”` : ""}`
+    case "workspace_summary": return "Pulling together an overview"
+    case "update_record": return "Saving changes"
+    case "create_company": return `Adding ${text("name") || "the client"}`
+    case "create_project": return `Creating project ${text("title")}`.trim()
+    case "create_task": return `Adding task ${text("name")}`.trim()
+    case "create_invoice": return "Drafting an invoice"
+    case "create_estimate": return "Drafting an estimate"
+    case "create_contract": return "Drafting a contract"
+    case "create_document": return `Writing ${text("title") || "the document"}`
+    case "attach_file": return "Filing it in the Drive"
+    case "remember_style": return "Saving that to your style notes"
+    case "draft_email": return "Writing the email"
+    case "create_reminder": return "Setting a reminder"
+    default: return "Working on it"
+  }
+}
+
 async function runAgentTool(name: string, rawArgs: string, uid: string) {
   const { db } = adminServices()
   const userSnapshot = await db.collection("users").doc(uid).get()
@@ -561,12 +833,24 @@ async function runAgentTool(name: string, rawArgs: string, uid: string) {
           : query.where("companyId", "==", companyId)
     }
 
-    const snapshot = await query.limit(limit).get()
-    const records = snapshot.docs.map((item) => ({ id: item.id, ...safeRecord(collectionName, item.data(), isAdmin) }))
+    const onlyCompany = isAdmin ? optionalText(readArgs, "companyId") : ""
+    if (onlyCompany) {
+      query =
+        collectionName === "organizations"
+          ? query.where(FieldPath.documentId(), "==", onlyCompany)
+          : query.where("companyId", "==", onlyCompany)
+    }
+    const search = optionalText(readArgs, "search").toLowerCase()
+
+    const snapshot = await query.limit(search ? 1000 : limit).get()
+    const docs = search
+      ? snapshot.docs.filter((item) => searchableText(item.data()).includes(search)).slice(0, limit)
+      : snapshot.docs
+    const records = docs.map((item) => ({ id: item.id, ...safeRecord(collectionName, item.data(), isAdmin) }))
     return {
       type: "records",
       collection: collectionName,
-      count: snapshot.size,
+      count: records.length,
       scope: isAdmin ? "your agency" : "your company",
       records,
     }
@@ -922,8 +1206,8 @@ async function runAgentTool(name: string, rawArgs: string, uid: string) {
     const client = requireText(args, "client")
     const title = requireText(args, "title")
     const kind = optionalText(args, "kind") || "other"
-    if (!["proposal", "sow", "brief", "report", "other"].includes(kind)) {
-      throw new Error("Document type must be proposal, sow, brief, report, or other.")
+    if (!["proposal", "sow", "brief", "report", "townhall", "memo", "press_release", "meeting_notes", "other"].includes(kind)) {
+      throw new Error("Document type must be proposal, sow, brief, report, townhall, memo, press_release, meeting_notes, or other.")
     }
     const ref = db.collection("companyDocuments").doc()
     await ref.set({
@@ -942,6 +1226,138 @@ async function runAgentTool(name: string, rawArgs: string, uid: string) {
       updatedAt: now,
     })
     return { type: "document", id: ref.id, title, status: "draft", url: `/dashboard/documents/${ref.id}/edit` }
+  }
+
+  if (name === "find_client") {
+    const wanted = requireText(args, "name").toLowerCase()
+    const words = wanted.split(/\s+/).filter(Boolean)
+    const snapshot = await db.collection("organizations").where("agencyId", "==", agencyId).limit(1000).get()
+    const scored = snapshot.docs
+      .filter((item) => !item.data().isOwner)
+      .map((item) => {
+        const data = item.data()
+        const label = `${data.name || ""} ${data.slug || ""} ${data.website || ""}`.toLowerCase()
+        const name = String(data.name || "").toLowerCase()
+        let score = 0
+        if (name === wanted) score += 100
+        if (name.startsWith(wanted)) score += 40
+        if (label.includes(wanted)) score += 30
+        score += words.filter((word) => label.includes(word)).length * 10
+        return { score, id: item.id, name: data.name || "", industry: data.industry || "", website: data.website || "", location: data.location || "" }
+      })
+      .filter((row) => row.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 5)
+      .map(({ score: _score, ...row }) => row)
+    return { type: "client_matches", query: wanted, matches: scored, note: scored.length ? undefined : "No client matched. Check the spelling with the user, or list clients with query_workspace." }
+  }
+
+  if (name === "client_overview") {
+    const companyId = requireText(args, "companyId")
+    const orgSnap = await db.collection("organizations").doc(companyId).get()
+    if (!orgSnap.exists) throw new Error("That client doesn't exist.")
+    const org = orgSnap.data() as FirebaseFirestore.DocumentData
+    if (!isSuperAdmin && org.agencyId !== agencyId) throw new Error("That client belongs to another agency.")
+
+    const forClient = (collectionName: string, max = 200) =>
+      db.collection(collectionName).where("agencyId", "==", org.agencyId || agencyId).where("companyId", "==", companyId).limit(max).get()
+    const [projects, tasks, invoices, estimates, contracts, written, files, people] = await Promise.all([
+      forClient("projects"), forClient("tasks", 300), forClient("invoices"), forClient("estimates"), forClient("contracts"),
+      forClient("companyDocuments", 50), forClient("documents", 100), forClient("users", 100),
+    ])
+    const rows = (snapshot: FirebaseFirestore.QuerySnapshot) => snapshot.docs.map((item) => ({ id: item.id, ...item.data() }) as FirebaseFirestore.DocumentData)
+    const openTasks = rows(tasks).filter((task) => task.status !== "done")
+
+    return {
+      type: "client_overview",
+      note: "Money is in minor units (divide by 100). Use read_file for the full text of a document or Drive file.",
+      company: {
+        id: companyId, name: org.name, industry: org.industry, location: org.location, website: org.website, email: org.email,
+        phone: org.phone, address: org.address, description: org.description, targetCustomers: org.targetCustomers,
+        companySize: org.companySize, tags: org.tags, links: org.links,
+      },
+      people: rows(people).map((person) => ({ name: person.displayName || person.name || "", role: person.role === "client" ? person.title || person.jobTitle || "" : person.role, email: person.email || "" })),
+      projects: rows(projects).map((project) => ({ id: project.id, title: project.title, status: project.status, dueDate: project.dueDate, summary: clip(String(project.summary || project.description || ""), 600) })),
+      openTasks: openTasks.slice(0, 60).map((task) => ({ id: task.id, name: task.name, project: task.project, status: task.status, dueDate: task.dueDate, notes: clip(stripHtml(String(task.content || "")), 300) })),
+      openTaskCount: openTasks.length,
+      invoices: rows(invoices).map((row) => ({ id: row.id, number: row.invoiceNumber, title: row.title, status: row.status, amount: row.amount, currency: row.currency, dueOn: row.dueOn })),
+      estimates: rows(estimates).map((row) => ({ id: row.id, number: row.estimateNumber, title: row.title, status: row.status, amount: row.amount, currency: row.currency })),
+      contracts: rows(contracts).map((row) => ({ id: row.id, title: row.title, status: row.status, startsOn: row.startsOn, endsOn: row.endsOn })),
+      writtenDocuments: rows(written).map((row) => ({ id: row.id, title: row.title, kind: row.kind, status: row.status, summary: row.summary, excerpt: clip(stripHtml(String(row.body || "")), 1200), url: recordUrl("companyDocuments", row.id) })),
+      driveFiles: rows(files).map((row) => ({ id: row.id, title: row.title, type: row.type, description: row.description || "" })),
+    }
+  }
+
+  if (name === "read_file") {
+    const collectionName = requireText(args, "collection")
+    const id = requireText(args, "id")
+    if (collectionName !== "documents" && collectionName !== "companyDocuments") throw new Error("read_file only opens documents or companyDocuments.")
+    const snap = await db.collection(collectionName).doc(id).get()
+    if (!snap.exists) throw new Error("That file no longer exists.")
+    const data = snap.data() as FirebaseFirestore.DocumentData
+    if (!isSuperAdmin && data.agencyId !== agencyId) throw new Error("That file belongs to another agency.")
+    if (collectionName === "companyDocuments") {
+      return { type: "file_contents", title: data.title, format: "written document", kind: data.kind, text: clip(stripHtml(String(data.body || "")), 40000) }
+    }
+    const url = String(data.url || "")
+    if (!url) throw new Error("That Drive item has no file attached.")
+    const contents = await readFileContents(url, String(data.title || "file"), String(data.type || ""))
+    return { ...contents, description: data.description || "" }
+  }
+
+  if (name === "remember_style") {
+    const note = requireText(args, "note").replace(/\s+/g, " ")
+    const owner = await ownerOrganization(db, agencyId)
+    if (!owner) throw new Error("The agency profile isn't set up yet, so there's nowhere to save that.")
+    const current = typeof owner.data().ngaiStyle === "string" ? String(owner.data().ngaiStyle).trim() : ""
+    if (current.toLowerCase().includes(note.toLowerCase())) return { type: "style_saved", note, alreadySaved: true }
+    const next = clip(`${current ? `${current}\n` : ""}- ${note}`, 4000)
+    await owner.ref.set({ ngaiStyle: next, updatedAt: now }, { merge: true })
+    return { type: "style_saved", note, url: "/dashboard/account/agency" }
+  }
+
+  if (name === "draft_email") {
+    const subject = requireText(args, "subject")
+    const bodyText = clip(requireText(args, "body"), 6000)
+    const companyId = optionalText(args, "companyId")
+    let to = optionalText(args, "to")
+    let companyName = optionalText(args, "client")
+    if (companyId) {
+      const orgSnap = await db.collection("organizations").doc(companyId).get()
+      const org = orgSnap.data()
+      if (org && (isSuperAdmin || org.agencyId === agencyId)) {
+        companyName ||= String(org.name || "")
+        to ||= String(org.email || "")
+      }
+    }
+    const url = buildEmailComposeHref({
+      companyId: companyId || undefined,
+      companyName: companyName || undefined,
+      recipientEmail: to || undefined,
+      recipientName: optionalText(args, "recipientName") || undefined,
+      subject,
+      body: bodyText,
+    })
+    return { type: "email_draft", subject, to: to || "(add a recipient)", url, note: "Not sent. The user reviews and sends it from the composer." }
+  }
+
+  if (name === "create_reminder") {
+    const title = requireText(args, "title")
+    const dueDate = requireText(args, "dueDate")
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dueDate)) throw new Error("dueDate must be YYYY-MM-DD.")
+    let companyId = optionalText(args, "companyId")
+    let client = optionalText(args, "client")
+    if (!companyId) {
+      const owner = await ownerOrganization(db, agencyId)
+      companyId = owner?.id || ""
+      client = client || String(owner?.data().name || "")
+    }
+    const ref = db.collection("tasks").doc()
+    await ref.set({
+      agencyId, name: title, companyId, client, projectId: "", project: "", status: "todo", priority: "high",
+      dueDate, content: optionalText(args, "notes"), reminder: true, isPublic: false, createdAt: now, updatedAt: now,
+    })
+    return { type: "reminder", id: ref.id, title, dueDate, url: "/dashboard/tasks" }
   }
 
   if (name === "attach_file") {
@@ -1060,68 +1476,124 @@ export async function POST(request: Request) {
     // web_search_call output item, so it never enters the function_call loop below.
     const baseTools = body.surface === "client_portal" ? PORTAL_TOOLS : AGENT_TOOLS
     const tools = [...baseTools, { type: "web_search" }] as any
-    let response = await client.responses.create({
-      model: MODEL,
-      instructions: systemInstruction,
-      input: input as any,
-      tools,
+    const style = body.surface === "client_portal" ? "" : await agencyStyle(agencyId)
+    const instructions = `${systemInstruction}\n\nToday is ${today()}.${style ? `\n\nThis agency's writing notes. Follow them in everything you write:\n${style}` : ""}`
+
+    // The reply streams as progress lines while tools run, then the answer.
+    // The client shows each step as it lands, so a long job never looks stuck.
+    const encoder = new TextEncoder()
+    const stream = new ReadableStream<Uint8Array>({
+      async start(controller) {
+        const write = (value: string) => controller.enqueue(encoder.encode(value))
+        const step = (label: string) => write(`${STEP_MARKER}${label.replace(/\n/g, " ")}\n`)
+        const finish = (value: string) => {
+          write(`${ANSWER_MARKER}${value}`)
+          controller.close()
+        }
+
+        try {
+          let response = await client.responses.create({
+            model: MODEL,
+            instructions,
+            input: input as any,
+            tools,
+          })
+
+          // Keep running tools until the model answers, asks for a form or a
+          // plan, or we hit the ceiling. Either can arrive on any round.
+          let turns = 0
+          let conversation: any[] = [...input]
+          for (;;) {
+            const outputItems = response.output as Array<{ type: string; name?: string; arguments?: string; call_id?: string }>
+            const toolCalls = outputItems.filter((item) => item.type === "function_call")
+            if (outputItems.some((item) => item.type === "web_search_call")) step("Searching the web")
+
+            // A form or plan ends the turn: the UI renders it and the answer
+            // comes back as the user's next message.
+            const formCall = toolCalls.find((call) => call.name === "collect_details")
+            if (formCall) {
+              try {
+                const form = JSON.parse(formCall.arguments || "{}")
+                if (form?.fields?.length) {
+                  const text = response.output_text?.trim() || "Here's what I need."
+                  return finish(`${text}${FORM_MARKER}${JSON.stringify(form)}`)
+                }
+              } catch {
+                // Fall through and let the model answer normally.
+              }
+            }
+            const planCall = toolCalls.find((call) => call.name === "propose_plan")
+            if (planCall) {
+              try {
+                const plan = JSON.parse(planCall.arguments || "{}")
+                if (Array.isArray(plan?.steps) && plan.steps.length) {
+                  const text = response.output_text?.trim() || "Here's what I'll do."
+                  return finish(`${text}${PLAN_MARKER}${JSON.stringify({ title: String(plan.title || "Plan"), steps: plan.steps.map(String).slice(0, 12) })}`)
+                }
+              } catch {
+                // Fall through.
+              }
+            }
+
+            if (!toolCalls.length || turns >= MAX_TOOL_ROUNDS) break
+
+            const toolOutputs: any[] = []
+            const attachments: ToolAttachment[] = []
+            for (const call of toolCalls) {
+              step(stepLabel(call.name || "", call.arguments || "{}"))
+              let result: unknown
+              try {
+                if (!uid) throw new Error("Please sign in before using agency tools.")
+                result = await runAgentTool(call.name || "", call.arguments || "{}", uid)
+              } catch (error) {
+                result = { error: error instanceof Error ? error.message : "That could not be completed." }
+              }
+              if (result && typeof result === "object" && "__attach" in result) {
+                const { __attach, ...rest } = result as { __attach: ToolAttachment }
+                attachments.push(__attach)
+                result = rest
+              }
+              toolOutputs.push({ type: "function_call_output", call_id: call.call_id, output: JSON.stringify(result) })
+            }
+
+            // Files opened with read_file are handed over as real content, so
+            // the model reads the PDF or looks at the image itself.
+            const shown = attachments.length
+              ? [{
+                  role: "user",
+                  content: [
+                    { type: "input_text", text: `Contents of the file${attachments.length > 1 ? "s" : ""} you opened with read_file (not a new message from the user):` },
+                    ...attachments.map((file) =>
+                      file.kind === "image"
+                        ? { type: "input_image", image_url: file.url }
+                        : { type: "input_file", file_url: file.url, filename: file.name },
+                    ),
+                  ],
+                }]
+              : []
+
+            conversation = [...conversation, ...response.output, ...toolOutputs, ...shown]
+            turns += 1
+            response = await client.responses.create({
+              model: MODEL,
+              instructions,
+              input: conversation as any,
+              tools,
+            })
+          }
+
+          void recordAgencyUsage(agencyId, "agentCalls").catch(() => undefined)
+          finish(response.output_text?.trim() || "Sorry, I could not put that together. Could you say it again?")
+        } catch (error) {
+          console.error("Agent request error:", error)
+          finish("Sorry, I couldn't finish that just now. Please try again.")
+        }
+      },
     })
 
-    const textResponse = (value: string) =>
-      new Response(value, {
-        headers: { "content-type": "text/plain; charset=utf-8", "cache-control": "no-store" },
-      })
-
-    // Keep running tools until the model answers, asks for a form, or we hit the
-    // ceiling. The form can arrive on any round, e.g. after a query_workspace
-    // lookup, so it has to be checked every time and not just on the first.
-    let turns = 0
-    let conversation: any[] = [...input]
-    for (;;) {
-      const outputItems = response.output as Array<{ type: string; name?: string; arguments?: string; call_id?: string }>
-      const toolCalls = outputItems.filter((item) => item.type === "function_call")
-
-      // A form ends the turn: the UI renders it and the answers come back as the
-      // user's next message, so there is nothing to execute server-side.
-      const formCall = toolCalls.find((call) => call.name === "collect_details")
-      if (formCall) {
-        try {
-          const form = JSON.parse(formCall.arguments || "{}")
-          if (form?.fields?.length) {
-            const text = response.output_text?.trim() || "Here's what I need."
-            return textResponse(`${text}${FORM_MARKER}${JSON.stringify(form)}`)
-          }
-        } catch {
-          // Fall through and let the model answer normally.
-        }
-      }
-
-      if (!toolCalls.length || turns >= MAX_TOOL_ROUNDS) break
-
-      const toolOutputs = []
-      for (const call of toolCalls) {
-        let result: unknown
-        try {
-          if (!uid) throw new Error("Please sign in before using agency tools.")
-          result = await runAgentTool(call.name || "", call.arguments || "{}", uid)
-        } catch (error) {
-          result = { error: error instanceof Error ? error.message : "That could not be completed." }
-        }
-        toolOutputs.push({ type: "function_call_output", call_id: call.call_id, output: JSON.stringify(result) })
-      }
-
-      conversation = [...conversation, ...response.output, ...toolOutputs]
-      turns += 1
-      response = await client.responses.create({
-        model: MODEL,
-        instructions: systemInstruction,
-        input: conversation as any,
-        tools,
-      })
-    }
-
-    void recordAgencyUsage(agencyId, "agentCalls").catch(() => undefined)
-    return textResponse(response.output_text?.trim() || "Sorry, I could not put that together. Could you say it again?")
+    return new Response(stream, {
+      headers: { "content-type": "text/plain; charset=utf-8", "cache-control": "no-store" },
+    })
   } catch (error) {
     console.error("Agent request error:", error)
     return new Response(JSON.stringify({ error: "The assistant could not respond right now." }), {

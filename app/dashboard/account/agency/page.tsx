@@ -20,6 +20,7 @@ const EMPTY = {
   address: "", email: "", phone: "", website: "", taxNumber: "",
   invoicePaymentTermsDays: "14", invoiceNotes: "", invoicePaymentInstructions: "",
   estimateTerms: DEFAULT_ESTIMATE_TERMS, estimatePaymentDetails: "", estimateNotes: DEFAULT_ESTIMATE_NOTES,
+  ngaiStyle: "",
 }
 
 export default function AgencySettingsPage() {
@@ -53,6 +54,7 @@ export default function AgencySettingsPage() {
           estimateTerms: profile.estimateTerms ?? DEFAULT_ESTIMATE_TERMS,
           estimatePaymentDetails: profile.estimatePaymentDetails || "",
           estimateNotes: profile.estimateNotes ?? DEFAULT_ESTIMATE_NOTES,
+          ngaiStyle: profile.ngaiStyle || "",
         })
       })
       .catch((error) => {
@@ -88,6 +90,7 @@ export default function AgencySettingsPage() {
         estimateTerms: form.estimateTerms.trim(),
         estimatePaymentDetails: form.estimatePaymentDetails.trim(),
         estimateNotes: form.estimateNotes.trim(),
+        ngaiStyle: form.ngaiStyle.trim(),
       })
       setForm((current) => ({ ...current, subdomain }))
       setMessage("Agency settings saved.")
@@ -143,6 +146,11 @@ export default function AgencySettingsPage() {
             <div className="space-y-1.5"><Label htmlFor="agency-estimate-terms">Estimate terms</Label><Textarea id="agency-estimate-terms" rows={5} value={form.estimateTerms} onChange={(event) => set("estimateTerms", event.target.value)} /></div>
             <div className="space-y-1.5"><Label htmlFor="agency-estimate-payment">Estimate payment details</Label><Textarea id="agency-estimate-payment" rows={3} value={form.estimatePaymentDetails} onChange={(event) => set("estimatePaymentDetails", event.target.value)} /></div>
             <div className="space-y-1.5"><Label htmlFor="agency-estimate-notes">Estimate disclaimer</Label><Textarea id="agency-estimate-notes" rows={3} value={form.estimateNotes} onChange={(event) => set("estimateNotes", event.target.value)} /></div>
+            <div className="space-y-1.5">
+              <Label htmlFor="agency-ngai-style">How Ngai should write</Label>
+              <Textarea id="agency-ngai-style" rows={5} value={form.ngaiStyle} onChange={(event) => set("ngaiStyle", event.target.value)} placeholder={"Warm but direct. British spelling.\nSign off emails with \"Best, the VisualCNS team\".\nKeep documents short, with clear headings."} />
+              <p className="text-xs text-muted-foreground">Ngai follows these notes whenever it writes. You can also tell Ngai &quot;remember that…&quot; in chat and it adds to this list.</p>
+            </div>
           </section>
 
           <div className="flex items-center gap-3"><Button onClick={() => void save()} disabled={saving}>{saving && <Loader2 className="mr-2 size-4 animate-spin" />}Save</Button>{message && <span className="text-sm text-muted-foreground" role="status">{message}</span>}</div>

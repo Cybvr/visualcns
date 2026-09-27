@@ -193,7 +193,7 @@ export default function TasksAdminPage() {
                   <li key={t.id}>
                     <MobileDataCard
                       title={t.name || "Untitled task"}
-                      subtitle={<span className="flex flex-col gap-1"><span>{[t.client || t.companyId, t.project, taskStatusMeta[t.status]?.label].filter(Boolean).join(" · ") || "—"}</span><span>Modified {formatTimestamp(t.updatedAt ?? t.createdAt)}</span></span>}
+                      subtitle={<span className="flex flex-col gap-1"><span>{[t.reminder ? "Reminder" : null, t.client || t.companyId, t.project, taskStatusMeta[t.status]?.label].filter(Boolean).join(" · ") || "—"}</span><span>Modified {formatTimestamp(t.updatedAt ?? t.createdAt)}</span></span>}
                       icon={<ListTodo className="size-5 text-muted-foreground" aria-hidden="true" />}
                       onClick={() => setSelectedId(t.id)}
                       ariaLabel={`Open ${t.name || "task"}`}

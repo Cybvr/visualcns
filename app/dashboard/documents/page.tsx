@@ -51,6 +51,10 @@ const KIND_ICON = {
   sow: FaFileAlt,
   brief: FaFileAlt,
   report: FaFileAlt,
+  townhall: FaFileAlt,
+  memo: FaFileAlt,
+  press_release: FaFileAlt,
+  meeting_notes: FaFileAlt,
   other: FaFileAlt,
 }
 
@@ -59,6 +63,10 @@ const KIND_ICON_COLOR: Record<CompanyDocumentKind, string> = {
   sow: "text-cyan-600 dark:text-cyan-400",
   brief: "text-sky-600 dark:text-sky-400",
   report: "text-teal-600 dark:text-teal-400",
+  townhall: "text-violet-600 dark:text-violet-400",
+  memo: "text-amber-600 dark:text-amber-400",
+  press_release: "text-rose-600 dark:text-rose-400",
+  meeting_notes: "text-emerald-600 dark:text-emerald-400",
   other: "text-muted-foreground",
 }
 

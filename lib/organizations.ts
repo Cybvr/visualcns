@@ -49,6 +49,8 @@ export interface Organization {
   estimateTerms?: string
   estimatePaymentDetails?: string
   estimateNotes?: string
+  /** Agency owner only: how Ngai should write (tone, sign-off, layout habits). */
+  ngaiStyle?: string
   /** The public page's URL segment, e.g. visualcns.com/pan-atlantic-university */
   slug?: string
   /**

@@ -38,23 +38,51 @@ export type AgentMessage = {
   files?: AgentFile[]
   /** Present when the agent answered and then asked for details as a form. */
   form?: AgentForm
+  /** A checklist the agent wants approved before it does a big job. */
+  plan?: AgentPlan
+  /** What the agent did while working, e.g. "Reading Falcon's records". */
+  steps?: string[]
+}
+
+export type AgentPlan = {
+  title: string
+  steps: string[]
 }
 
 /** Matches FORM_MARKER in the agent route. */
 const FORM_MARKER = "\n␞::ngai-form::"
 
-/** Splits the assistant's reply into its visible text and any trailing form spec. */
-function splitForm(raw: string): { text: string; form?: AgentForm } {
-  const at = raw.indexOf(FORM_MARKER)
-  if (at === -1) return { text: raw }
+/** Match the markers in the agent route. */
+const PLAN_MARKER = "\n␞::ngai-plan::"
+const STEP_MARKER = "␞::ngai-step::"
+const ANSWER_MARKER = "␞::ngai-answer::"
+
+/** Splits the assistant's reply into its visible text and any trailing form or plan spec. */
+function splitForm(raw: string): { text: string; form?: AgentForm; plan?: AgentPlan } {
+  const formAt = raw.indexOf(FORM_MARKER)
+  const planAt = raw.indexOf(PLAN_MARKER)
+  if (formAt === -1 && planAt === -1) return { text: raw }
+  const isForm = formAt !== -1 && (planAt === -1 || formAt < planAt)
+  const at = isForm ? formAt : planAt
   const text = raw.slice(0, at)
   try {
-    const form = JSON.parse(raw.slice(at + FORM_MARKER.length)) as AgentForm
-    if (form && Array.isArray(form.fields) && form.fields.length) return { text, form }
+    const spec = JSON.parse(raw.slice(at + (isForm ? FORM_MARKER : PLAN_MARKER).length))
+    if (isForm && spec && Array.isArray(spec.fields) && spec.fields.length) return { text, form: spec as AgentForm }
+    if (!isForm && spec && Array.isArray(spec.steps) && spec.steps.length) return { text, plan: spec as AgentPlan }
   } catch {
     // A truncated or malformed spec just leaves the text on its own.
   }
   return { text }
+}
+
+/** Pulls the progress lines out of the stream, and the answer once it starts. */
+function splitStream(raw: string): { steps: string[]; answer: string } {
+  const at = raw.indexOf(ANSWER_MARKER)
+  const head = at === -1 ? raw : raw.slice(0, at)
+  const steps = [...head.matchAll(/␞::ngai-step::([^\n]*)\n/g)].map((match) => match[1]).filter(Boolean)
+  if (at !== -1) return { steps, answer: raw.slice(at + ANSWER_MARKER.length) }
+  // An older server sends the answer on its own, with no markers.
+  return { steps, answer: head.includes(STEP_MARKER) ? "" : raw }
 }
 
 export type AgentConversation = {
@@ -203,7 +231,13 @@ export function AgentProvider({ children }: { children: ReactNode }) {
       rememberConversation({ id: conversationId, title, messages: history })
       setSending(true)
 
-      const payload = history.map(({ role, content: c, images: im, files: fl }) => ({ role, content: c, ...(im?.length ? { images: im } : {}), ...(fl?.length ? { files: fl } : {}) }))
+      // A plan lives outside the text, so spell it out for the model to follow on "go ahead".
+      const payload = history.map(({ role, content: c, images: im, files: fl, plan }) => ({
+        role,
+        content: plan ? `${c}\n\nProposed plan: ${plan.title}\n${plan.steps.map((item, index) => `${index + 1}. ${item}`).join("\n")}` : c,
+        ...(im?.length ? { images: im } : {}),
+        ...(fl?.length ? { files: fl } : {}),
+      }))
 
       void (async () => {
         try {
@@ -232,15 +266,17 @@ export function AgentProvider({ children }: { children: ReactNode }) {
             const { done, value } = await reader.read()
             if (done) break
             acc += decoder.decode(value, { stream: true })
-            // Hide the trailing form spec while the reply is still arriving.
-            const visible = splitForm(acc).text
+            // Show progress lines as they land, and hide any trailing form or plan spec.
+            const live = splitStream(acc)
+            const visible = splitForm(live.answer).text
             setMessages((current) =>
-              current.map((m) => (m.id === assistantId ? { ...m, content: visible } : m)),
+              current.map((m) => (m.id === assistantId ? { ...m, content: visible, steps: live.steps } : m)),
             )
           }
-          const { text, form } = splitForm(acc)
-          acc = text.trim() ? text : "I did not catch that. Could you rephrase?"
-          const completed = [...history, { id: assistantId, role: "assistant" as const, content: acc, ...(form ? { form } : {}) }]
+          const { steps, answer } = splitStream(acc)
+          const { text, form, plan } = splitForm(answer)
+          acc = text.trim() ? text : plan ? "Here's what I'll do." : "I did not catch that. Could you rephrase?"
+          const completed = [...history, { id: assistantId, role: "assistant" as const, content: acc, ...(steps.length ? { steps } : {}), ...(form ? { form } : {}), ...(plan ? { plan } : {}) }]
           setMessages(completed)
           rememberConversation({ id: conversationId, title, messages: completed })
         } catch {

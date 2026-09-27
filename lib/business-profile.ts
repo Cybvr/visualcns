@@ -23,6 +23,8 @@ export interface BusinessProfile extends InvoiceParty {
   estimateTerms?: string
   estimatePaymentDetails?: string
   estimateNotes?: string
+  /** How Ngai should write for this agency: tone, sign-off, layout habits. */
+  ngaiStyle?: string
 }
 
 export const DEFAULT_ESTIMATE_TERMS = "Work begins after acceptance.\nA deposit may be required before work starts.\nPrices exclude taxes and third-party fees unless stated otherwise."
@@ -50,6 +52,7 @@ function asBusinessProfile(source: Partial<BusinessProfile>): BusinessProfile {
     estimateTerms: source.estimateTerms ?? DEFAULT_ESTIMATE_TERMS,
     estimatePaymentDetails: source.estimatePaymentDetails ?? "",
     estimateNotes: source.estimateNotes ?? DEFAULT_ESTIMATE_NOTES,
+    ngaiStyle: source.ngaiStyle ?? "",
   }
 }
 
@@ -73,6 +76,7 @@ function organizationProfile(organization: Organization): BusinessProfile {
     estimateTerms: organization.estimateTerms,
     estimatePaymentDetails: organization.estimatePaymentDetails,
     estimateNotes: organization.estimateNotes,
+    ngaiStyle: organization.ngaiStyle,
   })
 }
 
