@@ -8,7 +8,8 @@
 export type KioskInfo = {
   company: { name: string; logoUrl: string }
   hosts: { id: string; name: string }[]
-  onSite: { id: string; name: string }[]
+  /** Who is in now. `at` is when they signed in, in milliseconds. */
+  onSite: { id: string; name: string; at?: number }[]
 }
 
 export type QueuedAction =
@@ -58,7 +59,7 @@ export function shortName(name: string) {
 export function withQueued(onSite: KioskInfo["onSite"], queue: QueuedAction[]) {
   const list = [...onSite]
   for (const item of queue) {
-    if (item.action === "sign_in" && !list.some((visitor) => visitor.id === item.clientId)) list.unshift({ id: item.clientId, name: shortName(item.name) })
+    if (item.action === "sign_in" && !list.some((visitor) => visitor.id === item.clientId)) list.unshift({ id: item.clientId, name: shortName(item.name), at: item.at })
     if (item.action === "sign_out") {
       const index = list.findIndex((visitor) => visitor.id === item.visitorId)
       if (index >= 0) list.splice(index, 1)

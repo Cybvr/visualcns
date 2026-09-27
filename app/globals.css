@@ -315,20 +315,30 @@
   .kiosk .kiosk-label { font-size: 0.9375rem !important; color: var(--muted-foreground) !important; font-weight: 500 !important; }
 
   /* Sign-in form, sized to the front-desk mockup: 60px fields, 12px corners, pill button. */
-  /* Picture and greeting share one grid cell, so the block is as tall as the taller of the two. */
-  .kiosk .kiosk-hero { display: grid; grid-template-areas: "hero"; }
+  /* The whole screen is the kiosk: no card around it, modest side padding. */
+  .kiosk-page {
+    --kiosk-pad-x: 1.125rem;
+    --kiosk-pad-y: 1rem;
+    padding: var(--kiosk-pad-y) var(--kiosk-pad-x);
+  }
+  @media (min-width: 640px) { .kiosk-page { --kiosk-pad-x: 2rem; --kiosk-pad-y: 1.5rem; } }
+  /* Picture and greeting share one grid cell, so the block is as tall as the taller of the two.
+     The picture runs to the top and right edges of the screen and fades out to the left. */
+  .kiosk .kiosk-hero { display: grid; grid-template-areas: "hero"; align-items: center; }
   .kiosk .kiosk-hero > * { grid-area: hero; }
   .kiosk .kiosk-hero-art {
+    align-self: start;
     justify-self: end;
-    width: 54%;
-    max-width: 17rem;
+    width: calc(52% + var(--kiosk-pad-x, 1rem));
+    max-width: 19rem;
     height: auto;
-    margin: -1.5rem -1.25rem 0 0;
-    -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 30%), linear-gradient(to bottom, #000 88%, transparent 100%);
+    margin: calc(-1 * var(--kiosk-pad-y, 1rem)) calc(-1 * var(--kiosk-pad-x, 1rem)) 0 0;
+    -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 45%), linear-gradient(to bottom, #000 80%, transparent 100%);
     -webkit-mask-composite: source-in;
-    mask-image: linear-gradient(to right, transparent 0%, #000 30%), linear-gradient(to bottom, #000 88%, transparent 100%);
+    mask-image: linear-gradient(to right, transparent 0%, #000 45%), linear-gradient(to bottom, #000 80%, transparent 100%);
     mask-composite: intersect;
   }
+  @media (min-width: 640px) { .kiosk .kiosk-hero-art { max-width: 22rem; } }
   .kiosk .kiosk-welcome { font-size: 1.0625rem; line-height: 1.5rem; color: var(--muted-foreground); }
   .kiosk .kiosk-company-name {
     margin-top: 0.125rem;
@@ -425,6 +435,95 @@
   .kiosk .kiosk-tile svg { width: 1.375rem; height: 1.375rem; color: var(--primary); }
   .kiosk .kiosk-tile:hover { background: color-mix(in oklch, var(--primary) 12%, var(--background)); }
   .kiosk .kiosk-tile:focus-visible { box-shadow: 0 0 0 3px color-mix(in oklch, var(--primary) 25%, transparent); }
+  .kiosk .kiosk-tabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.25rem;
+    margin-top: 0.75rem;
+    padding: 0.25rem;
+    border-radius: 9999px;
+    background: color-mix(in oklch, var(--primary) 8%, var(--background));
+  }
+  .kiosk .kiosk-tab {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    height: 2.75rem;
+    border-radius: 9999px;
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--muted-foreground);
+    outline: none;
+    transition: background-color 150ms, color 150ms;
+  }
+  .kiosk .kiosk-tab[aria-selected="true"] {
+    background: var(--background);
+    color: var(--foreground);
+    box-shadow: 0 1px 3px color-mix(in oklch, var(--foreground) 10%, transparent);
+  }
+  .kiosk .kiosk-tab:focus-visible { box-shadow: 0 0 0 3px color-mix(in oklch, var(--primary) 25%, transparent); }
+  .kiosk .kiosk-tab-count {
+    min-width: 1.5rem;
+    padding: 0 0.4rem;
+    border-radius: 9999px;
+    background: var(--primary);
+    color: var(--primary-foreground);
+    font-size: 0.8125rem;
+    line-height: 1.5rem;
+    font-weight: 600;
+  }
+  .kiosk .kiosk-list-hint { font-size: 0.9375rem; color: var(--muted-foreground); }
+  .kiosk .kiosk-empty { padding: 2rem 0; text-align: center; font-size: 1rem; color: var(--muted-foreground); }
+  .kiosk .kiosk-name-row {
+    display: flex;
+    align-items: center;
+    gap: 0.875rem;
+    width: 100%;
+    min-height: 4rem;
+    padding: 0.625rem 1rem;
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    background: var(--background);
+    box-shadow: 0 1px 2px color-mix(in oklch, var(--foreground) 5%, transparent);
+    outline: none;
+    transition: border-color 150ms;
+  }
+  button.kiosk-name-row:hover { border-color: color-mix(in oklch, var(--primary) 40%, var(--border)); }
+  button.kiosk-name-row:focus-visible { box-shadow: 0 0 0 3px color-mix(in oklch, var(--primary) 20%, transparent); }
+  .kiosk .kiosk-name-row-picked { border-color: var(--primary); background: color-mix(in oklch, var(--primary) 5%, var(--background)); }
+  .kiosk .kiosk-avatar {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 9999px;
+    background: color-mix(in oklch, var(--primary) 12%, var(--background));
+    color: var(--primary);
+    font-weight: 600;
+    font-size: 1rem;
+  }
+  .kiosk .kiosk-name { font-size: 1.0625rem; font-weight: 500; line-height: 1.4; color: var(--foreground); }
+  .kiosk .kiosk-name-time { font-size: 0.8125rem; line-height: 1.2; color: var(--muted-foreground); }
+  .kiosk .kiosk-name-icon { width: 1.25rem; height: 1.25rem; flex-shrink: 0; color: var(--muted-foreground); }
+  .kiosk .kiosk-mini {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 4rem;
+    height: 2.5rem;
+    padding: 0 1rem;
+    border-radius: 9999px;
+    background: var(--primary);
+    color: var(--primary-foreground);
+    font-size: 0.9375rem;
+    font-weight: 500;
+    outline: none;
+  }
+  .kiosk .kiosk-mini-quiet { background: transparent; color: var(--muted-foreground); min-width: 0; padding: 0 0.75rem; }
+  .kiosk .kiosk-mini:focus-visible { box-shadow: 0 0 0 3px color-mix(in oklch, var(--primary) 25%, transparent); }
   @media print {
     .kiosk-badge {
       display: flex !important;

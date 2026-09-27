@@ -2,9 +2,9 @@
 
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react"
 import { useParams, useSearchParams } from "next/navigation"
-import { ArrowLeft, Building2, Check, CloudOff, FileText, Loader2, LogOut, Phone, Printer, User, Users } from "lucide-react"
+import { Building2, Check, CloudOff, FileText, Loader2, Phone, Printer, User, Users } from "lucide-react"
 
-import { KioskField, KioskHero, KioskSubmit } from "@/components/visitors/kiosk-parts"
+import { KioskField, KioskHero, KioskNameList, KioskSubmit, KioskTabs } from "@/components/visitors/kiosk-parts"
 import { PoweredBy } from "@/components/visitors/powered-by"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -243,14 +243,14 @@ export default function VisitorSignInPage() {
 
   const onSiteNow = info ? withQueued(info.onSite, pending) : []
 
-  const header = screen !== "sign-in" && info && info.company.logoUrl && (
+  const header = screen !== "sign-in" && screen !== "sign-out" && info && info.company.logoUrl && (
     // eslint-disable-next-line @next/next/no-img-element
     <img src={info.company.logoUrl} alt="" className="size-14 rounded-xl object-cover" />
   )
 
   return (
     <>
-    <main className="kiosk flex min-h-svh flex-col bg-card px-5 py-6 text-foreground print:hidden sm:px-10 sm:py-10">
+    <main className="kiosk kiosk-page flex min-h-svh flex-col bg-card text-foreground print:hidden">
       {loadError ? (
         <div className="m-auto max-w-sm text-center">
           <p className="kiosk-title">Sign-in unavailable</p>
@@ -262,10 +262,16 @@ export default function VisitorSignInPage() {
         <div className="mx-auto flex w-full max-w-xl flex-1 flex-col">
           {header}
 
+          {(screen === "sign-in" || screen === "sign-out") && (
+            <>
+              <KioskHero companyName={info.company.name} logoUrl={info.company.logoUrl} />
+              <KioskTabs value={screen} onChange={(tab) => { setError(""); setScreen(tab) }} count={onSiteNow.length} />
+            </>
+          )}
+
           {screen === "sign-in" && (
             <form onSubmit={signIn} className="flex flex-1 flex-col pb-6">
-              <KioskHero companyName={info.company.name} logoUrl={info.company.logoUrl} />
-              <div className="mt-6 space-y-3.5">
+              <div className="mt-5 space-y-3.5">
                 <KioskField icon={<User />} label="Full Name" htmlFor="visitor-name">
                   <input id="visitor-name" value={name} onChange={(event) => setName(event.target.value)} autoComplete="name" placeholder="Enter your full name" className="kiosk-input" />
                 </KioskField>
@@ -298,11 +304,6 @@ export default function VisitorSignInPage() {
               </div>
               {error && <p className="mt-3 text-destructive">{error}</p>}
               <KioskSubmit busy={busy} />
-              {onSiteNow.length > 0 && (
-                <button type="button" onClick={() => { setError(""); setScreen("sign-out") }} className="kiosk-tile">
-                  <LogOut aria-hidden="true" /> Leaving? Sign out
-                </button>
-              )}
             </form>
           )}
 
@@ -325,22 +326,8 @@ export default function VisitorSignInPage() {
           )}
 
           {screen === "sign-out" && (
-            <div className="flex flex-1 flex-col py-6">
-              <button type="button" onClick={goHome} className="-ml-2 mb-4 inline-flex w-fit items-center gap-1.5 rounded-lg px-2 py-1 text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring">
-                <ArrowLeft className="size-4" aria-hidden="true" /> Back
-              </button>
-              <h1 className="kiosk-title">Tap your name</h1>
-              <ul className="mt-6 divide-y divide-border overflow-hidden rounded-2xl border border-border bg-background">
-                {onSiteNow.map((visitor) => (
-                  <li key={visitor.id}>
-                    <button type="button" onClick={() => void signOut(visitor.id)} disabled={busy} className="kiosk-row flex w-full items-center justify-between gap-3 px-5 py-5 text-left outline-none transition-colors hover:bg-muted focus-visible:bg-muted disabled:opacity-60">
-                      <span className="min-w-0 truncate">{visitor.name}</span>
-                      <LogOut className="size-5 shrink-0 text-muted-foreground" aria-hidden="true" />
-                    </button>
-                  </li>
-                ))}
-                {!onSiteNow.length && <li className="px-5 py-5 text-muted-foreground">Nobody is signed in right now.</li>}
-              </ul>
+            <div className="flex-1 pb-6 pt-5">
+              <KioskNameList visitors={onSiteNow} onSignOut={(id) => void signOut(id)} busy={busy} />
               {error && <p className="mt-3 text-destructive">{error}</p>}
             </div>
           )}

@@ -7,8 +7,8 @@ export function ReceptionIllustration({ initials, className }: { initials: strin
   return (
     <svg viewBox="0 0 240 210" className={className} aria-hidden="true">
       {/* Back wall and ceiling */}
-      <rect x="40" y="0" width="200" height="176" fill="var(--primary)" opacity="0.06" />
-      <rect x="40" y="0" width="200" height="10" fill="var(--primary)" opacity="0.08" />
+      <rect x="0" y="0" width="240" height="176" fill="var(--primary)" opacity="0.06" />
+      <rect x="0" y="0" width="240" height="10" fill="var(--primary)" opacity="0.08" />
 
       {/* Pendant lamps */}
       <line x1="112" y1="10" x2="112" y2="34" stroke="var(--foreground)" strokeOpacity="0.35" strokeWidth="1.2" />

@@ -121,7 +121,7 @@ export async function GET(request: Request) {
   return json({
     company: { name: kiosk.org.name || "", logoUrl: kiosk.org.logoUrl || "" },
     hosts: hosts.map(({ id, name }) => ({ id, name })),
-    onSite: visitors.map(({ id, name }) => ({ id, name })),
+    onSite: visitors.map(({ id, name, at }) => ({ id, name, at })),
   })
 }
 

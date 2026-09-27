@@ -1,5 +1,7 @@
-import type { ReactNode } from "react"
-import { ArrowRight, Loader2 } from "lucide-react"
+"use client"
+
+import { useState, type ReactNode } from "react"
+import { ArrowRight, Loader2, LogOut, Search } from "lucide-react"
 
 import { ReceptionIllustration } from "@/components/visitors/reception-illustration"
 
@@ -15,7 +17,7 @@ export function KioskHero({ companyName, logoUrl }: { companyName: string; logoU
   return (
     <header className="kiosk-hero relative">
       <ReceptionIllustration initials={initialsOf(companyName || "Welcome")} className="kiosk-hero-art" />
-      <div className="relative max-w-[66%] self-center py-6 sm:max-w-[60%]">
+      <div className="relative max-w-[60%] py-8 sm:py-12">
         {logoUrl && (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={logoUrl} alt="" className="mb-4 size-12 rounded-xl object-cover" />
@@ -47,5 +49,82 @@ export function KioskSubmit({ busy = false }: { busy?: boolean }) {
       <span>Sign In</span>
       {busy ? <Loader2 className="kiosk-submit-arrow animate-spin" aria-hidden="true" /> : <ArrowRight className="kiosk-submit-arrow" aria-hidden="true" />}
     </button>
+  )
+}
+
+export type KioskTab = "sign-in" | "sign-out"
+
+/** Sign In / Sign Out switch under the welcome block. The count is who's in now. */
+export function KioskTabs({ value, onChange, count }: { value: KioskTab; onChange: (tab: KioskTab) => void; count: number }) {
+  return (
+    <div role="tablist" aria-label="Sign in or sign out" className="kiosk-tabs">
+      <button type="button" role="tab" aria-selected={value === "sign-in"} onClick={() => onChange("sign-in")} className="kiosk-tab">
+        Sign In
+      </button>
+      <button type="button" role="tab" aria-selected={value === "sign-out"} onClick={() => onChange("sign-out")} className="kiosk-tab">
+        Sign Out{count > 0 && <span className="kiosk-tab-count">{count}</span>}
+      </button>
+    </div>
+  )
+}
+
+type OnSiteVisitor = { id: string; name: string; at?: number }
+
+function timeIn(at?: number) {
+  return at ? `In since ${new Date(at).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}` : "Signed in"
+}
+
+/**
+ * Everyone signed in right now, like the gate book: find your name, tap it,
+ * confirm. The confirm step stops people signing out the wrong person.
+ */
+export function KioskNameList({ visitors, onSignOut, busy = false }: { visitors: OnSiteVisitor[]; onSignOut: (id: string) => void; busy?: boolean }) {
+  const [picked, setPicked] = useState<string | null>(null)
+  const [search, setSearch] = useState("")
+  const words = search.trim().toLowerCase()
+  const shown = words ? visitors.filter((visitor) => visitor.name.toLowerCase().includes(words)) : visitors
+
+  if (!visitors.length) {
+    return <p className="kiosk-empty">Nobody is signed in right now.</p>
+  }
+
+  return (
+    <div>
+      <p className="kiosk-list-hint">Find your name and tap it to sign out.</p>
+      {visitors.length > 6 && (
+        <div className="kiosk-field-card mt-3">
+          <span className="kiosk-field-icon" aria-hidden="true"><Search /></span>
+          <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search your name" aria-label="Search your name" className="kiosk-input" />
+        </div>
+      )}
+      <ul className="mt-3 space-y-2.5">
+        {shown.map((visitor) => (
+          <li key={visitor.id}>
+            {picked === visitor.id ? (
+              <div className="kiosk-name-row kiosk-name-row-picked">
+                <div className="min-w-0 flex-1">
+                  <p className="kiosk-name">Sign out {visitor.name}?</p>
+                  <p className="kiosk-name-time">{timeIn(visitor.at)}</p>
+                </div>
+                <button type="button" onClick={() => setPicked(null)} className="kiosk-mini kiosk-mini-quiet">Cancel</button>
+                <button type="button" onClick={() => onSignOut(visitor.id)} disabled={busy} className="kiosk-mini">
+                  {busy ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : "Yes"}
+                </button>
+              </div>
+            ) : (
+              <button type="button" onClick={() => setPicked(visitor.id)} className="kiosk-name-row">
+                <span className="kiosk-avatar" aria-hidden="true">{visitor.name.slice(0, 1).toUpperCase()}</span>
+                <span className="min-w-0 flex-1 text-left">
+                  <span className="kiosk-name block truncate">{visitor.name}</span>
+                  <span className="kiosk-name-time block">{timeIn(visitor.at)}</span>
+                </span>
+                <LogOut className="kiosk-name-icon" aria-hidden="true" />
+              </button>
+            )}
+          </li>
+        ))}
+        {!shown.length && <li className="kiosk-empty">No one by that name. Check the spelling.</li>}
+      </ul>
+    </div>
   )
 }
