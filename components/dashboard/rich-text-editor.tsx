@@ -12,6 +12,7 @@ import {
   Bold,
   Code2,
   EllipsisVertical,
+  Heading,
   Heading2,
   Heading3,
   Italic,
@@ -117,6 +118,8 @@ export function RichTextEditor({
   allowHtml = false,
   contentHeader,
   contentFooter,
+  documentLayout = false,
+  aboveContent,
 }: {
   value: string
   onChange: (html: string) => void
@@ -129,6 +132,12 @@ export function RichTextEditor({
   allowHtml?: boolean
   contentHeader?: ReactNode
   contentFooter?: ReactNode
+  /**
+   * Full-page writing layout: a sticky toolbar row, then `aboveContent`, then
+   * the text on a white card. Used by the document editor.
+   */
+  documentLayout?: boolean
+  aboveContent?: ReactNode
 }) {
   // Referenced inside handlePaste, which runs long after the editor is built.
   const editorRef = useRef<Editor | null>(null)
@@ -153,7 +162,11 @@ export function RichTextEditor({
         return true
       },
       attributes: {
-        class: cn(
+        class: documentLayout ? cn(
+          "doc-editor-content min-h-[50vh] break-words px-5 pb-8 pt-2 text-[1.0625rem] leading-8 text-foreground/80 outline-none cursor-text sm:px-8",
+          "[&_h1]:mb-3 [&_h1]:mt-6 [&_h1]:text-[1.75rem] [&_h1]:leading-9 [&_h2]:mb-2 [&_h2]:mt-8 [&_h2]:text-xl [&_h2]:leading-8 [&_h3]:mb-1 [&_h3]:mt-6 [&_h3]:text-lg [&_p]:my-3 [&_ul]:my-3 [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:my-3 [&_ol]:list-decimal [&_ol]:pl-6 [&_li]:my-1 [&_strong]:font-semibold [&_strong]:text-foreground [&_blockquote]:my-4 [&_blockquote]:border-l-2 [&_blockquote]:border-border [&_blockquote]:pl-4 [&_blockquote]:italic",
+          "[&_a]:break-all [&_img]:max-w-full [&_table]:my-4 [&_table]:w-full [&_table]:table-fixed [&_table]:border-collapse [&_td]:border [&_td]:border-border [&_td]:p-2 [&_td]:align-top [&_th]:border [&_th]:border-border [&_th]:bg-muted [&_th]:p-2 [&_th]:text-left [&_th]:font-semibold [&_.selectedCell]:bg-muted/60 [&_.ProseMirror-selectednode]:outline [&_.ProseMirror-selectednode]:outline-2 [&_.ProseMirror-selectednode]:outline-ring",
+        ) : cn(
           compact ? "min-h-48 sm:min-h-64" : "min-h-64",
           "break-words px-4 py-3 text-sm outline-none",
           "cursor-text",
@@ -226,6 +239,65 @@ export function RichTextEditor({
       >
         <Icon className="size-4" aria-hidden="true" />
       </button>
+    )
+  }
+
+  if (documentLayout) {
+    const groups = [BUTTONS[0], [BUTTONS[1][0], ...BUTTONS[2].slice(0, 2)], BUTTONS[4]]
+    const more = [BUTTONS[1][1], BUTTONS[2][2], ...BUTTONS[3]]
+    return (
+      <div className={cn("flex min-w-0 flex-col", className)}>
+        <div className="sticky top-[var(--doc-editor-top,0px)] z-20 flex items-center gap-1 overflow-x-auto border-b border-border bg-background px-2 py-1.5 [scrollbar-width:none]">
+          {groups.map((group, index) => (
+            <div key={index} className={cn("flex shrink-0 items-center gap-1 pr-1", index < groups.length - 1 && "mr-1 border-r border-border")}>
+              {group.map((button) => {
+                const Icon = button.label === "Heading" ? Heading : button.icon
+                const active = button.isActive?.(currentEditor) ?? false
+                return (
+                  <button
+                    key={button.label}
+                    type="button"
+                    onClick={() => button.run(currentEditor)}
+                    aria-label={button.label}
+                    title={button.label}
+                    aria-pressed={active}
+                    className={cn(
+                      "inline-flex size-10 shrink-0 items-center justify-center rounded-lg outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring",
+                      active ? "bg-primary/10 text-primary" : "text-foreground hover:bg-muted",
+                    )}
+                  >
+                    <Icon className="size-[18px]" aria-hidden="true" />
+                  </button>
+                )
+              })}
+            </div>
+          ))}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button type="button" aria-label="More formatting tools" title="More formatting tools" className="ml-auto inline-flex size-10 shrink-0 items-center justify-center rounded-lg text-foreground outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring">
+                <EllipsisVertical className="size-[18px]" aria-hidden="true" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {more.map((button) => {
+                const Icon = button.icon
+                return <DropdownMenuItem key={button.label} onSelect={() => button.run(editor)}><Icon aria-hidden="true" /><span>{button.label}</span></DropdownMenuItem>
+              })}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onSelect={() => setImageDialogOpen(true)}><ImagePlus aria-hidden="true" /><span>{imageSelected ? "Replace image" : "Insert image"}</span></DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+        <ImagePickerDialog open={imageDialogOpen} onOpenChange={setImageDialogOpen} onSelect={handleImageSelected} />
+        <div className="space-y-3 bg-card px-3 py-4 sm:px-6">
+          {aboveContent}
+          <div className="overflow-x-auto rounded-2xl border border-border bg-background">
+            {contentHeader}
+            <EditorContent editor={editor} />
+            {contentFooter}
+          </div>
+        </div>
+      </div>
     )
   }
 

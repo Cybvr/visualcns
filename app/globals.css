@@ -234,6 +234,68 @@
     line-height: 1.5rem !important;
     font-weight: 700 !important;
   }
+  /* Document editor: sans-serif bold headings and a phone-first top bar. */
+  .doc-editor {
+    font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif !important;
+    color: var(--foreground);
+  }
+  .doc-editor :where(p, button, label, input, textarea, span) {
+    font-family: inherit !important;
+  }
+  .doc-editor .doc-editor-bar-title {
+    font-size: 1.0625rem !important;
+    line-height: 1.5rem !important;
+    font-weight: 700 !important;
+    color: var(--foreground);
+  }
+  .doc-editor .doc-editor-bar-status {
+    font-size: 0.8125rem !important;
+    line-height: 1.125rem !important;
+  }
+  .doc-editor :is(.doc-editor-save, .doc-editor-details-title) {
+    font-size: 1rem !important;
+    font-weight: 600 !important;
+  }
+  .doc-editor .doc-editor-details-title {
+    color: var(--foreground);
+  }
+  .doc-editor .doc-editor-pill {
+    font-size: 0.875rem !important;
+    font-weight: 600 !important;
+    white-space: nowrap;
+  }
+  .doc-editor .doc-editor-title {
+    font-size: 1.625rem !important;
+    line-height: 2.25rem !important;
+    font-weight: 700 !important;
+    letter-spacing: -0.01em;
+  }
+  .doc-editor :is(.doc-editor-meta-label, label) {
+    color: var(--muted-foreground) !important;
+    font-size: 0.8125rem !important;
+    line-height: 1.125rem !important;
+    font-weight: 400 !important;
+  }
+  .doc-editor .doc-editor-meta-label {
+    margin-bottom: 0.375rem;
+  }
+  .doc-editor .doc-editor-field {
+    height: 2.75rem !important;
+    width: 100% !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 0.75rem !important;
+    padding: 0 0.875rem !important;
+    background: var(--background) !important;
+  }
+  .doc-editor .doc-editor-content :is(h1, h2, h3, h4) {
+    font-family: inherit !important;
+    font-weight: 700 !important;
+    color: var(--foreground);
+  }
+  .doc-editor .doc-editor-content :where(p, li, td, th, blockquote) {
+    font-size: inherit !important;
+    line-height: inherit !important;
+  }
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-eb-garamond), ui-serif, Georgia, serif;
     font-weight: 400 !important;

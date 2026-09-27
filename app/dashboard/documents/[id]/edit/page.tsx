@@ -43,7 +43,7 @@ export default function EditDocumentPage() {
   }
 
   return (
-    <main className="mx-auto w-full max-w-5xl px-4 py-9 sm:px-6">
+    <main className="mx-auto w-full max-w-4xl sm:px-6 sm:py-9">
       {missing || !record ? (
         <p className="text-sm text-destructive">That document no longer exists.</p>
       ) : (
