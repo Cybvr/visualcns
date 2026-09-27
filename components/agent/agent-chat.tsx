@@ -2,7 +2,7 @@
 
 import Image from "next/image"
 import { useEffect, useRef, useState, type ChangeEvent, type ClipboardEvent, type DragEvent, type FormEvent, type KeyboardEvent, type ReactNode } from "react"
-import { ArrowUp, Check, ChevronDown, FileText, ListChecks, Loader2, Mic, Plus, UploadCloud, X } from "lucide-react"
+import { ArrowUp, Check, ChevronDown, ChevronRight, FileText, ListChecks, Loader2, MessageSquare, Mic, Plus, UploadCloud, X } from "lucide-react"
 
 import type { AgentConversation, AgentFile, AgentForm, AgentMessage, AgentPlan } from "@/components/agent/agent-context"
 import { uploadFileToStorage } from "@/lib/documents"
@@ -383,15 +383,12 @@ export function AgentChat({
   className?: string
 }) {
   const startingOptions = [
-    "Summary",
+    "Give me a summary",
     "Create an invoice",
-    "Create an estimate",
-    "Create a contract",
-    "Add a company",
-    "Create a project",
-    "Create a task",
-    "How many projects do I have?",
+    "Draft a document",
+    "Add a task",
   ]
+  const recentChats = conversations.filter((conversation) => conversation.messages.length > 0).slice(0, 3)
   const [input, setInput] = useState("")
   const [attachments, setAttachments] = useState<ComposerAttachment[]>([])
   const [uploading, setUploading] = useState(false)
@@ -568,7 +565,7 @@ export function AgentChat({
 
   return (
     <div
-      className={cn("dashboard-body relative flex h-full min-h-0 flex-col md:overflow-hidden font-sans [&_*]:font-sans", compact ? "bg-background" : "agent-surface", className)}
+      className={cn("dashboard-body agent-chat-root relative flex h-full min-h-0 flex-col md:overflow-hidden font-sans [&_*]:font-sans", compact ? "bg-background" : "agent-surface", className)}
       onDragEnter={handleDragEnter}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
@@ -590,19 +587,39 @@ export function AgentChat({
             <h1 className={cn("mt-4 font-sans tracking-[-0.02em] sm:mt-6", compact ? "text-xl" : "text-2xl sm:text-3xl")}>
               Welcome to Ngai, {firstName}
             </h1>
-            <div className={cn("mt-4 flex flex-wrap justify-center gap-x-1.5 gap-y-0.5 text-[10px] leading-4 sm:mt-6 md:gap-x-3 md:gap-y-2 md:text-base md:leading-6", compact ? "max-w-[18rem]" : "max-w-2xl")}>
+            <div className={cn("mt-5 flex flex-wrap justify-center gap-2 sm:mt-6", compact ? "max-w-[20rem]" : "max-w-xl")}>
               {startingOptions.map((option) => (
                 <button
                   key={option}
                   type="button"
                   onClick={() => onSend(option)}
                   disabled={sending}
-                  className="border-b border-border px-1 py-0.5 font-medium md:px-2 md:py-1 transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
+                  className="agent-start-option rounded-full border border-border bg-background px-4 py-2 text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {option}
                 </button>
               ))}
             </div>
+            {recentChats.length > 0 && (
+              <div className={cn("mt-8 w-full text-left", compact ? "max-w-[20rem]" : "max-w-md")}>
+                <p className="agent-recent-label px-1 text-muted-foreground">Recent</p>
+                <ul className="mt-2 divide-y divide-border overflow-hidden rounded-2xl border border-border bg-background">
+                  {recentChats.map((conversation) => (
+                    <li key={conversation.id}>
+                      <button
+                        type="button"
+                        onClick={() => onSelectConversation(conversation.id)}
+                        className="agent-recent-item flex w-full items-center gap-3 px-4 py-3 text-left text-foreground outline-none transition-colors hover:bg-muted focus-visible:bg-muted"
+                      >
+                        <MessageSquare className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                        <span className="min-w-0 flex-1 truncate">{conversation.title}</span>
+                        <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
         </div>
       ) : (

@@ -8,3 +8,17 @@
 .agent-surface {
   background: transparent;
 }
+
+/* The dashboard's small body text is too small to read a chat on a phone. */
+.dashboard-body.agent-chat-root {
+  font-size: 0.9375rem !important;
+  line-height: 1.5rem !important;
+}
+.agent-chat-root .agent-recent-label {
+  font-size: 0.8125rem !important;
+  line-height: 1.125rem !important;
+  font-weight: 500;
+}
+.agent-chat-root .agent-start-option {
+  font-weight: 500;
+}
