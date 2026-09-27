@@ -152,6 +152,7 @@ export async function POST(request: Request) {
     await ref.set({
       agencyId,
       companyId: orgId,
+      companyName: String(org.name || ""),
       name,
       email,
       phone,

@@ -11,6 +11,8 @@ export interface Visitor {
   id: string
   agencyId: string
   companyId: string
+  /** The client's name when they signed in, for lists that span every client. */
+  companyName?: string
   name: string
   email?: string
   phone?: string
@@ -51,6 +53,33 @@ export function watchVisitors(agencyId: string, companyId: string, onChange: (vi
     (snapshot) => onChange(snapshot.docs.map((item) => ({ id: item.id, ...item.data() }) as Visitor)),
     onError,
   )
+}
+
+/** Live list of every visitor across the agency's clients, newest first. Admins only. */
+export function watchAgencyVisitors(agencyId: string, onChange: (visitors: Visitor[]) => void, onError: (error: Error) => void) {
+  const visitorsQuery = query(collection(db, VISITORS), where("agencyId", "==", agencyId), orderBy("signedInAt", "desc"), limit(500))
+  return onSnapshot(
+    visitorsQuery,
+    (snapshot) => onChange(snapshot.docs.map((item) => ({ id: item.id, ...item.data() }) as Visitor)),
+    onError,
+  )
+}
+
+type Stamp = { toDate: () => Date } | null | undefined
+
+export function visitTime(value: Stamp) {
+  return value ? value.toDate().toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" }) : ""
+}
+
+export function visitDay(value: Stamp) {
+  if (!value) return ""
+  const date = value.toDate()
+  const today = new Date()
+  const yesterday = new Date(today)
+  yesterday.setDate(today.getDate() - 1)
+  if (date.toDateString() === today.toDateString()) return "Today"
+  if (date.toDateString() === yesterday.toDateString()) return "Yesterday"
+  return date.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" })
 }
 
 export async function signOutVisitor(id: string) {

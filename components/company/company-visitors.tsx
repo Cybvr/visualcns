@@ -7,22 +7,7 @@ import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
-import { kioskUrl, resetKioskKey, setKioskEnabled, signOutVisitor, watchKiosk, watchVisitors, type Visitor, type VisitorKiosk } from "@/lib/visitors"
-
-function time(value?: { toDate: () => Date } | null) {
-  return value ? value.toDate().toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" }) : ""
-}
-
-function day(value?: { toDate: () => Date } | null) {
-  if (!value) return ""
-  const date = value.toDate()
-  const today = new Date()
-  const yesterday = new Date(today)
-  yesterday.setDate(today.getDate() - 1)
-  if (date.toDateString() === today.toDateString()) return "Today"
-  if (date.toDateString() === yesterday.toDateString()) return "Yesterday"
-  return date.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" })
-}
+import { kioskUrl, resetKioskKey, visitDay as day, visitTime as time, setKioskEnabled, signOutVisitor, watchKiosk, watchVisitors, type Visitor, type VisitorKiosk } from "@/lib/visitors"
 
 /** The company's Visitors tab: who is in now, past visits, and the front-desk tablet link. */
 export function CompanyVisitors({ agencyId, companyId, slug }: { agencyId: string; companyId: string; slug: string }) {
