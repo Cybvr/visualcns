@@ -169,28 +169,70 @@
     font-size: inherit !important;
     line-height: inherit !important;
   }
-  .invoice-editor {
-    color: var(--muted-foreground) !important;
+  /* Invoice and estimate editors: white cards on a grey page, boxed fields. */
+  .billing-editor {
+    color: var(--foreground) !important;
     font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif !important;
-    font-size: var(--surface-nav-size) !important;
-    line-height: var(--surface-nav-line-height) !important;
-    font-weight: 500 !important;
+    font-size: 0.9375rem !important;
+    line-height: 1.375rem !important;
+    font-weight: 400 !important;
   }
-  .invoice-editor :where(p, button, label, input, textarea, select, option, span, h1, h2, h3, th, td) {
+  .billing-editor :where(p, a, button, label, input, textarea, select, option, span, h1, h2, h3, th, td) {
     font-family: inherit !important;
     font-size: inherit !important;
     line-height: inherit !important;
   }
-  .invoice-editor :where(label) {
+  .billing-editor :where(label) {
     color: var(--muted-foreground) !important;
-    font-size: 0.6875rem !important;
-    line-height: 1rem !important;
-    font-weight: 500 !important;
+    font-size: 0.8125rem !important;
+    line-height: 1.125rem !important;
+    font-weight: 400 !important;
   }
-  .invoice-editor .invoice-brand-name {
-    font-size: 1.25rem !important;
-    line-height: 1.75rem !important;
+  .billing-editor :is([data-slot="input"], [data-slot="select-trigger"], .billing-editor-combobox) {
+    height: 2.75rem !important;
+    width: 100% !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 0.75rem !important;
+    background: var(--background) !important;
+    padding: 0 0.875rem !important;
+    color: var(--foreground);
+  }
+  .billing-editor [data-slot="textarea"] {
+    border: 1px solid var(--border) !important;
+    border-radius: 0.75rem !important;
+    background: var(--background) !important;
+    padding: 0.625rem 0.875rem !important;
+    box-shadow: none !important;
+  }
+  .billing-editor :is([data-slot="input"], [data-slot="textarea"], [data-slot="select-trigger"], .billing-editor-combobox):focus-visible {
+    border-color: var(--primary) !important;
+    outline: none;
+  }
+  .billing-editor .billing-editor-brand {
+    font-size: 1.125rem !important;
+    line-height: 1.5rem !important;
     font-weight: 600 !important;
+  }
+  .billing-editor .billing-editor-number {
+    font-size: 1rem !important;
+    font-weight: 600 !important;
+  }
+  .billing-editor .billing-editor-section {
+    font-family: inherit !important;
+    color: var(--muted-foreground);
+    font-weight: 600 !important;
+  }
+  .billing-editor :is(.billing-editor-row-label, .billing-editor-delete, .billing-editor-action) {
+    font-weight: 600 !important;
+  }
+  .billing-editor .billing-editor-total-label {
+    font-size: 0.9375rem !important;
+    line-height: 1.375rem !important;
+  }
+  .billing-editor .billing-editor-strong {
+    font-size: 1.125rem !important;
+    line-height: 1.5rem !important;
+    font-weight: 700 !important;
   }
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-eb-garamond), ui-serif, Georgia, serif;

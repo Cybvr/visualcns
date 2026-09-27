@@ -47,7 +47,7 @@ export default function NewInvoicePage() {
   }
 
   return (
-    <main className="mx-auto w-full max-w-5xl px-4 py-4 sm:px-6 sm:py-9">
+    <main className="mx-auto w-full max-w-5xl sm:px-6 sm:py-9">
       <InvoiceBuilder initialCompanyId={initialCompanyId} initialEstimate={sourceEstimate ?? undefined} />
     </main>
   )

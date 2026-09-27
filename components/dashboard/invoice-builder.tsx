@@ -1,16 +1,23 @@
 "use client"
 
 import { useEffect, useMemo, useState, type FormEvent } from "react"
-import Image from "next/image"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { ArrowLeft, Eye, Loader2, Plus, Printer, Save, Share2, Trash2 } from "lucide-react"
+import { ArrowLeft, Loader2, Plus, Printer, Share2, X } from "lucide-react"
 
-import { DangerZone } from "@/components/dashboard/danger-zone"
+import {
+  DepartmentField,
+  EditorActionBar,
+  EditorCard,
+  EditorDeleteCard,
+  EditorField,
+  EditorHeader,
+  EditorToggle,
+  ExpandableTextRow,
+} from "@/components/dashboard/billing-editor"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
 import {
   Select,
   SelectContent,
@@ -34,14 +41,6 @@ import {
   type Estimate,
 } from "@/lib/billing"
 import { getBusinessProfile, type BusinessProfile } from "@/lib/business-profile"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
 import { getProjects, type Project } from "@/lib/projects"
 import { getOrganizations, type Organization } from "@/lib/organizations"
 import { ShareLinkField } from "@/components/dashboard/share-link-field"
@@ -49,7 +48,6 @@ import { InvoiceDocument } from "@/components/dashboard/invoice-document"
 import { downloadInvoicePdf } from "@/components/dashboard/invoice-pdf"
 import { DocumentPreviewFrame } from "@/components/dashboard/document-preview-frame"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { cn } from "@/lib/utils"
 
 const CURRENCIES = [
   { code: "USD", symbol: "$" },
@@ -426,86 +424,43 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate }: {
     }
   }
 
+  const statusMeta = invoiceStatusMeta[status]
+
   return (
     <>
-    <form onSubmit={submit} className="invoice-editor space-y-5 text-[0.8125rem] print:hidden">
-      <div className="flex items-center gap-2">
+    <form onSubmit={submit} className="billing-editor mx-auto max-w-2xl space-y-3 bg-card px-4 pt-3 print:hidden sm:rounded-2xl">
+      <div className="flex items-center gap-1">
         <Link
           href="/dashboard/invoices"
           aria-label="Back to invoices"
-          className="-ml-2 inline-flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+          className="-ml-2 inline-flex size-9 shrink-0 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
         >
           <ArrowLeft className="size-4" aria-hidden="true" />
         </Link>
-        <h1 className="min-w-0 flex-1 truncate text-sm font-semibold tracking-[-0.01em]">{invoiceNumber}</h1>
-        <Button
-          type="button"
-          variant="outline"
-          size="icon"
-          title="Preview invoice"
-          aria-label="Preview invoice"
-          onClick={() => setPreviewOpen(true)}
-        >
-          <Eye className="size-4" aria-hidden="true" />
-        </Button>
-        <Button type="button" variant="outline" size="icon" title="Download PDF" aria-label="Download PDF" onClick={() => void handleDownloadPdf()} disabled={pdfDownloading}>
-          {pdfDownloading ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <Printer className="size-4" aria-hidden="true" />}
-        </Button>
-        <Button type="button" variant="outline" size="icon" title="Share invoice" aria-label="Share invoice" onClick={() => setShareOpen(true)}>
+        <span className="flex-1" />
+        <Button type="button" variant="ghost" size="icon" title="Share invoice" aria-label="Share invoice" onClick={() => setShareOpen(true)}>
           <Share2 className="size-4" aria-hidden="true" />
         </Button>
-        <Button type="submit" size="icon" title={isEdit ? "Save invoice" : "Create invoice"} aria-label={isEdit ? "Save invoice" : "Create invoice"} disabled={saving} className="shrink-0">
-          {saving ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <Save className="size-4" aria-hidden="true" />}
-        </Button>
-        {isEdit && invoice && (
-          <DangerZone
-            label="invoice"
-            confirmTitle="Delete this invoice?"
-            confirmDescription={`${invoice.invoiceNumber} will be removed for good. This cannot be undone.`}
-            onDelete={handleDelete}
-            compact
-            iconOnly
-          />
-        )}
       </div>
 
-      <div className="mx-auto min-w-0 max-w-[52rem] space-y-3 rounded-md border border-border bg-background p-3 sm:p-8">
-        <header className="invoice-editor-header flex items-start justify-between gap-8 border-b border-border pb-6">
-          <div className="flex min-w-0 items-center gap-3">
-            {issuer?.logoUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={issuer.logoUrl} alt="" width={52} height={52} className="size-[52px] shrink-0 rounded object-cover" />
-            ) : (
-              <Image src="/visualhqlogo.svg" alt="" width={52} height={52} className="size-[52px]" />
-            )}
-            <div className="min-w-0">
-              <p className="invoice-brand-name truncate">{issuer?.name || "Your company"}</p>
-              {issuer?.website && <p className="truncate text-muted-foreground">{issuer.website}</p>}
-            </div>
-          </div>
-          <div className="min-w-0 shrink-0 text-right">
-            <p className="font-medium">Invoice</p>
-            <p className="text-muted-foreground">{invoiceNumber}</p>
-          </div>
-        </header>
+      <EditorHeader issuer={issuer} kind="Invoice" onPrint={() => window.print()} onDownload={() => void handleDownloadPdf()} downloading={pdfDownloading} number={invoiceNumber} status={statusMeta} />
 
-        <div className="rounded-md bg-card/50 p-5">
-        <div className="mb-4 border-b border-border pb-4">
-          <Label htmlFor="invoice-title">Title</Label>
+      <EditorCard>
+        <EditorField label="Title" htmlFor="invoice-title">
           <Input
             id="invoice-title"
             value={invoiceTitle}
             onChange={(event) => setInvoiceTitle(event.target.value)}
             placeholder="Invoice title"
-            className="mt-1"
           />
-        </div>
-        <section className="grid gap-4 pb-4 sm:grid-cols-2">
-        <div className="space-y-4">
-          <div>
-            <Label htmlFor="client" className="sr-only">Client</Label>
+        </EditorField>
+      </EditorCard>
+
+      <EditorCard title="Bill to">
+        <div className="space-y-3">
+          <EditorField label="Client" htmlFor="client">
             <Select value={companyId} onValueChange={setCompanyId}>
-              <SelectTrigger id="client" className="mt-1 w-full">
+              <SelectTrigger id="client">
                 <SelectValue placeholder={optionsLoading ? "Loading..." : "Choose a client"} />
               </SelectTrigger>
               <SelectContent>
@@ -516,60 +471,43 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate }: {
                 ))}
               </SelectContent>
             </Select>
-          </div>
-          <div>
-            <Label htmlFor="bill-to" className="sr-only">Bill to</Label>
-            <Input
-              id="bill-to"
-              value={billToName}
-              onChange={(event) => setBillToName(event.target.value)}
-              placeholder="Bill to"
-              className="mt-1"
-            />
-          </div>
-          <div>
-            <Label htmlFor="bill-email" className="sr-only">Billing email</Label>
+          </EditorField>
+          <EditorField label="Department" htmlFor="bill-to">
+            <DepartmentField id="bill-to" companyId={companyId} value={billToName} onChange={setBillToName} />
+          </EditorField>
+          <EditorField label="Email" htmlFor="bill-email">
             <Input
               id="bill-email"
               type="email"
               value={billToEmail}
               onChange={(event) => setBillToEmail(event.target.value)}
               placeholder="Billing email"
-              className="mt-1"
             />
-          </div>
-        </div>
-        <div className="space-y-4">
-          <div>
-            <Label htmlFor="bill-address" className="sr-only">Billing address</Label>
-            <Textarea
+          </EditorField>
+          <EditorField label="Address" htmlFor="bill-address">
+            <Input
               id="bill-address"
               value={billToAddress}
               onChange={(event) => setBillToAddress(event.target.value)}
-              placeholder="Billing address"
-              rows={3}
-              className="mt-1"
+              placeholder="Address or website"
             />
-          </div>
-          <div>
-            <Label htmlFor="tax-number" className="sr-only">Tax / VAT number</Label>
+          </EditorField>
+          <EditorField label="Tax / VAT number" htmlFor="tax-number">
             <Input
               id="tax-number"
               value={billToTaxNumber}
               onChange={(event) => setBillToTaxNumber(event.target.value)}
-              placeholder="Tax / VAT number"
-              className="mt-1"
+              placeholder="Optional"
             />
-          </div>
+          </EditorField>
         </div>
-      </section>
+      </EditorCard>
 
-      <section className="grid gap-4 border-b border-border pb-4 sm:grid-cols-2">
-        <div className="space-y-4">
-          <div>
-            <Label htmlFor="project" className="sr-only">Project</Label>
+      <EditorCard title="Details">
+        <div className="space-y-3">
+          <EditorField label="Project" htmlFor="project">
             <Select value={projectId} onValueChange={setProjectId}>
-              <SelectTrigger id="project" className="mt-1 w-full">
+              <SelectTrigger id="project">
                 <SelectValue placeholder="Not tied to a project" />
               </SelectTrigger>
               <SelectContent>
@@ -583,52 +521,31 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate }: {
                   ))}
               </SelectContent>
             </Select>
-          </div>
-          <div>
-            <Label htmlFor="po" className="sr-only">PO reference</Label>
-            <Input
-              id="po"
-              value={poReference}
-              onChange={(event) => setPoReference(event.target.value)}
-              placeholder="PO reference"
-              className="mt-1"
-            />
-          </div>
-          <div>
-            <Label htmlFor="issued-on" className="sr-only">Issued</Label>
-            <Input
-              id="issued-on"
-              type="date"
-              value={issuedOn}
-              onChange={(event) => setIssuedOn(event.target.value)}
-              className="mt-1"
-            />
-          </div>
-        </div>
-        <div className="space-y-4">
-          <div>
-            <Label htmlFor="terms" className="sr-only">Payment terms</Label>
-            <Select
-              value={String(termsDays)}
-              onValueChange={(value) => setTermsDays(Number.parseInt(value, 10))}
-            >
-              <SelectTrigger id="terms" className="mt-1 w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {PAYMENT_TERM_OPTIONS.map((option) => (
-                  <SelectItem key={option.days} value={String(option.days)}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          </EditorField>
+          <EditorField label="PO reference" htmlFor="po">
+            <Input id="po" value={poReference} onChange={(event) => setPoReference(event.target.value)} placeholder="Optional" />
+          </EditorField>
           <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label htmlFor="currency" className="sr-only">Currency</Label>
+            <EditorField label="Issued" htmlFor="issued-on">
+              <Input id="issued-on" type="date" value={issuedOn} onChange={(event) => setIssuedOn(event.target.value)} />
+            </EditorField>
+            <EditorField label="Payment terms" htmlFor="terms">
+              <Select value={String(termsDays)} onValueChange={(value) => setTermsDays(Number.parseInt(value, 10))}>
+                <SelectTrigger id="terms">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {PAYMENT_TERM_OPTIONS.map((option) => (
+                    <SelectItem key={option.days} value={String(option.days)}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </EditorField>
+            <EditorField label="Currency" htmlFor="currency">
               <Select value={currency} onValueChange={setCurrency}>
-                <SelectTrigger id="currency" className="mt-1 w-full">
+                <SelectTrigger id="currency">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -639,11 +556,10 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate }: {
                   ))}
                 </SelectContent>
               </Select>
-            </div>
-            <div>
-              <Label htmlFor="status" className="sr-only">Status</Label>
+            </EditorField>
+            <EditorField label="Status" htmlFor="status">
               <Select value={status} onValueChange={(value) => setStatus(value as InvoiceStatus)}>
-                <SelectTrigger id="status" className="mt-1 w-full">
+                <SelectTrigger id="status">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -654,316 +570,191 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate }: {
                   ))}
                 </SelectContent>
               </Select>
-            </div>
+            </EditorField>
           </div>
-          <p className="text-sm text-muted-foreground">Due {dueOn || "—"}</p>
+          <p className="text-muted-foreground">Due {dueOn || "—"}</p>
         </div>
-      </section>
-      </div>
+      </EditorCard>
 
-      <div className="flex items-center justify-between gap-3 border-t border-border pt-3">
-        <span className="text-sm font-medium">Invoice type</span>
-        <div className="inline-flex rounded-[8px] bg-muted p-0.5">
-          {(
-            [
+      <EditorCard
+        title="Items"
+        action={
+          <EditorToggle
+            value={mode}
+            onChange={setMode}
+            options={[
               { value: "build", label: "Internal" },
               { value: "link", label: "Link" },
-            ] as const
-          ).map((option) => (
-            <button
-              key={option.value}
-              type="button"
-              onClick={() => setMode(option.value)}
-              aria-pressed={mode === option.value}
-              className={cn(
-                "rounded-[6px] px-3 py-1 text-sm font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring",
-                mode === option.value
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              {option.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {mode === "link" ? (
-        <section className="space-y-4 border-t border-border pt-5">
-          <h2 className="text-sm font-medium">Linked invoice</h2>
-          <div className="grid gap-4 sm:grid-cols-3">
-          <div className="sm:col-span-2">
-            <Label htmlFor="invoice-url">Invoice link</Label>
-            <Input
-              id="invoice-url"
-              value={url}
-              onChange={(event) => setUrl(event.target.value)}
-              placeholder="https://"
-              className="mt-1"
-            />
+            ] as const}
+          />
+        }
+      >
+        {mode === "link" ? (
+          <div className="space-y-3">
+            <EditorField label="Invoice link" htmlFor="invoice-url">
+              <Input id="invoice-url" value={url} onChange={(event) => setUrl(event.target.value)} placeholder="https://" />
+            </EditorField>
+            <EditorField label="Amount" htmlFor="linked-amount">
+              <Input
+                id="linked-amount"
+                value={linkedAmount}
+                onChange={(event) => setLinkedAmount(event.target.value)}
+                inputMode="decimal"
+                placeholder="1250.00"
+              />
+            </EditorField>
           </div>
-          <div>
-            <Label htmlFor="linked-amount">Amount</Label>
-            <Input
-              id="linked-amount"
-              value={linkedAmount}
-              onChange={(event) => setLinkedAmount(event.target.value)}
-              inputMode="decimal"
-              placeholder="1250.00"
-              className="mt-1"
-            />
-          </div>
-          </div>
-        </section>
-      ) : (
-      <section>
-        {/* Phones get one stacked block per line instead of a six-column table. */}
-        <div className="divide-y divide-border xl:hidden">
-          {lines.map((line) => {
-            const lineTotal = Math.round(toNumber(line.quantity) * toNumber(line.unitPrice) * 100)
-            return (
-              <div key={line.id} className="space-y-2 py-3 first:pt-0">
-                <div className="flex items-center gap-2">
-                  <div className="min-w-0 flex-1 space-y-2">
+        ) : (
+          <div className="divide-y divide-border">
+            {lines.map((line) => {
+              const lineTotal = Math.round(toNumber(line.quantity) * toNumber(line.unitPrice) * 100)
+              return (
+                <div key={line.id} className="space-y-2 py-3 first:pt-0">
+                  <div className="flex items-center gap-2">
                     <Input
                       value={line.title}
                       onChange={(event) => updateLine(line.id, { title: event.target.value })}
-                      placeholder="Item title"
+                      placeholder="Item"
                       aria-label="Item title"
+                      className="billing-editor-row-label flex-1"
                     />
-                    <Textarea
-                      value={line.description}
-                      onChange={(event) => updateLine(line.id, { description: event.target.value })}
-                      placeholder="Description"
-                      aria-label="Description"
-                      rows={2}
-                      className="min-h-12 resize-none"
-                    />
+                    <button
+                      type="button"
+                      onClick={() => removeLine(line.id)}
+                      disabled={lines.length === 1}
+                      aria-label="Remove line"
+                      className="inline-flex size-11 shrink-0 items-center justify-center rounded-xl border border-border bg-background text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-40"
+                    >
+                      <X className="size-4" aria-hidden="true" />
+                    </button>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => removeLine(line.id)}
-                    disabled={lines.length === 1}
-                    aria-label="Remove line"
-                    className="inline-flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-40"
-                  >
-                    <Trash2 className="size-4" aria-hidden="true" />
-                  </button>
-                </div>
-                <div className="grid grid-cols-[1fr_1.5fr_1fr] gap-2">
                   <Input
-                    value={line.quantity}
-                    onChange={(event) => updateLine(line.id, { quantity: event.target.value })}
-                    inputMode="decimal"
-                    placeholder="Qty"
-                    aria-label="Quantity"
+                    value={line.description}
+                    onChange={(event) => updateLine(line.id, { description: event.target.value })}
+                    placeholder="Description (optional)"
+                    aria-label="Description"
                   />
-                  <Input
-                    value={line.unitPrice}
-                    onChange={(event) => updateLine(line.id, { unitPrice: event.target.value })}
-                    inputMode="decimal"
-                    placeholder="Price"
-                    aria-label="Unit price"
-                  />
-                  <Input
-                    value={line.taxRate}
-                    onChange={(event) => updateLine(line.id, { taxRate: event.target.value })}
-                    inputMode="decimal"
-                    placeholder="Tax %"
-                    aria-label="Tax rate"
-                  />
-                </div>
-                <div className="text-right text-sm font-medium">{formatMoney(lineTotal, currency)}</div>
-              </div>
-            )
-          })}
-        </div>
-        <div className="hidden overflow-x-auto xl:block">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                 <TableHead>Item</TableHead>
-                <TableHead className="w-20">Qty</TableHead>
-                <TableHead className="w-32">Unit price</TableHead>
-                <TableHead className="w-24">Tax %</TableHead>
-                <TableHead className="w-32 text-right">Total</TableHead>
-                <TableHead className="w-12" />
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {lines.map((line) => {
-                const lineTotal = Math.round(toNumber(line.quantity) * toNumber(line.unitPrice) * 100)
-                return (
-                  <TableRow key={line.id}>
-                    <TableCell>
-                      <div className="space-y-2">
-                        <Input
-                          value={line.title}
-                          onChange={(event) => updateLine(line.id, { title: event.target.value })}
-                          placeholder="Item title"
-                          aria-label="Item title"
-                        />
-                        <Textarea
-                          value={line.description}
-                          onChange={(event) => updateLine(line.id, { description: event.target.value })}
-                          placeholder="Description"
-                          aria-label="Description"
-                          rows={2}
-                          className="min-h-12 resize-none"
-                        />
-                      </div>
-                    </TableCell>
-                    <TableCell>
+                  <div className="grid grid-cols-[1fr_2fr_1.15fr] gap-2">
+                    <EditorField label="Qty" htmlFor={`qty-${line.id}`}>
                       <Input
+                        id={`qty-${line.id}`}
                         value={line.quantity}
                         onChange={(event) => updateLine(line.id, { quantity: event.target.value })}
                         inputMode="decimal"
-                        aria-label="Quantity"
                       />
-                    </TableCell>
-                    <TableCell>
+                    </EditorField>
+                    <EditorField label="Price" htmlFor={`price-${line.id}`}>
                       <Input
+                        id={`price-${line.id}`}
                         value={line.unitPrice}
                         onChange={(event) => updateLine(line.id, { unitPrice: event.target.value })}
                         inputMode="decimal"
                         placeholder="0.00"
-                        aria-label="Unit price"
                       />
-                    </TableCell>
-                    <TableCell>
+                    </EditorField>
+                    <EditorField label="Tax %" htmlFor={`tax-${line.id}`}>
                       <Input
+                        id={`tax-${line.id}`}
                         value={line.taxRate}
                         onChange={(event) => updateLine(line.id, { taxRate: event.target.value })}
                         inputMode="decimal"
-                        aria-label="Tax rate"
                       />
-                    </TableCell>
-                    <TableCell className="text-right font-medium">
-                      {formatMoney(lineTotal, currency)}
-                    </TableCell>
-                    <TableCell>
-                      <button
-                        type="button"
-                        onClick={() => removeLine(line.id)}
-                        disabled={lines.length === 1}
-                        aria-label="Remove line"
-                        className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-40"
-                      >
-                        <Trash2 className="size-4" aria-hidden="true" />
-                      </button>
-                    </TableCell>
-                  </TableRow>
-                )
-              })}
-            </TableBody>
-          </Table>
-        </div>
-        <div className="border-t border-border pt-2 sm:p-3">
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() => setLines((current) => [...current, makeLine()])}
-          >
-            <Plus className="mr-1.5 size-4" aria-hidden="true" />
-            Add line
-          </Button>
-        </div>
-      </section>
-      )}
-
-      {mode === "build" && (
-      <div className="flex flex-col gap-6 border-t border-border pt-5">
-        <div className="order-2 grid w-full max-w-2xl gap-4 border-t border-border pt-3 sm:grid-cols-2">
-          <div>
-            <Label htmlFor="notes">Note to client</Label>
-            <Textarea
-              id="notes"
-              value={notes}
-              onChange={(event) => setNotes(event.target.value)}
-              rows={3}
-              className="mt-1"
-            />
+                    </EditorField>
+                  </div>
+                  <p className="billing-editor-row-label text-right">{formatMoney(lineTotal, currency)}</p>
+                </div>
+              )
+            })}
+            <div className="py-3">
+              <button
+                type="button"
+                onClick={() => setLines((current) => [...current, makeLine()])}
+                className="billing-editor-row-label inline-flex items-center gap-1 text-primary outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <Plus className="size-4" aria-hidden="true" />
+                Add line
+              </button>
+            </div>
           </div>
-          <div>
-            <Label htmlFor="payment">Payment instructions</Label>
-            <Textarea
-              id="payment"
-              value={paymentInstructions}
-              onChange={(event) => setPaymentInstructions(event.target.value)}
-              rows={3}
-              placeholder="Add payment instructions for this invoice"
-              className="mt-1"
-            />
-          </div>
-        </div>
+        )}
 
-        <div className="order-1 ml-auto w-full max-w-md space-y-3">
+        <div className="mt-1 space-y-3 border-t border-border pt-4">
           {mode === "build" && (
             <>
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Subtotal</span>
-              <span>{formatMoney(totals.subtotal, currency)}</span>
-            </div>
-  
-            <div className="flex items-center justify-between gap-3 text-sm">
-              <span className="text-muted-foreground">Discount</span>
-              <div className="flex items-center gap-2">
-                <span className="text-muted-foreground">{discountType === "percent" ? "%" : currency}</span>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Subtotal</span>
+                <span>{formatMoney(totals.subtotal, currency)}</span>
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <Label htmlFor="discount" className="billing-editor-total-label">Discount</Label>
                 <Input
+                  id="discount"
                   value={discountValue}
                   onChange={(event) => setDiscountValue(event.target.value)}
                   inputMode="decimal"
                   placeholder="0"
-                  aria-label="Discount"
-                  className="h-8 w-24 text-right"
+                  className="max-w-40 text-right"
                 />
               </div>
-            </div>
-            {totals.discountTotal > 0 && (
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Discount applied</span>
-                <span>-{formatMoney(totals.discountTotal, currency)}</span>
+              {totals.discountTotal > 0 && (
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Discount applied</span>
+                  <span>-{formatMoney(totals.discountTotal, currency)}</span>
+                </div>
+              )}
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Tax</span>
+                <span>{formatMoney(totals.taxTotal, currency)}</span>
               </div>
-            )}
-  
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Tax</span>
-              <span>{formatMoney(totals.taxTotal, currency)}</span>
-            </div>
-  
             </>
           )}
-
-          <div className="flex items-center justify-between border-t border-border pt-3 text-sm font-semibold">
+          <div className="billing-editor-strong flex items-center justify-between">
             <span>Total</span>
             <span>{formatMoney(totals.total, currency)}</span>
           </div>
-
-          <div className="flex items-center justify-between gap-3 text-sm">
-            <Label htmlFor="paid" className="text-muted-foreground">
-              Amount paid
-            </Label>
+          <div className="flex items-center justify-between gap-3">
+            <Label htmlFor="paid" className="billing-editor-total-label">Amount paid</Label>
             <Input
               id="paid"
               value={amountPaid}
               onChange={(event) => setAmountPaid(event.target.value)}
               inputMode="decimal"
-              placeholder="0.00"
-              className="h-8 w-28 text-right"
+              placeholder="0"
+              className="max-w-40 text-right"
             />
           </div>
-
-          <div className="flex items-center justify-between border-t border-border pt-3 text-sm font-semibold">
+          <div className="billing-editor-strong flex items-center justify-between border-t border-border pt-3">
             <span>Balance due</span>
             <span>{formatMoney(balance, currency)}</span>
           </div>
         </div>
-      </div>
+      </EditorCard>
+
+      {mode === "build" && (
+        <EditorCard>
+          <ExpandableTextRow id="notes" label="Note to client" value={notes} onChange={setNotes} />
+          <ExpandableTextRow
+            id="payment"
+            label="Payment instructions"
+            value={paymentInstructions}
+            onChange={setPaymentInstructions}
+            placeholder="Add payment instructions"
+          />
+        </EditorCard>
       )}
 
-        {error && <p className="text-sm text-destructive">{error}</p>}
-      </div>
+      {isEdit && invoice && (
+        <EditorDeleteCard
+          label="invoice"
+          confirmTitle="Delete this invoice?"
+          confirmDescription={`${invoice.invoiceNumber} will be removed for good. This cannot be undone.`}
+          onDelete={handleDelete}
+        />
+      )}
+
+      {error && <p className="px-1 text-destructive">{error}</p>}
+
+      <EditorActionBar onPreview={() => setPreviewOpen(true)} saving={saving} saveLabel={isEdit ? "Save invoice" : "Create invoice"} />
 
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
         <DialogContent className="w-[calc(100vw-0.5rem)] max-h-[calc(100vh-0.5rem)] max-w-5xl overflow-hidden p-2 print:hidden sm:p-6">

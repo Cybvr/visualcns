@@ -20,9 +20,17 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
-import { ArrowLeft, Eye, GripVertical, Loader2, Plus, Printer, Save, Share2, Trash2 } from "lucide-react"
+import { ArrowLeft, GripVertical, Loader2, Plus, Printer, Share2, X } from "lucide-react"
 
-import { DangerZone } from "@/components/dashboard/danger-zone"
+import {
+  DepartmentField,
+  EditorActionBar,
+  EditorCard,
+  EditorDeleteCard,
+  EditorField,
+  EditorHeader,
+  ExpandableTextRow,
+} from "@/components/dashboard/billing-editor"
 import { EstimateDocument } from "@/components/dashboard/estimate-document"
 import { downloadEstimatePdf } from "@/components/dashboard/estimate-pdf"
 import { DocumentPreviewFrame } from "@/components/dashboard/document-preview-frame"
@@ -118,30 +126,31 @@ function SortableEstimateLine({
   id: string
   index: number
   disabled: boolean
-  children: ReactNode
+  children: (handle: ReactNode) => ReactNode
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id, disabled })
+
+  const handle = (
+    <button
+      type="button"
+      disabled={disabled}
+      aria-label={`Move item ${index + 1}`}
+      title="Drag to reorder"
+      className="inline-flex size-11 shrink-0 touch-none cursor-grab items-center justify-center rounded-xl border border-border bg-background text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring active:cursor-grabbing disabled:cursor-default disabled:opacity-30"
+      {...attributes}
+      {...listeners}
+    >
+      <GripVertical className="size-4" aria-hidden="true" />
+    </button>
+  )
 
   return (
     <div
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={`relative rounded-[12px] border border-border bg-card p-4 ${isDragging ? "z-10 shadow-lg" : ""}`}
+      className={`space-y-2 bg-background py-3 first:pt-0 ${isDragging ? "relative z-10 rounded-xl shadow-lg" : ""}`}
     >
-      <button
-        type="button"
-        disabled={disabled}
-        aria-label={`Move item ${index + 1}`}
-        title="Drag to reorder"
-        className="absolute right-3 top-3 inline-flex size-8 touch-none cursor-grab items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring active:cursor-grabbing disabled:cursor-default disabled:opacity-30"
-        {...attributes}
-        {...listeners}
-      >
-        <GripVertical className="size-4" aria-hidden="true" />
-      </button>
-      <div className="grid gap-3 pr-10 lg:grid-cols-[1.2fr_1.5fr_0.7fr_0.7fr_auto] lg:items-start lg:pr-10">
-        {children}
-      </div>
+      {children(handle)}
     </div>
   )
 }
@@ -398,212 +407,200 @@ export function EstimateBuilder({ estimate, initialCompanyId }: { estimate?: Est
     }
   }
 
+  const statusMeta = estimateStatusMeta[status]
+
   return (
     <>
-    <form onSubmit={submit} className="estimate-editor space-y-5 print:hidden">
-      <div className="flex items-center gap-2">
+    <form onSubmit={submit} className="billing-editor mx-auto max-w-2xl space-y-3 bg-card px-4 pt-3 print:hidden sm:rounded-2xl">
+      <div className="flex items-center gap-1">
         <Link
           href="/dashboard/estimates"
           aria-label="Back to estimates"
-          className="-ml-2 inline-flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+          className="-ml-2 inline-flex size-9 shrink-0 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
         >
           <ArrowLeft className="size-4" aria-hidden="true" />
         </Link>
-        <h1 className="min-w-0 flex-1 truncate text-sm font-semibold tracking-[-0.01em]">{estimateNumber || "New estimate"}</h1>
-        <Button type="button" variant="outline" size="icon" title="Preview estimate" aria-label="Preview estimate" onClick={() => setPreviewOpen(true)}>
-          <Eye className="size-4" aria-hidden="true" />
-        </Button>
-        <Button type="button" variant="outline" size="icon" title="Download PDF" aria-label="Download PDF" onClick={() => void handleDownloadPdf()} disabled={pdfDownloading}>
-          {pdfDownloading ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <Printer className="size-4" aria-hidden="true" />}
-        </Button>
-        <Button type="button" variant="outline" size="icon" title="Share estimate" aria-label="Share estimate" onClick={() => setShareOpen(true)}>
+        <span className="flex-1" />
+        <Button type="button" variant="ghost" size="icon" title="Share estimate" aria-label="Share estimate" onClick={() => setShareOpen(true)}>
           <Share2 className="size-4" aria-hidden="true" />
         </Button>
-        <Button type="submit" size="icon" title={isEdit ? "Save estimate" : "Create estimate"} aria-label={isEdit ? "Save estimate" : "Create estimate"} disabled={saving} className="shrink-0">
-          {saving ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <Save className="size-4" aria-hidden="true" />}
-        </Button>
-        {isEdit && estimate && (
-          <DangerZone
-            label="estimate"
-            confirmTitle="Delete this estimate?"
-            confirmDescription={`${estimate.estimateNumber} will be removed for good. This cannot be undone.`}
-            onDelete={handleDelete}
-            compact
-            iconOnly
-          />
-        )}
       </div>
 
-      <div className="space-y-8 rounded-[14px] border border-border bg-card p-3 sm:p-6">
-        <section className="grid gap-6 lg:grid-cols-2">
-          <div className="min-w-0 space-y-4">
-            <div>
-              <Label htmlFor="estimate-title">Estimate title</Label>
-              <Input id="estimate-title" value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Website and email restoration" className="mt-1" />
-            </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <Label htmlFor="estimate-number">Estimate number</Label>
-                <Input id="estimate-number" value={estimateNumber} onChange={(event) => setEstimateNumber(event.target.value)} className="mt-1" />
-              </div>
-              <div>
-                <Label htmlFor="estimate-status">Status</Label>
-                <Select value={status} onValueChange={(value) => setStatus(value as EstimateStatus)}>
-                  <SelectTrigger id="estimate-status" className="mt-1"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {Object.entries(estimateStatusMeta).map(([value, meta]) => <SelectItem key={value} value={value}>{meta.label}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <Label htmlFor="estimate-client">Client</Label>
-                <Select value={companyId} onValueChange={selectClient}>
-                  <SelectTrigger id="estimate-client" className="mt-1"><SelectValue placeholder={optionsLoading ? "Loading…" : "Choose a client"} /></SelectTrigger>
-                  <SelectContent>
-                    {[...clients].sort((a, b) => (a.company || a.displayName || a.email || "").localeCompare(b.company || b.displayName || b.email || "", undefined, { sensitivity: "base" })).map((client) => <SelectItem key={client.uid} value={client.companyId as string}>{client.company || client.displayName || client.email}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="min-w-0">
-                <Label htmlFor="estimate-project">Project</Label>
-                <Select value={projectId} onValueChange={setProjectId}>
-                  <SelectTrigger id="estimate-project" className="mt-1 w-full min-w-0 overflow-hidden">
-                    <SelectValue className="min-w-0 flex-1 truncate" placeholder="Not tied to a project" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {projects.filter((project) => !companyId || project.companyId === companyId).sort((a, b) => (a.title || "").localeCompare(b.title || "", undefined, { sensitivity: "base" })).map((project) => <SelectItem key={project.id} value={project.id}>{project.title}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </div>
+      <EditorHeader issuer={issuer} kind="Estimate" onPrint={() => window.print()} onDownload={() => void handleDownloadPdf()} downloading={pdfDownloading} number={estimateNumber} status={statusMeta} />
 
-          <div className="space-y-4">
-            <div className="grid gap-4 sm:grid-cols-3">
-              <div>
-                <Label htmlFor="estimate-issued">Issue date</Label>
-                <Input id="estimate-issued" type="date" value={issuedOn} onChange={(event) => setIssuedOn(event.target.value)} className="mt-1" />
-              </div>
-              <div>
-                <Label htmlFor="estimate-valid">Valid until</Label>
-                <Input id="estimate-valid" type="date" value={validUntil} onChange={(event) => setValidUntil(event.target.value)} className="mt-1" />
-              </div>
-              <div>
-                <Label htmlFor="estimate-currency">Currency</Label>
-                <Select value={currency} onValueChange={setCurrency}>
-                  <SelectTrigger id="estimate-currency" className="mt-1"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {CURRENCIES.map((entry) => <SelectItem key={entry.code} value={entry.code}>{entry.code} {entry.symbol}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div>
-              <Label htmlFor="prepared-for-name">Prepared for</Label>
-              <Input id="prepared-for-name" value={preparedForName} onChange={(event) => setPreparedForName(event.target.value)} placeholder="Client or organisation name" className="mt-1" />
-            </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <Label htmlFor="prepared-for-email">Email</Label>
-                <Input id="prepared-for-email" type="email" value={preparedForEmail} onChange={(event) => setPreparedForEmail(event.target.value)} className="mt-1" />
-              </div>
-              <div>
-                <Label htmlFor="prepared-for-address">Address or website</Label>
-                <Input id="prepared-for-address" value={preparedForAddress} onChange={(event) => setPreparedForAddress(event.target.value)} className="mt-1" />
-              </div>
-            </div>
-          </div>
-        </section>
+      <EditorCard>
+        <EditorField label="Title" htmlFor="estimate-title">
+          <Input id="estimate-title" value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Website and email restoration" />
+        </EditorField>
+      </EditorCard>
 
-        <section className="border-t border-border pt-6">
-          <div className="mb-3">
-            <h2 className="text-sm font-medium">Scope of work</h2>
-            <p className="mt-1 text-xs text-muted-foreground">Describe the work, inclusions, exclusions, and delivery assumptions.</p>
-          </div>
-          <RichTextEditor value={scope} onChange={setScope} placeholder="Describe the scope of work…" />
-        </section>
+      <EditorCard title="Prepared for">
+        <div className="space-y-3">
+          <EditorField label="Client" htmlFor="estimate-client">
+            <Select value={companyId} onValueChange={selectClient}>
+              <SelectTrigger id="estimate-client"><SelectValue placeholder={optionsLoading ? "Loading…" : "Choose a client"} /></SelectTrigger>
+              <SelectContent>
+                {[...clients].sort((a, b) => (a.company || a.displayName || a.email || "").localeCompare(b.company || b.displayName || b.email || "", undefined, { sensitivity: "base" })).map((client) => <SelectItem key={client.uid} value={client.companyId as string}>{client.company || client.displayName || client.email}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </EditorField>
+          <EditorField label="Department" htmlFor="prepared-for-name">
+            <DepartmentField id="prepared-for-name" companyId={companyId} value={preparedForName} onChange={setPreparedForName} />
+          </EditorField>
+          <EditorField label="Email" htmlFor="prepared-for-email">
+            <Input id="prepared-for-email" type="email" value={preparedForEmail} onChange={(event) => setPreparedForEmail(event.target.value)} />
+          </EditorField>
+          <EditorField label="Address" htmlFor="prepared-for-address">
+            <Input id="prepared-for-address" value={preparedForAddress} onChange={(event) => setPreparedForAddress(event.target.value)} placeholder="Address or website" />
+          </EditorField>
+        </div>
+      </EditorCard>
 
-        <section className="border-t border-border pt-6">
-          <div className="mb-3 flex items-center justify-between gap-3">
-            <div>
-              <h2 className="text-sm font-medium">Pricing</h2>
-              <p className="mt-1 text-xs text-muted-foreground">Optional items appear separately and do not change the base estimate.</p>
-            </div>
-            <Button type="button" size="sm" variant="outline" onClick={() => setLines((current) => [...current, makeLine()])}>
-              <Plus className="size-4" aria-hidden="true" /> Add item
-            </Button>
+      <EditorCard title="Details">
+        <div className="space-y-3">
+          <EditorField label="Project" htmlFor="estimate-project">
+            <Select value={projectId} onValueChange={setProjectId}>
+              <SelectTrigger id="estimate-project" className="min-w-0 overflow-hidden">
+                <SelectValue className="min-w-0 flex-1 truncate" placeholder="Not tied to a project" />
+              </SelectTrigger>
+              <SelectContent>
+                {projects.filter((project) => !companyId || project.companyId === companyId).sort((a, b) => (a.title || "").localeCompare(b.title || "", undefined, { sensitivity: "base" })).map((project) => <SelectItem key={project.id} value={project.id}>{project.title}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </EditorField>
+          <div className="grid grid-cols-2 gap-3">
+            <EditorField label="Estimate number" htmlFor="estimate-number">
+              <Input id="estimate-number" value={estimateNumber} onChange={(event) => setEstimateNumber(event.target.value)} />
+            </EditorField>
+            <EditorField label="Status" htmlFor="estimate-status">
+              <Select value={status} onValueChange={(value) => setStatus(value as EstimateStatus)}>
+                <SelectTrigger id="estimate-status"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {Object.entries(estimateStatusMeta).map(([value, meta]) => <SelectItem key={value} value={value}>{meta.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </EditorField>
+            <EditorField label="Issue date" htmlFor="estimate-issued">
+              <Input id="estimate-issued" type="date" value={issuedOn} onChange={(event) => setIssuedOn(event.target.value)} />
+            </EditorField>
+            <EditorField label="Valid until" htmlFor="estimate-valid">
+              <Input id="estimate-valid" type="date" value={validUntil} onChange={(event) => setValidUntil(event.target.value)} />
+            </EditorField>
+            <EditorField label="Currency" htmlFor="estimate-currency">
+              <Select value={currency} onValueChange={setCurrency}>
+                <SelectTrigger id="estimate-currency"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {CURRENCIES.map((entry) => <SelectItem key={entry.code} value={entry.code}>{entry.code} {entry.symbol}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </EditorField>
           </div>
-          <DndContext sensors={lineSensors} collisionDetection={closestCenter} onDragEnd={handleLineDragEnd}>
-            <SortableContext items={lines.map((line) => line.id)} strategy={verticalListSortingStrategy}>
-              <div className="space-y-3">
-                {lines.map((line, index) => (
-                  <SortableEstimateLine key={line.id} id={line.id} index={index} disabled={lines.length === 1}>
-                    <div>
-                      <Label htmlFor={`item-${line.id}`}>Item {index + 1}</Label>
-                      <Input id={`item-${line.id}`} value={line.description} onChange={(event) => updateLine(line.id, { description: event.target.value })} placeholder="Email audit" className="mt-1" />
-                    </div>
-                    <div>
-                      <Label htmlFor={`details-${line.id}`}>Description</Label>
-                      <Textarea
-                        id={`details-${line.id}`}
-                        value={line.details}
-                        onChange={(event) => updateLine(line.id, { details: event.target.value })}
-                        placeholder="Audit and resolve delivery issues"
-                        rows={3}
-                        className="mt-1 min-h-20 max-h-40 resize-y overflow-y-auto"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor={`billing-${line.id}`}>Billing</Label>
-                      <Input id={`billing-${line.id}`} value={line.billing} onChange={(event) => updateLine(line.id, { billing: event.target.value })} className="mt-1" />
-                    </div>
-                    <div>
-                      <Label htmlFor={`amount-${line.id}`}>Amount</Label>
-                      <Input id={`amount-${line.id}`} value={line.amount} onChange={(event) => updateLine(line.id, { amount: event.target.value })} inputMode="decimal" placeholder="0.00" className="mt-1" />
-                    </div>
-                    <div>
-                      <Label className="invisible select-none">Optional</Label>
-                      <div className="mt-1 flex h-10 items-center gap-3">
-                        <div className="flex items-center gap-2">
-                          <Switch id={`optional-${line.id}`} checked={line.optional} onCheckedChange={(checked) => updateLine(line.id, { optional: checked })} />
-                          <Label htmlFor={`optional-${line.id}`} className="text-xs">Optional</Label>
-                        </div>
-                        <button type="button" onClick={() => setLines((current) => current.filter((entry) => entry.id !== line.id))} disabled={lines.length === 1} aria-label={`Remove item ${index + 1}`} className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-destructive focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-40">
-                          <Trash2 className="size-4" aria-hidden="true" />
+        </div>
+      </EditorCard>
+
+      <EditorCard title="Scope of work">
+        <RichTextEditor value={scope} onChange={setScope} placeholder="Describe the work, inclusions, exclusions, and delivery assumptions…" />
+      </EditorCard>
+
+      <EditorCard title="Items">
+        <DndContext sensors={lineSensors} collisionDetection={closestCenter} onDragEnd={handleLineDragEnd}>
+          <SortableContext items={lines.map((line) => line.id)} strategy={verticalListSortingStrategy}>
+            <div className="divide-y divide-border">
+              {lines.map((line, index) => (
+                <SortableEstimateLine key={line.id} id={line.id} index={index} disabled={lines.length === 1}>
+                  {(handle) => (
+                    <>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          value={line.description}
+                          onChange={(event) => updateLine(line.id, { description: event.target.value })}
+                          placeholder="Item"
+                          aria-label={`Item ${index + 1}`}
+                          className="billing-editor-row-label flex-1"
+                        />
+                        {handle}
+                        <button
+                          type="button"
+                          onClick={() => setLines((current) => current.filter((entry) => entry.id !== line.id))}
+                          disabled={lines.length === 1}
+                          aria-label={`Remove item ${index + 1}`}
+                          className="inline-flex size-11 shrink-0 items-center justify-center rounded-xl border border-border bg-background text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-40"
+                        >
+                          <X className="size-4" aria-hidden="true" />
                         </button>
                       </div>
-                    </div>
-                  </SortableEstimateLine>
-                ))}
+                      <Textarea
+                        value={line.details}
+                        onChange={(event) => updateLine(line.id, { details: event.target.value })}
+                        placeholder="Description (optional)"
+                        aria-label="Description"
+                        rows={1}
+                        className="min-h-11 resize-y"
+                      />
+                      <div className="grid grid-cols-2 gap-2">
+                        <EditorField label="Billing" htmlFor={`billing-${line.id}`}>
+                          <Input id={`billing-${line.id}`} value={line.billing} onChange={(event) => updateLine(line.id, { billing: event.target.value })} />
+                        </EditorField>
+                        <EditorField label="Amount" htmlFor={`amount-${line.id}`}>
+                          <Input id={`amount-${line.id}`} value={line.amount} onChange={(event) => updateLine(line.id, { amount: event.target.value })} inputMode="decimal" placeholder="0.00" />
+                        </EditorField>
+                      </div>
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2">
+                          <Switch id={`optional-${line.id}`} checked={line.optional} onCheckedChange={(checked) => updateLine(line.id, { optional: checked })} />
+                          <Label htmlFor={`optional-${line.id}`}>Optional</Label>
+                        </div>
+                        <p className="billing-editor-row-label text-right">{formatMoney(moneyToMinorUnits(line.amount), currency)}</p>
+                      </div>
+                    </>
+                  )}
+                </SortableEstimateLine>
+              ))}
+              <div className="py-3">
+                <button
+                  type="button"
+                  onClick={() => setLines((current) => [...current, makeLine()])}
+                  className="billing-editor-row-label inline-flex items-center gap-1 text-primary outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <Plus className="size-4" aria-hidden="true" />
+                  Add item
+                </button>
               </div>
-            </SortableContext>
-          </DndContext>
-          <div className="mt-4 ml-auto max-w-sm space-y-2 border-t border-border pt-4 text-sm">
-            <div className="flex justify-between gap-8 font-semibold"><span>Base estimate</span><span>{formatMoney(requiredTotal, currency)}</span></div>
-            {optionalTotal > 0 && <div className="flex justify-between gap-8 text-muted-foreground"><span>Optional additions</span><span>{formatMoney(optionalTotal, currency)}</span></div>}
+            </div>
+          </SortableContext>
+        </DndContext>
+        <div className="mt-1 space-y-3 border-t border-border pt-4">
+          {optionalTotal > 0 && (
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">Optional additions</span>
+              <span>{formatMoney(optionalTotal, currency)}</span>
+            </div>
+          )}
+          <div className="billing-editor-strong flex items-center justify-between">
+            <span>Total</span>
+            <span>{formatMoney(requiredTotal, currency)}</span>
           </div>
-        </section>
+        </div>
+      </EditorCard>
 
-        <section className="grid gap-6 border-t border-border pt-6 lg:grid-cols-2">
-          <div>
-            <Label htmlFor="estimate-terms">Terms</Label>
-            <Textarea id="estimate-terms" value={terms} onChange={(event) => setTerms(event.target.value)} rows={7} className="mt-1" />
-          </div>
-          <div>
-            <Label htmlFor="estimate-payment">Payment details</Label>
-            <Textarea id="estimate-payment" value={paymentDetails} onChange={(event) => setPaymentDetails(event.target.value)} rows={7} placeholder="Account name, bank, account number, currency…" className="mt-1" />
-          </div>
-          <div>
-            <Label htmlFor="estimate-notes">Estimate disclaimer</Label>
-            <Textarea id="estimate-notes" value={notes} onChange={(event) => setNotes(event.target.value)} rows={5} className="mt-1" />
-          </div>
-        </section>
+      <EditorCard>
+        <ExpandableTextRow id="estimate-terms" label="Terms" value={terms} onChange={setTerms} rows={7} />
+        <ExpandableTextRow id="estimate-payment" label="Payment details" value={paymentDetails} onChange={setPaymentDetails} placeholder="Account name, bank, account number…" rows={5} />
+        <ExpandableTextRow id="estimate-notes" label="Estimate disclaimer" value={notes} onChange={setNotes} rows={5} />
+      </EditorCard>
 
-        {error && <p className="text-sm text-destructive">{error}</p>}
-      </div>
+      {isEdit && estimate && (
+        <EditorDeleteCard
+          label="estimate"
+          confirmTitle="Delete this estimate?"
+          confirmDescription={`${estimate.estimateNumber} will be removed for good. This cannot be undone.`}
+          onDelete={handleDelete}
+        />
+      )}
 
+      {error && <p className="px-1 text-destructive">{error}</p>}
+
+      <EditorActionBar onPreview={() => setPreviewOpen(true)} saving={saving} saveLabel={isEdit ? "Save estimate" : "Create estimate"} />
     </form>
 
     <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>

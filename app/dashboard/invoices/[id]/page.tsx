@@ -66,7 +66,7 @@ export default function InvoiceDetailPage() {
 
   if (adminView) {
     return (
-      <main className="mx-auto w-full max-w-5xl px-3 py-2 sm:px-6 sm:py-9">
+      <main className="mx-auto w-full max-w-5xl sm:px-6 sm:py-9">
         <InvoiceBuilder invoice={invoice} />
       </main>
     )

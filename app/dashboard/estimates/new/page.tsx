@@ -20,5 +20,5 @@ export default function NewEstimatePage() {
     return <DashboardPageSkeleton variant="form" rows={5} />
   }
 
-  return <main className="mx-auto w-full max-w-6xl px-4 py-9 sm:px-6"><EstimateBuilder initialCompanyId={initialCompanyId} /></main>
+  return <main className="mx-auto w-full max-w-5xl sm:px-6 sm:py-9"><EstimateBuilder initialCompanyId={initialCompanyId} /></main>
 }
