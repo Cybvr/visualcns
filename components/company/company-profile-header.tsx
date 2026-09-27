@@ -141,9 +141,9 @@ export function CompanyProfileHeader({
             <span>{contactCount} contact{contactCount === 1 ? "" : "s"}</span>
             {categoryLabel && <span className="truncate">{categoryLabel}</span>}
             {location && (
-              <span className="inline-flex items-center gap-1.5">
-                <MapPin className="size-4" aria-hidden="true" />
-                {location}
+              <span className="inline-flex min-w-0 max-w-full items-center gap-1.5">
+                <MapPin className="size-4 shrink-0" aria-hidden="true" />
+                <span className="truncate">{location}</span>
               </span>
             )}
             {website && (
@@ -151,9 +151,9 @@ export function CompanyProfileHeader({
                 href={externalHref(website)}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center gap-1.5 outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+                className="inline-flex min-w-0 max-w-full items-center gap-1.5 outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
               >
-                <Globe2 className="size-4" aria-hidden="true" />
+                <Globe2 className="size-4 shrink-0" aria-hidden="true" />
                 <span className="truncate underline-offset-4 hover:underline">{website.replace(/^https?:\/\//i, "").replace(/\/$/, "")}</span>
               </a>
             )}

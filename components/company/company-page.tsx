@@ -589,8 +589,8 @@ export function CompanyPage({
       <div className="min-w-0">
           {section === "about" && (
             <div className="mt-5">
-              <div className="grid gap-6 lg:grid-cols-[minmax(0,0.72fr)_minmax(0,1.28fr)]">
-                <div className="space-y-6">
+              <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[minmax(0,0.72fr)_minmax(0,1.28fr)]">
+                <div className="min-w-0 space-y-6">
                   <CompanyAboutCard description={company.description} onSave={admin?.onUpdateCompany} />
                   <CompanyTagsCard tags={company.tags} onSave={admin?.onUpdateCompany} />
                 </div>
