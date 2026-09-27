@@ -135,7 +135,7 @@ export default function LoginPage() {
           <h1 id="login-heading" className="text-center text-3xl tracking-[-0.02em] text-foreground">
             {visitorLogin ? "Sign in to Visitors" : "Sign in"}
           </h1>
-          <p className="mt-2 text-center text-sm text-muted-foreground">{visitorLogin ? "Use Google to open your Visitors area." : "Choose your organization to continue."}</p>
+          {!visitorLogin && <p className="mt-2 text-center text-sm text-muted-foreground">Choose your organization to continue.</p>}
         </div>
 
         {!visitorLogin && <div className="mb-4 space-y-2">
@@ -192,7 +192,11 @@ export default function LoginPage() {
           </Link>
         </p>
 
-        <p className="mt-6 text-center text-[10px] leading-4 text-muted-foreground/60">
+        {visitorLogin ? (
+          <p className="mt-6 text-center text-xs text-muted-foreground">
+            By continuing, you agree to our <Link href="/terms" className="underline">Terms</Link> and <Link href="/privacy" className="underline">Privacy Policy</Link>.
+          </p>
+        ) : <p className="mt-6 text-center text-[10px] leading-4 text-muted-foreground/60">
           By continuing, you agree to VisualCNS’s{" "}
           <Link href="/terms" className="text-muted-foreground/75 underline underline-offset-4 transition-colors hover:text-foreground/80">
             Terms of Service
@@ -201,7 +205,7 @@ export default function LoginPage() {
           <Link href="/privacy" className="text-muted-foreground/75 underline underline-offset-4 transition-colors hover:text-foreground/80">
             Privacy Policy
           </Link>, and to receive periodic emails with updates.
-        </p>
+        </p>}
       </section>
     </main>
   )

@@ -44,16 +44,12 @@ export default function VisitorsDemoPage() {
           <Link href="/" aria-label="VisualHQ home" className="outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <BrandLockup logoSize={28} gapClassName="gap-1" />
           </Link>
-          <span className="text-sm text-muted-foreground">Visitor sign-in demo</span>
+          <span className="text-sm text-muted-foreground">Visitors</span>
         </header>
 
         <div className="grid gap-10 py-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-center lg:gap-16 lg:py-20">
           <section className="order-2 max-w-lg lg:order-1">
             <h1 className="text-4xl font-semibold leading-tight tracking-[-0.03em] sm:text-5xl">Visitor sign-in, without the paper book.</h1>
-            <p className="mt-5 max-w-md text-base leading-7 text-muted-foreground">
-              See how a guest checks in at reception. Your own account gives you a sign-in link and a live Visitors list.
-            </p>
-
             <div className="mt-10 border-t border-border pt-6">
               <Button
                 type="button"
@@ -65,8 +61,7 @@ export default function VisitorsDemoPage() {
                 Interested?
               </Button>
               {showAccountOptions && (
-                <div id="visitor-demo-account-options" className="mt-4 space-y-3">
-                  <p className="text-sm text-muted-foreground">Set up sign-in for your business.</p>
+                <div id="visitor-demo-account-options" className="mt-4">
                   <div className="flex flex-wrap gap-2">
                     <Button asChild><Link href={signUpHref}>Create account</Link></Button>
                     <Button asChild variant="outline"><Link href={signInHref}>Sign in</Link></Button>
@@ -79,7 +74,7 @@ export default function VisitorsDemoPage() {
           <section aria-label="Interactive reception demo" className="kiosk order-1 min-h-[29rem] rounded-2xl border border-border bg-card p-5 sm:p-8 lg:order-2">
             <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-5">
               <p className="font-semibold">Reception</p>
-              <p className="text-xs text-muted-foreground">Demo only · Nothing saved or emailed</p>
+              <p className="text-xs text-muted-foreground">Preview</p>
             </div>
 
             {screen === "home" && (
@@ -111,9 +106,9 @@ export default function VisitorsDemoPage() {
                   <div>
                     <Label htmlFor="demo-visitor-host" className="kiosk-label">Who are you here to see?</Label>
                     <select id="demo-visitor-host" value={host} onChange={(event) => setHost(event.target.value)} required className="kiosk-field mt-1.5 w-full rounded-md border border-input bg-background px-3 text-foreground">
-                      <option value="">Choose a sample host</option>
-                      <option value="Alex">Alex (sample host)</option>
-                      <option value="Jordan">Jordan (sample host)</option>
+                      <option value="">Choose a host</option>
+                      <option value="Alex">Alex</option>
+                      <option value="Jordan">Jordan</option>
                     </select>
                   </div>
                 </div>
@@ -125,7 +120,7 @@ export default function VisitorsDemoPage() {
               <div className="flex min-h-[22rem] flex-col items-center justify-center py-8 text-center sm:min-h-[25rem]">
                 <span className="flex size-14 items-center justify-center rounded-full bg-emerald-100 text-emerald-700"><Check className="size-7" aria-hidden="true" /></span>
                 <h2 className="kiosk-title mt-5">Welcome, {name.trim().split(/\s+/)[0]}</h2>
-                <p className="mt-2 max-w-sm text-muted-foreground">In a live setup, {host} would be notified. This demo sends nothing.</p>
+                <p className="mt-2 max-w-sm text-muted-foreground">You&apos;re checked in.</p>
                 <div className="mt-8 flex flex-wrap justify-center gap-2">
                   <Button type="button" onClick={() => { setCheckedIn(false); setScreen("signed-out") }}>Try sign-out</Button>
                   <Button type="button" variant="outline" onClick={startOver}>Start over</Button>
@@ -137,7 +132,6 @@ export default function VisitorsDemoPage() {
               <div className="flex min-h-[22rem] flex-col items-center justify-center py-8 text-center sm:min-h-[25rem]">
                 <span className="flex size-14 items-center justify-center rounded-full bg-emerald-100 text-emerald-700"><Check className="size-7" aria-hidden="true" /></span>
                 <h2 className="kiosk-title mt-5">You&apos;re signed out</h2>
-                <p className="mt-2 text-muted-foreground">That completes the reception flow.</p>
                 <Button type="button" onClick={startOver} className="mt-8">Start over</Button>
               </div>
             )}

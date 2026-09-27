@@ -143,15 +143,7 @@ export default function SignupPage() {
           </div>
         )}
 
-        {visitorSignup && (
-          <div className="my-5 flex items-center gap-4" aria-hidden="true">
-            <div className="h-px flex-1 bg-border" />
-            <span className="text-xs uppercase tracking-[0.14em] text-muted-foreground">or use email</span>
-            <div className="h-px flex-1 bg-border" />
-          </div>
-        )}
-
-        <form className="space-y-4" onSubmit={handleEmailSignup}>
+        {!visitorSignup && <form className="space-y-4" onSubmit={handleEmailSignup}>
           <div className="space-y-2">
             <Label htmlFor="name">Name</Label>
             <Input
@@ -212,7 +204,7 @@ export default function SignupPage() {
               "Create account"
             )}
           </Button>
-        </form>
+        </form>}
 
         {!visitorSignup && (
           <>
@@ -238,7 +230,11 @@ export default function SignupPage() {
           </Link>
         </p>
 
-        <p className="mt-6 text-center text-[10px] leading-4 text-muted-foreground/60">
+        {visitorSignup ? (
+          <p className="mt-6 text-center text-xs text-muted-foreground">
+            By continuing, you agree to our <Link href="/terms" className="underline">Terms</Link> and <Link href="/privacy" className="underline">Privacy Policy</Link>.
+          </p>
+        ) : <p className="mt-6 text-center text-[10px] leading-4 text-muted-foreground/60">
           By continuing, you agree to VisualCNS’s{" "}
           <Link href="/terms" className="text-muted-foreground/75 underline underline-offset-4 hover:text-foreground/80">
             Terms of Service
@@ -247,7 +243,7 @@ export default function SignupPage() {
           <Link href="/privacy" className="text-muted-foreground/75 underline underline-offset-4 hover:text-foreground/80">
           Privacy Policy
           </Link>, and to receive periodic emails with updates.
-        </p>
+        </p>}
       </section>
     </main>
   )
