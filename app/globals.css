@@ -322,6 +322,19 @@
     font-size: 1.125rem !important;
     background: var(--background) !important;
   }
+  .kiosk :is(.kiosk-input, [data-slot="select-trigger"].kiosk-select) {
+    display: flex;
+    height: 2.25rem !important;
+    width: 100%;
+    border: 0 !important;
+    padding: 0 !important;
+    font-size: 1.125rem !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    outline: none;
+    color: var(--foreground);
+  }
+  .kiosk .kiosk-input::placeholder { color: var(--muted-foreground); }
   @media print {
     .kiosk-badge {
       display: flex !important;

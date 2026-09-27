@@ -14,6 +14,8 @@ export interface Visitor {
   /** The client's name when they signed in, for lists that span every client. */
   companyName?: string
   name: string
+  /** The company the visitor is from, if they gave one. */
+  visitorCompany?: string
   email?: string
   phone?: string
   /** Who they came to see, as picked on the tablet. */

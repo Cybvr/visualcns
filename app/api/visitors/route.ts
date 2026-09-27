@@ -77,11 +77,11 @@ async function onSite(db: ReturnType<typeof adminServices>["db"], agencyId: stri
     .sort((a, b) => b.at - a.at)
 }
 
-async function emailHost(agencyId: string, to: string, companyName: string, visitor: { name: string; reason: string; phone: string; email: string }) {
+async function emailHost(agencyId: string, to: string, companyName: string, visitor: { name: string; visitorCompany: string; reason: string; phone: string; email: string }) {
   const apiKey = await getAgencySecret(agencyId, "RESEND_API_KEY", process.env.RESEND_API_KEY || "")
   const from = (await getAgencySecret(agencyId, "EMAIL_FROM", process.env.EMAIL_FROM || "")).trim().replace(/^(["'])(.*)\1$/, "$2")
   if (!apiKey || !from || !EMAIL_PATTERN.test(to)) return false
-  const details = [visitor.reason && `Reason: ${visitor.reason}`, visitor.phone && `Phone: ${visitor.phone}`, visitor.email && `Email: ${visitor.email}`].filter(Boolean)
+  const details = [visitor.visitorCompany && `From: ${visitor.visitorCompany}`, visitor.reason && `Reason: ${visitor.reason}`, visitor.phone && `Phone: ${visitor.phone}`, visitor.email && `Email: ${visitor.email}`].filter(Boolean)
   const subject = `${visitor.name} is here to see you`
   const body = `${visitor.name} just signed in at the ${companyName} front desk.${details.length ? `\n\n${details.join("\n")}` : ""}`
   const response = await fetch("https://api.resend.com/emails", {
@@ -117,6 +117,7 @@ type Body = {
   key?: string
   action?: string
   name?: string
+  visitorCompany?: string
   email?: string
   phone?: string
   hostId?: string
@@ -143,6 +144,7 @@ export async function POST(request: Request) {
     if (email && !EMAIL_PATTERN.test(email)) return json({ error: "That email doesn't look right." }, 400)
     const phone = text(body.phone, 40)
     const reason = text(body.reason, 160)
+    const visitorCompany = text(body.visitorCompany, 120)
 
     const hosts = await hostsFor(db, agencyId, orgId)
     const host = hosts.find((person) => person.id === body.hostId)
@@ -154,6 +156,7 @@ export async function POST(request: Request) {
       companyId: orgId,
       companyName: String(org.name || ""),
       name,
+      visitorCompany,
       email,
       phone,
       reason,
@@ -169,7 +172,7 @@ export async function POST(request: Request) {
 
     let hostNotified = false
     if (host?.email) {
-      hostNotified = await emailHost(agencyId, host.email, String(org.name || "your"), { name, reason, phone, email })
+      hostNotified = await emailHost(agencyId, host.email, String(org.name || "your"), { name, visitorCompany, reason, phone, email })
       if (hostNotified) await ref.set({ hostNotified: true }, { merge: true })
     }
 

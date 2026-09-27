@@ -56,7 +56,7 @@ export default function VisitorsPage() {
       if (filter === "on_site" && visitor.status !== "on_site") return false
       if (!words) return true
       const company = visitor.companyName || companyNames[visitor.companyId]?.name || ""
-      return [visitor.name, visitor.hostName, visitor.reason, company, visitor.phone, visitor.email].join(" ").toLowerCase().includes(words)
+      return [visitor.name, visitor.visitorCompany, visitor.hostName, visitor.reason, company, visitor.phone, visitor.email].join(" ").toLowerCase().includes(words)
     })
   }, [companyNames, filter, search, visitors])
 
@@ -139,10 +139,10 @@ export default function VisitorsPage() {
                         <Link href={`/dashboard/clients/${encodeURIComponent(company?.slug || visitor.companyId)}?tab=visitors`} className="hover:text-foreground hover:underline">
                           {companyName}
                         </Link>
-                        {(visitor.hostName || visitor.reason) && " · "}
+                        {(visitor.visitorCompany || visitor.hostName || visitor.reason) && " · "}
                       </>
                     )}
-                    {[visitor.hostName && `Visiting ${visitor.hostName}`, visitor.reason].filter(Boolean).join(" · ")}
+                    {[visitor.visitorCompany, visitor.hostName && `Visiting ${visitor.hostName}`, visitor.reason].filter(Boolean).join(" · ")}
                   </p>
                 </div>
                 <p className="shrink-0 text-right text-xs text-muted-foreground">

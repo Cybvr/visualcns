@@ -2,14 +2,12 @@
 
 import { useState, type FormEvent } from "react"
 import Link from "next/link"
-import { ArrowLeft, Check, LogIn, LogOut } from "lucide-react"
+import { ArrowRight, Building2, Check, FileText, LogOut, User, Users } from "lucide-react"
 
 import { BrandLockup } from "@/components/brand-lockup"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 
-type DemoScreen = "home" | "form" | "signed-in" | "signed-out"
+type DemoScreen = "form" | "signed-in" | "signed-out"
 
 const visitorsPath = "/dashboard/visitors"
 const signUpHref = `/signup?next=${encodeURIComponent(visitorsPath)}`
@@ -17,10 +15,12 @@ const signInHref = `/login?next=${encodeURIComponent(visitorsPath)}`
 
 /** A public preview. It never calls the visitor API or writes a visitor record. */
 export default function VisitorsDemoPage() {
-  const [screen, setScreen] = useState<DemoScreen>("home")
+  const [screen, setScreen] = useState<DemoScreen>("form")
   const [showAccountOptions, setShowAccountOptions] = useState(false)
   const [name, setName] = useState("")
+  const [visitorCompany, setVisitorCompany] = useState("")
   const [host, setHost] = useState("")
+  const [purpose, setPurpose] = useState("")
   const [checkedIn, setCheckedIn] = useState(false)
 
   function signIn(event: FormEvent<HTMLFormElement>) {
@@ -32,9 +32,11 @@ export default function VisitorsDemoPage() {
 
   function startOver() {
     setName("")
+    setVisitorCompany("")
     setHost("")
+    setPurpose("")
     setCheckedIn(false)
-    setScreen("home")
+    setScreen("form")
   }
 
   return (
@@ -77,42 +79,60 @@ export default function VisitorsDemoPage() {
               <p className="text-xs text-muted-foreground">Preview</p>
             </div>
 
-            {screen === "home" && (
-              <div className="flex min-h-[22rem] flex-col justify-center py-8 sm:min-h-[25rem]">
-                <h2 className="kiosk-title">Welcome</h2>
-                <p className="mt-2 text-muted-foreground">Please sign in so we know you&apos;re here.</p>
-                <div className="mt-8 grid gap-3">
-                  <Button type="button" onClick={() => setScreen("form")} className="kiosk-big h-16 rounded-2xl">
-                    <LogIn className="size-5" aria-hidden="true" /> Sign in
-                  </Button>
-                  <Button type="button" variant="outline" disabled={!checkedIn} onClick={() => { setCheckedIn(false); setScreen("signed-out") }} className="kiosk-big h-16 rounded-2xl">
-                    <LogOut className="size-5" aria-hidden="true" /> Sign out
-                  </Button>
-                </div>
-              </div>
-            )}
-
             {screen === "form" && (
-              <form onSubmit={signIn} className="flex min-h-[22rem] flex-col py-6 sm:min-h-[25rem]">
-                <button type="button" onClick={() => setScreen("home")} className="mb-6 inline-flex w-fit items-center gap-2 text-sm text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring">
-                  <ArrowLeft className="size-4" aria-hidden="true" /> Back
-                </button>
-                <h2 className="kiosk-title">Sign in</h2>
-                <div className="mt-6 space-y-4">
-                  <div>
-                    <Label htmlFor="demo-visitor-name" className="kiosk-label">Your name</Label>
-                    <Input id="demo-visitor-name" value={name} onChange={(event) => setName(event.target.value)} minLength={2} maxLength={100} required className="kiosk-field mt-1.5" />
+              <form onSubmit={signIn} className="flex flex-col py-6">
+                <p className="text-muted-foreground">Welcome to</p>
+                <h2 className="kiosk-title">ABC Company</h2>
+                <p className="mt-1 text-muted-foreground">Please sign in as a visitor</p>
+                <div className="mt-6 space-y-3">
+                  <div className="flex items-start gap-4 rounded-2xl border border-border bg-background px-4 py-3 focus-within:ring-2 focus-within:ring-ring">
+                    <User className="mt-3 size-6 shrink-0" aria-hidden="true" />
+                    <div className="min-w-0 flex-1">
+                      <label htmlFor="demo-visitor-name" className="kiosk-label block">Full name</label>
+                      <input id="demo-visitor-name" value={name} onChange={(event) => setName(event.target.value)} minLength={2} maxLength={100} required placeholder="Enter your full name" className="kiosk-input" />
+                    </div>
                   </div>
-                  <div>
-                    <Label htmlFor="demo-visitor-host" className="kiosk-label">Who are you here to see?</Label>
-                    <select id="demo-visitor-host" value={host} onChange={(event) => setHost(event.target.value)} required className="kiosk-field mt-1.5 w-full rounded-md border border-input bg-background px-3 text-foreground">
-                      <option value="">Choose a host</option>
-                      <option value="Alex">Alex</option>
-                      <option value="Jordan">Jordan</option>
-                    </select>
+                  <div className="flex items-start gap-4 rounded-2xl border border-border bg-background px-4 py-3 focus-within:ring-2 focus-within:ring-ring">
+                    <Building2 className="mt-3 size-6 shrink-0" aria-hidden="true" />
+                    <div className="min-w-0 flex-1">
+                      <label htmlFor="demo-visitor-company" className="kiosk-label block">Company (optional)</label>
+                      <input id="demo-visitor-company" value={visitorCompany} onChange={(event) => setVisitorCompany(event.target.value)} maxLength={120} placeholder="Enter your company name" className="kiosk-input" />
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-4 rounded-2xl border border-border bg-background px-4 py-3 focus-within:ring-2 focus-within:ring-ring">
+                    <Users className="mt-3 size-6 shrink-0" aria-hidden="true" />
+                    <div className="min-w-0 flex-1">
+                      <label htmlFor="demo-visitor-host" className="kiosk-label block">Person you are visiting</label>
+                      <select id="demo-visitor-host" value={host} onChange={(event) => setHost(event.target.value)} required className="kiosk-input">
+                        <option value="">Select a person</option>
+                        <option value="Alex">Alex</option>
+                        <option value="Jordan">Jordan</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-4 rounded-2xl border border-border bg-background px-4 py-3 focus-within:ring-2 focus-within:ring-ring">
+                    <FileText className="mt-3 size-6 shrink-0" aria-hidden="true" />
+                    <div className="min-w-0 flex-1">
+                      <label htmlFor="demo-visitor-purpose" className="kiosk-label block">Purpose of visit</label>
+                      <select id="demo-visitor-purpose" value={purpose} onChange={(event) => setPurpose(event.target.value)} className="kiosk-input">
+                        <option value="">Select purpose</option>
+                        <option>Meeting</option>
+                        <option>Interview</option>
+                        <option>Delivery</option>
+                        <option>Other</option>
+                      </select>
+                    </div>
                   </div>
                 </div>
-                <Button type="submit" className="kiosk-big mt-auto h-16 rounded-2xl">Sign in</Button>
+                <Button type="submit" className="kiosk-big mt-6 h-16 justify-between rounded-2xl px-6">
+                  <span className="flex-1 text-center">Sign in</span>
+                  <ArrowRight className="size-5" aria-hidden="true" />
+                </Button>
+                {checkedIn && (
+                  <button type="button" onClick={() => { setCheckedIn(false); setScreen("signed-out") }} className="mx-auto mt-5 inline-flex items-center gap-2 rounded-lg px-3 py-2 text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring">
+                    <LogOut className="size-4" aria-hidden="true" /> Leaving? Sign out
+                  </button>
+                )}
               </form>
             )}
 

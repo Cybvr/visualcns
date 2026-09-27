@@ -119,7 +119,7 @@ export function CompanyVisitors({ agencyId, companyId, slug }: { agencyId: strin
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-medium text-foreground">{visitor.name}</p>
                       <p className="truncate text-xs text-muted-foreground">
-                        {[visitor.hostName && `Visiting ${visitor.hostName}`, visitor.reason, `In at ${time(visitor.signedInAt)}`].filter(Boolean).join(" · ")}
+                        {[visitor.visitorCompany, visitor.hostName && `Visiting ${visitor.hostName}`, visitor.reason, `In at ${time(visitor.signedInAt)}`].filter(Boolean).join(" · ")}
                       </p>
                     </div>
                     <Button type="button" variant="outline" size="sm" onClick={() => void signOut(visitor)} disabled={busyId === visitor.id}>
@@ -143,7 +143,7 @@ export function CompanyVisitors({ agencyId, companyId, slug }: { agencyId: strin
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-medium text-foreground">{visitor.name}</p>
                       <p className="truncate text-xs text-muted-foreground">
-                        {[visitor.hostName && `Visited ${visitor.hostName}`, visitor.reason, visitor.phone || visitor.email].filter(Boolean).join(" · ") || "—"}
+                        {[visitor.visitorCompany, visitor.hostName && `Visited ${visitor.hostName}`, visitor.reason, visitor.phone || visitor.email].filter(Boolean).join(" · ") || "—"}
                       </p>
                     </div>
                     <p className="shrink-0 text-right text-xs text-muted-foreground">

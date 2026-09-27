@@ -1,12 +1,10 @@
 "use client"
 
-import { useCallback, useEffect, useRef, useState, type FormEvent } from "react"
+import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from "react"
 import { useParams, useSearchParams } from "next/navigation"
-import { ArrowLeft, Check, Loader2, LogIn, LogOut, Printer } from "lucide-react"
+import { ArrowLeft, ArrowRight, Building2, Check, FileText, Loader2, LogOut, Printer, User, Users } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 type KioskInfo = {
@@ -15,10 +13,11 @@ type KioskInfo = {
   onSite: { id: string; name: string }[]
 }
 type Badge = { name: string; hostName: string; company: string; logoUrl: string; signedInAt: number }
-type Screen = "home" | "sign-in" | "signed-in" | "sign-out" | "signed-out"
+type Screen = "sign-in" | "signed-in" | "sign-out" | "signed-out"
 
 const SOMEONE_ELSE = "__someone_else__"
-/** Back to the start screen after a finished sign-in or sign-out, ready for the next person. */
+const PURPOSES = ["Meeting", "Interview", "Delivery", "Collection", "Maintenance", "Personal", "Other"]
+/** Back to the sign-in form after a finished sign-in or sign-out, ready for the next person. */
 const RESET_AFTER_MS = 15000
 const STORED_KEY = "visitor-kiosk-key"
 
@@ -32,7 +31,7 @@ export default function VisitorSignInPage() {
   const [key, setKey] = useState("")
   const [info, setInfo] = useState<KioskInfo | null>(null)
   const [loadError, setLoadError] = useState("")
-  const [screen, setScreen] = useState<Screen>("home")
+  const [screen, setScreen] = useState<Screen>("sign-in")
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState("")
   const [badge, setBadge] = useState<Badge | null>(null)
@@ -40,8 +39,7 @@ export default function VisitorSignInPage() {
   const [signedOutName, setSignedOutName] = useState("")
 
   const [name, setName] = useState("")
-  const [email, setEmail] = useState("")
-  const [phone, setPhone] = useState("")
+  const [visitorCompany, setVisitorCompany] = useState("")
   const [hostId, setHostId] = useState("")
   const [hostName, setHostName] = useState("")
   const [reason, setReason] = useState("")
@@ -81,11 +79,10 @@ export default function VisitorSignInPage() {
 
   function goHome() {
     if (resetTimer.current) clearTimeout(resetTimer.current)
-    setScreen("home")
+    setScreen("sign-in")
     setError("")
     setName("")
-    setEmail("")
-    setPhone("")
+    setVisitorCompany("")
     setHostId("")
     setHostName("")
     setReason("")
@@ -124,8 +121,7 @@ export default function VisitorSignInPage() {
       const body = await post({
         action: "sign_in",
         name,
-        email,
-        phone,
+        visitorCompany,
         reason,
         hostId: hostId && hostId !== SOMEONE_ELSE ? hostId : "",
         hostName: hostId === SOMEONE_ELSE ? hostName : "",
@@ -157,14 +153,9 @@ export default function VisitorSignInPage() {
     }
   }
 
-  const header = info && (
-    <header className="flex items-center gap-3">
-      {info.company.logoUrl && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={info.company.logoUrl} alt="" className="size-12 rounded-xl object-cover" />
-      )}
-      <p className="kiosk-company truncate">{info.company.name}</p>
-    </header>
+  const header = info && info.company.logoUrl && (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={info.company.logoUrl} alt="" className="size-14 rounded-xl object-cover" />
   )
 
   return (
@@ -181,67 +172,49 @@ export default function VisitorSignInPage() {
         <div className="mx-auto flex w-full max-w-xl flex-1 flex-col">
           {header}
 
-          {screen === "home" && (
-            <div className="my-auto py-10">
-              <h1 className="kiosk-title">Welcome</h1>
-              <p className="mt-2 text-muted-foreground">Please sign in so we know you&apos;re here.</p>
-              <div className="mt-8 grid gap-3">
-                <button type="button" onClick={() => setScreen("sign-in")} className="kiosk-big flex items-center justify-center gap-3 rounded-2xl bg-primary px-6 py-6 text-primary-foreground outline-none transition-colors hover:bg-primary/90 focus-visible:ring-4 focus-visible:ring-ring">
-                  <LogIn className="size-6" aria-hidden="true" />
-                  Sign in
-                </button>
-                <button type="button" onClick={() => setScreen("sign-out")} disabled={!info.onSite.length} className="kiosk-big flex items-center justify-center gap-3 rounded-2xl border border-border bg-background px-6 py-6 outline-none transition-colors hover:bg-muted focus-visible:ring-4 focus-visible:ring-ring disabled:opacity-50">
-                  <LogOut className="size-6" aria-hidden="true" />
-                  Sign out
-                </button>
-              </div>
-            </div>
-          )}
-
           {screen === "sign-in" && (
             <form onSubmit={signIn} className="flex flex-1 flex-col py-6">
-              <button type="button" onClick={goHome} className="-ml-2 mb-4 inline-flex w-fit items-center gap-1.5 rounded-lg px-2 py-1 text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring">
-                <ArrowLeft className="size-4" aria-hidden="true" /> Back
-              </button>
-              <h1 className="kiosk-title">Sign in</h1>
-              <div className="mt-6 space-y-4 rounded-2xl border border-border bg-background p-5">
-                <div>
-                  <Label htmlFor="visitor-name" className="kiosk-label">Your name</Label>
-                  <Input id="visitor-name" value={name} onChange={(event) => setName(event.target.value)} autoComplete="name" autoFocus className="kiosk-field mt-1.5" />
-                </div>
-                <div>
-                  <Label htmlFor="visitor-host" className="kiosk-label">Who are you here to see?</Label>
+              <p className="text-muted-foreground">Welcome to</p>
+              <h1 className="kiosk-title">{info.company.name}</h1>
+              <p className="mt-1 text-muted-foreground">Please sign in as a visitor</p>
+              <div className="mt-8 space-y-3">
+                <KioskField icon={<User />} label="Full name" htmlFor="visitor-name">
+                  <input id="visitor-name" value={name} onChange={(event) => setName(event.target.value)} autoComplete="name" placeholder="Enter your full name" className="kiosk-input" />
+                </KioskField>
+                <KioskField icon={<Building2 />} label="Company (optional)" htmlFor="visitor-company">
+                  <input id="visitor-company" value={visitorCompany} onChange={(event) => setVisitorCompany(event.target.value)} autoComplete="organization" placeholder="Enter your company name" className="kiosk-input" />
+                </KioskField>
+                <KioskField icon={<Users />} label="Person you are visiting" htmlFor="visitor-host">
                   <Select value={hostId} onValueChange={setHostId}>
-                    <SelectTrigger id="visitor-host" className="kiosk-field mt-1.5 w-full"><SelectValue placeholder="Choose a person" /></SelectTrigger>
+                    <SelectTrigger id="visitor-host" className="kiosk-select"><SelectValue placeholder="Select a person" /></SelectTrigger>
                     <SelectContent>
                       {info.hosts.map((host) => <SelectItem key={host.id} value={host.id}>{host.name}</SelectItem>)}
                       <SelectItem value={SOMEONE_ELSE}>Someone else</SelectItem>
                     </SelectContent>
                   </Select>
                   {hostId === SOMEONE_ELSE && (
-                    <Input value={hostName} onChange={(event) => setHostName(event.target.value)} placeholder="Their name" aria-label="Who you're visiting" className="kiosk-field mt-2" />
+                    <input value={hostName} onChange={(event) => setHostName(event.target.value)} placeholder="Their name" aria-label="Who you're visiting" className="kiosk-input mt-1 border-t border-border pt-2" />
                   )}
-                </div>
-                <div>
-                  <Label htmlFor="visitor-reason" className="kiosk-label">Reason for visit (optional)</Label>
-                  <Input id="visitor-reason" value={reason} onChange={(event) => setReason(event.target.value)} placeholder="Meeting, delivery, interview…" className="kiosk-field mt-1.5" />
-                </div>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div>
-                    <Label htmlFor="visitor-phone" className="kiosk-label">Phone (optional)</Label>
-                    <Input id="visitor-phone" type="tel" value={phone} onChange={(event) => setPhone(event.target.value)} autoComplete="tel" className="kiosk-field mt-1.5" />
-                  </div>
-                  <div>
-                    <Label htmlFor="visitor-email" className="kiosk-label">Email (optional)</Label>
-                    <Input id="visitor-email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" className="kiosk-field mt-1.5" />
-                  </div>
-                </div>
+                </KioskField>
+                <KioskField icon={<FileText />} label="Purpose of visit" htmlFor="visitor-reason">
+                  <Select value={reason} onValueChange={setReason}>
+                    <SelectTrigger id="visitor-reason" className="kiosk-select"><SelectValue placeholder="Select purpose" /></SelectTrigger>
+                    <SelectContent>
+                      {PURPOSES.map((purpose) => <SelectItem key={purpose} value={purpose}>{purpose}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </KioskField>
               </div>
               {error && <p className="mt-3 text-destructive">{error}</p>}
-              <Button type="submit" disabled={busy} className="kiosk-big mt-auto h-16 w-full rounded-2xl bg-primary text-primary-foreground hover:bg-primary/90">
-                {busy && <Loader2 className="mr-2 size-5 animate-spin" aria-hidden="true" />}
-                Sign in
+              <Button type="submit" disabled={busy} className="kiosk-big mt-8 h-16 w-full justify-between rounded-2xl bg-primary px-6 text-primary-foreground hover:bg-primary/90">
+                <span className="flex-1 text-center">Sign in</span>
+                {busy ? <Loader2 className="size-5 animate-spin" aria-hidden="true" /> : <ArrowRight className="size-5" aria-hidden="true" />}
               </Button>
+              {info.onSite.length > 0 && (
+                <button type="button" onClick={() => { setError(""); setScreen("sign-out") }} className="mx-auto mt-6 inline-flex items-center gap-2 rounded-lg px-3 py-2 text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring">
+                  <LogOut className="size-4" aria-hidden="true" /> Leaving? Sign out
+                </button>
+              )}
             </form>
           )}
 
@@ -311,5 +284,17 @@ export default function VisitorSignInPage() {
       </div>
     )}
     </>
+  )
+}
+
+function KioskField({ icon, label, htmlFor, children }: { icon: ReactNode; label: string; htmlFor: string; children: ReactNode }) {
+  return (
+    <div className="flex items-start gap-4 rounded-2xl border border-border bg-background px-4 py-3 focus-within:ring-2 focus-within:ring-ring">
+      <span className="mt-3 text-foreground [&_svg]:size-6" aria-hidden="true">{icon}</span>
+      <div className="min-w-0 flex-1">
+        <label htmlFor={htmlFor} className="kiosk-label block">{label}</label>
+        {children}
+      </div>
+    </div>
   )
 }
