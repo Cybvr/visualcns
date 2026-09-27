@@ -11,13 +11,16 @@ import { BrandLockup } from "@/components/brand-lockup"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { safeReturnTo } from "@/lib/navigation"
 
 type SignupAction = "email" | "google" | null
 
 export default function SignupPage() {
   const router = useRouter()
-  const { user, loading, signUpWithEmail, signInWithGoogle } = useAuth()
+  const { user, appUser, loading, signUpWithEmail, signInWithGoogle } = useAuth()
   const [inviteToken, setInviteToken] = useState("")
+  const [returnTo, setReturnTo] = useState<string | null>(null)
+  const [queryReady, setQueryReady] = useState(false)
   const [name, setName] = useState("")
   const [agencyName, setAgencyName] = useState("")
   const [email, setEmail] = useState("")
@@ -26,15 +29,27 @@ export default function SignupPage() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    setInviteToken(new URLSearchParams(window.location.search).get("invite") || "")
+    const params = new URLSearchParams(window.location.search)
+    setInviteToken(params.get("invite") || "")
+    setReturnTo(safeReturnTo(params.get("next")))
+    setQueryReady(true)
   }, [])
 
   useEffect(() => {
-    if (!loading && user) router.replace(inviteToken ? `/invite/${inviteToken}` : "/dashboard")
-  }, [loading, user, router, inviteToken])
+    if (!queryReady || loading || action || !user) return
+    if (inviteToken) {
+      router.replace(`/invite/${inviteToken}`)
+      return
+    }
+    if (appUser?.role && appUser.agencyId) router.replace(returnTo || "/dashboard")
+  }, [queryReady, loading, action, user, appUser, router, inviteToken, returnTo])
 
   async function handleEmailSignup(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    if (!inviteToken && !agencyName.trim()) {
+      setError("Enter your business name to continue.")
+      return
+    }
     setAction("email")
     setError(null)
 
@@ -48,6 +63,10 @@ export default function SignupPage() {
   }
 
   async function handleGoogleSignup() {
+    if (!inviteToken && returnTo === "/dashboard/visitors" && !agencyName.trim()) {
+      setError("Enter your business name before continuing with Google.")
+      return
+    }
     setAction("google")
     setError(null)
 
@@ -64,6 +83,36 @@ export default function SignupPage() {
   }
 
   const busy = loading || action !== null
+  const visitorSignup = returnTo === "/dashboard/visitors"
+  const businessNameField = !inviteToken && (
+    <div className="space-y-2">
+      <Label htmlFor="agencyName">{visitorSignup ? "Business name" : "Agency name"}</Label>
+      <Input id="agencyName" name="agencyName" type="text" value={agencyName} onChange={(event) => setAgencyName(event.target.value)} placeholder={visitorSignup ? "Your business" : "Your agency"} className="h-10 rounded-none bg-background text-base md:text-sm" disabled={busy} maxLength={120} required />
+    </div>
+  )
+  const googleButton = (
+    <Button
+      type="button"
+      variant="outline"
+      size="lg"
+      className="h-10 w-full gap-3 border-input bg-background hover:bg-muted hover:text-foreground"
+      onClick={handleGoogleSignup}
+      disabled={busy}
+      aria-busy={action === "google"}
+    >
+      {action === "google" ? (
+        <>
+          <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+          Continuing…
+        </>
+      ) : (
+        <>
+          <GoogleIcon />
+          Continue with Google
+        </>
+      )}
+    </Button>
+  )
 
   return (
     <main className="flex min-h-svh items-center justify-center bg-muted/40 px-4 py-8">
@@ -83,9 +132,24 @@ export default function SignupPage() {
 
         <div className="mb-6 mt-7">
           <h1 id="signup-heading" className="text-center text-3xl tracking-[-0.02em] text-foreground">
-            Create your VisualHQ account
+            {visitorSignup ? "Set up visitor sign-in" : "Create your VisualHQ account"}
           </h1>
         </div>
+
+        {visitorSignup && (
+          <div className="space-y-4">
+            {businessNameField}
+            {googleButton}
+          </div>
+        )}
+
+        {visitorSignup && (
+          <div className="my-5 flex items-center gap-4" aria-hidden="true">
+            <div className="h-px flex-1 bg-border" />
+            <span className="text-xs uppercase tracking-[0.14em] text-muted-foreground">or use email</span>
+            <div className="h-px flex-1 bg-border" />
+          </div>
+        )}
 
         <form className="space-y-4" onSubmit={handleEmailSignup}>
           <div className="space-y-2">
@@ -120,12 +184,7 @@ export default function SignupPage() {
             />
           </div>
 
-          {!inviteToken && (
-            <div className="space-y-2">
-              <Label htmlFor="agencyName">Agency name</Label>
-              <Input id="agencyName" name="agencyName" type="text" value={agencyName} onChange={(event) => setAgencyName(event.target.value)} placeholder="Your agency" className="h-10 rounded-none bg-background text-base md:text-sm" disabled={busy} maxLength={120} required />
-            </div>
-          )}
+          {!visitorSignup && businessNameField}
 
           <div className="space-y-2">
             <Label htmlFor="password">Password</Label>
@@ -155,33 +214,16 @@ export default function SignupPage() {
           </Button>
         </form>
 
-        <div className="my-5 flex items-center gap-4" aria-hidden="true">
-          <div className="h-px flex-1 bg-border" />
-          <span className="text-xs uppercase tracking-[0.14em] text-muted-foreground">or</span>
-          <div className="h-px flex-1 bg-border" />
-        </div>
-
-        <Button
-          type="button"
-          variant="outline"
-          size="lg"
-          className="h-10 w-full gap-3 border-input bg-background hover:bg-muted hover:text-foreground"
-          onClick={handleGoogleSignup}
-          disabled={busy}
-          aria-busy={action === "google"}
-        >
-          {action === "google" ? (
-            <>
-              <Loader2 className="size-4 animate-spin" aria-hidden="true" />
-              Continuing…
-            </>
-          ) : (
-            <>
-              <GoogleIcon />
-              Continue with Google
-            </>
-          )}
-        </Button>
+        {!visitorSignup && (
+          <>
+            <div className="my-5 flex items-center gap-4" aria-hidden="true">
+              <div className="h-px flex-1 bg-border" />
+              <span className="text-xs uppercase tracking-[0.14em] text-muted-foreground">or</span>
+              <div className="h-px flex-1 bg-border" />
+            </div>
+            {googleButton}
+          </>
+        )}
 
         {error && (
           <p role="alert" className="mt-4 text-sm leading-5 text-destructive">
@@ -191,7 +233,7 @@ export default function SignupPage() {
 
         <p className="mt-5 text-center text-sm text-muted-foreground">
           Already have an account?{" "}
-          <Link href="/login" className="font-medium text-foreground underline underline-offset-4 hover:text-accent">
+          <Link href={returnTo ? `/login?next=${encodeURIComponent(returnTo)}` : "/login"} className="font-medium text-foreground underline underline-offset-4 hover:text-accent">
             Sign in
           </Link>
         </p>

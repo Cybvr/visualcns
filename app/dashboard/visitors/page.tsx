@@ -113,8 +113,13 @@ export default function VisitorsPage() {
           <p className="text-sm font-medium text-foreground">{visitors.length ? "No visitors match." : "No visitors yet"}</p>
           {!visitors.length && (
             <p className="mx-auto mt-1 max-w-sm text-sm text-muted-foreground">
-              Turn on front desk sign-in from a client&apos;s Visitors tab, then open the link on a tablet at their reception.
+              {agencyView ? "Set up a front desk link to start recording visits." : "Visits will appear here after someone signs in."}
             </p>
+          )}
+          {!visitors.length && agencyView && companyId && (
+            <Button asChild className="mt-5">
+              <Link href={`/dashboard/clients/${encodeURIComponent(companyId)}?tab=visitors`}>Set up sign-in</Link>
+            </Button>
           )}
         </div>
       ) : (

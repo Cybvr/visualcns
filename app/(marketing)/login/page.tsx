@@ -27,8 +27,20 @@ export default function LoginPage() {
   const [workspacesLoading, setWorkspacesLoading] = useState(true)
   const [action, setAction] = useState<AuthAction>(null)
   const [error, setError] = useState<string | null>(null)
+  const [signupHref, setSignupHref] = useState("/signup")
+  const [visitorLogin, setVisitorLogin] = useState(false)
 
   useEffect(() => {
+    const requested = safeReturnTo(new URLSearchParams(window.location.search).get("next"))
+    if (requested) setSignupHref(`/signup?next=${encodeURIComponent(requested)}`)
+    if (requested === "/dashboard/visitors") {
+      setVisitorLogin(true)
+      setWorkspacesLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (safeReturnTo(new URLSearchParams(window.location.search).get("next")) === "/dashboard/visitors") return
     let active = true
     fetch("/api/auth/workspaces", { cache: "no-store" })
       .then(async (response) => {
@@ -52,6 +64,7 @@ export default function LoginPage() {
       user &&
       appUser &&
       (!appUser.role || !appUser.agencyId || (
+        !visitorLogin &&
         appUser.role === "admin" &&
         appUser.agencyId === user.uid &&
         appUser.companyId === user.uid &&
@@ -80,17 +93,17 @@ export default function LoginPage() {
         if (active) router.replace("/")
       })
     return () => { active = false }
-  }, [loading, user, appUser, isAdmin, router, action])
+  }, [loading, user, appUser, isAdmin, router, action, visitorLogin])
 
   async function handleGoogleSignIn() {
-    if (!selectedWorkspace) {
+    if (!visitorLogin && !selectedWorkspace) {
       setError("Choose your organization first.")
       return
     }
     setAction("google")
     setError(null)
     try {
-      await signInWithGoogle("", false, selectedWorkspace)
+      await signInWithGoogle("", false, visitorLogin ? "" : selectedWorkspace)
     } catch (err) {
       const message = err instanceof Error ? err.message : "Sign-in failed. Please try again."
       // Popup closed by user isn't an error worth showing loudly
@@ -120,12 +133,12 @@ export default function LoginPage() {
 
         <div className="mb-6 mt-7">
           <h1 id="login-heading" className="text-center text-3xl tracking-[-0.02em] text-foreground">
-            Sign in
+            {visitorLogin ? "Sign in to Visitors" : "Sign in"}
           </h1>
-          <p className="mt-2 text-center text-sm text-muted-foreground">Choose your organization to continue.</p>
+          <p className="mt-2 text-center text-sm text-muted-foreground">{visitorLogin ? "Use Google to open your Visitors area." : "Choose your organization to continue."}</p>
         </div>
 
-        <div className="mb-4 space-y-2">
+        {!visitorLogin && <div className="mb-4 space-y-2">
           <label htmlFor="workspace" className="text-sm font-medium text-foreground">Organization</label>
           <select
             id="workspace"
@@ -136,7 +149,7 @@ export default function LoginPage() {
           >
             {workspaces.length === 0 ? <option value="">No organizations available</option> : workspaces.map((workspace) => <option key={workspace.id} value={workspace.id}>{workspace.name}</option>)}
           </select>
-        </div>
+        </div>}
 
         <Button
           type="button"
@@ -166,9 +179,15 @@ export default function LoginPage() {
           </p>
         )}
 
+        {visitorLogin && !loading && user && !appUser?.role && (
+          <p className="mt-4 text-sm text-muted-foreground">
+            No business set up yet. <Link href={signupHref} className="font-medium text-foreground underline underline-offset-4">Create an account</Link> to open Visitors.
+          </p>
+        )}
+
         <p className="mt-5 text-center text-sm text-muted-foreground">
           Don’t have an account?{" "}
-          <Link href="/signup" className="font-medium text-foreground underline underline-offset-4 hover:text-accent">
+          <Link href={signupHref} className="font-medium text-foreground underline underline-offset-4 hover:text-accent">
             Sign up
           </Link>
         </p>

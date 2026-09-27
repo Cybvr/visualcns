@@ -190,6 +190,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         agencyName,
         createWorkspace: true,
       })
+      if (doc?.role === "admin" || doc?.role === "superadmin") {
+        primeCurrentAgencyId(authenticatedUser.uid, doc.agencyId)
+        await ensureAdminBusinessOrganization({
+          id: doc.companyId || doc.uid,
+          name: doc.company || agencyName || doc.displayName || undefined,
+          email: doc.email || undefined,
+          logoUrl: doc.photoURL || undefined,
+        })
+      }
       setRealAppUser(doc)
       setAgencyStatus("trial")
     }
@@ -215,6 +224,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       agencyName: createWorkspace ? agencyName : undefined,
       createWorkspace,
     })
+    if (createWorkspace && (doc?.role === "admin" || doc?.role === "superadmin")) {
+      primeCurrentAgencyId(credential.user.uid, doc.agencyId)
+      await ensureAdminBusinessOrganization({
+        id: doc.companyId || doc.uid,
+        name: doc.company || agencyName || displayName || undefined,
+        email: doc.email || undefined,
+        logoUrl: doc.photoURL || undefined,
+      })
+    }
     setRealAppUser(doc)
     if (createWorkspace) setAgencyStatus("trial")
   }

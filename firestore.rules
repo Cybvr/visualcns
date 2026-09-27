@@ -24,6 +24,20 @@ service cloud.firestore {
         && request.resource.data.get('onboardingStatus', '') == 'pending-invite'
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['email', 'displayName', 'photoURL', 'updatedAt']);
     }
+    function pendingSelfClaim(uid) {
+      return signedIn() && request.auth.uid == uid
+        && resource.data.get('onboardingStatus', '') == 'pending-invite'
+        && resource.data.get('role', '') == ''
+        && resource.data.get('agencyId', '') == ''
+        && request.resource.data.role == 'admin'
+        && request.resource.data.agencyId == uid
+        && request.resource.data.companyId == uid
+        && request.resource.data.onboardingStatus == 'active'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'email', 'displayName', 'photoURL', 'updatedAt', 'role', 'agencyId',
+          'companyId', 'company', 'slug', 'onboardingStatus', 'welcomeEmailPending'
+        ]);
+    }
     function visibleProject(projectId) {
       return signedIn() && sameAgency(get(/databases/$(database)/documents/portalProjects/$(projectId)).data)
         && get(/databases/$(database)/documents/portalProjects/$(projectId)).data.companyId == companyId();
@@ -71,7 +85,7 @@ service cloud.firestore {
       allow update: if agencyAdmin(resource.data) || (signedIn() && request.auth.uid == uid
         && request.resource.data.role == resource.data.role
         && request.resource.data.agencyId == resource.data.get('agencyId', agencyId())
-        && request.resource.data.companyId == resource.data.get('companyId', uid)) || pendingSelfUpdate(uid);
+        && request.resource.data.companyId == resource.data.get('companyId', uid)) || pendingSelfUpdate(uid) || pendingSelfClaim(uid);
       allow delete: if agencyAdmin(resource.data);
     }
 
