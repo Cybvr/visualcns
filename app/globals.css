@@ -313,29 +313,118 @@
   .kiosk .kiosk-big { font-size: 1.25rem !important; font-weight: 600 !important; }
   .kiosk .kiosk-row { font-size: 1.25rem !important; font-weight: 500 !important; }
   .kiosk .kiosk-label { font-size: 0.9375rem !important; color: var(--muted-foreground) !important; font-weight: 500 !important; }
-  .kiosk :is(.kiosk-field, [data-slot="select-trigger"].kiosk-field) {
-    height: 3.5rem !important;
-    width: 100%;
-    border: 1px solid var(--border) !important;
-    border-radius: 0.875rem !important;
-    padding: 0 1rem !important;
-    font-size: 1.125rem !important;
-    background: var(--background) !important;
+
+  /* Sign-in form, sized to the front-desk mockup: 60px fields, 12px corners, pill button. */
+  /* Picture and greeting share one grid cell, so the block is as tall as the taller of the two. */
+  .kiosk .kiosk-hero { display: grid; grid-template-areas: "hero"; }
+  .kiosk .kiosk-hero > * { grid-area: hero; }
+  .kiosk .kiosk-hero-art {
+    justify-self: end;
+    width: 54%;
+    max-width: 17rem;
+    height: auto;
+    margin: -1.5rem -1.25rem 0 0;
+    -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 30%), linear-gradient(to bottom, #000 88%, transparent 100%);
+    -webkit-mask-composite: source-in;
+    mask-image: linear-gradient(to right, transparent 0%, #000 30%), linear-gradient(to bottom, #000 88%, transparent 100%);
+    mask-composite: intersect;
+  }
+  .kiosk .kiosk-welcome { font-size: 1.0625rem; line-height: 1.5rem; color: var(--muted-foreground); }
+  .kiosk .kiosk-company-name {
+    margin-top: 0.125rem;
+    font-family: inherit !important;
+    font-size: clamp(1.5rem, 7vw, 1.75rem);
+    line-height: 1.2;
+    font-weight: 700 !important;
+    letter-spacing: -0.02em;
+    color: var(--foreground);
+    overflow-wrap: anywhere;
+  }
+  .kiosk .kiosk-subtitle { margin-top: 0.5rem; font-size: 1rem; line-height: 1.5rem; color: var(--muted-foreground); }
+  .kiosk .kiosk-field-card {
+    display: flex;
+    align-items: center;
+    gap: 1.125rem;
+    min-height: 3.75rem;
+    padding: 0.5rem 1rem;
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    background: var(--background);
+    box-shadow: 0 1px 2px color-mix(in oklch, var(--foreground) 5%, transparent);
+    transition: border-color 150ms, box-shadow 150ms;
+  }
+  .kiosk .kiosk-field-card:focus-within {
+    border-color: color-mix(in oklch, var(--primary) 55%, var(--border));
+    box-shadow: 0 0 0 3px color-mix(in oklch, var(--primary) 14%, transparent);
+  }
+  .kiosk .kiosk-field-icon { display: flex; flex-shrink: 0; color: var(--foreground); }
+  .kiosk .kiosk-field-icon svg { width: 1.375rem; height: 1.375rem; stroke-width: 1.9; }
+  .kiosk .kiosk-field-label {
+    display: block;
+    font-size: 0.8125rem;
+    line-height: 1.125rem;
+    font-weight: 400;
+    color: color-mix(in oklch, var(--foreground) 72%, transparent);
   }
   .kiosk :is(.kiosk-input, [data-slot="select-trigger"].kiosk-select) {
     display: flex;
-    height: 2.25rem !important;
+    align-items: center;
+    height: 1.625rem !important;
     width: 100% !important;
     justify-content: space-between;
+    margin-top: 0.125rem;
     border: 0 !important;
+    border-radius: 0 !important;
     padding: 0 !important;
-    font-size: 1.125rem !important;
+    font-size: 1rem !important;
+    line-height: 1.5rem;
     background: transparent !important;
     box-shadow: none !important;
     outline: none;
     color: var(--foreground);
   }
-  .kiosk .kiosk-input::placeholder { color: var(--muted-foreground); }
+  .kiosk .kiosk-input::placeholder { color: color-mix(in oklch, var(--muted-foreground) 80%, transparent); }
+  .kiosk [data-slot="select-trigger"].kiosk-select[data-placeholder] { color: color-mix(in oklch, var(--muted-foreground) 80%, transparent); }
+  .kiosk [data-slot="select-trigger"].kiosk-select svg { width: 1.25rem !important; height: 1.25rem !important; opacity: 1 !important; color: var(--foreground) !important; }
+  .kiosk .kiosk-submit {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 3.25rem;
+    margin-top: 1.5rem;
+    border-radius: 9999px;
+    background: var(--primary);
+    color: var(--primary-foreground);
+    font-size: 1.0625rem;
+    font-weight: 500;
+    transition: background-color 150ms;
+    outline: none;
+  }
+  .kiosk .kiosk-submit:hover { background: color-mix(in oklch, var(--primary) 90%, black); }
+  .kiosk .kiosk-submit:focus-visible { box-shadow: 0 0 0 4px color-mix(in oklch, var(--primary) 25%, transparent); }
+  .kiosk .kiosk-submit:disabled { opacity: 0.7; }
+  .kiosk .kiosk-submit-arrow { position: absolute; right: 1.375rem; width: 1.375rem; height: 1.375rem; }
+  .kiosk .kiosk-tile {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.625rem;
+    width: 100%;
+    margin-top: 1rem;
+    padding: 1rem;
+    border-radius: 0.75rem;
+    background: color-mix(in oklch, var(--primary) 7%, var(--background));
+    color: var(--foreground);
+    font-size: 0.9375rem;
+    font-weight: 500;
+    outline: none;
+    transition: background-color 150ms;
+  }
+  .kiosk .kiosk-tile svg { width: 1.375rem; height: 1.375rem; color: var(--primary); }
+  .kiosk .kiosk-tile:hover { background: color-mix(in oklch, var(--primary) 12%, var(--background)); }
+  .kiosk .kiosk-tile:focus-visible { box-shadow: 0 0 0 3px color-mix(in oklch, var(--primary) 25%, transparent); }
   @media print {
     .kiosk-badge {
       display: flex !important;

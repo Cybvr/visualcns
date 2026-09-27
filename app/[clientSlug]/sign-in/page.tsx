@@ -1,9 +1,10 @@
 "use client"
 
-import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from "react"
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react"
 import { useParams, useSearchParams } from "next/navigation"
-import { ArrowLeft, ArrowRight, Building2, Check, CloudOff, FileText, Loader2, LogOut, Phone, Printer, User, Users } from "lucide-react"
+import { ArrowLeft, Building2, Check, CloudOff, FileText, Loader2, LogOut, Phone, Printer, User, Users } from "lucide-react"
 
+import { KioskField, KioskHero, KioskSubmit } from "@/components/visitors/kiosk-parts"
 import { PoweredBy } from "@/components/visitors/powered-by"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -242,7 +243,7 @@ export default function VisitorSignInPage() {
 
   const onSiteNow = info ? withQueued(info.onSite, pending) : []
 
-  const header = info && info.company.logoUrl && (
+  const header = screen !== "sign-in" && info && info.company.logoUrl && (
     // eslint-disable-next-line @next/next/no-img-element
     <img src={info.company.logoUrl} alt="" className="size-14 rounded-xl object-cover" />
   )
@@ -262,21 +263,19 @@ export default function VisitorSignInPage() {
           {header}
 
           {screen === "sign-in" && (
-            <form onSubmit={signIn} className="flex flex-1 flex-col py-6">
-              <p className="text-muted-foreground">Welcome to</p>
-              <h1 className="kiosk-title">{info.company.name}</h1>
-              <p className="mt-1 text-muted-foreground">Please sign in as a visitor</p>
-              <div className="mt-8 space-y-3">
-                <KioskField icon={<User />} label="Full name" htmlFor="visitor-name">
+            <form onSubmit={signIn} className="flex flex-1 flex-col pb-6">
+              <KioskHero companyName={info.company.name} logoUrl={info.company.logoUrl} />
+              <div className="mt-6 space-y-3.5">
+                <KioskField icon={<User />} label="Full Name" htmlFor="visitor-name">
                   <input id="visitor-name" value={name} onChange={(event) => setName(event.target.value)} autoComplete="name" placeholder="Enter your full name" className="kiosk-input" />
                 </KioskField>
-                <KioskField icon={<Building2 />} label="Company (optional)" htmlFor="visitor-company">
+                <KioskField icon={<Building2 />} label="Company (Optional)" htmlFor="visitor-company">
                   <input id="visitor-company" value={visitorCompany} onChange={(event) => setVisitorCompany(event.target.value)} autoComplete="organization" placeholder="Enter your company name" className="kiosk-input" />
                 </KioskField>
-                <KioskField icon={<Phone />} label="Phone (optional)" htmlFor="visitor-phone">
+                <KioskField icon={<Phone />} label="Phone (Optional)" htmlFor="visitor-phone">
                   <input id="visitor-phone" type="tel" inputMode="tel" value={phone} onChange={(event) => setPhone(event.target.value)} autoComplete="tel" placeholder="Enter your phone number" className="kiosk-input" />
                 </KioskField>
-                <KioskField icon={<Users />} label="Person you are visiting" htmlFor="visitor-host">
+                <KioskField icon={<Users />} label="Person You Are Visiting" htmlFor="visitor-host">
                   <Select value={hostId} onValueChange={setHostId}>
                     <SelectTrigger id="visitor-host" className="kiosk-select"><SelectValue placeholder="Select a person" /></SelectTrigger>
                     <SelectContent>
@@ -288,7 +287,7 @@ export default function VisitorSignInPage() {
                     <input value={hostName} onChange={(event) => setHostName(event.target.value)} placeholder="Their name" aria-label="Who you're visiting" className="kiosk-input mt-1 border-t border-border pt-2" />
                   )}
                 </KioskField>
-                <KioskField icon={<FileText />} label="Purpose of visit" htmlFor="visitor-reason">
+                <KioskField icon={<FileText />} label="Purpose of Visit" htmlFor="visitor-reason">
                   <Select value={reason} onValueChange={setReason}>
                     <SelectTrigger id="visitor-reason" className="kiosk-select"><SelectValue placeholder="Select purpose" /></SelectTrigger>
                     <SelectContent>
@@ -298,13 +297,10 @@ export default function VisitorSignInPage() {
                 </KioskField>
               </div>
               {error && <p className="mt-3 text-destructive">{error}</p>}
-              <Button type="submit" disabled={busy} className="kiosk-big mt-8 h-16 w-full justify-between rounded-2xl bg-primary px-6 text-primary-foreground hover:bg-primary/90">
-                <span className="flex-1 text-center">Sign in</span>
-                {busy ? <Loader2 className="size-5 animate-spin" aria-hidden="true" /> : <ArrowRight className="size-5" aria-hidden="true" />}
-              </Button>
+              <KioskSubmit busy={busy} />
               {onSiteNow.length > 0 && (
-                <button type="button" onClick={() => { setError(""); setScreen("sign-out") }} className="mx-auto mt-6 inline-flex items-center gap-2 rounded-lg px-3 py-2 text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring">
-                  <LogOut className="size-4" aria-hidden="true" /> Leaving? Sign out
+                <button type="button" onClick={() => { setError(""); setScreen("sign-out") }} className="kiosk-tile">
+                  <LogOut aria-hidden="true" /> Leaving? Sign out
                 </button>
               )}
             </form>
@@ -387,14 +383,3 @@ export default function VisitorSignInPage() {
   )
 }
 
-function KioskField({ icon, label, htmlFor, children }: { icon: ReactNode; label: string; htmlFor: string; children: ReactNode }) {
-  return (
-    <div className="flex items-start gap-4 rounded-2xl border border-border bg-background px-4 py-3 focus-within:ring-2 focus-within:ring-ring">
-      <span className="mt-3 text-foreground [&_svg]:size-6" aria-hidden="true">{icon}</span>
-      <div className="min-w-0 flex-1">
-        <label htmlFor={htmlFor} className="kiosk-label block">{label}</label>
-        {children}
-      </div>
-    </div>
-  )
-}

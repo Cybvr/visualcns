@@ -2,9 +2,11 @@
 
 import { useState, type FormEvent } from "react"
 import Link from "next/link"
-import { ArrowRight, Building2, Check, FileText, LogOut, Phone, User, Users } from "lucide-react"
+import { Building2, Check, FileText, LogOut, Phone, User, Users } from "lucide-react"
 
+import { KioskField, KioskHero, KioskSubmit } from "@/components/visitors/kiosk-parts"
 import { PoweredBy } from "@/components/visitors/powered-by"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
 
 type DemoScreen = "form" | "signed-in" | "signed-out"
@@ -21,10 +23,13 @@ export default function VisitorsDemoPage() {
   const [host, setHost] = useState("")
   const [purpose, setPurpose] = useState("")
   const [checkedIn, setCheckedIn] = useState(false)
+  const [error, setError] = useState("")
 
   function signIn(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (name.trim().length < 2 || !host) return
+    if (name.trim().length < 2) return setError("Please enter your name.")
+    if (!host) return setError("Please pick who you're visiting.")
+    setError("")
     setCheckedIn(true)
     setScreen("signed-in")
   }
@@ -35,6 +40,7 @@ export default function VisitorsDemoPage() {
     setPhone("")
     setHost("")
     setPurpose("")
+    setError("")
     setCheckedIn(false)
     setScreen("form")
   }
@@ -42,67 +48,44 @@ export default function VisitorsDemoPage() {
   return (
     <main className="min-h-svh bg-background px-4 py-5 text-foreground sm:px-8 sm:py-8">
       <div className="mx-auto max-w-xl">
-          <section aria-label="Interactive reception demo" className="kiosk rounded-2xl border border-border bg-card p-5 sm:p-8">
+          <section aria-label="Interactive reception demo" className="kiosk overflow-hidden rounded-2xl border border-border bg-card p-5 sm:p-8">
 
             {screen === "form" && (
-              <form onSubmit={signIn} className="flex flex-col py-6">
-                <p className="text-muted-foreground">Welcome to</p>
-                <h2 className="kiosk-title">ABC Company</h2>
-                <p className="mt-1 text-muted-foreground">Please sign in as a visitor</p>
-                <div className="mt-6 space-y-3">
-                  <div className="flex items-start gap-4 rounded-2xl border border-border bg-background px-4 py-3 focus-within:ring-2 focus-within:ring-ring">
-                    <User className="mt-3 size-6 shrink-0" aria-hidden="true" />
-                    <div className="min-w-0 flex-1">
-                      <label htmlFor="demo-visitor-name" className="kiosk-label block">Full name</label>
-                      <input id="demo-visitor-name" value={name} onChange={(event) => setName(event.target.value)} minLength={2} maxLength={100} required placeholder="Enter your full name" className="kiosk-input" />
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-4 rounded-2xl border border-border bg-background px-4 py-3 focus-within:ring-2 focus-within:ring-ring">
-                    <Building2 className="mt-3 size-6 shrink-0" aria-hidden="true" />
-                    <div className="min-w-0 flex-1">
-                      <label htmlFor="demo-visitor-company" className="kiosk-label block">Company (optional)</label>
-                      <input id="demo-visitor-company" value={visitorCompany} onChange={(event) => setVisitorCompany(event.target.value)} maxLength={120} placeholder="Enter your company name" className="kiosk-input" />
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-4 rounded-2xl border border-border bg-background px-4 py-3 focus-within:ring-2 focus-within:ring-ring">
-                    <Phone className="mt-3 size-6 shrink-0" aria-hidden="true" />
-                    <div className="min-w-0 flex-1">
-                      <label htmlFor="demo-visitor-phone" className="kiosk-label block">Phone (optional)</label>
-                      <input id="demo-visitor-phone" type="tel" inputMode="tel" value={phone} onChange={(event) => setPhone(event.target.value)} maxLength={40} placeholder="Enter your phone number" className="kiosk-input" />
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-4 rounded-2xl border border-border bg-background px-4 py-3 focus-within:ring-2 focus-within:ring-ring">
-                    <Users className="mt-3 size-6 shrink-0" aria-hidden="true" />
-                    <div className="min-w-0 flex-1">
-                      <label htmlFor="demo-visitor-host" className="kiosk-label block">Person you are visiting</label>
-                      <select id="demo-visitor-host" value={host} onChange={(event) => setHost(event.target.value)} required className="kiosk-input">
-                        <option value="">Select a person</option>
-                        <option value="Alex">Alex</option>
-                        <option value="Jordan">Jordan</option>
-                      </select>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-4 rounded-2xl border border-border bg-background px-4 py-3 focus-within:ring-2 focus-within:ring-ring">
-                    <FileText className="mt-3 size-6 shrink-0" aria-hidden="true" />
-                    <div className="min-w-0 flex-1">
-                      <label htmlFor="demo-visitor-purpose" className="kiosk-label block">Purpose of visit</label>
-                      <select id="demo-visitor-purpose" value={purpose} onChange={(event) => setPurpose(event.target.value)} className="kiosk-input">
-                        <option value="">Select purpose</option>
-                        <option>Meeting</option>
-                        <option>Interview</option>
-                        <option>Delivery</option>
-                        <option>Other</option>
-                      </select>
-                    </div>
-                  </div>
+              <form onSubmit={signIn} className="flex flex-col pb-2">
+                <KioskHero companyName="ABC Company" />
+                <div className="mt-6 space-y-3.5">
+                  <KioskField icon={<User />} label="Full Name" htmlFor="demo-visitor-name">
+                    <input id="demo-visitor-name" value={name} onChange={(event) => setName(event.target.value)} minLength={2} maxLength={100} required placeholder="Enter your full name" className="kiosk-input" />
+                  </KioskField>
+                  <KioskField icon={<Building2 />} label="Company (Optional)" htmlFor="demo-visitor-company">
+                    <input id="demo-visitor-company" value={visitorCompany} onChange={(event) => setVisitorCompany(event.target.value)} maxLength={120} placeholder="Enter your company name" className="kiosk-input" />
+                  </KioskField>
+                  <KioskField icon={<Phone />} label="Phone (Optional)" htmlFor="demo-visitor-phone">
+                    <input id="demo-visitor-phone" type="tel" inputMode="tel" value={phone} onChange={(event) => setPhone(event.target.value)} maxLength={40} placeholder="Enter your phone number" className="kiosk-input" />
+                  </KioskField>
+                  <KioskField icon={<Users />} label="Person You Are Visiting" htmlFor="demo-visitor-host">
+                    <Select value={host} onValueChange={setHost}>
+                      <SelectTrigger id="demo-visitor-host" className="kiosk-select"><SelectValue placeholder="Select a person" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Alex">Alex</SelectItem>
+                        <SelectItem value="Jordan">Jordan</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </KioskField>
+                  <KioskField icon={<FileText />} label="Purpose of Visit" htmlFor="demo-visitor-purpose">
+                    <Select value={purpose} onValueChange={setPurpose}>
+                      <SelectTrigger id="demo-visitor-purpose" className="kiosk-select"><SelectValue placeholder="Select purpose" /></SelectTrigger>
+                      <SelectContent>
+                        {["Meeting", "Interview", "Delivery", "Other"].map((item) => <SelectItem key={item} value={item}>{item}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </KioskField>
                 </div>
-                <Button type="submit" className="kiosk-big mt-6 h-16 justify-between rounded-2xl px-6">
-                  <span className="flex-1 text-center">Sign in</span>
-                  <ArrowRight className="size-5" aria-hidden="true" />
-                </Button>
+                {error && <p className="mt-3 text-sm text-destructive">{error}</p>}
+                <KioskSubmit />
                 {checkedIn && (
-                  <button type="button" onClick={() => { setCheckedIn(false); setScreen("signed-out") }} className="mx-auto mt-5 inline-flex items-center gap-2 rounded-lg px-3 py-2 text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring">
-                    <LogOut className="size-4" aria-hidden="true" /> Leaving? Sign out
+                  <button type="button" onClick={() => { setCheckedIn(false); setScreen("signed-out") }} className="kiosk-tile">
+                    <LogOut aria-hidden="true" /> Leaving? Sign out
                   </button>
                 )}
               </form>
