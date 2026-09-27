@@ -1,6 +1,6 @@
 // VisualCNS service worker. Bump CACHE when the offline shell changes so old
 // caches are cleared on the next activation.
-const CACHE = "visualcns-v2"
+const CACHE = "visualcns-v3"
 const OFFLINE_URL = "/offline"
 const PRECACHE = [OFFLINE_URL, "/icon.svg", "/apple-icon.png"]
 
@@ -25,6 +25,25 @@ self.addEventListener("fetch", (event) => {
   const { request } = event
   if (request.method !== "GET") return
 
+  // The front-desk visitor tablet: keep the last good copy so it still opens
+  // when the internet drops. Stored without ?key= so one copy serves every visit.
+  const url = new URL(request.url)
+  if (request.mode === "navigate" && /^\/[^/]+\/sign-in\/?$/.test(url.pathname)) {
+    const cacheKey = url.origin + url.pathname
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          if (response.ok) {
+            const copy = response.clone()
+            caches.open(CACHE).then((cache) => cache.put(cacheKey, copy))
+          }
+          return response
+        })
+        .catch(() => caches.match(cacheKey).then((cached) => cached || caches.match(OFFLINE_URL))),
+    )
+    return
+  }
+
   // Page navigations: try the network, fall back to the cached offline page so
   // the app opens something instead of the browser error when offline.
   if (request.mode === "navigate") {
@@ -33,7 +52,6 @@ self.addEventListener("fetch", (event) => {
   }
 
   // Static same-origin assets: serve from cache first, then fill the cache.
-  const url = new URL(request.url)
   if (url.origin === self.location.origin && /\.(?:css|js|svg|png|jpg|jpeg|webp|woff2?)$/.test(url.pathname)) {
     event.respondWith(
       caches.match(request).then(

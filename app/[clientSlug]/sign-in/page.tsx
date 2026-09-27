@@ -2,17 +2,13 @@
 
 import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from "react"
 import { useParams, useSearchParams } from "next/navigation"
-import { ArrowLeft, ArrowRight, Building2, Check, FileText, Loader2, LogOut, Printer, User, Users } from "lucide-react"
+import { ArrowLeft, ArrowRight, Building2, Check, CloudOff, FileText, Loader2, LogOut, Phone, Printer, User, Users } from "lucide-react"
 
 import { PoweredBy } from "@/components/visitors/powered-by"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { enqueue, newClientId, OfflineError, queued, savedInfo, saveInfo, saveQueue, withQueued, type KioskInfo, type QueuedAction } from "@/lib/kiosk-offline"
 
-type KioskInfo = {
-  company: { name: string; logoUrl: string }
-  hosts: { id: string; name: string }[]
-  onSite: { id: string; name: string }[]
-}
 type Badge = { name: string; hostName: string; company: string; logoUrl: string; signedInAt: number }
 type Screen = "sign-in" | "signed-in" | "sign-out" | "signed-out"
 
@@ -21,10 +17,13 @@ const PURPOSES = ["Meeting", "Interview", "Delivery", "Collection", "Maintenance
 /** Back to the sign-in form after a finished sign-in or sign-out, ready for the next person. */
 const RESET_AFTER_MS = 15000
 const STORED_KEY = "visitor-kiosk-key"
+/** How often to retry sending saved sign-ins while offline. */
+const RETRY_EVERY_MS = 30000
 
 /**
  * The front-desk tablet. Opened once from the link on the company's Visitors
  * tab; the key in that link is remembered so a reload keeps working.
+ * Keeps signing people in and out when the internet drops (see kiosk-offline).
  */
 export default function VisitorSignInPage() {
   const { clientSlug = "" } = useParams<{ clientSlug: string }>()
@@ -38,9 +37,13 @@ export default function VisitorSignInPage() {
   const [badge, setBadge] = useState<Badge | null>(null)
   const [hostNotified, setHostNotified] = useState(false)
   const [signedOutName, setSignedOutName] = useState("")
+  const [pending, setPending] = useState<QueuedAction[]>([])
+  const [offline, setOffline] = useState(false)
+  const flushing = useRef(false)
 
   const [name, setName] = useState("")
   const [visitorCompany, setVisitorCompany] = useState("")
+  const [phone, setPhone] = useState("")
   const [hostId, setHostId] = useState("")
   const [hostName, setHostName] = useState("")
   const [reason, setReason] = useState("")
@@ -63,20 +66,86 @@ export default function VisitorSignInPage() {
       setLoadError("This sign-in link is missing its code. Open it again from the Visitors tab.")
       return
     }
+    let response: Response
     try {
-      const response = await fetch(`/api/visitors?slug=${encodeURIComponent(clientSlug)}&key=${encodeURIComponent(key)}`, { cache: "no-store" })
-      const body = await response.json().catch(() => ({}))
-      if (!response.ok) throw new Error(body.error || "Couldn't load the sign-in screen.")
-      setInfo(body as KioskInfo)
-      setLoadError("")
-    } catch (reason) {
-      setLoadError(reason instanceof Error ? reason.message : "Couldn't load the sign-in screen.")
+      response = await fetch(`/api/visitors?slug=${encodeURIComponent(clientSlug)}&key=${encodeURIComponent(key)}`, { cache: "no-store" })
+    } catch {
+      // No internet: carry on with what the tablet saw last time.
+      const saved = savedInfo(clientSlug)
+      setOffline(true)
+      if (saved) {
+        setInfo(saved)
+        setLoadError("")
+      } else {
+        setLoadError("No internet connection. Connect the tablet once to set up sign-in.")
+      }
+      return
     }
+    const body = await response.json().catch(() => ({}))
+    if (!response.ok) {
+      setLoadError(body.error || "Couldn't load the sign-in screen.")
+      return
+    }
+    saveInfo(clientSlug, body as KioskInfo)
+    setInfo(body as KioskInfo)
+    setOffline(false)
+    setLoadError("")
   }, [clientSlug, key])
 
+  const send = useCallback(async (payload: Record<string, unknown>) => {
+    let response: Response
+    try {
+      response = await fetch("/api/visitors", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ slug: clientSlug, key, ...payload }),
+      })
+    } catch {
+      throw new OfflineError("offline")
+    }
+    const body = await response.json().catch(() => ({}))
+    // A server hiccup is worth retrying; a refusal (bad key, bad data) isn't.
+    if (response.status >= 500) throw new OfflineError(body.error || "server")
+    if (!response.ok) throw new Error(body.error || "Something went wrong. Please try again.")
+    return body
+  }, [clientSlug, key])
+
+  /** Sends saved sign-ins and sign-outs, oldest first, and stops at the first that can't get through. */
+  const flush = useCallback(async () => {
+    if (!key || flushing.current) return
+    let queue = queued(clientSlug)
+    if (!queue.length) return setPending([])
+    flushing.current = true
+    try {
+      while (queue.length) {
+        try {
+          await send(queue[0])
+        } catch (reason) {
+          if (reason instanceof OfflineError) break
+          // Refused for good (e.g. the visit no longer exists): drop it so it doesn't block the rest.
+        }
+        queue = queue.slice(1)
+        saveQueue(clientSlug, queue)
+      }
+    } finally {
+      flushing.current = false
+      setPending(queue)
+    }
+    if (!queue.length) await load()
+  }, [clientSlug, key, send, load])
+
   useEffect(() => {
-    if (key) void load()
-  }, [key, load])
+    if (!key) return
+    setPending(queued(clientSlug))
+    void load().then(flush)
+    const retry = () => void flush()
+    const timer = setInterval(retry, RETRY_EVERY_MS)
+    window.addEventListener("online", retry)
+    return () => {
+      clearInterval(timer)
+      window.removeEventListener("online", retry)
+    }
+  }, [key, clientSlug, load, flush])
 
   function goHome() {
     if (resetTimer.current) clearTimeout(resetTimer.current)
@@ -84,12 +153,13 @@ export default function VisitorSignInPage() {
     setError("")
     setName("")
     setVisitorCompany("")
+    setPhone("")
     setHostId("")
     setHostName("")
     setReason("")
     setBadge(null)
     setSignedOutName("")
-    void load()
+    void load().then(flush)
   }
 
   function resetSoon() {
@@ -101,37 +171,42 @@ export default function VisitorSignInPage() {
     if (resetTimer.current) clearTimeout(resetTimer.current)
   }, [])
 
-  async function post(payload: Record<string, unknown>) {
-    const response = await fetch("/api/visitors", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ slug: clientSlug, key, ...payload }),
-    })
-    const body = await response.json().catch(() => ({}))
-    if (!response.ok) throw new Error(body.error || "Something went wrong. Please try again.")
-    return body
-  }
-
   async function signIn(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (busy) return
     if (name.trim().length < 2) return setError("Please enter your name.")
     setBusy(true)
     setError("")
+    const visit: QueuedAction = {
+      action: "sign_in",
+      clientId: newClientId(),
+      at: Date.now(),
+      name: name.trim(),
+      visitorCompany,
+      phone,
+      reason,
+      hostId: hostId && hostId !== SOMEONE_ELSE ? hostId : "",
+      hostName: hostId === SOMEONE_ELSE ? hostName : "",
+    }
     try {
-      const body = await post({
-        action: "sign_in",
-        name,
-        visitorCompany,
-        reason,
-        hostId: hostId && hostId !== SOMEONE_ELSE ? hostId : "",
-        hostName: hostId === SOMEONE_ELSE ? hostName : "",
-      })
+      const body = await send(visit)
       setBadge(body.badge as Badge)
       setHostNotified(Boolean(body.hostNotified))
+      setOffline(false)
       setScreen("signed-in")
       resetSoon()
     } catch (reason) {
+      if (reason instanceof OfflineError && info) {
+        enqueue(clientSlug, visit)
+        setPending(queued(clientSlug))
+        setOffline(true)
+        const host = info.hosts.find((person) => person.id === visit.hostId)
+        setBadge({ name: visit.name, hostName: host?.name || visit.hostName.trim(), company: info.company.name, logoUrl: info.company.logoUrl, signedInAt: visit.at })
+        setHostNotified(false)
+        setScreen("signed-in")
+        resetSoon()
+        return
+      }
       setError(reason instanceof Error ? reason.message : "Something went wrong. Please try again.")
     } finally {
       setBusy(false)
@@ -142,17 +217,30 @@ export default function VisitorSignInPage() {
     if (busy) return
     setBusy(true)
     setError("")
+    const visit: QueuedAction = { action: "sign_out", visitorId, at: Date.now() }
     try {
-      const body = await post({ action: "sign_out", visitorId })
+      const body = await send(visit)
       setSignedOutName(String(body.name || ""))
+      setOffline(false)
       setScreen("signed-out")
       resetSoon()
     } catch (reason) {
+      if (reason instanceof OfflineError) {
+        enqueue(clientSlug, visit)
+        setPending(queued(clientSlug))
+        setOffline(true)
+        setSignedOutName(onSiteNow.find((visitor) => visitor.id === visitorId)?.name || "")
+        setScreen("signed-out")
+        resetSoon()
+        return
+      }
       setError(reason instanceof Error ? reason.message : "Something went wrong. Please try again.")
     } finally {
       setBusy(false)
     }
   }
+
+  const onSiteNow = info ? withQueued(info.onSite, pending) : []
 
   const header = info && info.company.logoUrl && (
     // eslint-disable-next-line @next/next/no-img-element
@@ -185,6 +273,9 @@ export default function VisitorSignInPage() {
                 <KioskField icon={<Building2 />} label="Company (optional)" htmlFor="visitor-company">
                   <input id="visitor-company" value={visitorCompany} onChange={(event) => setVisitorCompany(event.target.value)} autoComplete="organization" placeholder="Enter your company name" className="kiosk-input" />
                 </KioskField>
+                <KioskField icon={<Phone />} label="Phone (optional)" htmlFor="visitor-phone">
+                  <input id="visitor-phone" type="tel" inputMode="tel" value={phone} onChange={(event) => setPhone(event.target.value)} autoComplete="tel" placeholder="Enter your phone number" className="kiosk-input" />
+                </KioskField>
                 <KioskField icon={<Users />} label="Person you are visiting" htmlFor="visitor-host">
                   <Select value={hostId} onValueChange={setHostId}>
                     <SelectTrigger id="visitor-host" className="kiosk-select"><SelectValue placeholder="Select a person" /></SelectTrigger>
@@ -211,7 +302,7 @@ export default function VisitorSignInPage() {
                 <span className="flex-1 text-center">Sign in</span>
                 {busy ? <Loader2 className="size-5 animate-spin" aria-hidden="true" /> : <ArrowRight className="size-5" aria-hidden="true" />}
               </Button>
-              {info.onSite.length > 0 && (
+              {onSiteNow.length > 0 && (
                 <button type="button" onClick={() => { setError(""); setScreen("sign-out") }} className="mx-auto mt-6 inline-flex items-center gap-2 rounded-lg px-3 py-2 text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring">
                   <LogOut className="size-4" aria-hidden="true" /> Leaving? Sign out
                 </button>
@@ -244,7 +335,7 @@ export default function VisitorSignInPage() {
               </button>
               <h1 className="kiosk-title">Tap your name</h1>
               <ul className="mt-6 divide-y divide-border overflow-hidden rounded-2xl border border-border bg-background">
-                {info.onSite.map((visitor) => (
+                {onSiteNow.map((visitor) => (
                   <li key={visitor.id}>
                     <button type="button" onClick={() => void signOut(visitor.id)} disabled={busy} className="kiosk-row flex w-full items-center justify-between gap-3 px-5 py-5 text-left outline-none transition-colors hover:bg-muted focus-visible:bg-muted disabled:opacity-60">
                       <span className="min-w-0 truncate">{visitor.name}</span>
@@ -252,7 +343,7 @@ export default function VisitorSignInPage() {
                     </button>
                   </li>
                 ))}
-                {!info.onSite.length && <li className="px-5 py-5 text-muted-foreground">Nobody is signed in right now.</li>}
+                {!onSiteNow.length && <li className="px-5 py-5 text-muted-foreground">Nobody is signed in right now.</li>}
               </ul>
               {error && <p className="mt-3 text-destructive">{error}</p>}
             </div>
@@ -269,6 +360,13 @@ export default function VisitorSignInPage() {
             </div>
           )}
         </div>
+      )}
+      {info && (offline || pending.length > 0) && (
+        <p className="mx-auto mt-6 flex items-center gap-2 text-sm text-muted-foreground" role="status">
+          <CloudOff className="size-4" aria-hidden="true" />
+          {offline ? "Offline. Sign-ins are saved on this tablet" : "Sending saved sign-ins"}
+          {pending.length > 0 && ` · ${pending.length} to send`}
+        </p>
       )}
       <PoweredBy />
     </main>

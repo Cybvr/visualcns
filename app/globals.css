@@ -325,7 +325,8 @@
   .kiosk :is(.kiosk-input, [data-slot="select-trigger"].kiosk-select) {
     display: flex;
     height: 2.25rem !important;
-    width: 100%;
+    width: 100% !important;
+    justify-content: space-between;
     border: 0 !important;
     padding: 0 !important;
     font-size: 1.125rem !important;
