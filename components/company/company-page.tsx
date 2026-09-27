@@ -11,6 +11,8 @@ import { CompanyDocumentView } from "@/components/dashboard/company-document-vie
 import { CompanyEmptyState } from "@/components/company/empty-state"
 import { CompanyLinks } from "@/components/company/company-links"
 import { CompanyMedia } from "@/components/company/company-media"
+import { CompanyVisitors } from "@/components/company/company-visitors"
+import { useAuth } from "@/components/auth-provider"
 import { BusinessHealth } from "@/components/company/business-health"
 import { CompanyDetails, type CompanyDetailsPatch } from "@/components/company/company-sidebar"
 import { CompanyProfileHeader } from "@/components/company/company-profile-header"
@@ -68,6 +70,7 @@ const SECTIONS = [
   { key: "media", label: "Media" },
   { key: "brand-health", label: "Business Health" },
   { key: "documents", label: "Documents" },
+  { key: "visitors", label: "Visitors" },
 ] as const
 
 type SectionKey = (typeof SECTIONS)[number]["key"]
@@ -253,8 +256,14 @@ export function CompanyPage({
   const searchParams = useSearchParams()
   const isAdmin = Boolean(admin)
 
+  // Visitors are private: the agency and the company's own signed-in staff only.
+  const { appUser } = useAuth()
+  const canSeeVisitors = isAdmin || (Boolean(appUser?.companyId) && appUser?.companyId === company.id)
+  const visitorAgencyId = company.agencyId || appUser?.agencyId || ""
+  const sections = useMemo(() => SECTIONS.filter((item) => item.key !== "visitors" || canSeeVisitors), [canSeeVisitors])
+
   const tabParam = searchParams.get("tab")
-  const section: SectionKey = SECTIONS.some((s) => s.key === tabParam) ? (tabParam as SectionKey) : "projects"
+  const section: SectionKey = sections.some((s) => s.key === tabParam) ? (tabParam as SectionKey) : "projects"
 
   const [docKind, docId] = (searchParams.get("doc") ?? "").split(":")
   const selectedDocument = useMemo(() => {
@@ -583,7 +592,7 @@ export function CompanyPage({
           setMediaAddOpen(true)
           handleSectionChange("media")
         } : undefined}
-        tabs={<SectionNav sections={SECTIONS} active={section} onChange={handleSectionChange} />}
+        tabs={<SectionNav sections={sections} active={section} onChange={handleSectionChange} />}
       />
 
       <div className="min-w-0">
@@ -837,6 +846,10 @@ export function CompanyPage({
               openAdd={mediaAddOpen}
               onOpenAddChange={setMediaAddOpen}
             /></div>
+          )}
+
+          {section === "visitors" && canSeeVisitors && (
+            <CompanyVisitors agencyId={visitorAgencyId} companyId={company.id} slug={company.slug || company.id} />
           )}
 
           {section === "brand-health" && (

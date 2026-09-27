@@ -296,6 +296,49 @@
     font-size: inherit !important;
     line-height: inherit !important;
   }
+  /* Front-desk visitor sign-in tablet: big type and big touch targets. */
+  .kiosk {
+    font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+    font-size: 1.125rem;
+    line-height: 1.625rem;
+  }
+  .kiosk .kiosk-title {
+    font-family: inherit !important;
+    font-size: 2rem;
+    line-height: 2.5rem;
+    font-weight: 700 !important;
+    letter-spacing: -0.02em;
+  }
+  .kiosk .kiosk-company { font-size: 1.25rem !important; font-weight: 600 !important; }
+  .kiosk .kiosk-big { font-size: 1.25rem !important; font-weight: 600 !important; }
+  .kiosk .kiosk-row { font-size: 1.25rem !important; font-weight: 500 !important; }
+  .kiosk .kiosk-label { font-size: 0.9375rem !important; color: var(--muted-foreground) !important; font-weight: 500 !important; }
+  .kiosk :is(.kiosk-field, [data-slot="select-trigger"].kiosk-field) {
+    height: 3.5rem !important;
+    width: 100%;
+    border: 1px solid var(--border) !important;
+    border-radius: 0.875rem !important;
+    padding: 0 1rem !important;
+    font-size: 1.125rem !important;
+    background: var(--background) !important;
+  }
+  @media print {
+    .kiosk-badge {
+      display: flex !important;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.25rem;
+      width: 3.5in;
+      padding: 0.25in;
+      border: 1px solid #000;
+      color: #000;
+      font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+    }
+    .kiosk-badge-logo { width: 0.6in; height: 0.6in; object-fit: contain; }
+    .kiosk-badge-label { font-size: 10pt; font-weight: 700; letter-spacing: 0.2em; }
+    .kiosk-badge-name { font-size: 22pt; font-weight: 700; line-height: 1.1; }
+    .kiosk-badge-line { font-size: 11pt; }
+  }
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-eb-garamond), ui-serif, Georgia, serif;
     font-weight: 400 !important;

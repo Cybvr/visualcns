@@ -83,6 +83,22 @@ service cloud.firestore {
       allow update: if agencyAdmin(resource.data) && sameAgency(request.resource.data);
       allow delete: if agencyAdmin(resource.data);
     }
+    // Front-desk visitors. Created only by /api/visitors; the agency and the
+    // client's own staff can read them and sign someone out.
+    match /visitors/{id} {
+      allow read: if agencyAdmin(resource.data) || owns(resource.data);
+      allow update: if (agencyAdmin(resource.data) || owns(resource.data))
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'signedOutAt', 'updatedAt'])
+        && request.resource.data.status == 'signed_out';
+      allow delete: if agencyAdmin(resource.data);
+    }
+    // The tablet link for each company, keyed by companyId.
+    match /visitorKiosks/{companyId} {
+      allow read: if agencyAdmin(resource.data) || owns(resource.data);
+      allow create, update: if (isAdmin() && (isSuperAdmin() || sameAgency(request.resource.data)))
+        || (owns(request.resource.data) && request.resource.data.companyId == companyId);
+      allow delete: if agencyAdmin(resource.data);
+    }
     match /tasks/{id} {
       allow read: if agencyAdmin(resource.data)
         || resource.data.get('isPublic', false) == true
