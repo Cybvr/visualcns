@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNod
 import { useParams, useSearchParams } from "next/navigation"
 import { ArrowLeft, ArrowRight, Building2, Check, FileText, Loader2, LogOut, Printer, User, Users } from "lucide-react"
 
+import { PoweredBy } from "@/components/visitors/powered-by"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
@@ -269,6 +270,7 @@ export default function VisitorSignInPage() {
           )}
         </div>
       )}
+      <PoweredBy />
     </main>
     {badge && (
       <div className="kiosk-badge hidden">

@@ -4,7 +4,7 @@ import { useState, type FormEvent } from "react"
 import Link from "next/link"
 import { ArrowRight, Building2, Check, FileText, LogOut, User, Users } from "lucide-react"
 
-import { BrandLockup } from "@/components/brand-lockup"
+import { PoweredBy } from "@/components/visitors/powered-by"
 import { Button } from "@/components/ui/button"
 
 type DemoScreen = "form" | "signed-in" | "signed-out"
@@ -42,14 +42,8 @@ export default function VisitorsDemoPage() {
   return (
     <main className="min-h-svh bg-background px-4 py-5 text-foreground sm:px-8 sm:py-8">
       <div className="mx-auto max-w-6xl">
-        <header className="flex items-center justify-between gap-4 border-b border-border pb-5">
-          <Link href="/" aria-label="VisualHQ home" className="outline-none focus-visible:ring-2 focus-visible:ring-ring">
-            <BrandLockup logoSize={28} gapClassName="gap-1" />
-          </Link>
-          <span className="text-sm text-muted-foreground">Visitors</span>
-        </header>
 
-        <div className="grid gap-10 py-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-center lg:gap-16 lg:py-20">
+        <div className="grid gap-10 py-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-center lg:gap-16 lg:py-20">
           <section className="order-2 max-w-lg lg:order-1">
             <h1 className="text-4xl font-semibold leading-tight tracking-[-0.03em] sm:text-5xl">Visitor sign-in, without the paper book.</h1>
             <div className="mt-10 border-t border-border pt-6">
@@ -74,10 +68,6 @@ export default function VisitorsDemoPage() {
           </section>
 
           <section aria-label="Interactive reception demo" className="kiosk order-1 min-h-[29rem] rounded-2xl border border-border bg-card p-5 sm:p-8 lg:order-2">
-            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-5">
-              <p className="font-semibold">Reception</p>
-              <p className="text-xs text-muted-foreground">Preview</p>
-            </div>
 
             {screen === "form" && (
               <form onSubmit={signIn} className="flex flex-col py-6">
@@ -155,6 +145,7 @@ export default function VisitorsDemoPage() {
                 <Button type="button" onClick={startOver} className="mt-8">Start over</Button>
               </div>
             )}
+            <PoweredBy />
           </section>
         </div>
       </div>
