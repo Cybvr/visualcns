@@ -14,18 +14,24 @@ export function CompanyVisitors({ agencyId, companyId, slug }: { agencyId: strin
   const [visitors, setVisitors] = useState<Visitor[] | null>(null)
   const [kiosk, setKiosk] = useState<VisitorKiosk | null>(null)
   const [error, setError] = useState("")
+  const [retryCount, setRetryCount] = useState(0)
   const [busyId, setBusyId] = useState("")
   const [kioskBusy, setKioskBusy] = useState(false)
 
   useEffect(() => {
     if (!agencyId || !companyId) return
-    const stopVisitors = watchVisitors(agencyId, companyId, setVisitors, () => setError("Couldn't load visitors."))
+    const stopVisitors = watchVisitors(
+      agencyId,
+      companyId,
+      (rows) => { setVisitors(rows); setError("") },
+      (reason) => { console.error("Visitor list subscription failed", reason); setError("Visitor list unavailable.") },
+    )
     const stopKiosk = watchKiosk(companyId, setKiosk, () => undefined)
     return () => {
       stopVisitors()
       stopKiosk()
     }
-  }, [agencyId, companyId])
+  }, [agencyId, companyId, retryCount])
 
   const onSite = useMemo(() => (visitors ?? []).filter((visitor) => visitor.status === "on_site"), [visitors])
   const past = useMemo(() => (visitors ?? []).filter((visitor) => visitor.status !== "on_site"), [visitors])
@@ -71,7 +77,7 @@ export function CompanyVisitors({ agencyId, companyId, slug }: { agencyId: strin
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
             <Label htmlFor="kiosk-toggle" className="text-sm font-semibold text-foreground">Front desk sign-in</Label>
-            <p className="mt-1 text-sm text-muted-foreground">Open this link on a tablet at reception. Visitors sign in there, and the person they came to see gets an email.</p>
+            <p className="mt-1 text-sm text-muted-foreground">Use this link at reception. Hosts get an email when visitors sign in.</p>
           </div>
           <Switch id="kiosk-toggle" checked={Boolean(kiosk?.enabled)} onCheckedChange={(checked) => void toggleKiosk(checked)} disabled={kioskBusy} />
         </div>
@@ -93,9 +99,14 @@ export function CompanyVisitors({ agencyId, companyId, slug }: { agencyId: strin
         )}
       </section>
 
-      {error && <p className="text-sm text-destructive">{error}</p>}
-
-      {visitors === null && !error ? (
+      {error ? (
+        <div role="alert" className="flex flex-wrap items-center gap-3 text-sm">
+          <p className="text-destructive">{error}</p>
+          <Button type="button" variant="outline" size="sm" onClick={() => { setError(""); setVisitors(null); setRetryCount((count) => count + 1) }}>
+            Try again
+          </Button>
+        </div>
+      ) : visitors === null ? (
         <Loader2 className="size-5 animate-spin text-muted-foreground" aria-label="Loading visitors" />
       ) : (
         <>

@@ -25,6 +25,7 @@ export default function VisitorsPage() {
 
   const [visitors, setVisitors] = useState<Visitor[] | null>(null)
   const [error, setError] = useState(false)
+  const [retryCount, setRetryCount] = useState(0)
   const [companyNames, setCompanyNames] = useState<Record<string, { name: string; slug?: string }>>({})
   const [filter, setFilter] = useState<"all" | "on_site">("all")
   const [search, setSearch] = useState("")
@@ -33,11 +34,12 @@ export default function VisitorsPage() {
   useEffect(() => {
     if (authLoading || !agencyId) return
     if (!agencyView && !companyId) return
-    const fail = () => setError(true)
+    const receive = (rows: Visitor[]) => { setVisitors(rows); setError(false) }
+    const fail = (reason: Error) => { console.error("Visitor list subscription failed", reason); setError(true) }
     return agencyView
-      ? watchAgencyVisitors(agencyId, setVisitors, fail)
-      : watchVisitors(agencyId, companyId, setVisitors, fail)
-  }, [agencyId, agencyView, authLoading, companyId])
+      ? watchAgencyVisitors(agencyId, receive, fail)
+      : watchVisitors(agencyId, companyId, receive, fail)
+  }, [agencyId, agencyView, authLoading, companyId, retryCount])
 
   // Older visits were saved without the company's name.
   useEffect(() => {
@@ -98,7 +100,12 @@ export default function VisitorsPage() {
       </div>
 
       {error ? (
-        <p className="mt-10 text-sm text-destructive">Couldn&rsquo;t load visitors right now.</p>
+        <div role="alert" className="mt-10 flex flex-wrap items-center gap-3 text-sm">
+          <p className="text-destructive">Visitor list unavailable.</p>
+          <Button type="button" variant="outline" size="sm" onClick={() => { setError(false); setVisitors(null); setRetryCount((count) => count + 1) }}>
+            Try again
+          </Button>
+        </div>
       ) : visitors === null ? (
         <DashboardPageSkeleton rows={6} />
       ) : rows.length === 0 ? (
