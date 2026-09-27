@@ -76,7 +76,7 @@ export default function VisitorsDemoPage() {
 
         {screen === "sign-in" && (
           <form onSubmit={signIn} className="flex flex-col">
-            <div className="mt-5 space-y-3.5">
+            <div className="mt-4 space-y-2.5 sm:mt-5 sm:space-y-3.5">
               <KioskField icon={<User />} label="Full Name" htmlFor="demo-visitor-name">
                 <input id="demo-visitor-name" value={name} onChange={(event) => setName(event.target.value)} maxLength={100} autoComplete="name" placeholder="Enter your full name" className="kiosk-input" />
               </KioskField>
@@ -109,7 +109,7 @@ export default function VisitorsDemoPage() {
         )}
 
         {screen === "sign-out" && (
-          <div className="pt-5">
+          <div className="pt-4">
             <KioskNameList visitors={onSite} onSignOut={signOut} />
           </div>
         )}
@@ -122,7 +122,7 @@ export default function VisitorsDemoPage() {
           <Confirmation title={`Thanks for visiting${lastName ? `, ${lastName.split(" ")[0]}` : ""}`} text="You're signed out. Have a good day." onDone={done} />
         )}
 
-        <div className="mt-auto pb-2 pt-8">
+        <div className="mt-auto pt-3">
           <PoweredBy>
             <span aria-hidden="true">·</span>
             <Link href={signUpHref} className="underline underline-offset-2 hover:text-foreground">Interested?</Link>

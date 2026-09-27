@@ -329,16 +329,16 @@
   .kiosk .kiosk-hero-art {
     align-self: start;
     justify-self: end;
-    width: calc(52% + var(--kiosk-pad-x, 1rem));
-    max-width: 19rem;
+    width: calc(46% + var(--kiosk-pad-x, 1rem));
+    max-width: 16rem;
     height: auto;
     margin: calc(-1 * var(--kiosk-pad-y, 1rem)) calc(-1 * var(--kiosk-pad-x, 1rem)) 0 0;
-    -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 45%), linear-gradient(to bottom, #000 80%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 45%), linear-gradient(to bottom, #000 85%, transparent 100%);
     -webkit-mask-composite: source-in;
-    mask-image: linear-gradient(to right, transparent 0%, #000 45%), linear-gradient(to bottom, #000 80%, transparent 100%);
+    mask-image: linear-gradient(to right, transparent 0%, #000 45%), linear-gradient(to bottom, #000 85%, transparent 100%);
     mask-composite: intersect;
   }
-  @media (min-width: 640px) { .kiosk .kiosk-hero-art { max-width: 22rem; } }
+  @media (min-width: 640px) { .kiosk .kiosk-hero-art { max-width: 20rem; } }
   .kiosk .kiosk-welcome { font-size: 1.0625rem; line-height: 1.5rem; color: var(--muted-foreground); }
   .kiosk .kiosk-company-name {
     margin-top: 0.125rem;
@@ -524,6 +524,16 @@
   }
   .kiosk .kiosk-mini-quiet { background: transparent; color: var(--muted-foreground); min-width: 0; padding: 0 0.75rem; }
   .kiosk .kiosk-mini:focus-visible { box-shadow: 0 0 0 3px color-mix(in oklch, var(--primary) 25%, transparent); }
+  /* On phones everything, banner to footer, fits one screen without scrolling. */
+  @media (max-width: 639px) {
+    .kiosk .kiosk-field-card { min-height: 3.375rem; padding-top: 0.3125rem; padding-bottom: 0.3125rem; }
+    .kiosk .kiosk-field-label { font-size: 0.75rem; line-height: 1rem; }
+    .kiosk :is(.kiosk-input, [data-slot="select-trigger"].kiosk-select) { height: 1.5rem !important; margin-top: 0; }
+    .kiosk .kiosk-tabs { margin-top: 0.25rem; }
+    .kiosk .kiosk-tab { height: 2.5rem; }
+    .kiosk .kiosk-submit { height: 3rem; margin-top: 1rem; }
+    .kiosk .kiosk-name-row { min-height: 3.5rem; padding-top: 0.5rem; padding-bottom: 0.5rem; }
+  }
   @media print {
     .kiosk-badge {
       display: flex !important;

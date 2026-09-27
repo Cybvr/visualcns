@@ -17,7 +17,7 @@ export function KioskHero({ companyName, logoUrl }: { companyName: string; logoU
   return (
     <header className="kiosk-hero relative">
       <ReceptionIllustration initials={initialsOf(companyName || "Welcome")} className="kiosk-hero-art" />
-      <div className="relative max-w-[60%] py-8 sm:py-12">
+      <div className="relative max-w-[60%] py-4 sm:py-10">
         {logoUrl && (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={logoUrl} alt="" className="mb-4 size-12 rounded-xl object-cover" />

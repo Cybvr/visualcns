@@ -5,7 +5,7 @@
  */
 export function ReceptionIllustration({ initials, className }: { initials: string; className?: string }) {
   return (
-    <svg viewBox="0 0 240 210" className={className} aria-hidden="true">
+    <svg viewBox="0 0 240 188" className={className} aria-hidden="true">
       {/* Back wall and ceiling */}
       <rect x="0" y="0" width="240" height="176" fill="var(--primary)" opacity="0.06" />
       <rect x="0" y="0" width="240" height="10" fill="var(--primary)" opacity="0.08" />

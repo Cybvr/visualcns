@@ -270,8 +270,8 @@ export default function VisitorSignInPage() {
           )}
 
           {screen === "sign-in" && (
-            <form onSubmit={signIn} className="flex flex-1 flex-col pb-6">
-              <div className="mt-5 space-y-3.5">
+            <form onSubmit={signIn} className="flex flex-col pb-2">
+              <div className="mt-4 space-y-2.5 sm:mt-5 sm:space-y-3.5">
                 <KioskField icon={<User />} label="Full Name" htmlFor="visitor-name">
                   <input id="visitor-name" value={name} onChange={(event) => setName(event.target.value)} autoComplete="name" placeholder="Enter your full name" className="kiosk-input" />
                 </KioskField>
@@ -326,7 +326,7 @@ export default function VisitorSignInPage() {
           )}
 
           {screen === "sign-out" && (
-            <div className="flex-1 pb-6 pt-5">
+            <div className="flex-1 pb-4 pt-4">
               <KioskNameList visitors={onSiteNow} onSignOut={(id) => void signOut(id)} busy={busy} />
               {error && <p className="mt-3 text-destructive">{error}</p>}
             </div>
