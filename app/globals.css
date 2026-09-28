@@ -723,9 +723,10 @@
   }
 
   .surface-caption {
+    font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif !important;
     color: var(--muted-foreground) !important;
-    font-size: 0.6875rem !important;
-    line-height: 1rem !important;
+    font-size: 11px !important;
+    line-height: 16px !important;
     font-weight: 500 !important;
   }
 
