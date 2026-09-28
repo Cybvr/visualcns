@@ -44,6 +44,13 @@ async function uniqueSlug(db: FirebaseFirestore.Firestore, name: string, orgId: 
   return `${base}-${orgId.slice(0, 6).toLowerCase()}`
 }
 
+function signupNotice(company: { name: string; slug: string }, person: { name: string; email: string }) {
+  const subject = `New Visitor Sign-in sign-up: ${company.name}`
+  const text = `${person.name || person.email} (${person.email}) just signed up ${company.name} for Visitor Sign-in. Their front desk is on and the free trial has started.\n\nIt's tagged "${SOURCE}" on the company page. If it looks like junk, delete the company.`
+  const url = `${SITE_ORIGIN}/${encodeURIComponent(company.slug)}?tab=visitors`
+  return { subject, text, url }
+}
+
 /** Emails the agency's admins about the new sign-up. Never blocks the sign-up itself. */
 async function notifyAdmins(db: FirebaseFirestore.Firestore, agencyId: string, company: { name: string; slug: string }, person: { name: string; email: string }) {
   const apiKey = await getAgencySecret(agencyId, "RESEND_API_KEY", process.env.RESEND_API_KEY || "")
@@ -53,9 +60,7 @@ async function notifyAdmins(db: FirebaseFirestore.Firestore, agencyId: string, c
   const to = [...new Set(admins.docs.map((item) => String(item.data().email || "").trim().toLowerCase()).filter(Boolean))]
   if (!to.length) return
 
-  const subject = `New Visitor Sign-in sign-up: ${company.name}`
-  const text = `${person.name || person.email} (${person.email}) just signed up ${company.name} for Visitor Sign-in. Their front desk is on and the free trial has started.\n\nIt's tagged "${SOURCE}" on the company page. If it looks like junk, delete the company.`
-  const url = `${SITE_ORIGIN}/${encodeURIComponent(company.slug)}?tab=visitors`
+  const { subject, text, url } = signupNotice(company, person)
   const html = brandedEmail(`<p>${escapeHtml(text).replace(/\n\n/g, "</p><p>")}</p>`, subject, { name: "VisualCNS" }, from, { text: "Open the company", url })
   await fetch("https://api.resend.com/emails", {
     method: "POST",
@@ -125,6 +130,17 @@ export async function POST(request: NextRequest) {
     updatedAt: FieldValue.serverTimestamp(),
     ...(existing.createdAt ? {} : { createdAt: FieldValue.serverTimestamp() }),
   }, { merge: true })
+  const notice = signupNotice({ name: companyName, slug }, { name: personName, email })
+  batch.set(db.collection("agencies").doc(agencyId).collection("emailInboxEvents").doc(`visitor_${orgRef.id}`), {
+    agencyId,
+    companyId: orgRef.id,
+    kind: "visitor-signup",
+    from: email,
+    to: ["VisualCNS team"],
+    subject: notice.subject,
+    text: `${notice.text}\n\nOpen the company: ${notice.url}`,
+    createdAt: now,
+  })
   // Front desk on from the start, so the sign-in link is ready when they land.
   batch.set(db.collection("visitorKiosks").doc(orgRef.id), {
     agencyId,

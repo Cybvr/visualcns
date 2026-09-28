@@ -487,9 +487,10 @@ export default function EmailPage() {
         headers: { Authorization: `Bearer ${idToken}` },
         cache: "no-store",
       })
-      const result = (await response.json()) as { data?: ReceivedMessage[]; error?: string }
+      const result = (await response.json()) as { data?: ReceivedMessage[]; error?: string; warning?: string }
       if (!response.ok) throw new Error(result.error || "Received messages could not be loaded.")
       setReceivedMessages(Array.isArray(result.data) ? result.data : [])
+      if (result.warning) setReceivedError(result.warning)
       setSelectedReceivedId((current) => current && result.data?.some((message) => message.id === current) ? current : null)
     } catch (error) {
       setReceivedError(error instanceof Error ? error.message : "Received messages could not be loaded.")

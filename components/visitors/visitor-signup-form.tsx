@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, type FormEvent } from "react"
+import { useEffect, useState, type FormEvent } from "react"
 import { Loader2 } from "lucide-react"
 
 import { useAuth } from "@/components/auth-provider"
@@ -12,6 +12,8 @@ import { Label } from "@/components/ui/label"
 export function visitorsTab(slug: string) {
   return `/${encodeURIComponent(slug)}?tab=visitors`
 }
+
+const VISITOR_SIGNUP_DRAFT_KEY = "visualcns:visitor-signup-draft"
 
 /**
  * Visitor Sign-in sign-up: company name, then email or Google. The person becomes a
@@ -25,8 +27,30 @@ export function VisitorSignupForm() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [emailAccountCreated, setEmailAccountCreated] = useState(false)
+  const [draftReady, setDraftReady] = useState(false)
   const [action, setAction] = useState<"email" | "google" | null>(null)
   const [error, setError] = useState("")
+
+  useEffect(() => {
+    try {
+      const draft = JSON.parse(localStorage.getItem(VISITOR_SIGNUP_DRAFT_KEY) || "null") as { companyName?: unknown; name?: unknown; email?: unknown } | null
+      if (typeof draft?.companyName === "string") setCompanyName(draft.companyName.slice(0, 120))
+      if (typeof draft?.name === "string") setName(draft.name.slice(0, 100))
+      if (typeof draft?.email === "string") setEmail(draft.email.slice(0, 254))
+    } catch {
+      // Private browsing can deny storage; the form still works without it.
+    }
+    setDraftReady(true)
+  }, [])
+
+  useEffect(() => {
+    if (!draftReady) return
+    try {
+      localStorage.setItem(VISITOR_SIGNUP_DRAFT_KEY, JSON.stringify({ companyName, name, email }))
+    } catch {
+      // Saving a draft is optional and must never block sign-up.
+    }
+  }, [draftReady, companyName, name, email])
 
   function hasCompanyName() {
     if (!companyName.trim()) {
@@ -38,6 +62,7 @@ export function VisitorSignupForm() {
 
   async function finishSignup() {
     const slug = await joinVisitorCompany(companyName.trim())
+    try { localStorage.removeItem(VISITOR_SIGNUP_DRAFT_KEY) } catch {}
     // A full page load picks up the new client account.
     window.location.assign(visitorsTab(slug))
   }
@@ -117,6 +142,7 @@ export function VisitorSignupForm() {
         {action === "google" ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <GoogleIcon />}
         {action === "google" ? "Setting up…" : "Continue with Google"}
       </Button>
+      <p className="text-xs text-muted-foreground">Company, name, and email are saved in this browser until sign-up is complete. Your password is never saved here.</p>
       {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
     </form>
   )

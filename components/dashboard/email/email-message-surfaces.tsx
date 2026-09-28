@@ -102,7 +102,7 @@ export function EmailMessageSurfaces({
           {receivedLoading && receivedMessages.length === 0 ? (
             <div className="space-y-2 p-3" role="status" aria-label="Loading inbox">{Array.from({ length: 5 }, (_, index) => <div key={index} className="flex items-center gap-3 rounded-sm bg-card p-3"><Skeleton className="size-9 rounded-full" /><div className="min-w-0 flex-1 space-y-2"><Skeleton className="h-4 w-2/3" /><Skeleton className="h-3 w-1/2" /></div><Skeleton className="h-3 w-14" /></div>)}</div>
           ) : receivedMessages.length === 0 ? (
-            <div className="px-4 py-10 text-center"><Inbox className="mx-auto size-5 text-muted-foreground" aria-hidden="true" /><p className="mt-3 text-sm font-medium">No received messages</p><p className="mt-1 text-xs leading-5 text-muted-foreground">Messages sent to your Resend receiving address will appear here.</p></div>
+            <div className="px-4 py-10 text-center"><Inbox className="mx-auto size-5 text-muted-foreground" aria-hidden="true" /><p className="mt-3 text-sm font-medium">No received messages</p><p className="mt-1 text-xs leading-5 text-muted-foreground">Visitor sign-ups and messages sent to your Resend receiving address will appear here.</p></div>
           ) : visibleReceivedMessages.length === 0 ? (
             <div className="px-4 py-10 text-center text-sm text-muted-foreground">No messages match your search.</div>
           ) : (

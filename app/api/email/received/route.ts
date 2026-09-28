@@ -1,8 +1,5 @@
 import { NextResponse } from "next/server"
-
-type FirebaseLookupResponse = {
-  users?: Array<{ localId?: string }>
-}
+import { adminServices } from "@/lib/firebase-admin"
 
 type ReceivedEmail = {
   id?: string
@@ -26,29 +23,6 @@ type ResendListResponse = {
   error?: { message?: string }
 }
 
-async function hasValidFirebaseSession(idToken: string) {
-  const apiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY
-  if (!apiKey) return false
-
-  try {
-    const response = await fetch(
-      `https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${encodeURIComponent(apiKey)}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ idToken }),
-        cache: "no-store",
-      },
-    )
-
-    if (!response.ok) return false
-    const data = (await response.json()) as FirebaseLookupResponse
-    return Boolean(data.users?.[0]?.localId)
-  } catch {
-    return false
-  }
-}
-
 function receivedEmailPayload(email: ReceivedEmail) {
   return {
     id: email.id || "",
@@ -66,38 +40,87 @@ function receivedEmailPayload(email: ReceivedEmail) {
   }
 }
 
+function localInboxPayload(id: string, data: FirebaseFirestore.DocumentData) {
+  return {
+    id: `local:${id}`,
+    from: String(data.from || ""),
+    to: Array.isArray(data.to) ? data.to : [],
+    cc: [],
+    bcc: [],
+    subject: String(data.subject || "(No subject)"),
+    createdAt: data.createdAt?.toDate?.()?.toISOString() || null,
+    messageId: null,
+    html: null,
+    text: String(data.text || ""),
+    headers: null,
+    attachments: [],
+  }
+}
+
 async function resendRequest(path: string) {
   const apiKey = process.env.RESEND_API_KEY
   if (!apiKey) return { response: null, result: null as ResendListResponse | ReceivedEmail | null }
 
-  const response = await fetch(`https://api.resend.com${path}`, {
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "User-Agent": "VisualCNS Dashboard/1.0",
-    },
-    cache: "no-store",
-  })
-  const result = await response.json().catch(() => ({})) as ResendListResponse | ReceivedEmail
-  return { response, result }
+  try {
+    const response = await fetch(`https://api.resend.com${path}`, {
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "User-Agent": "VisualCNS Dashboard/1.0",
+      },
+      cache: "no-store",
+    })
+    const result = await response.json().catch(() => ({})) as ResendListResponse | ReceivedEmail
+    return { response, result }
+  } catch {
+    return { response: null, result: null as ResendListResponse | ReceivedEmail | null }
+  }
 }
 
 export async function GET(request: Request) {
   const authorization = request.headers.get("authorization")
   const idToken = authorization?.startsWith("Bearer ") ? authorization.slice(7) : ""
-
-  if (!idToken || !(await hasValidFirebaseSession(idToken))) {
+  if (!idToken) return NextResponse.json({ error: "Your session has expired. Sign in again and retry." }, { status: 401 })
+  const { auth, db } = adminServices()
+  const decoded = await auth.verifyIdToken(idToken).catch(() => null)
+  if (!decoded) {
     return NextResponse.json({ error: "Your session has expired. Sign in again and retry." }, { status: 401 })
   }
-
-  if (!process.env.RESEND_API_KEY) {
-    return NextResponse.json({ error: "Inbound email is not configured." }, { status: 503 })
+  const account = (await db.collection("users").doc(decoded.uid).get()).data()
+  const agencyId = typeof account?.agencyId === "string" ? account.agencyId.trim() : ""
+  if (!agencyId || (account?.role !== "admin" && account?.role !== "superadmin")) {
+    return NextResponse.json({ error: "You don't have access to this inbox." }, { status: 403 })
   }
+  const inboxEvents = db.collection("agencies").doc(agencyId).collection("emailInboxEvents")
 
   const emailId = new URL(request.url).searchParams.get("id")?.trim()
-  const path = emailId
-    ? `/emails/receiving/${encodeURIComponent(emailId)}`
-    : "/emails/receiving"
-  const { response, result } = await resendRequest(path)
+  if (emailId?.startsWith("local:")) {
+    const localId = emailId.slice(6)
+    if (!/^[a-zA-Z0-9_-]{1,128}$/.test(localId)) return NextResponse.json({ error: "Message not found." }, { status: 404 })
+    const event = await inboxEvents.doc(localId).get()
+    if (!event.exists || event.data()?.agencyId !== agencyId) return NextResponse.json({ error: "Message not found." }, { status: 404 })
+    return NextResponse.json(localInboxPayload(event.id, event.data() || {}))
+  }
+
+  if (!emailId) {
+    const events = await inboxEvents.orderBy("createdAt", "desc").limit(100).get()
+    const localMessages = events.docs.map((event) => localInboxPayload(event.id, event.data()))
+    if (!process.env.RESEND_API_KEY) {
+      return NextResponse.json({ data: localMessages, hasMore: false, warning: "Inbound email is not configured; visitor sign-ups still appear here." })
+    }
+    const { response, result } = await resendRequest("/emails/receiving")
+    if (!response?.ok) {
+      const error = result && "error" in result ? result.error?.message : result && "message" in result ? result.message : undefined
+      if (!localMessages.length) return NextResponse.json({ error: error || "Received messages could not be loaded from Resend." }, { status: response?.status && response.status >= 400 ? response.status : 502 })
+      return NextResponse.json({ data: localMessages, hasMore: false, warning: error || "Received messages could not be loaded from Resend." })
+    }
+    const list = result as ResendListResponse
+    const data = [...(list.data || []).filter((email) => email.id).map(receivedEmailPayload), ...localMessages]
+      .sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""))
+    return NextResponse.json({ data, hasMore: Boolean(list.has_more) })
+  }
+
+  if (!process.env.RESEND_API_KEY) return NextResponse.json({ error: "Inbound email is not configured." }, { status: 503 })
+  const { response, result } = await resendRequest(`/emails/receiving/${encodeURIComponent(emailId)}`)
 
   if (!response?.ok) {
     const error = result && "error" in result ? result.error?.message : result && "message" in result ? result.message : undefined
@@ -107,15 +130,7 @@ export async function GET(request: Request) {
     )
   }
 
-  if (emailId) {
-    const email = result as ReceivedEmail
-    if (!email.id) return NextResponse.json({ error: "The received email could not be loaded." }, { status: 502 })
-    return NextResponse.json(receivedEmailPayload(email))
-  }
-
-  const list = result as ResendListResponse
-  return NextResponse.json({
-    data: (list.data || []).filter((email) => email.id).map(receivedEmailPayload),
-    hasMore: Boolean(list.has_more),
-  })
+  const email = result as ReceivedEmail
+  if (!email.id) return NextResponse.json({ error: "The received email could not be loaded." }, { status: 502 })
+  return NextResponse.json(receivedEmailPayload(email))
 }
