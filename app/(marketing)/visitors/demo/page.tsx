@@ -77,14 +77,14 @@ export default function VisitorsDemoPage() {
         <DialogContent className="max-h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-sm gap-2 overflow-y-auto p-3 sm:max-w-lg sm:gap-3 sm:p-5">
           <DialogHeader className="gap-1 pr-5">
             <DialogTitle data-weight="bold" className="surface-record-title font-sans">Set up visitor sign-in</DialogTitle>
-            <DialogDescription className="surface-body">Free for {VISITOR_TRIAL_DAYS} days. No card needed.</DialogDescription>
+            <DialogDescription className="surface-caption">Free for {VISITOR_TRIAL_DAYS} days. No card needed.</DialogDescription>
           </DialogHeader>
           <VisitorSignupForm />
           <p className="surface-body text-center">
             Already have an account?{" "}
             <Link href={`/login?next=${encodeURIComponent(visitorsPath)}`} className="font-medium text-foreground underline underline-offset-4">Sign in</Link>
           </p>
-          <p className="text-center text-[10px] leading-[14px] text-muted-foreground">
+          <p className="surface-caption text-center">
             By continuing, you agree to our <Link href="/terms" className="underline">Terms</Link> and <Link href="/privacy" className="underline">Privacy Policy</Link>.
           </p>
         </DialogContent>

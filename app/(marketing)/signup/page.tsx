@@ -144,7 +144,7 @@ export default function SignupPage() {
           <h1 id="signup-heading" className={`text-center tracking-[-0.02em] text-foreground ${visitorSignup ? "text-2xl" : "text-3xl"}`}>
             {visitorSignup ? "Set up visitor sign-in" : "Create your VisualHQ account"}
           </h1>
-          {visitorSignup && <p className="visitor-signup-trial mt-1 text-center text-xs text-muted-foreground">Free for {VISITOR_TRIAL_DAYS} days. No card needed.</p>}
+          {visitorSignup && <p className="visitor-signup-trial surface-caption mt-1 text-center">Free for {VISITOR_TRIAL_DAYS} days. No card needed.</p>}
         </div>
 
         {visitorSignup && (inviteToken ? googleButton : <VisitorSignupForm />)}
@@ -237,7 +237,7 @@ export default function SignupPage() {
         </p>
 
         {visitorSignup ? (
-          <p className="mt-2 text-center text-[10px] leading-[14px] text-muted-foreground">
+          <p className="surface-caption mt-2 text-center">
             By continuing, you agree to our <Link href="/terms" className="underline">Terms</Link> and <Link href="/privacy" className="underline">Privacy Policy</Link>.
           </p>
         ) : <p className="mt-6 text-center text-[10px] leading-4 text-muted-foreground/60">

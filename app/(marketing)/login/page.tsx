@@ -196,7 +196,7 @@ export default function LoginPage() {
               <Label htmlFor="visitor-login-password">Password</Label>
               <Input id="visitor-login-password" type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} disabled={busy} required className="h-10 bg-background text-base md:text-sm" />
             </div>
-            <label htmlFor="visitor-login-keep-signed-in" className="flex items-center gap-2 text-sm text-muted-foreground">
+            <label htmlFor="visitor-login-keep-signed-in" className="surface-caption flex items-center gap-2">
               <Checkbox id="visitor-login-keep-signed-in" checked={keepSignedIn} onChange={(event) => setKeepSignedIn(event.target.checked)} disabled={busy} />
               Keep me signed in
             </label>
@@ -250,7 +250,7 @@ export default function LoginPage() {
         </p>
 
         {visitorLogin ? (
-          <p className="mt-6 text-center text-[10px] leading-4 text-muted-foreground">
+          <p className="surface-caption mt-6 text-center">
             By continuing, you agree to our <Link href="/terms" className="underline">Terms</Link> and <Link href="/privacy" className="underline">Privacy Policy</Link>.
           </p>
         ) : <p className="mt-6 text-center text-[10px] leading-4 text-muted-foreground/60">

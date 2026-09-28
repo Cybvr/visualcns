@@ -197,7 +197,7 @@ export function AppSidebar({
             </SidebarMenu>
             {conversations.length > 0 && (
               <div className="mt-6 group-data-[collapsible=icon]:hidden">
-                <div className="px-2 pb-1 text-[11px] font-medium leading-4 text-muted-foreground">Recents</div>
+                <div className="surface-caption px-2 pb-1">Recents</div>
                 <SidebarMenu className="gap-1 max-md:gap-1.5">
                   {conversations.slice(0, isMobile ? 3 : 5).map((conversation) => (
                     <SidebarMenuItem key={conversation.id}>

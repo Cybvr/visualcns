@@ -722,6 +722,13 @@
     font-weight: 500 !important;
   }
 
+  .surface-caption {
+    color: var(--muted-foreground) !important;
+    font-size: 0.6875rem !important;
+    line-height: 1rem !important;
+    font-weight: 500 !important;
+  }
+
   .surface-nav {
     color: var(--muted-foreground) !important;
     font-size: var(--surface-nav-size) !important;
