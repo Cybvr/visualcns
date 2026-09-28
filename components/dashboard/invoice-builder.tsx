@@ -33,6 +33,7 @@ import {
   deleteInvoice,
   dueDateFrom,
   formatMoney,
+  invoiceNotes,
   invoiceStatusMeta,
   nextInvoiceNumber,
   updateInvoice,
@@ -173,7 +174,7 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate }: {
   const [issuedOn, setIssuedOn] = useState(invoice?.issuedOn || initialEstimate?.issuedOn || today())
   const [termsDays, setTermsDays] = useState(invoice?.paymentTermsDays ?? 14)
   // An estimate's note says it "is not an invoice", so never carry it over.
-  const [notes, setNotes] = useState(invoice?.notes ?? "")
+  const [notes, setNotes] = useState(invoiceNotes(invoice?.notes))
   const [serviceCompletedOn, setServiceCompletedOn] = useState(invoice?.serviceCompletedOn ?? "")
   const [paymentInstructions, setPaymentInstructions] = useState(invoice?.paymentInstructions ?? initialEstimate?.paymentDetails ?? "")
 

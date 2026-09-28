@@ -12,6 +12,7 @@ import {
   INVOICE_ISSUER,
   formatDate,
   formatMoney,
+  invoiceNotes,
   invoiceStatusMeta,
   serviceCompletedLine,
   type InvoiceParty,
@@ -129,7 +130,7 @@ export function InvoiceDocument({ invoice, issuer = INVOICE_ISSUER }: { invoice:
       <div className="grid gap-8 px-3 py-6 sm:grid-cols-2 sm:px-10 sm:py-8">
         <div className="space-y-5 text-sm leading-6 text-muted-foreground">
           {invoice.serviceCompletedOn && <p className="font-medium text-foreground">{serviceCompletedLine(invoice)}</p>}
-          {invoice.notes && <div><h2 className="font-medium text-foreground">Note</h2><p className="mt-1 whitespace-pre-line">{invoice.notes}</p></div>}
+          {invoiceNotes(invoice.notes) && <div><h2 className="font-medium text-foreground">Note</h2><p className="mt-1 whitespace-pre-line">{invoiceNotes(invoice.notes)}</p></div>}
           {invoice.paymentInstructions && <div><h2 className="font-medium text-foreground">Payment instructions</h2><p className="mt-1 whitespace-pre-line">{invoice.paymentInstructions}</p></div>}
         </div>
         <dl className="space-y-3 sm:justify-self-end sm:min-w-64">

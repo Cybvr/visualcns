@@ -1,6 +1,8 @@
 import { deleteDoc, doc, getDoc, Timestamp, writeBatch } from "firebase/firestore"
 import { db } from "./firebase"
-import { INVOICE_ISSUER, type InvoiceParty } from "./billing"
+import { DEFAULT_ESTIMATE_NOTES, INVOICE_ISSUER, type InvoiceParty } from "./billing"
+
+export { DEFAULT_ESTIMATE_NOTES }
 import {
   createOrganization,
   getOrganization,
@@ -28,7 +30,6 @@ export interface BusinessProfile extends InvoiceParty {
 }
 
 export const DEFAULT_ESTIMATE_TERMS = "Work begins after acceptance.\nA deposit may be required before work starts.\nPrices exclude taxes and third-party fees unless stated otherwise."
-export const DEFAULT_ESTIMATE_NOTES = "This estimate covers the services described above and is not an invoice. Pricing may be adjusted if the scope changes or new information materially affects delivery."
 
 export interface AdminBusinessSeed {
   id: string

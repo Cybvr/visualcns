@@ -253,6 +253,16 @@ export function dueDateFrom(issuedOn: string, termsDays: number): string {
   return issued.toISOString().slice(0, 10)
 }
 
+export const DEFAULT_ESTIMATE_NOTES = "This estimate covers the services described above and is not an invoice. Pricing may be adjusted if the scope changes or new information materially affects delivery."
+
+/**
+ * Invoices made from an estimate used to copy its note, which says it "is not
+ * an invoice". Drop that text wherever an invoice note is shown or edited.
+ */
+export function invoiceNotes(notes?: string): string {
+  return (notes ?? "").replace(DEFAULT_ESTIMATE_NOTES, "").trim()
+}
+
 /** "The services listed above were completed on 25 Sep 2026." Empty when no date is set. */
 export function serviceCompletedLine(invoice: { serviceCompletedOn?: string }): string {
   return invoice.serviceCompletedOn ? `The services listed above were completed on ${formatDate(invoice.serviceCompletedOn)}.` : ""
