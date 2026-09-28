@@ -125,12 +125,12 @@ export default function SignupPage() {
   )
 
   return (
-    <main className="flex min-h-svh items-center justify-center bg-muted/40 px-4 py-8">
+    <main className={`flex min-h-svh items-center justify-center bg-muted/40 px-4 ${visitorSignup ? "visitor-signup-page py-2 sm:py-4" : "py-8"}`}>
       <section
         aria-labelledby="signup-heading"
-        className="w-full max-w-sm border border-border bg-background px-6 py-7 sm:px-7 sm:py-8"
+        className={`w-full border border-border bg-background ${visitorSignup ? "max-h-[calc(100dvh-1rem)] max-w-lg overflow-y-auto px-4 py-4 sm:px-6 sm:py-5" : "max-w-sm px-6 py-7 sm:px-7 sm:py-8"}`}
       >
-        <div className="flex justify-center">
+        <div className={`flex justify-center ${visitorSignup ? "visitor-signup-brand" : ""}`}>
           <Link
             href="/"
             aria-label="Return to VisualCNS home"
@@ -140,11 +140,11 @@ export default function SignupPage() {
           </Link>
         </div>
 
-        <div className="mb-6 mt-7">
-          <h1 id="signup-heading" className="text-center text-3xl tracking-[-0.02em] text-foreground">
+        <div className={visitorSignup ? "visitor-signup-heading mb-3 mt-3" : "mb-6 mt-7"}>
+          <h1 id="signup-heading" className={`text-center tracking-[-0.02em] text-foreground ${visitorSignup ? "text-2xl" : "text-3xl"}`}>
             {visitorSignup ? "Set up visitor sign-in" : "Create your VisualHQ account"}
           </h1>
-          {visitorSignup && <p className="mt-2 text-center text-sm text-muted-foreground">Free for {VISITOR_TRIAL_DAYS} days. No card needed.</p>}
+          {visitorSignup && <p className="visitor-signup-trial mt-1 text-center text-xs text-muted-foreground">Free for {VISITOR_TRIAL_DAYS} days. No card needed.</p>}
         </div>
 
         {visitorSignup && (inviteToken ? googleButton : <VisitorSignupForm />)}
@@ -229,7 +229,7 @@ export default function SignupPage() {
           </p>
         )}
 
-        <p className="mt-5 text-center text-sm text-muted-foreground">
+        <p className={`${visitorSignup ? "mt-3 text-xs" : "mt-5 text-sm"} text-center text-muted-foreground`}>
           Already have an account?{" "}
           <Link href={returnTo ? `/login?next=${encodeURIComponent(returnTo)}` : "/login"} className="font-medium text-foreground underline underline-offset-4 hover:text-accent">
             Sign in
@@ -237,7 +237,7 @@ export default function SignupPage() {
         </p>
 
         {visitorSignup ? (
-          <p className="mt-6 text-center text-[10px] leading-4 text-muted-foreground">
+          <p className="mt-2 text-center text-[10px] leading-[14px] text-muted-foreground">
             By continuing, you agree to our <Link href="/terms" className="underline">Terms</Link> and <Link href="/privacy" className="underline">Privacy Policy</Link>.
           </p>
         ) : <p className="mt-6 text-center text-[10px] leading-4 text-muted-foreground/60">

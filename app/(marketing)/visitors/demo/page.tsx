@@ -74,17 +74,17 @@ export default function VisitorsDemoPage() {
         <button type="button" onClick={() => setSignupOpen(true)} className="inline-flex h-9 shrink-0 items-center rounded-full bg-primary px-4 font-medium text-primary-foreground outline-none transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring">Get started</button>
       </div>
       <Dialog open={signupOpen} onOpenChange={setSignupOpen}>
-        <DialogContent className="max-h-[calc(100svh-2rem)] max-w-sm overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Set up visitor sign-in</DialogTitle>
-            <DialogDescription>Free for {VISITOR_TRIAL_DAYS} days. No card needed.</DialogDescription>
+        <DialogContent className="max-h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-sm gap-2 overflow-y-auto p-3 sm:max-w-lg sm:gap-3 sm:p-5">
+          <DialogHeader className="gap-1 pr-5">
+            <DialogTitle className="text-base leading-5 sm:text-lg">Set up visitor sign-in</DialogTitle>
+            <DialogDescription className="text-xs leading-4 sm:text-sm">Free for {VISITOR_TRIAL_DAYS} days. No card needed.</DialogDescription>
           </DialogHeader>
           <VisitorSignupForm />
-          <p className="text-center text-sm text-muted-foreground">
+          <p className="text-center text-xs leading-4 text-muted-foreground">
             Already have an account?{" "}
             <Link href={`/login?next=${encodeURIComponent(visitorsPath)}`} className="font-medium text-foreground underline underline-offset-4">Sign in</Link>
           </p>
-          <p className="text-center text-[10px] leading-4 text-muted-foreground">
+          <p className="text-center text-[10px] leading-[14px] text-muted-foreground">
             By continuing, you agree to our <Link href="/terms" className="underline">Terms</Link> and <Link href="/privacy" className="underline">Privacy Policy</Link>.
           </p>
         </DialogContent>

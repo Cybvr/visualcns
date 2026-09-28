@@ -88,49 +88,53 @@ export function VisitorSignupForm() {
   }
 
   return (
-    <form onSubmit={submitEmail} className="space-y-4">
-      <div className="space-y-2">
-        <Label htmlFor="visitor-signup-company">Company name</Label>
-        <Input
-          id="visitor-signup-company"
-          value={companyName}
-          onChange={(event) => setCompanyName(event.target.value)}
-          placeholder="Your company"
-          autoComplete="organization"
-          maxLength={120}
-          disabled={action !== null}
-          className="h-10 bg-background text-base md:text-sm"
-        />
+    <form onSubmit={submitEmail} className="space-y-2.5 sm:space-y-3">
+      <div className="grid gap-2 sm:grid-cols-2 sm:gap-x-3">
+        <div className="space-y-1">
+          <Label htmlFor="visitor-signup-company">Company name</Label>
+          <Input
+            id="visitor-signup-company"
+            value={companyName}
+            onChange={(event) => setCompanyName(event.target.value)}
+            placeholder="Your company"
+            autoComplete="organization"
+            maxLength={120}
+            disabled={action !== null}
+            className="h-9 bg-background text-base sm:h-10 sm:text-sm"
+          />
+        </div>
+        {user || emailAccountCreated ? <p className="self-end pb-2 text-sm text-muted-foreground">Signed in as {user?.email || email}</p> : <>
+          <div className="space-y-1">
+            <Label htmlFor="visitor-signup-name">Your name</Label>
+            <Input id="visitor-signup-name" type="text" autoComplete="name" value={name} onChange={(event) => setName(event.target.value)} maxLength={100} disabled={action !== null} required className="h-9 bg-background text-base sm:h-10 sm:text-sm" />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="visitor-signup-email">Email address</Label>
+            <Input id="visitor-signup-email" type="email" inputMode="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} disabled={action !== null} required className="h-9 bg-background text-base sm:h-10 sm:text-sm" />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="visitor-signup-password">Password</Label>
+            <Input id="visitor-signup-password" type="password" autoComplete="new-password" value={password} onChange={(event) => setPassword(event.target.value)} minLength={8} disabled={action !== null} required className="h-9 bg-background text-base sm:h-10 sm:text-sm" />
+          </div>
+        </>}
       </div>
-      {user || emailAccountCreated ? <p className="text-sm text-muted-foreground">Signed in as {user?.email || email}</p> : <>
-        <div className="space-y-2">
-          <Label htmlFor="visitor-signup-name">Your name</Label>
-          <Input id="visitor-signup-name" type="text" autoComplete="name" value={name} onChange={(event) => setName(event.target.value)} maxLength={100} disabled={action !== null} required className="h-10 bg-background text-base md:text-sm" />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="visitor-signup-email">Email address</Label>
-          <Input id="visitor-signup-email" type="email" inputMode="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} disabled={action !== null} required className="h-10 bg-background text-base md:text-sm" />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="visitor-signup-password">Password</Label>
-          <Input id="visitor-signup-password" type="password" autoComplete="new-password" value={password} onChange={(event) => setPassword(event.target.value)} minLength={8} disabled={action !== null} required className="h-10 bg-background text-base md:text-sm" />
-        </div>
-      </>}
       {!user && !emailAccountCreated && (
-        <label htmlFor="visitor-signup-keep-signed-in" className="flex items-center gap-2 text-sm text-muted-foreground">
+        <label htmlFor="visitor-signup-keep-signed-in" className="flex min-h-8 items-center gap-2 text-sm text-muted-foreground">
           <Checkbox id="visitor-signup-keep-signed-in" checked={keepSignedIn} onChange={(event) => setKeepSignedIn(event.target.checked)} disabled={action !== null} />
           Keep me signed in
         </label>
       )}
-      <Button type="submit" size="lg" className="h-10 w-full" disabled={action !== null} aria-busy={action === "email"}>
-        {action === "email" && <Loader2 className="size-4 animate-spin" aria-hidden="true" />}
-        {action === "email" ? "Setting up…" : user || emailAccountCreated ? "Continue with this account" : "Create account with email"}
-      </Button>
-      <div className="flex items-center gap-3 text-xs text-muted-foreground" aria-hidden="true"><span className="h-px flex-1 bg-border" />or<span className="h-px flex-1 bg-border" /></div>
-      <Button type="button" onClick={submitGoogle} variant="outline" size="lg" className="h-10 w-full gap-3" disabled={action !== null} aria-busy={action === "google"}>
-        {action === "google" ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <GoogleIcon />}
-        {action === "google" ? "Setting up…" : "Continue with Google"}
-      </Button>
+      <div className="grid items-center gap-1.5 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] sm:gap-2">
+        <Button type="submit" size="lg" className="h-10 w-full" disabled={action !== null} aria-busy={action === "email"}>
+          {action === "email" && <Loader2 className="size-4 animate-spin" aria-hidden="true" />}
+          {action === "email" ? "Setting up…" : user || emailAccountCreated ? "Continue with this account" : "Create account with email"}
+        </Button>
+        <span className="text-center text-xs text-muted-foreground" aria-hidden="true">or</span>
+        <Button type="button" onClick={submitGoogle} variant="outline" size="lg" className="h-10 w-full gap-3" disabled={action !== null} aria-busy={action === "google"}>
+          {action === "google" ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <GoogleIcon />}
+          {action === "google" ? "Setting up…" : "Continue with Google"}
+        </Button>
+      </div>
       {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
     </form>
   )
