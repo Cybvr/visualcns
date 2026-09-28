@@ -626,7 +626,7 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate }: {
               </Select>
             </EditorField>
           </div>
-          <p className="text-muted-foreground">Due {dueOn || "—"}</p>
+          <p className="text-muted-foreground">{dueOn ? `Due ${dueOn}` : "No due date"}</p>
         </div>
       </EditorCard>
 

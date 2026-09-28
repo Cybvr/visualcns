@@ -207,6 +207,7 @@ export const PAYMENT_TERM_OPTIONS = [
   { days: 14, label: "Net 14" },
   { days: 30, label: "Net 30" },
   { days: 60, label: "Net 60" },
+  { days: -1, label: "No due date" },
 ] as const
 
 export interface InvoiceTotals {
@@ -244,9 +245,9 @@ export function computeTotals(
   return { subtotal, discountTotal, taxTotal, total: subtotal - discountTotal + taxTotal }
 }
 
-/** The due date implied by the issue date and the chosen terms. */
+/** The due date implied by the issue date and the chosen terms. Negative terms mean no due date. */
 export function dueDateFrom(issuedOn: string, termsDays: number): string {
-  if (!issuedOn) return ""
+  if (!issuedOn || termsDays < 0) return ""
   const issued = new Date(`${issuedOn}T00:00:00`)
   if (Number.isNaN(issued.getTime())) return ""
   issued.setDate(issued.getDate() + (termsDays || 0))

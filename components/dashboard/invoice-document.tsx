@@ -61,7 +61,7 @@ export function InvoiceDocument({ invoice, issuer = INVOICE_ISSUER }: { invoice:
         </section>
         <dl className="grid grid-cols-2 gap-x-6 gap-y-5 sm:justify-self-end sm:text-right">
           <div><dt className="text-sm text-muted-foreground">Issued</dt><dd className="mt-1 text-sm font-medium">{formatDate(invoice.issuedOn)}</dd></div>
-          <div><dt className="text-sm text-muted-foreground">Due</dt><dd className="mt-1 text-sm font-medium">{formatDate(invoice.dueOn)}</dd></div>
+          {invoice.dueOn && <div><dt className="text-sm text-muted-foreground">Due</dt><dd className="mt-1 text-sm font-medium">{formatDate(invoice.dueOn)}</dd></div>}
           {invoice.serviceCompletedOn && <div className="col-span-2"><dt className="text-sm text-muted-foreground">Service completed</dt><dd className="mt-1 text-sm font-medium">{formatDate(invoice.serviceCompletedOn)}</dd></div>}
           {invoice.poReference && <div className="col-span-2"><dt className="text-sm text-muted-foreground">PO reference</dt><dd className="mt-1 text-sm font-medium">{invoice.poReference}</dd></div>}
         </dl>
