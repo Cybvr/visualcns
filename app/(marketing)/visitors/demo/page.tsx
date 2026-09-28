@@ -3,7 +3,7 @@
 import { useState, type FormEvent } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { Building2, Check, FileText, Phone, User, Users } from "lucide-react"
+import { ArrowLeft, Building2, Check, FileText, LogIn, LogOut, Phone, User, Users } from "lucide-react"
 
 import { KioskField, KioskHero, KioskNameList, KioskSubmit, KioskTabs, type KioskTab } from "@/components/visitors/kiosk-parts"
 import { PoweredBy } from "@/components/visitors/powered-by"
@@ -13,7 +13,7 @@ import { VISITOR_TRIAL_DAYS } from "@/lib/visitor-billing"
 import { VisitorSignupForm } from "@/components/visitors/visitor-signup-form"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
-type DemoScreen = KioskTab | "signed-in" | "signed-out"
+type DemoScreen = "start" | KioskTab | "signed-in" | "signed-out"
 type DemoVisitor = { id: string; name: string; at: number }
 
 const visitorsPath = "/dashboard/visitors"
@@ -31,7 +31,8 @@ function sampleVisitors(): DemoVisitor[] {
 
 /** A public preview. It never calls the visitor API or writes a visitor record. */
 export default function VisitorsDemoPage() {
-  const [screen, setScreen] = useState<DemoScreen>("sign-in")
+  // A plain first screen with two big choices, so the form isn't the first thing people see.
+  const [screen, setScreen] = useState<DemoScreen>("start")
   const [onSite, setOnSite] = useState<DemoVisitor[]>(sampleVisitors)
   const [name, setName] = useState("")
   const [visitorCompany, setVisitorCompany] = useState("")
@@ -65,7 +66,7 @@ export default function VisitorsDemoPage() {
     setHost("")
     setPurpose("")
     setError("")
-    setScreen("sign-in")
+    setScreen("start")
   }
 
   return (
@@ -91,7 +92,7 @@ export default function VisitorsDemoPage() {
         </DialogContent>
       </Dialog>
       <div className="kiosk-shell">
-        {(screen === "sign-in" || screen === "sign-out") && (
+        {(screen === "start" || screen === "sign-in" || screen === "sign-out") && (
           <div className="kiosk-workspace">
             <div className="kiosk-intro kiosk-demo-intro">
               <KioskHero companyName="ABC Company" />
@@ -106,7 +107,22 @@ export default function VisitorsDemoPage() {
               />
             </div>
             <div className="kiosk-panel">
-              <KioskTabs value={screen} onChange={(tab) => { setError(""); setScreen(tab) }} count={onSite.length} />
+              {screen === "start" ? (
+                <div className="flex flex-col gap-3 py-2 sm:py-6">
+                  <button type="button" onClick={() => setScreen("sign-in")} className="flex min-h-20 items-center justify-center gap-3 rounded-2xl bg-foreground px-6 text-xl font-semibold text-background outline-none transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring">
+                    <LogIn className="size-6" aria-hidden="true" /> Sign in
+                  </button>
+                  <button type="button" onClick={() => setScreen("sign-out")} className="flex min-h-20 items-center justify-center gap-3 rounded-2xl border border-border bg-background px-6 text-xl font-semibold text-foreground outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring">
+                    <LogOut className="size-6" aria-hidden="true" /> Sign out
+                  </button>
+                  <p className="text-center text-sm text-muted-foreground">Tap Sign in when you arrive, and Sign out when you leave.</p>
+                </div>
+              ) : (
+              <>
+              <button type="button" onClick={() => { setError(""); setScreen("start") }} className="mb-3 inline-flex items-center gap-1.5 text-sm text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring">
+                <ArrowLeft className="size-4" aria-hidden="true" /> Back
+              </button>
+              <KioskTabs value={screen as KioskTab} onChange={(tab) => { setError(""); setScreen(tab) }} count={onSite.length} />
 
               {screen === "sign-in" && (
                 <form onSubmit={signIn} className="flex flex-col">
@@ -146,6 +162,8 @@ export default function VisitorsDemoPage() {
                 <div className="pt-4">
                   <KioskNameList visitors={onSite} onSignOut={signOut} />
                 </div>
+              )}
+              </>
               )}
             </div>
           </div>

@@ -12,6 +12,7 @@ import { CompanyEmptyState } from "@/components/company/empty-state"
 import { CompanyLinks } from "@/components/company/company-links"
 import { CompanyMedia } from "@/components/company/company-media"
 import { CompanyVisitors } from "@/components/company/company-visitors"
+import { TeamInvitePanel, useTeamSeats } from "@/components/company/team-seats"
 import { useAuth } from "@/components/auth-provider"
 import { BusinessHealth } from "@/components/company/business-health"
 import { CompanyDetails, type CompanyDetailsPatch } from "@/components/company/company-sidebar"
@@ -261,6 +262,10 @@ export function CompanyPage({
   const canSeeVisitors = isAdmin || (Boolean(appUser?.companyId) && appUser?.companyId === company.id)
   const visitorAgencyId = company.agencyId || appUser?.agencyId || ""
   const sections = useMemo(() => SECTIONS.filter((item) => item.key !== "visitors" || canSeeVisitors), [canSeeVisitors])
+  // The company's own staff and agency admins manage the team; each person is a seat.
+  const canManageTeam = canSeeVisitors
+  const teamSeats = useTeamSeats(company.id, canManageTeam)
+  const [removedPersonIds, setRemovedPersonIds] = useState<string[]>([])
 
   const tabParam = searchParams.get("tab")
   const section: SectionKey = sections.some((s) => s.key === tabParam) ? (tabParam as SectionKey) : "projects"
@@ -398,6 +403,7 @@ export function CompanyPage({
 
   const clientTeamMembers = useMemo<Array<{ person: CompanyPagePerson; projects: string[] }>>(
     () => people
+      .filter((person) => !removedPersonIds.includes(person.id))
       .map((person) => ({
         person,
         projects: projects
@@ -405,7 +411,7 @@ export function CompanyPage({
           .map((project) => project.title),
       }))
       .sort((a, b) => a.person.name.localeCompare(b.person.name)),
-    [people, projects],
+    [people, projects, removedPersonIds],
   )
 
   const activity = useMemo(
@@ -625,15 +631,20 @@ export function CompanyPage({
             <div className="mt-5">
               <div className="flex items-center justify-between gap-4">
                 <h2 className="sr-only">Team</h2>
-                <span className="sidebar-nav-label text-muted-foreground">Team members</span>
+                <span className="sidebar-nav-label text-muted-foreground">
+                  Team members{teamSeats.info ? ` · ${teamSeats.info.seats} of ${teamSeats.info.limit} seats` : ""}
+                </span>
                 {admin && <SectionAddButton label="Add team members" onClick={openTeamDialog} />}
               </div>
+              {canManageTeam && teamSeats.info && (
+                <TeamInvitePanel info={teamSeats.info} call={teamSeats.call} onChange={() => void teamSeats.reload()} />
+              )}
 
               {clientTeamMembers.length === 0 ? (
                 <CompanyEmptyState
                   icon={UserIcon}
                   title="No team members yet"
-                  description={admin ? "Use the add button to add contacts to this client." : undefined}
+                  description={admin ? "Use the add button to add contacts, or invite someone by email." : canManageTeam ? "Invite colleagues by email above." : undefined}
                 />
               ) : (
                 <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -650,6 +661,18 @@ export function CompanyPage({
                       imageUrl={person.photoUrl}
                       icon={<UserIcon className="size-5 text-violet-600 dark:text-violet-400" aria-hidden="true" />}
                       menuLabel={`Options for ${person.name}`}
+                      menu={canManageTeam && person.id !== appUser?.uid && teamSeats.info?.staff.some((member) => member.id === person.id) ? (
+                        <DropdownMenuItem
+                          variant="destructive"
+                          onSelect={() => {
+                            void teamSeats.removePerson(person.id)
+                              .then(() => { setRemovedPersonIds((current) => [...current, person.id]); toast.success(`${person.name} removed from the team.`) })
+                              .catch((reason) => toast.error(reason instanceof Error ? reason.message : "Couldn't remove them. Try again."))
+                          }}
+                        >
+                          Remove from team
+                        </DropdownMenuItem>
+                      ) : undefined}
                     />
                   ))}
                 </div>

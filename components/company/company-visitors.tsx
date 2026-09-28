@@ -2,14 +2,13 @@
 
 import { useEffect, useMemo, useRef, useState } from "react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
-import { Copy, CreditCard, Download, ExternalLink, Loader2, LogOut, RefreshCw, UserPlus, X } from "lucide-react"
+import { Copy, CreditCard, Download, ExternalLink, Loader2, LogOut, RefreshCw } from "lucide-react"
 import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
-import { Input } from "@/components/ui/input"
 import { daysLeft, isVisitorPlan, VISITOR_GRACE_DAYS, VISITOR_PLAN_KEYS, VISITOR_PLANS, VISITOR_PRICE_NAIRA, VISITOR_TRIAL_DAYS, visitorAccess, type VisitorBilling, type VisitorPlanKey } from "@/lib/visitor-billing"
 import { getAllVisitors, kioskUrl, resetKioskKey, visitorsCsv, visitDay as day, visitTime as time, setKioskEnabled, signOutVisitor, watchKiosk, watchVisitorBilling, watchVisitors, type Visitor, type VisitorKiosk } from "@/lib/visitors"
 
@@ -212,7 +211,12 @@ export function CompanyVisitors({ agencyId, companyId, slug }: { agencyId: strin
         <BillingStatus billing={billing} seats={staffInfo?.seats ?? null} busy={billingBusy} onSubscribe={(plan) => void openPaystack("subscribe", plan)} onManage={() => void openPaystack("manage")} />
       </section>
 
-      {staffInfo && <StaffSection info={staffInfo} selfId={user?.uid ?? ""} call={staffCall} onChange={() => void reloadStaff()} />}
+      {staffInfo && (
+        <p className="text-sm text-muted-foreground">
+          Staff: {staffInfo.seats} of {staffInfo.limit} seats ·{" "}
+          <button type="button" onClick={() => router.push(`${pathname}?tab=team`)} className="font-medium text-foreground underline underline-offset-4">Manage in Team</button>
+        </p>
+      )}
 
       {error ? (
         <div role="alert" className="flex flex-wrap items-center gap-3 text-sm">
@@ -368,92 +372,5 @@ function BillingStatus({ billing, seats, busy, onSubscribe, onManage }: { billin
         <p className="mt-2 text-xs text-muted-foreground">More than {VISITOR_PLANS.business.staff} staff or more than one site? Contact us for Enterprise.</p>
       )}
     </div>
-  )
-}
-
-/** Who visitors can pick and who gets arrival emails. Each person or pending invite is a seat. */
-function StaffSection({ info, selfId, call, onChange }: {
-  info: StaffInfo
-  selfId: string
-  call: (method: "GET" | "POST" | "DELETE", body?: Record<string, string>) => Promise<Record<string, unknown>>
-  onChange: () => void
-}) {
-  const [email, setEmail] = useState("")
-  const [busy, setBusy] = useState("")
-  const [error, setError] = useState("")
-  const full = info.seats >= info.limit
-
-  async function invite() {
-    setBusy("invite")
-    setError("")
-    try {
-      const result = await call("POST", { email: email.trim() })
-      setEmail("")
-      if (result.emailed) toast.success("Invite sent.")
-      else {
-        // Email isn't set up for this agency, so hand them the link to send themselves.
-        await navigator.clipboard.writeText(String(result.inviteUrl || "")).catch(() => undefined)
-        toast.success("Invite made. We couldn't email it, so the link is copied. Send it to them.")
-      }
-      onChange()
-    } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "Couldn't send the invite.")
-    } finally {
-      setBusy("")
-    }
-  }
-
-  async function remove(body: Record<string, string>, id: string) {
-    setBusy(id)
-    try {
-      await call("DELETE", body)
-      onChange()
-    } catch (reason) {
-      toast.error(reason instanceof Error ? reason.message : "Couldn't remove that. Try again.")
-    } finally {
-      setBusy("")
-    }
-  }
-
-  return (
-    <section>
-      <h2 className="sidebar-nav-label font-sans text-muted-foreground [font-family:inherit]">Staff · {info.seats} of {info.limit}</h2>
-      <p className="mt-1 text-sm text-muted-foreground">Visitors pick one of these people when they sign in, and that person gets an email.</p>
-      <ul className="mt-3 divide-y divide-border overflow-hidden rounded-2xl border border-border bg-background">
-        {info.staff.map((person) => (
-          <li key={person.id} className="flex items-center gap-3 px-4 py-3">
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium text-foreground">{person.name || person.email}{person.id === selfId ? " (you)" : ""}</p>
-              {person.name && <p className="truncate text-xs text-muted-foreground">{person.email}</p>}
-            </div>
-            {person.id !== selfId && (
-              <Button type="button" variant="ghost" size="sm" onClick={() => void remove({ userId: person.id }, person.id)} disabled={busy === person.id} aria-label={`Remove ${person.name || person.email}`}>
-                {busy === person.id ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <X className="size-4" aria-hidden="true" />}
-              </Button>
-            )}
-          </li>
-        ))}
-        {info.pending.map((pending) => (
-          <li key={pending.id} className="flex items-center gap-3 px-4 py-3">
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm text-foreground">{pending.email}</p>
-              <p className="text-xs text-muted-foreground">Invited · waiting to accept</p>
-            </div>
-            <Button type="button" variant="ghost" size="sm" onClick={() => void remove({ inviteId: pending.id }, pending.id)} disabled={busy === pending.id} aria-label={`Cancel invite for ${pending.email}`}>
-              {busy === pending.id ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <X className="size-4" aria-hidden="true" />}
-            </Button>
-          </li>
-        ))}
-      </ul>
-      <form onSubmit={(event) => { event.preventDefault(); void invite() }} className="mt-3 flex gap-2">
-        <Input type="email" inputMode="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="colleague@company.com" aria-label="Email to invite" disabled={busy === "invite"} className="h-9" />
-        <Button type="submit" size="sm" className="h-9 shrink-0" disabled={busy === "invite" || !email.trim()}>
-          {busy === "invite" ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <UserPlus className="size-4" aria-hidden="true" />}
-          Invite
-        </Button>
-      </form>
-      {full && !error && <p className="mt-2 text-xs text-muted-foreground">You've used all {info.limit} seats. Upgrade your plan above to add more people.</p>}
-      {error && <p role="alert" className="mt-2 text-sm text-destructive">{error}</p>}
-    </section>
   )
 }
