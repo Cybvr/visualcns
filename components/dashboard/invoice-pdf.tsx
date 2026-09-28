@@ -116,10 +116,12 @@ export function InvoicePdf({ invoice, issuer }: { invoice: Invoice; issuer?: Inv
                 <Text style={[styles.label, styles.metaItemRight]}>Issued</Text>
                 <Text style={[styles.value, styles.metaItemRight]}>{formatDate(invoice.issuedOn)}</Text>
               </View>
-              <View style={styles.metaItem}>
-                <Text style={[styles.label, styles.metaItemRight]}>Due</Text>
-                <Text style={[styles.value, styles.metaItemRight]}>{formatDate(invoice.dueOn)}</Text>
-              </View>
+              {invoice.dueOn && (
+                <View style={styles.metaItem}>
+                  <Text style={[styles.label, styles.metaItemRight]}>Due</Text>
+                  <Text style={[styles.value, styles.metaItemRight]}>{formatDate(invoice.dueOn)}</Text>
+                </View>
+              )}
             </View>
             {invoice.serviceCompletedOn && (
               <View>
