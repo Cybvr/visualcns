@@ -8,7 +8,7 @@ import { AccountNav } from "@/components/account/account-nav"
 import { ImageDropzone } from "@/components/image-dropzone"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { slugifyUser, uniqueUserSlug, updateUser } from "@/lib/users"
+import { updateUser } from "@/lib/users"
 
 const CONTACT_FIELDS = [
   { key: "phone", label: "Phone", type: "tel", placeholder: "+234 800 000 0000" },
@@ -40,7 +40,6 @@ export default function ProfilePage() {
 
   const [displayName, setDisplayName] = useState("")
   const [photoURL, setPhotoURL] = useState("")
-  const [slug, setSlug] = useState("")
   const [contact, setContact] = useState<Record<ContactKey, string>>({ phone: "", website: "", linkedIn: "", instagram: "", x: "" })
   const [saving, setSaving] = useState(false)
   const [notice, setNotice] = useState<{ tone: "success" | "error"; text: string } | null>(null)
@@ -48,7 +47,6 @@ export default function ProfilePage() {
   useEffect(() => {
     setDisplayName(appUser?.displayName || "")
     setPhotoURL(appUser?.photoURL || "")
-    setSlug(appUser?.slug || "")
     setContact({
       phone: appUser?.phone || "",
       website: appUser?.website || "",
@@ -67,26 +65,16 @@ export default function ProfilePage() {
     setSaving(true)
     setNotice(null)
     try {
-      // Whatever they typed is cleaned up and checked against other accounts,
-      // so the saved slug is always a usable, unclaimed address.
-      const wanted = slugifyUser(slug) || displayName || appUser.email
-      const finalSlug = await uniqueUserSlug(wanted, appUser.uid)
-
       await updateUser(appUser.uid, {
         displayName: displayName.trim(),
         photoURL: photoURL.trim(),
-        slug: finalSlug,
         phone: contact.phone.trim(),
         website: contact.website.trim(),
         linkedIn: contact.linkedIn.trim(),
         instagram: contact.instagram.trim(),
         x: contact.x.trim(),
       })
-      setSlug(finalSlug)
-      setNotice({
-        tone: "success",
-        text: finalSlug === slugifyUser(slug) ? "Profile saved." : `Profile saved. Your handle is ${finalSlug}.`,
-      })
+      setNotice({ tone: "success", text: "Profile saved." })
       // The signed-in user is read once at sign-in, so reload to pick the new
       // values up in the sidebar and everywhere else they appear.
       setTimeout(() => window.location.reload(), 600)
@@ -109,10 +97,6 @@ export default function ProfilePage() {
       <form onSubmit={save} className="mt-6">
         <Row id="display-name" label="Name">
           <Input id="display-name" value={displayName} onChange={(event) => setDisplayName(event.target.value)} className={inlineInput} />
-        </Row>
-        <Row id="slug" label="Handle">
-          <span className="shrink-0 text-sm text-muted-foreground">www.visualcns.com/</span>
-          <Input id="slug" value={slug} onChange={(event) => setSlug(event.target.value)} className={inlineInput} />
         </Row>
         {CONTACT_FIELDS.map((field) => (
           <Row key={field.key} id={`contact-${field.key}`} label={field.label}>
