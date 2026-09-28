@@ -12,12 +12,22 @@ import { createDocument, getDocuments, uploadFileToStorage, type SharedDocument 
 import { mediaKindForUrl } from "@/lib/media"
 import { getOrganizations } from "@/lib/organizations"
 import { getProjects } from "@/lib/projects"
+import { tsToMillis } from "@/lib/tasks"
 import { cn } from "@/lib/utils"
 
 const ACCEPTED_IMAGE_TYPES = "image/jpeg,image/png,image/webp"
 
 /** One pickable image, from Drive or from a company or project page. */
-type PickerImage = { id: string; url: string; thumbnailUrl?: string; title: string; source: string }
+type PickerImage = { id: string; url: string; thumbnailUrl?: string; title: string; source: string; /** Last updated, in ms, for newest-first order. */ at: number }
+
+/** Company and project images have no date of their own, so they take their page's. */
+function updatedMillis(record: { updatedAt?: unknown; createdAt?: unknown }): number {
+  return tsToMillis(record.updatedAt) || tsToMillis(record.createdAt)
+}
+
+function newestFirst(a: PickerImage, b: PickerImage) {
+  return b.at - a.at
+}
 
 function isImageUrl(url: string | undefined): url is string {
   return Boolean(url) && mediaKindForUrl(url as string) === "image"
@@ -32,7 +42,8 @@ async function loadImages(workspaceId: string, allAgency: boolean): Promise<Pick
   const documents = await getDocuments()
   const driveImages = documents
     .filter((item) => item.type === "image" && item.url && (allAgency || !item.companyId || item.companyId === workspaceId))
-    .map((item) => ({ id: item.id, url: item.url, thumbnailUrl: item.thumbnailUrl, title: item.title, source: "Drive" }))
+    .map((item) => ({ id: item.id, url: item.url, thumbnailUrl: item.thumbnailUrl, title: item.title, source: "Drive", at: updatedMillis(item) }))
+    .sort(newestFirst)
   if (!allAgency) return driveImages
 
   const [organizations, projects] = await Promise.all([getOrganizations().catch(() => []), getProjects().catch(() => [])])
@@ -40,17 +51,17 @@ async function loadImages(workspaceId: string, allAgency: boolean): Promise<Pick
   const pageImages: PickerImage[] = []
   for (const organization of organizations) {
     const urls = [organization.logoUrl, ...(organization.media ?? [])].filter(isImageUrl)
-    urls.forEach((url, index) => pageImages.push({ id: `org-${organization.id}-${index}`, url, title: url === organization.logoUrl ? "Logo" : "Company image", source: organization.name }))
+    urls.forEach((url, index) => pageImages.push({ id: `org-${organization.id}-${index}`, url, title: url === organization.logoUrl ? "Logo" : "Company image", source: organization.name, at: updatedMillis(organization) }))
   }
   for (const project of projects) {
     const urls = [project.imageUrl || project.thumbnailUrl, project.logoUrl, ...(project.gallery ?? [])].filter(isImageUrl)
     const source = [companyNames.get(project.companyId), project.title].filter(Boolean).join(" · ")
-    urls.forEach((url, index) => pageImages.push({ id: `project-${project.id}-${index}`, url, title: project.title, source }))
+    urls.forEach((url, index) => pageImages.push({ id: `project-${project.id}-${index}`, url, title: project.title, source, at: updatedMillis(project) }))
   }
 
-  // Drive images come first; the same file linked in two places shows once.
+  // Newest first. The same file linked in two places shows once, at its newest.
   const seen = new Set<string>()
-  return [...driveImages, ...pageImages].filter((image) => (seen.has(image.url) ? false : (seen.add(image.url), true)))
+  return [...driveImages, ...pageImages].sort(newestFirst).filter((image) => (seen.has(image.url) ? false : (seen.add(image.url), true)))
 }
 
 export function ImagePickerDialog({
@@ -125,7 +136,7 @@ export function ImagePickerDialog({
         type: "image",
         thumbnailUrl: url,
       }
-      setDocuments((current) => [{ id, url, thumbnailUrl: url, title: document.title, source: "Drive" }, ...current])
+      setDocuments((current) => [{ id, url, thumbnailUrl: url, title: document.title, source: "Drive", at: Date.now() }, ...current])
       onSelect({ src: url, alt: document.title })
       onOpenChange(false)
     } catch (uploadError) {
