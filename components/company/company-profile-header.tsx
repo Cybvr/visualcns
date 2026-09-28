@@ -1,6 +1,6 @@
 "use client"
 
-import type { ReactNode } from "react"
+import { useState, type ReactNode } from "react"
 import { Camera, Globe2, Linkedin, MapPin, Pencil, Share2 } from "lucide-react"
 
 function externalHref(value: string) {
@@ -58,6 +58,8 @@ export function CompanyProfileHeader({
   onChangeCover?: () => void
   tabs?: ReactNode
 }) {
+  // Location and description stay folded away until someone taps "More".
+  const [showMore, setShowMore] = useState(false)
   const links = [
     linkedIn ? { label: "LinkedIn", href: externalHref(linkedIn), icon: Linkedin } : null,
   ].filter((link): link is { label: string; href: string; icon: typeof Globe2 } => Boolean(link))
@@ -140,12 +142,6 @@ export function CompanyProfileHeader({
             ))}
             <span>{contactCount} contact{contactCount === 1 ? "" : "s"}</span>
             {categoryLabel && <span className="truncate">{categoryLabel}</span>}
-            {location && (
-              <span className="inline-flex min-w-0 max-w-full items-center gap-1.5">
-                <MapPin className="size-4 shrink-0" aria-hidden="true" />
-                <span className="truncate">{location}</span>
-              </span>
-            )}
             {website && (
               <a
                 href={externalHref(website)}
@@ -158,7 +154,26 @@ export function CompanyProfileHeader({
               </a>
             )}
           </div>
-          {description && <div className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">{description}</div>}
+          {(location || description) && (showMore ? (
+            <div className="mt-2 max-w-2xl space-y-1.5 text-sm leading-6 text-muted-foreground">
+              {location && (
+                <div className="flex items-center gap-1.5">
+                  <MapPin className="size-4 shrink-0" aria-hidden="true" />
+                  <span>{location}</span>
+                </div>
+              )}
+              {description && <div>{description}</div>}
+              <button type="button" onClick={() => setShowMore(false)} className="font-medium text-foreground outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring">
+                Less
+              </button>
+            </div>
+          ) : (
+            <div className="mt-1.5 text-sm">
+              <button type="button" onClick={() => setShowMore(true)} className="font-medium text-foreground outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring">
+                More
+              </button>
+            </div>
+          ))}
 
           {links.length > 0 && (
             <div className="mt-3 flex flex-wrap gap-2 text-sm">
