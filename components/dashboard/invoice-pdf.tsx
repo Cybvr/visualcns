@@ -2,7 +2,7 @@
 
 import { pdf, Document, Image as PdfImage, Page, StyleSheet, Text, View } from "@react-pdf/renderer"
 
-import { formatDate, formatMoney, invoiceStatusMeta, type Invoice, type InvoiceParty } from "@/lib/billing"
+import { formatDate, formatMoney, invoiceStatusMeta, serviceCompletedLine, type Invoice, type InvoiceParty } from "@/lib/billing"
 
 type InvoicePdfIssuer = InvoiceParty & { logoUrl?: string }
 
@@ -121,6 +121,12 @@ export function InvoicePdf({ invoice, issuer }: { invoice: Invoice; issuer?: Inv
                 <Text style={[styles.value, styles.metaItemRight]}>{formatDate(invoice.dueOn)}</Text>
               </View>
             </View>
+            {invoice.serviceCompletedOn && (
+              <View>
+                <Text style={[styles.label, styles.metaItemRight]}>Service completed</Text>
+                <Text style={[styles.value, styles.metaItemRight]}>{formatDate(invoice.serviceCompletedOn)}</Text>
+              </View>
+            )}
             {invoice.poReference && (
               <View>
                 <Text style={[styles.label, styles.metaItemRight]}>PO reference</Text>
@@ -160,6 +166,7 @@ export function InvoicePdf({ invoice, issuer }: { invoice: Invoice; issuer?: Inv
 
         <View style={styles.bottomGrid}>
           <View style={styles.notes}>
+            {invoice.serviceCompletedOn && <Text style={[styles.value, { marginBottom: 14 }]}>{serviceCompletedLine(invoice)}</Text>}
             {invoice.notes && <><Text style={styles.value}>Note</Text><Text style={styles.muted}>{invoice.notes}</Text></>}
             {invoice.paymentInstructions && <><Text style={[styles.value, { marginTop: 14 }]}>Payment instructions</Text><Text style={styles.muted}>{invoice.paymentInstructions}</Text></>}
           </View>

@@ -80,6 +80,8 @@ export interface Invoice {
   /** Days from issue to due. Drives dueOn rather than being typed by hand. */
   paymentTermsDays?: number
   dueOn: string
+  /** When the work was delivered (YYYY-MM-DD). Printed so the invoice states the service was rendered. */
+  serviceCompletedOn?: string
   notes?: string
   paymentInstructions?: string
   /** Where the client downloads or pays it */
@@ -249,6 +251,11 @@ export function dueDateFrom(issuedOn: string, termsDays: number): string {
   if (Number.isNaN(issued.getTime())) return ""
   issued.setDate(issued.getDate() + (termsDays || 0))
   return issued.toISOString().slice(0, 10)
+}
+
+/** "The services listed above were completed on 25 Sep 2026." Empty when no date is set. */
+export function serviceCompletedLine(invoice: { serviceCompletedOn?: string }): string {
+  return invoice.serviceCompletedOn ? `The services listed above were completed on ${formatDate(invoice.serviceCompletedOn)}.` : ""
 }
 
 export function formatDate(value?: string): string {

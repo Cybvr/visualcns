@@ -172,7 +172,9 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate }: {
 
   const [issuedOn, setIssuedOn] = useState(invoice?.issuedOn || initialEstimate?.issuedOn || today())
   const [termsDays, setTermsDays] = useState(invoice?.paymentTermsDays ?? 14)
-  const [notes, setNotes] = useState(invoice?.notes ?? initialEstimate?.notes ?? "")
+  // An estimate's note says it "is not an invoice", so never carry it over.
+  const [notes, setNotes] = useState(invoice?.notes ?? "")
+  const [serviceCompletedOn, setServiceCompletedOn] = useState(invoice?.serviceCompletedOn ?? "")
   const [paymentInstructions, setPaymentInstructions] = useState(invoice?.paymentInstructions ?? initialEstimate?.paymentDetails ?? "")
 
   const [shareEnabled, setShareEnabled] = useState(invoice?.shareEnabled ?? initialEstimate?.shareEnabled ?? false)
@@ -201,7 +203,7 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate }: {
         setIssuer(profile)
         if (!isEdit) {
           setTermsDays(profile.invoicePaymentTermsDays ?? 14)
-          setNotes(initialEstimate?.notes ?? profile.invoiceNotes ?? "")
+          setNotes(profile.invoiceNotes ?? "")
           setPaymentInstructions(initialEstimate?.paymentDetails ?? profile.invoicePaymentInstructions ?? "")
         }
       })
@@ -313,6 +315,7 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate }: {
     issuedOn,
     paymentTermsDays: termsDays,
     dueOn,
+    serviceCompletedOn,
     notes,
     paymentInstructions,
     url,
@@ -395,6 +398,7 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate }: {
         issuedOn,
         paymentTermsDays: termsDays,
         dueOn: dueDateFrom(issuedOn, termsDays),
+        serviceCompletedOn,
         notes: notes.trim(),
         paymentInstructions: paymentInstructions.trim(),
         url: url.trim(),
@@ -588,6 +592,9 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate }: {
                   ))}
                 </SelectContent>
               </Select>
+            </EditorField>
+            <EditorField label="Service completed" htmlFor="service-completed-on">
+              <Input id="service-completed-on" type="date" value={serviceCompletedOn} onChange={(event) => setServiceCompletedOn(event.target.value)} />
             </EditorField>
             <EditorField label="Currency" htmlFor="currency">
               <Select value={currency} onValueChange={setCurrency}>
