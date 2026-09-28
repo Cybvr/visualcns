@@ -76,11 +76,11 @@ export default function VisitorsDemoPage() {
       <Dialog open={signupOpen} onOpenChange={setSignupOpen}>
         <DialogContent className="max-h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-sm gap-2 overflow-y-auto p-3 sm:max-w-lg sm:gap-3 sm:p-5">
           <DialogHeader className="gap-1 pr-5">
-            <DialogTitle className="text-base leading-5 sm:text-lg">Set up visitor sign-in</DialogTitle>
-            <DialogDescription className="text-xs leading-4 sm:text-sm">Free for {VISITOR_TRIAL_DAYS} days. No card needed.</DialogDescription>
+            <DialogTitle data-weight="bold" className="surface-record-title font-sans">Set up visitor sign-in</DialogTitle>
+            <DialogDescription className="surface-body">Free for {VISITOR_TRIAL_DAYS} days. No card needed.</DialogDescription>
           </DialogHeader>
           <VisitorSignupForm />
-          <p className="text-center text-xs leading-4 text-muted-foreground">
+          <p className="surface-body text-center">
             Already have an account?{" "}
             <Link href={`/login?next=${encodeURIComponent(visitorsPath)}`} className="font-medium text-foreground underline underline-offset-4">Sign in</Link>
           </p>

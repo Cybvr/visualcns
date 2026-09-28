@@ -91,7 +91,7 @@ export function VisitorSignupForm() {
     <form onSubmit={submitEmail} className="space-y-2.5 sm:space-y-3">
       <div className="grid gap-2 sm:grid-cols-2 sm:gap-x-3">
         <div className="space-y-1">
-          <Label htmlFor="visitor-signup-company">Company name</Label>
+          <Label htmlFor="visitor-signup-company" className="surface-section-label">Company name</Label>
           <Input
             id="visitor-signup-company"
             value={companyName}
@@ -103,23 +103,23 @@ export function VisitorSignupForm() {
             className="h-9 bg-background text-base sm:h-10 sm:text-sm"
           />
         </div>
-        {user || emailAccountCreated ? <p className="self-end pb-2 text-sm text-muted-foreground">Signed in as {user?.email || email}</p> : <>
+        {user || emailAccountCreated ? <p className="surface-body self-end pb-2">Signed in as {user?.email || email}</p> : <>
           <div className="space-y-1">
-            <Label htmlFor="visitor-signup-name">Your name</Label>
+            <Label htmlFor="visitor-signup-name" className="surface-section-label">Your name</Label>
             <Input id="visitor-signup-name" type="text" autoComplete="name" value={name} onChange={(event) => setName(event.target.value)} maxLength={100} disabled={action !== null} required className="h-9 bg-background text-base sm:h-10 sm:text-sm" />
           </div>
           <div className="space-y-1">
-            <Label htmlFor="visitor-signup-email">Email address</Label>
+            <Label htmlFor="visitor-signup-email" className="surface-section-label">Email address</Label>
             <Input id="visitor-signup-email" type="email" inputMode="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} disabled={action !== null} required className="h-9 bg-background text-base sm:h-10 sm:text-sm" />
           </div>
           <div className="space-y-1">
-            <Label htmlFor="visitor-signup-password">Password</Label>
+            <Label htmlFor="visitor-signup-password" className="surface-section-label">Password</Label>
             <Input id="visitor-signup-password" type="password" autoComplete="new-password" value={password} onChange={(event) => setPassword(event.target.value)} minLength={8} disabled={action !== null} required className="h-9 bg-background text-base sm:h-10 sm:text-sm" />
           </div>
         </>}
       </div>
       {!user && !emailAccountCreated && (
-        <label htmlFor="visitor-signup-keep-signed-in" className="flex min-h-8 items-center gap-2 text-sm text-muted-foreground">
+        <label htmlFor="visitor-signup-keep-signed-in" className="surface-body flex min-h-8 items-center gap-2">
           <Checkbox id="visitor-signup-keep-signed-in" checked={keepSignedIn} onChange={(event) => setKeepSignedIn(event.target.checked)} disabled={action !== null} />
           Keep me signed in
         </label>

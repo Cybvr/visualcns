@@ -164,10 +164,15 @@
     font-weight: 500 !important;
     color: var(--muted-foreground) !important;
   }
-  .dashboard-body :where(p, a, button, label, input, textarea, select, option, th, td, [data-slot="dropdown-menu-item"]) {
+  .dashboard-body:not([data-slot="dialog-content"]) :where(p, a, button, label, input, textarea, select, option, th, td, [data-slot="dropdown-menu-item"]) {
     font-family: inherit;
     font-size: inherit !important;
     line-height: inherit !important;
+  }
+  .dashboard-body[data-slot="dialog-content"] :where(p, a, button, label, input, textarea, select, option, th, td) {
+    font-family: inherit;
+    font-size: inherit;
+    line-height: inherit;
   }
   /* Invoice and estimate editors: white cards on a grey page, boxed fields. */
   .billing-editor {
