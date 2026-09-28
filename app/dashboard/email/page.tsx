@@ -1390,6 +1390,12 @@ export default function EmailPage() {
           placeholder={tab === "inbox" ? "Search inbox" : tab === "messages" ? "Search sent" : tab === "templates" ? "Search templates" : "Search lists"}
           searchClassName={tab === "messages" || tab === "inbox" ? "sm:max-w-[16rem]" : undefined}
           actions={
+            <>
+            {tab === "templates" && mobileTemplateView === "list" && (
+              <Button type="button" size="sm" className="hidden lg:inline-flex" onClick={() => { resetTemplateEditor(); setMobileTemplateView("editor") }}>
+                <Plus className="size-4" aria-hidden="true" />New template
+              </Button>
+            )}
             <div className="lg:hidden">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -1400,11 +1406,12 @@ export default function EmailPage() {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem onSelect={() => openCompose(true)}><Mail aria-hidden="true" />Compose email</DropdownMenuItem>
-                  <DropdownMenuItem onSelect={() => { setTab("templates"); setMobileTemplateView("editor") }}><FileText aria-hidden="true" />New template</DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => { setTab("templates"); resetTemplateEditor(); setMobileTemplateView("editor") }}><FileText aria-hidden="true" />New template</DropdownMenuItem>
                   <DropdownMenuItem onSelect={() => { setTab("lists"); resetListEditor(); setListPickerOpen(true) }}><List aria-hidden="true" />New list</DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
+            </>
           }
         />
         <div className="mb-2 flex w-full items-center gap-1 rounded-md bg-muted/50 p-0.5 lg:hidden" role="tablist" aria-label="Email">
