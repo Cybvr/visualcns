@@ -1,4 +1,4 @@
-import { collection, doc, limit, onSnapshot, orderBy, query, setDoc, Timestamp, updateDoc, where } from "firebase/firestore"
+import { collection, doc, getDocs, limit, onSnapshot, orderBy, query, setDoc, Timestamp, updateDoc, where } from "firebase/firestore"
 
 import { db } from "./firebase"
 import type { VisitorBilling } from "./visitor-billing"
@@ -41,6 +41,49 @@ export interface VisitorKiosk {
 
 const VISITORS = "visitors"
 const KIOSKS = "visitorKiosks"
+
+/** Every visit a company has had, newest first. For the CSV export, which isn't capped like the live list. */
+export async function getAllVisitors(agencyId: string, companyId: string): Promise<Visitor[]> {
+  const snapshot = await getDocs(query(
+    collection(db, VISITORS),
+    where("agencyId", "==", agencyId),
+    where("companyId", "==", companyId),
+    orderBy("signedInAt", "desc"),
+  ))
+  return snapshot.docs.map((item) => ({ id: item.id, ...item.data() }) as Visitor)
+}
+
+function csvDate(value: Timestamp | null | undefined) {
+  if (!value) return ""
+  const date = value.toDate()
+  const pad = (part: number) => String(part).padStart(2, "0")
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`
+}
+
+function csvCell(value: string) {
+  // A cell starting with = + - @ runs as a formula in Excel, so neutralise it.
+  // Plain phone numbers like +234 803 000 0000 are left alone.
+  const phone = /^\+?[\d\s()-]+$/.test(value)
+  const safe = !phone && /^[=+\-@]/.test(value) ? `'${value}` : value
+  return /[",\n\r]/.test(safe) ? `"${safe.replace(/"/g, '""')}"` : safe
+}
+
+/** Visits as a CSV that opens cleanly in Excel and Google Sheets. */
+export function visitorsCsv(visitors: Visitor[]): string {
+  const header = ["Name", "Company", "Phone", "Email", "Visiting", "Purpose", "Signed in", "Signed out"]
+  const rows = visitors.map((visitor) => [
+    visitor.name,
+    visitor.visitorCompany ?? "",
+    visitor.phone ?? "",
+    visitor.email ?? "",
+    visitor.hostName ?? "",
+    visitor.reason ?? "",
+    csvDate(visitor.signedInAt),
+    csvDate(visitor.signedOutAt),
+  ])
+  // The byte-order mark makes Excel read names with accents correctly.
+  return "\ufeff" + [header, ...rows].map((row) => row.map((cell) => csvCell(String(cell ?? ""))).join(",")).join("\r\n")
+}
 
 /** Live list of a company's most recent visitors, newest first. */
 export function watchVisitors(agencyId: string, companyId: string, onChange: (visitors: Visitor[]) => void, onError: (error: Error) => void) {

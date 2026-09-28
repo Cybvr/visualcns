@@ -9,12 +9,13 @@ import { PoweredBy } from "@/components/visitors/powered-by"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { shortName } from "@/lib/kiosk-offline"
 import { VISITOR_TRIAL_DAYS } from "@/lib/visitor-billing"
+import { VisitorSignupForm } from "@/components/visitors/visitor-signup-form"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
 type DemoScreen = KioskTab | "signed-in" | "signed-out"
 type DemoVisitor = { id: string; name: string; at: number }
 
 const visitorsPath = "/dashboard/visitors"
-const signUpHref = `/signup?next=${encodeURIComponent(visitorsPath)}`
 const HOSTS = ["Tunde Bello", "Ngozi Eze", "Kemi Adeyemi"]
 const PURPOSES = ["Meeting", "Interview", "Delivery", "Collection", "Maintenance", "Personal", "Other"]
 
@@ -38,6 +39,7 @@ export default function VisitorsDemoPage() {
   const [purpose, setPurpose] = useState("")
   const [error, setError] = useState("")
   const [lastName, setLastName] = useState("")
+  const [signupOpen, setSignupOpen] = useState(false)
 
   function signIn(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -69,8 +71,24 @@ export default function VisitorsDemoPage() {
     <main className="kiosk kiosk-page flex min-h-svh flex-col bg-card text-foreground">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-xl border border-border bg-background px-4 py-3 text-sm">
         <p className="text-muted-foreground"><span className="font-medium text-foreground">This is a demo.</span> Get your own: free for {VISITOR_TRIAL_DAYS} days, no card needed.</p>
-        <Link href={signUpHref} className="inline-flex h-9 shrink-0 items-center rounded-full bg-primary px-4 font-medium text-primary-foreground outline-none transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring">Get started</Link>
+        <button type="button" onClick={() => setSignupOpen(true)} className="inline-flex h-9 shrink-0 items-center rounded-full bg-primary px-4 font-medium text-primary-foreground outline-none transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring">Get started</button>
       </div>
+      <Dialog open={signupOpen} onOpenChange={setSignupOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Set up visitor sign-in</DialogTitle>
+            <DialogDescription>Free for {VISITOR_TRIAL_DAYS} days. No card needed.</DialogDescription>
+          </DialogHeader>
+          <VisitorSignupForm />
+          <p className="text-center text-sm text-muted-foreground">
+            Already have an account?{" "}
+            <Link href={`/login?next=${encodeURIComponent(visitorsPath)}`} className="font-medium text-foreground underline underline-offset-4">Sign in</Link>
+          </p>
+          <p className="text-center text-xs text-muted-foreground">
+            By continuing, you agree to our <Link href="/terms" className="underline">Terms</Link> and <Link href="/privacy" className="underline">Privacy Policy</Link>.
+          </p>
+        </DialogContent>
+      </Dialog>
       <div className="kiosk-shell">
         {(screen === "sign-in" || screen === "sign-out") && (
           <div className="kiosk-workspace">
@@ -134,7 +152,7 @@ export default function VisitorsDemoPage() {
         <footer className="kiosk-footer">
           <PoweredBy>
             <span aria-hidden="true">·</span>
-            <Link href={signUpHref} className="underline underline-offset-2 hover:text-foreground">Interested?</Link>
+            <button type="button" onClick={() => setSignupOpen(true)} className="underline underline-offset-2 hover:text-foreground">Interested?</button>
           </PoweredBy>
         </footer>
       </div>

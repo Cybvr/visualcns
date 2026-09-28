@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
-import { Copy, CreditCard, ExternalLink, Loader2, LogOut, RefreshCw } from "lucide-react"
+import { Copy, CreditCard, Download, ExternalLink, Loader2, LogOut, RefreshCw } from "lucide-react"
 import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { daysLeft, VISITOR_GRACE_DAYS, VISITOR_PRICE_NAIRA, VISITOR_TRIAL_DAYS, visitorAccess, type VisitorBilling } from "@/lib/visitor-billing"
-import { kioskUrl, resetKioskKey, visitDay as day, visitTime as time, setKioskEnabled, signOutVisitor, watchKiosk, watchVisitorBilling, watchVisitors, type Visitor, type VisitorKiosk } from "@/lib/visitors"
+import { getAllVisitors, kioskUrl, resetKioskKey, visitorsCsv, visitDay as day, visitTime as time, setKioskEnabled, signOutVisitor, watchKiosk, watchVisitorBilling, watchVisitors, type Visitor, type VisitorKiosk } from "@/lib/visitors"
 
 const PRICE = `₦${VISITOR_PRICE_NAIRA.toLocaleString("en-NG")}`
 
@@ -46,6 +46,25 @@ export function CompanyVisitors({ agencyId, companyId, slug }: { agencyId: strin
       stopBilling()
     }
   }, [agencyId, companyId, retryCount])
+
+  const [exporting, setExporting] = useState(false)
+
+  async function exportCsv() {
+    setExporting(true)
+    try {
+      const all = await getAllVisitors(agencyId, companyId)
+      const url = URL.createObjectURL(new Blob([visitorsCsv(all)], { type: "text/csv;charset=utf-8" }))
+      const link = document.createElement("a")
+      link.href = url
+      link.download = `visitors-${slug}-${new Date().toISOString().slice(0, 10)}.csv`
+      link.click()
+      URL.revokeObjectURL(url)
+    } catch {
+      toast.error("Couldn't export visitors. Try again.")
+    } finally {
+      setExporting(false)
+    }
+  }
 
   const onSite = useMemo(() => (visitors ?? []).filter((visitor) => visitor.status === "on_site"), [visitors])
   const past = useMemo(() => (visitors ?? []).filter((visitor) => visitor.status !== "on_site"), [visitors])
@@ -173,6 +192,14 @@ export function CompanyVisitors({ agencyId, companyId, slug }: { agencyId: strin
         <Loader2 className="size-5 animate-spin text-muted-foreground" aria-label="Loading visitors" />
       ) : (
         <>
+          {visitors.length > 0 && (
+            <div className="flex justify-end">
+              <Button type="button" variant="outline" size="sm" onClick={() => void exportCsv()} disabled={exporting}>
+                {exporting ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <Download className="size-4" aria-hidden="true" />}
+                Export CSV
+              </Button>
+            </div>
+          )}
           <section>
             <h2 className="sidebar-nav-label font-sans text-muted-foreground [font-family:inherit]">In the building now · {onSite.length}</h2>
             {onSite.length ? (

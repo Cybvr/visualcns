@@ -13,14 +13,12 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { safeReturnTo } from "@/lib/navigation"
 import { VISITOR_TRIAL_DAYS } from "@/lib/visitor-billing"
+import { VisitorSignupForm, visitorsTab } from "@/components/visitors/visitor-signup-form"
 
 type SignupAction = "email" | "google" | null
 
 const VISITORS_PATH = "/dashboard/visitors"
 
-function visitorsTab(slug: string) {
-  return `/${encodeURIComponent(slug)}?tab=visitors`
-}
 
 export default function SignupPage() {
   const router = useRouter()
@@ -79,29 +77,8 @@ export default function SignupPage() {
   }
 
   async function handleGoogleSignup() {
-    if (!inviteToken && returnTo === VISITORS_PATH && !agencyName.trim()) {
-      setError("Enter your company name before continuing with Google.")
-      return
-    }
     setAction("google")
     setError(null)
-
-    if (!inviteToken && returnTo === VISITORS_PATH) {
-      // Visitor Sign-in: become a client of VisualCNS with your own company,
-      // then land on its Visitors tab. A full page load picks up the new role.
-      try {
-        await signInWithGoogle()
-        const slug = await joinVisitorCompany(agencyName.trim())
-        window.location.assign(visitorsTab(slug))
-      } catch (err) {
-        const message = err instanceof Error ? err.message : ""
-        if (!message.includes("popup-closed-by-user") && !message.includes("cancelled-popup-request")) {
-          setError(message && !message.startsWith("Firebase") ? message : authErrorMessage(err))
-        }
-        setAction(null)
-      }
-      return
-    }
 
     try {
       await signInWithGoogle(inviteToken ? "" : agencyName.trim(), !inviteToken)
@@ -170,12 +147,7 @@ export default function SignupPage() {
           {visitorSignup && <p className="mt-2 text-center text-sm text-muted-foreground">Free for {VISITOR_TRIAL_DAYS} days. No card needed.</p>}
         </div>
 
-        {visitorSignup && (
-          <div className="space-y-4">
-            {businessNameField}
-            {googleButton}
-          </div>
-        )}
+        {visitorSignup && (inviteToken ? googleButton : <VisitorSignupForm />)}
 
         {!visitorSignup && <form className="space-y-4" onSubmit={handleEmailSignup}>
           <div className="space-y-2">
