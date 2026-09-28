@@ -165,7 +165,7 @@ export function HomeSections({
               <VisitorIllustration className="size-full" />
             </div>
             <h3 className="mt-6 text-2xl tracking-[-0.02em] text-foreground md:text-3xl">Visitor Sign-in</h3>
-            <p className="mt-2 max-w-md text-muted-foreground">Guests sign in at the front desk. Hosts get an email.</p>
+            <p className="mt-2 max-w-md text-muted-foreground">Guests sign in at the front desk. Hosts get an email. Free for 30 days, no card needed.</p>
             <div className="mt-6 flex flex-wrap gap-3">
               <Button asChild className="rounded-full">
                 <Link href={VISITOR_SIGN_UP}>Start free trial</Link>

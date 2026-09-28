@@ -8,6 +8,7 @@ import { KioskField, KioskHero, KioskNameList, KioskSubmit, KioskTabs, type Kios
 import { PoweredBy } from "@/components/visitors/powered-by"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { shortName } from "@/lib/kiosk-offline"
+import { VISITOR_TRIAL_DAYS } from "@/lib/visitor-billing"
 
 type DemoScreen = KioskTab | "signed-in" | "signed-out"
 type DemoVisitor = { id: string; name: string; at: number }
@@ -66,6 +67,10 @@ export default function VisitorsDemoPage() {
 
   return (
     <main className="kiosk kiosk-page flex min-h-svh flex-col bg-card text-foreground">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-xl border border-border bg-background px-4 py-3 text-sm">
+        <p className="text-muted-foreground"><span className="font-medium text-foreground">This is a demo.</span> Get your own: free for {VISITOR_TRIAL_DAYS} days, no card needed.</p>
+        <Link href={signUpHref} className="inline-flex h-9 shrink-0 items-center rounded-full bg-primary px-4 font-medium text-primary-foreground outline-none transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring">Get started</Link>
+      </div>
       <div className="kiosk-shell">
         {(screen === "sign-in" || screen === "sign-out") && (
           <div className="kiosk-workspace">

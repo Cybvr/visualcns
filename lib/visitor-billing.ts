@@ -1,14 +1,14 @@
 import type { Timestamp } from "firebase/firestore"
 
 /**
- * Visitor sign-in is sold per site (one company's front desk): a short free
+ * Visitor sign-in is sold per site (one company's front desk): a free
  * trial, then a monthly Paystack subscription. The record lives in
  * visitorBilling/{companyId}; only the server writes it, so nobody can mark
  * their own site as paid from the browser.
  */
 
 export const VISITOR_PRICE_NAIRA = 50000
-export const VISITOR_TRIAL_DAYS = 3
+export const VISITOR_TRIAL_DAYS = 30
 /** Days the tablet keeps working after a missed or cancelled payment. */
 export const VISITOR_GRACE_DAYS = 3
 

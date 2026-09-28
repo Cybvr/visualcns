@@ -239,7 +239,7 @@ function BillingStatus({ billing, busy, onSubscribe, onManage }: { billing: Visi
   const cancelled = billing?.status === "cancelled"
 
   let title = `${VISITOR_TRIAL_DAYS}-day free trial, then ${PRICE} a month`
-  let detail = "The trial starts when you switch the tablet on."
+  let detail = "No card needed. The trial starts when you switch the tablet on."
   let tone = "text-muted-foreground"
   if (access?.state === "trial") {
     const left = daysLeft(access.endsAt)

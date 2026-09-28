@@ -2,6 +2,7 @@ import { collection, deleteDoc, doc, getDoc, getDocs, query, setDoc, where, Time
 import { db } from "./firebase"
 import { auth } from "./firebase"
 import { slugify } from "./projects"
+import { RESERVED_SLUGS } from "./slugs"
 import { getCurrentAgencyId } from "./agency-scope"
 
 /**
@@ -81,41 +82,6 @@ export interface CompanyLink {
 export const COMPANY_SIZES = ["1-10", "11-50", "51-200", "201-500", "501-1,000", "1,001-5,000", "5,000+"] as const
 
 const COLLECTION_NAME = "organizations"
-
-/**
- * Top-level routes that already exist at the site root. A company slug
- * matching one of these would sit behind the real page forever, so it's
- * never handed out.
- */
-const RESERVED_SLUGS = new Set([
-  "about",
-  "blog",
-  "brands",
-  "capabilities",
-  "case-studies",
-  "contact",
-  "faq",
-  "finance",
-  "industries",
-  "login",
-  "portfolio",
-  "pricing",
-  "privacy",
-  "ratecard",
-  "signup",
-  "templates",
-  "terms",
-  "visualhq",
-  "share",
-  "quotes",
-  "estimates",
-  "auth",
-  "api",
-  "dashboard",
-  "portal",
-  "offline",
-  "manifest",
-])
 
 export async function getOrganization(id: string): Promise<Organization | null> {
   if (!id) return null

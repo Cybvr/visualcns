@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, type FormEvent } from "react"
+import { useEffect, useRef, useState, type FormEvent } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Loader2 } from "lucide-react"
@@ -12,12 +12,19 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { safeReturnTo } from "@/lib/navigation"
+import { VISITOR_TRIAL_DAYS } from "@/lib/visitor-billing"
 
 type SignupAction = "email" | "google" | null
 
+const VISITORS_PATH = "/dashboard/visitors"
+
+function visitorsTab(slug: string) {
+  return `/${encodeURIComponent(slug)}?tab=visitors`
+}
+
 export default function SignupPage() {
   const router = useRouter()
-  const { user, appUser, loading, signUpWithEmail, signInWithGoogle } = useAuth()
+  const { user, appUser, loading, signUpWithEmail, signInWithGoogle, joinVisitorCompany } = useAuth()
   const [inviteToken, setInviteToken] = useState("")
   const [returnTo, setReturnTo] = useState<string | null>(null)
   const [queryReady, setQueryReady] = useState(false)
@@ -27,6 +34,7 @@ export default function SignupPage() {
   const [password, setPassword] = useState("")
   const [action, setAction] = useState<SignupAction>(null)
   const [error, setError] = useState<string | null>(null)
+  const redirectingRef = useRef(false)
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
@@ -41,8 +49,16 @@ export default function SignupPage() {
       router.replace(`/invite/${inviteToken}`)
       return
     }
-    if (appUser?.role && appUser.agencyId) router.replace(returnTo || "/dashboard")
-  }, [queryReady, loading, action, user, appUser, router, inviteToken, returnTo])
+    if (!appUser?.role || !appUser.agencyId) return
+    // A client coming from the visitor demo goes to their own company's Visitors tab.
+    if (returnTo === VISITORS_PATH && appUser.role === "client") {
+      if (redirectingRef.current) return
+      redirectingRef.current = true
+      void joinVisitorCompany("").then((slug) => window.location.assign(visitorsTab(slug))).catch(() => router.replace(returnTo))
+      return
+    }
+    router.replace(returnTo || "/dashboard")
+  }, [queryReady, loading, action, user, appUser, router, inviteToken, returnTo, joinVisitorCompany])
 
   async function handleEmailSignup(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -63,12 +79,29 @@ export default function SignupPage() {
   }
 
   async function handleGoogleSignup() {
-    if (!inviteToken && returnTo === "/dashboard/visitors" && !agencyName.trim()) {
-      setError("Enter your business name before continuing with Google.")
+    if (!inviteToken && returnTo === VISITORS_PATH && !agencyName.trim()) {
+      setError("Enter your company name before continuing with Google.")
       return
     }
     setAction("google")
     setError(null)
+
+    if (!inviteToken && returnTo === VISITORS_PATH) {
+      // Visitor Sign-in: become a client of VisualCNS with your own company,
+      // then land on its Visitors tab. A full page load picks up the new role.
+      try {
+        await signInWithGoogle()
+        const slug = await joinVisitorCompany(agencyName.trim())
+        window.location.assign(visitorsTab(slug))
+      } catch (err) {
+        const message = err instanceof Error ? err.message : ""
+        if (!message.includes("popup-closed-by-user") && !message.includes("cancelled-popup-request")) {
+          setError(message && !message.startsWith("Firebase") ? message : authErrorMessage(err))
+        }
+        setAction(null)
+      }
+      return
+    }
 
     try {
       await signInWithGoogle(inviteToken ? "" : agencyName.trim(), !inviteToken)
@@ -83,11 +116,11 @@ export default function SignupPage() {
   }
 
   const busy = loading || action !== null
-  const visitorSignup = returnTo === "/dashboard/visitors"
+  const visitorSignup = returnTo === VISITORS_PATH
   const businessNameField = !inviteToken && (
     <div className="space-y-2">
-      <Label htmlFor="agencyName">{visitorSignup ? "Business name" : "Agency name"}</Label>
-      <Input id="agencyName" name="agencyName" type="text" value={agencyName} onChange={(event) => setAgencyName(event.target.value)} placeholder={visitorSignup ? "Your business" : "Your agency"} className="h-10 rounded-none bg-background text-base md:text-sm" disabled={busy} maxLength={120} required />
+      <Label htmlFor="agencyName">{visitorSignup ? "Company name" : "Agency name"}</Label>
+      <Input id="agencyName" name="agencyName" type="text" value={agencyName} onChange={(event) => setAgencyName(event.target.value)} placeholder={visitorSignup ? "Your company" : "Your agency"} className="h-10 rounded-none bg-background text-base md:text-sm" disabled={busy} maxLength={120} required />
     </div>
   )
   const googleButton = (
@@ -134,6 +167,7 @@ export default function SignupPage() {
           <h1 id="signup-heading" className="text-center text-3xl tracking-[-0.02em] text-foreground">
             {visitorSignup ? "Set up visitor sign-in" : "Create your VisualHQ account"}
           </h1>
+          {visitorSignup && <p className="mt-2 text-center text-sm text-muted-foreground">Free for {VISITOR_TRIAL_DAYS} days. No card needed.</p>}
         </div>
 
         {visitorSignup && (

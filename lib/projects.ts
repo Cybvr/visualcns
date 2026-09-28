@@ -1,3 +1,4 @@
+import { slugify } from "./slugs"
 import {
   collection,
   getDocs,
@@ -138,13 +139,7 @@ export async function getProject(id: string): Promise<Project | null> {
   return { ...(snapshot.data() as object), id: snapshot.id } as Project
 }
 
-export function slugify(value: string): string {
-  return value
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-}
+export { slugify }
 
 /**
  * Every template purchase stays on Paystack. Seeded workflows use their
