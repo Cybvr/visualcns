@@ -99,7 +99,7 @@ export function HomeSections({
   return (
     <div className="w-full">
       <Section id="work" index="01" title="Selected Work" kicker="Case studies">
-        <PortfolioGrid compact limit={8} showNumbers={false} />
+        <PortfolioGrid compact limit={4} showNumbers={false} />
         <div className="mt-10">
           <Link
             href="/case-studies"

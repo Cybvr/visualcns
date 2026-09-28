@@ -54,11 +54,7 @@ function toCaseStudy(project: Project): CaseStudyProject {
 
 /** Published client projects selected for the public Case Studies experience. */
 export async function getCaseStudyProjects(): Promise<CaseStudyProject[]> {
-  const snapshot = await getDocs(query(
-    collection(db, "projects"),
-    where("isCaseStudy", "==", true),
-    where("caseStudyStatus", "==", "published"),
-  ))
+  const snapshot = await getDocs(collection(db, "projects"))
 
   return snapshot.docs
     .map((snapshotDoc) => toCaseStudy({
@@ -79,8 +75,6 @@ export async function getCaseStudyProjectsByCompanyId(companyId: string): Promis
   if (!companyId) return []
   const snapshot = await getDocs(query(
     collection(db, "projects"),
-    where("isCaseStudy", "==", true),
-    where("caseStudyStatus", "==", "published"),
     where("companyId", "==", companyId),
   ))
 
