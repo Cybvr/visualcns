@@ -5,20 +5,12 @@ import { ArrowUpRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { BookNowModal } from "@/components/book-now-modal"
 import { PortfolioGrid } from "@/components/portfolio-grid"
+import { SERVICE_ILLUSTRATIONS, VisitorIllustration, AuditIllustration } from "@/components/home-illustrations"
 import type { BrandItem } from "@/lib/brands"
 import type { Capability } from "@/lib/capabilities"
 import type { BlogPost } from "@/lib/blog"
 
 const VISITOR_SIGN_UP = `/signup?next=${encodeURIComponent("/dashboard/visitors")}`
-
-const AUDIT_AREAS = [
-  "Your website — pages, content, structure and messaging",
-  "Search visibility — SEO, keywords and how easy you are to find",
-  "Competitors — positioning, recent activity and market trends",
-  "Market opportunities — events, partners, tenders and grants",
-  "Technical health — speed, broken pages and best practices",
-  "Your online presence — brand mentions, content and reputation",
-]
 
 // Editorial section frame: a big title on the left, a mono index tag on the
 // right, a hairline underneath. Every block on the page shares it.
@@ -141,29 +133,39 @@ export function HomeSections({
         </div>
       </Section>
 
-      {/* Services: big numbered rows, editorial and quiet. */}
+      {/* Services: an illustration per service, title underneath. */}
       <Section id="services" index="03" title="Services" kicker="How we help">
-        <ul>
-          {capabilities.map((c, i) => (
-            <BigRow
-              key={c.slug}
-              href={`/capabilities/${c.slug}`}
-              number={String(i + 1).padStart(2, "0")}
-              title={c.title}
-            />
-          ))}
-        </ul>
+        <div className="grid grid-cols-1 gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
+          {capabilities.map((c) => {
+            const Illustration = SERVICE_ILLUSTRATIONS[c.slug]
+            return (
+              <Link key={c.slug} href={`/capabilities/${c.slug}`} className="group block">
+                <div className="aspect-[16/11] overflow-hidden rounded-[0.75rem] bg-muted/50 p-4">
+                  {Illustration ? (
+                    <Illustration className="size-full transition-transform duration-700 ease-out group-hover:scale-[1.04] motion-reduce:transition-none" />
+                  ) : null}
+                </div>
+                <div className="mt-4 flex items-baseline justify-between gap-4">
+                  <h3 className="text-xl tracking-[-0.02em] text-foreground transition-colors group-hover:text-primary md:text-2xl">
+                    {c.title}
+                  </h3>
+                  <ArrowUpRight className="size-5 shrink-0 text-muted-foreground transition-[transform,color] duration-500 ease-out group-hover:-translate-y-1 group-hover:translate-x-1 group-hover:text-primary motion-reduce:transition-none" />
+                </div>
+              </Link>
+            )
+          })}
+        </div>
       </Section>
 
-      {/* Two products of ours, presented as plain text + one action each. */}
+      {/* Two self-serve tools: picture first, one line, one action. */}
       <Section id="tools" index="04" title="Tools You Can Use Today" kicker="Self-serve">
-        <div className="grid grid-cols-1 gap-12 md:grid-cols-2 md:gap-16">
+        <div className="grid grid-cols-1 gap-12 md:grid-cols-2 md:gap-8">
           <div className="flex flex-col">
-            <h3 className="text-2xl tracking-[-0.02em] text-foreground md:text-3xl">Visitor Sign-in</h3>
-            <p className="mt-4 max-w-md text-muted-foreground">
-              A sign-in page for your front desk. Visitors sign in on a tablet or their own phone, hosts get an email
-              when they arrive, and you always know who is on site.
-            </p>
+            <div className="aspect-[16/11] overflow-hidden rounded-[0.75rem] bg-muted/50 p-6">
+              <VisitorIllustration className="size-full" />
+            </div>
+            <h3 className="mt-6 text-2xl tracking-[-0.02em] text-foreground md:text-3xl">Visitor Sign-in</h3>
+            <p className="mt-2 max-w-md text-muted-foreground">Guests sign in at the front desk. Hosts get an email.</p>
             <div className="mt-6 flex flex-wrap gap-3">
               <Button asChild className="rounded-full">
                 <Link href={VISITOR_SIGN_UP}>Start free trial</Link>
@@ -174,18 +176,11 @@ export function HomeSections({
             </div>
           </div>
           <div className="flex flex-col">
-            <h3 className="text-2xl tracking-[-0.02em] text-foreground md:text-3xl">Business Audit</h3>
-            <p className="mt-4 max-w-md text-muted-foreground">
-              A full check of how your business shows up online, with a clear list of what to fix first.
-            </p>
-            <ul className="mt-6 space-y-3">
-              {AUDIT_AREAS.map((area) => (
-                <li key={area} className="flex gap-3 text-sm text-muted-foreground">
-                  <span aria-hidden="true" className="mt-2 size-1 shrink-0 rounded-full bg-accent" />
-                  <span>{area}</span>
-                </li>
-              ))}
-            </ul>
+            <div className="aspect-[16/11] overflow-hidden rounded-[0.75rem] bg-muted/50 p-6">
+              <AuditIllustration className="size-full" />
+            </div>
+            <h3 className="mt-6 text-2xl tracking-[-0.02em] text-foreground md:text-3xl">Business Audit</h3>
+            <p className="mt-2 max-w-md text-muted-foreground">See how you show up online, and what to fix first.</p>
             <div className="mt-6">
               <Button asChild className="rounded-full">
                 <Link href="/signup">Get your audit</Link>
