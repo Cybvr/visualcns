@@ -16,8 +16,7 @@ function initialsOf(name: string) {
 export function KioskHero({ companyName, logoUrl }: { companyName: string; logoUrl?: string }) {
   return (
     <header className="kiosk-hero relative">
-      <ReceptionIllustration initials={initialsOf(companyName || "Welcome")} className="kiosk-hero-art" />
-      <div className="relative max-w-[60%] py-4 sm:py-10">
+      <div className="relative py-4 sm:py-10">
         {logoUrl && (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={logoUrl} alt="" className="mb-4 size-12 rounded-xl object-cover" />
@@ -26,6 +25,7 @@ export function KioskHero({ companyName, logoUrl }: { companyName: string; logoU
         <h1 className="kiosk-company-name">{companyName}</h1>
         <p className="kiosk-subtitle">Please sign in as a visitor</p>
       </div>
+      <ReceptionIllustration initials={initialsOf(companyName || "Welcome")} className="kiosk-hero-art" />
     </header>
   )
 }
