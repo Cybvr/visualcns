@@ -9,9 +9,49 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Skeleton } from "@/components/ui/skeleton"
 import { Input } from "@/components/ui/input"
 import { createDocument, getDocuments, uploadFileToStorage, type SharedDocument } from "@/lib/documents"
+import { mediaKindForUrl } from "@/lib/media"
+import { getOrganizations } from "@/lib/organizations"
+import { getProjects } from "@/lib/projects"
 import { cn } from "@/lib/utils"
 
 const ACCEPTED_IMAGE_TYPES = "image/jpeg,image/png,image/webp"
+
+/** One pickable image, from Drive or from a company or project page. */
+type PickerImage = { id: string; url: string; thumbnailUrl?: string; title: string; source: string }
+
+function isImageUrl(url: string | undefined): url is string {
+  return Boolean(url) && mediaKindForUrl(url as string) === "image"
+}
+
+/**
+ * Admins see every image in the agency: Drive, plus what's on each company
+ * page (uploads, logo) and each project (cover, logo, gallery). Clients see
+ * only their own Drive images, as before.
+ */
+async function loadImages(workspaceId: string, allAgency: boolean): Promise<PickerImage[]> {
+  const documents = await getDocuments()
+  const driveImages = documents
+    .filter((item) => item.type === "image" && item.url && (allAgency || !item.companyId || item.companyId === workspaceId))
+    .map((item) => ({ id: item.id, url: item.url, thumbnailUrl: item.thumbnailUrl, title: item.title, source: "Drive" }))
+  if (!allAgency) return driveImages
+
+  const [organizations, projects] = await Promise.all([getOrganizations().catch(() => []), getProjects().catch(() => [])])
+  const companyNames = new Map(organizations.map((organization) => [organization.id, organization.name]))
+  const pageImages: PickerImage[] = []
+  for (const organization of organizations) {
+    const urls = [organization.logoUrl, ...(organization.media ?? [])].filter(isImageUrl)
+    urls.forEach((url, index) => pageImages.push({ id: `org-${organization.id}-${index}`, url, title: url === organization.logoUrl ? "Logo" : "Company image", source: organization.name }))
+  }
+  for (const project of projects) {
+    const urls = [project.imageUrl || project.thumbnailUrl, project.logoUrl, ...(project.gallery ?? [])].filter(isImageUrl)
+    const source = [companyNames.get(project.companyId), project.title].filter(Boolean).join(" · ")
+    urls.forEach((url, index) => pageImages.push({ id: `project-${project.id}-${index}`, url, title: project.title, source }))
+  }
+
+  // Drive images come first; the same file linked in two places shows once.
+  const seen = new Set<string>()
+  return [...driveImages, ...pageImages].filter((image) => (seen.has(image.url) ? false : (seen.add(image.url), true)))
+}
 
 export function ImagePickerDialog({
   open,
@@ -22,10 +62,11 @@ export function ImagePickerDialog({
   onOpenChange: (open: boolean) => void
   onSelect: (image: { src: string; alt: string }) => void
 }) {
-  const { appUser, user } = useAuth()
+  const { appUser, user, isAdmin, isImpersonating } = useAuth()
   const workspaceId = appUser?.companyId || user?.uid || ""
+  const allAgency = isAdmin && !isImpersonating
   const inputRef = useRef<HTMLInputElement>(null)
-  const [documents, setDocuments] = useState<SharedDocument[]>([])
+  const [documents, setDocuments] = useState<PickerImage[]>([])
   const [query, setQuery] = useState("")
   const [loading, setLoading] = useState(false)
   const [uploading, setUploading] = useState(false)
@@ -37,23 +78,22 @@ export function ImagePickerDialog({
       setLoading(true)
       setError("")
       setQuery("")
-    void getDocuments()
+    void loadImages(workspaceId, allAgency)
       .then((items) => {
-        if (!active) return
-        setDocuments(items.filter((item) => item.type === "image" && item.url && (!item.companyId || item.companyId === workspaceId)))
+        if (active) setDocuments(items)
       })
       .catch(() => {
-        if (active) setError("The Drive images could not be loaded.")
+        if (active) setError("The images could not be loaded.")
       })
       .finally(() => {
         if (active) setLoading(false)
       })
     return () => { active = false }
-  }, [open, workspaceId])
+  }, [allAgency, open, workspaceId])
 
   const visibleDocuments = useMemo(() => {
     const value = query.trim().toLowerCase()
-    return value ? documents.filter((item) => item.title.toLowerCase().includes(value)) : documents
+    return value ? documents.filter((item) => `${item.title} ${item.source}`.toLowerCase().includes(value)) : documents
   }, [documents, query])
 
   async function handleUpload(event: ChangeEvent<HTMLInputElement>) {
@@ -85,7 +125,7 @@ export function ImagePickerDialog({
         type: "image",
         thumbnailUrl: url,
       }
-      setDocuments((current) => [document, ...current])
+      setDocuments((current) => [{ id, url, thumbnailUrl: url, title: document.title, source: "Drive" }, ...current])
       onSelect({ src: url, alt: document.title })
       onOpenChange(false)
     } catch (uploadError) {
@@ -101,13 +141,13 @@ export function ImagePickerDialog({
         <DialogHeader className="border-b border-border px-5 py-4 pr-12">
           <DialogTitle>Choose an image</DialogTitle>
           <DialogDescription>
-            Select an existing Drive image or upload one. Uploads are resized to a 1600px maximum edge and compressed below 1.75 MB.
+            Pick an image from Drive or your company pages, or upload one. Uploads are resized to a 1600px maximum edge and compressed below 1.75 MB.
           </DialogDescription>
         </DialogHeader>
         <div className="flex items-center gap-2 border-b border-border px-5 py-3">
           <div className="relative min-w-0 flex-1">
             <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
-            <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search Drive images" aria-label="Search Drive images" className="pl-9" />
+            <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search images or companies" aria-label="Search images" className="pl-9" />
           </div>
           <input ref={inputRef} type="file" accept={ACCEPTED_IMAGE_TYPES} onChange={handleUpload} className="hidden" />
           <Button type="button" onClick={() => inputRef.current?.click()} disabled={uploading}>
@@ -117,11 +157,11 @@ export function ImagePickerDialog({
         </div>
         <div className="max-h-[min(60vh,32rem)] min-h-48 overflow-y-auto p-5">
           {loading ? (
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3" role="status" aria-label="Loading Drive images">{Array.from({ length: 6 }, (_, index) => <Skeleton key={index} className="aspect-[4/3] w-full rounded-xl" />)}</div>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3" role="status" aria-label="Loading images">{Array.from({ length: 6 }, (_, index) => <Skeleton key={index} className="aspect-[4/3] w-full rounded-xl" />)}</div>
           ) : visibleDocuments.length === 0 ? (
             <div className="flex min-h-48 flex-col items-center justify-center text-center">
               <ImagePlus className="size-6 text-muted-foreground" aria-hidden="true" />
-              <p className="mt-3 text-sm font-medium">{query ? "No matching images" : "No Drive images yet"}</p>
+              <p className="mt-3 text-sm font-medium">{query ? "No matching images" : "No images yet"}</p>
               <p className="mt-1 max-w-xs text-xs leading-5 text-muted-foreground">Upload an image here and it will also appear in the Drive page for reuse.</p>
             </div>
           ) : (
@@ -138,7 +178,10 @@ export function ImagePickerDialog({
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={document.thumbnailUrl || document.url} alt="" className="size-full object-cover transition-transform duration-200 group-hover:scale-[1.03]" />
                   </div>
-                  <span className={cn("block truncate px-2.5 py-2 text-xs font-medium", document.title && "text-foreground")}>{document.title}</span>
+                  <span className="block px-2.5 py-2">
+                    <span className={cn("block truncate text-xs font-medium", document.title && "text-foreground")}>{document.title}</span>
+                    <span className="block truncate text-[11px] text-muted-foreground">{document.source}</span>
+                  </span>
                 </button>
               ))}
             </div>
