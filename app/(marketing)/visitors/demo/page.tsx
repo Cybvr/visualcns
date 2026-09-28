@@ -74,7 +74,7 @@ export default function VisitorsDemoPage() {
         <button type="button" onClick={() => setSignupOpen(true)} className="inline-flex h-9 shrink-0 items-center rounded-full bg-primary px-4 font-medium text-primary-foreground outline-none transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring">Get started</button>
       </div>
       <Dialog open={signupOpen} onOpenChange={setSignupOpen}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="max-h-[calc(100svh-2rem)] max-w-sm overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Set up visitor sign-in</DialogTitle>
             <DialogDescription>Free for {VISITOR_TRIAL_DAYS} days. No card needed.</DialogDescription>

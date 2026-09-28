@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, type FormEvent } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Loader2 } from "lucide-react"
@@ -8,10 +8,12 @@ import { BrandLockup } from "@/components/brand-lockup"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/components/auth-provider"
 import { authErrorMessage, GoogleIcon } from "@/components/auth-ui"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { getOrganization, organizationRef } from "@/lib/organizations"
 import { safeReturnTo } from "@/lib/navigation"
 
-type AuthAction = "google" | null
+type AuthAction = "email" | "google" | null
 
 type WorkspaceOption = {
   id: string
@@ -21,11 +23,13 @@ type WorkspaceOption = {
 
 export default function LoginPage() {
   const router = useRouter()
-  const { user, appUser, isAdmin, loading, signInWithGoogle } = useAuth()
+  const { user, appUser, isAdmin, loading, signInWithEmail, signInWithGoogle } = useAuth()
   const [workspaces, setWorkspaces] = useState<WorkspaceOption[]>([])
   const [selectedWorkspace, setSelectedWorkspace] = useState("")
   const [workspacesLoading, setWorkspacesLoading] = useState(true)
   const [action, setAction] = useState<AuthAction>(null)
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [signupHref, setSignupHref] = useState("/signup")
   const [visitorLogin, setVisitorLogin] = useState(false)
@@ -74,6 +78,22 @@ export default function LoginPage() {
     if (loading || action || !user || needsWorkspaceSelection) return
 
     const requested = safeReturnTo(new URLSearchParams(window.location.search).get("next"))
+    if (requested === "/dashboard/visitors" && !appUser) return
+    if (requested === "/dashboard/visitors" && appUser?.role === "client") {
+      if (!appUser.companyId) {
+        setError("We couldn't find your company. Please contact support.")
+        return
+      }
+      let active = true
+      getOrganization(appUser.companyId)
+        .then((organization) => {
+          if (!active) return
+          if (organization) router.replace(`/${encodeURIComponent(organizationRef(organization))}?tab=visitors`)
+          else setError("We couldn't find your company. Please contact support.")
+        })
+        .catch(() => { if (active) setError("We couldn't open your Visitors page. Please try again.") })
+      return () => { active = false }
+    }
     if (requested) {
       router.replace(requested)
       return
@@ -94,6 +114,19 @@ export default function LoginPage() {
       })
     return () => { active = false }
   }, [loading, user, appUser, isAdmin, router, action, visitorLogin])
+
+  async function handleEmailSignIn(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setAction("email")
+    setError(null)
+    try {
+      await signInWithEmail(email.trim(), password)
+    } catch (err) {
+      setError(authErrorMessage(err))
+    } finally {
+      setAction(null)
+    }
+  }
 
   async function handleGoogleSignIn() {
     if (!visitorLogin && !selectedWorkspace) {
@@ -150,6 +183,24 @@ export default function LoginPage() {
             {workspaces.length === 0 ? <option value="">No organizations available</option> : workspaces.map((workspace) => <option key={workspace.id} value={workspace.id}>{workspace.name}</option>)}
           </select>
         </div>}
+
+        {visitorLogin && <>
+          <form onSubmit={handleEmailSignIn} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="visitor-login-email">Email</Label>
+              <Input id="visitor-login-email" type="email" inputMode="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} disabled={busy} required className="h-10 bg-background text-base md:text-sm" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="visitor-login-password">Password</Label>
+              <Input id="visitor-login-password" type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} disabled={busy} required className="h-10 bg-background text-base md:text-sm" />
+            </div>
+            <Button type="submit" size="lg" className="h-10 w-full" disabled={busy} aria-busy={action === "email"}>
+              {action === "email" && <Loader2 className="size-4 animate-spin" aria-hidden="true" />}
+              {action === "email" ? "Signing in…" : "Sign in with email"}
+            </Button>
+          </form>
+          <div className="my-5 flex items-center gap-3 text-xs text-muted-foreground" aria-hidden="true"><span className="h-px flex-1 bg-border" />or<span className="h-px flex-1 bg-border" /></div>
+        </>}
 
         <Button
           type="button"
