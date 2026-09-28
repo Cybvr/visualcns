@@ -5,7 +5,7 @@ import Link from "next/link"
 import Image from "next/image"
 import { ArrowLeft, Building2, Check, FileText, LogIn, LogOut, Phone, User, Users } from "lucide-react"
 
-import { KioskField, KioskHero, KioskNameList, KioskSubmit, KioskTabs, type KioskTab } from "@/components/visitors/kiosk-parts"
+import { KioskField, KioskNameList, KioskSubmit, type KioskTab } from "@/components/visitors/kiosk-parts"
 import { PoweredBy } from "@/components/visitors/powered-by"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { shortName } from "@/lib/kiosk-offline"
@@ -91,40 +91,48 @@ export default function VisitorsDemoPage() {
           </p>
         </DialogContent>
       </Dialog>
-      <div className="kiosk-shell">
-        {(screen === "start" || screen === "sign-in" || screen === "sign-out") && (
-          <div className="kiosk-workspace">
-            <div className="kiosk-intro kiosk-demo-intro">
-              <KioskHero companyName="ABC Company" />
+      <div className="flex flex-1 flex-col">
+        {screen === "start" && (
+          <div className="grid flex-1 gap-6 p-4 sm:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] sm:gap-0 sm:p-0">
+            <div className="relative min-h-[36svh] overflow-hidden rounded-2xl sm:min-h-0 sm:rounded-none">
               <Image
-                src="/images/visualcns-visitor-signin-demo.jpg"
-                alt="A visitor using the VisualCNS sign-in tablet at reception"
-                width={960}
-                height={540}
-                sizes="(min-width: 960px) 29vw, (min-width: 640px) 34vw, 1px"
-                loading="eager"
-                className="kiosk-demo-photo"
+                src="/images/visualcns-visitor-signin-reception-v2.png"
+                alt="A visitor signing in on the VisualCNS tablet at reception"
+                fill
+                priority
+                sizes="(min-width: 640px) 55vw, 100vw"
+                className="object-cover object-[35%_center]"
               />
             </div>
-            <div className="kiosk-panel">
-              {screen === "start" ? (
-                <div className="flex flex-col gap-3 py-2 sm:py-6">
-                  <button type="button" onClick={() => setScreen("sign-in")} className="flex min-h-20 items-center justify-center gap-3 rounded-2xl bg-foreground px-6 text-xl font-semibold text-background outline-none transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring">
-                    <LogIn className="size-6" aria-hidden="true" /> Sign in
-                  </button>
-                  <button type="button" onClick={() => setScreen("sign-out")} className="flex min-h-20 items-center justify-center gap-3 rounded-2xl border border-border bg-background px-6 text-xl font-semibold text-foreground outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring">
-                    <LogOut className="size-6" aria-hidden="true" /> Sign out
-                  </button>
-                  <p className="text-center text-sm text-muted-foreground">Tap Sign in when you arrive, and Sign out when you leave.</p>
-                </div>
-              ) : (
-              <>
-              <button type="button" onClick={() => { setError(""); setScreen("start") }} className="mb-3 inline-flex items-center gap-1.5 text-sm text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring">
-                <ArrowLeft className="size-4" aria-hidden="true" /> Back
-              </button>
-              <KioskTabs value={screen as KioskTab} onChange={(tab) => { setError(""); setScreen(tab) }} count={onSite.length} />
+            <div className="flex flex-col justify-center gap-8 sm:px-10 lg:px-16">
+              <div>
+                <p className="text-lg text-muted-foreground">Welcome to</p>
+                <h1 className="kiosk-title mt-1 text-[2.25rem] leading-tight sm:text-[3rem]">ABC Company</h1>
+              </div>
+              <div className="flex flex-col gap-3">
+                <button type="button" onClick={() => setScreen("sign-in")} className="flex h-20 items-center justify-center gap-3 rounded-2xl bg-foreground text-xl font-semibold text-background outline-none transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring">
+                  <LogIn className="size-6" aria-hidden="true" /> Sign in
+                </button>
+                <button type="button" onClick={() => setScreen("sign-out")} className="flex h-20 items-center justify-center gap-3 rounded-2xl border border-border bg-background text-xl font-semibold text-foreground outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring">
+                  <LogOut className="size-6" aria-hidden="true" /> Sign out
+                  {onSite.length > 0 && <span className="rounded-full bg-muted px-2.5 py-0.5 text-base font-medium text-muted-foreground">{onSite.length}</span>}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
-              {screen === "sign-in" && (
+        {(screen === "sign-in" || screen === "sign-out") && (
+          <div className="mx-auto flex w-full max-w-xl flex-1 flex-col px-4 py-5 sm:px-8 sm:py-10">
+            <div className="flex items-center justify-between gap-3">
+              <button type="button" onClick={() => { setError(""); setScreen("start") }} className="inline-flex h-10 items-center gap-1.5 rounded-full pr-3 text-base text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring">
+                <ArrowLeft className="size-5" aria-hidden="true" /> Back
+              </button>
+              <span className="truncate text-sm text-muted-foreground">ABC Company</span>
+            </div>
+            <h1 className="kiosk-title mt-6">{screen === "sign-in" ? "Sign in" : "Sign out"}</h1>
+
+            {screen === "sign-in" && (
                 <form onSubmit={signIn} className="flex flex-col">
                   <div className="mt-4 space-y-2.5 sm:mt-5 sm:space-y-3.5">
                     <KioskField icon={<User />} label="Full Name" htmlFor="demo-visitor-name">
@@ -156,16 +164,13 @@ export default function VisitorsDemoPage() {
                   {error && <p className="mt-3 text-sm text-destructive">{error}</p>}
                   <KioskSubmit />
                 </form>
-              )}
+            )}
 
-              {screen === "sign-out" && (
-                <div className="pt-4">
-                  <KioskNameList visitors={onSite} onSignOut={signOut} />
-                </div>
-              )}
-              </>
-              )}
-            </div>
+            {screen === "sign-out" && (
+              <div className="pt-2">
+                <KioskNameList visitors={onSite} onSignOut={signOut} />
+              </div>
+            )}
           </div>
         )}
 
@@ -177,7 +182,7 @@ export default function VisitorsDemoPage() {
           <Confirmation title={`Thanks for visiting${lastName ? `, ${lastName.split(" ")[0]}` : ""}`} text="You're signed out. Have a good day." onDone={done} />
         )}
 
-        <footer className="kiosk-footer">
+        <footer className="px-4 py-4 text-center">
           <PoweredBy>
             <span aria-hidden="true">·</span>
             <button type="button" onClick={() => setSignupOpen(true)} className="underline underline-offset-2 hover:text-foreground">Interested?</button>
