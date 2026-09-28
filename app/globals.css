@@ -322,31 +322,42 @@
     padding: var(--kiosk-pad-y) var(--kiosk-pad-x);
   }
   @media (min-width: 640px) { .kiosk-page { --kiosk-pad-x: 2rem; --kiosk-pad-y: 1.5rem; } }
-  /* Two columns: greeting on the left, front-desk picture on the right. They no
-     longer share a cell, so the text never sits on top of the picture. */
+  /* The front-desk picture is the banner's background, faded out to the left so
+     the greeting reads on top of it. The name sizes itself to fit on one line. */
   .kiosk .kiosk-hero {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
+    position: relative;
+    isolation: isolate;
+    display: flex;
     align-items: center;
-    gap: 1rem;
+    min-height: clamp(9rem, 40vw, 13rem);
   }
   .kiosk .kiosk-hero-art {
-    width: clamp(8rem, 38vw, 18rem);
-    height: auto;
-    border-radius: 0.75rem;
+    position: absolute;
+    top: 0;
+    right: 0;
+    z-index: -1;
+    height: 100%;
+    width: auto;
+    max-width: 75%;
+    aspect-ratio: 240 / 188;
+    opacity: 0.6;
+    -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 70%);
+    mask-image: linear-gradient(to right, transparent 0%, #000 70%);
   }
-  .kiosk .kiosk-welcome { font-size: 1.0625rem; line-height: 1.5rem; color: var(--muted-foreground); }
+  .kiosk .kiosk-hero-text { width: 100%; container-type: inline-size; }
+  .kiosk .kiosk-welcome { font-size: clamp(0.875rem, 3.9vw, 1.0625rem); line-height: 1.5; color: var(--muted-foreground); }
   .kiosk .kiosk-company-name {
     margin-top: 0.125rem;
     font-family: inherit !important;
-    font-size: clamp(1.5rem, 7vw, 1.75rem);
+    /* --chars is the name's length; about 0.6em per bold letter keeps it on one line. */
+    font-size: clamp(1rem, calc(100cqw / (var(--chars, 12) * 0.6)), 2rem);
     line-height: 1.2;
     font-weight: 700 !important;
     letter-spacing: -0.02em;
     color: var(--foreground);
     overflow-wrap: break-word;
   }
-  .kiosk .kiosk-subtitle { margin-top: 0.5rem; font-size: 1rem; line-height: 1.5rem; color: var(--muted-foreground); }
+  .kiosk .kiosk-subtitle { margin-top: 0.5rem; font-size: clamp(0.875rem, 3.9vw, 1rem); line-height: 1.5; color: var(--muted-foreground); text-wrap: balance; }
   .kiosk .kiosk-field-card {
     display: flex;
     align-items: center;

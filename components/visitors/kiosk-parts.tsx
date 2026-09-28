@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, type ReactNode } from "react"
+import { useState, type CSSProperties, type ReactNode } from "react"
 import { ArrowRight, Loader2, LogOut, Search } from "lucide-react"
 
 import { ReceptionIllustration } from "@/components/visitors/reception-illustration"
@@ -12,17 +12,17 @@ function initialsOf(name: string) {
   return words.slice(0, 3).map((word) => word[0]).join("").toUpperCase()
 }
 
-/** The welcome block: greeting on the left, front-desk picture fading in on the right. */
+/** The welcome block: greeting on top of the front-desk picture, which fades in on the right. */
 export function KioskHero({ companyName, logoUrl }: { companyName: string; logoUrl?: string }) {
   return (
     <header className="kiosk-hero relative">
-      <div className="relative py-4 sm:py-10">
+      <div className="kiosk-hero-text py-4 sm:py-10">
         {logoUrl && (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={logoUrl} alt="" className="mb-4 size-12 rounded-xl object-cover" />
         )}
         <p className="kiosk-welcome">Welcome to</p>
-        <h1 className="kiosk-company-name">{companyName}</h1>
+        <h1 className="kiosk-company-name" style={{ "--chars": Math.max(companyName.trim().length, 8) } as CSSProperties}>{companyName}</h1>
         <p className="kiosk-subtitle">Please sign in as a visitor</p>
       </div>
       <ReceptionIllustration initials={initialsOf(companyName || "Welcome")} className="kiosk-hero-art" />
