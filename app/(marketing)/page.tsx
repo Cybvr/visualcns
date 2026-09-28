@@ -2,7 +2,7 @@ import { BookNowModal } from "@/components/book-now-modal"
 import { Footer } from "@/components/footer"
 import { Header } from "@/components/header"
 import { PwaRedirect } from "@/components/pwa-redirect"
-import { HomeAccordion } from "@/components/home-accordion"
+import { HomeSections } from "@/components/home-sections"
 import { getBrandItems } from "@/lib/brands"
 import { getCapabilities } from "@/lib/capabilities"
 import { getBlogPosts } from "@/lib/blog"
@@ -43,7 +43,7 @@ export default function HomePage() {
           </div>
         </section>
         <div className="mx-auto max-w-7xl px-4 pb-8 pt-12 sm:px-8 md:px-20 md:pt-16">
-          <HomeAccordion products={products} capabilities={capabilities} news={news} />
+          <HomeSections products={products} capabilities={capabilities} news={news} />
         </div>
       </main>
       <Footer />
