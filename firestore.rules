@@ -113,6 +113,12 @@ service cloud.firestore {
         || (owns(request.resource.data) && request.resource.data.companyId == companyId);
       allow delete: if agencyAdmin(resource.data);
     }
+    // Trial and Paystack subscription per site. Written only by the server.
+    match /visitorBilling/{companyId} {
+      // A missing record reads as empty, so the dashboard keeps listening until the trial starts.
+      allow read: if signedIn() && (resource == null || agencyAdmin(resource.data) || owns(resource.data));
+      allow write: if false;
+    }
     match /tasks/{id} {
       allow read: if agencyAdmin(resource.data)
         || resource.data.get('isPublic', false) == true

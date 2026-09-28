@@ -18,6 +18,9 @@ const PURPOSES = ["Meeting", "Interview", "Delivery", "Collection", "Maintenance
 /** Back to the sign-in form after a finished sign-in or sign-out, ready for the next person. */
 const RESET_AFTER_MS = 15000
 const STORED_KEY = "visitor-kiosk-key"
+/** The site's trial or subscription ran out. Saved visits wait and are sent once it's paid up. */
+class PausedError extends OfflineError {}
+
 /** How often to retry sending saved sign-ins while offline. */
 const RETRY_EVERY_MS = 30000
 
@@ -106,6 +109,7 @@ export default function VisitorSignInPage() {
     }
     const body = await response.json().catch(() => ({}))
     // A server hiccup is worth retrying; a refusal (bad key, bad data) isn't.
+    if (response.status === 402) throw new PausedError(body.error || "Visitor sign-in is paused.")
     if (response.status >= 500) throw new OfflineError(body.error || "server")
     if (!response.ok) throw new Error(body.error || "Something went wrong. Please try again.")
     return body
@@ -139,7 +143,8 @@ export default function VisitorSignInPage() {
     if (!key) return
     setPending(queued(clientSlug))
     void load().then(flush)
-    const retry = () => void flush()
+    // Also re-checks the screen, so a paused tablet comes back by itself once the site is paid.
+    const retry = () => void load().then(flush)
     const timer = setInterval(retry, RETRY_EVERY_MS)
     window.addEventListener("online", retry)
     return () => {
@@ -197,6 +202,10 @@ export default function VisitorSignInPage() {
       setScreen("signed-in")
       resetSoon()
     } catch (reason) {
+      if (reason instanceof PausedError) {
+        setLoadError(reason.message)
+        return
+      }
       if (reason instanceof OfflineError && info) {
         enqueue(clientSlug, visit)
         setPending(queued(clientSlug))
@@ -226,6 +235,10 @@ export default function VisitorSignInPage() {
       setScreen("signed-out")
       resetSoon()
     } catch (reason) {
+      if (reason instanceof PausedError) {
+        setLoadError(reason.message)
+        return
+      }
       if (reason instanceof OfflineError) {
         enqueue(clientSlug, visit)
         setPending(queued(clientSlug))

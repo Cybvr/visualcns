@@ -1,13 +1,18 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
-import { Copy, ExternalLink, Loader2, LogOut, RefreshCw } from "lucide-react"
+import { useEffect, useMemo, useRef, useState } from "react"
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
+import { Copy, CreditCard, ExternalLink, Loader2, LogOut, RefreshCw } from "lucide-react"
 import { toast } from "sonner"
 
+import { useAuth } from "@/components/auth-provider"
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
-import { kioskUrl, resetKioskKey, visitDay as day, visitTime as time, setKioskEnabled, signOutVisitor, watchKiosk, watchVisitors, type Visitor, type VisitorKiosk } from "@/lib/visitors"
+import { daysLeft, VISITOR_GRACE_DAYS, VISITOR_PRICE_NAIRA, VISITOR_TRIAL_DAYS, visitorAccess, type VisitorBilling } from "@/lib/visitor-billing"
+import { kioskUrl, resetKioskKey, visitDay as day, visitTime as time, setKioskEnabled, signOutVisitor, watchKiosk, watchVisitorBilling, watchVisitors, type Visitor, type VisitorKiosk } from "@/lib/visitors"
+
+const PRICE = `₦${VISITOR_PRICE_NAIRA.toLocaleString("en-NG")}`
 
 /** The company's Visitors tab: who is in now, past visits, and the front-desk tablet link. */
 export function CompanyVisitors({ agencyId, companyId, slug }: { agencyId: string; companyId: string; slug: string }) {
@@ -17,6 +22,13 @@ export function CompanyVisitors({ agencyId, companyId, slug }: { agencyId: strin
   const [retryCount, setRetryCount] = useState(0)
   const [busyId, setBusyId] = useState("")
   const [kioskBusy, setKioskBusy] = useState(false)
+  const [billing, setBilling] = useState<VisitorBilling | null | undefined>(undefined)
+  const [billingBusy, setBillingBusy] = useState(false)
+  const { user } = useAuth()
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  const pathname = usePathname()
+  const verified = useRef(false)
 
   useEffect(() => {
     if (!agencyId || !companyId) return
@@ -27,15 +39,63 @@ export function CompanyVisitors({ agencyId, companyId, slug }: { agencyId: strin
       (reason) => { console.error("Visitor list subscription failed", reason); setError("Visitor list unavailable.") },
     )
     const stopKiosk = watchKiosk(companyId, setKiosk, () => undefined)
+    const stopBilling = watchVisitorBilling(companyId, setBilling, () => setBilling(null))
     return () => {
       stopVisitors()
       stopKiosk()
+      stopBilling()
     }
   }, [agencyId, companyId, retryCount])
 
   const onSite = useMemo(() => (visitors ?? []).filter((visitor) => visitor.status === "on_site"), [visitors])
   const past = useMemo(() => (visitors ?? []).filter((visitor) => visitor.status !== "on_site"), [visitors])
   const link = kiosk?.enabled && kiosk.key ? kioskUrl(slug, kiosk.key) : ""
+
+  async function billingCall(action: "start" | "subscribe" | "verify" | "manage", extra: Record<string, string> = {}) {
+    if (!user) throw new Error("Please sign in again.")
+    const response = await fetch("/api/billing/visitors", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${await user.getIdToken()}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ action, companyId, ...extra }),
+    })
+    const body = await response.json().catch(() => ({}))
+    if (!response.ok) throw new Error(body.error || "Something went wrong. Please try again.")
+    return body as { url?: string }
+  }
+
+  /** Subscribe goes to Paystack's checkout; Manage goes to Paystack's page to change card or cancel. */
+  async function openPaystack(action: "subscribe" | "manage") {
+    setBillingBusy(true)
+    try {
+      const { url } = await billingCall(action)
+      if (url) window.location.assign(url)
+    } catch (reason) {
+      toast.error(reason instanceof Error ? reason.message : "Something went wrong. Please try again.")
+      setBillingBusy(false)
+    }
+  }
+
+  // A tablet switched on before billing existed starts its trial now.
+  useEffect(() => {
+    if (kiosk?.enabled && billing === null && user) void billingCall("start").catch(() => undefined)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [kiosk?.enabled, billing === null, user])
+
+  // Back from Paystack: confirm the payment, then tidy the address bar.
+  useEffect(() => {
+    const reference = searchParams.get("reference") || searchParams.get("trxref")
+    if (!user || !reference || verified.current) return
+    verified.current = true
+    setBillingBusy(true)
+    billingCall("verify", { reference })
+      .then(() => toast.success("Payment received. Visitor sign-in is on."))
+      .catch((reason) => toast.error(reason instanceof Error ? reason.message : "We couldn't confirm the payment."))
+      .finally(() => {
+        setBillingBusy(false)
+        router.replace(`${pathname}?tab=visitors`)
+      })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, searchParams])
 
   async function signOut(visitor: Visitor) {
     setBusyId(visitor.id)
@@ -52,6 +112,8 @@ export function CompanyVisitors({ agencyId, companyId, slug }: { agencyId: strin
     setKioskBusy(true)
     try {
       await setKioskEnabled(agencyId, companyId, enabled, kiosk)
+      // Switching the tablet on for the first time starts the free trial.
+      if (enabled && !billing) await billingCall("start").catch(() => undefined)
     } catch {
       toast.error("Couldn't change the sign-in link. Try again.")
     } finally {
@@ -97,6 +159,7 @@ export function CompanyVisitors({ agencyId, companyId, slug }: { agencyId: strin
             </div>
           </div>
         )}
+        <BillingStatus billing={billing} busy={billingBusy} onSubscribe={() => void openPaystack("subscribe")} onManage={() => void openPaystack("manage")} />
       </section>
 
       {error ? (
@@ -160,6 +223,63 @@ export function CompanyVisitors({ agencyId, companyId, slug }: { agencyId: strin
           </section>
         </>
       )}
+    </div>
+  )
+}
+
+function shortDate(ms: number) {
+  return new Date(ms).toLocaleDateString(undefined, { day: "numeric", month: "short" })
+}
+
+/** Trial, paid or paused, with the one button that fits. */
+function BillingStatus({ billing, busy, onSubscribe, onManage }: { billing: VisitorBilling | null | undefined; busy: boolean; onSubscribe: () => void; onManage: () => void }) {
+  if (billing === undefined) return null
+  const access = billing ? visitorAccess(billing) : null
+  const subscribed = Boolean(billing?.subscriptionCode)
+  const cancelled = billing?.status === "cancelled"
+
+  let title = `${VISITOR_TRIAL_DAYS}-day free trial, then ${PRICE} a month`
+  let detail = "The trial starts when you switch the tablet on."
+  let tone = "text-muted-foreground"
+  if (access?.state === "trial") {
+    const left = daysLeft(access.endsAt)
+    title = `Free trial · ${left} ${left === 1 ? "day" : "days"} left`
+    detail = `Subscribe for ${PRICE} a month to keep the tablet working after ${shortDate(access.endsAt)}.`
+  } else if (access?.state === "active") {
+    title = cancelled ? `Cancelled · works until ${shortDate(access.endsAt)}` : `Paid · ${PRICE} a month`
+    detail = cancelled ? "Subscribe again to keep it going." : `Next payment ${shortDate(billing?.nextPaymentAt?.toMillis?.() ?? access.endsAt)}.`
+    tone = cancelled ? "text-amber-600" : "text-emerald-600"
+  } else if (access?.state === "grace") {
+    const left = daysLeft(access.endsAt)
+    title = billing?.status === "past_due" ? "Payment didn't go through" : "Subscription ended"
+    detail = `The tablet stops in ${left} ${left === 1 ? "day" : "days"} (${VISITOR_GRACE_DAYS}-day grace). Update your card or subscribe again.`
+    tone = "text-amber-600"
+  } else if (access?.state === "paused") {
+    title = "Paused · the tablet is off"
+    detail = `Subscribe for ${PRICE} a month to switch it back on. Past visits are kept.`
+    tone = "text-destructive"
+  }
+
+  const showSubscribe = !access || access.state === "trial" || access.state === "paused" || cancelled || (access.state === "grace" && !subscribed)
+  const showManage = subscribed && !(cancelled && access?.state === "paused")
+
+  return (
+    <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
+      <div className="min-w-0">
+        <p className={`text-sm font-semibold ${tone}`}>{title}</p>
+        <p className="mt-0.5 text-sm text-muted-foreground">{detail}</p>
+      </div>
+      <div className="flex gap-2">
+        {showManage && (
+          <Button type="button" variant="outline" size="sm" onClick={onManage} disabled={busy}>Change card or cancel</Button>
+        )}
+        {showSubscribe && access && (
+          <Button type="button" size="sm" onClick={onSubscribe} disabled={busy} className="bg-primary text-primary-foreground hover:bg-primary/90">
+            {busy ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <CreditCard className="size-4" aria-hidden="true" />}
+            Subscribe · {PRICE}/month
+          </Button>
+        )}
+      </div>
     </div>
   )
 }

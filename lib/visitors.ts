@@ -1,6 +1,7 @@
 import { collection, doc, limit, onSnapshot, orderBy, query, setDoc, Timestamp, updateDoc, where } from "firebase/firestore"
 
 import { db } from "./firebase"
+import type { VisitorBilling } from "./visitor-billing"
 
 /**
  * A person who signed in at a client's front desk. Created only by the
@@ -121,4 +122,13 @@ export async function resetKioskKey(agencyId: string, companyId: string) {
 export function kioskUrl(slug: string, key: string) {
   const origin = typeof window === "undefined" ? "" : window.location.origin
   return `${origin}/${encodeURIComponent(slug)}/sign-in?key=${encodeURIComponent(key)}`
+}
+
+/** The site's trial and subscription, written only by the server. */
+export function watchVisitorBilling(companyId: string, onChange: (billing: VisitorBilling | null) => void, onError: (error: Error) => void) {
+  return onSnapshot(
+    doc(db, "visitorBilling", companyId),
+    (snapshot) => onChange(snapshot.exists() ? (snapshot.data() as VisitorBilling) : null),
+    onError,
+  )
 }
