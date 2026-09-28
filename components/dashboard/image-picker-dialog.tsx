@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Skeleton } from "@/components/ui/skeleton"
 import { Input } from "@/components/ui/input"
 import { createDocument, getDocuments, uploadFileToStorage, type SharedDocument } from "@/lib/documents"
-import { mediaKindForUrl } from "@/lib/media"
+import { mediaKindForUrl, uploadedAtFromUrl } from "@/lib/media"
 import { getOrganizations } from "@/lib/organizations"
 import { getProjects } from "@/lib/projects"
 import { tsToMillis } from "@/lib/tasks"
@@ -20,7 +20,7 @@ const ACCEPTED_IMAGE_TYPES = "image/jpeg,image/png,image/webp"
 /** One pickable image, from Drive or from a company or project page. */
 type PickerImage = { id: string; url: string; thumbnailUrl?: string; title: string; source: string; /** Last updated, in ms, for newest-first order. */ at: number }
 
-/** Company and project images have no date of their own, so they take their page's. */
+/** Fallback date for an image whose link carries no upload time: its page's last update. */
 function updatedMillis(record: { updatedAt?: unknown; createdAt?: unknown }): number {
   return tsToMillis(record.updatedAt) || tsToMillis(record.createdAt)
 }
@@ -51,12 +51,12 @@ async function loadImages(workspaceId: string, allAgency: boolean): Promise<Pick
   const pageImages: PickerImage[] = []
   for (const organization of organizations) {
     const urls = [organization.logoUrl, ...(organization.media ?? [])].filter(isImageUrl)
-    urls.forEach((url, index) => pageImages.push({ id: `org-${organization.id}-${index}`, url, title: url === organization.logoUrl ? "Logo" : "Company image", source: organization.name, at: updatedMillis(organization) }))
+    urls.forEach((url, index) => pageImages.push({ id: `org-${organization.id}-${index}`, url, title: url === organization.logoUrl ? "Logo" : "Company image", source: organization.name, at: uploadedAtFromUrl(url) || updatedMillis(organization) }))
   }
   for (const project of projects) {
     const urls = [project.imageUrl || project.thumbnailUrl, project.logoUrl, ...(project.gallery ?? [])].filter(isImageUrl)
     const source = [companyNames.get(project.companyId), project.title].filter(Boolean).join(" · ")
-    urls.forEach((url, index) => pageImages.push({ id: `project-${project.id}-${index}`, url, title: project.title, source, at: updatedMillis(project) }))
+    urls.forEach((url, index) => pageImages.push({ id: `project-${project.id}-${index}`, url, title: project.title, source, at: uploadedAtFromUrl(url) || updatedMillis(project) }))
   }
 
   // Newest first. The same file linked in two places shows once, at its newest.
