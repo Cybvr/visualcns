@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, type ReactNode } from "react"
 import Image from "next/image"
-import { ChevronRight, Download, Loader2, Printer } from "lucide-react"
+import { ChevronRight, Download, Loader2, Mail, Printer } from "lucide-react"
 
 import {
   AlertDialog,
@@ -266,22 +266,30 @@ export function EditorDeleteCard({
   )
 }
 
-/** Preview and Save, stuck to the bottom of the screen. */
+/** Editor actions, stuck to the bottom of the screen. */
 export function EditorActionBar({
   onPreview,
+  onSend,
   saving,
   saveLabel,
 }: {
   onPreview: () => void
+  onSend?: () => void
   saving: boolean
   saveLabel: string
 }) {
   return (
-    <div className="sticky bottom-0 z-20 -mx-4 mt-2 flex gap-3 border-t border-border bg-background px-4 py-3 sm:rounded-b-2xl">
-      <Button type="button" onClick={onPreview} className="billing-editor-action h-12 rounded-xl bg-primary/10 px-6 text-primary shadow-none hover:bg-primary/15">
+    <div className={cn("sticky bottom-0 z-20 -mx-4 mt-2 gap-2 border-t border-border bg-background px-4 py-3 sm:rounded-b-2xl", onSend ? "grid grid-cols-[1fr_0.9fr_1.4fr] sm:flex" : "flex sm:gap-3")}>
+      <Button type="button" onClick={onPreview} className={cn("billing-editor-action h-12 min-w-0 rounded-xl bg-primary/10 text-primary shadow-none hover:bg-primary/15", onSend ? "px-2 sm:px-6" : "px-6")}>
         Preview
       </Button>
-      <Button type="submit" disabled={saving} className="billing-editor-action h-12 flex-1 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90">
+      {onSend && (
+        <Button type="button" onClick={onSend} disabled={saving} title="Save and open email draft" className="billing-editor-action h-12 min-w-0 rounded-xl bg-primary/10 px-2 text-primary shadow-none hover:bg-primary/15 sm:px-5">
+          <Mail className="hidden size-4 sm:block" aria-hidden="true" />
+          Send
+        </Button>
+      )}
+      <Button type="submit" disabled={saving} className="billing-editor-action h-12 min-w-0 flex-1 rounded-xl bg-primary px-2 text-primary-foreground hover:bg-primary/90 sm:px-4">
         {saving && <Loader2 className="mr-2 size-4 animate-spin" aria-hidden="true" />}
         {saveLabel}
       </Button>

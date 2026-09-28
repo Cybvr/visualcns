@@ -2,7 +2,7 @@
 
 import { pdf, Document, Image as PdfImage, Page, StyleSheet, Text, View } from "@react-pdf/renderer"
 
-import { formatDate, formatMoney, invoiceNotes, invoiceStatusMeta, serviceCompletedLine, type Invoice, type InvoiceParty } from "@/lib/billing"
+import { formatDate, formatMoney, invoiceNotes, invoiceStatusMeta, type Invoice, type InvoiceParty } from "@/lib/billing"
 
 type InvoicePdfIssuer = InvoiceParty & { logoUrl?: string }
 
@@ -168,7 +168,6 @@ export function InvoicePdf({ invoice, issuer }: { invoice: Invoice; issuer?: Inv
 
         <View style={styles.bottomGrid}>
           <View style={styles.notes}>
-            {invoice.serviceCompletedOn && <Text style={[styles.value, { marginBottom: 14 }]}>{serviceCompletedLine(invoice)}</Text>}
             {invoiceNotes(invoice.notes) && <><Text style={styles.value}>Note</Text><Text style={styles.muted}>{invoiceNotes(invoice.notes)}</Text></>}
             {invoice.paymentInstructions && <><Text style={[styles.value, { marginTop: 14 }]}>Payment instructions</Text><Text style={styles.muted}>{invoice.paymentInstructions}</Text></>}
           </View>

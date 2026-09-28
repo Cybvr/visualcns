@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { ArrowLeft, BellRing, Loader2, Mail, Plus, Printer, Share2, X } from "lucide-react"
+import { ArrowLeft, BellRing, Loader2, Plus, Printer, Share2, X } from "lucide-react"
 
 import {
   DepartmentField,
@@ -337,8 +337,7 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate }: {
     setLines((current) => (current.length === 1 ? current : current.filter((line) => line.id !== id)))
   }
 
-  async function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
+  async function saveInvoice(destination: "list" | "email") {
     if (saving) return
 
     if (!companyId) {
@@ -412,15 +411,37 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate }: {
         reminderCc: parseEmailList(reminderCc).valid,
       }
 
-      if (invoice) await updateInvoice(invoice.id, payload)
-      else await createInvoice(payload)
+      const savedId = invoice?.id ?? await createInvoice(payload)
+      if (invoice) await updateInvoice(savedId, payload)
 
-      router.push("/dashboard/invoices")
+      if (destination === "email") {
+        router.push(buildEmailComposeHref({
+          companyId: payload.companyId,
+          companyName: payload.client,
+          recipientEmail: payload.billTo.email,
+          recipientName: payload.billTo.name,
+          projectId: payload.projectId,
+          projectName: payload.project,
+          documentType: "invoice",
+          documentId: savedId,
+          documentTitle: payload.invoiceNumber,
+          subject: `Invoice ${payload.invoiceNumber}`,
+          ctaText: "View invoice",
+          ctaUrl: companyDocumentPath(payload.companyId, "invoice", savedId),
+        }))
+      } else {
+        router.push("/dashboard/invoices")
+      }
     } catch (err) {
       console.error("Error saving invoice:", err)
       setError("Couldn't save this invoice. Try again.")
       setSaving(false)
     }
+  }
+
+  function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    void saveInvoice("list")
   }
 
   async function handleDelete() {
@@ -446,8 +467,7 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate }: {
   const statusMeta = invoiceStatusMeta[status]
   const reminderCcCheck = parseEmailList(reminderCc)
 
-  // Send and Remind open the email tool with a ready draft. They use the saved
-  // invoice, so save changes first.
+  // Remind uses the saved invoice; Send saves current changes before composing.
   const emailContext: EmailComposeContext | null = invoice ? {
     companyId: invoice.companyId,
     companyName: invoice.client,
@@ -483,11 +503,6 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate }: {
           <ArrowLeft className="size-4" aria-hidden="true" />
         </Link>
         <span className="flex-1" />
-        {emailContext && (
-          <Button asChild variant="ghost" size="sm">
-            <Link href={buildEmailComposeHref(emailContext)}><Mail className="size-4" aria-hidden="true" />Send</Link>
-          </Button>
-        )}
         {reminderContext && (
           <Button asChild variant="ghost" size="sm">
             <Link href={buildEmailComposeHref(reminderContext)}><BellRing className="size-4" aria-hidden="true" />Remind</Link>
@@ -851,7 +866,7 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate }: {
 
       {error && <p className="px-1 text-destructive">{error}</p>}
 
-      <EditorActionBar onPreview={() => setPreviewOpen(true)} saving={saving} saveLabel={isEdit ? "Save invoice" : "Create invoice"} />
+      <EditorActionBar onPreview={() => setPreviewOpen(true)} onSend={() => void saveInvoice("email")} saving={saving} saveLabel={isEdit ? "Save invoice" : "Create invoice"} />
 
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
         <DialogContent className="w-[calc(100vw-0.5rem)] max-h-[calc(100vh-0.5rem)] max-w-5xl overflow-hidden p-2 print:hidden sm:p-6">

@@ -264,11 +264,6 @@ export function invoiceNotes(notes?: string): string {
   return (notes ?? "").replace(DEFAULT_ESTIMATE_NOTES, "").trim()
 }
 
-/** "The services listed above were completed on 25 Sep 2026." Empty when no date is set. */
-export function serviceCompletedLine(invoice: { serviceCompletedOn?: string }): string {
-  return invoice.serviceCompletedOn ? `The services listed above were completed on ${formatDate(invoice.serviceCompletedOn)}.` : ""
-}
-
 export function formatDate(value?: string): string {
   if (!value) return "—"
   const date = new Date(`${value}T00:00:00`)

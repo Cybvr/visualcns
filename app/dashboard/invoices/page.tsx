@@ -112,7 +112,7 @@ const INVOICE_SORTS: SortOption<Invoice>[] = [
 ]
 
 function searchInvoice(i: Invoice) {
-  return [i.invoiceNumber, i.client, i.companyId, i.project, i.poReference, invoiceStatusMeta[i.status]?.label]
+  return [i.invoiceNumber, i.title, i.client, i.companyId, i.project, i.poReference, invoiceStatusMeta[i.status]?.label]
 }
 
 export default function InvoicesPage() {
@@ -297,12 +297,13 @@ export default function InvoicesPage() {
                       <MobileDataCard
                         key={invoice.id}
                         href={href}
-                        ariaLabel={`Open invoice ${invoice.invoiceNumber}`}
+                        ariaLabel={`Open invoice ${invoice.title || invoice.invoiceNumber}`}
                         title={
-                          <span className="truncate">{adminView ? invoice.title || "—" : invoice.invoiceNumber}</span>
+                          <span className="truncate">{invoice.title || "Untitled invoice"}</span>
                         }
                         subtitle={
                           <span className="flex flex-col gap-1">
+                            <span className="truncate">{invoice.invoiceNumber}</span>
                             <span className="flex items-center justify-between gap-2">
                               <span className="truncate">{adminView ? organizationNameById.get(invoice.companyId) || "—" : invoice.project || formatDate(invoice.issuedOn)} · Due {formatDate(invoice.dueOn)}</span>
                               <span className={cn("shrink-0 rounded-full px-1.5 py-px text-[10px] font-medium", meta.className)}>{meta.label}</span>
@@ -342,10 +343,9 @@ export default function InvoicesPage() {
                         />
                       </TableHead>
                     )}
-                    <TableHead className="w-[16%]">Invoice no.</TableHead>
-                    {adminView && <TableHead className="w-[18%]">Title</TableHead>}
+                    <TableHead className="w-[14%]">Invoice no.</TableHead>
+                    <TableHead className="w-[30%]">Title</TableHead>
                     {adminView && <TableHead className="w-[14%]">Client</TableHead>}
-                    <TableHead className="w-[20%]">Project</TableHead>
                     <TableHead className="w-[11%]">Issued</TableHead>
                     <TableHead className="w-[11%]">Due</TableHead>
                     <TableHead className="w-[10%]">Status</TableHead>
@@ -369,15 +369,15 @@ export default function InvoicesPage() {
                             />
                           </TableCell>
                         )}
+                        <TableCell className="max-w-0"><span className="block truncate" title={invoice.invoiceNumber}>{invoice.invoiceNumber}</span></TableCell>
                         <TableCell className="max-w-0 font-medium">
                           <Link
                             href={`/dashboard/invoices/${invoice.id}`}
                             className="block truncate rounded-sm outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring"
                           >
-                            {invoice.invoiceNumber}
+                            {invoice.title || "Untitled invoice"}
                           </Link>
                         </TableCell>
-                        {adminView && <TableCell className="max-w-0"><span className="block truncate">{invoice.title || "—"}</span></TableCell>}
                         {adminView && (
                           <TableCell className="max-w-0">
                             {invoice.companyId && organizationNameById.has(invoice.companyId) ? (
@@ -393,18 +393,6 @@ export default function InvoicesPage() {
                             )}
                           </TableCell>
                         )}
-                        <TableCell className="max-w-0">
-                          {invoice.projectId ? (
-                            <Link
-                              href={`/dashboard/projects/${invoice.projectId}`}
-                              className="block truncate rounded-sm outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring"
-                            >
-                              {invoice.project || "Project"}
-                            </Link>
-                          ) : (
-                            "—"
-                          )}
-                        </TableCell>
                         <TableCell className="whitespace-nowrap">{formatDate(invoice.issuedOn)}</TableCell>
                         <TableCell className="whitespace-nowrap">{formatDate(invoice.dueOn)}</TableCell>
                         <TableCell className="whitespace-nowrap">
