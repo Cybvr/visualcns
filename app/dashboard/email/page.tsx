@@ -45,7 +45,7 @@ import { deleteEmailList, getEmailLists, saveEmailList, type EmailContactList } 
 import { deleteEmailDraft, getEmailDrafts, saveEmailDraft, type EmailDraftRecord } from "@/lib/email-drafts"
 import { deleteEmailMessage, getAllEmailMessages, getEmailMessages, saveEmailMessage, updateEmailMessageStatus, type EmailMessageRecord, type EmailRecipient } from "@/lib/email-messages"
 import { getHiddenReceivedIds, hideReceivedEmail } from "@/lib/email-received-hidden"
-import { contextualEmailBody, readEmailComposeContext, type EmailComposeContext } from "@/lib/email-composer"
+import { contextualEmailBody, parseEmailList, readEmailComposeContext, type EmailComposeContext } from "@/lib/email-composer"
 import { getBusinessProfile, type BusinessProfile } from "@/lib/business-profile"
 import { deleteEmailTemplate, getEmailTemplates, saveEmailTemplate } from "@/lib/email-templates-store"
 import { markdownToHtml } from "@/lib/markdown"
@@ -278,6 +278,7 @@ export default function EmailPage() {
   const [businessProfile, setBusinessProfile] = useState<BusinessProfile | null>(null)
 
   const [to, setTo] = useState("")
+  const [cc, setCc] = useState("")
   const [selectedListId, setSelectedListId] = useState("")
   const [subject, setSubject] = useState("")
   const [body, setBody] = useState("")
@@ -697,6 +698,7 @@ export default function EmailPage() {
     setComposeMinimized(false)
     setPreview(null)
     setTo(nextContext.recipientEmail || "")
+    setCc(nextContext.cc || "")
     setSelectedListId("")
     setSubject(nextContext.subject || "")
     setBody(nextContext.body || contextualEmailBody(nextContext))
@@ -788,6 +790,7 @@ export default function EmailPage() {
     setLoadingMessageId(null)
     setMessageViewError("")
     setTo("")
+    setCc("")
     setSelectedListId("")
     setSubject("")
     setBody("")
@@ -831,6 +834,7 @@ export default function EmailPage() {
       companyId: workspaceId,
       createdBy: user.uid,
       to: to.trim() || undefined,
+      cc: cc.trim() || undefined,
       listId: selectedListId || undefined,
       subject: subject.trim() || undefined,
       body: body || undefined,
@@ -859,7 +863,7 @@ export default function EmailPage() {
     setDraftStatus("saving")
     const timer = window.setTimeout(() => { void saveDraft() }, 800)
     return () => window.clearTimeout(timer)
-  }, [body, composeContext, messageKind, selectedListId, subject, to, user?.uid])
+  }, [body, cc, composeContext, messageKind, selectedListId, subject, to, user?.uid])
 
   function loadDraft(draft: EmailDraftRecord) {
     setMessageViewError("")
@@ -867,6 +871,7 @@ export default function EmailPage() {
     setComposerPreviewOpen(false)
     setPreview(null)
     setTo(draft.to || "")
+    setCc(draft.cc || "")
     setSelectedListId(draft.listId || "")
     setSubject(draft.subject || "")
     setBody(draft.body || "")
@@ -1021,6 +1026,12 @@ export default function EmailPage() {
       return
     }
 
+    const ccList = parseEmailList(messageKind === "transactional" ? cc : "")
+    if (ccList.invalid.length) {
+      setSendNotice({ tone: "error", text: `Check the Cc addresses: ${ccList.invalid.join(", ")}` })
+      return
+    }
+
     let scheduledAtIso = ""
     if (scheduleEnabled) {
       const when = new Date(scheduleAt)
@@ -1059,6 +1070,8 @@ export default function EmailPage() {
         },
         body: JSON.stringify({
           to: selectedList ? selectedList.contactEmails : to,
+          cc: ccList.valid.length ? ccList.valid : undefined,
+          intent: composeContext?.intent,
           type: messageKind,
           subject: trimmedSubject,
           text: textBody,
@@ -1074,7 +1087,7 @@ export default function EmailPage() {
           scheduledAt: scheduledAtIso || undefined,
         }),
       })
-      const result = (await response.json()) as { id?: string; html?: string; text?: string; replyTo?: string | null; suppressedCount?: number; scheduledAt?: string | null; error?: string }
+      const result = (await response.json()) as { id?: string; html?: string; text?: string; replyTo?: string | null; suppressedCount?: number; scheduledAt?: string | null; cc?: string[]; error?: string }
 
       if (!response.ok || !result.id) {
         throw new Error(result.error || "The message could not be sent.")
@@ -1084,6 +1097,7 @@ export default function EmailPage() {
         id: result.id as string,
         providerId: result.id as string,
         to: selectedList ? `${selectedList.name} (${selectedList.contactEmails.length})` : to.trim(),
+        cc: result.cc?.length ? result.cc : undefined,
         subject: trimmedSubject,
         createdAt: new Date().toISOString(),
         from: senderAddress || undefined,
@@ -1113,6 +1127,7 @@ export default function EmailPage() {
       }
       setMessages((current) => [sentMessage, ...current])
       setTo("")
+      setCc("")
       setSelectedListId("")
       setSubject("")
       setBody("")
@@ -1541,6 +1556,8 @@ export default function EmailPage() {
         contactInitials={contactInitials}
         contactAvatarTone={contactAvatarTone}
         to={to}
+        cc={cc}
+        setCc={setCc}
         recipientEmail={recipientEmail}
         selectedListId={selectedListId || ""}
         setSelectedListId={setSelectedListId}

@@ -20,6 +20,8 @@ export type EmailMessageRecord = {
   createdBy: string
   providerId: string
   to: string
+  /** People copied on the email. */
+  cc?: string[]
   subject: string
   createdAt: string
   from?: string

@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { ArrowLeft, Loader2, Plus, Printer, Share2, X } from "lucide-react"
+import { ArrowLeft, BellRing, Loader2, Mail, Plus, Printer, Share2, X } from "lucide-react"
 
 import {
   DepartmentField,
@@ -18,6 +18,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Switch } from "@/components/ui/switch"
 import {
   Select,
   SelectContent,
@@ -47,6 +48,9 @@ import { ShareLinkField } from "@/components/dashboard/share-link-field"
 import { InvoiceDocument } from "@/components/dashboard/invoice-document"
 import { downloadInvoicePdf } from "@/components/dashboard/invoice-pdf"
 import { DocumentPreviewFrame } from "@/components/dashboard/document-preview-frame"
+import { buildEmailComposeHref, parseEmailList, type EmailComposeContext } from "@/lib/email-composer"
+import { invoiceIsOpen, reminderBody, reminderSubject } from "@/lib/invoice-reminders"
+import { companyDocumentPath } from "@/lib/navigation"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
 const CURRENCIES = [
@@ -172,6 +176,8 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate }: {
   const [paymentInstructions, setPaymentInstructions] = useState(invoice?.paymentInstructions ?? initialEstimate?.paymentDetails ?? "")
 
   const [shareEnabled, setShareEnabled] = useState(invoice?.shareEnabled ?? initialEstimate?.shareEnabled ?? false)
+  const [autoReminders, setAutoReminders] = useState(invoice?.autoReminders ?? false)
+  const [reminderCc, setReminderCc] = useState((invoice?.reminderCc ?? []).join(", "))
 
   const [clients, setClients] = useState<Organization[]>([])
   const [projects, setProjects] = useState<Project[]>([])
@@ -311,6 +317,8 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate }: {
     paymentInstructions,
     url,
     shareEnabled,
+    autoReminders,
+    reminderCc: parseEmailList(reminderCc).valid,
   }
 
   function updateLine(id: string, patch: Partial<DraftLine>) {
@@ -391,6 +399,8 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate }: {
         paymentInstructions: paymentInstructions.trim(),
         url: url.trim(),
         shareEnabled,
+        autoReminders,
+        reminderCc: parseEmailList(reminderCc).valid,
       }
 
       if (invoice) await updateInvoice(invoice.id, payload)
@@ -425,6 +435,32 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate }: {
   }
 
   const statusMeta = invoiceStatusMeta[status]
+  const reminderCcCheck = parseEmailList(reminderCc)
+
+  // Send and Remind open the email tool with a ready draft. They use the saved
+  // invoice, so save changes first.
+  const emailContext: EmailComposeContext | null = invoice ? {
+    companyId: invoice.companyId,
+    companyName: invoice.client,
+    recipientEmail: invoice.billTo?.email,
+    recipientName: invoice.billTo?.name,
+    projectId: invoice.projectId,
+    projectName: invoice.project,
+    documentType: "invoice",
+    documentId: invoice.id,
+    documentTitle: invoice.invoiceNumber,
+    subject: `Invoice ${invoice.invoiceNumber}`,
+    ctaText: "View invoice",
+    ctaUrl: companyDocumentPath(invoice.companyId, "invoice", invoice.id),
+  } : null
+  const reminderContext: EmailComposeContext | null = invoice && emailContext && invoiceIsOpen(invoice) ? {
+    ...emailContext,
+    subject: reminderSubject(invoice),
+    body: reminderBody(invoice),
+    cc: (invoice.reminderCc ?? []).join(", "),
+    ctaText: "View and pay",
+    intent: "reminder",
+  } : null
 
   return (
     <>
@@ -438,6 +474,16 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate }: {
           <ArrowLeft className="size-4" aria-hidden="true" />
         </Link>
         <span className="flex-1" />
+        {emailContext && (
+          <Button asChild variant="ghost" size="sm">
+            <Link href={buildEmailComposeHref(emailContext)}><Mail className="size-4" aria-hidden="true" />Send</Link>
+          </Button>
+        )}
+        {reminderContext && (
+          <Button asChild variant="ghost" size="sm">
+            <Link href={buildEmailComposeHref(reminderContext)}><BellRing className="size-4" aria-hidden="true" />Remind</Link>
+          </Button>
+        )}
         <Button type="button" variant="ghost" size="icon" title="Share invoice" aria-label="Share invoice" onClick={() => setShareOpen(true)}>
           <Share2 className="size-4" aria-hidden="true" />
         </Button>
@@ -573,6 +619,35 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate }: {
             </EditorField>
           </div>
           <p className="text-muted-foreground">Due {dueOn || "—"}</p>
+        </div>
+      </EditorCard>
+
+      <EditorCard title="Reminders">
+        <div className="space-y-3">
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <Label htmlFor="auto-reminders">Send reminders automatically</Label>
+              <p className="mt-1 text-muted-foreground">3 days before the due date, on the due date, then 7 and 14 days late. Stops once it’s paid.</p>
+            </div>
+            <Switch id="auto-reminders" checked={autoReminders} onCheckedChange={setAutoReminders} />
+          </div>
+          <EditorField label="Copy on reminders" htmlFor="reminder-cc">
+            <Input
+              id="reminder-cc"
+              type="text"
+              inputMode="email"
+              value={reminderCc}
+              onChange={(event) => setReminderCc(event.target.value)}
+              placeholder="Add emails, separated by commas"
+            />
+          </EditorField>
+          {reminderCcCheck.invalid.length > 0 && <p className="text-destructive">Not an email: {reminderCcCheck.invalid.join(", ")}</p>}
+          {invoice?.lastReminderAt && (
+            <p className="text-muted-foreground">
+              Last reminder {new Date(invoice.lastReminderAt).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}
+              {invoice.reminderCount ? ` · ${invoice.reminderCount} sent` : ""}
+            </p>
+          )}
         </div>
       </EditorCard>
 

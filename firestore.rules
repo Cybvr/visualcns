@@ -186,7 +186,7 @@ service cloud.firestore {
           'agencyId',
           'createdAt', 'from', 'replyTo', 'bodyHtml', 'bodyText', 'recipients',
           'projectId', 'projectName', 'documentType', 'documentId', 'documentTitle',
-          'companyName', 'messageKind', 'status'
+          'companyName', 'messageKind', 'status', 'cc'
         ])
         && request.resource.data.id == id
         && request.resource.data.providerId is string

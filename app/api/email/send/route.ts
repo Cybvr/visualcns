@@ -6,31 +6,11 @@ import { normalizeSubscriptionEmail, subscriptionDocumentId, unsubscribeUrl } fr
 import { markdownToHtml } from "@/lib/markdown"
 import { getAgencySecret, recordAgencyUsage } from "@/lib/server/agency-secrets"
 import { requireAgencyId } from "@/lib/require-agency-id"
+import { parseEmailList } from "@/lib/email-composer"
+import { SITE_ORIGIN, X_URL, LINKEDIN_URL, absoluteWebUrl, brandedEmail, escapeHtml, extractEmailAddress, normalizeEmailAddress, safeBrandValue } from "@/lib/server/email-branding"
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-const SITE_ORIGIN = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") || "https://www.visualcns.com"
-const X_URL = "https://x.com/visualcns"
-const LINKEDIN_URL = "https://www.linkedin.com/company/visualng"
-
-function normalizeEmailAddress(value: string) {
-  const normalized = value
-    .replace(/(?:&nbsp;|&#(?:x0*a0|160|x0*20|32);)/gi, " ")
-    .replace(/[\u00a0\u2007\u202f]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-  // Strip a wrapping pair of quotes, e.g. EMAIL_FROM set as
-  // "VisualCNS <hello@mail.visualcns.com>" \u2014 Resend rejects the quoted whole.
-  if (normalized.length >= 2 && /^(["']).*\1$/.test(normalized)) {
-    return normalized.slice(1, -1).trim()
-  }
-  return normalized
-}
-
-function extractEmailAddress(value: string) {
-  const normalized = normalizeEmailAddress(value)
-  const match = normalized.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)
-  return match?.[0] || normalized
-}
+const MAX_CC = 20
 
 type FirebaseLookupResponse = {
   users?: Array<{ localId?: string }>
@@ -57,117 +37,12 @@ type EmailContext = {
   projectId?: string
   documentType?: string
   documentId?: string
+  intent?: "reminder"
 }
 
 type WelcomeClaim = {
   uid: string
   db: ReturnType<typeof adminServices>["db"]
-}
-
-type EmailBrand = {
-  name: string
-  email: string
-  phone: string
-  address: string
-  website: string
-  logoUrl: string
-}
-
-function escapeHtml(value: string) {
-  return value.replace(/[&<>"']/g, (character) => ({
-    "&": "&amp;",
-    "<": "&lt;",
-    ">": "&gt;",
-    '"': "&quot;",
-    "'": "&#39;",
-  })[character] as string)
-}
-
-function safeBrandValue(value: unknown, fallback = "") {
-  return typeof value === "string" ? value.trim().slice(0, 500) : fallback
-}
-
-function absoluteWebUrl(value: string, fallback: string) {
-  const candidate = value.startsWith("/") ? `${SITE_ORIGIN}${value}` : value
-  try {
-    const url = new URL(candidate || fallback)
-    return url.protocol === "http:" || url.protocol === "https:" ? url.toString() : fallback
-  } catch {
-    return fallback
-  }
-}
-
-function brandedEmail(content: string, subject: string, input: unknown, senderAddress: string, ctaInput: unknown, unsubscribeLink = "") {
-  const source = input && typeof input === "object" ? input as Record<string, unknown> : {}
-  const brand: EmailBrand = {
-    name: safeBrandValue(source.name, "VisualCNS") || "VisualCNS",
-    email: extractEmailAddress(senderAddress || safeBrandValue(source.email, "info@visualcns.com")),
-    phone: safeBrandValue(source.phone),
-    address: safeBrandValue(source.address, "Lagos, Nigeria"),
-    website: safeBrandValue(source.website, "visualcns.com"),
-    logoUrl: safeBrandValue(source.logoUrl, `${SITE_ORIGIN}/visualcns-email-logo.png`) || `${SITE_ORIGIN}/visualcns-email-logo.png`,
-  }
-  const websiteUrl = absoluteWebUrl(brand.website, SITE_ORIGIN)
-  const ctaSource = ctaInput && typeof ctaInput === "object" ? ctaInput as Record<string, unknown> : {}
-  const ctaText = safeBrandValue(ctaSource.text, "Open your company page") || "Open your company page"
-  const ctaUrl = absoluteWebUrl(safeBrandValue(ctaSource.url), `${SITE_ORIGIN}/`)
-  const contactItems = brand.address ? escapeHtml(brand.address) : ""
-  const websiteLink = brand.website
-    ? `<a href="${escapeHtml(websiteUrl)}" style="color:#5f6472;text-decoration:underline;">${escapeHtml(brand.website)}</a>`
-    : ""
-  const unsubscribeMarkup = unsubscribeLink
-    ? `<div style="margin-top:12px;"><a href="${escapeHtml(unsubscribeLink)}" style="color:#5f6472;text-decoration:underline;">Unsubscribe from marketing emails</a></div>`
-    : ""
-  const preheader = escapeHtml(subject).slice(0, 140)
-
-  return `<!doctype html>
-<html lang="en">
-  <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-  <body style="margin:0;padding:0;background:#f3f4f7;color:#20232d;font-family:Arial,Helvetica,sans-serif;">
-    <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">${preheader}</div>
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;background:#f3f4f7;">
-      <tr>
-        <td align="center" style="padding:28px 12px;">
-          <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:600px;background:#ffffff;border:0;border-radius:0;overflow:visible;">
-            <tr>
-              <td style="padding:22px 28px;">
-                <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
-                  <td style="vertical-align:middle;height:56px;line-height:0;"><img src="${escapeHtml(brand.logoUrl)}" width="320" alt="${escapeHtml(brand.name)}" style="display:block;width:320px;max-width:100%;height:auto;max-height:56px;object-fit:contain;object-position:left center;border:0;"></td>
-                </tr></table>
-              </td>
-            </tr>
-            <tr>
-              <td style="padding:8px 28px 12px;font-size:15px;line-height:1.65;color:#303440;overflow-wrap:anywhere;">${content}</td>
-            </tr>
-            <tr>
-              <td style="padding:0 28px 30px;">
-                <a href="${escapeHtml(ctaUrl)}" style="display:inline-block;background:#111318;border-radius:999px;color:#ffffff;padding:12px 20px;font-size:14px;font-weight:700;line-height:20px;text-decoration:none;">${escapeHtml(ctaText)}</a>
-              </td>
-            </tr>
-            <tr>
-              <td style="padding:20px 28px;background:#f8f8fa;border-top:1px solid #e7e8ec;font-size:12px;line-height:1.6;color:#6d7280;">
-                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
-                  <tr>
-                    <td style="vertical-align:top;text-align:left;">
-                      <div style="font-weight:700;color:#303440;">${escapeHtml(brand.name)}</div>
-                      ${contactItems ? `<div style="margin-top:4px;">${contactItems}</div>` : ""}
-                      ${websiteLink ? `<div style="margin-top:4px;">${websiteLink}</div>` : ""}
-                      ${unsubscribeMarkup}
-                    </td>
-                    <td style="vertical-align:top;text-align:right;white-space:nowrap;">
-                      <a href="${X_URL}" aria-label="X" style="display:inline-block;margin-left:12px;color:#303440;font-weight:700;text-decoration:none;">X</a>
-                      <a href="${LINKEDIN_URL}" aria-label="LinkedIn" style="display:inline-block;margin-left:12px;color:#303440;font-weight:700;text-decoration:none;">in</a>
-                    </td>
-                  </tr>
-                </table>
-              </td>
-            </tr>
-          </table>
-        </td>
-      </tr>
-    </table>
-  </body>
-</html>`
 }
 
 async function hasValidFirebaseSession(idToken: string) {
@@ -236,14 +111,21 @@ async function markContextAsSent(db: ReturnType<typeof adminServices>["db"], con
   }
   const collectionName = collectionByType[context.documentType]
   if (!collectionName) return
-  const patch = ["invoice", "estimate", "contract", "document", "companyDocument"].includes(context.documentType)
-    ? { status: "sent", lastEmailSentAt: new Date().toISOString() }
-    : context.documentType === "task"
-      ? { lastNotifiedAt: new Date().toISOString() }
-      : { lastCommunicationAt: new Date().toISOString() }
   const ref = db.collection(collectionName).doc(context.documentId)
   const snapshot = await ref.get()
-  if (!snapshot.exists || snapshot.data()?.agencyId !== agencyId) return
+  const current = snapshot.data()
+  if (!snapshot.exists || current?.agencyId !== agencyId) return
+  const now = new Date().toISOString()
+  let patch: Record<string, unknown>
+  if (context.intent === "reminder" && context.documentType === "invoice") {
+    // A reminder is a nudge about an invoice already sent: count it, keep the status.
+    patch = { lastReminderAt: now, lastEmailSentAt: now, reminderCount: FieldValue.increment(1) }
+  } else if (["invoice", "estimate", "contract", "document", "companyDocument"].includes(context.documentType)) {
+    // Only a draft moves to "sent"; never undo paid, overdue, signed or accepted.
+    patch = !current?.status || current.status === "draft" ? { status: "sent", lastEmailSentAt: now } : { lastEmailSentAt: now }
+  } else {
+    patch = context.documentType === "task" ? { lastNotifiedAt: now } : { lastCommunicationAt: now }
+  }
   await ref.set(patch, { merge: true })
 }
 
@@ -343,7 +225,7 @@ export async function POST(request: Request) {
   let from = normalizeEmailAddress(process.env.EMAIL_FROM || "")
   let replyTo = normalizeEmailAddress(process.env.EMAIL_REPLY_TO || "") || from
 
-  let payload: { to?: unknown; subject?: unknown; text?: unknown; html?: unknown; imageUrl?: unknown; brand?: unknown; cta?: unknown; type?: unknown; welcome?: unknown; templateId?: unknown; companyId?: unknown; projectId?: unknown; documentType?: unknown; documentId?: unknown; scheduledAt?: unknown }
+  let payload: { to?: unknown; cc?: unknown; intent?: unknown; subject?: unknown; text?: unknown; html?: unknown; imageUrl?: unknown; brand?: unknown; cta?: unknown; type?: unknown; welcome?: unknown; templateId?: unknown; companyId?: unknown; projectId?: unknown; documentType?: unknown; documentId?: unknown; scheduledAt?: unknown }
   try {
     payload = (await request.json()) as typeof payload
   } catch {
@@ -354,6 +236,7 @@ export async function POST(request: Request) {
     .filter((value): value is string => typeof value === "string")
     .map((value) => value.trim())
     .filter(Boolean)
+  const ccInput = parseEmailList(Array.isArray(payload.cc) ? payload.cc.filter((value): value is string => typeof value === "string") : typeof payload.cc === "string" ? payload.cc : undefined)
   let subject = typeof payload.subject === "string" ? payload.subject.trim() : ""
   let text = typeof payload.text === "string" ? payload.text.trim() : ""
   let requestedHtml = typeof payload.html === "string" ? payload.html.trim() : ""
@@ -368,6 +251,7 @@ export async function POST(request: Request) {
     projectId: typeof payload.projectId === "string" ? payload.projectId.trim() : undefined,
     documentType: typeof payload.documentType === "string" ? payload.documentType.trim() : undefined,
     documentId: typeof payload.documentId === "string" ? payload.documentId.trim() : undefined,
+    intent: payload.intent === "reminder" ? "reminder" : undefined,
   }
 
   let scheduledAtIso = ""
@@ -390,6 +274,16 @@ export async function POST(request: Request) {
   }
   if (recipients.length > 50) {
     return NextResponse.json({ error: "A contact list can contain no more than 50 recipients per send." }, { status: 400 })
+  }
+  if (ccInput.invalid.length) {
+    return NextResponse.json({ error: `Check the Cc addresses: ${ccInput.invalid.join(", ")}` }, { status: 400 })
+  }
+  const cc = ccInput.valid.filter((email) => !recipients.some((recipient) => recipient.toLowerCase() === email))
+  if (cc.length > MAX_CC) {
+    return NextResponse.json({ error: `You can copy up to ${MAX_CC} people.` }, { status: 400 })
+  }
+  if (cc.length && (messageKind === "marketing" || isWelcome)) {
+    return NextResponse.json({ error: "Cc only works on regular emails, not marketing or welcome emails." }, { status: 400 })
   }
   if (isWelcome && (messageKind !== "transactional" || recipients.length !== 1)) {
     return NextResponse.json({ error: "A welcome email must be a single transactional message." }, { status: 400 })
@@ -494,7 +388,7 @@ export async function POST(request: Request) {
     safeBrandValue(brandSource.website, "visualcns.com"),
   ].filter(Boolean).join(" · ")
 
-  async function sendOne(to: string[], unsubscribeEmail?: string) {
+  async function sendOne(to: string[], unsubscribeEmail?: string, copy: string[] = []) {
     const unsubscribeLink = unsubscribeEmail ? unsubscribeUrl(unsubscribeEmail) : ""
     const html = brandedEmail(messageContent, subject, payload.brand, from, payload.cta, unsubscribeLink)
     const brandedText = `${text}\n\n${ctaText}: ${ctaUrl}\n\n---\n${footerText}\nX: ${X_URL}\nLinkedIn: ${LINKEDIN_URL}${unsubscribeLink ? `\nUnsubscribe: ${unsubscribeLink}` : ""}`
@@ -509,6 +403,7 @@ export async function POST(request: Request) {
       body: JSON.stringify({
         from,
         to,
+        ...(copy.length ? { cc: copy } : {}),
         subject,
         text: brandedText,
         html,
@@ -558,7 +453,7 @@ export async function POST(request: Request) {
 
   let attempt: Awaited<ReturnType<typeof sendOne>>
   try {
-    attempt = await sendOne(recipients)
+    attempt = await sendOne(recipients, undefined, cc)
   } catch {
     if (welcomeClaim) await releaseWelcomeEmail(welcomeClaim).catch(() => undefined)
     return NextResponse.json({ error: "The email provider could not be reached. Try again." }, { status: 502 })
@@ -578,6 +473,6 @@ export async function POST(request: Request) {
   if (welcomeClaim) {
     try { await completeWelcomeEmail(welcomeClaim) } catch { /* The claim expires and can be retried if persistence is temporarily unavailable. */ }
   }
-  void recordAgencyUsage(agencyId, "emailsSent", recipients.length).catch(() => undefined)
-  return NextResponse.json({ id: attempt.result.id, html: attempt.html, text: attempt.brandedText, replyTo: replyTo || null, scheduledAt: scheduledAtIso || null, context })
+  void recordAgencyUsage(agencyId, "emailsSent", recipients.length + cc.length).catch(() => undefined)
+  return NextResponse.json({ id: attempt.result.id, html: attempt.html, text: attempt.brandedText, replyTo: replyTo || null, scheduledAt: scheduledAtIso || null, cc, context })
 }

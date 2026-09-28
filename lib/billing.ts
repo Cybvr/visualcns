@@ -86,6 +86,15 @@ export interface Invoice {
   url?: string
   /** Readable without an account at /share/invoices/{id} once turned on. */
   shareEnabled?: boolean
+  /** Send reminder emails on a schedule until the invoice is paid. Off unless turned on. */
+  autoReminders?: boolean
+  /** Extra people copied on reminder emails, manual and automatic. */
+  reminderCc?: string[]
+  /** Automatic reminder stages already sent, so each goes out once. */
+  remindersSent?: string[]
+  lastReminderAt?: string
+  reminderCount?: number
+  lastEmailSentAt?: string
   createdAt?: Timestamp
   updatedAt?: Timestamp
 }
@@ -180,17 +189,7 @@ export const estimateStatusMeta: Record<EstimateStatus, { label: string; classNa
   expired: { label: "Expired", className: "bg-muted text-muted-foreground" },
 }
 
-export function formatMoney(amount: number, currency: string): string {
-  try {
-    return new Intl.NumberFormat("en", {
-      style: "currency",
-      currency: currency || "USD",
-      minimumFractionDigits: 2,
-    }).format((amount ?? 0) / 100)
-  } catch {
-    return `${((amount ?? 0) / 100).toFixed(2)} ${currency || ""}`.trim()
-  }
-}
+export { formatMoney } from "./money"
 
 /** Who the invoice is from. Printed at the top of every invoice. */
 export const INVOICE_ISSUER: InvoiceParty = {

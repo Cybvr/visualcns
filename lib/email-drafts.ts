@@ -11,6 +11,8 @@ export type EmailDraftRecord = {
   companyId: string
   createdBy: string
   to?: string
+  /** Comma-separated addresses to copy. */
+  cc?: string
   listId?: string
   subject?: string
   body?: string

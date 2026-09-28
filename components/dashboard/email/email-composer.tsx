@@ -45,6 +45,9 @@ export type EmailComposerProps = {
   contactInitials: (name: string, email: string) => string
   contactAvatarTone: (value: string) => string
   to: string
+  /** Comma-separated addresses to copy. */
+  cc: string
+  setCc: (value: string) => void
   recipientEmail: (value: string) => string
   selectedListId: string
   setSelectedListId: (value: string) => void
@@ -99,6 +102,8 @@ export function EmailComposer({
   contactInitials,
   contactAvatarTone,
   to,
+  cc,
+  setCc,
   recipientEmail,
   selectedListId,
   setSelectedListId,
@@ -179,6 +184,12 @@ export function EmailComposer({
                 <Select value={selectedListId || "none"} onValueChange={(value) => { setSelectedListId(value === "none" ? "" : value); if (value !== "none") setTo("") }}><SelectTrigger aria-label="Contact list" className="h-8"><SelectValue placeholder="Select list" /></SelectTrigger><SelectContent><SelectItem value="none">No list</SelectItem>{[...lists].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" })).map((list) => <SelectItem key={list.id} value={list.id}>{list.name} ({list.contactEmails.length})</SelectItem>)}</SelectContent></Select>
               </div>
 
+              {messageKind === "transactional" && (
+                <div className="flex shrink-0 items-center gap-2 border-b border-border px-4 py-1.5">
+                  <label htmlFor="email-cc" className="shrink-0 text-xs font-medium text-muted-foreground">Cc</label>
+                  <Input id="email-cc" name="message-cc" type="text" inputMode="email" autoComplete="off" value={cc} onChange={(event) => setCc(event.target.value)} placeholder="Add emails, separated by commas" className="h-8 border-0 px-0 shadow-none focus-visible:ring-0" />
+                </div>
+              )}
               <div className="shrink-0 border-b border-border px-4 py-1.5"><Input id="email-subject" name="message-subject" aria-label="Subject" autoComplete="off" value={subject} onChange={(event) => setSubject(event.target.value)} maxLength={200} placeholder="Subject" className="h-8 border-0 px-0 shadow-none focus-visible:ring-0" required /></div>
               {messageKind === "marketing" && <p className="shrink-0 border-b border-border px-4 py-1.5 text-xs leading-5 text-muted-foreground">Only subscribed contacts will receive this. An unsubscribe link is added automatically.</p>}
               <div className="min-h-0 flex-1 overflow-hidden px-2 py-2"><RichTextEditor value={body} onChange={setBody} placeholder="Write your message" scrollable compact flat allowHtml className="h-full min-h-0" /></div>
