@@ -105,13 +105,20 @@ const sections: LegalSection[] = [
   },
   {
     id: "communications",
-    title: "Communications",
+    title: "Information and emails",
     content: (
-      <p>
-        We may send service messages needed to operate your account. Where you have agreed to receive updates or
-        marketing messages, you can unsubscribe using the link in the message or by contacting us. Unsubscribing from
-        marketing does not stop essential account or service notices.
-      </p>
+      <>
+        <p>
+          We collect information you provide when you create an account, complete a form, contact us, or use visitor
+          sign-in. This may include your name, email address, company, phone number, and visit details. Our{" "}
+          <a href="/privacy">Privacy Policy</a> explains how we use and share that information.
+        </p>
+        <p>
+          We may email you about your account, visitor sign-ins, enquiries, and services you request. We may also send
+          updates and offers where permitted. You can unsubscribe from marketing emails using the link in the message
+          or by contacting us; account, security, and service emails may still be sent.
+        </p>
+      </>
     ),
   },
   {
@@ -181,7 +188,7 @@ export default function TermsPage() {
     <LegalPage
       title="Terms of Service"
       summary="These terms explain the rules for using VisualCNS websites, accounts, products, and online services."
-      lastUpdated="September 6, 2026"
+      lastUpdated="September 28, 2026"
       sections={sections}
     />
   )

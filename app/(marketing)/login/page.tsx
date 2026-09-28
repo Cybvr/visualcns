@@ -244,7 +244,7 @@ export default function LoginPage() {
         </p>
 
         {visitorLogin ? (
-          <p className="mt-6 text-center text-xs text-muted-foreground">
+          <p className="mt-6 text-center text-[10px] leading-4 text-muted-foreground">
             By continuing, you agree to our <Link href="/terms" className="underline">Terms</Link> and <Link href="/privacy" className="underline">Privacy Policy</Link>.
           </p>
         ) : <p className="mt-6 text-center text-[10px] leading-4 text-muted-foreground/60">

@@ -39,6 +39,10 @@ const sections: LegalSection[] = [
             book a meeting.
           </li>
           <li>
+            <strong>Visitor information:</strong> the visitor’s name, company, phone number or email address if given,
+            the person they are visiting, the purpose of the visit, and sign-in and sign-out times.
+          </li>
+          <li>
             <strong>Technical and usage information:</strong> browser and device details, IP address, pages visited,
             referral information, and events needed to operate, secure, and understand use of the services.
           </li>
@@ -100,10 +104,29 @@ const sections: LegalSection[] = [
             </a>{" "}
             when you schedule a meeting.
           </li>
+          <li>Resend to send account, visitor, and other service emails.</li>
         </ul>
         <p>
           We may also share information with professional advisers, contractors working under confidentiality
           obligations, regulators, courts, or law-enforcement authorities where legally required.
+        </p>
+      </>
+    ),
+  },
+  {
+    id: "ai-and-web-research",
+    title: "AI and web research",
+    content: (
+      <>
+        <p>
+          We use third-party AI and research tools to provide features and carry out service work. These include OpenAI
+          for AI-powered responses and analysis and Firecrawl for web research. We may also use Anthropic’s Claude in
+          our service work. Depending on the feature or work requested, information you provide and relevant website
+          content may be sent to these providers for processing.
+        </p>
+        <p>
+          Please do not submit sensitive personal information to an AI feature unless it is needed for your request.
+          Each provider may process information under its own privacy terms.
         </p>
       </>
     ),
@@ -214,7 +237,7 @@ export default function PrivacyPage() {
     <LegalPage
       title="Privacy Policy"
       summary="This policy explains what information VisualCNS handles, why we use it, and the choices available to you."
-      lastUpdated="September 6, 2026"
+      lastUpdated="September 28, 2026"
       sections={sections}
     />
   )

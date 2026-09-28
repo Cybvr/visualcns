@@ -84,7 +84,7 @@ export default function VisitorsDemoPage() {
             Already have an account?{" "}
             <Link href={`/login?next=${encodeURIComponent(visitorsPath)}`} className="font-medium text-foreground underline underline-offset-4">Sign in</Link>
           </p>
-          <p className="text-center text-xs text-muted-foreground">
+          <p className="text-center text-[10px] leading-4 text-muted-foreground">
             By continuing, you agree to our <Link href="/terms" className="underline">Terms</Link> and <Link href="/privacy" className="underline">Privacy Policy</Link>.
           </p>
         </DialogContent>
