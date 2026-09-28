@@ -192,7 +192,9 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate }: {
   const [shareOpen, setShareOpen] = useState(false)
   const [previewOpen, setPreviewOpen] = useState(false)
 
-  const dueOn = dueDateFrom(issuedOn, termsDays)
+  // The due date is a plain, editable date. Payment terms are just a shortcut
+  // that fills it in; changing the issue date never silently moves it.
+  const [dueOn, setDueOn] = useState(invoice?.dueOn ?? dueDateFrom(issuedOn, termsDays))
 
   useEffect(() => {
     let active = true
@@ -203,7 +205,9 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate }: {
         setProjects(projectList)
         setIssuer(profile)
         if (!isEdit) {
-          setTermsDays(profile.invoicePaymentTermsDays ?? 14)
+          const days = profile.invoicePaymentTermsDays ?? 14
+          setTermsDays(days)
+          setDueOn(dueDateFrom(issuedOn, days))
           setNotes(profile.invoiceNotes ?? "")
           setPaymentInstructions(initialEstimate?.paymentDetails ?? profile.invoicePaymentInstructions ?? "")
         }
@@ -398,7 +402,7 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate }: {
         currency,
         issuedOn,
         paymentTermsDays: termsDays,
-        dueOn: dueDateFrom(issuedOn, termsDays),
+        dueOn,
         serviceCompletedOn,
         notes: notes.trim(),
         paymentInstructions: paymentInstructions.trim(),
@@ -580,8 +584,18 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate }: {
             <EditorField label="Issued" htmlFor="issued-on">
               <Input id="issued-on" type="date" value={issuedOn} onChange={(event) => setIssuedOn(event.target.value)} />
             </EditorField>
+            <EditorField label="Due date" htmlFor="due-on">
+              <Input id="due-on" type="date" value={dueOn} onChange={(event) => setDueOn(event.target.value)} />
+            </EditorField>
             <EditorField label="Payment terms" htmlFor="terms">
-              <Select value={String(termsDays)} onValueChange={(value) => setTermsDays(Number.parseInt(value, 10))}>
+              <Select
+                value={String(termsDays)}
+                onValueChange={(value) => {
+                  const days = Number.parseInt(value, 10)
+                  setTermsDays(days)
+                  setDueOn(dueDateFrom(issuedOn, days))
+                }}
+              >
                 <SelectTrigger id="terms">
                   <SelectValue />
                 </SelectTrigger>
@@ -626,7 +640,7 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate }: {
               </Select>
             </EditorField>
           </div>
-          <p className="text-muted-foreground">{dueOn ? `Due ${dueOn}` : "No due date"}</p>
+          {!dueOn && <p className="text-muted-foreground">No due date — this invoice won&apos;t go overdue.</p>}
         </div>
       </EditorCard>
 
