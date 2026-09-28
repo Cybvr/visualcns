@@ -56,8 +56,11 @@ async function notifyAdmins(db: FirebaseFirestore.Firestore, agencyId: string, c
   const apiKey = await getAgencySecret(agencyId, "RESEND_API_KEY", process.env.RESEND_API_KEY || "")
   const from = normalizeEmailAddress(await getAgencySecret(agencyId, "EMAIL_FROM", process.env.EMAIL_FROM || ""))
   if (!apiKey || !from) return
-  const admins = await db.collection("users").where("agencyId", "==", agencyId).where("role", "==", "admin").limit(20).get()
-  const to = [...new Set(admins.docs.map((item) => String(item.data().email || "").trim().toLowerCase()).filter(Boolean))]
+  const [admins, superadmins] = await Promise.all([
+    db.collection("users").where("agencyId", "==", agencyId).where("role", "==", "admin").limit(20).get(),
+    db.collection("users").where("agencyId", "==", agencyId).where("role", "==", "superadmin").limit(20).get(),
+  ])
+  const to = [...new Set([...admins.docs, ...superadmins.docs].map((item) => String(item.data().email || "").trim().toLowerCase()).filter(Boolean))]
   if (!to.length) return
 
   const { subject, text, url } = signupNotice(company, person)
