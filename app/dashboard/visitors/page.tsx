@@ -2,13 +2,15 @@
 
 import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
-import { Loader2, LogOut, Search } from "lucide-react"
+import { EllipsisVertical, Loader2, LogOut, Search } from "lucide-react"
 import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
 import { DashboardPageSkeleton } from "@/components/dashboard/dashboard-page-skeleton"
 import { Button } from "@/components/ui/button"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { getOrganizations } from "@/lib/organizations"
 import { signOutVisitor, visitDay, visitTime, watchAgencyVisitors, watchVisitors, type Visitor } from "@/lib/visitors"
 import { cn } from "@/lib/utils"
@@ -123,43 +125,91 @@ export default function VisitorsPage() {
           )}
         </div>
       ) : (
-        <ul className="mt-5 divide-y divide-border overflow-hidden rounded-2xl border border-border bg-background">
-          {rows.map((visitor) => {
-            const company = companyNames[visitor.companyId]
-            const companyName = visitor.companyName || company?.name || ""
-            const onSite = visitor.status === "on_site"
-            return (
-              <li key={visitor.id} className="flex items-center gap-3 px-4 py-3">
-                <span className={cn("size-2 shrink-0 rounded-full", onSite ? "bg-emerald-500" : "bg-border")} aria-label={onSite ? "In the building" : "Signed out"} />
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium text-foreground">{visitor.name}</p>
-                  <p className="truncate text-xs text-muted-foreground">
-                    {agencyView && companyName && (
-                      <>
-                        <Link href={`/dashboard/clients/${encodeURIComponent(company?.slug || visitor.companyId)}?tab=visitors`} className="hover:text-foreground hover:underline">
-                          {companyName}
-                        </Link>
-                        {(visitor.visitorCompany || visitor.hostName || visitor.reason) && " · "}
-                      </>
-                    )}
-                    {[visitor.visitorCompany, visitor.hostName && `Visiting ${visitor.hostName}`, visitor.reason].filter(Boolean).join(" · ")}
+        <div className="mt-5 min-w-0">
+          <ul className="divide-y divide-border sm:hidden">
+            {rows.map((visitor) => {
+              const companyName = visitor.companyName || companyNames[visitor.companyId]?.name || ""
+              const onSite = visitor.status === "on_site"
+              return (
+                <li key={visitor.id} className="flex min-w-0 items-center gap-3 px-2 py-3">
+                  <span className={cn("size-2 shrink-0 rounded-full", onSite ? "bg-emerald-500" : "bg-border")} aria-label={onSite ? "In the building" : "Signed out"} />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium text-foreground">{visitor.name}</p>
+                    <p className="truncate text-xs text-muted-foreground">
+                      {[agencyView && companyName, visitor.visitorCompany, visitor.hostName && `Visiting ${visitor.hostName}`, visitor.reason].filter(Boolean).join(" · ")}
+                    </p>
+                  </div>
+                  <p className="shrink-0 text-right text-xs text-muted-foreground">
+                    {visitDay(visitor.signedInAt)}<br />{visitTime(visitor.signedInAt)}{visitor.signedOutAt ? `–${visitTime(visitor.signedOutAt)}` : ""}
                   </p>
-                </div>
-                <p className="shrink-0 text-right text-xs text-muted-foreground">
-                  {visitDay(visitor.signedInAt)}
-                  <br />
-                  {visitTime(visitor.signedInAt)}{visitor.signedOutAt ? `–${visitTime(visitor.signedOutAt)}` : ""}
-                </p>
-                {onSite && (
-                  <Button type="button" variant="outline" size="sm" onClick={() => void signOut(visitor)} disabled={busyId === visitor.id} aria-label={`Sign out ${visitor.name}`}>
-                    {busyId === visitor.id ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <LogOut className="size-4" aria-hidden="true" />}
-                    <span className="max-sm:hidden">Sign out</span>
-                  </Button>
-                )}
-              </li>
-            )
-          })}
-        </ul>
+                  {onSite && (
+                    <Button type="button" variant="ghost" size="icon" className="size-8 shrink-0" onClick={() => void signOut(visitor)} disabled={busyId === visitor.id} aria-label={`Sign out ${visitor.name}`}>
+                      {busyId === visitor.id ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <LogOut className="size-4" aria-hidden="true" />}
+                    </Button>
+                  )}
+                </li>
+              )
+            })}
+          </ul>
+          <div className="hidden min-w-0 sm:block">
+            <Table className="w-full table-fixed">
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Visitor</TableHead>
+                  <TableHead>Host</TableHead>
+                  <TableHead className="w-32">Visit</TableHead>
+                  <TableHead className="w-12 text-right"><span className="sr-only">Actions</span></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {rows.map((visitor) => {
+                  const company = companyNames[visitor.companyId]
+                  const companyName = visitor.companyName || company?.name || ""
+                  const onSite = visitor.status === "on_site"
+                  return (
+                    <TableRow key={visitor.id}>
+                      <TableCell className="max-w-0">
+                        <div className="flex min-w-0 items-center gap-3">
+                          <span className={cn("size-2 shrink-0 rounded-full", onSite ? "bg-emerald-500" : "bg-border")} aria-label={onSite ? "In the building" : "Signed out"} />
+                          <span className="min-w-0">
+                            <span className="block truncate font-medium">{visitor.name}</span>
+                            <span className="block truncate text-muted-foreground">
+                              {agencyView && companyName ? (
+                                <><Link href={`/dashboard/clients/${encodeURIComponent(company?.slug || visitor.companyId)}?tab=visitors`} className="hover:text-foreground hover:underline">{companyName}</Link>{visitor.visitorCompany && ` · ${visitor.visitorCompany}`}</>
+                              ) : visitor.visitorCompany || (onSite ? "In the building" : "Signed out")}
+                            </span>
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="max-w-0">
+                        <span className="block truncate">{visitor.hostName || "—"}</span>
+                        <span className="block truncate text-muted-foreground">{visitor.reason || "—"}</span>
+                      </TableCell>
+                      <TableCell className="max-w-0 text-muted-foreground">
+                        <span className="block">{visitDay(visitor.signedInAt)}</span>
+                        <span className="block truncate" title={`${visitTime(visitor.signedInAt)}${visitor.signedOutAt ? `–${visitTime(visitor.signedOutAt)}` : ""}`}>{visitTime(visitor.signedInAt)}{visitor.signedOutAt ? `–${visitTime(visitor.signedOutAt)}` : ""}</span>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {onSite && (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button type="button" variant="ghost" size="icon" className="size-8 text-muted-foreground hover:text-foreground" disabled={busyId === visitor.id} aria-label={`Actions for ${visitor.name}`}>
+                                {busyId === visitor.id ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <EllipsisVertical className="size-4" aria-hidden="true" />}
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onSelect={() => void signOut(visitor)}>Sign out</DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
       )}
     </main>
   )

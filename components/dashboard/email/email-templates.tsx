@@ -31,6 +31,7 @@ export type EmailTemplatesProps = {
   isAdmin: boolean
   addInsightsTemplate: () => void
   addVisitorWelcomeTemplate: () => void
+  addVisitorSalesTemplate: () => void
   resetTemplateEditor: () => void
   deleteTemplate: (id: string) => void
   contactInitials: (name: string, email: string) => string
@@ -59,6 +60,7 @@ export function EmailTemplates({
   isAdmin,
   addInsightsTemplate,
   addVisitorWelcomeTemplate,
+  addVisitorSalesTemplate,
   resetTemplateEditor,
   deleteTemplate,
   contactInitials,
@@ -66,6 +68,7 @@ export function EmailTemplates({
   formatListDate,
 }: EmailTemplatesProps) {
   const hasVisitorWelcomeTemplate = templates.some((template) => template.id === "visitor-signup-welcome")
+  const hasVisitorSalesTemplate = templates.some((template) => template.id === "visitor-signin-introduction")
   const hasInsightsTemplate = templates.some((template) => template.id === "announce-insights")
 
   return (
@@ -97,8 +100,9 @@ export function EmailTemplates({
         </div>
       </form>
       <div className={cn("min-h-0 w-full min-w-0 max-w-full max-lg:shrink-0 lg:flex-1 lg:overflow-y-auto", mobileTemplateView === "list" ? "block" : "hidden")}>
-        {isAdmin && (!hasVisitorWelcomeTemplate || !hasInsightsTemplate) && (
+        {isAdmin && (!hasVisitorSalesTemplate || !hasVisitorWelcomeTemplate || !hasInsightsTemplate) && (
           <div className="flex flex-wrap items-center justify-end gap-2 border-b border-border p-2">
+            {!hasVisitorSalesTemplate && <Button type="button" variant="outline" size="sm" onClick={addVisitorSalesTemplate}>Add Visitor introduction email</Button>}
             {!hasVisitorWelcomeTemplate && <Button type="button" variant="outline" size="sm" onClick={addVisitorWelcomeTemplate}>Add Visitor welcome email</Button>}
             {!hasInsightsTemplate && <Button type="button" variant="outline" size="sm" onClick={addInsightsTemplate}>Add Insights email</Button>}
           </div>

@@ -337,6 +337,22 @@
   }
   .kiosk .kiosk-workspace { width: 100%; }
   .kiosk .kiosk-panel { min-width: 0; }
+  /* A small preview stays beside the greeting without adding height on phones. */
+  .kiosk .kiosk-demo-intro { display: flex; align-items: center; gap: 0.75rem; }
+  .kiosk .kiosk-demo-intro .kiosk-hero { flex: 1; min-width: 0; }
+  .kiosk .kiosk-demo-intro .kiosk-company-name {
+    font-size: clamp(1.125rem, calc(100cqw / (var(--chars, 12) * 0.9)), 2rem);
+    white-space: nowrap;
+  }
+  .kiosk .kiosk-demo-photo {
+    display: block;
+    flex-shrink: 0;
+    width: clamp(4.5rem, 20vw, 5rem);
+    height: 4rem;
+    object-fit: cover;
+    object-position: 65% center;
+    border-radius: 0.5rem;
+  }
   .kiosk .kiosk-footer { margin-top: auto; padding-top: 0.75rem; }
   .kiosk .kiosk-confirmation {
     width: 100%;
@@ -552,6 +568,12 @@
       padding: clamp(1.5rem, 3vw, 3rem);
       background: var(--background);
     }
+    .kiosk .kiosk-demo-intro {
+      flex-direction: column;
+      align-items: stretch;
+      justify-content: center;
+      gap: 1rem;
+    }
     .kiosk .kiosk-panel {
       display: flex;
       flex-direction: column;
@@ -570,6 +592,8 @@
       justify-content: center;
       min-height: 0;
     }
+    .kiosk .kiosk-demo-intro .kiosk-hero { flex: none; width: 100%; }
+    .kiosk .kiosk-demo-intro .kiosk-company-name { white-space: normal; }
     .kiosk .kiosk-hero-text { padding-block: 0; }
     .kiosk .kiosk-company-name {
       font-size: clamp(1.25rem, calc(100cqw / (var(--chars, 12) * 0.66)), 2rem);
@@ -585,6 +609,18 @@
       text-align: center;
     }
     .kiosk .kiosk-footer > p { margin-top: 0.5rem; }
+    .kiosk .kiosk-demo-photo {
+      width: 100%;
+      max-width: 29rem;
+      height: auto;
+      max-height: min(24vh, 10rem);
+      border-radius: 0.75rem;
+    }
+  }
+  @media (min-width: 640px) and (min-height: 760px) {
+    .kiosk .kiosk-demo-photo {
+      max-height: min(34vh, 15rem);
+    }
   }
   @media (min-width: 960px) {
     .kiosk .kiosk-workspace { grid-template-columns: minmax(0, 36fr) minmax(0, 64fr); }

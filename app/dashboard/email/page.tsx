@@ -50,7 +50,7 @@ import { getBusinessProfile, type BusinessProfile } from "@/lib/business-profile
 import { deleteEmailTemplate, getEmailTemplates, saveEmailTemplate } from "@/lib/email-templates-store"
 import { markdownToHtml } from "@/lib/markdown"
 import { getUsers } from "@/lib/users"
-import { VISITOR_TRIAL_DAYS } from "@/lib/visitor-billing"
+import { VISITOR_PRICE_NAIRA, VISITOR_TRIAL_DAYS } from "@/lib/visitor-billing"
 import { cn } from "@/lib/utils"
 import { useIsMobile } from "@/hooks/use-mobile"
 import {
@@ -1303,6 +1303,36 @@ export default function EmailPage() {
     }
   }
 
+  async function addVisitorSalesTemplate() {
+    if (!user?.uid) {
+      setTemplateNotice({ tone: "error", text: "Sign in before adding a template." })
+      return
+    }
+    const salesTemplate: EmailTemplate = {
+      id: "visitor-signin-introduction",
+      name: "Visitor Sign-in introduction",
+      subject: "A simpler way to manage visitors at reception",
+      body:
+        "<p>Hi there,</p>" +
+        "<p>How do visitors sign in at your office today, and how does the person they’re visiting know they’ve arrived?</p>" +
+        "<p>VisualCNS Visitor Sign-in gives your reception a simple sign-in page for a tablet. Visitors enter their details and choose their host. The host gets an email, while your team can see who is in the building and review past visits.</p>" +
+        `<p>You can try it free for ${VISITOR_TRIAL_DAYS} days, with no card needed. After the trial, it’s ₦${VISITOR_PRICE_NAIRA.toLocaleString("en-NG")} per month if you decide to continue.</p>` +
+        "<p><a href=\"https://www.visualcns.com/visitors/demo\">Try the visitor sign-in demo</a></p>" +
+        "<p>Would a short walkthrough be useful? Just reply to this email and we’ll arrange one.</p>" +
+        "<p>Best,<br />The VisualCNS team</p>",
+      updatedAt: new Date().toISOString(),
+    }
+    try {
+      await saveEmailTemplate({ ...salesTemplate, companyId: workspaceId, createdBy: user.uid })
+      setTemplates((current) => [salesTemplate, ...current.filter((template) => template.id !== salesTemplate.id)])
+      editTemplate(salesTemplate)
+      setMobileTemplateView("editor")
+      setTemplateNotice({ tone: "success", text: "Visitor introduction email added. Review it, then use the template to send." })
+    } catch {
+      setTemplateNotice({ tone: "error", text: "The template could not be added. Try again." })
+    }
+  }
+
   async function deleteTemplate(templateId: string) {
     try {
       await deleteEmailTemplate(templateId, workspaceId)
@@ -1562,6 +1592,7 @@ export default function EmailPage() {
             isAdmin={isAdmin}
             addInsightsTemplate={addInsightsTemplate}
             addVisitorWelcomeTemplate={addVisitorWelcomeTemplate}
+            addVisitorSalesTemplate={addVisitorSalesTemplate}
             resetTemplateEditor={resetTemplateEditor}
             deleteTemplate={deleteTemplate}
             contactInitials={contactInitials}

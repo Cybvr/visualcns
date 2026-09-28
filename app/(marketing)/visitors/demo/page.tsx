@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { Building2, Check, FileText, Phone, User, Users } from "lucide-react"
 
 import { KioskField, KioskHero, KioskNameList, KioskSubmit, KioskTabs, type KioskTab } from "@/components/visitors/kiosk-parts"
@@ -69,7 +70,7 @@ export default function VisitorsDemoPage() {
 
   return (
     <main className="kiosk kiosk-page flex min-h-svh flex-col bg-card text-foreground">
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-xl border border-border bg-background px-4 py-3 text-sm">
+      <div className="flex shrink-0 flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-border bg-background px-4 py-3 text-sm">
         <p className="text-muted-foreground"><span className="font-medium text-foreground">This is a demo.</span> Get your own: free for {VISITOR_TRIAL_DAYS} days, no card needed.</p>
         <button type="button" onClick={() => setSignupOpen(true)} className="inline-flex h-9 shrink-0 items-center rounded-full bg-foreground px-4 font-medium text-background outline-none transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring">Get started</button>
       </div>
@@ -92,8 +93,17 @@ export default function VisitorsDemoPage() {
       <div className="kiosk-shell">
         {(screen === "sign-in" || screen === "sign-out") && (
           <div className="kiosk-workspace">
-            <div className="kiosk-intro">
+            <div className="kiosk-intro kiosk-demo-intro">
               <KioskHero companyName="ABC Company" />
+              <Image
+                src="/images/visualcns-visitor-signin-demo.jpg"
+                alt="A visitor using the VisualCNS sign-in tablet at reception"
+                width={960}
+                height={540}
+                sizes="(min-width: 960px) 29vw, (min-width: 640px) 34vw, 1px"
+                loading="eager"
+                className="kiosk-demo-photo"
+              />
             </div>
             <div className="kiosk-panel">
               <KioskTabs value={screen} onChange={(tab) => { setError(""); setScreen(tab) }} count={onSite.length} />
