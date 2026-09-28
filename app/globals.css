@@ -322,27 +322,26 @@
     padding: var(--kiosk-pad-y) var(--kiosk-pad-x);
   }
   @media (min-width: 640px) { .kiosk-page { --kiosk-pad-x: 2rem; --kiosk-pad-y: 1.5rem; } }
-  /* The front-desk picture is the banner's background, faded out to the left so
-     the greeting reads on top of it. The name sizes itself to fit on one line. */
+  .kiosk .kiosk-shell {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    width: 100%;
+    max-width: 36rem;
+    margin-inline: auto;
+  }
+  .kiosk .kiosk-workspace { width: 100%; }
+  .kiosk .kiosk-panel { min-width: 0; }
+  .kiosk .kiosk-footer { margin-top: auto; padding-top: 0.75rem; }
+  .kiosk .kiosk-confirmation {
+    width: 100%;
+    max-width: 36rem;
+    margin-inline: auto;
+  }
+  /* The company name sizes itself to fit on one line. */
   .kiosk .kiosk-hero {
-    position: relative;
-    isolation: isolate;
     display: flex;
     align-items: center;
-    min-height: clamp(9rem, 40vw, 13rem);
-  }
-  .kiosk .kiosk-hero-art {
-    position: absolute;
-    top: 0;
-    right: 0;
-    z-index: -1;
-    height: 100%;
-    width: auto;
-    max-width: 75%;
-    aspect-ratio: 240 / 188;
-    opacity: 0.6;
-    -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 70%);
-    mask-image: linear-gradient(to right, transparent 0%, #000 70%);
   }
   .kiosk .kiosk-hero-text { width: 100%; container-type: inline-size; }
   .kiosk .kiosk-welcome { font-size: clamp(0.875rem, 3.9vw, 1.0625rem); line-height: 1.5; color: var(--muted-foreground); }
@@ -531,6 +530,70 @@
   }
   .kiosk .kiosk-mini-quiet { background: transparent; color: var(--muted-foreground); min-width: 0; padding: 0 0.75rem; }
   .kiosk .kiosk-mini:focus-visible { box-shadow: 0 0 0 3px color-mix(in oklch, var(--primary) 25%, transparent); }
+  /* A full-height split keeps the welcome and form on their own surfaces. */
+  @media (min-width: 640px) {
+    .kiosk-page { position: relative; padding: 0; }
+    .kiosk .kiosk-shell { max-width: none; }
+    .kiosk .kiosk-workspace {
+      display: grid;
+      flex: 1;
+      grid-template-columns: minmax(0, 40fr) minmax(0, 60fr);
+      align-items: stretch;
+    }
+    .kiosk .kiosk-intro {
+      display: flex;
+      min-width: 0;
+      align-items: center;
+      padding: clamp(1.5rem, 3vw, 3rem);
+      background: var(--background);
+    }
+    .kiosk .kiosk-panel {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: clamp(2rem, 4vw, 4rem);
+      padding-bottom: max(5.5rem, 4vw);
+      background: var(--card);
+    }
+    .kiosk .kiosk-panel > * {
+      width: 100%;
+      max-width: 34rem;
+    }
+    .kiosk .kiosk-hero {
+      flex: 1;
+      justify-content: center;
+      min-height: 0;
+    }
+    .kiosk .kiosk-hero-text { padding-block: 0; }
+    .kiosk .kiosk-company-name {
+      font-size: clamp(1.25rem, calc(100cqw / (var(--chars, 12) * 0.66)), 2rem);
+    }
+    .kiosk .kiosk-tabs { margin-top: 0; }
+    .kiosk .kiosk-footer {
+      position: absolute;
+      right: 0;
+      bottom: 1.25rem;
+      width: 60%;
+      margin: 0;
+      padding: 0;
+      text-align: center;
+    }
+    .kiosk .kiosk-footer > p { margin-top: 0.5rem; }
+  }
+  @media (min-width: 960px) {
+    .kiosk .kiosk-workspace { grid-template-columns: minmax(0, 36fr) minmax(0, 64fr); }
+    .kiosk .kiosk-company-name { font-size: clamp(1.4rem, calc(100cqw / (var(--chars, 12) * 0.6)), 2.75rem); }
+    .kiosk .kiosk-footer { width: 64%; }
+  }
+  @media (min-width: 640px) and (max-height: 700px) {
+    .kiosk .kiosk-panel { padding-top: 1rem; padding-bottom: 3.5rem; }
+    .kiosk .kiosk-panel form > div:first-child { margin-top: 0.75rem; }
+    .kiosk .kiosk-panel form > div:first-child > :not(:first-child) { margin-top: 0.5rem; }
+    .kiosk .kiosk-field-card { min-height: 3.375rem; padding-block: 0.3125rem; }
+    .kiosk .kiosk-tab { height: 2.5rem; }
+    .kiosk .kiosk-submit { height: 3rem; margin-top: 1rem; }
+  }
   /* On phones everything, banner to footer, fits one screen without scrolling. */
   @media (max-width: 639px) {
     .kiosk .kiosk-field-card { min-height: 3.375rem; padding-top: 0.3125rem; padding-bottom: 0.3125rem; }
@@ -540,6 +603,25 @@
     .kiosk .kiosk-tab { height: 2.5rem; }
     .kiosk .kiosk-submit { height: 3rem; margin-top: 1rem; }
     .kiosk .kiosk-name-row { min-height: 3.5rem; padding-top: 0.5rem; padding-bottom: 0.5rem; }
+  }
+  @media (max-width: 639px) and (max-height: 700px) {
+    .kiosk-page { --kiosk-pad-y: 0.5rem; }
+    .kiosk .kiosk-hero-text { padding-block: 0.375rem; }
+    .kiosk .kiosk-hero-text img { display: none; }
+    .kiosk .kiosk-field-card { min-height: 3rem; padding-block: 0.25rem; }
+    .kiosk .kiosk-panel form > div:first-child { margin-top: 0.5rem; }
+    .kiosk .kiosk-panel form > div:first-child > :not(:first-child) { margin-top: 0.375rem; }
+    .kiosk .kiosk-tabs { margin-top: 0; }
+    .kiosk .kiosk-tab { height: 2.25rem; }
+    .kiosk .kiosk-submit { height: 2.75rem; margin-top: 0.75rem; }
+    .kiosk .kiosk-footer { padding-top: 0.25rem; }
+    .kiosk .kiosk-footer > p { margin-top: 0.25rem; }
+  }
+  @media (max-width: 359px) and (max-height: 600px) {
+    .kiosk-page { --kiosk-pad-y: 0; padding-top: 0.125rem; }
+    .kiosk .kiosk-hero-text { padding-block: 0.125rem; }
+    .kiosk .kiosk-panel form > div:first-child > :not(:first-child) { margin-top: 0.25rem; }
+    .kiosk .kiosk-footer > p { margin-top: 0; }
   }
   @media print {
     .kiosk-badge {

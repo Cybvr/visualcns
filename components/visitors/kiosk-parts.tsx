@@ -3,20 +3,11 @@
 import { useState, type CSSProperties, type ReactNode } from "react"
 import { ArrowRight, Loader2, LogOut, Search } from "lucide-react"
 
-import { ReceptionIllustration } from "@/components/visitors/reception-illustration"
-
-/** "ABC Company" becomes "ABC"; "Ada Obi Ltd" becomes "AOL". For the wall sign in the picture. */
-function initialsOf(name: string) {
-  const words = name.trim().split(/\s+/).filter(Boolean)
-  if (words.length === 1 || /^[A-Z]{2,4}$/.test(words[0])) return words[0].slice(0, 4).toUpperCase()
-  return words.slice(0, 3).map((word) => word[0]).join("").toUpperCase()
-}
-
-/** The welcome block: greeting on top of the front-desk picture, which fades in on the right. */
+/** Company greeting beside the visitor form. */
 export function KioskHero({ companyName, logoUrl }: { companyName: string; logoUrl?: string }) {
   return (
-    <header className="kiosk-hero relative">
-      <div className="kiosk-hero-text py-4 sm:py-10">
+    <header className="kiosk-hero">
+      <div className="kiosk-hero-text py-4 sm:py-6">
         {logoUrl && (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={logoUrl} alt="" className="mb-4 size-12 rounded-xl object-cover" />
@@ -25,7 +16,6 @@ export function KioskHero({ companyName, logoUrl }: { companyName: string; logoU
         <h1 className="kiosk-company-name" style={{ "--chars": Math.max(companyName.trim().length, 8) } as CSSProperties}>{companyName}</h1>
         <p className="kiosk-subtitle">Please sign in as a visitor</p>
       </div>
-      <ReceptionIllustration initials={initialsOf(companyName || "Welcome")} className="kiosk-hero-art" />
     </header>
   )
 }
