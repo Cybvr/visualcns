@@ -1,15 +1,25 @@
+import Link from "next/link"
+import { ArrowUpRight } from "lucide-react"
+
 import { BookNowModal } from "@/components/book-now-modal"
 import { Footer } from "@/components/footer"
 import { Header } from "@/components/header"
 import { PwaRedirect } from "@/components/pwa-redirect"
 import { HomeSections } from "@/components/home-sections"
+import { HomeMarquee } from "@/components/home-marquee"
 import { getBrandItems } from "@/lib/brands"
 import { getCapabilities } from "@/lib/capabilities"
 import { getBlogPosts } from "@/lib/blog"
 
+import "./home.css"
+
 const capabilities = getCapabilities()
 const products = getBrandItems().filter((b) => b.slug !== "visualhq")
 const news = getBlogPosts()
+
+// The marquee runs on real names only — the products we ship and the services we
+// offer. No invented figures, no dials.
+const marqueeItems = [...capabilities.map((c) => c.title), ...products.map((p) => p.product)]
 
 export default function HomePage() {
   return (
@@ -17,8 +27,43 @@ export default function HomePage() {
       <PwaRedirect />
       <Header />
       <main className="pt-28 sm:pt-32 md:pt-36">
+        {/* Hero: the tagline is the page, not a caption on a video. */}
         <section aria-labelledby="home-hero-heading" className="mx-auto max-w-7xl px-4 sm:px-8 md:px-20">
-          <div className="relative h-[58svh] min-h-[22rem] max-h-[48rem] overflow-hidden rounded-[0.75rem] bg-muted">
+          <p className="home-rise font-mono text-xs uppercase tracking-[0.24em] text-muted-foreground md:text-sm">
+            Creative consultancy &amp; software studio — Lagos
+          </p>
+          <h1
+            id="home-hero-heading"
+            className="home-rise home-rise-2 mt-6 text-[clamp(3.25rem,15vw,12rem)] font-medium leading-[0.82] tracking-[-0.04em] text-foreground"
+          >
+            Dream.
+            <br />
+            <span className="italic text-accent" style={{ fontFamily: "var(--font-serif)" }}>
+              Execute
+            </span>
+            .
+          </h1>
+          <div className="home-rise home-rise-3 mt-10 flex flex-col gap-8 md:flex-row md:items-end md:justify-between">
+            <p className="max-w-xl text-lg text-muted-foreground md:text-xl">
+              A global creative consultancy building digital experiences, brand systems, and technology products for
+              modern businesses.
+            </p>
+            <div className="flex shrink-0 flex-wrap items-center gap-3">
+              <BookNowModal triggerLabel="Start a project" triggerClassName="rounded-full" />
+              <Link
+                href="/case-studies"
+                className="group inline-flex items-center gap-2 rounded-full border border-border px-6 py-3 text-sm font-medium transition-colors hover:text-accent"
+              >
+                See the work
+                <ArrowUpRight className="size-4 transition-transform duration-500 ease-out group-hover:-translate-y-0.5 group-hover:translate-x-0.5 motion-reduce:transition-none" />
+              </Link>
+            </div>
+          </div>
+        </section>
+
+        {/* Full-bleed Lagos film. Breaks the container edge-to-edge for scale. */}
+        <section aria-label="Lagos" className="home-rise home-rise-4 mt-14 md:mt-20">
+          <div className="relative aspect-[16/9] max-h-[42rem] w-full overflow-hidden bg-muted sm:aspect-[21/9]">
             <video
               className="size-full object-cover"
               src="/herov2.mp4"
@@ -29,20 +74,18 @@ export default function HomePage() {
               preload="metadata"
               aria-label="Lagos video"
             />
-            {/* Scrim keeps the heading and CTA legible over the video. */}
-            <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" aria-hidden="true" />
-            <div className="absolute bottom-0 right-0 flex max-w-full flex-col items-end gap-4 p-6 text-right sm:p-8 md:p-10">
-              <h1
-                id="home-hero-heading"
-                className="text-4xl leading-[0.9] tracking-[-0.03em] text-white sm:text-6xl md:text-7xl"
-              >
-                Dream. Execute
-              </h1>
-              <BookNowModal />
-            </div>
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" aria-hidden="true" />
+            <span className="absolute bottom-5 left-4 font-mono text-xs uppercase tracking-[0.24em] text-white/90 sm:left-8 md:bottom-8 md:left-20">
+              Lagos, Nigeria → Worldwide
+            </span>
           </div>
         </section>
-        <div className="mx-auto max-w-7xl px-4 pb-8 pt-12 sm:px-8 md:px-20 md:pt-16">
+
+        <div className="mt-14 md:mt-20">
+          <HomeMarquee items={marqueeItems} />
+        </div>
+
+        <div className="mx-auto max-w-7xl px-4 pb-8 sm:px-8 md:px-20">
           <HomeSections products={products} capabilities={capabilities} news={news} />
         </div>
       </main>

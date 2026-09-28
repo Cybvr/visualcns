@@ -1,78 +1,87 @@
 import Link from "next/link"
 import type { ReactNode } from "react"
+import { ArrowUpRight } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import { BookNowModal } from "@/components/book-now-modal"
 import { PortfolioGrid } from "@/components/portfolio-grid"
 import type { BrandItem } from "@/lib/brands"
 import type { Capability } from "@/lib/capabilities"
 import type { BlogPost } from "@/lib/blog"
 
-// Shared by the Products, Capabilities, and News lists. Portfolio deliberately
-// breaks the pattern: it renders the portfolio grid so the work itself
-// carries that section rather than another row of thumbnails.
-const listClass = "grid grid-cols-1 gap-y-8"
-
 const VISITOR_SIGN_UP = `/signup?next=${encodeURIComponent("/dashboard/visitors")}`
 
 const AUDIT_AREAS = [
-  { title: "Your website", detail: "Pages, content, structure, products and messaging" },
-  { title: "Search visibility", detail: "SEO, keywords and how easy you are to find" },
-  { title: "Competitors", detail: "Positioning, recent activity and market trends" },
-  { title: "Market opportunities", detail: "Events, partners, tenders, grants and more" },
-  { title: "Technical health", detail: "Speed, broken pages and best practices" },
-  { title: "Your online presence", detail: "Brand mentions, content and reputation" },
+  "Your website — pages, content, structure and messaging",
+  "Search visibility — SEO, keywords and how easy you are to find",
+  "Competitors — positioning, recent activity and market trends",
+  "Market opportunities — events, partners, tenders and grants",
+  "Technical health — speed, broken pages and best practices",
+  "Your online presence — brand mentions, content and reputation",
 ]
 
-// Every section is open on the page: a numbered heading over its content.
-function Section({ id, number, title, children }: { id: string; number: number; title: string; children: ReactNode }) {
+// Editorial section frame: a big title on the left, a mono index tag on the
+// right, a hairline underneath. Every block on the page shares it.
+function Section({
+  id,
+  index,
+  title,
+  kicker,
+  children,
+}: {
+  id: string
+  index: string
+  title: string
+  kicker: string
+  children: ReactNode
+}) {
   return (
-    <section aria-labelledby={`home-${id}`} className="border-t border-border py-10 md:py-14">
-      <h2 id={`home-${id}`} className="mb-6 text-2xl text-foreground md:mb-8 md:text-3xl">
-        {number}. {title}
-      </h2>
+    <section aria-labelledby={`home-${id}`} className="py-14 md:py-20">
+      <div className="mb-10 flex flex-wrap items-end justify-between gap-x-6 gap-y-2 border-b border-border pb-5 md:mb-14">
+        <h2 id={`home-${id}`} className="text-3xl tracking-[-0.03em] text-foreground md:text-5xl">
+          {title}
+        </h2>
+        <span className="font-mono text-xs uppercase tracking-[0.24em] text-muted-foreground">
+          {index} — {kicker}
+        </span>
+      </div>
       {children}
     </section>
   )
 }
 
-// Thumbnail + title row shared by Products, Capabilities, and News.
-function MediaRow({
+// Big numbered link row, matching the site's nav overlay: index, title, arrow.
+function BigRow({
   href,
+  number,
   title,
-  image,
-  imageAlt,
-  imagePosition,
-  fit = "cover",
+  meta,
+  external,
 }: {
   href: string
+  number: string
   title: string
-  image?: string
-  imageAlt?: string
-  imagePosition?: string
-  fit?: "cover" | "contain"
+  meta?: string
+  external?: boolean
 }) {
   return (
-    <li className="border-b border-border pb-4">
-      <Link href={href} className="block group">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center">
-          <div className="h-16 w-24 shrink-0 overflow-hidden bg-muted">
-            <img
-              src={image || "/placeholder.svg?height=300&width=480&query=visualcns"}
-              alt={imageAlt || title}
-              style={imagePosition ? { objectPosition: imagePosition } : undefined}
-              className={
-                fit === "contain"
-                  ? "h-full w-full object-contain p-3 transition-transform duration-500 group-hover:scale-105"
-                  : "h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-              }
-            />
-          </div>
-          <div className="min-w-0 flex-1">
-            <h3 className="text-2xl text-foreground transition-colors group-hover:text-accent md:text-3xl line-clamp-1">
-              {title}
-            </h3>
-          </div>
-        </div>
+    <li className="border-t border-border last:border-b">
+      <Link
+        href={href}
+        target={external ? "_blank" : undefined}
+        rel={external ? "noopener noreferrer" : undefined}
+        className="group grid grid-cols-[2.5rem_minmax(0,1fr)_1.5rem] items-baseline gap-x-4 py-6 md:grid-cols-[4rem_minmax(0,1fr)_2rem] md:gap-x-10 md:py-8"
+      >
+        <span className="font-mono text-xs tabular-nums text-muted-foreground transition-colors group-hover:text-accent">
+          {number}
+        </span>
+        <span className="min-w-0">
+          <span className="block truncate text-3xl tracking-[-0.02em] text-foreground transition-colors group-hover:text-accent md:text-5xl">
+            {title}
+          </span>
+          {meta ? <span className="mt-2 block text-sm text-muted-foreground">{meta}</span> : null}
+        </span>
+        <ArrowUpRight className="size-5 justify-self-end text-muted-foreground transition-[transform,color] duration-500 ease-out group-hover:-translate-y-1 group-hover:translate-x-1 group-hover:text-accent motion-reduce:transition-none" />
       </Link>
     </li>
   )
@@ -89,97 +98,146 @@ export function HomeSections({
 }) {
   return (
     <div className="w-full">
-      <Section id="about" number={1} title="About">
-        <p className="max-w-3xl text-muted-foreground">
-          A global creative consultancy that develops digital experiences, brand systems, and technology solutions for
-          modern businesses.
-        </p>
-      </Section>
-
-      <Section id="case-studies" number={2} title="Case Studies">
+      <Section id="work" index="01" title="Selected Work" kicker="Case studies">
         <PortfolioGrid compact limit={8} showNumbers={false} />
+        <div className="mt-10">
+          <Link
+            href="/case-studies"
+            className="group inline-flex items-center gap-2 font-mono text-xs uppercase tracking-[0.24em] text-muted-foreground transition-colors hover:text-accent"
+          >
+            All case studies
+            <ArrowUpRight className="size-4 transition-transform duration-500 ease-out group-hover:-translate-y-0.5 group-hover:translate-x-0.5 motion-reduce:transition-none" />
+          </Link>
+        </div>
       </Section>
 
-      <Section id="products" number={3} title="Products">
-        <ul className={listClass}>
+      {/* Products: large image cards so the work carries the section. */}
+      <Section id="products" index="02" title="Products" kicker="What we ship">
+        <div className="grid grid-cols-1 gap-x-8 gap-y-12 sm:grid-cols-2">
           {products.map((p) => (
-            <MediaRow
-              key={p.slug}
-              href={p.href}
-              title={`${p.name} — ${p.product}`}
-              image={p.screenshot || p.logo}
-              imageAlt={`${p.name} ${p.product}`}
-              // Logos need breathing room; product screenshots can fill the frame.
-              fit={p.screenshot ? "cover" : "contain"}
+            <Link key={p.slug} href={p.href} className="group block">
+              <div className="aspect-[4/3] overflow-hidden bg-muted">
+                <img
+                  src={p.screenshot || p.logo || "/placeholder.svg?height=600&width=800&query=visualcns"}
+                  alt={`${p.name} ${p.product}`}
+                  className={
+                    p.screenshot
+                      ? "h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.03]"
+                      : "h-full w-full object-contain p-10 transition-transform duration-700 ease-out group-hover:scale-[1.03]"
+                  }
+                />
+              </div>
+              <div className="mt-5 flex items-baseline justify-between gap-4">
+                <div className="min-w-0">
+                  <h3 className="truncate text-2xl tracking-[-0.02em] text-foreground transition-colors group-hover:text-accent md:text-3xl">
+                    {p.name}
+                  </h3>
+                  <p className="mt-1 text-sm text-muted-foreground">{p.product}</p>
+                </div>
+                <ArrowUpRight className="size-5 shrink-0 text-muted-foreground transition-[transform,color] duration-500 ease-out group-hover:-translate-y-1 group-hover:translate-x-1 group-hover:text-accent motion-reduce:transition-none" />
+              </div>
+            </Link>
+          ))}
+        </div>
+      </Section>
+
+      {/* Services: big numbered rows, editorial and quiet. */}
+      <Section id="services" index="03" title="Services" kicker="How we help">
+        <ul>
+          {capabilities.map((c, i) => (
+            <BigRow
+              key={c.slug}
+              href={`/capabilities/${c.slug}`}
+              number={String(i + 1).padStart(2, "0")}
+              title={c.title}
             />
           ))}
         </ul>
       </Section>
 
-      <Section id="visitor-sign-in" number={4} title="Visitor Sign-in">
-        <div className="max-w-3xl space-y-6">
-          <p className="text-muted-foreground">
-            A sign-in page for your front desk. Visitors sign in on a tablet or their own phone, hosts get an email when
-            they arrive, and you always know who is on site.
-          </p>
-          <div className="flex flex-wrap gap-3">
-            <Button asChild className="rounded-full">
-              <Link href={VISITOR_SIGN_UP}>Start free trial</Link>
-            </Button>
-            <Button asChild variant="outline" className="rounded-full">
-              <Link href="/visitors/demo">Try the demo</Link>
-            </Button>
+      {/* Two products of ours, presented as plain text + one action each. */}
+      <Section id="tools" index="04" title="Tools You Can Use Today" kicker="Self-serve">
+        <div className="grid grid-cols-1 gap-12 md:grid-cols-2 md:gap-16">
+          <div className="flex flex-col">
+            <h3 className="text-2xl tracking-[-0.02em] text-foreground md:text-3xl">Visitor Sign-in</h3>
+            <p className="mt-4 max-w-md text-muted-foreground">
+              A sign-in page for your front desk. Visitors sign in on a tablet or their own phone, hosts get an email
+              when they arrive, and you always know who is on site.
+            </p>
+            <div className="mt-6 flex flex-wrap gap-3">
+              <Button asChild className="rounded-full">
+                <Link href={VISITOR_SIGN_UP}>Start free trial</Link>
+              </Button>
+              <Button asChild variant="outline" className="rounded-full">
+                <Link href="/visitors/demo">Try the demo</Link>
+              </Button>
+            </div>
+          </div>
+          <div className="flex flex-col">
+            <h3 className="text-2xl tracking-[-0.02em] text-foreground md:text-3xl">Business Audit</h3>
+            <p className="mt-4 max-w-md text-muted-foreground">
+              A full check of how your business shows up online, with a clear list of what to fix first.
+            </p>
+            <ul className="mt-6 space-y-3">
+              {AUDIT_AREAS.map((area) => (
+                <li key={area} className="flex gap-3 text-sm text-muted-foreground">
+                  <span aria-hidden="true" className="mt-2 size-1 shrink-0 rounded-full bg-accent" />
+                  <span>{area}</span>
+                </li>
+              ))}
+            </ul>
+            <div className="mt-6">
+              <Button asChild className="rounded-full">
+                <Link href="/signup">Get your audit</Link>
+              </Button>
+            </div>
           </div>
         </div>
       </Section>
 
-      <Section id="business-audit" number={5} title="Business Audit">
-        <div className="space-y-6">
-          <p className="max-w-3xl text-muted-foreground">
-            A full check of how your business shows up online, with a clear list of what to fix first.
-          </p>
-          <ul className="grid grid-cols-1 gap-x-8 gap-y-5 sm:grid-cols-2 lg:grid-cols-3">
-            {AUDIT_AREAS.map((area) => (
-              <li key={area.title} className="border-b border-border pb-4">
-                <p className="text-foreground">{area.title}</p>
-                <p className="mt-1 text-sm text-muted-foreground">{area.detail}</p>
-              </li>
-            ))}
-          </ul>
-          <Button asChild className="rounded-full">
-            <Link href="/signup">Get your audit</Link>
-          </Button>
+      <Section id="news" index="05" title="News & Insights" kicker="From the studio">
+        <ul>
+          {news.slice(0, 6).map((item, i) => (
+            <BigRow
+              key={item.slug}
+              href={`/blog/${item.slug}`}
+              number={String(i + 1).padStart(2, "0")}
+              title={item.title}
+              meta={item.categories?.join(" · ")}
+            />
+          ))}
+        </ul>
+        <div className="mt-10">
+          <Link
+            href="/blog"
+            className="group inline-flex items-center gap-2 font-mono text-xs uppercase tracking-[0.24em] text-muted-foreground transition-colors hover:text-accent"
+          >
+            All articles
+            <ArrowUpRight className="size-4 transition-transform duration-500 ease-out group-hover:-translate-y-0.5 group-hover:translate-x-0.5 motion-reduce:transition-none" />
+          </Link>
         </div>
       </Section>
 
-      <Section id="services" number={6} title="Services">
-        <ul className={listClass}>
-          {capabilities.map((c) => (
-            <MediaRow
-              key={c.slug}
-              href={`/capabilities/${c.slug}`}
-              title={c.title}
-              image={c.image}
-              imageAlt={c.imageAlt}
-            />
-          ))}
-        </ul>
-      </Section>
-
-      <Section id="news" number={7} title="Latest News and Insights">
-        <ul className={listClass}>
-          {news.map((item) => (
-            <MediaRow
-              key={item.slug}
-              href={`/blog/${item.slug}`}
-              title={item.title}
-              image={item.image}
-              imageAlt={item.imageAlt}
-              imagePosition={item.imagePosition}
-            />
-          ))}
-        </ul>
-      </Section>
+      {/* Closing statement — the tagline turned into an invitation. */}
+      <section aria-labelledby="home-cta" className="border-t border-border py-20 md:py-28">
+        <h2
+          id="home-cta"
+          className="text-[clamp(2.5rem,9vw,7rem)] font-medium leading-[0.9] tracking-[-0.04em] text-foreground"
+        >
+          Let&apos;s build
+          <span className="text-accent">.</span>
+        </h2>
+        <div className="mt-10 flex flex-wrap items-center gap-3">
+          <BookNowModal triggerLabel="Start a project" triggerClassName="rounded-full" />
+          <Link
+            href="/contact"
+            className="group inline-flex items-center gap-2 rounded-full border border-border px-6 py-3 text-sm font-medium transition-colors hover:text-accent"
+          >
+            Talk to us
+            <ArrowUpRight className="size-4 transition-transform duration-500 ease-out group-hover:-translate-y-0.5 group-hover:translate-x-0.5 motion-reduce:transition-none" />
+          </Link>
+        </div>
+      </section>
     </div>
   )
 }

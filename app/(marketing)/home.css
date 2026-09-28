@@ -1,0 +1,62 @@
+/* Home page motion. Kept minimal: one marquee loop and a soft rise-in for the
+   hero, both disabled under prefers-reduced-motion. */
+
+@keyframes home-marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    /* The track holds two identical copies, so shifting by half loops seamlessly. */
+    transform: translateX(-50%);
+  }
+}
+
+.home-marquee-track {
+  display: inline-flex;
+  width: max-content;
+  animation: home-marquee 40s linear infinite;
+}
+
+.home-marquee:hover .home-marquee-track {
+  animation-play-state: paused;
+}
+
+@keyframes home-rise {
+  from {
+    opacity: 0;
+    transform: translateY(1.25rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.home-rise {
+  animation: home-rise 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.home-rise-2 {
+  animation-delay: 0.12s;
+}
+
+.home-rise-3 {
+  animation-delay: 0.24s;
+}
+
+.home-rise-4 {
+  animation-delay: 0.36s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-marquee-track {
+    animation: none;
+  }
+
+  .home-rise,
+  .home-rise-2,
+  .home-rise-3,
+  .home-rise-4 {
+    animation: none;
+  }
+}
