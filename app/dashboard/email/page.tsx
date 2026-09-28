@@ -50,6 +50,7 @@ import { getBusinessProfile, type BusinessProfile } from "@/lib/business-profile
 import { deleteEmailTemplate, getEmailTemplates, saveEmailTemplate } from "@/lib/email-templates-store"
 import { markdownToHtml } from "@/lib/markdown"
 import { getUsers } from "@/lib/users"
+import { VISITOR_TRIAL_DAYS } from "@/lib/visitor-billing"
 import { cn } from "@/lib/utils"
 import { useIsMobile } from "@/hooks/use-mobile"
 import {
@@ -1273,6 +1274,35 @@ export default function EmailPage() {
     }
   }
 
+  async function addVisitorWelcomeTemplate() {
+    if (!user?.uid) {
+      setTemplateNotice({ tone: "error", text: "Sign in before adding a template." })
+      return
+    }
+    const welcomeTemplate: EmailTemplate = {
+      id: "visitor-signup-welcome",
+      name: "Visitor Sign-in welcome",
+      subject: "Welcome to Visitor Sign-in",
+      body:
+        "<p>Hi there,</p>" +
+        `<p>Welcome to VisualCNS. Your Visitor Sign-in account is ready, and your ${VISITOR_TRIAL_DAYS}-day free trial has started.</p>` +
+        "<p>To get started, sign in to your company page and open Visitors. You can find your visitor sign-in link there and set up the people your visitors can choose to meet.</p>" +
+        "<p><a href=\"https://www.visualcns.com/login\">Sign in to VisualCNS</a></p>" +
+        "<p>If you need help setting things up, reply to this email and we’ll be happy to help.</p>" +
+        "<p>Best,<br />The VisualCNS team</p>",
+      updatedAt: new Date().toISOString(),
+    }
+    try {
+      await saveEmailTemplate({ ...welcomeTemplate, companyId: workspaceId, createdBy: user.uid })
+      setTemplates((current) => [welcomeTemplate, ...current.filter((template) => template.id !== welcomeTemplate.id)])
+      editTemplate(welcomeTemplate)
+      setMobileTemplateView("editor")
+      setTemplateNotice({ tone: "success", text: "Visitor welcome email added. Review it, then use the template to send." })
+    } catch {
+      setTemplateNotice({ tone: "error", text: "The template could not be added. Try again." })
+    }
+  }
+
   async function deleteTemplate(templateId: string) {
     try {
       await deleteEmailTemplate(templateId, workspaceId)
@@ -1531,6 +1561,7 @@ export default function EmailPage() {
             businessProfile={businessProfile}
             isAdmin={isAdmin}
             addInsightsTemplate={addInsightsTemplate}
+            addVisitorWelcomeTemplate={addVisitorWelcomeTemplate}
             resetTemplateEditor={resetTemplateEditor}
             deleteTemplate={deleteTemplate}
             contactInitials={contactInitials}

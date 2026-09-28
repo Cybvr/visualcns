@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
-import { Building2, Eye, Pencil, Plus, Trash2 } from "lucide-react"
+import { Building2, EllipsisVertical, Plus } from "lucide-react"
 import { FaBuilding } from "react-icons/fa"
 import type { Timestamp } from "firebase/firestore"
 
@@ -13,7 +13,7 @@ import { ReactIcon } from "@/components/react-icon"
 import { MobileDataCard } from "@/components/dashboard/mobile-data-card"
 import { GridCard, GridCardList } from "@/components/dashboard/grid-card"
 import { ViewToggle, useViewMode } from "@/components/dashboard/view-toggle"
-import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -334,7 +334,7 @@ export default function CompaniesPage() {
             ))}
           </div>
 
-          <div className="hidden rounded-lg border border-border sm:block">
+          <div className="hidden min-w-0 sm:block">
           <TableBulkBar
             count={selection.selectedCount}
             noun="client"
@@ -343,7 +343,7 @@ export default function CompaniesPage() {
             onClear={selection.clear}
             onDelete={handleBulkDelete}
           />
-          <Table>
+          <Table className="w-full table-fixed">
             <TableHeader>
               <TableRow>
                 <TableHead className="w-10">
@@ -355,11 +355,9 @@ export default function CompaniesPage() {
                   />
                 </TableHead>
                 <TableHead>Client</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead>Projects</TableHead>
-                <TableHead>Date added</TableHead>
-                <TableHead>Company</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead className="w-20">Projects</TableHead>
+                <TableHead className="w-28">Added</TableHead>
+                <TableHead className="w-12 text-right"><span className="sr-only">Actions</span></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -376,8 +374,8 @@ export default function CompaniesPage() {
                       onChange={() => selection.toggle(row.id)}
                     />
                   </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-3">
+                  <TableCell className="max-w-0">
+                    <div className="flex min-w-0 items-center gap-3">
                       {row.logoUrl ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
@@ -391,48 +389,28 @@ export default function CompaniesPage() {
                           <Building2 className="h-4 w-4 text-muted-foreground" />
                         </span>
                       )}
-                      <span className="font-medium">{row.name}</span>
+                      <span className="min-w-0">
+                        <span className="block truncate font-medium">{row.name}</span>
+                        <span className="block truncate text-muted-foreground">{row.label || "—"}</span>
+                      </span>
                     </div>
                   </TableCell>
-                  <TableCell className="text-muted-foreground">{row.label || "—"}</TableCell>
                   <TableCell className="text-muted-foreground">{row.projectCount}</TableCell>
                   <TableCell className="text-muted-foreground">{formatTimestamp(row.createdAt)}</TableCell>
-                  <TableCell onClick={(e) => e.stopPropagation()}>
-                    {row.user ? (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-8"
-                        onClick={() => handleViewWorkspace(row)}
-                      >
-                        <Eye className="mr-2 h-3.5 w-3.5" />
-                        View
-                      </Button>
-                    ) : (
-                      <span className="text-muted-foreground">—</span>
-                    )}
-                  </TableCell>
                   <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                    <div className="flex justify-end gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                        onClick={() => router.push(`${companyHref(row)}/edit`)}
-                        aria-label="Edit client"
-                      >
-                        <Pencil className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                        onClick={() => setPendingDelete(row)}
-                        aria-label="Remove client"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                    </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="size-8 text-muted-foreground hover:text-foreground" aria-label={`Actions for ${row.name}`}>
+                          <EllipsisVertical className="size-4" aria-hidden="true" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onSelect={() => router.push(companyHref(row))}>Open client</DropdownMenuItem>
+                        {row.user && <DropdownMenuItem onSelect={() => handleViewWorkspace(row)}>View workspace</DropdownMenuItem>}
+                        <DropdownMenuItem onSelect={() => router.push(`${companyHref(row)}/edit`)}>Edit client</DropdownMenuItem>
+                        <DropdownMenuItem variant="destructive" onSelect={() => setPendingDelete(row)}>Remove client</DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </TableCell>
                 </TableRow>
               ))}

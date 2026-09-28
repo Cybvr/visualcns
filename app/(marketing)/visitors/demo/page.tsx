@@ -71,7 +71,7 @@ export default function VisitorsDemoPage() {
     <main className="kiosk kiosk-page flex min-h-svh flex-col bg-card text-foreground">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-xl border border-border bg-background px-4 py-3 text-sm">
         <p className="text-muted-foreground"><span className="font-medium text-foreground">This is a demo.</span> Get your own: free for {VISITOR_TRIAL_DAYS} days, no card needed.</p>
-        <button type="button" onClick={() => setSignupOpen(true)} className="inline-flex h-9 shrink-0 items-center rounded-full bg-primary px-4 font-medium text-primary-foreground outline-none transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring">Get started</button>
+        <button type="button" onClick={() => setSignupOpen(true)} className="inline-flex h-9 shrink-0 items-center rounded-full bg-foreground px-4 font-medium text-background outline-none transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring">Get started</button>
       </div>
       <Dialog open={signupOpen} onOpenChange={setSignupOpen}>
         <DialogContent className="max-h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-sm gap-2 overflow-y-auto p-3 sm:max-w-lg sm:gap-3 sm:p-5">
@@ -163,7 +163,7 @@ export default function VisitorsDemoPage() {
 function Confirmation({ title, text, onDone }: { title: string; text: string; onDone: () => void }) {
   return (
     <div className="kiosk-confirmation my-auto flex flex-col items-center py-12 text-center">
-      <span className="flex size-16 items-center justify-center rounded-full bg-emerald-100 text-emerald-700"><Check className="size-8" aria-hidden="true" /></span>
+      <span className="flex size-16 items-center justify-center rounded-full bg-secondary text-primary"><Check className="size-8" aria-hidden="true" /></span>
       <h2 className="kiosk-title mt-5">{title}</h2>
       <p className="mt-2 max-w-sm text-muted-foreground">{text}</p>
       <button type="button" onClick={onDone} className="kiosk-submit">Done</button>

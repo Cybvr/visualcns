@@ -30,6 +30,7 @@ export type EmailTemplatesProps = {
   businessProfile: BusinessProfile | null
   isAdmin: boolean
   addInsightsTemplate: () => void
+  addVisitorWelcomeTemplate: () => void
   resetTemplateEditor: () => void
   deleteTemplate: (id: string) => void
   contactInitials: (name: string, email: string) => string
@@ -57,12 +58,16 @@ export function EmailTemplates({
   businessProfile,
   isAdmin,
   addInsightsTemplate,
+  addVisitorWelcomeTemplate,
   resetTemplateEditor,
   deleteTemplate,
   contactInitials,
   contactAvatarTone,
   formatListDate,
 }: EmailTemplatesProps) {
+  const hasVisitorWelcomeTemplate = templates.some((template) => template.id === "visitor-signup-welcome")
+  const hasInsightsTemplate = templates.some((template) => template.id === "announce-insights")
+
   return (
     <section className="flex min-h-0 w-full min-w-0 max-w-full flex-1 flex-col gap-4 lg:gap-6 lg:overflow-hidden" role="tabpanel">
       <form onSubmit={saveTemplate} className={cn("min-h-0 w-full min-w-0 max-w-full flex-1 flex-col overflow-x-hidden max-lg:min-h-[calc(100svh-8rem)]", mobileTemplateView === "editor" ? "flex" : "hidden")}>
@@ -91,8 +96,13 @@ export function EmailTemplates({
           <div className="flex flex-wrap items-center gap-2"><Button type="button" variant="outline" onClick={previewEditingTemplate} disabled={!templateBody.trim()}><Eye aria-hidden="true" />Preview</Button><Button type="button" variant="outline" onClick={useEditingTemplate} disabled={!editingTemplateId}>Use template</Button><Button type="submit">Save</Button></div>
         </div>
       </form>
-      <div className={cn("min-h-0 w-full min-w-0 max-w-full max-lg:shrink-0 lg:rounded-lg lg:border lg:border-border lg:bg-card lg:flex-1 lg:overflow-y-auto", mobileTemplateView === "list" ? "block" : "hidden")}>
-        {isAdmin && !templates.some((template) => template.id === "announce-insights") && <div className="flex items-center justify-end gap-2 border-b border-border p-2"><Button type="button" variant="outline" size="sm" onClick={addInsightsTemplate}>Add Insights email</Button></div>}
+      <div className={cn("min-h-0 w-full min-w-0 max-w-full max-lg:shrink-0 lg:flex-1 lg:overflow-y-auto", mobileTemplateView === "list" ? "block" : "hidden")}>
+        {isAdmin && (!hasVisitorWelcomeTemplate || !hasInsightsTemplate) && (
+          <div className="flex flex-wrap items-center justify-end gap-2 border-b border-border p-2">
+            {!hasVisitorWelcomeTemplate && <Button type="button" variant="outline" size="sm" onClick={addVisitorWelcomeTemplate}>Add Visitor welcome email</Button>}
+            {!hasInsightsTemplate && <Button type="button" variant="outline" size="sm" onClick={addInsightsTemplate}>Add Insights email</Button>}
+          </div>
+        )}
         {templates.length === 0 ? <div className="mt-3 rounded-[12px] border border-dashed border-border px-4 py-8 text-center"><FileText className="mx-auto size-5 text-muted-foreground" aria-hidden="true" /><p className="mt-3 text-sm font-medium">No templates yet</p><p className="mt-1 text-xs leading-5 text-muted-foreground">Save the first one using the editor.</p></div> : visibleTemplates.length === 0 ? <div className="mt-3 rounded-[12px] border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground">No templates match your search.</div> : (
           <div><EmailListHeader primaryLabel="Template" dateLabel="Updated" />{visibleTemplates.map((template) => (
             <EmailListRow

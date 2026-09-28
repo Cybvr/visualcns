@@ -93,7 +93,7 @@ export function AppSidebar({
     <Sidebar
       collapsible="icon"
       className={cn(
-        "bg-card text-muted-foreground group-data-[side=left]:border-r-0 [&_[data-slot=sidebar-inner]]:bg-card",
+        "bg-background text-muted-foreground group-data-[side=left]:border-r group-data-[side=left]:border-border [&_[data-slot=sidebar-inner]]:bg-background",
         className,
       )}
       {...props}

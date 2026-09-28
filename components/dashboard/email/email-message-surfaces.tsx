@@ -95,12 +95,12 @@ export function EmailMessageSurfaces({
         selectedReceived && mobileMessageView === "list" ? "lg:grid lg:grid-cols-[18rem_minmax(0,1fr)] lg:grid-rows-[minmax(0,1fr)] lg:overflow-hidden" : "lg:overflow-y-auto",
       )} role="tabpanel">
         <aside className={cn(
-          "min-h-0 shrink-0 overflow-hidden lg:rounded-lg lg:border lg:border-border lg:bg-card",
+          "min-h-0 shrink-0 overflow-hidden",
           mobileMessageView === "list" ? "block" : "hidden",
         )}>
           {receivedError && <div className="border-b border-destructive/30 bg-destructive/5 px-4 py-3 text-xs leading-5 text-destructive">{receivedError}</div>}
           {receivedLoading && receivedMessages.length === 0 ? (
-            <div className="space-y-2 p-3" role="status" aria-label="Loading inbox">{Array.from({ length: 5 }, (_, index) => <div key={index} className="flex items-center gap-3 rounded-sm bg-card p-3"><Skeleton className="size-9 rounded-full" /><div className="min-w-0 flex-1 space-y-2"><Skeleton className="h-4 w-2/3" /><Skeleton className="h-3 w-1/2" /></div><Skeleton className="h-3 w-14" /></div>)}</div>
+            <div className="p-3" role="status" aria-label="Loading inbox">{Array.from({ length: 5 }, (_, index) => <div key={index} className="flex items-center gap-3 border-b border-border p-3 last:border-b-0"><Skeleton className="size-9 rounded-full" /><div className="min-w-0 flex-1 space-y-2"><Skeleton className="h-4 w-2/3" /><Skeleton className="h-3 w-1/2" /></div><Skeleton className="h-3 w-14" /></div>)}</div>
           ) : receivedMessages.length === 0 ? (
             <div className="px-4 py-10 text-center"><Inbox className="mx-auto size-5 text-muted-foreground" aria-hidden="true" /><p className="mt-3 text-sm font-medium">No received messages</p><p className="mt-1 text-xs leading-5 text-muted-foreground">Visitor sign-ups and messages sent to your Resend receiving address will appear here.</p></div>
           ) : visibleReceivedMessages.length === 0 ? (
@@ -144,7 +144,7 @@ export function EmailMessageSurfaces({
   if (tab === "drafts") {
     return (
       <section className="flex min-h-0 w-full min-w-0 max-w-full flex-1 flex-col gap-4 lg:gap-6 lg:overflow-hidden" role="tabpanel">
-        <aside className="min-h-0 max-lg:shrink-0 lg:rounded-lg lg:border lg:border-border lg:bg-card lg:flex-1 lg:overflow-y-auto">
+        <aside className="min-h-0 max-lg:shrink-0 lg:flex-1 lg:overflow-y-auto">
           {drafts.length === 0 ? <div className="px-4 py-10 text-center"><FileText className="mx-auto size-5 text-muted-foreground" aria-hidden="true" /><p className="mt-3 text-sm font-medium">No drafts</p><p className="mt-1 text-xs leading-5 text-muted-foreground">Saved drafts will appear here.</p></div> : visibleDrafts.length === 0 ? <div className="px-4 py-10 text-center text-sm text-muted-foreground">No drafts match your search.</div> : (
             <div><EmailListHeader primaryLabel="To" dateLabel="Updated" />{visibleDrafts.map((draft) => {
               const recipient = draft.to ? resolveName(draft.to) : (draft.listId ? "Contact list" : "No recipient selected")
@@ -173,7 +173,7 @@ export function EmailMessageSurfaces({
 
   return (
     <section className={cn("flex min-h-0 w-full min-w-0 max-w-full flex-1 flex-col gap-4 lg:gap-6", selectedSent && mobileMessageView === "list" ? "lg:grid lg:grid-cols-[18rem_minmax(0,1fr)] lg:grid-rows-[minmax(0,1fr)] lg:overflow-hidden" : "lg:overflow-y-auto")} role="tabpanel">
-      <aside className={cn("min-h-0 shrink-0 overflow-hidden lg:rounded-lg lg:border lg:border-border lg:bg-card", mobileMessageView === "list" ? "block" : "hidden")}>
+      <aside className={cn("min-h-0 shrink-0 overflow-hidden", mobileMessageView === "list" ? "block" : "hidden")}>
         {messages.length === 0 ? <div className="px-4 py-10 text-center"><Inbox className="mx-auto size-5 text-muted-foreground" aria-hidden="true" /><p className="mt-3 text-sm font-medium">No sent messages</p><p className="mt-1 text-xs leading-5 text-muted-foreground">Your sent emails will appear here.</p></div> : visibleMessages.length === 0 ? <div className="px-4 py-10 text-center text-sm text-muted-foreground">No messages match your search.</div> : (
           <div><EmailListHeader primaryLabel="To" dateLabel="Sent" compact={Boolean(selectedSent)} />{visibleMessages.map((message) => (
             <EmailListRow

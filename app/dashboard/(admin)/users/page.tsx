@@ -13,7 +13,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import {
   Table,
@@ -23,7 +22,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Eye, Pencil, Plus, Trash2, Loader2, User as UserIcon, UserPlus } from "lucide-react"
+import { EllipsisVertical, Plus, Loader2, User as UserIcon, UserPlus } from "lucide-react"
 import { FaUser } from "react-icons/fa"
 import { getUsers, deleteUser, type AppUser } from "@/lib/users"
 import { getOrganizations } from "@/lib/organizations"
@@ -33,14 +32,13 @@ import { UserEditorSheet } from "@/components/dashboard/user-editor-sheet"
 import { MobileDataCard } from "@/components/dashboard/mobile-data-card"
 import { GridCard, GridCardList } from "@/components/dashboard/grid-card"
 import { ViewToggle, useViewMode } from "@/components/dashboard/view-toggle"
-import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { useAuth } from "@/components/auth-provider"
 import { FilterBar, useFilterBar, type SortOption } from "@/components/dashboard/filter-bar"
 import { TableBulkBar } from "@/components/dashboard/table-bulk-bar"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useRowSelection } from "@/hooks/use-row-selection"
 import { formatTimestamp, tsToMillis } from "@/lib/tasks"
-import { cn } from "@/lib/utils"
 
 export default function UsersAdminPage() {
   const router = useRouter()
@@ -50,6 +48,7 @@ export default function UsersAdminPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
+  const [pendingDelete, setPendingDelete] = useState<AppUser | null>(null)
   const [bulkDeleting, setBulkDeleting] = useState(false)
   const [selectedId, setSelectedId] = useState<string | "new" | null>(null)
   const [view, setView] = useViewMode("contacts")
@@ -114,6 +113,7 @@ export default function UsersAdminPage() {
       await deleteUser(uid)
       setUsers((prev) => prev.filter((u) => u.uid !== uid))
       if (selectedId === uid) setSelectedId(null)
+      setPendingDelete(null)
     } catch (err) {
       console.error("Error deleting user:", err)
     } finally {
@@ -264,7 +264,7 @@ export default function UsersAdminPage() {
                 ))}
               </div>
 
-              <div className="hidden rounded-lg border border-border sm:block">
+              <div className="hidden min-w-0 sm:block">
               <TableBulkBar
                 count={selection.selectedCount}
                 noun="contact"
@@ -272,7 +272,7 @@ export default function UsersAdminPage() {
                 onClear={selection.clear}
                 onDelete={handleBulkDelete}
               />
-              <Table>
+              <Table className="w-full table-fixed">
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-10">
@@ -284,11 +284,9 @@ export default function UsersAdminPage() {
                       />
                     </TableHead>
                     <TableHead>Contact</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Role</TableHead>
                     <TableHead>Company</TableHead>
-                    <TableHead>View as</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                    <TableHead className="w-28">Updated</TableHead>
+                    <TableHead className="w-12 text-right"><span className="sr-only">Actions</span></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -305,8 +303,8 @@ export default function UsersAdminPage() {
                           onChange={() => selection.toggle(u.uid)}
                         />
                       </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-3">
+                      <TableCell className="max-w-0">
+                        <div className="flex min-w-0 items-center gap-3">
                           {u.photoURL ? (
                             // eslint-disable-next-line @next/next/no-img-element
                             <img
@@ -320,80 +318,27 @@ export default function UsersAdminPage() {
                               <UserIcon className="h-4 w-4 text-muted-foreground" />
                             </span>
                           )}
-                          <span className="font-medium">{u.displayName || "—"}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">{u.email || "—"}</TableCell>
-                      <TableCell>
-                        {u.role ? (
-                          <span
-                            className={cn(
-                              "rounded-full px-2 py-0.5 text-xs font-medium",
-                              u.role === "admin" ? "bg-purple-100 text-purple-700" : "bg-muted text-muted-foreground",
-                            )}
-                          >
-                            {u.role}
+                          <span className="min-w-0">
+                            <span className="block truncate font-medium">{u.displayName || u.email || "—"}</span>
+                            <span className="block truncate text-muted-foreground">{u.email || "—"}</span>
                           </span>
-                        ) : (
-                          <span className="text-muted-foreground">—</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">{companyNameOf(u) || "—"}</TableCell>
-                      <TableCell onClick={(e) => e.stopPropagation()}>
-                        {((u.role === "client" && u.companyId) || ((u.role === "admin" || u.role === "superadmin") && u.agencyId)) ? (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-8"
-                            onClick={() => handleViewAs(u)}
-                          >
-                            <Eye className="mr-2 h-3.5 w-3.5" />
-                            View as
-                          </Button>
-                        ) : <span className="text-xs text-muted-foreground">—</span>}
-                      </TableCell>
-                      <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex justify-end gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                            onClick={() => setSelectedId(u.uid)}
-                            aria-label="Edit contact"
-                          >
-                            <Pencil className="h-3.5 w-3.5" />
-                          </Button>
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                                aria-label="Delete contact"
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Remove contact?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  You&apos;re about to remove {u.displayName || u.email || "this contact"}. This can&apos;t be
-                                  undone.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction
-                                  onClick={() => handleDelete(u.uid)}
-                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                >
-                                  {deleting === u.uid ? <Loader2 className="h-4 w-4 animate-spin" /> : "Delete"}
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
                         </div>
+                      </TableCell>
+                      <TableCell className="max-w-0 text-muted-foreground"><span className="block truncate">{companyNameOf(u) || "—"}</span></TableCell>
+                      <TableCell className="text-muted-foreground">{formatTimestamp(u.updatedAt ?? u.createdAt)}</TableCell>
+                      <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="size-8 text-muted-foreground hover:text-foreground" aria-label={`Actions for ${u.displayName || u.email || "contact"}`}>
+                              <EllipsisVertical className="size-4" aria-hidden="true" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onSelect={() => setSelectedId(u.uid)}>Edit contact</DropdownMenuItem>
+                            {((u.role === "client" && u.companyId) || ((u.role === "admin" || u.role === "superadmin") && u.agencyId)) && <DropdownMenuItem onSelect={() => handleViewAs(u)}>View as</DropdownMenuItem>}
+                            <DropdownMenuItem variant="destructive" onSelect={() => setPendingDelete(u)}>Delete contact</DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -404,6 +349,30 @@ export default function UsersAdminPage() {
           )}
         </>
       )}
+
+      <AlertDialog open={pendingDelete !== null} onOpenChange={(open) => !open && !deleting && setPendingDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove contact?</AlertDialogTitle>
+            <AlertDialogDescription>
+              You&apos;re about to remove {pendingDelete?.displayName || pendingDelete?.email || "this contact"}. This can&apos;t be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting !== null}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={deleting !== null}
+              onClick={(event) => {
+                event.preventDefault()
+                if (pendingDelete) void handleDelete(pendingDelete.uid)
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? <Loader2 className="size-4 animate-spin" /> : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <UserEditorSheet
         subjectNoun="contact"

@@ -47,7 +47,7 @@ export function EmailLists({
 }: EmailListsProps) {
   return (
     <section className="min-h-0 w-full min-w-0 max-w-full flex-1 overflow-visible" role="tabpanel">
-      <div className="min-h-0 overflow-visible lg:overflow-y-auto lg:rounded-[14px] lg:border lg:border-border lg:bg-card">
+      <div className="min-h-0 overflow-visible lg:overflow-y-auto">
         {visibleLists.length === 0 ? (
           <div className="px-4 py-10 text-center">
             <List className="mx-auto size-5 text-muted-foreground" aria-hidden="true" />
