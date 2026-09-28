@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation"
 import { Loader2 } from "lucide-react"
 import { BrandLockup } from "@/components/brand-lockup"
 import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
 import { useAuth } from "@/components/auth-provider"
 import { authErrorMessage, GoogleIcon } from "@/components/auth-ui"
 import { Input } from "@/components/ui/input"
@@ -30,6 +31,7 @@ export default function LoginPage() {
   const [action, setAction] = useState<AuthAction>(null)
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [keepSignedIn, setKeepSignedIn] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [signupHref, setSignupHref] = useState("/signup")
   const [visitorLogin, setVisitorLogin] = useState(false)
@@ -120,7 +122,7 @@ export default function LoginPage() {
     setAction("email")
     setError(null)
     try {
-      await signInWithEmail(email.trim(), password)
+      await signInWithEmail(email.trim(), password, keepSignedIn)
     } catch (err) {
       setError(authErrorMessage(err))
     } finally {
@@ -136,7 +138,7 @@ export default function LoginPage() {
     setAction("google")
     setError(null)
     try {
-      await signInWithGoogle("", false, visitorLogin ? "" : selectedWorkspace)
+      await signInWithGoogle("", false, visitorLogin ? "" : selectedWorkspace, visitorLogin ? keepSignedIn : true)
     } catch (err) {
       const message = err instanceof Error ? err.message : "Sign-in failed. Please try again."
       // Popup closed by user isn't an error worth showing loudly
@@ -194,6 +196,10 @@ export default function LoginPage() {
               <Label htmlFor="visitor-login-password">Password</Label>
               <Input id="visitor-login-password" type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} disabled={busy} required className="h-10 bg-background text-base md:text-sm" />
             </div>
+            <label htmlFor="visitor-login-keep-signed-in" className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Checkbox id="visitor-login-keep-signed-in" checked={keepSignedIn} onChange={(event) => setKeepSignedIn(event.target.checked)} disabled={busy} />
+              Keep me signed in
+            </label>
             <Button type="submit" size="lg" className="h-10 w-full" disabled={busy} aria-busy={action === "email"}>
               {action === "email" && <Loader2 className="size-4 animate-spin" aria-hidden="true" />}
               {action === "email" ? "Signing in…" : "Sign in with email"}

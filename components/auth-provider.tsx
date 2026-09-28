@@ -3,7 +3,10 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react"
 import {
   createUserWithEmailAndPassword,
+  browserLocalPersistence,
+  browserSessionPersistence,
   onAuthStateChanged,
+  setPersistence,
   signInWithEmailAndPassword,
   signInWithPopup,
   signOut as firebaseSignOut,
@@ -66,9 +69,9 @@ type AuthContextValue = {
   viewAsUser: (target: AppUser) => void
   /** Stop previewing and return to the admin's own account. */
   stopViewingAs: () => void
-  signUpWithEmail: (name: string, email: string, password: string, agencyName?: string, createWorkspace?: boolean) => Promise<void>
-  signInWithEmail: (email: string, password: string) => Promise<void>
-  signInWithGoogle: (agencyName?: string, createWorkspace?: boolean, workspaceId?: string) => Promise<void>
+  signUpWithEmail: (name: string, email: string, password: string, agencyName?: string, createWorkspace?: boolean, keepSignedIn?: boolean) => Promise<void>
+  signInWithEmail: (email: string, password: string, keepSignedIn?: boolean) => Promise<void>
+  signInWithGoogle: (agencyName?: string, createWorkspace?: boolean, workspaceId?: string, keepSignedIn?: boolean) => Promise<void>
   /** Visitor Sign-in self sign-up: makes the signed-in person a client with their own company. Returns its slug. */
   joinVisitorCompany: (companyName: string) => Promise<string>
   signOut: () => Promise<void>
@@ -162,7 +165,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return unsubscribe
   }, [])
 
-  async function signInWithGoogle(agencyName = "", createWorkspace = false, workspaceId = "") {
+  async function signInWithGoogle(agencyName = "", createWorkspace = false, workspaceId = "", keepSignedIn = true) {
+    await setPersistence(auth, keepSignedIn ? browserLocalPersistence : browserSessionPersistence)
     const authenticatedUser = (await signInWithPopup(auth, googleProvider)).user
     if (workspaceId) {
       const idToken = await authenticatedUser.getIdToken()
@@ -206,11 +210,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  async function signInWithEmail(email: string, password: string) {
+  async function signInWithEmail(email: string, password: string, keepSignedIn = true) {
+    await setPersistence(auth, keepSignedIn ? browserLocalPersistence : browserSessionPersistence)
     await signInWithEmailAndPassword(auth, email, password)
   }
 
-  async function signUpWithEmail(name: string, email: string, password: string, agencyName = "", createWorkspace = false) {
+  async function signUpWithEmail(name: string, email: string, password: string, agencyName = "", createWorkspace = false, keepSignedIn = true) {
+    await setPersistence(auth, keepSignedIn ? browserLocalPersistence : browserSessionPersistence)
     const credential = await createUserWithEmailAndPassword(auth, email, password)
     const displayName = name.trim()
 

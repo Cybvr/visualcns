@@ -6,6 +6,7 @@ import { Loader2 } from "lucide-react"
 import { useAuth } from "@/components/auth-provider"
 import { authErrorMessage, GoogleIcon } from "@/components/auth-ui"
 import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 
@@ -26,31 +27,14 @@ export function VisitorSignupForm() {
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [keepSignedIn, setKeepSignedIn] = useState(true)
   const [emailAccountCreated, setEmailAccountCreated] = useState(false)
-  const [draftReady, setDraftReady] = useState(false)
   const [action, setAction] = useState<"email" | "google" | null>(null)
   const [error, setError] = useState("")
 
   useEffect(() => {
-    try {
-      const draft = JSON.parse(localStorage.getItem(VISITOR_SIGNUP_DRAFT_KEY) || "null") as { companyName?: unknown; name?: unknown; email?: unknown } | null
-      if (typeof draft?.companyName === "string") setCompanyName(draft.companyName.slice(0, 120))
-      if (typeof draft?.name === "string") setName(draft.name.slice(0, 100))
-      if (typeof draft?.email === "string") setEmail(draft.email.slice(0, 254))
-    } catch {
-      // Private browsing can deny storage; the form still works without it.
-    }
-    setDraftReady(true)
+    try { localStorage.removeItem(VISITOR_SIGNUP_DRAFT_KEY) } catch {}
   }, [])
-
-  useEffect(() => {
-    if (!draftReady) return
-    try {
-      localStorage.setItem(VISITOR_SIGNUP_DRAFT_KEY, JSON.stringify({ companyName, name, email }))
-    } catch {
-      // Saving a draft is optional and must never block sign-up.
-    }
-  }, [draftReady, companyName, name, email])
 
   function hasCompanyName() {
     if (!companyName.trim()) {
@@ -62,7 +46,6 @@ export function VisitorSignupForm() {
 
   async function finishSignup() {
     const slug = await joinVisitorCompany(companyName.trim())
-    try { localStorage.removeItem(VISITOR_SIGNUP_DRAFT_KEY) } catch {}
     // A full page load picks up the new client account.
     window.location.assign(visitorsTab(slug))
   }
@@ -81,7 +64,7 @@ export function VisitorSignupForm() {
     setError("")
     try {
       if (!user && !emailAccountCreated) {
-        await signUpWithEmail(name.trim(), email.trim(), password)
+        await signUpWithEmail(name.trim(), email.trim(), password, "", false, keepSignedIn)
         setEmailAccountCreated(true)
       }
       await finishSignup()
@@ -96,7 +79,7 @@ export function VisitorSignupForm() {
     setAction("google")
     setError("")
     try {
-      await signInWithGoogle()
+      await signInWithGoogle("", false, "", keepSignedIn)
       await finishSignup()
     } catch (err) {
       showError(err)
@@ -133,6 +116,12 @@ export function VisitorSignupForm() {
           <Input id="visitor-signup-password" type="password" autoComplete="new-password" value={password} onChange={(event) => setPassword(event.target.value)} minLength={8} disabled={action !== null} required className="h-10 bg-background text-base md:text-sm" />
         </div>
       </>}
+      {!user && !emailAccountCreated && (
+        <label htmlFor="visitor-signup-keep-signed-in" className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Checkbox id="visitor-signup-keep-signed-in" checked={keepSignedIn} onChange={(event) => setKeepSignedIn(event.target.checked)} disabled={action !== null} />
+          Keep me signed in
+        </label>
+      )}
       <Button type="submit" size="lg" className="h-10 w-full" disabled={action !== null} aria-busy={action === "email"}>
         {action === "email" && <Loader2 className="size-4 animate-spin" aria-hidden="true" />}
         {action === "email" ? "Setting up…" : user || emailAccountCreated ? "Continue with this account" : "Create account with email"}
@@ -142,7 +131,6 @@ export function VisitorSignupForm() {
         {action === "google" ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <GoogleIcon />}
         {action === "google" ? "Setting up…" : "Continue with Google"}
       </Button>
-      <p className="text-xs text-muted-foreground">Company, name, and email are saved in this browser until sign-up is complete. Your password is never saved here.</p>
       {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
     </form>
   )
