@@ -14,7 +14,7 @@
   --surface-section-label-size: 0.75rem;
   --surface-section-label-line-height: 1rem;
   --background: oklch(1 0 180);
-  --foreground: oklch(0.34 0.075 260);
+  --foreground: oklch(0.42 0.11 260);
   --muted: oklch(0.885 0.01 276.021);
   --muted-foreground: oklch(0.464 0.025 275.387);
   --popover: oklch(0.992 0 168.69);
