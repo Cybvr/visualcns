@@ -1235,7 +1235,8 @@ export default function EmailPage() {
         : [nextTemplate, ...current])
       setEditingTemplateId(nextTemplate.id)
       setTemplateNotice({ tone: "success", text: editingTemplateId ? "Template updated." : "Template saved." })
-    } catch {
+    } catch (error) {
+      console.error("Error saving email template:", error)
       setTemplateNotice({ tone: "error", text: "The template could not be saved. Try again." })
     }
   }
