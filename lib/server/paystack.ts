@@ -1,12 +1,13 @@
 import { createHmac, timingSafeEqual } from "node:crypto"
 import { FieldValue, Timestamp, type Firestore } from "firebase-admin/firestore"
 
-import { VISITOR_PRICE_NAIRA, VISITOR_TRIAL_DAYS } from "@/lib/visitor-billing"
+import { isVisitorPlan, VISITOR_PLAN_KEYS, VISITOR_PLANS, VISITOR_TRIAL_DAYS, type VisitorPlanKey } from "@/lib/visitor-billing"
 
 /**
- * Paystack for visitor sign-in: one monthly plan, one subscription per site.
- * Needs PAYSTACK_SECRET_KEY. The plan is made on first use and its code kept
- * in billingConfig/paystack (server only), unless PAYSTACK_VISITORS_PLAN_CODE is set.
+ * Paystack for visitor sign-in: one monthly Paystack plan per tier (Starter,
+ * Business), one subscription per site. Needs PAYSTACK_SECRET_KEY. Plans are
+ * made on first use and their codes kept in billingConfig/paystack (server
+ * only). PAYSTACK_VISITORS_PLAN_CODE, if set, is used for Business.
  */
 
 const API = "https://api.paystack.co"
@@ -44,17 +45,29 @@ export function validPaystackSignature(rawBody: string, signature: string) {
 
 type Plan = { id: number; plan_code: string; name: string; amount: number; interval: string; currency: string }
 
-/** The monthly visitor sign-in plan, made once and remembered. */
-export async function visitorPlan(db: Firestore): Promise<{ code: string; id?: number }> {
+/** A tier's monthly Paystack plan, made once and remembered. */
+export async function visitorPlan(db: Firestore, key: VisitorPlanKey = "business"): Promise<{ code: string; id?: number }> {
   const fromEnv = process.env.PAYSTACK_VISITORS_PLAN_CODE?.trim()
-  if (fromEnv) return { code: fromEnv }
+  if (fromEnv && key === "business") return { code: fromEnv }
   const settings = db.collection("billingConfig").doc("paystack")
-  const saved = (await settings.get()).data()
-  const amount = VISITOR_PRICE_NAIRA * 100
-  if (saved?.visitorsPlanCode && saved.visitorsPlanAmount === amount) return { code: String(saved.visitorsPlanCode), id: Number(saved.visitorsPlanId) || undefined }
-  const plan = await paystack<Plan>("/plan", { method: "POST", body: { name: PLAN_NAME, interval: "monthly", amount, currency: "NGN" } })
-  await settings.set({ visitorsPlanCode: plan.plan_code, visitorsPlanId: plan.id, visitorsPlanAmount: amount, updatedAt: FieldValue.serverTimestamp() }, { merge: true })
+  const saved = (await settings.get()).data() ?? {}
+  const amount = VISITOR_PLANS[key].priceNaira * 100
+  const field = `visitorsPlan_${key}`
+  if (saved[`${field}_code`] && saved[`${field}_amount`] === amount) return { code: String(saved[`${field}_code`]), id: Number(saved[`${field}_id`]) || undefined }
+  // Business keeps the single ₦50,000 plan made before tiers, so existing subscribers still match.
+  if (key === "business" && saved.visitorsPlanCode && saved.visitorsPlanAmount === amount) return { code: String(saved.visitorsPlanCode), id: Number(saved.visitorsPlanId) || undefined }
+  const plan = await paystack<Plan>("/plan", { method: "POST", body: { name: `${PLAN_NAME} ${VISITOR_PLANS[key].name}`, interval: "monthly", amount, currency: "NGN" } })
+  await settings.set({ [`${field}_code`]: plan.plan_code, [`${field}_id`]: plan.id, [`${field}_amount`]: amount, updatedAt: FieldValue.serverTimestamp() }, { merge: true })
   return { code: plan.plan_code, id: plan.id }
+}
+
+/** Which tier a Paystack plan code belongs to, or null if it isn't a visitor plan. */
+export async function visitorPlanKeyForCode(db: Firestore, code: string): Promise<VisitorPlanKey | null> {
+  if (!code) return null
+  for (const key of VISITOR_PLAN_KEYS) {
+    if ((await visitorPlan(db, key)).code === code) return key
+  }
+  return null
 }
 
 /** Starts the free trial the first time a site's billing is looked at. */
@@ -117,6 +130,12 @@ export async function applyCharge(db: Firestore, charge: Charge) {
   const ref = db.collection("visitorBilling").doc(companyId)
   const current = (await ref.get()).data() ?? {}
   if (current.lastReference === charge.reference) return companyId
+  const plan: VisitorPlanKey = isVisitorPlan(meta.plan) ? meta.plan : "business"
+  const currentPlan: VisitorPlanKey = isVisitorPlan(current.plan) ? current.plan : "business"
+  // Changing plan: the new payment starts a new subscription, so stop the old one.
+  const oldSubscription = current.subscriptionCode && plan !== currentPlan
+    ? { code: String(current.subscriptionCode), token: String(current.emailToken || "") }
+    : null
   const paidAt = stamp(charge.paid_at)?.toMillis() ?? Date.now()
   const monthAhead = paidAt + 31 * DAY_MS
   const paidUntil = Math.max(current.paidUntil?.toMillis?.() ?? 0, current.nextPaymentAt?.toMillis?.() ?? 0, monthAhead)
@@ -129,9 +148,15 @@ export async function applyCharge(db: Firestore, charge: Charge) {
     customerId: charge.customer?.id ?? current.customerId ?? null,
     email: charge.customer?.email || current.email || "",
     lastReference: charge.reference,
+    plan,
+    ...(oldSubscription ? { subscriptionCode: "", emailToken: "" } : {}),
     updatedAt: FieldValue.serverTimestamp(),
   }, { merge: true })
-  if (!current.subscriptionCode) await linkSubscription(db, companyId)
+  if (oldSubscription?.token) {
+    // Cleared above first, so the "disabled" webhook for it no longer matches this site.
+    await paystack("/subscription/disable", { method: "POST", body: oldSubscription }).catch(() => undefined)
+  }
+  if (!current.subscriptionCode || oldSubscription) await linkSubscription(db, companyId)
   return companyId
 }
 
@@ -142,7 +167,7 @@ export async function linkSubscription(db: Firestore, companyId: string) {
   const ref = db.collection("visitorBilling").doc(companyId)
   const billing = (await ref.get()).data()
   if (!billing?.customerId || billing.subscriptionCode) return
-  const plan = await visitorPlan(db)
+  const plan = await visitorPlan(db, isVisitorPlan(billing.plan) ? billing.plan : "business")
   const list = await paystack<Subscription[]>(`/subscription?customer=${encodeURIComponent(String(billing.customerId))}&perPage=50`).catch(() => [])
   const taken = new Set((await db.collection("visitorBilling").where("customerCode", "==", billing.customerCode || "").get()).docs.map((row) => String(row.data().subscriptionCode || "")).filter(Boolean))
   const match = list

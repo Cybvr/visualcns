@@ -2,7 +2,8 @@ import { NextResponse, type NextRequest } from "next/server"
 
 import { adminServices } from "@/lib/firebase-admin"
 import { applyCharge, ensureVisitorBilling, linkSubscription, paystack, PaystackError, visitorPlan } from "@/lib/server/paystack"
-import { VISITOR_PRICE_NAIRA } from "@/lib/visitor-billing"
+import { isVisitorPlan, planForStaff, VISITOR_PLANS } from "@/lib/visitor-billing"
+import { visitorStaff } from "@/lib/server/visitor-staff"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -10,7 +11,7 @@ export const dynamic = "force-dynamic"
 /**
  * Visitor sign-in billing for one site. Actions:
  * - start: begin the free trial (called when the tablet is first switched on)
- * - subscribe: returns a Paystack checkout link for the monthly plan
+ * - subscribe: returns a Paystack checkout link for a plan (Starter or Business)
  * - verify: after Paystack sends the payer back, confirms the payment
  * - manage: returns Paystack's page to change card or cancel
  * The agency's admins and the company's own staff can use it.
@@ -40,7 +41,7 @@ function siteOrigin(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const body = (await request.json().catch(() => ({}))) as { action?: string; companyId?: string; reference?: string }
+  const body = (await request.json().catch(() => ({}))) as { action?: string; companyId?: string; reference?: string; plan?: string }
   const companyId = typeof body.companyId === "string" ? body.companyId.trim() : ""
   if (!companyId) return NextResponse.json({ error: "Missing company." }, { status: 400 })
 
@@ -55,20 +56,26 @@ export async function POST(request: NextRequest) {
     if (body.action === "subscribe") {
       if (!email) return NextResponse.json({ error: "Your account needs an email address to pay." }, { status: 400 })
       await ensureVisitorBilling(db, agencyId, companyId)
-      const plan = await visitorPlan(db)
+      const { seats } = await visitorStaff(db, agencyId, companyId)
+      const needed = planForStaff(seats)
+      if (!needed) return NextResponse.json({ error: `You have more than ${VISITOR_PLANS.business.staff} staff. Contact us for an Enterprise plan.` }, { status: 400 })
+      const planKey = isVisitorPlan(body.plan) ? body.plan : needed
+      if (seats > VISITOR_PLANS[planKey].staff) return NextResponse.json({ error: `${VISITOR_PLANS[planKey].name} covers ${VISITOR_PLANS[planKey].staff} staff and you have ${seats}. Choose ${VISITOR_PLANS[needed].name}.` }, { status: 400 })
+      const plan = await visitorPlan(db, planKey)
       const slug = String(org.slug || companyId)
       const checkout = await paystack<{ authorization_url: string; reference: string }>("/transaction/initialize", {
         method: "POST",
         body: {
           email,
-          amount: VISITOR_PRICE_NAIRA * 100,
+          amount: VISITOR_PLANS[planKey].priceNaira * 100,
           currency: "NGN",
           plan: plan.code,
-          callback_url: `${siteOrigin(request)}/dashboard/clients/${encodeURIComponent(slug)}?tab=visitors&paid=1`,
+          callback_url: `${siteOrigin(request)}/${encodeURIComponent(slug)}?tab=visitors&paid=1`,
           metadata: {
             kind: "visitor_signin",
             companyId,
             agencyId,
+            plan: planKey,
             custom_fields: [{ display_name: "Site", variable_name: "site", value: String(org.name || slug) }],
           },
         },

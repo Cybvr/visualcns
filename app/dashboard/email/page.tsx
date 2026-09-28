@@ -1316,7 +1316,7 @@ export default function EmailPage() {
         "<p>Hi there,</p>" +
         "<p>How do visitors sign in at your office today, and how does the person they’re visiting know they’ve arrived?</p>" +
         "<p>VisualCNS Visitor Sign-in gives your reception a simple sign-in page for a tablet. Visitors enter their details and choose their host. The host gets an email, while your team can see who is in the building and review past visits.</p>" +
-        `<p>You can try it free for ${VISITOR_TRIAL_DAYS} days, with no card needed. After the trial, it’s ₦${VISITOR_PRICE_NAIRA.toLocaleString("en-NG")} per month if you decide to continue.</p>` +
+        `<p>You can try it free for ${VISITOR_TRIAL_DAYS} days, with no card needed. After the trial, plans start from ₦${VISITOR_PRICE_NAIRA.toLocaleString("en-NG")} per month if you decide to continue.</p>` +
         "<p><a href=\"https://www.visualcns.com/visitors/demo\">Try the visitor sign-in demo</a></p>" +
         "<p>Would a short walkthrough be useful? Just reply to this email and we’ll arrange one.</p>" +
         "<p>Best,<br />The VisualCNS team</p>",
