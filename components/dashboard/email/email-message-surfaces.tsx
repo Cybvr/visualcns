@@ -1,4 +1,4 @@
-import { ArrowLeft, CheckCircle2, Clock, FileText, Inbox, Mail, X } from "lucide-react"
+import { Archive, ArrowLeft, CheckCircle2, Clock, FileText, Inbox, Mail, MailOpen, X } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -21,6 +21,13 @@ export type EmailMessageSurfacesProps = {
   onOpenReceived: (message: ReceivedMessage) => void
   onClearReceived: () => void
   onDeleteReceived: (message: ReceivedMessage) => void
+  selectedReceivedIds: string[]
+  readReceivedIds: string[]
+  onToggleAllReceived: (checked: boolean) => void
+  onToggleReceived: (id: string, checked: boolean) => void
+  onArchiveReceived: () => void
+  onMarkReceivedRead: () => void
+  onMarkReceivedUnread: () => void
   drafts: EmailDraftRecord[]
   visibleDrafts: EmailDraftRecord[]
   editingDraftId: string | null
@@ -61,6 +68,13 @@ export function EmailMessageSurfaces({
   onOpenReceived,
   onClearReceived,
   onDeleteReceived,
+  selectedReceivedIds,
+  readReceivedIds,
+  onToggleAllReceived,
+  onToggleReceived,
+  onArchiveReceived,
+  onMarkReceivedRead,
+  onMarkReceivedUnread,
   drafts,
   visibleDrafts,
   editingDraftId,
@@ -99,6 +113,21 @@ export function EmailMessageSurfaces({
           mobileMessageView === "list" ? "block" : "hidden",
         )}>
           {receivedError && <div className="border-b border-destructive/30 bg-destructive/5 px-4 py-3 text-xs leading-5 text-destructive">{receivedError}</div>}
+          <div className="flex min-h-12 items-center gap-1 border-b border-border px-2 py-1.5">
+            <input
+              type="checkbox"
+              checked={visibleReceivedMessages.length > 0 && visibleReceivedMessages.every((message) => selectedReceivedIds.includes(message.id))}
+              onChange={(event) => onToggleAllReceived(event.target.checked)}
+              aria-label="Select all visible messages"
+              className="ml-1 size-4 shrink-0 accent-primary"
+            />
+            <span className="mr-auto px-2 text-xs text-muted-foreground">
+              {selectedReceivedIds.length > 0 ? `${selectedReceivedIds.length} selected` : `${receivedMessages.filter((message) => !readReceivedIds.includes(message.id)).length} unread`}
+            </span>
+            <Button type="button" variant="ghost" size="icon" className="size-8" onClick={onArchiveReceived} disabled={selectedReceivedIds.length === 0} aria-label="Archive selected messages" title="Archive selected messages"><Archive className="size-4" aria-hidden="true" /></Button>
+            <Button type="button" variant="ghost" size="icon" className="size-8" onClick={onMarkReceivedRead} disabled={selectedReceivedIds.length === 0} aria-label="Mark selected messages as read" title="Mark as read"><MailOpen className="size-4" aria-hidden="true" /></Button>
+            <Button type="button" variant="ghost" size="icon" className="size-8" onClick={onMarkReceivedUnread} disabled={selectedReceivedIds.length === 0} aria-label="Mark selected messages as unread" title="Mark as unread"><Mail className="size-4" aria-hidden="true" /></Button>
+          </div>
           {receivedLoading && receivedMessages.length === 0 ? (
             <div className="p-3" role="status" aria-label="Loading inbox">{Array.from({ length: 5 }, (_, index) => <div key={index} className="flex items-center gap-3 border-b border-border p-3 last:border-b-0"><Skeleton className="size-9 rounded-full" /><div className="min-w-0 flex-1 space-y-2"><Skeleton className="h-4 w-2/3" /><Skeleton className="h-3 w-1/2" /></div><Skeleton className="h-3 w-14" /></div>)}</div>
           ) : receivedMessages.length === 0 ? (
@@ -107,7 +136,7 @@ export function EmailMessageSurfaces({
             <div className="px-4 py-10 text-center text-sm text-muted-foreground">No messages match your search.</div>
           ) : (
             <div>
-              <EmailListHeader primaryLabel="From" dateLabel="Received" compact={Boolean(selectedReceived)} />
+              <EmailListHeader primaryLabel="From" dateLabel="Received" compact={Boolean(selectedReceived)} selectable />
               {visibleReceivedMessages.map((message) => (
                 <EmailListRow
                   key={message.id}
@@ -120,6 +149,10 @@ export function EmailMessageSurfaces({
                   selected={selectedReceivedId === message.id}
                   onOpen={() => onOpenReceived(message)}
                   onDelete={() => onDeleteReceived(message)}
+                  selectable
+                  checked={selectedReceivedIds.includes(message.id)}
+                  onCheckedChange={(checked) => onToggleReceived(message.id, checked)}
+                  unread={!readReceivedIds.includes(message.id)}
                   deleteLabel={`Delete message from ${message.from}`}
                   ariaLabel={`Open received email: ${message.subject}`}
                   compact={Boolean(selectedReceived)}

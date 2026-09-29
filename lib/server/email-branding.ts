@@ -69,8 +69,16 @@ export function brandedEmail(content: string, subject: string, input: unknown, s
   }
   const websiteUrl = absoluteWebUrl(brand.website, SITE_ORIGIN)
   const ctaSource = ctaInput && typeof ctaInput === "object" ? ctaInput as Record<string, unknown> : {}
+  const hasCta = typeof ctaSource.url === "string" && ctaSource.url.trim().length > 0
   const ctaText = safeBrandValue(ctaSource.text, "Open your company page") || "Open your company page"
-  const ctaUrl = absoluteWebUrl(safeBrandValue(ctaSource.url), `${SITE_ORIGIN}/`)
+  const ctaUrl = hasCta ? absoluteWebUrl(safeBrandValue(ctaSource.url), `${SITE_ORIGIN}/`) : ""
+  const ctaMarkup = hasCta
+    ? `<tr>
+              <td style="padding:0 28px 30px;">
+                <a href="${escapeHtml(ctaUrl)}" style="display:inline-block;background:#111318;border-radius:999px;color:#ffffff;padding:12px 20px;font-size:14px;font-weight:700;line-height:20px;text-decoration:none;">${escapeHtml(ctaText)}</a>
+              </td>
+            </tr>`
+    : ""
   const contactItems = brand.address ? escapeHtml(brand.address) : ""
   const websiteLink = brand.website
     ? `<a href="${escapeHtml(websiteUrl)}" style="color:#5f6472;text-decoration:underline;">${escapeHtml(brand.website)}</a>`
@@ -99,11 +107,7 @@ export function brandedEmail(content: string, subject: string, input: unknown, s
             <tr>
               <td style="padding:8px 28px 12px;font-size:15px;line-height:1.65;color:#303440;overflow-wrap:anywhere;">${content}</td>
             </tr>
-            <tr>
-              <td style="padding:0 28px 30px;">
-                <a href="${escapeHtml(ctaUrl)}" style="display:inline-block;background:#111318;border-radius:999px;color:#ffffff;padding:12px 20px;font-size:14px;font-weight:700;line-height:20px;text-decoration:none;">${escapeHtml(ctaText)}</a>
-              </td>
-            </tr>
+            ${ctaMarkup}
             <tr>
               <td style="padding:20px 28px;background:#f8f8fa;border-top:1px solid #e7e8ec;font-size:12px;line-height:1.6;color:#6d7280;">
                 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">

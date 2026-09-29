@@ -8,9 +8,24 @@ import { getAgencySecret, recordAgencyUsage } from "@/lib/server/agency-secrets"
 import { requireAgencyId } from "@/lib/require-agency-id"
 import { parseEmailList } from "@/lib/email-composer"
 import { SITE_ORIGIN, X_URL, LINKEDIN_URL, absoluteWebUrl, brandedEmail, escapeHtml, extractEmailAddress, normalizeEmailAddress, safeBrandValue } from "@/lib/server/email-branding"
+import { getGmailMessage, gmailSenders, hasGmailConnection, sendGmailMessage } from "@/lib/server/google-gmail"
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const MAX_CC = 20
+const VISUALCNS_SENDER_LOCALS = ["jide", "hello", "info", "visitors"]
+
+function senderOptions(from: string) {
+  const configured = (process.env.EMAIL_FROM_ADDRESSES || "")
+    .split(",")
+    .map((value) => normalizeEmailAddress(value))
+    .filter(Boolean)
+  const baseEmail = extractEmailAddress(from)
+  const domain = baseEmail.split("@")[1]?.toLowerCase()
+  const defaults = domain === "mail.visualcns.com"
+    ? VISUALCNS_SENDER_LOCALS.map((local) => `VisualCNS <${local}@${domain}>`)
+    : []
+  return [...new Map([from, ...configured, ...defaults].map((value) => [extractEmailAddress(value).toLowerCase(), value])).values()]
+}
 
 type FirebaseLookupResponse = {
   users?: Array<{ localId?: string }>
@@ -171,6 +186,19 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Your session has expired. Sign in again and retry." }, { status: 401 })
     }
 
+    if (emailId.startsWith("gmail:")) {
+      const caller = await getAdminCaller(idToken)
+      if (!caller) return NextResponse.json({ error: "Your account has no agency assigned." }, { status: 403 })
+      const agencyId = requireAgencyId(caller.data)
+      try {
+        const email = await getGmailMessage(agencyId, emailId.slice(6))
+        if (!email) return NextResponse.json({ error: "The sent email could not be loaded." }, { status: 404 })
+        return NextResponse.json({ ...email, id: emailId, replyTo: email.headers?.["reply-to"] || null, scheduledAt: null, lastEvent: "delivered" })
+      } catch {
+        return NextResponse.json({ error: "The sent Google message could not be loaded." }, { status: 502 })
+      }
+    }
+
     const apiKey = process.env.RESEND_API_KEY
     if (!apiKey) {
       return NextResponse.json({ error: "Email history is not configured." }, { status: 503 })
@@ -210,6 +238,7 @@ export async function GET(request: Request) {
     configured: Boolean(process.env.RESEND_API_KEY && from),
     from: from || null,
     replyTo: replyTo || null,
+    senders: from ? senderOptions(from) : [],
   })
 }
 
@@ -225,7 +254,7 @@ export async function POST(request: Request) {
   let from = normalizeEmailAddress(process.env.EMAIL_FROM || "")
   let replyTo = normalizeEmailAddress(process.env.EMAIL_REPLY_TO || "") || from
 
-  let payload: { to?: unknown; cc?: unknown; intent?: unknown; subject?: unknown; text?: unknown; html?: unknown; imageUrl?: unknown; brand?: unknown; cta?: unknown; type?: unknown; welcome?: unknown; templateId?: unknown; companyId?: unknown; projectId?: unknown; documentType?: unknown; documentId?: unknown; scheduledAt?: unknown }
+  let payload: { to?: unknown; cc?: unknown; from?: unknown; intent?: unknown; subject?: unknown; text?: unknown; html?: unknown; imageUrl?: unknown; brand?: unknown; cta?: unknown; type?: unknown; welcome?: unknown; templateId?: unknown; companyId?: unknown; projectId?: unknown; documentType?: unknown; documentId?: unknown; scheduledAt?: unknown }
   try {
     payload = (await request.json()) as typeof payload
   } catch {
@@ -303,8 +332,26 @@ export async function POST(request: Request) {
   }
   apiKey = await getAgencySecret(agencyId, "RESEND_API_KEY", apiKey)
   from = normalizeEmailAddress(await getAgencySecret(agencyId, "EMAIL_FROM", from))
-  replyTo = normalizeEmailAddress(await getAgencySecret(agencyId, "EMAIL_REPLY_TO", replyTo)) || from
-  if (!apiKey || !from) {
+  const configuredReplyTo = normalizeEmailAddress(await getAgencySecret(agencyId, "EMAIL_REPLY_TO", process.env.EMAIL_REPLY_TO || ""))
+  replyTo = configuredReplyTo || from
+  const gmailConnected = await hasGmailConnection(agencyId)
+  let gmailAvailableSenders: Awaited<ReturnType<typeof gmailSenders>> = []
+  if (gmailConnected) {
+    try { gmailAvailableSenders = await gmailSenders(agencyId) } catch { gmailAvailableSenders = [] }
+  }
+  const gmailConnectedEmail = gmailConnected ? normalizeEmailAddress(await getAgencySecret(agencyId, "GMAIL_CONNECTED_EMAIL", "")) : ""
+  if (!from) from = gmailAvailableSenders[0]?.display || gmailConnectedEmail
+  replyTo = configuredReplyTo || from
+  const gmailCanSend = gmailConnected && !scheduledAtIso
+  const availableSenders = gmailAvailableSenders.length ? gmailAvailableSenders.map((item) => item.display) : senderOptions(from)
+  const requestedSender = typeof payload.from === "string" ? normalizeEmailAddress(payload.from) : ""
+  if (requestedSender) {
+    const selectedSender = availableSenders.find((candidate) => extractEmailAddress(candidate).toLowerCase() === extractEmailAddress(requestedSender).toLowerCase())
+    if (!selectedSender) return NextResponse.json({ error: "That sender address is not configured for this workspace." }, { status: 400 })
+    from = selectedSender
+    replyTo = configuredReplyTo || from
+  }
+  if ((!apiKey && !gmailCanSend) || !from) {
     return NextResponse.json({ error: "Email sending is not configured for this agency." }, { status: 503 })
   }
   let welcomeClaim: WelcomeClaim | null = null
@@ -392,6 +439,10 @@ export async function POST(request: Request) {
     const unsubscribeLink = unsubscribeEmail ? unsubscribeUrl(unsubscribeEmail) : ""
     const html = brandedEmail(messageContent, subject, payload.brand, from, payload.cta, unsubscribeLink)
     const brandedText = `${text}\n\n${ctaText}: ${ctaUrl}\n\n---\n${footerText}\nX: ${X_URL}\nLinkedIn: ${LINKEDIN_URL}${unsubscribeLink ? `\nUnsubscribe: ${unsubscribeLink}` : ""}`
+    if (gmailCanSend) {
+      const result = await sendGmailMessage(agencyId, { from, to, cc: copy, replyTo, subject, text: brandedText, html })
+      return { response: { ok: Boolean(result.id), status: result.id ? 200 : 502 }, result: { id: result.id ? `gmail:${result.id}` : undefined } as ResendResponse, html, brandedText }
+    }
     const response = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {

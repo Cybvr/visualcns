@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { adminServices } from "@/lib/firebase-admin"
+import { getGmailMessage, hasGmailConnection, listGmailInbox } from "@/lib/server/google-gmail"
 
 type ReceivedEmail = {
   id?: string
@@ -91,6 +92,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "You don't have access to this inbox." }, { status: 403 })
   }
   const inboxEvents = db.collection("agencies").doc(agencyId).collection("emailInboxEvents")
+  const gmailConnected = await hasGmailConnection(agencyId)
 
   const emailId = new URL(request.url).searchParams.get("id")?.trim()
   if (emailId?.startsWith("local:")) {
@@ -101,9 +103,29 @@ export async function GET(request: Request) {
     return NextResponse.json(localInboxPayload(event.id, event.data() || {}))
   }
 
+  if (emailId?.startsWith("gmail:")) {
+    if (!gmailConnected) return NextResponse.json({ error: "Google mailbox is not connected." }, { status: 503 })
+    try {
+      const email = await getGmailMessage(agencyId, emailId.slice(6))
+      return email ? NextResponse.json(email) : NextResponse.json({ error: "Message not found." }, { status: 404 })
+    } catch {
+      return NextResponse.json({ error: "The Google message could not be loaded." }, { status: 502 })
+    }
+  }
+
   if (!emailId) {
     const events = await inboxEvents.orderBy("createdAt", "desc").limit(100).get()
     const localMessages = events.docs.map((event) => localInboxPayload(event.id, event.data()))
+    if (gmailConnected) {
+      try {
+        const gmail = await listGmailInbox(agencyId)
+        const data = [...gmail.data, ...localMessages].sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""))
+        return NextResponse.json({ data, hasMore: gmail.hasMore })
+      } catch {
+        if (!localMessages.length) return NextResponse.json({ error: "Received messages could not be loaded from Google." }, { status: 502 })
+        return NextResponse.json({ data: localMessages, hasMore: false, warning: "Google inbox could not be loaded." })
+      }
+    }
     if (!process.env.RESEND_API_KEY) {
       return NextResponse.json({ data: localMessages, hasMore: false, warning: "Inbound email is not configured; visitor sign-ups still appear here." })
     }

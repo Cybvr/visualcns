@@ -20,19 +20,26 @@ export type EmailListRowProps = {
   deleteLabel: string
   ariaLabel: string
   compact?: boolean
+  selectable?: boolean
+  checked?: boolean
+  onCheckedChange?: (checked: boolean) => void
+  unread?: boolean
 }
 
 export function EmailListHeader({
   primaryLabel,
   dateLabel,
   compact = false,
+  selectable = false,
 }: {
   primaryLabel: string
   dateLabel: string
   compact?: boolean
+  selectable?: boolean
 }) {
   return (
     <div className="surface-table-header hidden h-10 items-center gap-3 border-b border-border px-2 sm:flex">
+      {selectable ? <span className="size-4 shrink-0" aria-hidden="true" /> : null}
       <span className="size-8 shrink-0" aria-hidden="true" />
       {compact ? (
         <span className="min-w-0 flex-1">{primaryLabel}</span>
@@ -63,25 +70,43 @@ export function EmailListRow({
   deleteLabel,
   ariaLabel,
   compact = false,
+  selectable = false,
+  checked = false,
+  onCheckedChange,
+  unread = false,
 }: EmailListRowProps) {
+  const renderSelectionControl = () => selectable && onCheckedChange ? (
+    <input
+      type="checkbox"
+      checked={checked}
+      onChange={(event) => onCheckedChange(event.target.checked)}
+      onClick={(event) => event.stopPropagation()}
+      aria-label={`Select ${subject}`}
+      className="size-4 shrink-0 accent-primary"
+    />
+  ) : null
+
   return (
     <>
-      <div className="mb-2 sm:hidden">
-        <MobileDataCard
-          title={title}
-          subtitle={subject}
-          trailing={formattedDate && date ? <time dateTime={date}>{formattedDate}</time> : undefined}
-          icon={(
-            <Avatar className={cn("size-9", avatarTone)} aria-hidden="true">
-              <AvatarFallback className="bg-transparent font-medium">{avatarInitials}</AvatarFallback>
-            </Avatar>
-          )}
-          selected={selected}
-          onClick={onOpen}
-          ariaLabel={ariaLabel}
-          menuLabel={`Options for ${title}`}
-          menu={onDelete ? <DropdownMenuItem variant="destructive" onSelect={onDelete}>Delete</DropdownMenuItem> : undefined}
-        />
+      <div className="mb-2 flex items-start gap-2 sm:hidden">
+        {selectable && onCheckedChange ? <div className="pt-4">{renderSelectionControl()}</div> : null}
+        <div className="min-w-0 flex-1">
+          <MobileDataCard
+            title={title}
+            subtitle={subject}
+            trailing={formattedDate && date ? <time dateTime={date}>{formattedDate}</time> : undefined}
+            icon={(
+              <Avatar className={cn("size-9", avatarTone)} aria-hidden="true">
+                <AvatarFallback className="bg-transparent font-medium">{avatarInitials}</AvatarFallback>
+              </Avatar>
+            )}
+            selected={selected}
+            onClick={onOpen}
+            ariaLabel={ariaLabel}
+            menuLabel={`Options for ${title}`}
+            menu={onDelete ? <DropdownMenuItem variant="destructive" onSelect={onDelete}>Delete</DropdownMenuItem> : undefined}
+          />
+        </div>
       </div>
       <div
         role="button"
@@ -94,17 +119,18 @@ export function EmailListRow({
         )}
         aria-label={ariaLabel}
       >
+        {renderSelectionControl()}
         <Avatar className={cn("size-8 shrink-0", avatarTone)} aria-hidden="true">
           <AvatarFallback className="bg-transparent font-medium">{avatarInitials}</AvatarFallback>
         </Avatar>
         <div className={cn("flex min-w-0 flex-1 flex-col gap-0.5", !compact && "sm:contents")}>
           <div className={cn("flex min-w-0 items-center justify-between gap-2", !compact && "sm:w-[34%] sm:shrink-0 sm:justify-start")}>
-            <span className="truncate font-medium text-foreground">{title}</span>
+            <span className={cn("truncate text-foreground", unread ? "font-semibold" : "font-medium")}>{title}</span>
             {formattedDate && date ? <time dateTime={date} className={cn("shrink-0 text-muted-foreground", !compact && "sm:hidden")}>{formattedDate}</time> : null}
           </div>
-          <span className="min-w-0 flex-1 truncate text-muted-foreground">{subject}</span>
+          <span className={cn("min-w-0 flex-1 truncate", unread ? "font-medium text-foreground" : "text-muted-foreground")}>{subject}</span>
         </div>
-        {!compact && formattedDate && date ? <time dateTime={date} className="hidden w-24 shrink-0 text-right text-muted-foreground sm:block">{formattedDate}</time> : null}
+        {!compact && formattedDate && date ? <time dateTime={date} className={cn("hidden w-24 shrink-0 text-right sm:block", unread ? "font-medium text-foreground" : "text-muted-foreground")}>{formattedDate}</time> : null}
         {onDelete ? (
           <button type="button" onClick={(event) => { event.stopPropagation(); onDelete() }} aria-label={deleteLabel} className="hidden size-8 shrink-0 items-center justify-center rounded-sm text-muted-foreground opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive focus-visible:opacity-100 group-hover:opacity-100 sm:inline-flex">
             <Trash2 className="size-3.5" aria-hidden="true" />

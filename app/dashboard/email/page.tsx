@@ -253,6 +253,7 @@ export default function EmailPage() {
   const templateStorageKey = `visualcns-email-templates:${workspaceId}`
   const messageStorageKey = `visualcns-email-messages:${workspaceId}`
   const listStorageKey = `visualcns-email-lists:${workspaceId}`
+  const receivedReadStorageKey = `visualcns-email-received-read:${workspaceId}`
 
   const [tab, setTab] = useState<EmailTab>("inbox")
   const [composeOpen, setComposeOpen] = useState(false)
@@ -265,13 +266,20 @@ export default function EmailPage() {
   const [messages, setMessages] = useState<SentMessage[]>([])
   const [receivedMessages, setReceivedMessages] = useState<ReceivedMessage[]>([])
   const [hiddenReceivedIds, setHiddenReceivedIds] = useState<Set<string>>(new Set())
+  const [readReceivedIds, setReadReceivedIds] = useState<Set<string>>(new Set())
+  const [readStateHydrated, setReadStateHydrated] = useState(false)
+  const [selectedReceivedIds, setSelectedReceivedIds] = useState<Set<string>>(new Set())
   const [receivedLoading, setReceivedLoading] = useState(false)
   const [receivedError, setReceivedError] = useState("")
   const [selectedReceivedId, setSelectedReceivedId] = useState<string | null>(null)
   const [loadingReceivedId, setLoadingReceivedId] = useState<string | null>(null)
   const [senderConfigured, setSenderConfigured] = useState<boolean | null>(null)
   const [senderAddress, setSenderAddress] = useState<string | null>(null)
+  const [senderOptions, setSenderOptions] = useState<string[]>([])
   const [replyToAddress, setReplyToAddress] = useState<string | null>(null)
+  const [googleConfigured, setGoogleConfigured] = useState(false)
+  const [googleEmail, setGoogleEmail] = useState<string | null>(null)
+  const [googleLoading, setGoogleLoading] = useState(false)
   const [contacts, setContacts] = useState<EmailContact[]>([])
   const [contactPickerOpen, setContactPickerOpen] = useState(false)
   const [contactQuery, setContactQuery] = useState("")
@@ -408,6 +416,32 @@ export default function EmailPage() {
     if (tab === "inbox" || tab === "messages") setMobileMessageView("list")
   }, [tab])
 
+  useEffect(() => {
+    if (!user?.uid || !workspaceId) return
+    setReadStateHydrated(false)
+    try {
+      const stored = JSON.parse(localStorage.getItem(receivedReadStorageKey) || "[]")
+      setReadReceivedIds(new Set(Array.isArray(stored) ? stored.filter((value): value is string => typeof value === "string") : []))
+    } catch {
+      setReadReceivedIds(new Set())
+    }
+    setSelectedReceivedIds(new Set())
+    setReadStateHydrated(true)
+  }, [receivedReadStorageKey, user?.uid, workspaceId])
+
+  useEffect(() => {
+    if (!user?.uid || !workspaceId || !readStateHydrated) return
+    localStorage.setItem(receivedReadStorageKey, JSON.stringify([...readReceivedIds]))
+  }, [readReceivedIds, readStateHydrated, receivedReadStorageKey, user?.uid, workspaceId])
+
+  useEffect(() => {
+    const visibleIds = new Set(visibleReceivedMessages.map((message) => message.id))
+    setSelectedReceivedIds((current) => {
+      const next = new Set([...current].filter((id) => visibleIds.has(id)))
+      return next.size === current.size ? current : next
+    })
+  }, [visibleReceivedMessages])
+
   // Settle any scheduled send whose time has passed so it stops reading
   // "Scheduled" everywhere (list, reader, and the stored record).
   useEffect(() => {
@@ -470,7 +504,6 @@ export default function EmailPage() {
   const selectedSent = messages.find((message) => message.id === selectedSentId) || null
   const selectedContactName = contacts.find((contact) => recipientEmail(contact.email) === recipientEmail(to))?.name
   const composeRecipientName = selectedContactName || composeContext?.recipientName
-  const selectedContact = contacts.find((contact) => recipientEmail(contact.email) === recipientEmail(to))
   const visibleContactOptions = useMemo(() => {
     const query = contactQuery.trim().toLowerCase()
     return [...contacts]
@@ -528,6 +561,12 @@ export default function EmailPage() {
   }
 
   function previewReceivedMessageById(message: ReceivedMessage) {
+    setReadReceivedIds((current) => {
+      if (current.has(message.id)) return current
+      const next = new Set(current)
+      next.add(message.id)
+      return next
+    })
     setSelectedReceivedId(message.id)
     setMobileMessageView("reader")
   }
@@ -714,10 +753,11 @@ export default function EmailPage() {
 
     fetch("/api/email/send", { cache: "no-store" })
       .then(async (response) => {
-        const result = (await response.json()) as { configured?: boolean; from?: string | null; replyTo?: string | null }
+        const result = (await response.json()) as { configured?: boolean; from?: string | null; replyTo?: string | null; senders?: string[] }
         if (!active) return
         setSenderConfigured(Boolean(result.configured))
         setSenderAddress(result.from || null)
+        setSenderOptions(Array.isArray(result.senders) ? result.senders : result.from ? [result.from] : [])
         setReplyToAddress(result.replyTo || result.from || null)
       })
       .catch(() => {
@@ -728,6 +768,57 @@ export default function EmailPage() {
       active = false
     }
   }, [])
+
+  useEffect(() => {
+    let active = true
+    if (!user) {
+      setGoogleConfigured(false)
+      setGoogleEmail(null)
+      return () => { active = false }
+    }
+    void user.getIdToken().then((idToken) => fetch("/api/email/google/status", {
+      headers: { Authorization: `Bearer ${idToken}` },
+      cache: "no-store",
+    })).then(async (response) => {
+      const result = await response.json().catch(() => ({})) as { configured?: boolean; email?: string | null; senders?: Array<{ display?: string; email?: string }> }
+      if (!active) return
+      const configured = Boolean(result.configured)
+      setGoogleConfigured(configured)
+      setGoogleEmail(result.email || null)
+      if (configured && Array.isArray(result.senders) && result.senders.length) {
+        const senders = result.senders.map((sender) => sender.display || sender.email || "").filter(Boolean)
+        setSenderConfigured(true)
+        setSenderAddress(senders[0] || result.email || null)
+        setSenderOptions(senders)
+        setReplyToAddress(result.email || senders[0] || null)
+      }
+    }).catch(() => undefined)
+    return () => { active = false }
+  }, [showOpsDetail, user])
+
+  useEffect(() => {
+    const status = searchParams.get("google")
+    if (status === "connected") {
+      setSendNotice({ tone: "success", text: "Google mailbox connected." })
+    } else if (status === "error") {
+      setSendNotice({ tone: "error", text: searchParams.get("message") || "Google mailbox connection failed." })
+    }
+  }, [searchParams])
+
+  async function connectGoogleMailbox() {
+    if (!user || googleLoading) return
+    setGoogleLoading(true)
+    try {
+      const idToken = await user.getIdToken()
+      const response = await fetch("/api/email/google/connect", { headers: { Authorization: `Bearer ${idToken}` }, cache: "no-store" })
+      const result = await response.json().catch(() => ({})) as { url?: string; error?: string }
+      if (!response.ok || !result.url) throw new Error(result.error || "Google mailbox setup is not configured yet.")
+      window.location.assign(result.url)
+    } catch (error) {
+      setGoogleLoading(false)
+      setSendNotice({ tone: "error", text: error instanceof Error ? error.message : "Google mailbox connection failed." })
+    }
+  }
 
   useEffect(() => {
     let active = true
@@ -914,6 +1005,53 @@ export default function EmailPage() {
     }
   }
 
+  function toggleReceivedSelection(id: string, checked: boolean) {
+    setSelectedReceivedIds((current) => {
+      const next = new Set(current)
+      if (checked) next.add(id)
+      else next.delete(id)
+      return next
+    })
+  }
+
+  function toggleAllReceivedSelection(checked: boolean) {
+    setSelectedReceivedIds(checked ? new Set(visibleReceivedMessages.map((message) => message.id)) : new Set())
+  }
+
+  function markSelectedReceived(read: boolean) {
+    if (selectedReceivedIds.size === 0) return
+    setReadReceivedIds((current) => {
+      const next = new Set(current)
+      selectedReceivedIds.forEach((id) => {
+        if (read) next.add(id)
+        else next.delete(id)
+      })
+      return next
+    })
+    setSelectedReceivedIds(new Set())
+  }
+
+  async function archiveSelectedReceived() {
+    if (!user || selectedReceivedIds.size === 0) return
+    const ids = [...selectedReceivedIds]
+    setHiddenReceivedIds((current) => new Set([...current, ...ids]))
+    setSelectedReceivedIds(new Set())
+    if (selectedReceivedId && ids.includes(selectedReceivedId)) {
+      setSelectedReceivedId(null)
+      setMobileMessageView("list")
+    }
+    try {
+      await Promise.all(ids.map((id) => hideReceivedEmail({ receivedId: id, companyId: workspaceId, createdBy: user.uid })))
+    } catch {
+      setHiddenReceivedIds((current) => {
+        const next = new Set(current)
+        ids.forEach((id) => next.delete(id))
+        return next
+      })
+      setReceivedError("Some messages could not be archived.")
+    }
+  }
+
   async function deleteSentMessage(message: SentMessage) {
     setMessages((current) => current.filter((item) => item.id !== message.id))
     if (selectedSentId === message.id) { setSelectedSentId(null); setMobileMessageView("list") }
@@ -1078,6 +1216,7 @@ export default function EmailPage() {
           subject: trimmedSubject,
           text: textBody,
           html: bodyHtml,
+          from: senderAddress || undefined,
           brand: businessProfile,
           cta: composeContext?.ctaUrl
             ? { text: composeContext.ctaText || "Open your company page", url: composeContext.ctaUrl }
@@ -1476,6 +1615,19 @@ export default function EmailPage() {
             </>
           }
         />
+        {showOpsDetail && (
+          <div className="mb-2 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border/70 bg-card px-3 py-2 text-sm">
+            <div className="flex min-w-0 items-center gap-2">
+              <span className={cn("size-2 shrink-0 rounded-full", googleConfigured ? "bg-emerald-500" : "bg-muted-foreground/50")} aria-hidden="true" />
+              <span className="truncate text-muted-foreground">
+                Google mailbox: <strong className="font-medium text-foreground">{googleConfigured ? (googleEmail || "connected") : "not connected"}</strong>
+              </span>
+            </div>
+            <Button type="button" variant="outline" size="sm" onClick={connectGoogleMailbox} disabled={googleLoading}>
+              {googleLoading ? "Connecting…" : googleConfigured ? "Reconnect Google" : "Connect Google"}
+            </Button>
+          </div>
+        )}
         <div className="mb-2 flex w-full items-center gap-1 rounded-md bg-muted/50 p-0.5 lg:hidden" role="tablist" aria-label="Email">
           {EMAIL_FOLDERS.map((folder) => (
             <button
@@ -1510,6 +1662,13 @@ export default function EmailPage() {
             onOpenReceived={previewReceivedMessageById}
             onClearReceived={() => { setSelectedReceivedId(null); setMobileMessageView("list") }}
             onDeleteReceived={(message) => void deleteReceivedMessage(message)}
+            selectedReceivedIds={[...selectedReceivedIds]}
+            readReceivedIds={[...readReceivedIds]}
+            onToggleAllReceived={toggleAllReceivedSelection}
+            onToggleReceived={toggleReceivedSelection}
+            onArchiveReceived={() => void archiveSelectedReceived()}
+            onMarkReceivedRead={() => markSelectedReceived(true)}
+            onMarkReceivedUnread={() => markSelectedReceived(false)}
             drafts={drafts}
             visibleDrafts={visibleDrafts}
             editingDraftId={editingDraftId}
@@ -1612,6 +1771,8 @@ export default function EmailPage() {
         subject={subject}
         setSubject={setSubject}
         senderAddress={senderAddress || ""}
+        senderOptions={senderOptions}
+        setSenderAddress={setSenderAddress}
         showOpsDetail={showOpsDetail}
         cleanSenderDisplay={cleanSenderDisplay}
         messageKind={messageKind}
@@ -1620,7 +1781,6 @@ export default function EmailPage() {
         setContactPickerOpen={setContactPickerOpen}
         setContactQuery={setContactQuery}
         contactQuery={contactQuery}
-        selectedContact={selectedContact || null}
         selectedList={selectedList || null}
         handleRecipientChange={handleRecipientChange}
         visibleContactOptions={visibleContactOptions}

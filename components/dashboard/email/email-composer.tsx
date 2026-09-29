@@ -30,6 +30,8 @@ export type EmailComposerProps = {
   subject: string
   setSubject: (value: string) => void
   senderAddress: string
+  senderOptions: string[]
+  setSenderAddress: (value: string) => void
   showOpsDetail: boolean
   cleanSenderDisplay: (value: string) => string
   messageKind: EmailMessageKind
@@ -38,7 +40,6 @@ export type EmailComposerProps = {
   setContactPickerOpen: (value: boolean) => void
   setContactQuery: (value: string) => void
   contactQuery: string
-  selectedContact: EmailContact | null
   selectedList: ContactList | null
   handleRecipientChange: (value: string) => void
   visibleContactOptions: EmailContact[]
@@ -87,6 +88,8 @@ export function EmailComposer({
   subject,
   setSubject,
   senderAddress,
+  senderOptions,
+  setSenderAddress,
   showOpsDetail,
   cleanSenderDisplay,
   messageKind,
@@ -95,7 +98,6 @@ export function EmailComposer({
   setContactPickerOpen,
   setContactQuery,
   contactQuery,
-  selectedContact,
   selectedList,
   handleRecipientChange,
   visibleContactOptions,
@@ -177,10 +179,10 @@ export function EmailComposer({
 
           {(fullPage || !composeMinimized) && (
             <form id="email-compose-form" autoComplete="off" onSubmit={sendEmail} className="flex min-h-0 flex-1 flex-col overflow-hidden">
-              <div className="grid shrink-0 grid-cols-[minmax(0,1fr)_9rem] items-center border-b border-border"><div className="flex min-w-0 items-center gap-2 px-4 py-2"><span className="shrink-0 text-xs font-medium text-muted-foreground">From</span><p className="min-w-0 truncate text-sm">{cleanSenderDisplay(senderAddress || (showOpsDetail ? "Not configured" : "Not available yet"))}</p></div><div className="px-3 py-1"><Select value={messageKind} onValueChange={(value) => setMessageKind(value as EmailMessageKind)}><SelectTrigger aria-label="Message type" className="h-7 w-full border-0 bg-transparent px-1 text-xs shadow-none hover:bg-transparent data-[state=open]:bg-transparent"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="transactional">Service message</SelectItem><SelectItem value="marketing">Marketing email</SelectItem></SelectContent></Select></div></div>
+              <div className="grid shrink-0 grid-cols-[minmax(0,1fr)_9rem] items-center border-b border-border"><div className="flex min-w-0 items-center gap-2 px-4 py-2"><span className="shrink-0 text-xs font-medium text-muted-foreground">From</span>{senderOptions.length > 1 ? <Select value={senderAddress} onValueChange={setSenderAddress}><SelectTrigger aria-label="Sender address" className="h-7 min-w-0 flex-1 border-0 bg-transparent px-0 text-left text-sm shadow-none hover:bg-transparent data-[state=open]:bg-transparent"><SelectValue /></SelectTrigger><SelectContent align="start" className="w-72">{senderOptions.map((sender) => <SelectItem key={sender} value={sender}>{cleanSenderDisplay(sender)}</SelectItem>)}</SelectContent></Select> : <p className="min-w-0 truncate text-sm">{cleanSenderDisplay(senderAddress || (showOpsDetail ? "Not configured" : "Not available yet"))}</p>}</div><div className="px-3 py-1"><Select value={messageKind} onValueChange={(value) => setMessageKind(value as EmailMessageKind)}><SelectTrigger aria-label="Message type" className="h-7 w-full border-0 bg-transparent px-1 text-xs shadow-none hover:bg-transparent data-[state=open]:bg-transparent"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="transactional">Service message</SelectItem><SelectItem value="marketing">Marketing email</SelectItem></SelectContent></Select></div></div>
 
               <div className="grid shrink-0 grid-cols-2 gap-3 border-b border-border px-4 py-2.5">
-                <Popover open={contactPickerOpen} onOpenChange={(open) => { setContactPickerOpen(open); if (!open) setContactQuery("") }}><PopoverTrigger asChild><button id="email-to" type="button" role="combobox" aria-expanded={contactPickerOpen} aria-label="Select contact" disabled={Boolean(selectedListId)} className="flex h-8 w-full min-w-0 items-center gap-2 border-b border-input bg-transparent px-0 text-left text-sm outline-none transition-[border-color] hover:border-muted-foreground focus-visible:border-foreground disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50"><span className="min-w-0 flex-1 truncate">{selectedContact?.name || (selectedList ? `Sending to ${selectedList.contactEmails.length} contacts` : "To")}</span><ChevronsUpDown className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" /></button></PopoverTrigger><PopoverContent align="start" className="w-[var(--radix-popover-trigger-width)] min-w-[280px] p-0"><Command><CommandInput autoFocus placeholder="Search contacts" value={contactQuery} onValueChange={setContactQuery} /><CommandList><CommandEmpty className="px-3 py-6 text-center text-sm text-muted-foreground">No matching contacts.</CommandEmpty><CommandGroup>{visibleContactOptions.map((contact) => { const isSelected = recipientEmail(contact.email) === recipientEmail(to); return <CommandItem key={contact.email} value={`${contact.name} ${contact.email}`} onSelect={() => { handleRecipientChange(contact.email); setContactPickerOpen(false); setContactQuery("") }} className="items-center gap-3 px-3 py-2.5"><Avatar className={cn("size-10", contactAvatarTone(contact.name || contact.email))}><AvatarFallback className="bg-transparent text-sm font-medium">{contactInitials(contact.name, contact.email)}</AvatarFallback></Avatar><span className="min-w-0 flex-1"><span className="block truncate text-sm font-medium text-foreground">{contact.name || "Unnamed contact"}</span><span className="block truncate text-xs text-muted-foreground">{contact.email}</span></span><Check className={cn("size-4 shrink-0", isSelected ? "opacity-100" : "opacity-0")} aria-hidden="true" /></CommandItem> })}</CommandGroup></CommandList></Command></PopoverContent></Popover>
+                <div className="flex min-w-0 items-center gap-2 border-b border-input"><Input id="email-to" name="message-to" type="email" inputMode="email" autoComplete="off" aria-label="Recipient email" value={selectedListId ? "" : to} onChange={(event) => handleRecipientChange(event.target.value)} placeholder={selectedList ? `Sending to ${selectedList.contactEmails.length} contacts` : "To"} disabled={Boolean(selectedListId)} className="h-8 min-w-0 flex-1 border-0 px-0 shadow-none focus-visible:ring-0 disabled:opacity-60" /><Popover open={contactPickerOpen} onOpenChange={(open) => { setContactPickerOpen(open); if (!open) setContactQuery("") }}><PopoverTrigger asChild><button type="button" aria-label="Choose contact" disabled={Boolean(selectedListId)} className="flex size-8 shrink-0 items-center justify-center text-muted-foreground outline-none transition-colors hover:text-foreground disabled:pointer-events-none disabled:opacity-50"><ChevronsUpDown className="size-4" aria-hidden="true" /></button></PopoverTrigger><PopoverContent align="start" className="w-[var(--radix-popover-trigger-width)] min-w-[280px] p-0"><Command><CommandInput autoFocus placeholder="Search contacts" value={contactQuery} onValueChange={setContactQuery} /><CommandList><CommandEmpty className="px-3 py-6 text-center text-sm text-muted-foreground">No matching contacts.</CommandEmpty><CommandGroup>{visibleContactOptions.map((contact) => { const isSelected = recipientEmail(contact.email) === recipientEmail(to); return <CommandItem key={contact.email} value={`${contact.name} ${contact.email}`} onSelect={() => { handleRecipientChange(contact.email); setContactPickerOpen(false); setContactQuery("") }} className="items-center gap-3 px-3 py-2.5"><Avatar className={cn("size-10", contactAvatarTone(contact.name || contact.email))}><AvatarFallback className="bg-transparent text-sm font-medium">{contactInitials(contact.name, contact.email)}</AvatarFallback></Avatar><span className="min-w-0 flex-1"><span className="block truncate text-sm font-medium text-foreground">{contact.name || "Unnamed contact"}</span><span className="block truncate text-xs text-muted-foreground">{contact.email}</span></span><Check className={cn("size-4 shrink-0", isSelected ? "opacity-100" : "opacity-0")} aria-hidden="true" /></CommandItem> })}</CommandGroup></CommandList></Command></PopoverContent></Popover></div>
                 <Select value={selectedListId || "none"} onValueChange={(value) => { setSelectedListId(value === "none" ? "" : value); if (value !== "none") setTo("") }}><SelectTrigger aria-label="Contact list" className="h-8"><SelectValue placeholder="Select list" /></SelectTrigger><SelectContent><SelectItem value="none">No list</SelectItem>{[...lists].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" })).map((list) => <SelectItem key={list.id} value={list.id}>{list.name} ({list.contactEmails.length})</SelectItem>)}</SelectContent></Select>
               </div>
 
