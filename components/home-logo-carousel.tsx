@@ -27,9 +27,7 @@ function LogoGroup({ duplicate = false }: { duplicate?: boolean }) {
 
 export function HomeLogoCarousel() {
   return (
-    <section aria-label="Selected client logos" className="home-logo-strip relative overflow-hidden border-y border-border bg-muted/35 py-5 sm:py-6">
-      <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-12 bg-gradient-to-r from-muted/35 to-transparent sm:w-24" aria-hidden="true" />
-      <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-12 bg-gradient-to-l from-muted/35 to-transparent sm:w-24" aria-hidden="true" />
+    <section aria-label="Selected client logos" className="home-logo-strip relative overflow-hidden py-5 sm:py-6">
       <div className="home-logo-track flex w-max items-center motion-reduce:animate-none">
         <LogoGroup />
         <LogoGroup duplicate />

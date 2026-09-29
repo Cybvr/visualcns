@@ -6,7 +6,6 @@ import { Footer } from "@/components/footer"
 import { Header } from "@/components/header"
 import { PwaRedirect } from "@/components/pwa-redirect"
 import { HomeSections } from "@/components/home-sections"
-import { HomeMarquee } from "@/components/home-marquee"
 import { HomeLogoCarousel } from "@/components/home-logo-carousel"
 import { getBrandItems } from "@/lib/brands"
 import { getCapabilities } from "@/lib/capabilities"
@@ -17,10 +16,6 @@ import "./home.css"
 const capabilities = getCapabilities()
 const products = getBrandItems().filter((b) => b.slug !== "visualhq")
 const news = getBlogPosts()
-
-// The marquee runs on real names only — the products we ship and the services we
-// offer. No invented figures, no dials.
-const marqueeItems = [...capabilities.map((c) => c.title), ...products.map((p) => p.product)]
 
 export default function HomePage() {
   return (
@@ -84,10 +79,6 @@ export default function HomePage() {
 
         <div className="mt-10 md:mt-14">
           <HomeLogoCarousel />
-        </div>
-
-        <div className="mt-14 md:mt-20">
-          <HomeMarquee items={marqueeItems} />
         </div>
 
         <div className="mx-auto max-w-7xl px-4 pb-8 sm:px-8 md:px-20">
