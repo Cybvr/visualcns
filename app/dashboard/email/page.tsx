@@ -269,6 +269,9 @@ export default function EmailPage() {
   const [readReceivedIds, setReadReceivedIds] = useState<Set<string>>(new Set())
   const [readStateHydrated, setReadStateHydrated] = useState(false)
   const [selectedReceivedIds, setSelectedReceivedIds] = useState<Set<string>>(new Set())
+  const [selectedDraftIds, setSelectedDraftIds] = useState<Set<string>>(new Set())
+  const [selectedMessageIds, setSelectedMessageIds] = useState<Set<string>>(new Set())
+  const [selectedTemplateIds, setSelectedTemplateIds] = useState<Set<string>>(new Set())
   const [receivedLoading, setReceivedLoading] = useState(false)
   const [receivedError, setReceivedError] = useState("")
   const [selectedReceivedId, setSelectedReceivedId] = useState<string | null>(null)
@@ -990,6 +993,7 @@ export default function EmailPage() {
 
   async function removeDraft(id: string) {
     setDrafts((current) => current.filter((item) => item.id !== id))
+    setSelectedDraftIds((current) => { const next = new Set(current); next.delete(id); return next })
     if (editingDraftId === id) setEditingDraftId(null)
     if (draftIdRef.current === id) draftIdRef.current = null
     try {
@@ -1009,6 +1013,26 @@ export default function EmailPage() {
       setHiddenReceivedIds((current) => { const next = new Set(current); next.delete(message.id); return next })
       setReceivedError("The message could not be deleted.")
     }
+  }
+
+  function toggleDraftSelection(id: string, checked: boolean) {
+    setSelectedDraftIds((current) => {
+      const next = new Set(current)
+      if (checked) next.add(id)
+      else next.delete(id)
+      return next
+    })
+  }
+
+  function toggleAllDrafts(checked: boolean) {
+    setSelectedDraftIds(checked ? new Set(visibleDrafts.map((draft) => draft.id)) : new Set())
+  }
+
+  async function deleteSelectedDrafts() {
+    const ids = [...selectedDraftIds]
+    if (!ids.length) return
+    setSelectedDraftIds(new Set())
+    await Promise.all(ids.map((id) => removeDraft(id)))
   }
 
   function toggleReceivedSelection(id: string, checked: boolean) {
@@ -1060,12 +1084,36 @@ export default function EmailPage() {
 
   async function deleteSentMessage(message: SentMessage) {
     setMessages((current) => current.filter((item) => item.id !== message.id))
+    setSelectedMessageIds((current) => { const next = new Set(current); next.delete(message.id); return next })
     if (selectedSentId === message.id) { setSelectedSentId(null); setMobileMessageView("list") }
     try {
       await deleteEmailMessage(message.id)
     } catch {
       setSendNotice({ tone: "error", text: "The message could not be deleted." })
     }
+  }
+
+  function toggleMessageSelection(id: string, checked: boolean) {
+    setSelectedMessageIds((current) => {
+      const next = new Set(current)
+      if (checked) next.add(id)
+      else next.delete(id)
+      return next
+    })
+  }
+
+  function toggleAllMessages(checked: boolean) {
+    setSelectedMessageIds(checked ? new Set(visibleMessages.map((message) => message.id)) : new Set())
+  }
+
+  async function deleteSelectedMessages() {
+    const ids = [...selectedMessageIds]
+    if (!ids.length) return
+    setSelectedMessageIds(new Set())
+    await Promise.all(ids.map((id) => {
+      const message = messages.find((item) => item.id === id)
+      return message ? deleteSentMessage(message) : Promise.resolve()
+    }))
   }
 
   // Sent emails store only their metadata; the full body is fetched from the
@@ -1483,11 +1531,32 @@ export default function EmailPage() {
     try {
       await deleteEmailTemplate(templateId, workspaceId)
       setTemplates((current) => current.filter((template) => template.id !== templateId))
+      setSelectedTemplateIds((current) => { const next = new Set(current); next.delete(templateId); return next })
       if (selectedTemplateId === templateId) setSelectedTemplateId("")
       if (editingTemplateId === templateId) resetTemplateEditor()
     } catch {
       setTemplateNotice({ tone: "error", text: "The template could not be deleted. Try again." })
     }
+  }
+
+  function toggleTemplateSelection(id: string, checked: boolean) {
+    setSelectedTemplateIds((current) => {
+      const next = new Set(current)
+      if (checked) next.add(id)
+      else next.delete(id)
+      return next
+    })
+  }
+
+  function toggleAllTemplates(checked: boolean) {
+    setSelectedTemplateIds(checked ? new Set(visibleTemplates.map((template) => template.id)) : new Set())
+  }
+
+  async function deleteSelectedTemplates() {
+    const ids = [...selectedTemplateIds]
+    if (!ids.length) return
+    setSelectedTemplateIds(new Set())
+    await Promise.all(ids.map((id) => deleteTemplate(id)))
   }
 
   function resetListEditor() {
@@ -1678,11 +1747,19 @@ export default function EmailPage() {
             onMarkReceivedUnread={() => markSelectedReceived(false)}
             drafts={drafts}
             visibleDrafts={visibleDrafts}
+            selectedDraftIds={[...selectedDraftIds]}
+            onToggleAllDrafts={toggleAllDrafts}
+            onToggleDraft={toggleDraftSelection}
+            onDeleteSelectedDrafts={() => void deleteSelectedDrafts()}
             editingDraftId={editingDraftId}
             onLoadDraft={loadDraft}
             onRemoveDraft={removeDraft}
             messages={messages}
             visibleMessages={visibleMessages}
+            selectedMessageIds={[...selectedMessageIds]}
+            onToggleAllMessages={toggleAllMessages}
+            onToggleMessage={toggleMessageSelection}
+            onDeleteSelectedMessages={() => void deleteSelectedMessages()}
             selectedSent={selectedSent}
             selectedSentId={selectedSentId}
             onOpenSent={openSentMessage}
@@ -1740,6 +1817,10 @@ export default function EmailPage() {
           <EmailTemplates
             templates={templates}
             visibleTemplates={visibleTemplates}
+            selectedTemplateIds={[...selectedTemplateIds]}
+            onToggleAllTemplates={toggleAllTemplates}
+            onToggleTemplate={toggleTemplateSelection}
+            onDeleteSelectedTemplates={() => void deleteSelectedTemplates()}
             editingTemplateId={editingTemplateId}
             templateName={templateName}
             setTemplateName={setTemplateName}

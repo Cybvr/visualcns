@@ -1,6 +1,6 @@
 "use client"
 
-import { ArrowLeft, Eye, FileText, Linkedin, Twitter } from "lucide-react"
+import { ArrowLeft, Eye, FileText, Linkedin, Trash2, Twitter } from "lucide-react"
 
 import { RichTextEditor } from "@/components/dashboard/rich-text-editor"
 import { Button } from "@/components/ui/button"
@@ -13,6 +13,10 @@ import type { EmailTemplate } from "./types"
 export type EmailTemplatesProps = {
   templates: EmailTemplate[]
   visibleTemplates: EmailTemplate[]
+  selectedTemplateIds: string[]
+  onToggleAllTemplates: (checked: boolean) => void
+  onToggleTemplate: (id: string, checked: boolean) => void
+  onDeleteSelectedTemplates: () => void
   editingTemplateId: string | null
   templateName: string
   setTemplateName: (value: string) => void
@@ -42,6 +46,10 @@ export type EmailTemplatesProps = {
 export function EmailTemplates({
   templates,
   visibleTemplates,
+  selectedTemplateIds,
+  onToggleAllTemplates,
+  onToggleTemplate,
+  onDeleteSelectedTemplates,
   editingTemplateId,
   templateName,
   setTemplateName,
@@ -108,7 +116,9 @@ export function EmailTemplates({
           </div>
         )}
         {templates.length === 0 ? <div className="mt-3 rounded-[12px] border border-dashed border-border px-4 py-8 text-center"><FileText className="mx-auto size-5 text-muted-foreground" aria-hidden="true" /><p className="mt-3 text-sm font-medium">No templates yet</p><p className="mt-1 text-xs leading-5 text-muted-foreground">Save the first one using the editor.</p></div> : visibleTemplates.length === 0 ? <div className="mt-3 rounded-[12px] border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground">No templates match your search.</div> : (
-          <div><EmailListHeader primaryLabel="Template" dateLabel="Updated" />{visibleTemplates.map((template) => (
+          <div>
+            <div className="flex min-h-12 items-center gap-1 border-b border-border px-2 py-1.5"><input type="checkbox" checked={visibleTemplates.length > 0 && visibleTemplates.every((template) => selectedTemplateIds.includes(template.id))} onChange={(event) => onToggleAllTemplates(event.target.checked)} aria-label="Select all visible templates" className="ml-1 size-4 shrink-0 accent-primary" /><span className="mr-auto px-2 text-xs text-muted-foreground">{selectedTemplateIds.length ? `${selectedTemplateIds.length} selected` : `${templates.length} templates`}</span><Button type="button" variant="ghost" size="icon" className="size-8" onClick={onDeleteSelectedTemplates} disabled={selectedTemplateIds.length === 0} aria-label="Delete selected templates" title="Delete selected templates"><Trash2 className="size-4" aria-hidden="true" /></Button></div>
+            <EmailListHeader primaryLabel="Template" dateLabel="Updated" selectable />{visibleTemplates.map((template) => (
             <EmailListRow
               key={template.id}
               title={template.name}
@@ -120,6 +130,9 @@ export function EmailTemplates({
               selected={editingTemplateId === template.id}
               onOpen={() => { editTemplate(template); setMobileTemplateView("editor") }}
               onDelete={() => deleteTemplate(template.id)}
+              selectable
+              checked={selectedTemplateIds.includes(template.id)}
+              onCheckedChange={(checked) => onToggleTemplate(template.id, checked)}
               deleteLabel={`Delete ${template.name}`}
               ariaLabel={`Edit template ${template.name}`}
             />

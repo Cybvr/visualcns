@@ -1,4 +1,4 @@
-import { Archive, ArrowLeft, CheckCircle2, Clock, FileText, Inbox, Mail, MailOpen, X } from "lucide-react"
+import { Archive, ArrowLeft, CheckCircle2, Clock, FileText, Inbox, Mail, MailOpen, Trash2, X } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -30,11 +30,19 @@ export type EmailMessageSurfacesProps = {
   onMarkReceivedUnread: () => void
   drafts: EmailDraftRecord[]
   visibleDrafts: EmailDraftRecord[]
+  selectedDraftIds: string[]
+  onToggleAllDrafts: (checked: boolean) => void
+  onToggleDraft: (id: string, checked: boolean) => void
+  onDeleteSelectedDrafts: () => void
   editingDraftId: string | null
   onLoadDraft: (draft: EmailDraftRecord) => void
   onRemoveDraft: (id: string) => void
   messages: SentMessage[]
   visibleMessages: SentMessage[]
+  selectedMessageIds: string[]
+  onToggleAllMessages: (checked: boolean) => void
+  onToggleMessage: (id: string, checked: boolean) => void
+  onDeleteSelectedMessages: () => void
   selectedSent: SentMessage | null
   selectedSentId: string | null
   onOpenSent: (message: SentMessage) => void
@@ -77,11 +85,19 @@ export function EmailMessageSurfaces({
   onMarkReceivedUnread,
   drafts,
   visibleDrafts,
+  selectedDraftIds,
+  onToggleAllDrafts,
+  onToggleDraft,
+  onDeleteSelectedDrafts,
   editingDraftId,
   onLoadDraft,
   onRemoveDraft,
   messages,
   visibleMessages,
+  selectedMessageIds,
+  onToggleAllMessages,
+  onToggleMessage,
+  onDeleteSelectedMessages,
   selectedSent,
   selectedSentId,
   onOpenSent,
@@ -179,7 +195,9 @@ export function EmailMessageSurfaces({
       <section className="flex min-h-0 w-full min-w-0 max-w-full flex-1 flex-col gap-4 lg:gap-6 lg:overflow-hidden" role="tabpanel">
         <aside className="min-h-0 max-lg:shrink-0 lg:flex-1 lg:overflow-y-auto">
           {drafts.length === 0 ? <div className="px-4 py-10 text-center"><FileText className="mx-auto size-5 text-muted-foreground" aria-hidden="true" /><p className="mt-3 text-sm font-medium">No drafts</p><p className="mt-1 text-xs leading-5 text-muted-foreground">Saved drafts will appear here.</p></div> : visibleDrafts.length === 0 ? <div className="px-4 py-10 text-center text-sm text-muted-foreground">No drafts match your search.</div> : (
-            <div><EmailListHeader primaryLabel="To" dateLabel="Updated" />{visibleDrafts.map((draft) => {
+            <div>
+              <div className="flex min-h-12 items-center gap-1 border-b border-border px-2 py-1.5"><input type="checkbox" checked={visibleDrafts.length > 0 && visibleDrafts.every((draft) => selectedDraftIds.includes(draft.id))} onChange={(event) => onToggleAllDrafts(event.target.checked)} aria-label="Select all visible drafts" className="ml-1 size-4 shrink-0 accent-primary" /><span className="mr-auto px-2 text-xs text-muted-foreground">{selectedDraftIds.length ? `${selectedDraftIds.length} selected` : `${drafts.length} drafts`}</span><Button type="button" variant="ghost" size="icon" className="size-8" onClick={onDeleteSelectedDrafts} disabled={selectedDraftIds.length === 0} aria-label="Delete selected drafts" title="Delete selected drafts"><Trash2 className="size-4" aria-hidden="true" /></Button></div>
+              <EmailListHeader primaryLabel="To" dateLabel="Updated" selectable />{visibleDrafts.map((draft) => {
               const recipient = draft.to ? resolveName(draft.to) : (draft.listId ? "Contact list" : "No recipient selected")
               return (
                 <EmailListRow
@@ -193,6 +211,9 @@ export function EmailMessageSurfaces({
                   selected={editingDraftId === draft.id}
                   onOpen={() => onLoadDraft(draft)}
                   onDelete={() => void onRemoveDraft(draft.id)}
+                  selectable
+                  checked={selectedDraftIds.includes(draft.id)}
+                  onCheckedChange={(checked) => onToggleDraft(draft.id, checked)}
                   deleteLabel="Delete draft"
                   ariaLabel={`Open draft email: ${draft.subject?.trim() || "No subject"}`}
                 />
@@ -208,7 +229,9 @@ export function EmailMessageSurfaces({
     <section className={cn("flex min-h-0 w-full min-w-0 max-w-full flex-1 flex-col gap-4 lg:gap-6", selectedSent && mobileMessageView === "list" ? "lg:grid lg:grid-cols-[18rem_minmax(0,1fr)] lg:grid-rows-[minmax(0,1fr)] lg:overflow-hidden" : "lg:overflow-y-auto")} role="tabpanel">
       <aside className={cn("min-h-0 shrink-0 overflow-hidden", mobileMessageView === "list" ? "block" : "hidden")}>
         {messages.length === 0 ? <div className="px-4 py-10 text-center"><Inbox className="mx-auto size-5 text-muted-foreground" aria-hidden="true" /><p className="mt-3 text-sm font-medium">No sent messages</p><p className="mt-1 text-xs leading-5 text-muted-foreground">Your sent emails will appear here.</p></div> : visibleMessages.length === 0 ? <div className="px-4 py-10 text-center text-sm text-muted-foreground">No messages match your search.</div> : (
-          <div><EmailListHeader primaryLabel="To" dateLabel="Sent" compact={Boolean(selectedSent)} />{visibleMessages.map((message) => (
+          <div>
+            <div className="flex min-h-12 items-center gap-1 border-b border-border px-2 py-1.5"><input type="checkbox" checked={visibleMessages.length > 0 && visibleMessages.every((message) => selectedMessageIds.includes(message.id))} onChange={(event) => onToggleAllMessages(event.target.checked)} aria-label="Select all visible sent messages" className="ml-1 size-4 shrink-0 accent-primary" /><span className="mr-auto px-2 text-xs text-muted-foreground">{selectedMessageIds.length ? `${selectedMessageIds.length} selected` : `${messages.length} sent`}</span><Button type="button" variant="ghost" size="icon" className="size-8" onClick={onDeleteSelectedMessages} disabled={selectedMessageIds.length === 0} aria-label="Delete selected sent messages" title="Delete selected sent messages"><Trash2 className="size-4" aria-hidden="true" /></Button></div>
+            <EmailListHeader primaryLabel="To" dateLabel="Sent" compact={Boolean(selectedSent)} selectable />{visibleMessages.map((message) => (
             <EmailListRow
               key={message.id}
               title={resolveName(message.to, message.recipients?.[0]?.name)}
@@ -220,6 +243,9 @@ export function EmailMessageSurfaces({
               selected={selectedSentId === message.id}
               onOpen={() => onOpenSent(message)}
               onDelete={() => onDeleteSent(message)}
+              selectable
+              checked={selectedMessageIds.includes(message.id)}
+              onCheckedChange={(checked) => onToggleMessage(message.id, checked)}
               deleteLabel={`Delete message to ${message.to}`}
               ariaLabel={`Open sent email: ${message.subject}`}
               compact={Boolean(selectedSent)}
