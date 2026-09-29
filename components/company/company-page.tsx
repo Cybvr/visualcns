@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react"
 import Link from "next/link"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
-import { ArrowLeft, Briefcase, ExternalLink, FolderOpen, Mail, MoreVertical, Share2, User as UserIcon, X } from "lucide-react"
+import { ArrowLeft, Briefcase, ExternalLink, FolderOpen, ListTodo, Mail, MoreVertical, Share2, User as UserIcon, X } from "lucide-react"
 import { toast } from "sonner"
 
 import { CompanyDocuments, type CompanyDocumentKind } from "@/components/company/company-documents"
@@ -28,6 +28,7 @@ import { NewPersonDialog } from "@/components/dashboard/new-person-dialog"
 import { NewDocumentDialog } from "@/components/dashboard/new-document-dialog"
 import { NewProjectDialog } from "@/components/dashboard/new-project-dialog"
 import { ProjectDetail } from "@/components/dashboard/project-detail"
+import { TasksView } from "@/components/dashboard/tasks-view"
 import { MobileDataCard } from "@/components/dashboard/mobile-data-card"
 import { ActivityFeed } from "@/components/dashboard/activity-feed"
 import { GridCard, GridCardList } from "@/components/dashboard/grid-card"
@@ -56,7 +57,7 @@ import { buildActivity } from "@/lib/activity"
 import type { CompanyLink, PublicTeamMember } from "@/lib/organizations"
 import { deleteProjectWithTasks, duplicateProject, renameProject, type Project } from "@/lib/projects"
 import { deleteUser, type AppUser } from "@/lib/users"
-import { getTasksByCompanyId, type Task } from "@/lib/tasks"
+import { deleteTask, getTasksByCompanyId, taskStatusMeta, updateTask, type Task } from "@/lib/tasks"
 import { getPortalTasks, getPublicPortalTasks } from "@/lib/portal-data"
 import type { PortalTask } from "@/lib/portal-model"
 import { buildEmailComposeHref } from "@/lib/email-composer"
@@ -65,6 +66,7 @@ import { usePageHeaderActions } from "@/components/dashboard/page-title-context"
 
 const SECTIONS = [
   { key: "projects", label: "Projects" },
+  { key: "tasks", label: "Tasks" },
   { key: "about", label: "About" },
   { key: "team", label: "Team" },
   { key: "activity", label: "Activity" },
@@ -298,6 +300,9 @@ export function CompanyPage({
   const [shareOpen, setShareOpen] = useState(false)
   const [issuer, setIssuer] = useState<BusinessProfile | null>(null)
   const [activityTasks, setActivityTasks] = useState<Task[]>([])
+  const [tasksLoading, setTasksLoading] = useState(true)
+  const [taskRevision, setTaskRevision] = useState(0)
+  const [deletingTaskId, setDeletingTaskId] = useState<string | null>(null)
   const [teamDialogOpen, setTeamDialogOpen] = useState(false)
   const [teamContactIds, setTeamContactIds] = useState<string[]>([])
   const [teamSaving, setTeamSaving] = useState(false)
@@ -317,6 +322,7 @@ export function CompanyPage({
 
   useEffect(() => {
     let active = true
+    setTasksLoading(true)
     async function loadActivityTasks() {
       try {
         if (isAdmin) {
@@ -348,12 +354,32 @@ export function CompanyPage({
         if (active) setActivityTasks(tasks)
       } catch {
         if (active) setActivityTasks([])
+      } finally {
+        if (active) setTasksLoading(false)
       }
     }
 
     void loadActivityTasks()
     return () => { active = false }
-  }, [company.id, company.name, isAdmin, projects])
+  }, [company.id, company.name, isAdmin, projects, taskRevision])
+
+  function handleTaskPatch(id: string, patch: Partial<Task>) {
+    setActivityTasks((current) => current.map((task) => task.id === id ? { ...task, ...patch } : task))
+    void updateTask(id, patch)
+      .catch(() => toast.error("Could not update task."))
+      .finally(() => setTaskRevision((current) => current + 1))
+  }
+
+  function handleTaskDelete(id: string) {
+    setDeletingTaskId(id)
+    void deleteTask(id)
+      .then(() => setActivityTasks((current) => current.filter((task) => task.id !== id)))
+      .catch(() => toast.error("Could not delete task."))
+      .finally(() => {
+        setDeletingTaskId(null)
+        setTaskRevision((current) => current + 1)
+      })
+  }
 
   function updateParams(next: Record<string, string | null>) {
     const params = new URLSearchParams(searchParams.toString())
@@ -757,6 +783,46 @@ export function CompanyPage({
                 className="mt-4 sm:rounded-none sm:bg-transparent sm:p-0"
               />
             </div>
+          )}
+
+          {section === "tasks" && (
+            tasksLoading ? (
+              <p className="mt-8 text-sm text-muted-foreground" role="status">Loading tasks…</p>
+            ) : admin ? (
+              <TasksView
+                tasks={activityTasks}
+                projects={projects}
+                companyId={company.id}
+                clientName={company.name}
+                deleting={deletingTaskId}
+                onDelete={handleTaskDelete}
+                onPatch={handleTaskPatch}
+                onSaved={() => setTaskRevision((current) => current + 1)}
+              />
+            ) : (
+              <section className="mt-5">
+                <h2 className="sidebar-nav-label text-muted-foreground">Tasks</h2>
+                {activityTasks.length === 0 ? (
+                  <CompanyEmptyState icon={ListTodo} title="No shared tasks yet" />
+                ) : (
+                  <ul className="mt-4 divide-y divide-border rounded-lg border border-border">
+                    {activityTasks.map((task) => (
+                      <li key={task.id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+                        <div className="min-w-0">
+                          <p className="font-medium text-foreground">{task.name}</p>
+                          <p className="mt-1 text-sm text-muted-foreground">
+                            {[task.project, task.dueDate ? `Due ${task.dueDate}` : null].filter(Boolean).join(" · ")}
+                          </p>
+                        </div>
+                        <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-foreground">
+                          {(taskStatusMeta[task.status] ?? taskStatusMeta.todo).label}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </section>
+            )
           )}
 
           {section === "projects" && (
