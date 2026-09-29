@@ -283,9 +283,6 @@ export default function EmailPage() {
   const [senderAddress, setSenderAddress] = useState<string | null>(null)
   const [senderOptions, setSenderOptions] = useState<string[]>([])
   const [replyToAddress, setReplyToAddress] = useState<string | null>(null)
-  const [googleConfigured, setGoogleConfigured] = useState(false)
-  const [googleEmail, setGoogleEmail] = useState<string | null>(null)
-  const [googleLoading, setGoogleLoading] = useState(false)
   const [contacts, setContacts] = useState<EmailContact[]>([])
   const [contactPickerOpen, setContactPickerOpen] = useState(false)
   const [contactQuery, setContactQuery] = useState("")
@@ -779,8 +776,6 @@ export default function EmailPage() {
   useEffect(() => {
     let active = true
     if (!user) {
-      setGoogleConfigured(false)
-      setGoogleEmail(null)
       return () => { active = false }
     }
     void user.getIdToken().then((idToken) => fetch("/api/email/google/status", {
@@ -789,10 +784,7 @@ export default function EmailPage() {
     })).then(async (response) => {
       const result = await response.json().catch(() => ({})) as { configured?: boolean; email?: string | null; senders?: Array<{ display?: string; email?: string }> }
       if (!active) return
-      const configured = Boolean(result.configured)
-      setGoogleConfigured(configured)
-      setGoogleEmail(result.email || null)
-      if (configured && Array.isArray(result.senders) && result.senders.length) {
+      if (result.configured && Array.isArray(result.senders) && result.senders.length) {
         const senders = result.senders.map((sender) => sender.display || sender.email || "").filter(Boolean)
         setSenderConfigured(true)
         setSenderAddress(senders[0] || result.email || null)
@@ -802,30 +794,6 @@ export default function EmailPage() {
     }).catch(() => undefined)
     return () => { active = false }
   }, [showOpsDetail, user])
-
-  useEffect(() => {
-    const status = searchParams.get("google")
-    if (status === "connected") {
-      setSendNotice({ tone: "success", text: "Google mailbox connected." })
-    } else if (status === "error") {
-      setSendNotice({ tone: "error", text: searchParams.get("message") || "Google mailbox connection failed." })
-    }
-  }, [searchParams])
-
-  async function connectGoogleMailbox() {
-    if (!user || googleLoading) return
-    setGoogleLoading(true)
-    try {
-      const idToken = await user.getIdToken()
-      const response = await fetch("/api/email/google/connect", { headers: { Authorization: `Bearer ${idToken}` }, cache: "no-store" })
-      const result = await response.json().catch(() => ({})) as { url?: string; error?: string }
-      if (!response.ok || !result.url) throw new Error(result.error || "Google mailbox setup is not configured yet.")
-      window.location.assign(result.url)
-    } catch (error) {
-      setGoogleLoading(false)
-      setSendNotice({ tone: "error", text: error instanceof Error ? error.message : "Google mailbox connection failed." })
-    }
-  }
 
   useEffect(() => {
     let active = true
@@ -1379,7 +1347,18 @@ export default function EmailPage() {
 
   function useEditingTemplate() {
     if (!editingTemplateId || !templates.some((template) => template.id === editingTemplateId)) return
-    applyTemplate(editingTemplateId)
+    useTemplateInComposer(editingTemplateId)
+  }
+
+  function useTemplateInComposer(templateId: string) {
+    if (!templates.some((template) => template.id === templateId)) return
+    setMessageViewError("")
+    setComposerPreviewOpen(false)
+    setPreview(null)
+    applyTemplate(templateId)
+    setEditingDraftId(null)
+    draftIdRef.current = null
+    setDraftStatus("idle")
     setComposeFullPage(false)
     setComposeOpen(true)
     setComposeMinimized(false)
@@ -1694,19 +1673,6 @@ export default function EmailPage() {
             </>
           }
         />
-        {showOpsDetail && (
-          <div className="mb-2 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border/70 bg-card px-3 py-2 text-sm">
-            <div className="flex min-w-0 items-center gap-2">
-              <span className={cn("size-2 shrink-0 rounded-full", googleConfigured ? "bg-emerald-500" : "bg-muted-foreground/50")} aria-hidden="true" />
-              <span className="truncate text-muted-foreground">
-                Google mailbox: <strong className="font-medium text-foreground">{googleConfigured ? (googleEmail || "connected") : "not connected"}</strong>
-              </span>
-            </div>
-            <Button type="button" variant="outline" size="sm" onClick={connectGoogleMailbox} disabled={googleLoading}>
-              {googleLoading ? "Connecting…" : googleConfigured ? "Reconnect Google" : "Connect Google"}
-            </Button>
-          </div>
-        )}
         <div className="mb-2 flex w-full items-center gap-1 rounded-md bg-muted/50 p-0.5 lg:hidden" role="tablist" aria-label="Email">
           {EMAIL_FOLDERS.map((folder) => (
             <button
@@ -1834,6 +1800,7 @@ export default function EmailPage() {
             templateNotice={templateNotice}
             saveTemplate={saveTemplate}
             useEditingTemplate={useEditingTemplate}
+            useTemplateInComposer={useTemplateInComposer}
             previewEditingTemplate={previewEditingTemplate}
             editTemplate={editTemplate}
             setMobileTemplateView={setMobileTemplateView}

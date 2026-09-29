@@ -1,11 +1,14 @@
 "use client"
 
 import Link from "next/link"
-import { ChevronsUpDown, LogOut, Palette, UserCog } from "lucide-react"
+import { useEffect, useState } from "react"
+import { useTheme } from "next-themes"
+import { ChevronsUpDown, LogOut, Moon, Palette, UserCog } from "lucide-react"
 
 import { useAuth } from "@/components/auth-provider"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { userRoleLabel } from "@/lib/users"
+import { Switch } from "@/components/ui/switch"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,6 +27,8 @@ import {
 export function NavUser() {
   const { isMobile } = useSidebar()
   const { user, appUser, isViewingAs, signOut } = useAuth()
+  const { resolvedTheme, setTheme } = useTheme()
+  const [themeReady, setThemeReady] = useState(false)
 
   const name = appUser?.displayName || appUser?.company || user?.displayName || "Account"
   const email = appUser?.email || user?.email || ""
@@ -36,6 +41,10 @@ export function NavUser() {
       .join("")
       .slice(0, 2)
       .toUpperCase() || "U"
+
+  useEffect(() => {
+    setThemeReady(true)
+  }, [])
 
   return (
     <SidebarMenu>
@@ -89,6 +98,17 @@ export function NavUser() {
                 <Palette />
                 Customization
               </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={(event) => event.preventDefault()}>
+              <Moon />
+              <span className="flex-1">Dark mode</span>
+              <Switch
+                checked={themeReady && resolvedTheme === "dark"}
+                onCheckedChange={(enabled) => setTheme(enabled ? "dark" : "light")}
+                disabled={!themeReady}
+                aria-label="Dark mode"
+                onClick={(event) => event.stopPropagation()}
+              />
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={signOut}>

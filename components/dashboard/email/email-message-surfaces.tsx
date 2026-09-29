@@ -135,7 +135,7 @@ export function EmailMessageSurfaces({
               checked={visibleReceivedMessages.length > 0 && visibleReceivedMessages.every((message) => selectedReceivedIds.includes(message.id))}
               onChange={(event) => onToggleAllReceived(event.target.checked)}
               aria-label="Select all visible messages"
-              className="ml-1 size-4 shrink-0 accent-primary"
+              className={cn("ml-1 size-4 shrink-0 accent-primary", selectedReceivedIds.length === 0 && "max-sm:hidden")}
             />
             <span className="mr-auto px-2 text-xs text-muted-foreground">
               {selectedReceivedIds.length > 0 ? `${selectedReceivedIds.length} selected` : `${receivedMessages.filter((message) => !readReceivedIds.includes(message.id)).length} unread`}
@@ -166,6 +166,7 @@ export function EmailMessageSurfaces({
                   onOpen={() => onOpenReceived(message)}
                   onDelete={() => onDeleteReceived(message)}
                   selectable
+                  selectionMode={selectedReceivedIds.length > 0}
                   checked={selectedReceivedIds.includes(message.id)}
                   onCheckedChange={(checked) => onToggleReceived(message.id, checked)}
                   unread={!readReceivedIds.includes(message.id)}
@@ -196,7 +197,7 @@ export function EmailMessageSurfaces({
         <aside className="min-h-0 max-lg:shrink-0 lg:flex-1 lg:overflow-y-auto">
           {drafts.length === 0 ? <div className="px-4 py-10 text-center"><FileText className="mx-auto size-5 text-muted-foreground" aria-hidden="true" /><p className="mt-3 text-sm font-medium">No drafts</p><p className="mt-1 text-xs leading-5 text-muted-foreground">Saved drafts will appear here.</p></div> : visibleDrafts.length === 0 ? <div className="px-4 py-10 text-center text-sm text-muted-foreground">No drafts match your search.</div> : (
             <div>
-              <div className="flex min-h-12 items-center gap-1 border-b border-border px-2 py-1.5"><input type="checkbox" checked={visibleDrafts.length > 0 && visibleDrafts.every((draft) => selectedDraftIds.includes(draft.id))} onChange={(event) => onToggleAllDrafts(event.target.checked)} aria-label="Select all visible drafts" className="ml-1 size-4 shrink-0 accent-primary" /><span className="mr-auto px-2 text-xs text-muted-foreground">{selectedDraftIds.length ? `${selectedDraftIds.length} selected` : `${drafts.length} drafts`}</span><Button type="button" variant="ghost" size="icon" className="size-8" onClick={onDeleteSelectedDrafts} disabled={selectedDraftIds.length === 0} aria-label="Delete selected drafts" title="Delete selected drafts"><Trash2 className="size-4" aria-hidden="true" /></Button></div>
+              <div className="flex min-h-12 items-center gap-1 border-b border-border px-2 py-1.5"><input type="checkbox" checked={visibleDrafts.length > 0 && visibleDrafts.every((draft) => selectedDraftIds.includes(draft.id))} onChange={(event) => onToggleAllDrafts(event.target.checked)} aria-label="Select all visible drafts" className={cn("ml-1 size-4 shrink-0 accent-primary", selectedDraftIds.length === 0 && "max-sm:hidden")} /><span className="mr-auto px-2 text-xs text-muted-foreground">{selectedDraftIds.length ? `${selectedDraftIds.length} selected` : `${drafts.length} drafts`}</span><Button type="button" variant="ghost" size="icon" className="size-8" onClick={onDeleteSelectedDrafts} disabled={selectedDraftIds.length === 0} aria-label="Delete selected drafts" title="Delete selected drafts"><Trash2 className="size-4" aria-hidden="true" /></Button></div>
               <EmailListHeader primaryLabel="To" dateLabel="Updated" selectable />{visibleDrafts.map((draft) => {
               const recipient = draft.to ? resolveName(draft.to) : (draft.listId ? "Contact list" : "No recipient selected")
               return (
@@ -212,6 +213,7 @@ export function EmailMessageSurfaces({
                   onOpen={() => onLoadDraft(draft)}
                   onDelete={() => void onRemoveDraft(draft.id)}
                   selectable
+                  selectionMode={selectedDraftIds.length > 0}
                   checked={selectedDraftIds.includes(draft.id)}
                   onCheckedChange={(checked) => onToggleDraft(draft.id, checked)}
                   deleteLabel="Delete draft"
@@ -230,7 +232,7 @@ export function EmailMessageSurfaces({
       <aside className={cn("min-h-0 shrink-0 overflow-hidden", mobileMessageView === "list" ? "block" : "hidden")}>
         {messages.length === 0 ? <div className="px-4 py-10 text-center"><Inbox className="mx-auto size-5 text-muted-foreground" aria-hidden="true" /><p className="mt-3 text-sm font-medium">No sent messages</p><p className="mt-1 text-xs leading-5 text-muted-foreground">Your sent emails will appear here.</p></div> : visibleMessages.length === 0 ? <div className="px-4 py-10 text-center text-sm text-muted-foreground">No messages match your search.</div> : (
           <div>
-            <div className="flex min-h-12 items-center gap-1 border-b border-border px-2 py-1.5"><input type="checkbox" checked={visibleMessages.length > 0 && visibleMessages.every((message) => selectedMessageIds.includes(message.id))} onChange={(event) => onToggleAllMessages(event.target.checked)} aria-label="Select all visible sent messages" className="ml-1 size-4 shrink-0 accent-primary" /><span className="mr-auto px-2 text-xs text-muted-foreground">{selectedMessageIds.length ? `${selectedMessageIds.length} selected` : `${messages.length} sent`}</span><Button type="button" variant="ghost" size="icon" className="size-8" onClick={onDeleteSelectedMessages} disabled={selectedMessageIds.length === 0} aria-label="Delete selected sent messages" title="Delete selected sent messages"><Trash2 className="size-4" aria-hidden="true" /></Button></div>
+            <div className="flex min-h-12 items-center gap-1 border-b border-border px-2 py-1.5"><input type="checkbox" checked={visibleMessages.length > 0 && visibleMessages.every((message) => selectedMessageIds.includes(message.id))} onChange={(event) => onToggleAllMessages(event.target.checked)} aria-label="Select all visible sent messages" className={cn("ml-1 size-4 shrink-0 accent-primary", selectedMessageIds.length === 0 && "max-sm:hidden")} /><span className="mr-auto px-2 text-xs text-muted-foreground">{selectedMessageIds.length ? `${selectedMessageIds.length} selected` : `${messages.length} sent`}</span><Button type="button" variant="ghost" size="icon" className="size-8" onClick={onDeleteSelectedMessages} disabled={selectedMessageIds.length === 0} aria-label="Delete selected sent messages" title="Delete selected sent messages"><Trash2 className="size-4" aria-hidden="true" /></Button></div>
             <EmailListHeader primaryLabel="To" dateLabel="Sent" compact={Boolean(selectedSent)} selectable />{visibleMessages.map((message) => (
             <EmailListRow
               key={message.id}
@@ -244,6 +246,7 @@ export function EmailMessageSurfaces({
               onOpen={() => onOpenSent(message)}
               onDelete={() => onDeleteSent(message)}
               selectable
+              selectionMode={selectedMessageIds.length > 0}
               checked={selectedMessageIds.includes(message.id)}
               onCheckedChange={(checked) => onToggleMessage(message.id, checked)}
               deleteLabel={`Delete message to ${message.to}`}

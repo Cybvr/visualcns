@@ -138,7 +138,7 @@ export function InlineDate({ value, onCommit }: { value: string; onCommit: (v: s
       type="date"
       value={value}
       onChange={(e) => onCommit(e.target.value)}
-      className="-mx-1 rounded bg-transparent px-1 py-0.5 text-muted-foreground outline-none hover:bg-muted/60 focus:ring-2 focus:ring-ring"
+      className="w-full min-w-0 rounded bg-transparent px-1 py-0.5 text-muted-foreground outline-none hover:bg-muted/60 focus:ring-2 focus:ring-ring"
     />
   )
 }

@@ -38,6 +38,7 @@ export function CompanyProfileHeader({
   onEdit,
   onChangeLogo,
   onChangeCover,
+  accountAction,
   tabs,
 }: {
   name: string
@@ -56,6 +57,7 @@ export function CompanyProfileHeader({
   onEdit?: () => void
   onChangeLogo?: () => void
   onChangeCover?: () => void
+  accountAction?: ReactNode
   tabs?: ReactNode
 }) {
   // Location and description stay folded away until someone taps "More".
@@ -108,8 +110,9 @@ export function CompanyProfileHeader({
               )}
             </div>
 
-            {admin && (onShare || onEdit) && (
+            {((admin && (onShare || onEdit)) || accountAction) && (
               <div className="flex shrink-0 items-center gap-2 text-sm">
+                {accountAction}
                 {onShare && (
                   <button type="button" onClick={onShare} className={actionClass}>
                     <Share2 className="size-4" aria-hidden="true" />

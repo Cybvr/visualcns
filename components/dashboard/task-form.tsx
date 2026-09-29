@@ -27,7 +27,7 @@ import {
   type TaskPriority,
 } from "@/lib/tasks"
 import { getProjects, getProjectsByCompanyId, createProject, type Project } from "@/lib/projects"
-import { getUsers, type AppUser } from "@/lib/users"
+import { getOrganizations, type Organization } from "@/lib/organizations"
 import { cn } from "@/lib/utils"
 import { RichTextEditor } from "@/components/dashboard/rich-text-editor"
 import { taskContentHtml } from "@/components/dashboard/task-content"
@@ -85,7 +85,7 @@ export function TaskForm({ task, fixedClient, defaults, onSaved, onCancel }: Tas
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [form, setForm] = useState<FormState>(EMPTY_FORM)
-  const [clients, setClients] = useState<AppUser[]>([])
+  const [organizations, setOrganizations] = useState<Organization[]>([])
   const [projects, setProjects] = useState<Project[]>([])
   const [optionsLoading, setOptionsLoading] = useState(true)
   
@@ -101,12 +101,15 @@ export function TaskForm({ task, fixedClient, defaults, onSaved, onCancel }: Tas
         .finally(() => setOptionsLoading(false))
       return
     }
-    Promise.all([getUsers(), getProjects()])
-      .then(([users, allProjects]) => {
-        setClients(users.filter((u) => u.companyId))
+    Promise.all([getOrganizations(), getProjects()])
+      .then(([allOrganizations, allProjects]) => {
+        setOrganizations(allOrganizations)
         setProjects(allProjects)
       })
-      .catch((err) => console.error("Error loading form options:", err))
+      .catch((err) => {
+        console.error("Error loading form options:", err)
+        setError("Could not load clients and projects.")
+      })
       .finally(() => setOptionsLoading(false))
     // Depend on the id, not the object, so a new object literal each render doesn't refetch.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -116,7 +119,7 @@ export function TaskForm({ task, fixedClient, defaults, onSaved, onCancel }: Tas
     if (task) {
       setForm({
         name: task.name ?? "",
-        companyId: task.companyId ?? fixedClient?.companyId ?? "",
+        companyId: fixedClient?.companyId ?? task.companyId ?? "",
         projectId: task.projectId ?? "",
         status: normalizeTaskStatus(task.status),
         priority: task.priority ?? EMPTY_FORM.priority,
@@ -138,6 +141,9 @@ export function TaskForm({ task, fixedClient, defaults, onSaved, onCancel }: Tas
     if (!task || optionsLoading) return
 
     setForm((prev) => {
+      if (fixedClient && prev.projectId && !projects.some((project) => project.id === prev.projectId && project.companyId === fixedClient.companyId)) {
+        return { ...prev, projectId: "" }
+      }
       if (prev.companyId && prev.projectId) return prev
 
       let nextCompanyId = prev.companyId
@@ -156,12 +162,12 @@ export function TaskForm({ task, fixedClient, defaults, onSaved, onCancel }: Tas
       }
 
       if (!nextCompanyId) {
-        const matchedClient = clients.find((client) =>
-          [client.company, client.displayName, client.email, client.companyId].some(
+        const matchedClient = organizations.find((organization) =>
+          [organization.name, organization.id].some(
             (value) => normalizeOptionLabel(String(value ?? "")) === normalizeOptionLabel(task.client),
           ),
         )
-        if (matchedClient?.companyId) nextCompanyId = matchedClient.companyId
+        if (matchedClient) nextCompanyId = matchedClient.id
       }
 
       if (nextCompanyId === prev.companyId && nextProjectId === prev.projectId) return prev
@@ -171,23 +177,16 @@ export function TaskForm({ task, fixedClient, defaults, onSaved, onCancel }: Tas
         projectId: nextProjectId,
       }
     })
-  }, [clients, optionsLoading, projects, task])
+  }, [fixedClient?.companyId, optionsLoading, organizations, projects, task])
 
   function set(field: keyof FormState, value: string) {
     setForm((prev) => ({ ...prev, [field]: value }))
   }
 
-  const clientOptions = Array.from(
-    new Map(
-      clients.map((u) => [
-        u.companyId as string,
-        {
-          companyId: u.companyId as string,
-          label: u.company || u.displayName || u.email || (u.companyId as string),
-        },
-      ]),
-    ).values(),
-  )
+  const clientOptions = organizations.map((organization) => ({
+    companyId: organization.id,
+    label: organization.name || organization.id,
+  }))
 
   const selectedClientFallback =
     form.companyId && !clientOptions.some((option) => option.companyId === form.companyId)

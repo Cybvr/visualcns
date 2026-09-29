@@ -21,6 +21,7 @@ export type EmailListRowProps = {
   ariaLabel: string
   compact?: boolean
   selectable?: boolean
+  selectionMode?: boolean
   checked?: boolean
   onCheckedChange?: (checked: boolean) => void
   unread?: boolean
@@ -71,6 +72,7 @@ export function EmailListRow({
   ariaLabel,
   compact = false,
   selectable = false,
+  selectionMode = false,
   checked = false,
   onCheckedChange,
   unread = false,
@@ -89,7 +91,7 @@ export function EmailListRow({
   return (
     <>
       <div className="mb-2 flex items-start gap-2 sm:hidden">
-        {selectable && onCheckedChange ? <div className="pt-4">{renderSelectionControl()}</div> : null}
+        {selectable && selectionMode && onCheckedChange ? <div className="pt-4">{renderSelectionControl()}</div> : null}
         <div className="min-w-0 flex-1">
           <MobileDataCard
             title={title}
@@ -101,7 +103,9 @@ export function EmailListRow({
               </Avatar>
             )}
             selected={selected}
-            onClick={onOpen}
+            pressed={selectionMode ? checked : undefined}
+            onClick={() => selectionMode && onCheckedChange ? onCheckedChange(!checked) : onOpen()}
+            onLongPress={selectable && onCheckedChange ? () => onCheckedChange(!checked) : undefined}
             ariaLabel={ariaLabel}
             menuLabel={`Options for ${title}`}
             menu={onDelete ? <DropdownMenuItem variant="destructive" onSelect={onDelete}>Delete</DropdownMenuItem> : undefined}

@@ -1,6 +1,8 @@
+"use client"
+
 import Link from "next/link"
 import { EllipsisVertical } from "lucide-react"
-import type { ReactNode } from "react"
+import { useEffect, useRef, type PointerEvent, type ReactNode } from "react"
 
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
@@ -18,7 +20,9 @@ type MobileDataCardProps = {
   selected?: boolean
   href?: string
   onClick?: () => void
+  onLongPress?: () => void
   ariaLabel?: string
+  pressed?: boolean
 }
 
 export function MobileDataCard({
@@ -34,8 +38,42 @@ export function MobileDataCard({
   selected = false,
   href,
   onClick,
+  onLongPress,
   ariaLabel,
+  pressed,
 }: MobileDataCardProps) {
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const pressStart = useRef({ x: 0, y: 0 })
+  const longPressTriggered = useRef(false)
+  const lastPointerType = useRef("")
+
+  function cancelLongPress() {
+    if (longPressTimer.current !== null) clearTimeout(longPressTimer.current)
+    longPressTimer.current = null
+  }
+
+  useEffect(() => () => {
+    if (longPressTimer.current !== null) clearTimeout(longPressTimer.current)
+  }, [])
+
+  function handlePointerDown(event: PointerEvent<HTMLButtonElement>) {
+    lastPointerType.current = event.pointerType
+    longPressTriggered.current = false
+    if (event.pointerType !== "touch" || !onLongPress) return
+    pressStart.current = { x: event.clientX, y: event.clientY }
+    cancelLongPress()
+    longPressTimer.current = setTimeout(() => {
+      longPressTriggered.current = true
+      onLongPress()
+    }, 500)
+  }
+
+  function handlePointerMove(event: PointerEvent<HTMLButtonElement>) {
+    if (longPressTimer.current !== null && Math.hypot(event.clientX - pressStart.current.x, event.clientY - pressStart.current.y) > 10) {
+      cancelLongPress()
+    }
+  }
+
   const content = (
     <>
       <span
@@ -83,8 +121,22 @@ export function MobileDataCard({
       ) : onClick ? (
         <button
           type="button"
-          onClick={onClick}
+          onClick={() => {
+            if (longPressTriggered.current) {
+              longPressTriggered.current = false
+              return
+            }
+            onClick()
+          }}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={cancelLongPress}
+          onPointerCancel={() => { cancelLongPress(); longPressTriggered.current = false }}
+          onPointerLeave={cancelLongPress}
+          onKeyDown={() => { cancelLongPress(); longPressTriggered.current = false }}
+          onContextMenu={(event) => { if (onLongPress && lastPointerType.current === "touch") event.preventDefault() }}
           aria-label={ariaLabel}
+          aria-pressed={pressed}
           className="absolute inset-0 z-0 rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
         />
       ) : null}

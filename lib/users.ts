@@ -8,6 +8,7 @@ import {
   doc,
   query,
   where,
+  arrayUnion,
   Timestamp,
 } from "firebase/firestore"
 import { db } from "./firebase"
@@ -35,6 +36,8 @@ export interface AppUser {
   slug?: string
   /** Links a client user to their project/deliverable data. */
   companyId?: string
+  /** Additional company teams this person belongs to; does not change their own workspace. */
+  companyIds?: string[]
   phone?: string
   website?: string
   linkedIn?: string
@@ -143,17 +146,36 @@ export async function getUserByCompanyId(companyId: string): Promise<AppUser | n
   if (!companyId) return null
   const agencyId = await getCurrentAgencyId()
   const snapshot = await getDocs(query(collection(db, COLLECTION_NAME), where("agencyId", "==", agencyId), where("companyId", "==", companyId)))
-  if (snapshot.empty) return null
-  const first = snapshot.docs[0]
-  return { ...(first.data() as object), uid: first.id } as AppUser
+  const client = snapshot.docs.find((item) => item.data().role === "client")
+  return client ? { ...(client.data() as object), uid: client.id } as AppUser : null
 }
 
 /** Every person who belongs to a workspace, for the company's People tab. */
 export async function getUsersByCompanyId(companyId: string): Promise<AppUser[]> {
   if (!companyId) return []
   const agencyId = await getCurrentAgencyId()
-  const snapshot = await getDocs(query(collection(db, COLLECTION_NAME), where("agencyId", "==", agencyId), where("companyId", "==", companyId)))
-  return snapshot.docs.map((d) => ({ ...(d.data() as object), uid: d.id })) as AppUser[]
+  const [workspaceUsers, teamUsers] = await Promise.all([
+    getDocs(query(collection(db, COLLECTION_NAME), where("agencyId", "==", agencyId), where("companyId", "==", companyId))),
+    getDocs(query(collection(db, COLLECTION_NAME), where("agencyId", "==", agencyId), where("companyIds", "array-contains", companyId))),
+  ])
+  const users = new Map<string, AppUser>()
+  for (const snapshot of [workspaceUsers, teamUsers]) {
+    for (const item of snapshot.docs) {
+      const data = item.data()
+      users.set(item.id, { ...data, uid: item.id } as AppUser)
+    }
+  }
+  return [...users.values()]
+}
+
+/** Add a person to a company team without changing their own company workspace. */
+export async function addUserToCompany(uid: string, companyId: string): Promise<void> {
+  const id = companyId.trim()
+  if (!uid || !id) return
+  await updateDoc(doc(db, COLLECTION_NAME, uid), {
+    companyIds: arrayUnion(id),
+    updatedAt: Timestamp.now(),
+  })
 }
 
 export async function getUser(uid: string): Promise<AppUser | null> {

@@ -27,6 +27,7 @@ export type EmailTemplatesProps = {
   templateNotice: { tone: "success" | "error"; text: string } | null
   saveTemplate: (event: React.FormEvent<HTMLFormElement>) => void
   useEditingTemplate: () => void
+  useTemplateInComposer: (templateId: string) => void
   previewEditingTemplate: () => void
   editTemplate: (template: EmailTemplate) => void
   setMobileTemplateView: (view: "list" | "editor") => void
@@ -60,6 +61,7 @@ export function EmailTemplates({
   templateNotice,
   saveTemplate,
   useEditingTemplate,
+  useTemplateInComposer,
   previewEditingTemplate,
   editTemplate,
   setMobileTemplateView,
@@ -117,7 +119,7 @@ export function EmailTemplates({
         )}
         {templates.length === 0 ? <div className="mt-3 rounded-[12px] border border-dashed border-border px-4 py-8 text-center"><FileText className="mx-auto size-5 text-muted-foreground" aria-hidden="true" /><p className="mt-3 text-sm font-medium">No templates yet</p><p className="mt-1 text-xs leading-5 text-muted-foreground">Save the first one using the editor.</p></div> : visibleTemplates.length === 0 ? <div className="mt-3 rounded-[12px] border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground">No templates match your search.</div> : (
           <div>
-            <div className="flex min-h-12 items-center gap-1 border-b border-border px-2 py-1.5"><input type="checkbox" checked={visibleTemplates.length > 0 && visibleTemplates.every((template) => selectedTemplateIds.includes(template.id))} onChange={(event) => onToggleAllTemplates(event.target.checked)} aria-label="Select all visible templates" className="ml-1 size-4 shrink-0 accent-primary" /><span className="mr-auto px-2 text-xs text-muted-foreground">{selectedTemplateIds.length ? `${selectedTemplateIds.length} selected` : `${templates.length} templates`}</span><Button type="button" variant="ghost" size="icon" className="size-8" onClick={onDeleteSelectedTemplates} disabled={selectedTemplateIds.length === 0} aria-label="Delete selected templates" title="Delete selected templates"><Trash2 className="size-4" aria-hidden="true" /></Button></div>
+            <div className="flex min-h-12 items-center gap-1 border-b border-border px-2 py-1.5"><input type="checkbox" checked={visibleTemplates.length > 0 && visibleTemplates.every((template) => selectedTemplateIds.includes(template.id))} onChange={(event) => onToggleAllTemplates(event.target.checked)} aria-label="Select all visible templates" className={cn("ml-1 size-4 shrink-0 accent-primary", selectedTemplateIds.length === 0 && "max-sm:hidden")} /><span className="mr-auto px-2 text-xs text-muted-foreground">{selectedTemplateIds.length ? `${selectedTemplateIds.length} selected` : `${templates.length} templates`}</span><Button type="button" variant="ghost" size="icon" className="size-8" onClick={onDeleteSelectedTemplates} disabled={selectedTemplateIds.length === 0} aria-label="Delete selected templates" title="Delete selected templates"><Trash2 className="size-4" aria-hidden="true" /></Button></div>
             <EmailListHeader primaryLabel="Template" dateLabel="Updated" selectable />{visibleTemplates.map((template) => (
             <EmailListRow
               key={template.id}
@@ -128,9 +130,17 @@ export function EmailTemplates({
               avatarInitials={contactInitials(template.name, template.subject)}
               avatarTone={contactAvatarTone(template.name)}
               selected={editingTemplateId === template.id}
-              onOpen={() => { editTemplate(template); setMobileTemplateView("editor") }}
+              onOpen={() => {
+                if (window.matchMedia("(max-width: 1023px)").matches) {
+                  useTemplateInComposer(template.id)
+                  return
+                }
+                editTemplate(template)
+                setMobileTemplateView("editor")
+              }}
               onDelete={() => deleteTemplate(template.id)}
               selectable
+              selectionMode={selectedTemplateIds.length > 0}
               checked={selectedTemplateIds.includes(template.id)}
               onCheckedChange={(checked) => onToggleTemplate(template.id, checked)}
               deleteLabel={`Delete ${template.name}`}

@@ -121,15 +121,15 @@ export function TasksView({ tasks, projects, companyId, clientName, deleting, on
       </div>
 
       <div className="mt-3 hidden overflow-x-auto rounded-lg border border-border sm:block">
-        <Table className="w-full table-fixed">
+        <Table className="w-full min-w-[960px] table-fixed">
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[32%]">Task</TableHead>
-              <TableHead className="w-[24%]">Project</TableHead>
-              <TableHead className="w-[14%]">Priority</TableHead>
-              <TableHead className="w-[14%]">Status</TableHead>
-              <TableHead className="w-[10%]">Due</TableHead>
-              <TableHead className="w-24 text-right"><span className="sr-only">Actions</span></TableHead>
+              <TableHead className="w-[28%]">Task</TableHead>
+              <TableHead className="w-[20%]">Project</TableHead>
+              <TableHead className="w-[12%]">Priority</TableHead>
+              <TableHead className="w-[12%]">Status</TableHead>
+              <TableHead className="w-[16%]">Due</TableHead>
+              <TableHead className="w-[12%] text-right"><span className="sr-only">Actions</span></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>

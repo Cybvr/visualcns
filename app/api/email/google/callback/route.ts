@@ -25,7 +25,7 @@ function decodeState(value: string) {
 
 function redirect(request: Request, status: "connected" | "error", message?: string) {
   const origin = (process.env.NEXT_PUBLIC_SITE_URL || new URL(request.url).origin).replace(/\/$/, "")
-  const url = new URL(`${origin}/dashboard/email`)
+  const url = new URL(`${origin}/dashboard/account/integrations`)
   url.searchParams.set("google", status)
   if (message) url.searchParams.set("message", message.slice(0, 180))
   const response = NextResponse.redirect(url)

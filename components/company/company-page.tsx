@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react"
 import Link from "next/link"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
-import { ArrowLeft, Briefcase, ExternalLink, FolderOpen, ListTodo, Mail, MoreVertical, Share2, User as UserIcon, X } from "lucide-react"
+import { ArrowLeft, Briefcase, ExternalLink, FolderOpen, ListTodo, LogOut, Mail, MoreVertical, Share2, User as UserIcon, X } from "lucide-react"
 import { toast } from "sonner"
 
 import { CompanyDocuments, type CompanyDocumentKind } from "@/components/company/company-documents"
@@ -260,7 +260,7 @@ export function CompanyPage({
   const isAdmin = Boolean(admin)
 
   // Visitors are private: the agency and the company's own signed-in staff only.
-  const { appUser } = useAuth()
+  const { appUser, user, signOut } = useAuth()
   const canSeeVisitors = isAdmin || (Boolean(appUser?.companyId) && appUser?.companyId === company.id)
   const visitorAgencyId = company.agencyId || appUser?.agencyId || ""
   const sections = useMemo(() => SECTIONS.filter((item) => item.key !== "visitors" || canSeeVisitors), [canSeeVisitors])
@@ -326,15 +326,15 @@ export function CompanyPage({
     async function loadActivityTasks() {
       try {
         if (isAdmin) {
-          // Match on company id, but also catch tasks linked only by project or
-          // client name, so everything assigned in the tasks page shows here.
+          // Older tasks can carry a stale companyId while the tasks table still
+          // names this client. Keep those visible on the admin company page.
           const projectIds = new Set(projects.map((project) => project.id))
           const companyName = company.name.trim().toLowerCase()
           const tasks = (await getTasks())
             .filter((task) =>
               task.companyId === company.id ||
               (task.projectId && projectIds.has(task.projectId)) ||
-              (!task.companyId && companyName && task.client?.trim().toLowerCase() === companyName),
+              (companyName && task.client?.trim().toLowerCase() === companyName),
             )
             .sort((a, b) => Math.max(tsToMillis(b.updatedAt), tsToMillis(b.createdAt)) - Math.max(tsToMillis(a.updatedAt), tsToMillis(a.createdAt)))
           if (active) setActivityTasks(tasks)
@@ -634,6 +634,18 @@ export function CompanyPage({
           setMediaAddOpen(true)
           handleSectionChange("media")
         } : undefined}
+        accountAction={!admin && user ? (
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="h-9 rounded-[9px] px-3"
+            onClick={() => { void signOut().then(() => router.replace("/login")) }}
+          >
+            <LogOut className="size-4" aria-hidden="true" />
+            Log out
+          </Button>
+        ) : undefined}
         tabs={<SectionNav sections={sections} active={section} onChange={handleSectionChange} />}
       />
 
