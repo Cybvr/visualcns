@@ -789,7 +789,7 @@ export default function EmailPage() {
         const senders = result.senders.map((sender) => sender.display || sender.email || "").filter(Boolean)
         setSenderConfigured(true)
         setSenderAddress(senders[0] || result.email || null)
-        setSenderOptions(senders)
+        setSenderOptions((current) => Array.from(new Set([...current, ...senders])))
         setReplyToAddress(result.email || senders[0] || null)
       }
     }).catch(() => undefined)

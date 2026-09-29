@@ -331,7 +331,8 @@ export async function POST(request: Request) {
     }
   }
   apiKey = await getAgencySecret(agencyId, "RESEND_API_KEY", apiKey)
-  from = normalizeEmailAddress(await getAgencySecret(agencyId, "EMAIL_FROM", from))
+  const resendFrom = normalizeEmailAddress(await getAgencySecret(agencyId, "EMAIL_FROM", from))
+  from = resendFrom
   const configuredReplyTo = normalizeEmailAddress(await getAgencySecret(agencyId, "EMAIL_REPLY_TO", process.env.EMAIL_REPLY_TO || ""))
   replyTo = configuredReplyTo || from
   const gmailConnected = await hasGmailConnection(agencyId)
@@ -342,16 +343,19 @@ export async function POST(request: Request) {
   const gmailConnectedEmail = gmailConnected ? normalizeEmailAddress(await getAgencySecret(agencyId, "GMAIL_CONNECTED_EMAIL", "")) : ""
   if (!from) from = gmailAvailableSenders[0]?.display || gmailConnectedEmail
   replyTo = configuredReplyTo || from
-  const gmailCanSend = gmailConnected && !scheduledAtIso
-  const availableSenders = gmailAvailableSenders.length ? gmailAvailableSenders.map((item) => item.display) : senderOptions(from)
+  const gmailSenderEmails = new Set(gmailAvailableSenders.map((item) => extractEmailAddress(item.display).toLowerCase()))
+  const resendAvailableSenders = senderOptions(resendFrom || from)
+  const allAvailableSenders = [...new Map([...gmailAvailableSenders.map((item) => item.display), ...resendAvailableSenders].map((value) => [extractEmailAddress(value).toLowerCase(), value])).values()]
   const requestedSender = typeof payload.from === "string" ? normalizeEmailAddress(payload.from) : ""
+  let useGmail = gmailConnected && !scheduledAtIso && (!from || gmailSenderEmails.has(extractEmailAddress(from).toLowerCase()))
   if (requestedSender) {
-    const selectedSender = availableSenders.find((candidate) => extractEmailAddress(candidate).toLowerCase() === extractEmailAddress(requestedSender).toLowerCase())
+    const selectedSender = allAvailableSenders.find((candidate) => extractEmailAddress(candidate).toLowerCase() === extractEmailAddress(requestedSender).toLowerCase())
     if (!selectedSender) return NextResponse.json({ error: "That sender address is not configured for this workspace." }, { status: 400 })
     from = selectedSender
+    useGmail = gmailConnected && !scheduledAtIso && gmailSenderEmails.has(extractEmailAddress(selectedSender).toLowerCase())
     replyTo = configuredReplyTo || from
   }
-  if ((!apiKey && !gmailCanSend) || !from) {
+  if ((!apiKey && !useGmail) || !from) {
     return NextResponse.json({ error: "Email sending is not configured for this agency." }, { status: 503 })
   }
   let welcomeClaim: WelcomeClaim | null = null
@@ -439,7 +443,7 @@ export async function POST(request: Request) {
     const unsubscribeLink = unsubscribeEmail ? unsubscribeUrl(unsubscribeEmail) : ""
     const html = brandedEmail(messageContent, subject, payload.brand, from, payload.cta, unsubscribeLink)
     const brandedText = `${text}\n\n${ctaText}: ${ctaUrl}\n\n---\n${footerText}\nX: ${X_URL}\nLinkedIn: ${LINKEDIN_URL}${unsubscribeLink ? `\nUnsubscribe: ${unsubscribeLink}` : ""}`
-    if (gmailCanSend) {
+    if (useGmail) {
       const result = await sendGmailMessage(agencyId, { from, to, cc: copy, replyTo, subject, text: brandedText, html })
       return { response: { ok: Boolean(result.id), status: result.id ? 200 : 502 }, result: { id: result.id ? `gmail:${result.id}` : undefined } as ResendResponse, html, brandedText }
     }
