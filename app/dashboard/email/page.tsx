@@ -977,7 +977,7 @@ export default function EmailPage() {
     draftIdRef.current = draft.id
     setDraftStatus("saved")
     setSendNotice(null)
-    setComposeFullPage(true)
+    setComposeFullPage(false)
     setComposeOpen(true)
     setComposeMinimized(false)
   }
