@@ -132,7 +132,7 @@ export function DashboardShell({
   const [sidebarOpen, setSidebarOpen] = useState(!isDocumentRoute)
   const { open: agentOpen } = useAgent()
   const { agency } = useAuth()
-  const { override: titleOverride, titleNode, actions: headerActions, replacesMobileDefaults, setHeaderSlot } = usePageHeaderOverride()
+  const { override: titleOverride, titleNode, actions: headerActions, replacesMobileDefaults, setHeaderSlot, hideMobileFooter } = usePageHeaderOverride()
   const [createItem, setCreateItem] = useState<(typeof QUICK_CREATE_LINKS)[number] | null>(null)
   const [createName, setCreateName] = useState("")
   const [documentCreateOpen, setDocumentCreateOpen] = useState(false)
@@ -183,8 +183,8 @@ export function DashboardShell({
           className={cn(
             "min-h-0",
             isAgentRoute ? "overflow-y-auto md:overflow-hidden md:pb-0" : "overflow-y-auto md:pb-6",
-            !isEmailRoute && "max-md:pb-[calc(4.5rem+env(safe-area-inset-bottom))]",
-            pathname === "/dashboard/email" && "lg:min-h-0 lg:overflow-hidden lg:pb-0",
+            !hideMobileFooter && "max-md:pb-[calc(4.5rem+env(safe-area-inset-bottom))]",
+            isEmailRoute && "lg:min-h-0 lg:overflow-hidden lg:pb-0",
             isCompanyDetailRoute && "md:peer-data-[variant=inset]:mt-0",
           )}
         >
@@ -260,7 +260,7 @@ export function DashboardShell({
           {children}
         </SidebarInset>
         <NgaiSidePanel />
-        {!isEmailRoute && <DashboardMobileFooterNav rootHref={rootHref} />}
+        {!hideMobileFooter && <DashboardMobileFooterNav rootHref={rootHref} />}
       </SidebarProvider>
 
       <Dialog

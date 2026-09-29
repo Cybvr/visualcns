@@ -21,6 +21,9 @@ interface PageTitleContextValue {
   /** Header element pages can portal their own buttons into, see FilterBar headerOnMobile. */
   headerSlot: HTMLElement | null
   setHeaderSlot: Dispatch<SetStateAction<HTMLElement | null>>
+  /** Hides the mobile footer nav, e.g. while a full-screen composer is open. */
+  hideMobileFooter: boolean
+  setHideMobileFooter: Dispatch<SetStateAction<boolean>>
 }
 
 const PageTitleContext = createContext<PageTitleContextValue | null>(null)
@@ -31,9 +34,10 @@ export function PageTitleProvider({ children }: { children: ReactNode }) {
   const [actions, setActions] = useState<ReactNode>(null)
   const [replacesMobileDefaults, setReplacesMobileDefaults] = useState(false)
   const [headerSlot, setHeaderSlot] = useState<HTMLElement | null>(null)
+  const [hideMobileFooter, setHideMobileFooter] = useState(false)
   const value = useMemo(
-    () => ({ override, setOverride, titleNode, setTitleNode, actions, setActions, replacesMobileDefaults, setReplacesMobileDefaults, headerSlot, setHeaderSlot }),
-    [override, titleNode, actions, replacesMobileDefaults, headerSlot],
+    () => ({ override, setOverride, titleNode, setTitleNode, actions, setActions, replacesMobileDefaults, setReplacesMobileDefaults, headerSlot, setHeaderSlot, hideMobileFooter, setHideMobileFooter }),
+    [override, titleNode, actions, replacesMobileDefaults, headerSlot, hideMobileFooter],
   )
   return <PageTitleContext.Provider value={value}>{children}</PageTitleContext.Provider>
 }
@@ -77,4 +81,14 @@ export function usePageHeaderTitle(titleNode: ReactNode | null) {
     setTitleNode(titleNode)
     return () => setTitleNode(null)
   }, [titleNode, setTitleNode])
+}
+
+/** Hides the mobile footer nav while `hidden` is true and the caller is mounted. */
+export function useHideMobileFooter(hidden: boolean) {
+  const { setHideMobileFooter } = usePageHeaderOverride()
+
+  useEffect(() => {
+    setHideMobileFooter(hidden)
+    return () => setHideMobileFooter(false)
+  }, [hidden, setHideMobileFooter])
 }

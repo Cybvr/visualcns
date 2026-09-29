@@ -72,6 +72,7 @@ import type {
   SentMessage,
 } from "@/components/dashboard/email/types"
 import { EmailComposer } from "@/components/dashboard/email/email-composer"
+import { useHideMobileFooter } from "@/components/dashboard/page-title-context"
 import { EmailListPicker, EmailLists } from "@/components/dashboard/email/email-lists"
 import { EmailMessageSurfaces } from "@/components/dashboard/email/email-message-surfaces"
 import { EmailTemplates } from "@/components/dashboard/email/email-templates"
@@ -261,6 +262,8 @@ export default function EmailPage() {
   const [composeFullPage, setComposeFullPage] = useState(false)
   const [composerPreviewOpen, setComposerPreviewOpen] = useState(false)
   const [composeMinimized, setComposeMinimized] = useState(false)
+  // The composer covers the bottom of the screen on phones, so the footer nav steps aside.
+  useHideMobileFooter(composeOpen)
   const [selectedSentId, setSelectedSentId] = useState<string | null>(null)
   const [templates, setTemplates] = useState<EmailTemplate[]>([])
   const [messages, setMessages] = useState<SentMessage[]>([])
@@ -1911,7 +1914,7 @@ export default function EmailPage() {
 
       {/* Send confirmation toast (shown once the composer closes) */}
       {!composeOpen && sendNotice && (
-        <div className="fixed bottom-4 left-1/2 z-40 -translate-x-1/2 sm:left-6 sm:translate-x-0">
+        <div className="fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom))] left-1/2 z-40 -translate-x-1/2 sm:left-6 sm:translate-x-0 md:bottom-4">
           <div className={cn(
             "flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm shadow-lg",
             sendNotice.tone === "success" ? "bg-neutral-800 text-white dark:bg-neutral-900" : "bg-destructive text-destructive-foreground",

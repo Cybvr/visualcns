@@ -57,7 +57,7 @@ import { buildActivity } from "@/lib/activity"
 import type { CompanyLink, PublicTeamMember } from "@/lib/organizations"
 import { deleteProjectWithTasks, duplicateProject, renameProject, type Project } from "@/lib/projects"
 import { deleteUser, type AppUser } from "@/lib/users"
-import { deleteTask, getTasksByCompanyId, taskStatusMeta, updateTask, type Task } from "@/lib/tasks"
+import { deleteTask, getTasks, taskStatusMeta, tsToMillis, updateTask, type Task } from "@/lib/tasks"
 import { getPortalTasks, getPublicPortalTasks } from "@/lib/portal-data"
 import type { PortalTask } from "@/lib/portal-model"
 import { buildEmailComposeHref } from "@/lib/email-composer"
@@ -326,7 +326,17 @@ export function CompanyPage({
     async function loadActivityTasks() {
       try {
         if (isAdmin) {
-          const tasks = await getTasksByCompanyId(company.id)
+          // Match on company id, but also catch tasks linked only by project or
+          // client name, so everything assigned in the tasks page shows here.
+          const projectIds = new Set(projects.map((project) => project.id))
+          const companyName = company.name.trim().toLowerCase()
+          const tasks = (await getTasks())
+            .filter((task) =>
+              task.companyId === company.id ||
+              (task.projectId && projectIds.has(task.projectId)) ||
+              (!task.companyId && companyName && task.client?.trim().toLowerCase() === companyName),
+            )
+            .sort((a, b) => Math.max(tsToMillis(b.updatedAt), tsToMillis(b.createdAt)) - Math.max(tsToMillis(a.updatedAt), tsToMillis(a.createdAt)))
           if (active) setActivityTasks(tasks)
           return
         }
