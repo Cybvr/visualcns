@@ -1,0 +1,362 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;700;800;900&display=block" rel="stylesheet">
+<style>
+  * { box-sizing:border-box; margin:0; padding:0; }
+  html,body { width:1080px; height:1920px; overflow:hidden; background:#0a0a0a; }
+  body { font-family:Inter, sans-serif; -webkit-font-smoothing:antialiased; }
+  .cut { position:absolute; inset:0; overflow:hidden; visibility:hidden; }
+  .w { position:absolute; font-family:Anton, sans-serif; line-height:.9; white-space:nowrap; text-transform:uppercase; }
+  .blk { position:absolute; left:60px; font-family:Anton, sans-serif; line-height:.92; text-transform:uppercase; white-space:nowrap; }
+  svg.ecg { position:absolute; left:0; overflow:visible; }
+  svg.ecg path { fill:none; stroke-linecap:round; stroke-linejoin:round; }
+  #flash { position:absolute; inset:0; background:#fff; mix-blend-mode:difference; visibility:hidden; z-index:99; }
+  .lock { position:absolute; display:flex; align-items:center; gap:18px; color:#fff; font-weight:800; font-size:44px; letter-spacing:-.01em; }
+  .lock svg { width:58px; height:58px; }
+  #finger { position:absolute; width:150px; height:150px; margin:-75px 0 0 -75px; border-radius:50%; background:rgba(255,255,255,.35); border:5px solid rgba(255,255,255,.95); box-shadow:0 10px 40px rgba(3,44,98,.35); z-index:20; visibility:hidden; }
+  #ripple { position:absolute; width:150px; height:150px; margin:-75px 0 0 -75px; border-radius:50%; border:6px solid #032c62; z-index:19; visibility:hidden; }
+
+  /* Product UI, drawn at phone size (450px wide) and scaled up */
+  .ui { position:absolute; left:0; top:0; width:450px; transform-origin:0 0; color:#032c62; font-size:16px; line-height:1.5; }
+  .ui svg.i { width:20px; height:20px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; flex-shrink:0; }
+  .pad { padding:14px 16px; }
+  .card { border:1px solid #e5e7eb; background:#fff; border-radius:16px; padding:16px; }
+  .gap > * + * { margin-top:12px; }
+  .eyebrow { font-size:12px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:#3d5c84; }
+  .h2 { font-size:22px; font-weight:700; letter-spacing:-.02em; line-height:1.25; margin-top:4px; }
+  .h3 { font-size:18px; font-weight:700; letter-spacing:-.01em; }
+  .mut { color:#3d5c84; font-size:14px; line-height:1.45; }
+  .box { width:44px; height:44px; border-radius:12px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .area { display:flex; gap:12px; align-items:flex-start; }
+  .area p.t { font-weight:500; }
+  .btn { height:48px; border-radius:12px; background:#032c62; color:#fff; display:flex; align-items:center; justify-content:center; gap:8px; font-weight:500; font-size:16px; }
+  .v { background:#ede9fe; color:#7c3aed } .g { background:#d1fae5; color:#059669 } .r { background:#fee2e2; color:#ef4444 }
+  .a { background:#fef3c7; color:#d97706 } .b { background:#dbeafe; color:#2563eb }
+  .logo { width:64px; height:64px; border-radius:50%; background:#fff; display:flex; align-items:center; justify-content:center; font-size:26px; font-weight:600; box-shadow:0 0 0 4px rgba(255,255,255,.6), 0 1px 3px rgba(0,0,0,.08); flex-shrink:0; }
+  .hero { border-radius:16px; border:1px solid #ffe4e6; padding:16px; }
+  .row { display:flex; gap:12px; align-items:flex-start; padding:8px; }
+  .row .bx { width:40px; height:40px; border-radius:12px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .row p.t { font-weight:500; }
+  .row .mid { flex:1; min-width:0; }
+  .top2 { display:flex; justify-content:space-between; gap:8px; align-items:flex-start; }
+  .badge { font-size:12px; font-weight:500; padding:2px 8px; border-radius:999px; white-space:nowrap; }
+  .bad { background:rgba(239,68,68,.1); color:#b91c1c } .warn { background:rgba(245,158,11,.1); color:#b45309 }
+  .good { background:rgba(16,185,129,.1); color:#047857 } .plain { background:#eef0f4; color:#3d5c84 }
+  .chev { color:#3d5c84; margin-top:10px; width:16px !important; height:16px !important; }
+  .stats { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .stat { border-radius:16px; border:1px solid; padding:12px; display:flex; gap:10px; align-items:flex-start; }
+  .stat .n { font-size:24px; font-weight:600; line-height:1.2; }
+  .opp { border:1px solid #e5e7eb; border-radius:12px; padding:12px; }
+  .chip { border:1px solid #e5e7eb; border-radius:999px; padding:6px 12px; font-size:14px; white-space:nowrap; }
+  .caret { display:inline-block; width:2px; height:18px; background:#0E32FC; vertical-align:-3px; margin-left:1px; }
+  .panel { position:absolute; left:0; right:0; top:700px; bottom:0; background:#f4f5f9; overflow:hidden; }
+</style>
+</head>
+<body>
+
+<!-- HOOK -->
+<div class="cut" data-in="0" data-out="2" id="hook" style="background:#0a0a0a">
+  <span class="w" id="h1" style="left:60px; top:230px; color:#fff">1 in 5</span>
+  <div class="blk" id="h2" style="top:800px; color:#fff">New businesses<br>close within<br><span style="color:#ef4444">a year.</span></div>
+  <svg class="ecg" id="ecgH" width="1080" height="200" style="top:1560px"><path stroke="#3a3a3a" stroke-width="10"/></svg>
+  <p style="position:absolute; left:64px; bottom:90px; color:#8a8a8a; font-size:28px; font-weight:600">Source: US Bureau of Labor Statistics</p>
+</div>
+
+<!-- SOLUTION -->
+<div class="cut" data-in="2" data-out="3.5" id="sol" style="background:#0a0a0a">
+  <span class="w fit" id="sB" data-len="960" style="left:60px; top:330px; color:#fff">Business</span>
+  <span class="w fit" id="sH" data-len="960" style="left:60px; top:660px; color:#0E32FC">Health</span>
+  <svg class="ecg" id="ecgS" width="1080" height="420" style="top:1060px"><path stroke="#fff" stroke-width="18"/></svg>
+  <div class="lock" id="sLock" style="left:64px; top:1600px"><span style="color:#8a8a8a; font-weight:600">by</span><span class="logo-slot"></span>VisualCNS</div>
+</div>
+
+<!-- DEMO 1: start the scan -->
+<div class="cut" data-in="3.5" data-out="4.75" id="demo1" style="background:#f4f5f9">
+  <div class="ui" id="ui1"><div class="pad gap">
+    <div class="hero" style="background:linear-gradient(135deg,#fff1f2,#f5f3ff,#f0f9ff); display:flex; gap:16px; align-items:center">
+      <span class="logo">L</span>
+      <div><p class="eyebrow">Business health</p><p class="h2">Let's understand Lumen Foods</p>
+      <p class="mut" style="margin-top:6px">We'll use the information in your record and analyse your website to give you insights, opportunities and recommendations.</p></div>
+    </div>
+    <div class="card">
+      <p class="h3" id="aTitle">What we'll analyse</p>
+      <p class="mut" id="aSub" style="margin-top:2px">We'll crawl your website and public sources to understand:</p>
+      <div style="margin-top:16px; display:flex; flex-direction:column; gap:16px" id="areas"></div>
+    </div>
+    <div class="card" style="text-align:center">
+      <div class="btn" id="go"></div>
+      <p class="mut" style="margin-top:10px">This will scan your website and build your business intelligence.</p>
+    </div>
+  </div></div>
+  <div id="ripple"></div><div id="finger"></div>
+</div>
+
+<!-- DEMO 2: the report -->
+<div class="cut" data-in="4.75" data-out="6.5" id="demo2" style="background:#f4f5f9">
+  <div class="ui" id="ui2"><div class="pad gap">
+    <div class="hero" style="background:linear-gradient(135deg,#fff1f2,#fff7ed,#ecfdf5)">
+      <div style="display:flex; gap:12px; align-items:flex-start">
+        <div style="flex:1"><p class="eyebrow">Business health</p><p class="h2">AI intelligence for Lumen Foods</p>
+        <p class="mut" style="margin-top:6px">Discover what matters, fix issues, and find opportunities for growth.</p></div>
+        <div style="position:relative; width:128px; height:128px; flex-shrink:0">
+          <svg viewBox="0 0 100 100" style="width:100%; height:100%; transform:rotate(-90deg)">
+            <defs><linearGradient id="ring" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#34d399"/><stop offset="100%" stop-color="#10b981"/></linearGradient></defs>
+            <circle cx="50" cy="50" r="42" fill="none" stroke-width="8" stroke="rgba(16,185,129,.15)"/>
+            <circle id="ringArc" cx="50" cy="50" r="42" fill="none" stroke-width="8" stroke-linecap="round" stroke="url(#ring)" stroke-dasharray="263.9" stroke-dashoffset="263.9"/>
+          </svg>
+          <div style="position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center">
+            <span id="score" style="font-size:36px; font-weight:600; letter-spacing:-.03em; line-height:1.1">0</span><span style="font-size:12px; color:#3d5c84">/100</span>
+          </div>
+        </div>
+      </div>
+      <p class="mut" style="margin-top:14px; font-size:13px">Last updated just now · Scanned 48 pages · 23 sources</p>
+    </div>
+    <div style="border-radius:16px; border:1px solid #dbeafe; background:linear-gradient(90deg,#eff6ff,#f5f3ff); padding:16px; display:flex; gap:12px; align-items:center">
+      <span class="box b" style="width:40px; height:40px; background:#fff"><svg class="i"><use href="#sparkles"/></svg></span>
+      <div style="flex:1"><p style="font-weight:600">Here's what I found</p><p class="mut">10 things worth your attention · 5 recommended actions</p></div>
+      <svg class="i chev" style="margin:0"><use href="#chevron"/></svg>
+    </div>
+    <div class="stats">
+      <div class="stat" style="background:#fef2f2; border-color:#fee2e2"><svg class="i" style="color:#ef4444; margin-top:4px"><use href="#alert"/></svg><div><p class="n" data-to="4">0</p><p class="mut">Needs attention</p></div></div>
+      <div class="stat" style="background:#ecfdf5; border-color:#d1fae5"><svg class="i" style="color:#059669; margin-top:4px"><use href="#trend"/></svg><div><p class="n" data-to="6">0</p><p class="mut">Opportunities</p></div></div>
+      <div class="stat" style="background:#eff6ff; border-color:#dbeafe"><svg class="i" style="color:#2563eb; margin-top:4px"><use href="#bars"/></svg><div><p class="n" data-to="5">0</p><p class="mut">Market &amp; competitors</p></div></div>
+      <div class="stat" style="background:#f5f3ff; border-color:#ede9fe"><svg class="i" style="color:#7c3aed; margin-top:4px"><use href="#globe"/></svg><div><p class="n" data-to="4">0</p><p class="mut">Your business online</p></div></div>
+    </div>
+    <div class="card" style="padding:12px"><p class="h3" style="padding:0 4px 4px">Needs attention</p>
+      <div class="row"><span class="bx r"><svg class="i"><use href="#link"/></svg></span><div class="mid"><div class="top2"><p class="t">Contact form doesn't send</p><span class="badge bad">High</span></div><p class="mut">Messages from /contact return an error.</p></div></div>
+    </div>
+  </div></div>
+</div>
+
+<!-- FEATURES: five cuts, a line on top and the matching part of the report below -->
+<div class="cut feat" data-in="6.5" data-out="6.875" style="background:#ef4444; color:#0a0a0a">
+  <div class="blk fitb" style="top:110px">Fix what's<br>broken.</div>
+  <div class="panel"><div class="ui fui"><div class="pad"><div class="card" style="padding:12px"><p class="h3" style="padding:0 4px 4px">Needs attention</p>
+    <div class="row"><span class="bx r"><svg class="i"><use href="#link"/></svg></span><div class="mid"><div class="top2"><p class="t">Contact form doesn't send</p><span class="badge bad">High</span></div><p class="mut">Messages from /contact return an error.</p></div><svg class="i chev"><use href="#chevron"/></svg></div>
+    <div class="row"><span class="bx r"><svg class="i"><use href="#search"/></svg></span><div class="mid"><div class="top2"><p class="t">Not on page one for "catering Lagos"</p><span class="badge bad">High</span></div><p class="mut">Three competitors rank above you.</p></div><svg class="i chev"><use href="#chevron"/></svg></div>
+    <div class="row"><span class="bx a"><svg class="i"><use href="#shield"/></svg></span><div class="mid"><div class="top2"><p class="t">Homepage takes 6s to load</p><span class="badge warn">Medium</span></div><p class="mut">Large images on the first screen.</p></div><svg class="i chev"><use href="#chevron"/></svg></div>
+  </div></div></div></div>
+</div>
+<div class="cut feat" data-in="6.875" data-out="7.25" style="background:#10b981; color:#0a0a0a">
+  <div class="blk fitb" style="top:110px">Find tenders,<br>grants and<br>events.</div>
+  <div class="panel"><div class="ui fui"><div class="pad"><div class="card" style="padding:12px"><p class="h3" style="padding:0 4px 8px">Top opportunities</p>
+    <div class="opp"><div class="top2" style="align-items:center"><span class="box g" style="width:36px; height:36px"><svg class="i"><use href="#gavel"/></svg></span><span class="badge good">Strong fit</span></div><p style="margin-top:10px; font-weight:500">School meals supply tender</p><p class="mut">Catering suppliers wanted, closes in 12 days.</p></div>
+    <div class="opp" style="margin-top:8px"><div class="top2" style="align-items:center"><span class="box a" style="width:36px; height:36px"><svg class="i"><use href="#trend"/></svg></span><span class="badge warn">Good fit</span></div><p style="margin-top:10px; font-weight:500">SME growth grant 2026</p><p class="mut">Open to food businesses under five years old.</p></div>
+    <div class="opp" style="margin-top:8px"><div class="top2" style="align-items:center"><span class="box b" style="width:36px; height:36px"><svg class="i"><use href="#cal"/></svg></span><span class="badge plain">Possible</span></div><p style="margin-top:10px; font-weight:500">Food and drink expo, November</p><p class="mut">Exhibitor spaces still open.</p></div>
+  </div></div></div></div>
+</div>
+<div class="cut feat" data-in="7.25" data-out="7.625" style="background:#2563eb; color:#fff">
+  <div class="blk fitb" style="top:110px">Watch your<br>competitors.</div>
+  <div class="panel"><div class="ui fui"><div class="pad"><div class="card" style="padding:12px"><p class="h3" style="padding:0 4px 4px">Market &amp; competitors</p>
+    <div class="row"><span class="bx b"><svg class="i"><use href="#bars"/></svg></span><div class="mid"><div class="top2"><p class="t">A rival launched weekday lunch plans</p></div><p class="mut">New subscription page added this month.</p><p style="font-size:12px; color:#3d5c84">Competitor</p></div><svg class="i chev"><use href="#chevron"/></svg></div>
+    <div class="row"><span class="bx g"><svg class="i"><use href="#trend"/></svg></span><div class="mid"><div class="top2"><p class="t">Office catering demand is rising</p></div><p class="mut">More companies hiring caterers for events.</p><p style="font-size:12px; color:#3d5c84">Industry trend</p></div><svg class="i chev"><use href="#chevron"/></svg></div>
+    <div class="row"><span class="bx v"><svg class="i"><use href="#mega"/></svg></span><div class="mid"><div class="top2"><p class="t">Two rivals cut delivery fees</p></div><p class="mut">Both announced it on their websites.</p><p style="font-size:12px; color:#3d5c84">Competitor news</p></div><svg class="i chev"><use href="#chevron"/></svg></div>
+  </div></div></div></div>
+</div>
+<div class="cut feat" data-in="7.625" data-out="8" style="background:#f59e0b; color:#0a0a0a">
+  <div class="blk fitb" style="top:110px">Get a step-<br>by-step plan.</div>
+  <div class="panel"><div class="ui fui"><div class="pad"><div style="border-radius:16px; border:1px solid #dbeafe; background:linear-gradient(90deg,#eff6ff,#f5f3ff); padding:16px">
+    <p class="eyebrow">Recommended actions · 0 of 5 done</p>
+    <div style="margin-top:10px; display:flex; gap:12px"><span style="width:20px; height:20px; border-radius:50%; border:1px solid #cfd5df; flex-shrink:0; margin-top:2px"></span><div style="flex:1"><div class="top2"><p style="font-weight:500">1. Fix the contact form</p><span class="badge bad">High</span></div><p class="mut">You may be losing every enquiry from the site.</p>
+      <div style="margin-top:10px; background:rgba(255,255,255,.7); border-radius:12px; padding:12px"><p style="font-size:12px; font-weight:500; color:#3d5c84">Next steps</p><p style="font-size:14px">• Test the form on /contact</p><p style="font-size:14px">• Check where submissions are sent</p><p style="font-size:14px">• Add a thank-you page to confirm it worked</p></div></div></div>
+    <div style="margin-top:14px; display:flex; gap:12px"><span style="width:20px; height:20px; border-radius:50%; border:1px solid #cfd5df; flex-shrink:0; margin-top:2px"></span><div style="flex:1"><div class="top2"><p style="font-weight:500">2. Apply for the school meals tender</p><span class="badge bad">High</span></div><p class="mut">It matches what you already sell.</p></div></div>
+    <div style="margin-top:14px; display:flex; gap:12px"><span style="width:20px; height:20px; border-radius:50%; border:1px solid #cfd5df; flex-shrink:0; margin-top:2px"></span><div style="flex:1"><div class="top2"><p style="font-weight:500">3. Speed up the homepage</p><span class="badge warn">Medium</span></div><p class="mut">Slow pages lose visitors on mobile.</p></div></div>
+  </div></div></div></div>
+</div>
+<div class="cut feat" data-in="8" data-out="8.5" style="background:#0E32FC; color:#fff">
+  <div class="blk fitb" style="top:110px">Ask it<br>anything.</div>
+  <div class="panel"><div class="ui fui"><div class="pad"><div class="card" style="padding:12px">
+    <div id="ans" style="background:#f4f5f9; border-radius:12px; padding:12px; margin-bottom:12px"><p style="font-size:14px; font-weight:500">Which tender should I go for first?</p><p class="mut" style="margin-top:6px">The school meals tender. It closes in 12 days, fits your weekday catering, and asks for a menu and two references you already have.</p><p style="font-size:12px; color:#0E32FC; margin-top:6px">Source: tender notice</p></div>
+    <div style="display:flex; align-items:center; gap:8px; border:1px solid #e5e7eb; border-radius:12px; background:#fafbfc; padding:6px 6px 6px 12px">
+      <svg class="i" style="color:#0E32FC; width:16px; height:16px"><use href="#sparkles"/></svg><span id="q" style="flex:1; font-size:15px; white-space:nowrap; overflow:hidden"></span>
+      <span style="width:36px; height:36px; border-radius:8px; background:#032c62; color:#fff; display:flex; align-items:center; justify-content:center"><svg class="i" style="width:16px; height:16px"><use href="#arrowup"/></svg></span>
+    </div>
+    <div style="display:flex; gap:8px; margin-top:12px; overflow:hidden"><span class="chip">Analyse my competitors</span><span class="chip">Find relevant grants</span><span class="chip">Show upcoming events</span></div>
+  </div></div></div></div>
+</div>
+
+<!-- OUTRO -->
+<div class="cut" data-in="8.5" data-out="10.1" id="outro" style="background:#0a0a0a">
+  <div class="lock" id="oLock" style="left:64px; top:96px"><span class="logo-slot"></span>VisualCNS</div>
+  <div class="blk" id="oT" style="top:420px; color:#fff">Business<br><span style="color:#0E32FC">Health.</span></div>
+  <svg class="ecg" id="ecgO" width="1080" height="360" style="top:1080px"><path stroke="#fff" stroke-width="16"/></svg>
+  <p id="oLine" style="position:absolute; left:64px; right:64px; top:1500px; color:#fff; font-size:70px; font-weight:800; letter-spacing:-.03em; line-height:1.1">Know what's wrong.<br><span style="color:#8a8a8a">Know what to do next.</span></p>
+</div>
+
+<div id="flash"></div>
+
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <g id="sparkles"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/></g>
+    <g id="check"><path d="M20 6 9 17l-5-5"/></g>
+    <g id="loader"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></g>
+    <g id="panels"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18M9 21V9"/></g>
+    <g id="search"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></g>
+    <g id="trophy"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6M18 9h1.5a2.5 2.5 0 0 0 0-5H18M4 22h16M10 14.66V17c0 .55-.47.98-.97 1.21C7.850 18.75 7 20.24 7 22M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22M18 2H6v7a6 6 0 0 0 12 0V2Z"/></g>
+    <g id="bars"><path d="M3 3v18h18M18 17V9M13 17V5M8 17v-3"/></g>
+    <g id="shield"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.520 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></g>
+    <g id="trend"><path d="M22 7 13.5 15.5 8.5 10.5 2 17M16 7h6v6"/></g>
+    <g id="alert"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></g>
+    <g id="globe"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20M2 12h20"/></g>
+    <g id="chevron"><path d="m9 18 6-6-6-6"/></g>
+    <g id="gavel"><path d="m14.5 12.5-8 8a2.119 2.119 0 1 1-3-3l8-8M16 16l6-6M8 8l6-6M9 7l8 8M21 11l-8-8"/></g>
+    <g id="cal"><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></g>
+    <g id="link"><path d="M9 17H7A5 5 0 0 1 7 7h2M15 7h2a5 5 0 1 1 0 10h-2M8 12h8"/></g>
+    <g id="mega"><path d="m3 11 18-5v12L3 14v-3zM11.6 16.8a3 3 0 1 1-5.8-1.6"/></g>
+    <g id="arrowup"><path d="m5 12 7-7 7 7M12 19V5"/></g>
+  </defs>
+</svg>
+
+<script>
+const LOGO = `<svg viewBox="0 0 500 500" fill="#0E32FC"><path d="M425.631 207.066L351.265 250.002L425.631 292.938L500 250.002L425.631 207.066Z"/><path d="M380.634 125L337.7 199.372H423.563L466.507 125H380.634Z"/><path d="M423.563 300.629H337.7L380.634 375H466.507L423.563 300.629Z"/><path d="M375 380.635L300.629 337.7V423.564L375 466.507V380.635Z"/><path d="M300.629 162.302L375 119.366V33.4941L300.629 76.4371V162.302Z"/><path d="M292.938 74.3717L250.002 0L207.066 74.3717L250.002 148.736L292.938 74.3717Z"/><path d="M207.066 425.628L250.002 500L292.938 425.628L250.002 351.265L207.066 425.628Z"/><path d="M199.376 337.7L125.004 380.635V466.507L199.376 423.564V337.7Z"/><path d="M125.004 119.366L199.376 162.302V76.4371L125.004 33.4941V119.366Z"/><path d="M76.4334 199.372H162.298L119.362 125H33.4902L76.4334 199.372Z"/><path d="M119.362 375L162.298 300.629H76.4334L33.4902 375H119.362Z"/><path d="M74.3717 292.938L148.736 250.002L74.3717 207.066L0 250.002L74.3717 292.938Z"/></svg>`
+document.querySelectorAll('.logo-slot').forEach(el => { el.innerHTML = LOGO })
+const ic = (name) => `<svg class="i"><use href="#${name}"/></svg>`
+
+const AREAS = [
+  ['panels', 'v', 'Your website', 'Pages, content, structure, products and messaging'],
+  ['search', 'g', 'Search visibility', 'SEO, keywords and how easy you are to find'],
+  ['trophy', 'r', 'Competitors', 'Positioning, recent activity and market trends'],
+  ['bars', 'a', 'Market opportunities', 'Events, partners, tenders, grants and more'],
+  ['shield', 'b', 'Technical health', 'Speed, broken pages and best practices'],
+  ['trend', 'g', 'Your online presence', 'Brand mentions, content and reputation'],
+]
+document.getElementById('areas').innerHTML = AREAS.map(([i, c, t, d], n) =>
+  `<div class="area" id="ar${n}"><span class="box ${c}" id="ab${n}">${ic(i)}</span><div><p class="t">${t}</p><p class="mut">${d}</p></div></div>`).join('')
+
+const $ = id => document.getElementById(id)
+const cl = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v))
+const p = (t, a, b) => cl((t - a) / (b - a))
+const outExpo = x => x === 1 ? 1 : 1 - Math.pow(2, -10 * x)
+const outCubic = x => 1 - Math.pow(1 - x, 3)
+const inOut = x => x < .5 ? 4 * x ** 3 : 1 - Math.pow(-2 * x + 2, 3) / 2
+const lerp = (a, b, x) => a + (b - a) * x
+
+function fitWidth(el, len) { el.style.fontSize = '200px'; el.style.fontSize = (200 * len / el.offsetWidth) + 'px' }
+function fitBlock(el, w, h) { el.style.fontSize = '100px'; el.style.fontSize = (100 * Math.min(w / el.offsetWidth, h / el.offsetHeight)) + 'px' }
+
+function ecgPath(width, h, beats, amp = 1, flat = false) {
+  const mid = h / 2, seg = width / beats
+  let d = `M -20 ${mid}`
+  if (flat) return d + ` L ${width + 20} ${mid}`
+  for (let i = 0; i < beats; i++) {
+    const x = i * seg
+    d += ` L ${x + seg * .22} ${mid} Q ${x + seg * .28} ${mid - 30 * amp} ${x + seg * .34} ${mid}`
+    d += ` L ${x + seg * .42} ${mid} L ${x + seg * .46} ${mid + 40 * amp} L ${x + seg * .52} ${mid - h * .46 * amp} L ${x + seg * .58} ${mid + h * .3 * amp} L ${x + seg * .63} ${mid}`
+    d += ` Q ${x + seg * .74} ${mid - 50 * amp} ${x + seg * .84} ${mid} L ${x + seg} ${mid}`
+  }
+  return d + ` L ${width + 20} ${mid}`
+}
+function setupEcg(id, args) {
+  const path = $(id).querySelector('path')
+  path.setAttribute('d', ecgPath(...args))
+  const L = path.getTotalLength()
+  path.style.strokeDasharray = L
+  path.dataset.len = L
+}
+function draw(id, x) { const path = $(id).querySelector('path'); path.style.strokeDashoffset = path.dataset.len * (1 - x) }
+
+function setup() {
+  fitWidth($('h1'), 960)
+  fitBlock($('h2'), 960, 700)
+  document.querySelectorAll('.fit').forEach(el => fitWidth(el, +el.dataset.len))
+  document.querySelectorAll('.fitb').forEach(el => fitBlock(el, 960, 540))
+  fitBlock($('oT'), 960, 620)
+  setupEcg('ecgH', [1080, 200, 1, 1, true])
+  setupEcg('ecgS', [1080, 420, 1, 1])
+  setupEcg('ecgO', [1080, 360, 1, 1])
+  document.querySelectorAll('.fui').forEach(el => { el.style.transform = 'scale(2.4)' })
+}
+
+const cuts = [...document.querySelectorAll('.cut')]
+function punch(el, t, at, amount = .07) { el.style.transform = `scale(${lerp(1 + amount, 1, outExpo(p(t, at, at + .14)))})` }
+function shake(t, at, power) {
+  const k = Math.max(0, 1 - (t - at) / .25)
+  if (t < at || k <= 0) return ''
+  return ` translate(${Math.sin(t * 190) * power * k}px, ${Math.cos(t * 230) * power * k}px)`
+}
+
+let ready = false
+function render(t) {
+  if (!ready) { setup(); ready = true }
+  for (const c of cuts) {
+    const on = t >= +c.dataset.in && t < +c.dataset.out
+    c.style.visibility = on ? 'visible' : 'hidden'
+    if (on && !c.id.startsWith('demo')) punch(c, t, +c.dataset.in)
+  }
+
+  // Hook
+  $('h1').style.transformOrigin = '0 0'
+  $('h1').style.transform = `scale(${lerp(1.2, 1, outExpo(p(t, 0, .16)))})`
+  $('h2').style.transformOrigin = '0 0'
+  $('h2').style.visibility = t >= .5 ? 'visible' : 'hidden'
+  $('h2').style.transform = `scale(${lerp(1.2, 1, outExpo(p(t, .5, .66)))})${shake(t, .5, 22)}`
+  draw('ecgH', p(t, .2, 1.9))
+
+  // Solution
+  $('sH').style.visibility = t >= 2.25 ? 'visible' : 'hidden'
+  $('sH').style.transform = `translateY(${lerp(110, 0, outExpo(p(t, 2.25, 2.45)))}px)`
+  draw('ecgS', outCubic(p(t, 2.0, 2.45)))
+  $('sLock').style.clipPath = `inset(0 ${100 - outExpo(p(t, 2.6, 3.0)) * 100}% 0 0)`
+
+  // Demo 1: tap, then the six areas tick off
+  const cam1 = inOut(p(t, 3.5, 4.0))
+  $('ui1').style.transform = `translate(0px, ${lerp(-20, -95, cam1)}px) scale(${lerp(2.55, 2.4, outExpo(p(t, 3.5, 3.8)))})`
+  const scanning = t >= 3.95
+  $('aTitle').textContent = scanning ? 'Analysing…' : "What we'll analyse"
+  $('aSub').textContent = scanning ? 'Crawling your website and public sources. This takes a minute or two.' : "We'll crawl your website and public sources to understand:"
+  $('go').innerHTML = scanning
+    ? `<svg class="i" style="transform:rotate(${t * 720}deg)"><use href="#loader"/></svg>Analysing your business…`
+    : `${ic('sparkles')}Analyse my business`
+  const step = scanning ? Math.floor((t - 4.0) / .125) + 1 : 0
+  AREAS.forEach(([icon], n) => {
+    const done = scanning && n < step - 1, active = scanning && n === step - 1
+    $('ar' + n).style.opacity = scanning && !done && !active ? .5 : 1
+    $('ab' + n).innerHTML = done ? ic('check') : active ? `<svg class="i" style="transform:rotate(${t * 900}deg)"><use href="#loader"/></svg>` : ic(icon)
+  })
+  const gr = $('go').getBoundingClientRect(), gx = gr.left + gr.width * .6, gy = gr.top + gr.height / 2
+  const fx = outCubic(p(t, 3.62, 3.9)), press = t >= 3.9 && t < 4.02
+  $('finger').style.visibility = t >= 3.62 && t < 4.25 ? 'visible' : 'hidden'
+  $('finger').style.left = lerp(gx + 260, gx, fx) + 'px'
+  $('finger').style.top = lerp(gy + 380, gy, fx) + 'px'
+  $('finger').style.transform = `scale(${press ? .82 : 1})`
+  $('finger').style.opacity = 1 - p(t, 4.05, 4.25)
+  $('go').style.transform = `scale(${press ? .96 : 1})`
+  const rp = p(t, 3.9, 4.25)
+  $('ripple').style.visibility = t >= 3.9 && t < 4.25 ? 'visible' : 'hidden'
+  $('ripple').style.left = gx + 'px'; $('ripple').style.top = gy + 'px'
+  $('ripple').style.transform = `scale(${lerp(1, 4, outCubic(rp))})`; $('ripple').style.opacity = 1 - rp
+
+  // Demo 2: zoomed on the score ring as it lands, then pulled back to the report
+  const sc = outCubic(p(t, 4.75, 5.25))
+  $('score').textContent = Math.round(72 * sc)
+  $('ringArc').style.strokeDashoffset = 263.9 * (1 - .72 * sc)
+  const zoom = inOut(p(t, 5.45, 5.9))
+  const s2 = lerp(5.2, 2.4, zoom)
+  const rx = lerp(-1301, 0, zoom), ry = lerp(411, -60, zoom) - 330 * inOut(p(t, 5.9, 6.5))
+  $('ui2').style.transform = `translate(${rx}px, ${ry}px) scale(${s2})${shake(t, 5.25, 24)}`
+  document.querySelectorAll('#demo2 .n').forEach((n, i) => { n.textContent = Math.round(+n.dataset.to * outCubic(p(t, 5.7 + i * .06, 6.1 + i * .06))) })
+
+  // Features: the report card rises into each cut
+  document.querySelectorAll('.feat').forEach(c => {
+    const at = +c.dataset.in
+    c.querySelector('.panel').style.transform = `translateY(${lerp(500, 0, outExpo(p(t, at, at + .25)))}px)`
+  })
+  const Q = 'Which tender should I go for first?'
+  $('q').innerHTML = Q.slice(0, Math.round(Q.length * p(t, 8.0, 8.3))) + '<span class="caret"></span>'
+  $('ans').style.visibility = t >= 8.3 ? 'visible' : 'hidden'
+
+  // Outro
+  $('oT').style.transform = `translateY(${lerp(-90, 0, outExpo(p(t, 8.5, 8.75)))}px)`
+  draw('ecgO', outCubic(p(t, 8.9, 9.5)))
+  $('oLine').style.clipPath = `inset(0 0 ${100 - outExpo(p(t, 9.0, 9.4)) * 100}% 0)`
+  $('oLock').style.clipPath = `inset(0 ${100 - outExpo(p(t, 8.6, 9.0)) * 100}% 0 0)`
+
+  const hits = [0, .5, 2.0, 5.25, 8.5]
+  $('flash').style.visibility = hits.some(h => t >= h && t < h + 1 / 30) ? 'visible' : 'hidden'
+}
+window.render = render
+</script>
+</body>
+</html>

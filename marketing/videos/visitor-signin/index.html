@@ -1,0 +1,353 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Caveat:wght@500;700&display=block" rel="stylesheet">
+<style>
+  :root { --navy:#032c62; --blue:#0E32FC; --muted:#3d5c84; --card:#f4f5f9; --border:#e3e6ee; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  html,body { width:1080px; height:1920px; overflow:hidden; background:#000; }
+  body { font-family:Inter, sans-serif; -webkit-font-smoothing:antialiased; }
+  .scene { position:absolute; inset:0; overflow:hidden; visibility:hidden; }
+  svg.i { width:1em; height:1em; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+
+  /* A: gate book */
+  #A { background:#e9dfc8; }
+  #paper { position:absolute; left:-200px; top:-300px; width:1500px; height:2500px; transform-origin:50% 40%;
+    background:
+      linear-gradient(90deg, transparent 318px, #d9534f 318px, #d9534f 322px, transparent 322px),
+      repeating-linear-gradient(180deg, transparent 0 118px, #9fb3cf 118px 121px),
+      #f3ecd9; }
+  .row { position:absolute; left:350px; font-family:Caveat, cursive; font-weight:700; font-size:92px; color:#1d2a5a; white-space:nowrap; }
+  .row s { text-decoration-thickness:6px; }
+  #Atype { position:absolute; left:64px; bottom:250px; }
+  .slam { display:block; font-weight:900; font-size:168px; line-height:.94; letter-spacing:-.045em; color:#0b0b0b; transform-origin:0 100%; }
+  .slam em { font-style:normal; background:#0b0b0b; color:#f3ecd9; padding:0 18px; margin-left:-6px; }
+
+  #slab { position:absolute; left:0; width:1080px; height:2400px; background:var(--blue); z-index:50; visibility:hidden; }
+
+  /* B: kiosk */
+  #B { background:var(--card); color:var(--navy); }
+  #kiosk { position:absolute; inset:0; padding:96px 70px 0; transform-origin:50% 30%; }
+  .top { display:flex; justify-content:space-between; align-items:center; font-size:32px; color:var(--muted); }
+  .top b { display:flex; align-items:center; gap:14px; color:var(--navy); font-weight:700; }
+  .welcome { margin-top:84px; font-size:42px; color:var(--muted); }
+  .company { font-size:124px; font-weight:800; letter-spacing:-.035em; line-height:1.08; }
+  .sub { margin-top:14px; font-size:40px; color:var(--muted); }
+  .tabs { margin-top:56px; display:grid; grid-template-columns:1fr 1fr; gap:8px; padding:8px; border-radius:999px; background:#e4e7f0; }
+  .tab { height:100px; border-radius:999px; display:flex; align-items:center; justify-content:center; gap:16px; font-size:38px; font-weight:600; color:var(--muted); }
+  .tab.on { background:#fff; color:var(--navy); box-shadow:0 2px 8px rgba(3,44,98,.1); }
+  .count { background:var(--blue); color:#fff; font-size:28px; border-radius:999px; padding:2px 16px; }
+  .fields { margin-top:48px; display:flex; flex-direction:column; gap:26px; }
+  .field { position:relative; display:flex; align-items:center; gap:34px; height:152px; padding:0 36px; background:#fff; border:2px solid var(--border); border-radius:28px; }
+  .field.focus { border-color:#7d8ffd; box-shadow:0 0 0 9px rgba(14,50,252,.13); }
+  .field > .i { font-size:50px; flex-shrink:0; }
+  .field .lab { font-size:30px; color:var(--muted); }
+  .field .val { font-size:46px; font-weight:500; height:58px; display:flex; align-items:center; white-space:nowrap; }
+  .field .val.ph { color:#8a9bb5; font-weight:400; }
+  .field .chev { position:absolute; right:36px; font-size:48px; }
+  .caret { display:inline-block; width:4px; height:52px; background:var(--blue); margin-left:4px; }
+  #menu { position:absolute; left:0; right:0; top:170px; z-index:5; background:#fff; border-radius:28px; padding:14px; box-shadow:0 30px 70px rgba(3,44,98,.22); border:2px solid var(--border); transform-origin:50% 0; }
+  .opt { height:104px; border-radius:18px; display:flex; align-items:center; padding:0 26px; font-size:42px; }
+  .opt.hl { background:#e8ecff; color:var(--blue); font-weight:600; }
+  #btn { position:relative; margin-top:48px; height:136px; border-radius:999px; background:var(--blue); color:#fff; display:flex; align-items:center; justify-content:center; font-size:44px; font-weight:600; }
+  #btn .i { position:absolute; right:48px; font-size:52px; }
+  .powered { position:absolute; left:0; right:0; bottom:70px; text-align:center; font-size:28px; color:var(--muted); }
+  #finger { position:absolute; width:150px; height:150px; margin:-75px 0 0 -75px; border-radius:50%; background:rgba(255,255,255,.35); border:5px solid rgba(255,255,255,.9); box-shadow:0 10px 40px rgba(3,44,98,.35); z-index:20; }
+  #ripple { position:absolute; width:150px; height:150px; margin:-75px 0 0 -75px; border-radius:50%; border:6px solid #fff; z-index:19; }
+  #confirm { position:absolute; inset:0; background:var(--card); padding:0 70px; visibility:hidden; }
+  #tick { position:absolute; left:70px; top:560px; width:230px; height:230px; border-radius:50%; background:var(--blue); color:#fff; display:flex; align-items:center; justify-content:center; font-size:130px; }
+  #tick .i { stroke-width:3; }
+  #cTitle { position:absolute; left:70px; top:870px; font-size:136px; font-weight:800; letter-spacing:-.04em; line-height:1; }
+  #cText { position:absolute; left:70px; right:90px; top:1190px; font-size:46px; line-height:1.4; color:var(--muted); }
+  #iris { position:absolute; width:230px; height:230px; border-radius:50%; background:var(--navy); z-index:30; visibility:hidden; }
+
+  /* C: email */
+  #C { background:var(--navy); color:#fff; z-index:31; }
+  .mail { position:absolute; left:60px; right:60px; background:#fff; color:#0f1b33; border-radius:48px; padding:40px 44px 46px; box-shadow:0 40px 90px rgba(0,0,0,.35); }
+  .mail.back { background:rgba(255,255,255,.18); box-shadow:none; height:200px; }
+  .mhead { display:flex; align-items:center; gap:20px; font-size:30px; color:#5b6b85; }
+  .micon { width:64px; height:64px; border-radius:16px; background:var(--blue); color:#fff; display:flex; align-items:center; justify-content:center; font-size:36px; }
+  .mhead span:last-child { margin-left:auto; }
+  .msub { margin-top:26px; font-size:46px; font-weight:700; letter-spacing:-.01em; }
+  .mbody { margin-top:12px; font-size:36px; line-height:1.4; color:#34425c; }
+  #Ctype { position:absolute; left:64px; bottom:170px; }
+  #Ctype .slam { color:#fff; font-size:176px; }
+  #Ctype .slam.hi { color:#7f9bff; }
+
+  /* D: dashboard */
+  #D { background:#fff; color:var(--navy); z-index:32; }
+  #Dwrap { position:absolute; inset:0; padding:110px 70px; }
+  .dtop { display:flex; justify-content:space-between; align-items:center; }
+  .dtop h2 { font-size:54px; font-weight:800; letter-spacing:-.02em; }
+  .csv { display:flex; align-items:center; gap:14px; height:92px; padding:0 34px; border:2px solid var(--border); border-radius:999px; font-size:34px; font-weight:600; }
+  .onsite { margin-top:70px; font-size:40px; color:var(--muted); }
+  .big { height:330px; overflow:hidden; font-size:330px; font-weight:900; letter-spacing:-.06em; line-height:330px; }
+  #digits { display:flex; flex-direction:column; }
+  .list { margin-top:50px; display:flex; flex-direction:column; gap:22px; }
+  .vrow { display:flex; align-items:center; gap:30px; height:150px; padding:0 34px; border-radius:28px; background:var(--card); }
+  .vrow.new { background:#e8ecff; }
+  .av { width:88px; height:88px; border-radius:50%; background:#fff; display:flex; align-items:center; justify-content:center; font-size:40px; font-weight:700; }
+  .vrow.new .av { background:var(--blue); color:#fff; }
+  .vn { font-size:42px; font-weight:600; }
+  .vt { font-size:30px; color:var(--muted); margin-top:4px; }
+  .pill { margin-left:auto; background:var(--blue); color:#fff; font-size:28px; font-weight:600; padding:8px 22px; border-radius:999px; }
+  #Dtype { position:absolute; left:70px; bottom:120px; }
+  #Dtype .slam { color:var(--navy); font-size:132px; }
+
+  /* E: end */
+  #E { z-index:40; background:var(--navy); }
+  #photo { position:absolute; left:0; top:0; width:1080px; height:1300px; background:url(../../../public/images/visualcns-visitor-signin-reception-v2.png) 58% center / cover; transform-origin:62% 50%; }
+  #panel { position:absolute; left:0; right:0; bottom:0; height:820px; background:var(--navy); color:#fff; padding:90px 70px 0; }
+  .lock { display:flex; align-items:center; gap:18px; font-size:44px; font-weight:700; letter-spacing:-.01em; }
+  .lock svg { width:62px; height:62px; }
+  .mask { overflow:hidden; }
+  .mask > * { display:block; }
+  #eTitle { margin-top:56px; font-size:164px; font-weight:900; letter-spacing:-.05em; line-height:.95; }
+  #eLine { margin-top:40px; font-size:54px; font-weight:600; }
+  #eLine2 { margin-top:8px; font-size:54px; color:#9fb4ff; }
+</style>
+</head>
+<body>
+
+<div class="scene" id="A">
+  <div id="paper">
+    <div class="row" id="r0" style="top:430px">9:02 &nbsp;Chidi Okafor &nbsp;&nbsp;Mr Bello</div>
+    <div class="row" id="r1" style="top:670px">9:15 &nbsp;A. Bakar? &nbsp;&nbsp;Finance</div>
+    <div class="row" id="r2" style="top:910px">9:4? &nbsp;<s>Femi</s> Femi A. &nbsp;delivery</div>
+    <div class="row" id="r3" style="top:1150px">10:0 &nbsp;Nkem ~~ &nbsp;&nbsp;&nbsp;??</div>
+  </div>
+  <div id="Atype">
+    <span class="slam" id="a0">Who's in</span>
+    <span class="slam" id="a1">the building</span>
+    <span class="slam" id="a2"><em>right now?</em></span>
+  </div>
+</div>
+
+<div id="slab"></div>
+
+<div class="scene" id="B">
+  <div id="kiosk">
+    <div class="top"><b><span id="logoTop"></span>ABC Company</b><span>Front desk</span></div>
+    <p class="welcome">Welcome to</p>
+    <h1 class="company">ABC Company</h1>
+    <p class="sub">Please sign in as a visitor</p>
+    <div class="tabs"><div class="tab on">Sign In</div><div class="tab">Sign Out <span class="count">3</span></div></div>
+    <div class="fields">
+      <div class="field" id="fName"><svg class="i" viewBox="0 0 24 24"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        <div><div class="lab">Full Name</div><div class="val" id="vName"></div></div></div>
+      <div class="field" id="fCo"><svg class="i" viewBox="0 0 24 24"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4M10 10h4M10 14h4M10 18h4"/></svg>
+        <div><div class="lab">Company (Optional)</div><div class="val" id="vCo"></div></div></div>
+      <div class="field" id="fHost"><svg class="i" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        <div><div class="lab">Person You Are Visiting</div><div class="val" id="vHost"></div></div>
+        <svg class="i chev" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
+        <div id="menu"><div class="opt" id="o0">Kemi Adeyemi</div><div class="opt" id="o1">Ngozi Eze</div><div class="opt" id="o2">Tunde Bello</div></div></div>
+      <div class="field" id="fWhy"><svg class="i" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8M16 13H8M16 17H8"/></svg>
+        <div><div class="lab">Purpose of Visit</div><div class="val" id="vWhy"></div></div>
+        <svg class="i chev" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></div>
+    </div>
+    <div id="btn">Sign In<svg class="i" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></div>
+    <p class="powered">Powered by VisualCNS</p>
+  </div>
+  <div id="confirm">
+    <div id="tick"><svg class="i" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></div>
+    <h1 id="cTitle">Welcome,<br>Amaka</h1>
+    <p id="cText">We've told Tunde Bello you're here. Please sign out when you leave.</p>
+  </div>
+  <div id="ripple"></div>
+  <div id="finger"></div>
+  <div id="iris"></div>
+</div>
+
+<div class="scene" id="C">
+  <div class="mail back" id="mBack"></div>
+  <div class="mail" id="mail">
+    <div class="mhead"><span class="micon"><svg class="i" viewBox="0 0 24 24"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg></span><span>Mail · to Tunde Bello</span><span>now</span></div>
+    <p class="msub">Amaka Obi is here to see you</p>
+    <p class="mbody">Amaka Obi just signed in at the ABC Company front desk.<br>From: Lumen Foods<br>Reason: Meeting</p>
+  </div>
+  <div id="Ctype">
+    <span class="slam" id="c0">Tunde</span>
+    <span class="slam" id="c1">knows</span>
+    <span class="slam hi" id="c2">before</span>
+    <span class="slam" id="c3">she sits.</span>
+  </div>
+</div>
+
+<div class="scene" id="D">
+  <div id="Dwrap">
+    <div class="dtop"><h2>Visitors</h2><div class="csv"><svg class="i" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></svg>Export CSV</div></div>
+    <p class="onsite">On site now</p>
+    <div class="big"><div id="digits"><span>3</span><span>4</span></div></div>
+    <div class="list">
+      <div class="vrow new" id="v0"><div class="av">A</div><div><div class="vn">Amaka Obi</div><div class="vt">Visiting Tunde Bello · just now</div></div><span class="pill">New</span></div>
+      <div class="vrow" id="v1"><div class="av">F</div><div><div class="vn">Femi A.</div><div class="vt">Delivery · in since 9:48</div></div></div>
+      <div class="vrow" id="v2"><div class="av">A</div><div><div class="vn">Aisha B.</div><div class="vt">Visiting Ngozi Eze · in since 9:14</div></div></div>
+      <div class="vrow" id="v3"><div class="av">C</div><div><div class="vn">Chidi O.</div><div class="vt">Interview · in since 8:31</div></div></div>
+    </div>
+  </div>
+  <div id="Dtype">
+    <span class="slam" id="d0">Every visit</span>
+    <span class="slam" id="d1">on record.</span>
+  </div>
+</div>
+
+<div class="scene" id="E">
+  <div id="photo"></div>
+  <div id="panel">
+    <div class="mask"><div class="lock" id="eLock"><span id="logoEnd"></span>VisualCNS</div></div>
+    <div class="mask"><span id="eTitle">Visitor<br>sign-in</span></div>
+    <div class="mask"><span id="eLine">Free for 30 days.</span></div>
+    <div class="mask"><span id="eLine2">No card needed.</span></div>
+  </div>
+</div>
+
+<script>
+const LOGO = `<svg viewBox="0 0 500 500" fill="currentColor"><path d="M425.631 207.066L351.265 250.002L425.631 292.938L500 250.002L425.631 207.066Z"/><path d="M380.634 125L337.7 199.372H423.563L466.507 125H380.634Z"/><path d="M423.563 300.629H337.7L380.634 375H466.507L423.563 300.629Z"/><path d="M375 380.635L300.629 337.7V423.564L375 466.507V380.635Z"/><path d="M300.629 162.302L375 119.366V33.4941L300.629 76.4371V162.302Z"/><path d="M292.938 74.3717L250.002 0L207.066 74.3717L250.002 148.736L292.938 74.3717Z"/><path d="M207.066 425.628L250.002 500L292.938 425.628L250.002 351.265L207.066 425.628Z"/><path d="M199.376 337.7L125.004 380.635V466.507L199.376 423.564V337.7Z"/><path d="M125.004 119.366L199.376 162.302V76.4371L125.004 33.4941V119.366Z"/><path d="M76.4334 199.372H162.298L119.362 125H33.4902L76.4334 199.372Z"/><path d="M119.362 375L162.298 300.629H76.4334L33.4902 375H119.362Z"/><path d="M74.3717 292.938L148.736 250.002L74.3717 207.066L0 250.002L74.3717 292.938Z"/></svg>`
+document.getElementById('logoTop').innerHTML = LOGO.replace('<svg', '<svg style="width:44px;height:44px;color:#0E32FC"')
+document.getElementById('logoEnd').innerHTML = LOGO
+
+const $ = id => document.getElementById(id)
+const cl = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v))
+const p = (t, a, b) => cl((t - a) / (b - a))
+const outExpo = x => x === 1 ? 1 : 1 - Math.pow(2, -10 * x)
+const outCubic = x => 1 - Math.pow(1 - x, 3)
+const inOutQuart = x => x < .5 ? 8 * x ** 4 : 1 - Math.pow(-2 * x + 2, 4) / 2
+const outBack = x => { const c = 1.9; return 1 + (c + 1) * Math.pow(x - 1, 3) + c * Math.pow(x - 1, 2) }
+const lerp = (a, b, x) => a + (b - a) * x
+const vis = (id, on) => { $(id).style.visibility = on ? 'visible' : 'hidden' }
+
+// Words land hard: they appear at full opacity, oversized, and snap down to size.
+function slam(id, t, at, rot = 0) {
+  const el = $(id), x = p(t, at, at + .16)
+  el.style.opacity = t < at ? 0 : 1
+  el.style.transform = `scale(${lerp(1.35, 1, outExpo(x))}) rotate(${lerp(rot, 0, outExpo(x))}deg)`
+}
+function typed(id, text, t, a, b, active) {
+  const n = Math.round(p(t, a, b) * text.length), el = $(id)
+  const shown = text.slice(0, n)
+  el.classList.toggle('ph', n === 0)
+  const caret = active && Math.floor(t * 4) % 2 === 0 ? '<span class="caret"></span>' : ''
+  el.innerHTML = (n === 0 && !active ? el.dataset.ph : shown) + (active ? caret : '')
+  if (n === 0 && active) el.innerHTML = caret
+}
+$('vName').dataset.ph = 'Enter your full name'
+$('vCo').dataset.ph = 'Enter your company name'
+
+function render(t) {
+  // A: gate book
+  vis('A', t < 1.75)
+  if (t < 1.75) {
+    $('paper').style.transform = `rotate(${lerp(-7, -4, t / 1.75)}deg) scale(${lerp(1.18, 1.32, outCubic(t / 1.75))}) translate(${lerp(30, -40, t / 1.75)}px, 0)`
+    ;[0, .2, .45, .7].forEach((a, i) => {
+      $('r' + i).style.clipPath = `inset(-40px ${100 - p(t, a, a + .45) * 100}% -40px 0)`
+    })
+    slam('a0', t, .3, -3); slam('a1', t, .62, 2); slam('a2', t, .95, -2)
+  }
+
+  // Blue slab wipes up through the frame
+  const slabOn = t >= 1.42 && t < 2.1
+  vis('slab', slabOn)
+  if (slabOn) {
+    const y = t < 1.72 ? lerp(1920, -240, inOutQuart(p(t, 1.42, 1.72))) : lerp(-240, -2400, inOutQuart(p(t, 1.72, 2.1)))
+    $('slab').style.top = y + 'px'
+  }
+
+  // B: kiosk
+  const bOn = t >= 1.6 && t < 5.4
+  vis('B', bOn)
+  if (bOn) {
+    const push = outCubic(p(t, 1.8, 4.1))
+    $('kiosk').style.transform = `scale(${lerp(1.08, 1, outExpo(p(t, 1.75, 2.3))) * lerp(1, 1.03, push)}) translateY(${lerp(0, -30, push)}px)`
+    const focus = t < 2.82 ? 'fName' : t < 3.25 ? 'fCo' : t < 3.7 ? 'fHost' : t < 3.85 ? 'fWhy' : ''
+    ;['fName', 'fCo', 'fHost', 'fWhy'].forEach(f => $(f).classList.toggle('focus', f === focus && t > 2.0))
+    typed('vName', 'Amaka Obi', t, 2.05, 2.72, focus === 'fName' && t > 2.0)
+    typed('vCo', 'Lumen Foods', t, 2.86, 3.2, focus === 'fCo')
+    const vh = $('vHost'); vh.textContent = t >= 3.6 ? 'Tunde Bello' : 'Select a person'; vh.classList.toggle('ph', t < 3.6)
+    const vw = $('vWhy'); vw.textContent = t >= 3.8 ? 'Meeting' : 'Select a reason'; vw.classList.toggle('ph', t < 3.8)
+    const menuOn = t >= 3.28 && t < 3.62
+    $('menu').style.display = menuOn ? 'block' : 'none'
+    $('menu').style.transform = `scaleY(${outExpo(p(t, 3.28, 3.4))})`
+    const hl = t < 3.4 ? -1 : t < 3.47 ? 0 : t < 3.52 ? 1 : 2
+    ;[0, 1, 2].forEach(i => $('o' + i).classList.toggle('hl', i === hl))
+
+    // Finger comes in, presses Sign In
+    const r = $('btn').getBoundingClientRect(), bx = r.left + r.width * .62, by = r.top + r.height / 2
+    const fOn = t >= 3.78 && t < 4.3
+    vis('finger', fOn)
+    const fx = outCubic(p(t, 3.78, 3.98))
+    const press = t >= 3.98 && t < 4.1
+    $('finger').style.left = lerp(bx + 260, bx, fx) + 'px'
+    $('finger').style.top = lerp(by + 420, by, fx) + 'px'
+    $('finger').style.transform = `scale(${press ? .82 : 1})`
+    $('finger').style.opacity = t > 4.15 ? 1 - p(t, 4.15, 4.3) : 1
+    $('btn').style.transform = `scale(${press ? .965 : 1})`
+    $('btn').style.filter = press ? 'brightness(.88)' : 'none'
+    const rp = p(t, 3.98, 4.35)
+    vis('ripple', t >= 3.98 && t < 4.35)
+    $('ripple').style.left = bx + 'px'; $('ripple').style.top = by + 'px'
+    $('ripple').style.transform = `scale(${lerp(1, 5, outCubic(rp))})`; $('ripple').style.opacity = 1 - rp
+
+    // Confirmation
+    vis('confirm', t >= 4.14)
+    $('tick').style.transform = `scale(${outBack(p(t, 4.14, 4.42))})`
+    $('cTitle').style.transform = `translateY(${lerp(80, 0, outExpo(p(t, 4.22, 4.55)))}px)`
+    $('cTitle').style.clipPath = `inset(0 0 ${100 - outExpo(p(t, 4.22, 4.55)) * 100}% 0)`
+    $('cText').style.transform = `translateY(${lerp(60, 0, outExpo(p(t, 4.34, 4.7)))}px)`
+    $('cText').style.opacity = t < 4.34 ? 0 : 1
+    $('cText').style.clipPath = `inset(0 0 ${100 - outExpo(p(t, 4.34, 4.7)) * 100}% 0)`
+
+    // Iris out of the tick into navy
+    vis('iris', t >= 4.95)
+    const tr = $('tick').getBoundingClientRect()
+    $('iris').style.left = tr.left + 'px'; $('iris').style.top = tr.top + 'px'
+    $('iris').style.transform = `scale(${lerp(1, 22, inOutQuart(p(t, 4.95, 5.3)))})`
+  }
+
+  // C: host email
+  const cOn = t >= 5.3 && t < 7.62
+  vis('C', cOn)
+  if (cOn) {
+    const whip = p(t, 7.3, 7.6)
+    $('C').style.transform = `translateX(${-1080 * inOutQuart(whip)}px)`
+    $('C').style.filter = `blur(${Math.sin(Math.PI * whip) * 28}px)`
+    const drop = outBack(p(t, 5.32, 5.72))
+    const drift = p(t, 5.7, 7.3) * 18
+    $('mail').style.top = lerp(-520, 170, drop) + drift + 'px'
+    $('mBack').style.top = lerp(-520, 150, outBack(p(t, 5.4, 5.82))) + drift + 'px'
+    $('mBack').style.transform = 'scale(.93)'
+    slam('c0', t, 5.78, -2); slam('c1', t, 6.02, 2); slam('c2', t, 6.26, -2); slam('c3', t, 6.5, 1)
+  }
+
+  // D: dashboard
+  const dOn = t >= 7.3 && t < 9.05
+  vis('D', dOn)
+  if (dOn) {
+    const whip = p(t, 7.3, 7.6)
+    $('D').style.transform = `translateX(${1080 * (1 - inOutQuart(whip))}px)`
+    $('D').style.filter = `blur(${Math.sin(Math.PI * whip) * 28}px)`
+    $('digits').style.transform = `translateY(${-330 * outBack(p(t, 7.62, 7.9))}px)`
+    ;[0, 1, 2, 3].forEach(i => {
+      const x = outExpo(p(t, 7.55 + i * .06, 7.95 + i * .06))
+      $('v' + i).style.transform = `translateX(${lerp(1100, 0, x)}px)`
+    })
+    slam('d0', t, 8.0, -2); slam('d1', t, 8.24, 1)
+  }
+
+  // E: end card, photo wipes up then the panel rises under it
+  vis('E', t >= 8.72)
+  if (t >= 8.72) {
+    const w = inOutQuart(p(t, 8.72, 9.02))
+    $('E').style.clipPath = `inset(${100 - w * 100}% 0 0 0)`
+    $('photo').style.transform = `scale(${lerp(1.22, 1.06, outCubic(p(t, 8.72, 10)))})`
+    $('panel').style.transform = `translateY(${lerp(760, 0, outExpo(p(t, 8.86, 9.3)))}px)`
+    ;[['eLock', 9.0], ['eTitle', 9.08], ['eLine', 9.2], ['eLine2', 9.28]].forEach(([id, a]) => {
+      $(id).style.transform = `translateY(${lerp(110, 0, outExpo(p(t, a, a + .4)))}%)`
+    })
+  }
+}
+window.render = render
+render(0)
+</script>
+</body>
+</html>
