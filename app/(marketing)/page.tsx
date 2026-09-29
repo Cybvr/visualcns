@@ -7,6 +7,7 @@ import { Header } from "@/components/header"
 import { PwaRedirect } from "@/components/pwa-redirect"
 import { HomeSections } from "@/components/home-sections"
 import { HomeMarquee } from "@/components/home-marquee"
+import { HomeLogoCarousel } from "@/components/home-logo-carousel"
 import { getBrandItems } from "@/lib/brands"
 import { getCapabilities } from "@/lib/capabilities"
 import { getBlogPosts } from "@/lib/blog"
@@ -80,6 +81,10 @@ export default function HomePage() {
             </span>
           </div>
         </section>
+
+        <div className="mt-10 md:mt-14">
+          <HomeLogoCarousel />
+        </div>
 
         <div className="mt-14 md:mt-20">
           <HomeMarquee items={marqueeItems} />

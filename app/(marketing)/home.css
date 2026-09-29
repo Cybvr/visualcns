@@ -11,6 +11,24 @@
   }
 }
 
+@keyframes home-logo-scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.home-logo-track {
+  animation: home-logo-scroll 36s linear infinite;
+}
+
+.home-logo-strip:hover .home-logo-track,
+.home-logo-strip:focus-within .home-logo-track {
+  animation-play-state: paused;
+}
+
 .home-marquee-track {
   display: inline-flex;
   width: max-content;
@@ -50,6 +68,10 @@
 
 @media (prefers-reduced-motion: reduce) {
   .home-marquee-track {
+    animation: none;
+  }
+
+  .home-logo-track {
     animation: none;
   }
 
