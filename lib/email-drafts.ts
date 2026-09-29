@@ -17,6 +17,7 @@ export type EmailDraftRecord = {
   subject?: string
   body?: string
   messageKind?: "transactional" | "marketing"
+  brandedEmail?: boolean
   /** The compose context (recipient, document, cta) so a draft reopens where it was started. */
   context?: Record<string, unknown> | null
   updatedAt: string

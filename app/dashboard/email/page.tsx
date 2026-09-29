@@ -292,6 +292,7 @@ export default function EmailPage() {
   const [subject, setSubject] = useState("")
   const [body, setBody] = useState("")
   const [messageKind, setMessageKind] = useState<EmailMessageKind>("transactional")
+  const [brandedEmail, setBrandedEmail] = useState(true)
   const [composeContext, setComposeContext] = useState<EmailComposeContext | null>(null)
   const [selectedTemplateId, setSelectedTemplateId] = useState("")
   const [scheduleEnabled, setScheduleEnabled] = useState(false)
@@ -854,6 +855,9 @@ export default function EmailPage() {
     const absoluteLogoUrl = logoUrl.startsWith("/") ? `${origin}${logoUrl}` : logoUrl
     const content = formatTemplateBody(body || "<p>Your message preview will appear here.</p>")
       .replace(/(src=["'])\/([^"']*)/gi, `$1${origin}/$2`)
+    if (!brandedEmail) {
+      return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{margin:0;padding:36px;background:#fff;color:#20232d;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.65}p{margin:0 0 1em}a{color:#1649d8}</style></head><body>${content}</body></html>`
+    }
     const brandName = businessProfile?.name || "VisualCNS"
     const address = businessProfile?.address || "Lagos, Nigeria"
     const website = businessProfile?.website || "visualcns.com"
@@ -932,6 +936,7 @@ export default function EmailPage() {
       subject: subject.trim() || undefined,
       body: body || undefined,
       messageKind,
+      brandedEmail,
       context: composeContext ? { ...composeContext } : null,
       updatedAt: new Date().toISOString(),
     }
@@ -956,7 +961,7 @@ export default function EmailPage() {
     setDraftStatus("saving")
     const timer = window.setTimeout(() => { void saveDraft() }, 800)
     return () => window.clearTimeout(timer)
-  }, [body, cc, composeContext, messageKind, selectedListId, subject, to, user?.uid])
+  }, [body, brandedEmail, cc, composeContext, messageKind, selectedListId, subject, to, user?.uid])
 
   function loadDraft(draft: EmailDraftRecord) {
     setMessageViewError("")
@@ -969,6 +974,7 @@ export default function EmailPage() {
     setSubject(draft.subject || "")
     setBody(draft.body || "")
     setMessageKind(draft.messageKind === "marketing" ? "marketing" : "transactional")
+    setBrandedEmail(draft.brandedEmail !== false)
     setComposeContext((draft.context as EmailComposeContext | null) ?? null)
     setSelectedTemplateId("")
     setScheduleEnabled(false)
@@ -1216,6 +1222,7 @@ export default function EmailPage() {
           subject: trimmedSubject,
           text: textBody,
           html: bodyHtml,
+          branded: brandedEmail,
           from: senderAddress || undefined,
           brand: businessProfile,
           cta: composeContext?.ctaUrl
@@ -1773,6 +1780,8 @@ export default function EmailPage() {
         senderAddress={senderAddress || ""}
         senderOptions={senderOptions}
         setSenderAddress={setSenderAddress}
+        brandedEmail={brandedEmail}
+        setBrandedEmail={setBrandedEmail}
         showOpsDetail={showOpsDetail}
         cleanSenderDisplay={cleanSenderDisplay}
         messageKind={messageKind}

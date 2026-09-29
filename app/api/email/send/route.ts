@@ -254,7 +254,7 @@ export async function POST(request: Request) {
   let from = normalizeEmailAddress(process.env.EMAIL_FROM || "")
   let replyTo = normalizeEmailAddress(process.env.EMAIL_REPLY_TO || "") || from
 
-  let payload: { to?: unknown; cc?: unknown; from?: unknown; intent?: unknown; subject?: unknown; text?: unknown; html?: unknown; imageUrl?: unknown; brand?: unknown; cta?: unknown; type?: unknown; welcome?: unknown; templateId?: unknown; companyId?: unknown; projectId?: unknown; documentType?: unknown; documentId?: unknown; scheduledAt?: unknown }
+  let payload: { to?: unknown; cc?: unknown; from?: unknown; intent?: unknown; subject?: unknown; text?: unknown; html?: unknown; imageUrl?: unknown; brand?: unknown; cta?: unknown; branded?: unknown; type?: unknown; welcome?: unknown; templateId?: unknown; companyId?: unknown; projectId?: unknown; documentType?: unknown; documentId?: unknown; scheduledAt?: unknown }
   try {
     payload = (await request.json()) as typeof payload
   } catch {
@@ -438,11 +438,15 @@ export async function POST(request: Request) {
     safeBrandValue(brandSource.phone),
     safeBrandValue(brandSource.website, "visualcns.com"),
   ].filter(Boolean).join(" · ")
+  const useBrandedLayout = payload.branded !== false
 
   async function sendOne(to: string[], unsubscribeEmail?: string, copy: string[] = []) {
     const unsubscribeLink = unsubscribeEmail ? unsubscribeUrl(unsubscribeEmail) : ""
-    const html = brandedEmail(messageContent, subject, payload.brand, from, payload.cta, unsubscribeLink)
-    const brandedText = `${text}\n\n${ctaText}: ${ctaUrl}\n\n---\n${footerText}\nX: ${X_URL}\nLinkedIn: ${LINKEDIN_URL}${unsubscribeLink ? `\nUnsubscribe: ${unsubscribeLink}` : ""}`
+    const plainHtml = `${messageContent}${unsubscribeLink ? `<p><a href="${escapeHtml(unsubscribeLink)}">Unsubscribe</a></p>` : ""}`
+    const html = useBrandedLayout ? brandedEmail(messageContent, subject, payload.brand, from, payload.cta, unsubscribeLink) : plainHtml
+    const brandedText = useBrandedLayout
+      ? `${text}\n\n${ctaText}: ${ctaUrl}\n\n---\n${footerText}\nX: ${X_URL}\nLinkedIn: ${LINKEDIN_URL}${unsubscribeLink ? `\nUnsubscribe: ${unsubscribeLink}` : ""}`
+      : `${text}${unsubscribeLink ? `\n\nUnsubscribe: ${unsubscribeLink}` : ""}`
     if (useGmail) {
       const result = await sendGmailMessage(agencyId, { from, to, cc: copy, replyTo, subject, text: brandedText, html })
       return { response: { ok: Boolean(result.id), status: result.id ? 200 : 502 }, result: { id: result.id ? `gmail:${result.id}` : undefined } as ResendResponse, html, brandedText }

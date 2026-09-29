@@ -32,6 +32,8 @@ export type EmailComposerProps = {
   senderAddress: string
   senderOptions: string[]
   setSenderAddress: (value: string) => void
+  brandedEmail: boolean
+  setBrandedEmail: (value: boolean) => void
   showOpsDetail: boolean
   cleanSenderDisplay: (value: string) => string
   messageKind: EmailMessageKind
@@ -90,6 +92,8 @@ export function EmailComposer({
   senderAddress,
   senderOptions,
   setSenderAddress,
+  brandedEmail,
+  setBrandedEmail,
   showOpsDetail,
   cleanSenderDisplay,
   messageKind,
@@ -210,6 +214,10 @@ export function EmailComposer({
                   </div>
                   <div className="flex items-center gap-2">
                     {draftStatus !== "idle" && <span className="hidden text-xs text-muted-foreground sm:inline">{draftStatus === "saving" || savingDraft ? "Saving…" : draftStatus === "saved" ? "Saved" : "Not saved"}</span>}
+                    <label className="hidden items-center gap-1.5 text-xs text-muted-foreground sm:flex" title="Add the VisualCNS header, footer and CTA">
+                      <input type="checkbox" checked={brandedEmail} onChange={(event) => setBrandedEmail(event.target.checked)} className="size-3.5 accent-primary" />
+                      Branded layout
+                    </label>
                     <Button type="button" variant="outline" size="sm" onClick={() => setComposerPreviewOpen(true)}><Eye aria-hidden="true" />Preview</Button>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild><Button type="button" variant="ghost" size="sm" className="max-w-40 justify-start px-2"><FileText aria-hidden="true" /><span className="truncate">{selectedTemplate?.name || "Template"}</span></Button></DropdownMenuTrigger>
