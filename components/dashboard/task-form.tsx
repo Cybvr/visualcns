@@ -198,6 +198,7 @@ export function TaskForm({ task, fixedClient, defaults, onSaved, onCancel }: Tas
       : null
 
   const visibleClientOptions = selectedClientFallback ? [selectedClientFallback, ...clientOptions] : clientOptions
+  const selectedClientName = visibleClientOptions.find((option) => option.companyId === form.companyId)?.label
 
   // Only offer projects that belong to the chosen client.
   const clientProjects = projects.filter((p) => !form.companyId || p.companyId === form.companyId)
@@ -207,8 +208,7 @@ export function TaskForm({ task, fixedClient, defaults, onSaved, onCancel }: Tas
     setSaving(true)
     try {
       const title = projectQuery.trim()
-      const clientUser = clients.find((c) => c.companyId === form.companyId)
-      const clientName = fixedClient?.clientName || clientUser?.company || clientUser?.displayName || form.companyId
+      const clientName = fixedClient?.clientName || selectedClientName || form.companyId
       const newProjectId = await createProject({
         companyId: form.companyId,
         client: clientName,
@@ -254,20 +254,18 @@ export function TaskForm({ task, fixedClient, defaults, onSaved, onCancel }: Tas
       setError("Pick a client.")
       return
     }
-    if (!form.projectId) {
+    const project = projects.find((p) => p.id === form.projectId)
+    if (!project || project.companyId !== form.companyId) {
       setError("Pick a project.")
       return
     }
 
-    const clientUser = clients.find((c) => c.companyId === form.companyId)
-    const project = projects.find((p) => p.id === form.projectId)
     const payload = {
       name: form.name.trim(),
       companyId: form.companyId,
-      client:
-        fixedClient?.clientName || clientUser?.company || clientUser?.displayName || task?.client || form.companyId,
+      client: fixedClient?.clientName || selectedClientName || form.companyId,
       projectId: form.projectId,
-      project: project?.title || task?.project || "",
+      project: project.title,
       status: form.status,
       priority: form.priority,
       dueDate: form.dueDate.trim(),
