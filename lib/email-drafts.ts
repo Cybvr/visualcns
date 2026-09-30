@@ -23,9 +23,13 @@ export type EmailDraftRecord = {
   updatedAt: string
 }
 
-export async function getEmailDrafts(companyId: string): Promise<EmailDraftRecord[]> {
-  if (!companyId) return []
-  const snapshot = await getDocs(query(collection(db, COLLECTION_NAME), where("agencyId", "==", await getCurrentAgencyId()), where("companyId", "==", companyId)))
+export async function getEmailDrafts(companyId: string, allAgencyDrafts = false): Promise<EmailDraftRecord[]> {
+  if (!companyId && !allAgencyDrafts) return []
+  const agencyId = await getCurrentAgencyId()
+  const draftsQuery = allAgencyDrafts
+    ? query(collection(db, COLLECTION_NAME), where("agencyId", "==", agencyId))
+    : query(collection(db, COLLECTION_NAME), where("agencyId", "==", agencyId), where("companyId", "==", companyId))
+  const snapshot = await getDocs(draftsQuery)
   return snapshot.docs
     .map((item) => ({ ...(item.data() as Omit<EmailDraftRecord, "id">), id: item.id }))
     .sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt))

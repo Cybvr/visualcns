@@ -77,9 +77,9 @@ export function EmailTemplates({
   contactAvatarTone,
   formatListDate,
 }: EmailTemplatesProps) {
-  const hasVisitorWelcomeTemplate = templates.some((template) => template.id === "visitor-signup-welcome")
-  const hasVisitorSalesTemplate = templates.some((template) => template.id === "visitor-signin-introduction")
-  const hasInsightsTemplate = templates.some((template) => template.id === "announce-insights")
+  const hasVisitorWelcomeTemplate = templates.some((template) => (template.templateId || template.id) === "visitor-signup-welcome")
+  const hasVisitorSalesTemplate = templates.some((template) => (template.templateId || template.id) === "visitor-signin-introduction")
+  const hasInsightsTemplate = templates.some((template) => (template.templateId || template.id) === "announce-insights")
 
   return (
     <section className="flex min-h-0 w-full min-w-0 max-w-full flex-1 flex-col gap-4 lg:gap-6 lg:overflow-hidden" role="tabpanel">

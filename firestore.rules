@@ -213,12 +213,12 @@ service cloud.firestore {
       allow delete: if agencyAdmin(resource.data) || (owns(resource.data) && resource.data.createdBy == request.auth.uid);
     }
 
-    // Agency email templates are shared across the admin team and scoped by companyId.
+    // Email is an agency tool: agency admins can manage templates for every company in their agency.
     match /emailTemplates/{id} {
-      allow read: if agencyAdmin(resource.data) && resource.data.companyId == companyId();
-      allow create: if isAdmin() && sameAgency(request.resource.data) && request.resource.data.companyId == companyId();
-      allow update: if agencyAdmin(resource.data) && sameAgency(request.resource.data) && request.resource.data.companyId == companyId();
-      allow delete: if agencyAdmin(resource.data) && resource.data.companyId == companyId();
+      allow read: if agencyAdmin(resource.data);
+      allow create: if isAdmin() && sameAgency(request.resource.data);
+      allow update: if agencyAdmin(resource.data) && sameAgency(request.resource.data);
+      allow delete: if agencyAdmin(resource.data);
     }
 
     // Marketing unsubscribe records are written and read only by server routes

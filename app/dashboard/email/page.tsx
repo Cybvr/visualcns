@@ -597,7 +597,7 @@ export default function EmailPage() {
     setMessages([])
     setLists([])
 
-    void getEmailTemplates(workspaceId)
+    void getEmailTemplates(workspaceId, showOpsDetail)
       .then((storedTemplates) => {
         if (!active) return
         setTemplates(storedTemplates)
@@ -612,7 +612,7 @@ export default function EmailPage() {
     return () => {
       active = false
     }
-  }, [templateStorageKey, user?.uid, workspaceId])
+  }, [showOpsDetail, templateStorageKey, user?.uid, workspaceId])
 
   useEffect(() => {
     if (!user?.uid || !workspaceId) return
@@ -648,11 +648,11 @@ export default function EmailPage() {
   useEffect(() => {
     if (!user?.uid || !workspaceId) return
     let active = true
-    void getEmailDrafts(workspaceId)
+    void getEmailDrafts(workspaceId, showOpsDetail)
       .then((storedDrafts) => { if (active) setDrafts(storedDrafts) })
       .catch(() => { if (active) setDrafts([]) })
     return () => { active = false }
-  }, [user?.uid, workspaceId])
+  }, [showOpsDetail, user?.uid, workspaceId])
 
   useEffect(() => {
     if (!user?.uid || !workspaceId) return
@@ -668,7 +668,7 @@ export default function EmailPage() {
     let active = true
     const legacyLists = readStoredList<ContactList>(listStorageKey)
 
-    void getEmailLists(workspaceId)
+    void getEmailLists(workspaceId, showOpsDetail)
       .then(async (storedLists) => {
         let nextLists: EmailContactList[] = storedLists
         if (storedLists.length === 0 && legacyLists.length > 0) {
@@ -691,7 +691,7 @@ export default function EmailPage() {
     return () => {
       active = false
     }
-  }, [listStorageKey, user?.uid, workspaceId])
+  }, [listStorageKey, showOpsDetail, user?.uid, workspaceId])
 
   useEffect(() => {
     if (!showOpsDetail) {
@@ -902,7 +902,7 @@ export default function EmailPage() {
     draftIdRef.current = id
     const draft: EmailDraftRecord = {
       id,
-      companyId: workspaceId,
+      companyId: drafts.find((item) => item.id === id)?.companyId || workspaceId,
       createdBy: user.uid,
       to: to.trim() || undefined,
       cc: cc.trim() || undefined,
@@ -949,7 +949,7 @@ export default function EmailPage() {
     setBody(draft.body || "")
     setMessageKind(draft.messageKind === "marketing" ? "marketing" : "transactional")
     setBrandedEmail(draft.brandedEmail !== false)
-    setComposeContext((draft.context as EmailComposeContext | null) ?? null)
+    setComposeContext((draft.context as EmailComposeContext | null) ?? (draft.companyId !== workspaceId ? { companyId: draft.companyId } : null))
     setSelectedTemplateId("")
     setScheduleEnabled(false)
     setScheduleAt("")
@@ -1395,9 +1395,14 @@ export default function EmailPage() {
 
     const now = new Date().toISOString()
     const existingTemplate = editingTemplateId ? templates.find((template) => template.id === editingTemplateId) : undefined
+    const companyId = existingTemplate?.companyId || workspaceId
+    const templateId = existingTemplate?.templateId || (existingTemplate ? existingTemplate.id : makeId())
     const nextTemplate: EmailTemplate = {
       ...(existingTemplate || {}),
-      id: editingTemplateId || makeId(),
+      id: existingTemplate?.id || `${companyId}__${templateId}`,
+      templateId,
+      companyId,
+      createdBy: existingTemplate?.createdBy || user.uid,
       name,
       subject: savedSubject,
       body: savedBody,
@@ -1407,7 +1412,7 @@ export default function EmailPage() {
     }
 
     try {
-      await saveEmailTemplate({ ...nextTemplate, companyId: workspaceId, createdBy: user.uid })
+      await saveEmailTemplate(nextTemplate as EmailTemplate & { companyId: string; createdBy: string })
       setTemplates((current) => editingTemplateId
         ? current.map((template) => template.id === editingTemplateId ? nextTemplate : template)
         : [nextTemplate, ...current])
@@ -1439,10 +1444,17 @@ export default function EmailPage() {
       updatedAt: new Date().toISOString(),
     }
     try {
-      await saveEmailTemplate({ ...insightsTemplate, companyId: workspaceId, createdBy: user.uid })
+      const storedTemplate: EmailTemplate = {
+        ...insightsTemplate,
+        id: `${workspaceId}__${insightsTemplate.id}`,
+        templateId: insightsTemplate.id,
+        companyId: workspaceId,
+        createdBy: user.uid,
+      }
+      await saveEmailTemplate(storedTemplate as EmailTemplate & { companyId: string; createdBy: string })
       setTemplates((current) => {
-        const rest = current.filter((template) => template.id !== insightsTemplate.id)
-        return [insightsTemplate, ...rest]
+        const rest = current.filter((template) => template.id !== storedTemplate.id)
+        return [storedTemplate, ...rest]
       })
       setTemplateNotice({ tone: "success", text: "Insights announcement added to your templates." })
     } catch {
@@ -1469,9 +1481,16 @@ export default function EmailPage() {
       updatedAt: new Date().toISOString(),
     }
     try {
-      await saveEmailTemplate({ ...welcomeTemplate, companyId: workspaceId, createdBy: user.uid })
-      setTemplates((current) => [welcomeTemplate, ...current.filter((template) => template.id !== welcomeTemplate.id)])
-      editTemplate(welcomeTemplate)
+      const storedTemplate: EmailTemplate = {
+        ...welcomeTemplate,
+        id: `${workspaceId}__${welcomeTemplate.id}`,
+        templateId: welcomeTemplate.id,
+        companyId: workspaceId,
+        createdBy: user.uid,
+      }
+      await saveEmailTemplate(storedTemplate as EmailTemplate & { companyId: string; createdBy: string })
+      setTemplates((current) => [storedTemplate, ...current.filter((template) => template.id !== storedTemplate.id)])
+      editTemplate(storedTemplate)
       setMobileTemplateView("editor")
       setTemplateNotice({ tone: "success", text: "Visitor welcome email added. Review it, then use the template to send." })
     } catch {
@@ -1499,9 +1518,16 @@ export default function EmailPage() {
       updatedAt: new Date().toISOString(),
     }
     try {
-      await saveEmailTemplate({ ...salesTemplate, companyId: workspaceId, createdBy: user.uid })
-      setTemplates((current) => [salesTemplate, ...current.filter((template) => template.id !== salesTemplate.id)])
-      editTemplate(salesTemplate)
+      const storedTemplate: EmailTemplate = {
+        ...salesTemplate,
+        id: `${workspaceId}__${salesTemplate.id}`,
+        templateId: salesTemplate.id,
+        companyId: workspaceId,
+        createdBy: user.uid,
+      }
+      await saveEmailTemplate(storedTemplate as EmailTemplate & { companyId: string; createdBy: string })
+      setTemplates((current) => [storedTemplate, ...current.filter((template) => template.id !== storedTemplate.id)])
+      editTemplate(storedTemplate)
       setMobileTemplateView("editor")
       setTemplateNotice({ tone: "success", text: "Visitor introduction email added. Review it, then use the template to send." })
     } catch {
@@ -1511,7 +1537,7 @@ export default function EmailPage() {
 
   async function deleteTemplate(templateId: string) {
     try {
-      await deleteEmailTemplate(templateId, workspaceId)
+      await deleteEmailTemplate(templateId)
       setTemplates((current) => current.filter((template) => template.id !== templateId))
       setSelectedTemplateIds((current) => { const next = new Set(current); next.delete(templateId); return next })
       if (selectedTemplateId === templateId) setSelectedTemplateId("")
@@ -1579,10 +1605,20 @@ export default function EmailPage() {
     }
 
     if (editingListId) {
-      const updatedList = { ...list, id: editingListId }
+      const existingList = lists.find((item) => item.id === editingListId)
+      const updatedList: ContactList = {
+        ...list,
+        id: editingListId,
+        companyId: existingList?.companyId,
+        createdBy: existingList?.createdBy,
+      }
       setLists((current) => current.map((item) => item.id === editingListId ? updatedList : item))
       try {
-        await saveEmailList({ ...updatedList, companyId: workspaceId, createdBy: user?.uid || "" })
+        await saveEmailList({
+          ...updatedList,
+          companyId: existingList?.companyId || workspaceId,
+          createdBy: existingList?.createdBy || user?.uid || "",
+        })
       } catch {
         setListNotice({ tone: "error", text: "The list could not be saved to the agency." })
         return

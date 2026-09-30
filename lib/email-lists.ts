@@ -15,9 +15,13 @@ export type EmailContactList = {
   updatedAt: string
 }
 
-export async function getEmailLists(companyId: string): Promise<EmailContactList[]> {
-  if (!companyId) return []
-  const snapshot = await getDocs(query(collection(db, COLLECTION_NAME), where("agencyId", "==", await getCurrentAgencyId()), where("companyId", "==", companyId)))
+export async function getEmailLists(companyId: string, allAgencyLists = false): Promise<EmailContactList[]> {
+  if (!companyId && !allAgencyLists) return []
+  const agencyId = await getCurrentAgencyId()
+  const listsQuery = allAgencyLists
+    ? query(collection(db, COLLECTION_NAME), where("agencyId", "==", agencyId))
+    : query(collection(db, COLLECTION_NAME), where("agencyId", "==", agencyId), where("companyId", "==", companyId))
+  const snapshot = await getDocs(listsQuery)
   return snapshot.docs
     .map((item) => ({ ...(item.data() as Omit<EmailContactList, "id">), id: item.id }))
     .sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt))

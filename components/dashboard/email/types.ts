@@ -5,9 +5,9 @@ import type { EmailMessageRecord, EmailRecipient } from "@/lib/email-messages"
 export type EmailTab = "inbox" | "drafts" | "templates" | "messages" | "lists"
 export type EmailMessageKind = "transactional" | "marketing"
 
-export type EmailTemplate = Omit<EmailTemplateRecord, "companyId" | "createdBy">
+export type EmailTemplate = Omit<EmailTemplateRecord, "companyId" | "createdBy"> & Partial<Pick<EmailTemplateRecord, "companyId" | "createdBy">>
 export type SentMessage = Omit<EmailMessageRecord, "companyId" | "createdBy"> & { companyId?: string }
-export type ContactList = Omit<EmailContactList, "companyId" | "createdBy">
+export type ContactList = Omit<EmailContactList, "companyId" | "createdBy"> & Partial<Pick<EmailContactList, "companyId" | "createdBy">>
 
 export type ReceivedMessage = {
   id: string
