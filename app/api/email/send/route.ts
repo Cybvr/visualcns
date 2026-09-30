@@ -55,6 +55,16 @@ type EmailContext = {
   intent?: "reminder"
 }
 
+type EmailHistoryInput = {
+  companyId?: unknown
+  to?: unknown
+  createdAt?: unknown
+  recipients?: unknown
+  companyName?: unknown
+  projectName?: unknown
+  documentTitle?: unknown
+}
+
 type WelcomeClaim = {
   uid: string
   db: ReturnType<typeof adminServices>["db"]
@@ -142,6 +152,48 @@ async function markContextAsSent(db: ReturnType<typeof adminServices>["db"], con
     patch = context.documentType === "task" ? { lastNotifiedAt: now } : { lastCommunicationAt: now }
   }
   await ref.set(patch, { merge: true })
+}
+
+async function saveEmailHistory(
+  caller: { uid: string; data: Record<string, unknown>; db: ReturnType<typeof adminServices>["db"] },
+  agencyId: string,
+  id: string,
+  input: EmailHistoryInput,
+  details: { to: string[]; cc: string[]; subject: string; from: string; replyTo: string; html: string; text: string; scheduledAt: string; messageKind: EmailMessageKind; context: EmailContext },
+) {
+  const recipients = Array.isArray(input.recipients)
+    ? input.recipients.filter((value): value is Record<string, unknown> => Boolean(value) && typeof value === "object").map((recipient) => ({
+        email: typeof recipient.email === "string" ? recipient.email : "",
+        ...(typeof recipient.name === "string" ? { name: recipient.name } : {}),
+        ...(typeof recipient.companyId === "string" ? { companyId: recipient.companyId } : {}),
+      })).filter((recipient) => recipient.email)
+    : []
+  const record = Object.fromEntries(Object.entries({
+    id,
+    providerId: id,
+    agencyId,
+    companyId: typeof input.companyId === "string" && input.companyId ? input.companyId : String(caller.data.companyId || caller.uid),
+    createdBy: caller.uid,
+    to: typeof input.to === "string" && input.to ? input.to : details.to.join(", "),
+    cc: details.cc.length ? details.cc : undefined,
+    subject: details.subject,
+    createdAt: typeof input.createdAt === "string" ? input.createdAt : new Date().toISOString(),
+    from: details.from,
+    replyTo: details.replyTo || undefined,
+    bodyHtml: details.html,
+    bodyText: details.text,
+    recipients: recipients.length ? recipients : undefined,
+    projectId: details.context.projectId,
+    projectName: typeof input.projectName === "string" ? input.projectName : undefined,
+    documentType: details.context.documentType,
+    documentId: details.context.documentId,
+    documentTitle: typeof input.documentTitle === "string" ? input.documentTitle : undefined,
+    companyName: typeof input.companyName === "string" ? input.companyName : undefined,
+    messageKind: details.messageKind,
+    status: details.scheduledAt ? "scheduled" : "sent",
+    scheduledAt: details.scheduledAt || undefined,
+  }).filter(([, value]) => value !== undefined))
+  await caller.db.collection("emailMessages").doc(id).set(record, { merge: true })
 }
 
 async function claimWelcomeEmail(caller: { uid: string; data: Record<string, unknown>; db: ReturnType<typeof adminServices>["db"] }, email: string): Promise<WelcomeClaim | null> {
@@ -254,7 +306,7 @@ export async function POST(request: Request) {
   let from = normalizeEmailAddress(process.env.EMAIL_FROM || "")
   let replyTo = normalizeEmailAddress(process.env.EMAIL_REPLY_TO || "") || from
 
-  let payload: { to?: unknown; cc?: unknown; from?: unknown; intent?: unknown; subject?: unknown; text?: unknown; html?: unknown; imageUrl?: unknown; brand?: unknown; cta?: unknown; branded?: unknown; type?: unknown; welcome?: unknown; templateId?: unknown; companyId?: unknown; projectId?: unknown; documentType?: unknown; documentId?: unknown; scheduledAt?: unknown }
+  let payload: { to?: unknown; cc?: unknown; from?: unknown; intent?: unknown; subject?: unknown; text?: unknown; html?: unknown; imageUrl?: unknown; brand?: unknown; cta?: unknown; branded?: unknown; type?: unknown; welcome?: unknown; templateId?: unknown; companyId?: unknown; projectId?: unknown; documentType?: unknown; documentId?: unknown; scheduledAt?: unknown; history?: EmailHistoryInput }
   try {
     payload = (await request.json()) as typeof payload
   } catch {
@@ -340,6 +392,7 @@ export async function POST(request: Request) {
   if (gmailConnected) {
     try { gmailAvailableSenders = await gmailSenders(agencyId) } catch { gmailAvailableSenders = [] }
   }
+  const history = payload.history && typeof payload.history === "object" ? payload.history : {}
   const gmailConnectedEmail = gmailConnected ? normalizeEmailAddress(await getAgencySecret(agencyId, "GMAIL_CONNECTED_EMAIL", "")) : ""
   if (!from) from = gmailAvailableSenders[0]?.display || gmailConnectedEmail
   replyTo = configuredReplyTo || from
@@ -497,6 +550,23 @@ export async function POST(request: Request) {
     if (caller && context.documentId && !scheduledAtIso) {
       try { await markContextAsSent(caller.db, context, agencyId) } catch { /* Sending remains successful if object sync is temporarily unavailable. */ }
     }
+    let historySaved = true
+    try {
+      await saveEmailHistory(caller, agencyId, sent[0].id, history, {
+        to: recipients,
+        cc: [],
+        subject,
+        from,
+        replyTo,
+        html: sent[0].html,
+        text: sent[0].text,
+        scheduledAt: scheduledAtIso,
+        messageKind,
+        context,
+      })
+    } catch {
+      historySaved = false
+    }
     void recordAgencyUsage(agencyId, "emailsSent", sent.length).catch(() => undefined)
     return NextResponse.json({
       id: sent[0].id,
@@ -507,6 +577,7 @@ export async function POST(request: Request) {
       suppressedCount: suppressedRecipients.length,
       scheduledAt: scheduledAtIso || null,
       context,
+      historySaved,
     })
   }
 
@@ -529,9 +600,26 @@ export async function POST(request: Request) {
   if (caller && context.documentId && !scheduledAtIso) {
     try { await markContextAsSent(caller.db, context, agencyId) } catch { /* Sending remains successful if object sync is temporarily unavailable. */ }
   }
+  let historySaved = true
+  try {
+    await saveEmailHistory(caller, agencyId, attempt.result.id, history, {
+      to: recipients,
+      cc,
+      subject,
+      from,
+      replyTo,
+      html: attempt.html,
+      text: attempt.brandedText,
+      scheduledAt: scheduledAtIso,
+      messageKind,
+      context,
+    })
+  } catch {
+    historySaved = false
+  }
   if (welcomeClaim) {
     try { await completeWelcomeEmail(welcomeClaim) } catch { /* The claim expires and can be retried if persistence is temporarily unavailable. */ }
   }
   void recordAgencyUsage(agencyId, "emailsSent", recipients.length + cc.length).catch(() => undefined)
-  return NextResponse.json({ id: attempt.result.id, html: attempt.html, text: attempt.brandedText, replyTo: replyTo || null, scheduledAt: scheduledAtIso || null, cc, context })
+  return NextResponse.json({ id: attempt.result.id, html: attempt.html, text: attempt.brandedText, replyTo: replyTo || null, scheduledAt: scheduledAtIso || null, cc, context, historySaved })
 }

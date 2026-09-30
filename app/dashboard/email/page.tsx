@@ -1252,9 +1252,18 @@ export default function EmailPage() {
           documentType: composeContext?.documentType,
           documentId: composeContext?.documentId,
           scheduledAt: scheduledAtIso || undefined,
+          history: {
+            companyId: savedCompanyId,
+            to: selectedList ? `${selectedList.name} (${selectedList.contactEmails.length})` : to.trim(),
+            createdAt: new Date().toISOString(),
+            recipients: recipientRecords,
+            companyName: composeContext?.companyName,
+            projectName: composeContext?.projectName,
+            documentTitle: composeContext?.documentTitle,
+          },
         }),
       })
-      const result = (await response.json()) as { id?: string; html?: string; text?: string; replyTo?: string | null; suppressedCount?: number; scheduledAt?: string | null; cc?: string[]; error?: string }
+      const result = (await response.json()) as { id?: string; html?: string; text?: string; replyTo?: string | null; suppressedCount?: number; scheduledAt?: string | null; cc?: string[]; historySaved?: boolean; error?: string }
 
       if (!response.ok || !result.id) {
         throw new Error(result.error || "The message could not be sent.")
@@ -1282,16 +1291,7 @@ export default function EmailPage() {
         status: scheduledAtIso ? "scheduled" : "sent",
         scheduledAt: scheduledAtIso || undefined,
       }
-      let historySaved = true
-      try {
-        await saveEmailMessage({
-          ...sentMessage,
-          companyId: savedCompanyId,
-          createdBy: user.uid,
-        })
-      } catch {
-        historySaved = false
-      }
+      const historySaved = result.historySaved !== false
       setMessages((current) => [sentMessage, ...current])
       setTo("")
       setCc("")
