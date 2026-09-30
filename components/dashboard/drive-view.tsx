@@ -44,6 +44,9 @@ import { EmptyState, EmptySearchState } from "@/components/dashboard/empty-state
 import { DashboardPageSkeleton } from "@/components/dashboard/dashboard-page-skeleton"
 import { Skeleton } from "@/components/ui/skeleton"
 import { getUsers, type AppUser } from "@/lib/users"
+import { getOrganizations } from "@/lib/organizations"
+import { getProjects } from "@/lib/projects"
+import { mediaKindForUrl } from "@/lib/media"
 import {
   createDocument,
   deleteDocument,
@@ -186,6 +189,56 @@ const MAX_VIDEO_BYTES = MAX_VIDEO_MB * 1024 * 1024
 
 type UploadingCard = { id: string; name: string; progress: number }
 
+function companyAndProjectMedia(): Promise<SharedDocument[]> {
+  return Promise.all([getOrganizations().catch(() => []), getProjects().catch(() => [])]).then(([organizations, projects]) => {
+    const media: SharedDocument[] = []
+
+    for (const organization of organizations) {
+      const items = [
+        ...(organization.media ?? []).map((url, index) => ({ url, label: `Company image ${index + 1}` })),
+        ...(organization.logoUrl ? [{ url: organization.logoUrl, label: "Company logo" }] : []),
+      ]
+      for (const item of items) {
+        if (!item.url) continue
+        media.push({
+          id: `organization-media-${organization.id}-${media.length}`,
+          title: `${organization.name || "Company"} — ${item.label}`,
+          url: item.url,
+          companyId: organization.id,
+          description: `Media from ${organization.name || "company"}`,
+          type: mediaKindForUrl(item.url),
+          thumbnailUrl: mediaKindForUrl(item.url) === "image" ? item.url : undefined,
+          createdAt: organization.updatedAt ?? organization.createdAt,
+        })
+      }
+    }
+
+    for (const project of projects) {
+      const items = [
+        ...((project.imageUrl || project.thumbnailUrl) ? [{ url: project.imageUrl || project.thumbnailUrl || "", label: "Project cover" }] : []),
+        ...(project.logoUrl ? [{ url: project.logoUrl, label: "Project logo" }] : []),
+        ...(project.gallery ?? []).map((url, index) => ({ url, label: `Gallery media ${index + 1}` })),
+      ]
+      for (const item of items) {
+        if (!item.url) continue
+        media.push({
+          id: `project-media-${project.id}-${media.length}`,
+          title: `${project.title || "Project"} — ${item.label}`,
+          url: item.url,
+          companyId: project.companyId,
+          projectId: project.id,
+          description: `Media from ${project.title || "project"}`,
+          type: mediaKindForUrl(item.url),
+          thumbnailUrl: mediaKindForUrl(item.url) === "image" ? item.url : undefined,
+          createdAt: project.updatedAt ?? project.createdAt,
+        })
+      }
+    }
+
+    return media
+  })
+}
+
 /**
  * One Drive for everyone: an admin gets upload, sharing, and delete; a client
  * gets a read-only view of what has been shared with them. Same grid, same
@@ -220,8 +273,13 @@ export function DriveView() {
     setError(null)
     try {
       if (adminView) {
-        const [docs, us] = await Promise.all([getDocuments(), getUsers()])
-        setDocuments(docs)
+        const [docs, us, pageMedia] = await Promise.all([getDocuments(), getUsers(), companyAndProjectMedia()])
+        const seenUrls = new Set<string>()
+        setDocuments([...docs, ...pageMedia].filter((document) => {
+          if (seenUrls.has(document.url)) return false
+          seenUrls.add(document.url)
+          return true
+        }))
         setUsers(us)
       } else {
         setDocuments(await getDocumentsForClient(companyId, uid))
@@ -439,7 +497,7 @@ export function DriveView() {
           {visibleDocuments.length === 0 && uploading.length === 0 && (
             <EmptySearchState className="py-16" label="No files match your search." />
           )}
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
             {uploading.map((u) => (
               <div key={u.id} className="flex flex-col overflow-hidden rounded-2xl bg-[#edf2f8] p-3 dark:bg-muted">
                 <div className="mb-3 truncate px-1 text-sm font-medium">{u.name}</div>

@@ -322,7 +322,7 @@ export default function TasksAdminPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete task?</AlertDialogTitle>
             <AlertDialogDescription>
-              This permanently deletes &quot;{visibleTasks.find((task) => task.id === deleteId)?.name || "this task"}&quot;. This cannot be undone.
+              This permanently deletes &quot;{tasks.find((task) => task.id === deleteId)?.name || "this task"}&quot;. This cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -343,12 +343,10 @@ export default function TasksAdminPage() {
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <SheetTitle>{selectedId === "new" ? "New task" : "Edit task"}</SheetTitle>
-                <SheetDescription>
-                  {selectedId === "new" ? "Create a task for any client." : selectedTask?.name ?? ""}
-                </SheetDescription>
+                {selectedId === "new" && <SheetDescription>Create a task for any client.</SheetDescription>}
               </div>
               {selectedTask && (
-                <Button variant="ghost" size="icon" asChild className="mr-8 shrink-0" title="Open full task page">
+                <Button variant="ghost" size="icon" asChild className="absolute top-2 right-8 z-10" title="Open full task page">
                   <Link href={`/dashboard/tasks/${encodeURIComponent(selectedTask.id)}`} aria-label="Open full task page">
                     <Maximize2 className="size-4" aria-hidden="true" />
                   </Link>
@@ -361,6 +359,19 @@ export default function TasksAdminPage() {
               <TaskForm
                 key={selectedId}
                 task={selectedId === "new" ? null : selectedTask}
+                leadingAction={selectedTask ? (
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    className="shrink-0"
+                    disabled={deleting === selectedTask.id}
+                    onClick={() => setDeleteId(selectedTask.id)}
+                    aria-label="Delete task"
+                  >
+                    {deleting === selectedTask.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4 sm:mr-2" />}
+                    <span className="hidden sm:inline">Delete task</span>
+                  </Button>
+                ) : undefined}
                 onSaved={handleSaved}
                 onCancel={() => setSelectedId(null)}
               />

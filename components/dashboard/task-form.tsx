@@ -76,11 +76,12 @@ interface TaskFormProps {
    * "+ New" open the form with that column's status preselected.
    */
   defaults?: { status?: TaskStatus }
+  leadingAction?: React.ReactNode
   onSaved: (id: string) => void
   onCancel: () => void
 }
 
-export function TaskForm({ task, fixedClient, defaults, onSaved, onCancel }: TaskFormProps) {
+export function TaskForm({ task, fixedClient, defaults, leadingAction, onSaved, onCancel }: TaskFormProps) {
   const isEdit = Boolean(task)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -454,14 +455,17 @@ export function TaskForm({ task, fixedClient, defaults, onSaved, onCancel }: Tas
         {error && <p className="text-sm text-destructive">{error}</p>}
       </div>
 
-      <div className="flex justify-end gap-3">
-        <Button type="button" variant="outline" onClick={onCancel}>
-          Cancel
-        </Button>
-        <Button type="submit" disabled={saving}>
-          {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          {isEdit ? "Save Changes" : "Create Task"}
-        </Button>
+      <div className="flex items-center justify-between gap-3">
+        {leadingAction}
+        <div className="ml-auto flex shrink-0 gap-3">
+          <Button type="button" variant="outline" onClick={onCancel}>
+            Cancel
+          </Button>
+          <Button type="submit" disabled={saving}>
+            {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {isEdit ? "Save Changes" : "Create Task"}
+          </Button>
+        </div>
       </div>
     </form>
   )

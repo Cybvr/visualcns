@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation"
 
-/** Drive lives inside Documents now, under the Media filter. This keeps old links working. */
+/** Keep old Drive links working by sending them to the Media page. */
 export default function DrivePage() {
-  redirect("/dashboard/documents?type=media")
+  redirect("/dashboard/media")
 }

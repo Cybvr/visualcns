@@ -28,6 +28,8 @@ export function dashboardPageTitle(pathname: string): string {
       return "Account"
     case "agent":
       return "Agent"
+    case "chats":
+      return "All Chats"
     case "overview":
       return "Overview"
     case "companies":
@@ -50,6 +52,8 @@ export function dashboardPageTitle(pathname: string): string {
       if (!record) return "Invoices"
       if (record === "new") return "New Invoice"
       return action === "edit" ? "Edit Invoice" : "Invoice"
+    case "media":
+      return "Media"
     case "projects":
       return record ? "Project" : "Projects"
     case "seo":

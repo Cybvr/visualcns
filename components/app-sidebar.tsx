@@ -3,7 +3,7 @@
 import * as React from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { FiChevronRight } from "react-icons/fi"
+import { FiChevronRight, FiMessageSquare } from "react-icons/fi"
 import type { ComponentType, ReactNode } from "react"
 
 import { useAuth } from "@/components/auth-provider"
@@ -195,9 +195,9 @@ export function AppSidebar({
                 </React.Fragment>
               ))}
             </SidebarMenu>
-            {conversations.length > 0 && (
-              <div className="mt-6 group-data-[collapsible=icon]:hidden">
-                <div className="surface-caption px-2 pb-1">Recents</div>
+            <div className="mt-6 group-data-[collapsible=icon]:hidden">
+              <div className="surface-caption px-2 pb-1">Recents</div>
+              {conversations.length > 0 && (
                 <SidebarMenu className="gap-1 max-md:gap-1.5">
                   {conversations.slice(0, isMobile ? 3 : 5).map((conversation) => (
                     <SidebarMenuItem key={conversation.id}>
@@ -217,8 +217,18 @@ export function AppSidebar({
                     </SidebarMenuItem>
                   ))}
                 </SidebarMenu>
-              </div>
-            )}
+              )}
+              <SidebarMenu className="mt-1 gap-1 max-md:gap-1.5">
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={isActive(pathname, "/dashboard/chats", rootHref)} tooltip="All chats" className={mobileNavButton}>
+                    <Link href="/dashboard/chats" onClick={() => handleNavigate()}>
+                      <FiMessageSquare className="h-4 w-4" />
+                      <span className="sidebar-nav-label">All chats</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </div>
             {navExtra && <div className="mt-2 group-data-[collapsible=icon]:hidden">{navExtra}</div>}
           </SidebarGroup>
         </SidebarContent>

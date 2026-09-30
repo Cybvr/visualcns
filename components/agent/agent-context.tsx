@@ -4,7 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 
 import { useAuth } from "@/components/auth-provider"
 import { db } from "@/lib/firebase"
-import { collection, doc, getDoc, getDocs, limit, orderBy, query, setDoc, Timestamp } from "firebase/firestore"
+import { collection, doc, getDoc, getDocs, orderBy, query, setDoc, Timestamp } from "firebase/firestore"
 
 /** One field in an inline form the agent asks the user to fill in. */
 export type AgentFormField = {
@@ -89,6 +89,7 @@ export type AgentConversation = {
   id: string
   title: string
   messages: AgentMessage[]
+  updatedAt?: number
 }
 
 interface AgentContextValue {
@@ -97,6 +98,7 @@ interface AgentContextValue {
   toggle: () => void
   messages: AgentMessage[]
   conversations: AgentConversation[]
+  conversationsLoading: boolean
   activeConversationId: string
   sending: boolean
   firstName: string
@@ -119,6 +121,7 @@ export function AgentProvider({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false)
   const [messages, setMessages] = useState<AgentMessage[]>([])
   const [conversations, setConversations] = useState<AgentConversation[]>([])
+  const [conversationsLoading, setConversationsLoading] = useState(true)
   const [activeConversationId, setActiveConversationId] = useState("")
   const [sending, setSending] = useState(false)
   const nextId = useRef(1)
@@ -129,13 +132,15 @@ export function AgentProvider({ children }: { children: ReactNode }) {
       setMessages([])
       setConversations([])
       setActiveConversationId("")
+      setConversationsLoading(false)
       return () => { active = false }
     }
 
+    setConversationsLoading(true)
     setMessages([])
     setConversations([])
     setActiveConversationId("")
-    void getDocs(query(collection(db, "agentConversations", user.uid, "chats"), orderBy("updatedAt", "desc"), limit(12)))
+    void getDocs(query(collection(db, "agentConversations", user.uid, "chats"), orderBy("updatedAt", "desc")))
       .then(async (snapshot) => {
         if (!active) return
         let restored: AgentConversation[] = snapshot.docs.map((chat) => {
@@ -151,7 +156,13 @@ export function AgentProvider({ children }: { children: ReactNode }) {
                 .slice(-MAX_HISTORY_MESSAGES)
                 .map((message) => ({ ...message, id: String(message.id), ...(Array.isArray(message.images) ? { images: message.images.filter((url): url is string => typeof url === "string") } : {}), ...(Array.isArray(message.files) ? { files: message.files.filter((file): file is AgentFile => Boolean(file) && typeof file.url === "string" && typeof file.name === "string") } : {}) }))
             : []
-          return { id: chat.id, title: String(chat.data().title || NEW_CHAT_TITLE), messages: chatMessages }
+          const updatedAt = chat.data().updatedAt
+          return {
+            id: chat.id,
+            title: String(chat.data().title || NEW_CHAT_TITLE),
+            messages: chatMessages,
+            ...(updatedAt instanceof Timestamp ? { updatedAt: updatedAt.toMillis() } : {}),
+          }
         })
 
         // Migrate the single-transcript format used by the first version.
@@ -174,8 +185,12 @@ export function AgentProvider({ children }: { children: ReactNode }) {
 
         if (!active) return
         setConversations(restored)
+        setConversationsLoading(false)
       })
-      .catch((error) => console.error("Agent history load failed", error))
+      .catch((error) => {
+        console.error("Agent history load failed", error)
+        if (active) setConversationsLoading(false)
+      })
 
     return () => { active = false }
   }, [user?.uid])
@@ -197,8 +212,9 @@ export function AgentProvider({ children }: { children: ReactNode }) {
 
   const rememberConversation = useCallback(
     (conversation: AgentConversation) => {
-      setConversations((current) => [conversation, ...current.filter((item) => item.id !== conversation.id)])
-      persistConversation(conversation)
+      const updated = { ...conversation, updatedAt: Date.now() }
+      setConversations((current) => [updated, ...current.filter((item) => item.id !== conversation.id)])
+      persistConversation(updated)
     },
     [persistConversation],
   )
@@ -306,8 +322,8 @@ export function AgentProvider({ children }: { children: ReactNode }) {
   const toggle = useCallback(() => setOpen((current) => !current), [])
 
   const value = useMemo(
-    () => ({ open, setOpen, toggle, messages, conversations, activeConversationId, sending, firstName, send, reset, selectConversation }),
-    [open, toggle, messages, conversations, activeConversationId, sending, firstName, send, reset, selectConversation],
+    () => ({ open, setOpen, toggle, messages, conversations, conversationsLoading, activeConversationId, sending, firstName, send, reset, selectConversation }),
+    [open, toggle, messages, conversations, conversationsLoading, activeConversationId, sending, firstName, send, reset, selectConversation],
   )
 
   return <AgentContext.Provider value={value}>{children}</AgentContext.Provider>

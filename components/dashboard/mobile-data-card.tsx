@@ -106,7 +106,7 @@ export function MobileDataCard({
   const cardClassName = cn(
     "relative flex items-center gap-2 rounded-sm p-3 transition-colors",
     variant === "task" && "max-sm:gap-5 max-sm:rounded-none max-sm:border-b max-sm:border-border max-sm:bg-transparent max-sm:px-0 max-sm:py-5 max-sm:hover:bg-transparent",
-    selected ? "bg-muted" : "bg-card hover:bg-muted/30",
+    selected ? "bg-muted/50" : "bg-card hover:bg-muted/50",
     (href || onClick) && "cursor-pointer",
   )
 
