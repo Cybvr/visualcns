@@ -39,6 +39,7 @@ import { TableBulkBar } from "@/components/dashboard/table-bulk-bar"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useRowSelection } from "@/hooks/use-row-selection"
 import { formatTimestamp, tsToMillis } from "@/lib/tasks"
+import { buildEmailComposeHref } from "@/lib/email-composer"
 
 export default function UsersAdminPage() {
   const router = useRouter()
@@ -148,6 +149,30 @@ export default function UsersAdminPage() {
     router.push(canViewClient ? `/${encodeURIComponent(u.companyId as string)}` : "/dashboard/overview")
   }
 
+  function handleEmail(u: AppUser) {
+    const recipientEmail = u.email?.trim()
+    if (!recipientEmail) return
+    const recipientName = u.displayName?.trim() || undefined
+    router.push(buildEmailComposeHref({
+      recipientEmail,
+      recipientName,
+      body: `Hi ${recipientName?.split(/\s+/)[0] || "there"},\n\n`,
+    }))
+  }
+
+  function contactActions(u: AppUser) {
+    return (
+      <>
+        <DropdownMenuItem disabled={!u.email?.trim()} onSelect={() => handleEmail(u)}>Email</DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => setSelectedId(u.uid)}>Edit</DropdownMenuItem>
+        {((u.role === "client" && u.companyId) || ((u.role === "admin" || u.role === "superadmin") && u.agencyId)) && (
+          <DropdownMenuItem onSelect={() => handleViewAs(u)}>View as</DropdownMenuItem>
+        )}
+        <DropdownMenuItem variant="destructive" onSelect={() => setPendingDelete(u)}>Delete</DropdownMenuItem>
+      </>
+    )
+  }
+
   const { results: visibleUsers, bar } = useFilterBar({
     items: users,
     search: searchUser,
@@ -238,7 +263,7 @@ export default function UsersAdminPage() {
                     </span>
                   }
                   menuLabel={`Options for ${u.displayName || u.email || "contact"}`}
-                  menu={<DropdownMenuItem onSelect={() => setSelectedId(u.uid)}>Edit contact</DropdownMenuItem>}
+                  menu={contactActions(u)}
                 />
               ))}
             </GridCardList>
@@ -255,11 +280,7 @@ export default function UsersAdminPage() {
                     imageUrl={u.photoURL}
                     icon={<ReactIcon icon={FaUser} className="size-5 text-violet-600 dark:text-violet-400" aria-hidden="true" />}
                     menuLabel={`Options for ${u.displayName || u.email || "contact"}`}
-                    menu={
-                      <>
-                        <DropdownMenuItem onSelect={() => setSelectedId(u.uid)}>Edit contact</DropdownMenuItem>
-                      </>
-                    }
+                    menu={contactActions(u)}
                   />
                 ))}
               </div>
@@ -334,9 +355,7 @@ export default function UsersAdminPage() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem onSelect={() => setSelectedId(u.uid)}>Edit contact</DropdownMenuItem>
-                            {((u.role === "client" && u.companyId) || ((u.role === "admin" || u.role === "superadmin") && u.agencyId)) && <DropdownMenuItem onSelect={() => handleViewAs(u)}>View as</DropdownMenuItem>}
-                            <DropdownMenuItem variant="destructive" onSelect={() => setPendingDelete(u)}>Delete contact</DropdownMenuItem>
+                            {contactActions(u)}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>

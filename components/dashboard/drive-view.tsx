@@ -337,6 +337,10 @@ export function DriveView() {
       } catch (err) {
         console.error("Error uploading file:", err)
         setUploading((prev) => prev.filter((u) => u.id !== uploadId))
+        const denied = typeof err === "object" && err !== null && "code" in err && err.code === "storage/unauthorized"
+        toast.error(denied
+          ? `You don't have permission to upload "${file.name}".`
+          : `Couldn't upload "${file.name}". Please try again.`)
       }
     }
   }
