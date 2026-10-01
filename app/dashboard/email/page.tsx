@@ -1564,44 +1564,6 @@ export default function EmailPage() {
     }
   }
 
-  async function addInsightsTemplate() {
-    if (!user?.uid) {
-      setTemplateNotice({ tone: "error", text: "Sign in before adding a template." })
-      return
-    }
-    const insightsTemplate: EmailTemplate = {
-      id: "announce-insights",
-      name: "Announcement — Insights",
-      subject: "Introducing Insights in your portal",
-      body:
-        "<p>Hi there,</p>" +
-        "<p>We’ve added a new section to your portal called Insights.</p>" +
-        "<p>It gives you practical suggestions for growing your business across four areas: your website, your social media, your brand and design, and your content and marketing. Each suggestion is based on your account and the work we’re already doing together, so they’re specific to you rather than generic advice.</p>" +
-        "<p>You can open Insights any time from your company page, and refresh it whenever you’d like a fresh set of ideas.</p>" +
-        "<p>Take a look when you have a moment, and let us know which suggestions you’d like us to take on. We’re happy to talk any of them through.</p>" +
-        "<p><a href=\"/\" style=\"display:inline-block;background:#2856d9;color:#ffffff;text-decoration:none;font-weight:600;padding:12px 22px;border-radius:10px\">Open company page</a></p>" +
-        "<p>Best regards,<br />The VisualCNS team</p>",
-      updatedAt: new Date().toISOString(),
-    }
-    try {
-      const storedTemplate: EmailTemplate = {
-        ...insightsTemplate,
-        id: `${workspaceId}__${insightsTemplate.id}`,
-        templateId: insightsTemplate.id,
-        companyId: workspaceId,
-        createdBy: user.uid,
-      }
-      await saveEmailTemplate(storedTemplate as EmailTemplate & { companyId: string; createdBy: string })
-      setTemplates((current) => {
-        const rest = current.filter((template) => template.id !== storedTemplate.id)
-        return [storedTemplate, ...rest]
-      })
-      setTemplateNotice({ tone: "success", text: "Insights announcement added to your templates." })
-    } catch {
-      setTemplateNotice({ tone: "error", text: "The template could not be added. Try again." })
-    }
-  }
-
   async function addVisitorWelcomeTemplate() {
     if (!user?.uid) {
       setTemplateNotice({ tone: "error", text: "Sign in before adding a template." })
@@ -2020,7 +1982,6 @@ export default function EmailPage() {
             mobileTemplateView={mobileTemplateView}
             businessProfile={businessProfile}
             isAdmin={isAdmin}
-            addInsightsTemplate={addInsightsTemplate}
             addVisitorWelcomeTemplate={addVisitorWelcomeTemplate}
             addVisitorSalesTemplate={addVisitorSalesTemplate}
             resetTemplateEditor={resetTemplateEditor}

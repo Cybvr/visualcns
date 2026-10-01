@@ -34,7 +34,6 @@ export type EmailTemplatesProps = {
   mobileTemplateView: "list" | "editor"
   businessProfile: BusinessProfile | null
   isAdmin: boolean
-  addInsightsTemplate: () => void
   addVisitorWelcomeTemplate: () => void
   addVisitorSalesTemplate: () => void
   resetTemplateEditor: () => void
@@ -68,7 +67,6 @@ export function EmailTemplates({
   mobileTemplateView,
   businessProfile,
   isAdmin,
-  addInsightsTemplate,
   addVisitorWelcomeTemplate,
   addVisitorSalesTemplate,
   resetTemplateEditor,
@@ -79,7 +77,6 @@ export function EmailTemplates({
 }: EmailTemplatesProps) {
   const hasVisitorWelcomeTemplate = templates.some((template) => (template.templateId || template.id) === "visitor-signup-welcome")
   const hasVisitorSalesTemplate = templates.some((template) => (template.templateId || template.id) === "visitor-signin-introduction")
-  const hasInsightsTemplate = templates.some((template) => (template.templateId || template.id) === "announce-insights")
 
   return (
     <section className="flex min-h-0 w-full min-w-0 max-w-full flex-1 flex-col gap-4 lg:gap-6 lg:overflow-hidden" role="tabpanel">
@@ -117,11 +114,10 @@ export function EmailTemplates({
         </div>
       </form>
       <div className={cn("min-h-0 w-full min-w-0 max-w-full max-lg:shrink-0 lg:flex-1 lg:overflow-y-auto", mobileTemplateView === "list" ? "block" : "hidden")}>
-        {isAdmin && (!hasVisitorSalesTemplate || !hasVisitorWelcomeTemplate || !hasInsightsTemplate) && (
+        {isAdmin && (!hasVisitorSalesTemplate || !hasVisitorWelcomeTemplate) && (
           <div className="flex flex-wrap items-center justify-end gap-2 border-b border-border p-2">
             {!hasVisitorSalesTemplate && <Button type="button" variant="outline" size="sm" onClick={addVisitorSalesTemplate}>Add Visitor introduction email</Button>}
             {!hasVisitorWelcomeTemplate && <Button type="button" variant="outline" size="sm" onClick={addVisitorWelcomeTemplate}>Add Visitor welcome email</Button>}
-            {!hasInsightsTemplate && <Button type="button" variant="outline" size="sm" onClick={addInsightsTemplate}>Add Insights email</Button>}
           </div>
         )}
         {templates.length === 0 ? <div className="mt-3 rounded-[12px] border border-dashed border-border px-4 py-8 text-center"><FileText className="mx-auto size-5 text-muted-foreground" aria-hidden="true" /><p className="mt-3 text-sm font-medium">No templates yet</p><p className="mt-1 text-xs leading-5 text-muted-foreground">Save the first one using the editor.</p></div> : visibleTemplates.length === 0 ? <div className="mt-3 rounded-[12px] border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground">No templates match your search.</div> : (
