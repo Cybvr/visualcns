@@ -6,6 +6,7 @@ import {
 } from "firebase/firestore"
 import { db } from "./firebase"
 import type { Project } from "./projects"
+import { tsToMillis } from "./tasks"
 
 export interface CaseStudyProject extends Project {
   slug: string
@@ -28,11 +29,16 @@ export interface CaseStudyProject extends Project {
   technologies: string[]
 }
 
-function toCaseStudy(project: Project): CaseStudyProject {
+type PublishedCaseStudy = Project & { isCaseStudy: true; caseStudyStatus: "published" }
+
+function isPublishedCaseStudy(project: Project): project is PublishedCaseStudy {
+  return project.isCaseStudy === true && project.caseStudyStatus === "published"
+}
+
+function toCaseStudy(project: PublishedCaseStudy): CaseStudyProject {
   return {
     ...project,
     slug: project.slug || project.id,
-    caseStudyStatus: "published",
     excerpt: project.excerpt ?? "",
     description: project.description ?? "",
     category: project.category ?? [],
@@ -54,14 +60,24 @@ function toCaseStudy(project: Project): CaseStudyProject {
 
 /** Published client projects selected for the public Case Studies experience. */
 export async function getCaseStudyProjects(): Promise<CaseStudyProject[]> {
-  const snapshot = await getDocs(collection(db, "projects"))
+  const snapshot = await getDocs(query(
+    collection(db, "projects"),
+    where("isCaseStudy", "==", true),
+    where("caseStudyStatus", "==", "published"),
+  ))
 
   return snapshot.docs
-    .map((snapshotDoc) => toCaseStudy({
+    .map((snapshotDoc) => ({
       ...(snapshotDoc.data() as Omit<Project, "id">),
       id: snapshotDoc.id,
-    }))
-    .sort((first, second) => first.order - second.order)
+    }) as Project)
+    .filter(isPublishedCaseStudy)
+    .map(toCaseStudy)
+    .sort((first, second) => {
+      const firstDate = tsToMillis(first.createdAt) || tsToMillis(first.updatedAt)
+      const secondDate = tsToMillis(second.createdAt) || tsToMillis(second.updatedAt)
+      return secondDate - firstDate || first.order - second.order || first.id.localeCompare(second.id)
+    })
 }
 
 export async function getCaseStudyProjectBySlug(slug: string): Promise<CaseStudyProject | null> {
@@ -73,15 +89,6 @@ export async function getCaseStudyProjectBySlug(slug: string): Promise<CaseStudy
 /** Published case studies for one client - what a company's public page shows under Projects. */
 export async function getCaseStudyProjectsByCompanyId(companyId: string): Promise<CaseStudyProject[]> {
   if (!companyId) return []
-  const snapshot = await getDocs(query(
-    collection(db, "projects"),
-    where("companyId", "==", companyId),
-  ))
-
-  return snapshot.docs
-    .map((snapshotDoc) => toCaseStudy({
-      ...(snapshotDoc.data() as Omit<Project, "id">),
-      id: snapshotDoc.id,
-    }))
-    .sort((first, second) => first.order - second.order)
+  const projects = await getCaseStudyProjects()
+  return projects.filter((project) => project.companyId === companyId)
 }

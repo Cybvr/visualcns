@@ -770,7 +770,7 @@ export function AgentChat({
               rows={1}
               placeholder="Ask Ngai"
               aria-label="Message Ngai"
-              className="min-h-0 w-full resize-none overflow-y-auto rounded-lg border-0 bg-transparent px-2 py-2 shadow-none [field-sizing:fixed] focus-visible:border-transparent focus-visible:ring-0"
+              className="min-h-0 w-full resize-none overflow-y-auto rounded-lg border-0 bg-transparent! px-2 py-2 shadow-none [field-sizing:fixed] focus-visible:border-transparent focus-visible:ring-0"
             />
             <div className="flex items-center justify-between">
             <Button

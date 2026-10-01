@@ -1,0 +1,76 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Barlow:ital,wght@1,200;1,300&family=Barlow+Condensed:ital,wght@1,800;1,900&family=Big+Shoulders+Stencil+Display:wght@900&family=IBM+Plex+Mono:wght@500;600&display=block" rel="stylesheet">
+<style>
+  :root { --gold:#c4ae71; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  html,body { width:1080px; height:1920px; overflow:hidden; background:#000; }
+  body { color:#fff; -webkit-font-smoothing:antialiased; position:relative; }
+  .bc { position:absolute; font-family:'Barlow Condensed', sans-serif; font-weight:900; font-style:italic; text-transform:uppercase; line-height:.86; white-space:nowrap; }
+  .st { position:absolute; font-family:'Big Shoulders Stencil Display', sans-serif; font-weight:900; text-transform:uppercase; line-height:.8; white-space:nowrap; }
+  .th { position:absolute; font-family:Barlow, sans-serif; font-weight:200; font-style:italic; white-space:nowrap; }
+  .mono { position:absolute; font-family:'IBM Plex Mono', monospace; font-weight:600; text-transform:uppercase; letter-spacing:.1em; line-height:1.5; }
+  .duo { position:absolute; overflow:hidden; background:#000; }
+  .duo .ph { position:absolute; inset:0; background-size:cover; filter:grayscale(1) contrast(1.5) brightness(1.05); }
+  .duo::after { content:""; position:absolute; inset:0; background:var(--gold); mix-blend-mode:multiply; }
+  .duo::before { content:""; position:absolute; inset:0; z-index:2; background-image:radial-gradient(rgba(0,0,0,.35) 1.2px, transparent 1.6px); background-size:7px 7px; mix-blend-mode:multiply; }
+  .grain { position:absolute; inset:0; opacity:.12; mix-blend-mode:overlay; pointer-events:none; z-index:80; }
+  .li { display:flex; align-items:center; gap:18px; font-family:'Barlow Condensed', sans-serif; font-weight:900; font-style:italic; font-size:46px; line-height:1; text-transform:uppercase; }
+  .li svg { width:58px; height:24px; flex-shrink:0; }
+</style>
+</head>
+<body>
+<span style="position:absolute; left:-9999px; font-family:'Barlow Condensed'; font-weight:900; font-style:italic">A</span><span style="position:absolute; left:-9999px; font-family:'Big Shoulders Stencil Display'; font-weight:900">A</span><span style="position:absolute; left:-9999px; font-family:'IBM Plex Mono'; font-weight:600">A</span><span style="position:absolute; left:-9999px; font-family:Barlow; font-weight:200; font-style:italic">A</span>
+<svg width="0" height="0" style="position:absolute">
+  <filter id="noise"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" seed="11"/><feColorMatrix type="saturate" values="0"/></filter>
+  <defs><path id="circ" d="M150 150 m-112 0 a112 112 0 1 1 224 0 a112 112 0 1 1 -224 0"/></defs>
+  <symbol id="chev" viewBox="0 0 150 60"><path d="M6 6 L30 30 L6 54 M56 6 L80 30 L56 54 M106 6 L130 30 L106 54" fill="none" stroke="#c4ae71" stroke-width="11"/></symbol>
+</svg>
+
+<!-- Photo with a diagonal cut, title over it -->
+<div class="duo" id="aPh" style="left:0; top:0; width:1080px; height:1180px; clip-path:polygon(0 0, 100% 0, 100% 78%, 0 100%)">
+  <div class="ph" style="background-image:url('../ko-sparring%20II/Still%202026-07-09%20012858_1.12.3.jpg'); background-position:62% 35%"></div>
+</div>
+<div id="aGr" style="position:absolute; left:0; top:0; width:1080px; height:1180px; background:linear-gradient(rgba(0,0,0,.55), transparent 30%, transparent 55%, rgba(0,0,0,.7)); clip-path:polygon(0 0, 100% 0, 100% 78%, 0 100%)"></div>
+<p class="bc" id="aH1" style="left:48px; top:40px; font-size:38px; color:var(--gold)">KO Style × Sparring</p>
+<p class="mono" id="aH2" style="right:48px; top:46px; font-size:22px">Dubai · 2026</p>
+<span class="bc" id="t1" style="left:44px; top:560px">Sparring</span>
+<span class="bc" id="t2" style="left:44px; top:790px; color:var(--gold)">Series.</span>
+
+<!-- Fight of the night sticker -->
+<svg id="aSt" width="300" height="300" viewBox="0 0 300 300" style="position:absolute; right:40px; top:170px">
+  <circle cx="150" cy="150" r="146" fill="#c4ae71"/><circle cx="150" cy="150" r="80" fill="#000"/>
+  <text id="aSpin" style="transform-origin:150px 150px" font-family="IBM Plex Mono" font-weight="600" font-size="23" letter-spacing="3" fill="#000"><textPath href="#circ">FIGHT OF THE NIGHT · FIGHT OF THE NIGHT ·</textPath></text>
+  <text x="150" y="146" text-anchor="middle" font-family="Barlow Condensed" font-style="italic" font-weight="900" font-size="58" fill="#c4ae71">WIN</text>
+  <text x="150" y="182" text-anchor="middle" font-family="IBM Plex Mono" font-weight="600" font-size="17" letter-spacing="2" fill="#fff">GLOVES + RBL</text>
+</svg>
+
+<!-- Prize slab -->
+<div id="aSlab" style="position:absolute; left:-40px; right:-40px; top:1130px; height:170px; background:var(--gold); transform:rotate(-3deg)"></div>
+<p class="bc" id="aW" style="left:48px; top:1180px; font-size:66px; color:#000; transform:rotate(-3deg); transform-origin:0 0">Fight of the night wins</p>
+<p class="mono" id="aWm" style="left:52px; top:1252px; font-size:23px; color:#000; transform:rotate(-3deg); transform-origin:0 0; letter-spacing:.06em">Free KO Style boxing gloves + a spot on the next RBL fight card</p>
+
+<!-- Date and details -->
+<span class="bc" id="aD" style="left:40px; top:1360px; font-size:260px; color:transparent; -webkit-text-stroke:5px var(--gold)">04.10</span>
+<p class="mono" id="aT" style="left:50px; top:1600px; font-size:24px; line-height:1.6">12:30 weigh-ins<br><span style="color:#8a8a8a">Ends 16:00</span></p>
+<div id="aL" style="position:absolute; left:610px; top:1380px; display:flex; flex-direction:column; gap:22px">
+  <p class="li"><svg><use href="#chev"/></svg>Free entry</p>
+  <p class="li"><svg><use href="#chev"/></svg>T-shirt included</p>
+  <p class="li"><svg><use href="#chev"/></svg>Gloves provided</p>
+  <p class="li" style="color:var(--gold)"><svg><use href="#chev"/></svg>Bring your<br>own headguard</p>
+</div>
+
+<!-- Footer -->
+<div id="aF" style="position:absolute; left:48px; right:48px; top:1710px; transform-origin:0 0; border-top:2px solid #2c2c2c"></div>
+<p class="mono" id="aA" style="left:48px; top:1732px; font-size:20px; line-height:1.6">Production City Midtown by Deyaar<br><span style="color:#8a8a8a">Noor 3, Shop 11 · Dubai</span></p>
+<p class="mono" id="aR" style="right:48px; top:1732px; font-size:20px; line-height:1.6; text-align:right">Register →<br><span style="color:var(--gold)">kostyle.ae/sparringsessions</span></p>
+<img id="aLg" src="../ko-sparring/ko-logo.svg" style="position:absolute; left:48px; top:1836px; width:180px">
+<p class="th" id="aTg" style="right:48px; top:1832px; font-size:32px; color:#bdbdbd">by fighters, for fighters</p>
+
+<svg class="grain" width="1080" height="1920"><rect width="100%" height="100%" filter="url(#noise)"/></svg>
+
+<script src="anim.js"></script>
+</body>
+</html>

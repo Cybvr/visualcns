@@ -1,0 +1,81 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Alfa+Slab+One&family=Anton&family=Libre+Caslon+Text:ital@1&family=Space+Mono:wght@700&display=block" rel="stylesheet">
+<style>
+  :root { --gold:#c4ae71; --ink:#141210; --paper:#ece4d2; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  html,body { width:1080px; height:1920px; overflow:hidden; background:var(--paper); }
+  body { color:var(--ink); -webkit-font-smoothing:antialiased; position:relative; }
+  .c { position:absolute; left:0; right:0; text-align:center; white-space:nowrap; }
+  .an { font-family:Anton, sans-serif; text-transform:uppercase; line-height:.9; }
+  .sl { font-family:'Alfa Slab One', serif; text-transform:uppercase; line-height:.95; }
+  .it { font-family:'Libre Caslon Text', serif; font-style:italic; }
+  .mono { font-family:'Space Mono', monospace; font-weight:700; text-transform:uppercase; letter-spacing:.14em; }
+  .rule { position:absolute; left:60px; right:60px; border-top:4px solid var(--ink); }
+  .rule.thin { border-top-width:2px; }
+  /* Paper: grain, a soft vignette, a little uneven ink */
+  .paper { position:absolute; inset:0; pointer-events:none; z-index:50; }
+</style>
+</head>
+<body>
+<span style="position:absolute; left:-9999px; font-family:Anton">A</span><span style="position:absolute; left:-9999px; font-family:'Alfa Slab One'">A</span><span style="position:absolute; left:-9999px; font-family:'Libre Caslon Text'; font-style:italic">A</span><span style="position:absolute; left:-9999px; font-family:'Space Mono'; font-weight:700">A</span>
+<svg width="0" height="0" style="position:absolute">
+  <filter id="noise"><feTurbulence type="fractalNoise" baseFrequency=".75" numOctaves="3" seed="4"/><feColorMatrix type="saturate" values="0"/></filter>
+  <filter id="blot"><feTurbulence type="fractalNoise" baseFrequency=".012" numOctaves="2" seed="9"/><feColorMatrix type="matrix" values="0 0 0 0 .55  0 0 0 0 .5  0 0 0 0 .42  0 0 0 .5 0"/></filter>
+</svg>
+
+<!-- Top band -->
+<div id="bTop" style="position:absolute; left:0; right:0; top:0; height:96px; background:var(--ink)"></div>
+<p class="mono" id="bPres" style="position:absolute; left:60px; top:32px; font-size:24px; color:var(--gold)">★ KO Style presents ★</p>
+<p class="mono" id="bDub" style="position:absolute; right:60px; top:32px; font-size:24px; color:var(--paper)">Dubai · 2026</p>
+
+<!-- Title -->
+<p class="c it" id="bThe" style="top:132px; font-size:58px">the</p>
+<p class="c an" style="top:200px"><span id="tSpar">Sparring</span></p>
+<p class="c sl" id="bSer" style="top:478px; color:var(--gold); text-shadow:7px 7px 0 var(--ink)"><span id="tSer">Series</span></p>
+
+<!-- Fighter in an arched frame, printed in black ink -->
+<div id="bArch" style="position:absolute; left:200px; top:660px; width:680px; height:560px; border-radius:340px 340px 0 0; overflow:hidden; border:8px solid var(--ink); background:var(--paper)">
+  <div style="position:absolute; inset:-10px; background:url('../ko-sparring%20II/Still%202026-07-09%20012858_1.15.1.jpg') 50% 22% / cover; filter:grayscale(1) contrast(1.6) brightness(1.15); mix-blend-mode:multiply"></div>
+  <div style="position:absolute; inset:0; background-image:radial-gradient(var(--paper) 1.4px, transparent 1.9px); background-size:8px 8px; mix-blend-mode:lighten; opacity:.55"></div>
+</div>
+<p class="an" id="bR1" style="position:absolute; white-space:nowrap; left:84px; top:1010px; font-size:64px; transform-origin:0 0; transform:rotate(-90deg)">3 rounds</p>
+<p class="an" id="bR2" style="position:absolute; white-space:nowrap; left:1000px; top:690px; font-size:64px; transform-origin:0 0; transform:rotate(90deg)">3 minutes</p>
+
+<div class="rule" id="bRu1" style="top:1250px"></div>
+<p class="c an" id="bTen" style="top:1272px; font-size:92px">★ 10 Sparring matches ★</p>
+<div class="rule thin" id="bRu2" style="top:1372px"></div>
+
+<!-- Fight of the night -->
+<div id="bBox" style="position:absolute; left:110px; right:110px; top:1400px; height:190px; border:4px solid var(--ink); outline:2px solid var(--ink); outline-offset:6px"></div>
+<p class="c sl" id="bFotn" style="top:1420px; font-size:66px">Fight of the night</p>
+<p class="c it" id="bWins" style="top:1500px; font-size:31px; line-height:1.35">wins free KO Style boxing gloves &amp; a spot<br>on the next RBL fight card</p>
+
+<!-- Date -->
+<p class="an" id="tDate" style="position:absolute; left:60px; top:1612px; white-space:nowrap">October 4</p>
+<p class="mono" id="bWeigh" style="position:absolute; right:60px; top:1632px; font-size:24px; text-align:right; line-height:1.6">Weigh-ins 12:30<br>Ends 4pm</p>
+
+<!-- What's included -->
+<div class="rule" id="bRu3" style="top:1764px"></div>
+<div id="bInc" style="position:absolute; left:60px; right:60px; top:1776px; display:grid; grid-template-columns:1fr 1fr 1fr; text-align:center">
+  <p class="an" style="font-size:38px; border-right:2px solid var(--ink)">Free entry</p>
+  <p class="an" style="font-size:38px; border-right:2px solid var(--ink)">T-shirt included</p>
+  <p class="an" style="font-size:38px">Gloves provided</p>
+</div>
+<div id="bBot" style="position:absolute; left:0; right:0; top:1826px; height:94px; background:var(--ink)"></div>
+<p class="mono" id="bLoc" style="position:absolute; left:60px; top:1842px; font-size:19px; color:var(--paper); line-height:1.55">Production City Midtown by Deyaar<br><span style="color:#9a9284">Noor 3, Shop 11 · Dubai</span></p>
+<p class="mono" id="bReg" style="position:absolute; right:60px; top:1842px; font-size:19px; color:var(--gold); text-align:right; line-height:1.55">Bring your own headguard<br><span style="color:var(--paper)">kostyle.ae/sparringsessions</span></p>
+
+<!-- KO Style mark sits on the arch -->
+<div id="bLogo" style="position:absolute; left:390px; top:1170px; width:300px; height:62px; background:var(--ink); display:flex; align-items:center; justify-content:center; transform:rotate(-2deg)">
+  <img src="../ko-sparring/ko-logo.svg" style="width:220px">
+</div>
+
+<svg class="paper" width="1080" height="1920"><rect width="100%" height="100%" filter="url(#blot)" opacity=".35"/><rect width="100%" height="100%" filter="url(#noise)" opacity=".18" style="mix-blend-mode:multiply"/></svg>
+<div class="paper" style="box-shadow:inset 0 0 180px rgba(80,60,30,.35)"></div>
+
+<script src="anim.js"></script>
+</body>
+</html>

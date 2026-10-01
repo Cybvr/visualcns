@@ -32,6 +32,9 @@ await page.goto(pathToFileURL(path.join(folder, "index.html")).href, { waitUntil
 await page.evaluate(() => document.fonts.ready)
 // A page can set window.DURATION (seconds); 10 is the default.
 const DURATION = await page.evaluate(() => window.DURATION || 10)
+// A still (a poster) can set window.SIZE = [width, height] instead of the 9:16 frame.
+const size = await page.evaluate(() => window.SIZE)
+if (size) await page.setViewport({ width: size[0], height: size[1], deviceScaleFactor: 1 })
 
 if (stills) {
   for (const t of stills) {
