@@ -31,7 +31,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet"
-import { Copy, ListTodo, Maximize2, Pencil, Plus, Trash2, Loader2 } from "lucide-react"
+import { Copy, ListTodo, Mail, Maximize2, Pencil, Plus, Trash2, Loader2 } from "lucide-react"
 import {
   duplicateTask,
   getTasks,
@@ -54,6 +54,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { useRowSelection } from "@/hooks/use-row-selection"
 import { MobileDataCard } from "@/components/dashboard/mobile-data-card"
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
+import { useTaskEmail } from "@/components/dashboard/use-task-email"
 
 const STATUS_RANK: Record<TaskStatus, number> = { todo: 0, "in-progress": 1, review: 2, done: 3 }
 const PRIORITY_RANK: Record<TaskPriority, number> = { low: 0, medium: 1, high: 2 }
@@ -85,6 +86,7 @@ function searchTask(t: Task) {
 }
 
 export default function TasksAdminPage() {
+  const { emailTask, emailDialog, emailingId } = useTaskEmail()
   const [tasks, setTasks] = useState<Task[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -217,6 +219,7 @@ export default function TasksAdminPage() {
                       menuLabel={`Options for ${t.name || "task"}`}
                       menu={
                         <>
+                          <DropdownMenuItem onSelect={() => emailTask(t)}>Email task</DropdownMenuItem>
                           <DropdownMenuItem onSelect={() => setSelectedId(t.id)}>Edit task</DropdownMenuItem>
                           <DropdownMenuItem disabled={duplicatingId !== null} onSelect={() => void handleDuplicate(t)}>Duplicate task</DropdownMenuItem>
                           <DropdownMenuItem onSelect={() => setDeleteId(t.id)}>Delete task</DropdownMenuItem>
@@ -289,6 +292,17 @@ export default function TasksAdminPage() {
                             variant="ghost"
                             size="icon"
                             className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                            onClick={() => emailTask(t)}
+                            disabled={emailingId !== null}
+                            aria-label={`Email ${t.name || "task"}`}
+                            title="Email task"
+                          >
+                            {emailingId === t.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : <Mail className="h-3.5 w-3.5" aria-hidden="true" />}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-muted-foreground hover:text-foreground"
                             onClick={() => setSelectedId(t.id)}
                             aria-label="Edit task"
                           >
@@ -346,6 +360,8 @@ export default function TasksAdminPage() {
         </>
       )}
 
+      {emailDialog}
+
       <AlertDialog open={deleteId !== null} onOpenChange={(open) => !open && setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -389,6 +405,10 @@ export default function TasksAdminPage() {
                 key={selectedId}
                 task={selectedId === "new" ? null : selectedTask}
                 leadingAction={selectedTask ? (
+                  <>
+                  <Button type="button" variant="outline" onClick={() => emailTask(selectedTask)} disabled={emailingId !== null}>
+                    <Mail className="size-4" aria-hidden="true" /> Email task
+                  </Button>
                   <Button
                     type="button"
                     variant="destructive"
@@ -400,6 +420,7 @@ export default function TasksAdminPage() {
                     {deleting === selectedTask.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4 sm:mr-2" />}
                     <span className="hidden sm:inline">Delete task</span>
                   </Button>
+                  </>
                 ) : undefined}
                 onSaved={handleSaved}
                 onCancel={() => setSelectedId(null)}

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
-import { ArrowLeft, Copy, ExternalLink, Share2 } from "lucide-react"
+import { ArrowLeft, Copy, ExternalLink, Mail, Share2 } from "lucide-react"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
@@ -12,9 +12,11 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { DashboardPageSkeleton } from "@/components/dashboard/dashboard-page-skeleton"
 import { ShareLinkField } from "@/components/dashboard/share-link-field"
 import { TaskForm } from "@/components/dashboard/task-form"
+import { useTaskEmail } from "@/components/dashboard/use-task-email"
 import { duplicateTask, getTask, updateTask, type Task } from "@/lib/tasks"
 
 export default function TaskEditPage() {
+  const { emailTask, emailDialog, emailingId } = useTaskEmail()
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
   const { appUser, isAdmin } = useAuth()
@@ -102,6 +104,12 @@ export default function TaskEditPage() {
           Back to tasks
         </Button>
         <div className="flex justify-end gap-2">
+          {isAdmin && (
+            <Button variant="outline" size="sm" onClick={() => emailTask(task)} disabled={emailingId !== null}>
+              <Mail className="mr-2 size-4" aria-hidden="true" />
+              Email task
+            </Button>
+          )}
           {canDuplicate && (
             <Button variant="outline" size="sm" onClick={() => void handleDuplicate()} disabled={duplicating}>
               <Copy className="mr-2 size-4" aria-hidden="true" />
@@ -148,6 +156,7 @@ export default function TaskEditPage() {
           </div>
         </DialogContent>
       </Dialog>
+      {emailDialog}
     </main>
   )
 }

@@ -1,32 +1,26 @@
 import { useState } from "react"
-import { Copy, ListTodo, Loader2, Pencil, Plus, Trash2 } from "lucide-react"
+import { Copy, ListTodo, Loader2, Mail, Pencil, Plus, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 
-import { ContextualEmailButton } from "@/components/dashboard/contextual-email-button"
 import { MobileDataCard } from "@/components/dashboard/mobile-data-card"
 import { TaskEditorSheet } from "@/components/dashboard/task-editor-sheet"
+import { useTaskEmail } from "@/components/dashboard/use-task-email"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { Badge, InlineDate, InlineProject, InlineSelect, InlineText } from "@/components/inline-table-cells"
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { duplicateTask, formatTimestamp, taskPriorityMeta, taskStatusMeta, type Task, type TaskPriority, type TaskStatus } from "@/lib/tasks"
 import { type Project } from "@/lib/projects"
-import { companyPath } from "@/lib/navigation"
 
 const STATUS_OPTIONS: TaskStatus[] = ["todo", "in-progress", "review", "done"]
 const PRIORITY_OPTIONS: TaskPriority[] = ["low", "medium", "high"]
 
-function RowActions({ task, onEdit, onDuplicate, onDelete, canDuplicate, duplicating, deleting, companyId, clientName }: { task: Task; onEdit: () => void; onDuplicate: () => void; onDelete: () => void; canDuplicate: boolean; duplicating: boolean; deleting: boolean; companyId: string; clientName: string }) {
+function RowActions({ task, onEmail, onEdit, onDuplicate, onDelete, canDuplicate, emailing, duplicating, deleting }: { task: Task; onEmail: () => void; onEdit: () => void; onDuplicate: () => void; onDelete: () => void; canDuplicate: boolean; emailing: boolean; duplicating: boolean; deleting: boolean }) {
   return (
     <div className="flex shrink-0 items-center gap-1.5">
-      <ContextualEmailButton
-        label="Notify client"
-        icon={false}
-        variant="ghost"
-        size="icon"
-        className="h-7 w-7 text-muted-foreground hover:bg-muted/80 hover:text-foreground"
-        context={{ companyId, companyName: clientName, projectId: task.projectId, projectName: task.project, documentType: "task", documentId: task.id, documentTitle: task.name, subject: `Task update: ${task.name}`, ctaText: "Open company page", ctaUrl: companyPath(companyId) }}
-      />
+      <button type="button" onClick={onEmail} disabled={emailing} aria-label={`Email ${task.name}`} title="Email task" className="inline-flex size-7 items-center justify-center rounded-md text-muted-foreground hover:bg-muted/80 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50">
+        {emailing ? <Loader2 className="size-3.5 animate-spin" aria-hidden="true" /> : <Mail className="size-3.5" aria-hidden="true" />}
+      </button>
       <button type="button" onClick={onEdit} aria-label="Edit task" className="inline-flex size-7 items-center justify-center rounded-md text-muted-foreground hover:bg-muted/80 hover:text-foreground">
         <Pencil className="size-3.5" aria-hidden="true" />
       </button>
@@ -69,6 +63,7 @@ interface TasksViewProps {
 }
 
 export function TasksView({ tasks, projects, companyId, clientName, canDuplicate = true, deleting, onDelete, onPatch, onSaved }: TasksViewProps) {
+  const { emailTask, emailDialog, emailingId } = useTaskEmail()
   const [editingId, setEditingId] = useState<string | null>(null)
   const [adding, setAdding] = useState<{ status?: TaskStatus } | null>(null)
   const [mobileDeleteTarget, setMobileDeleteTarget] = useState<Task | null>(null)
@@ -104,6 +99,10 @@ export function TasksView({ tasks, projects, companyId, clientName, canDuplicate
     setAdding(null)
   }
 
+  function emailCompanyTask(task: Task) {
+    emailTask({ ...task, companyId, client: clientName })
+  }
+
   return (
     <section id="tasks" className="mt-4 scroll-mt-20">
       <div className="flex items-center justify-between gap-4">
@@ -134,7 +133,7 @@ export function TasksView({ tasks, projects, companyId, clientName, canDuplicate
                   title={task.name}
                   subtitle={<span className="flex flex-col gap-1"><span className="flex flex-wrap items-center gap-x-2 gap-y-1"><span>{task.project || "No project"}</span><span>·</span><span>{status.label}</span><span>·</span><span>{priority.label}</span>{task.dueDate && <><span>·</span><span>Due {task.dueDate}</span></>}</span><span>Modified {formatTimestamp(task.updatedAt ?? task.createdAt)}</span></span>}
                   menuLabel={`Options for ${task.name}`}
-                  menu={<><DropdownMenuItem onSelect={() => openEdit(task.id)}>Edit task</DropdownMenuItem>{canDuplicate && <DropdownMenuItem disabled={duplicatingId !== null} onSelect={() => void handleDuplicate(task)}>Duplicate task</DropdownMenuItem>}<DropdownMenuItem variant="destructive" onSelect={() => setMobileDeleteTarget(task)}>Delete task</DropdownMenuItem></>}
+                  menu={<><DropdownMenuItem disabled={emailingId !== null} onSelect={() => emailCompanyTask(task)}>Email task</DropdownMenuItem><DropdownMenuItem onSelect={() => openEdit(task.id)}>Edit task</DropdownMenuItem>{canDuplicate && <DropdownMenuItem disabled={duplicatingId !== null} onSelect={() => void handleDuplicate(task)}>Duplicate task</DropdownMenuItem>}<DropdownMenuItem variant="destructive" onSelect={() => setMobileDeleteTarget(task)}>Delete task</DropdownMenuItem></>}
                 />
               )
             })}
@@ -173,7 +172,7 @@ export function TasksView({ tasks, projects, companyId, clientName, canDuplicate
                   <TableCell><InlineSelect value={task.priority} options={PRIORITY_OPTIONS} onChange={(value) => onPatch(task.id, { priority: value })} renderOption={(value) => taskPriorityMeta[value].label} trigger={<Badge className={priority.className}>{priority.label}</Badge>} /></TableCell>
                   <TableCell><InlineSelect value={task.status} options={STATUS_OPTIONS} onChange={(value) => onPatch(task.id, { status: value })} renderOption={(value) => taskStatusMeta[value].label} trigger={<Badge className={status.className}>{status.label}</Badge>} /></TableCell>
                   <TableCell><InlineDate value={task.dueDate} onCommit={(dueDate) => onPatch(task.id, { dueDate })} /></TableCell>
-                  <TableCell><div className="flex justify-end"><RowActions task={task} onEdit={() => openEdit(task.id)} onDuplicate={() => void handleDuplicate(task)} onDelete={() => onDelete(task.id)} canDuplicate={canDuplicate} duplicating={duplicatingId === task.id} deleting={deleting === task.id} companyId={companyId} clientName={clientName} /></div></TableCell>
+                  <TableCell><div className="flex justify-end"><RowActions task={task} onEmail={() => emailCompanyTask(task)} onEdit={() => openEdit(task.id)} onDuplicate={() => void handleDuplicate(task)} onDelete={() => onDelete(task.id)} canDuplicate={canDuplicate} emailing={emailingId === task.id} duplicating={duplicatingId === task.id} deleting={deleting === task.id} /></div></TableCell>
                 </TableRow>
               )
             })}
@@ -185,6 +184,8 @@ export function TasksView({ tasks, projects, companyId, clientName, canDuplicate
           </TableBody>
         </Table>
       </div>
+
+      {emailDialog}
 
       <AlertDialog open={mobileDeleteTarget !== null} onOpenChange={(open) => !open && setMobileDeleteTarget(null)}>
         <AlertDialogContent>
