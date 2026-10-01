@@ -90,7 +90,7 @@ export default function LoginPage() {
       getOrganization(appUser.companyId)
         .then((organization) => {
           if (!active) return
-          if (organization) router.replace(`/${encodeURIComponent(organizationRef(organization))}?tab=visitors`)
+          if (organization) router.replace(`/${encodeURIComponent(organizationRef(organization))}/visitors`)
           else setError("We couldn't find your company. Please contact support.")
         })
         .catch(() => { if (active) setError("We couldn't open your Visitors page. Please try again.") })

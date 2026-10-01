@@ -1,9 +1,11 @@
 "use client"
 
+import type { ReactNode } from "react"
 import { useParams } from "next/navigation"
 
 import { AuthProvider } from "@/components/auth-provider"
-import { CompanyPage } from "@/components/company/company-page"
+import { CompanyPageProvider } from "@/components/company/company-page-context"
+import { CompanyProfileShell } from "@/components/company/company-profile-shell"
 import { CompanyProvider, useCompanyState } from "@/components/dashboard/company-context"
 import { PageTitleProvider } from "@/components/dashboard/page-title-context"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -12,7 +14,7 @@ function LoadingState() {
   return <div className="min-h-svh bg-background px-4 py-6" role="status" aria-label="Loading company page"><div className="mx-auto max-w-7xl space-y-5"><Skeleton className="h-32 w-full" /><div className="flex items-center gap-4"><Skeleton className="size-20 rounded-full" /><div className="space-y-2"><Skeleton className="h-6 w-56" /><Skeleton className="h-4 w-40" /></div></div><Skeleton className="h-10 w-full" /></div></div>
 }
 
-function CompanyPageContent() {
+function PublicCompany({ children }: { children: ReactNode }) {
   const params = useParams<{ clientSlug: string }>()
   const { loading, error, client, organization, projects, invoices, contracts, estimates, documents, workspaceId, name, categoryLabel } = useCompanyState()
 
@@ -23,7 +25,8 @@ function CompanyPageContent() {
 
   return (
     <PageTitleProvider>
-      <CompanyPage
+      <CompanyPageProvider
+        mode="routes"
         company={{
           id: workspaceId,
           agencyId: organization?.agencyId,
@@ -57,16 +60,24 @@ function CompanyPageContent() {
         contracts={contracts}
         estimates={estimates}
         documents={documents}
-      />
+      >
+        <CompanyProfileShell>{children}</CompanyProfileShell>
+      </CompanyPageProvider>
     </PageTitleProvider>
   )
 }
 
-function PublicCompanyPageContent() {
+/**
+ * The public company page frame. It loads the company once and holds the
+ * sidebar, so moving between section pages doesn't reload anything.
+ */
+export default function PublicCompanyLayout({ children }: { children: ReactNode }) {
   const params = useParams<{ clientSlug: string }>()
-  return <CompanyProvider companyRef={params?.clientSlug} publicView><CompanyPageContent /></CompanyProvider>
-}
-
-export default function PublicCompanyPage() {
-  return <AuthProvider><PublicCompanyPageContent /></AuthProvider>
+  return (
+    <AuthProvider>
+      <CompanyProvider companyRef={params?.clientSlug} publicView>
+        <PublicCompany>{children}</PublicCompany>
+      </CompanyProvider>
+    </AuthProvider>
+  )
 }

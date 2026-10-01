@@ -141,7 +141,8 @@ export function CompanyVisitors({ agencyId, companyId, slug }: { agencyId: strin
       .catch((reason) => toast.error(reason instanceof Error ? reason.message : "We couldn't confirm the payment."))
       .finally(() => {
         setBillingBusy(false)
-        router.replace(`${pathname}?tab=visitors`)
+        // The public page has its own /visitors URL; the dashboard keeps ?tab=.
+        router.replace(pathname.endsWith("/visitors") ? pathname : `${pathname}?tab=visitors`)
       })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, searchParams])

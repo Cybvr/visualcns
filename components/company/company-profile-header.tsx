@@ -40,6 +40,7 @@ export function CompanyProfileHeader({
   onChangeCover,
   accountAction,
   tabs,
+  mobileOnly = false,
 }: {
   name: string
   handle?: string
@@ -59,6 +60,8 @@ export function CompanyProfileHeader({
   onChangeCover?: () => void
   accountAction?: ReactNode
   tabs?: ReactNode
+  /** Hide the whole header from tablet up, where the side menu carries the profile and sections. */
+  mobileOnly?: boolean
 }) {
   // Location and description stay folded away until someone taps "More".
   const [showMore, setShowMore] = useState(false)
@@ -69,7 +72,7 @@ export function CompanyProfileHeader({
   return (
     <>
       {/* Full-bleed white profile block on phones; sits in the page column on desktop. */}
-      <div className="-mx-4 -mt-4 border-b border-border bg-background sm:-mx-6 sm:-mt-6 md:mx-0 md:mt-0">
+      <div className={`-mx-4 -mt-4 border-b border-border bg-background sm:-mx-6 sm:-mt-6 md:mx-0 md:mt-0${mobileOnly ? " md:hidden" : ""}`}>
         <div className="px-3 pt-3 md:px-0 md:pt-0">
           <div className="relative h-[104px] overflow-hidden rounded-[14px] border border-border bg-[linear-gradient(120deg,#FBEFE2_0%,#FBE6E9_50%,#E6F3E8_100%)] dark:bg-[linear-gradient(120deg,#2a211c_0%,#2b1f24_50%,#1c2a20_100%)] md:h-44 md:rounded-2xl">
             {coverUrl && (
@@ -199,7 +202,7 @@ export function CompanyProfileHeader({
 
       {/* Tabs live outside the profile block so they can stick under the header while scrolling. */}
       {tabs && (
-        <div className="sticky top-14 z-30 -mx-4 border-b border-border bg-background print:hidden sm:-mx-6 md:static md:mx-0">
+        <div className={`sticky top-14 z-30 -mx-4 border-b border-border bg-background print:hidden sm:-mx-6 md:static md:mx-0${mobileOnly ? " md:hidden" : ""}`}>
           {tabs}
         </div>
       )}

@@ -62,9 +62,9 @@ export default function OnboardingPage() {
     setSaving(true)
     setError("")
     try {
-      const { slug, existing } = await joinVisitorCompany(companyName.trim(), { website: normalizedWebsite })
-      if (!existing) trackMetaLead()
-      router.replace(`/${encodeURIComponent(slug)}?tab=visitors`)
+      const { slug, existing, leadEventId } = await joinVisitorCompany(companyName.trim(), { website: normalizedWebsite })
+      if (!existing) trackMetaLead(leadEventId)
+      router.replace(`/${encodeURIComponent(slug)}/visitors`)
     } catch (err) {
       setError(onboardingError(err))
       setSaving(false)

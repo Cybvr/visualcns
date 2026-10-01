@@ -72,7 +72,7 @@ type AuthContextValue = {
   signUpWithEmail: (name: string, email: string, password: string, agencyName?: string, createWorkspace?: boolean, keepSignedIn?: boolean) => Promise<void>
   signInWithEmail: (email: string, password: string, keepSignedIn?: boolean) => Promise<void>
   signInWithGoogle: (agencyName?: string, createWorkspace?: boolean, workspaceId?: string, keepSignedIn?: boolean) => Promise<void>
-  joinVisitorCompany: (companyName: string, details?: { website?: string }) => Promise<{ slug: string; existing: boolean }>
+  joinVisitorCompany: (companyName: string, details?: { website?: string }) => Promise<{ slug: string; existing: boolean; leadEventId?: string }>
   signOut: () => Promise<void>
 }
 
@@ -252,9 +252,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       headers: { Authorization: `Bearer ${await current.getIdToken()}`, "Content-Type": "application/json" },
       body: JSON.stringify({ companyName, ...details }),
     })
-    const data = (await response.json().catch(() => ({}))) as { slug?: string; existing?: boolean; error?: string }
+    const data = (await response.json().catch(() => ({}))) as { slug?: string; existing?: boolean; leadEventId?: string; error?: string }
     if (!response.ok || !data.slug) throw new Error(data.error || "We couldn't set up your company. Try again.")
-    return { slug: data.slug, existing: data.existing === true }
+    return { slug: data.slug, existing: data.existing === true, leadEventId: data.leadEventId }
   }
 
   async function signOut() {

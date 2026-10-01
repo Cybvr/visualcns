@@ -6,6 +6,7 @@ import { adminServices } from "@/lib/firebase-admin"
 import { getSiteAgencyId } from "@/lib/require-agency-id"
 import { getAgencySecret } from "@/lib/server/agency-secrets"
 import { brandedEmail, escapeHtml, normalizeEmailAddress, SITE_ORIGIN } from "@/lib/server/email-branding"
+import { sendMetaLead } from "@/lib/server/meta-conversions"
 import { ensureVisitorBilling } from "@/lib/server/paystack"
 import { RESERVED_SLUGS, slugify } from "@/lib/slugs"
 
@@ -16,7 +17,7 @@ export const dynamic = "force-dynamic"
  * Self sign-up for Visitor Sign-in. A new account becomes a VisualCNS client;
  * an existing VisualCNS admin can also create a company while keeping their
  * current role. The front desk is switched on and the free trial starts.
- * Returns the company slug so the browser can open /{slug}?tab=visitors.
+ * Returns the company slug so the browser can open /{slug}/visitors.
  *
  * Someone whose account already belongs to a company is sent to it instead.
  * A company name that's already taken is refused: typing a name must never
@@ -47,7 +48,7 @@ async function uniqueSlug(db: FirebaseFirestore.Firestore, name: string, orgId: 
 function signupNotice(company: { name: string; slug: string }, person: { name: string; email: string }) {
   const subject = `New Visitor Sign-in sign-up: ${company.name}`
   const text = `${person.name || person.email} (${person.email}) just signed up ${company.name} for Visitor Sign-in. Their front desk is on and the free trial has started.\n\nIt's tagged "${SOURCE}" on the company page. If it looks like junk, delete the company.`
-  const url = `${SITE_ORIGIN}/${encodeURIComponent(company.slug)}?tab=visitors`
+  const url = `${SITE_ORIGIN}/${encodeURIComponent(company.slug)}/visitors`
   return { subject, text, url }
 }
 
@@ -173,5 +174,15 @@ export async function POST(request: NextRequest) {
   await ensureVisitorBilling(db, agencyId, orgRef.id)
 
   await notifyAdmins(db, agencyId, { name: companyName, slug }, { name: personName, email }).catch(() => undefined)
-  return json({ slug })
+
+  // A new company is a lead. The browser pixel sends the same event id, so Meta counts it once.
+  const leadEventId = `lead_${orgRef.id}`
+  await sendMetaLead(request, agencyId, {
+    eventId: leadEventId,
+    uid: decoded.uid,
+    email,
+    name: personName,
+    sourceUrl: request.headers.get("referer") || `${SITE_ORIGIN}/onboarding`,
+  }).catch((error) => console.error("Meta Lead failed:", error))
+  return json({ slug, leadEventId })
 }

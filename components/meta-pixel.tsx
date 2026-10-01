@@ -3,7 +3,7 @@
 import { useEffect } from "react"
 import { usePathname } from "next/navigation"
 
-const META_PIXEL_ID = "1089034104109641"
+import { META_PIXEL_ID } from "@/lib/meta-pixel-id"
 
 type MetaPixelFunction = ((...args: unknown[]) => void) & {
   callMethod?: (...args: unknown[]) => void
@@ -46,9 +46,11 @@ function initializeMetaPixel() {
   }
 }
 
-export function trackMetaLead() {
+/** Pass the server's event id so Meta pairs this with the Conversions API Lead and counts it once. */
+export function trackMetaLead(eventId?: string) {
   initializeMetaPixel()
-  window.fbq?.("track", "Lead")
+  if (eventId) window.fbq?.("track", "Lead", {}, { eventID: eventId })
+  else window.fbq?.("track", "Lead")
 }
 
 export function MetaPixel() {

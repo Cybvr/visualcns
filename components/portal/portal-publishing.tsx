@@ -12,7 +12,7 @@ import type { Project } from "@/lib/projects"
 import { getPortalProjects, getPortalTasks, publishPortalProject, unpublishPortalProject, publishPortalTask, unpublishPortalTask } from "@/lib/portal-data"
 import type { PortalProject, PortalTask } from "@/lib/portal-model"
 import { getDocumentsForClient, setDocumentProject, type SharedDocument } from "@/lib/documents"
-import type { CompanyPagePerson } from "@/components/company/company-page"
+import type { CompanyPagePerson } from "@/components/company/company-page-context"
 import { PortalTaskFeedback } from "./portal-task-feedback"
 
 function PublishTask({ task, initial, people }: { task: Task; initial?: PortalTask; people: CompanyPagePerson[] }) {

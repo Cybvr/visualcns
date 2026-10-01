@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
           amount: VISITOR_PLANS[planKey].priceNaira * 100,
           currency: "NGN",
           plan: plan.code,
-          callback_url: `${siteOrigin(request)}/${encodeURIComponent(slug)}?tab=visitors&paid=1`,
+          callback_url: `${siteOrigin(request)}/${encodeURIComponent(slug)}/visitors?paid=1`,
           metadata: {
             kind: "visitor_signin",
             companyId,
