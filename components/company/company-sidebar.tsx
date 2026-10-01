@@ -3,6 +3,7 @@
 import { useState, type ReactNode } from "react"
 import { X } from "lucide-react"
 import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import {
   Select,
   SelectContent,
@@ -26,6 +27,7 @@ export interface CompanySidebarCompany {
   logoUrl?: string
   industry?: string
   location?: string
+  address?: string
   website?: string
   description?: string
   targetCustomers?: string
@@ -40,7 +42,7 @@ export interface CompanySidebarCompany {
 export type CompanyDetailsPatch = Partial<
   Pick<
     CompanySidebarCompany,
-    "name" | "logoUrl" | "tags" | "description" | "targetCustomers" | "industry" | "location" | "website" | "companySize" | "source" | "linkedIn" | "links" | "primaryContactId"
+    "name" | "logoUrl" | "tags" | "description" | "targetCustomers" | "industry" | "location" | "address" | "website" | "companySize" | "source" | "linkedIn" | "links" | "primaryContactId"
   >
 >
 
@@ -118,7 +120,7 @@ export function CompanyDetails({
 
   /** Auto-save a single company field, skipping the write when it's unchanged. */
   async function commitField(
-    field: "website" | "description" | "industry" | "location" | "companySize" | "source" | "linkedIn",
+    field: "website" | "description" | "industry" | "location" | "address" | "companySize" | "source" | "linkedIn",
     value: string,
   ) {
     if (!onSave) return
@@ -241,6 +243,18 @@ export function CompanyDetails({
                 className="surface-body h-7 border-transparent bg-transparent px-2 text-right shadow-none hover:border-input focus-visible:border-ring"
               />
             </DetailsRow>
+            <div className="surface-body space-y-1.5 py-2.5">
+              <label htmlFor={`company-address-${company.id}`} className="block text-muted-foreground">Address</label>
+              <Textarea
+                id={`company-address-${company.id}`}
+                key={company.address ?? ""}
+                defaultValue={company.address ?? ""}
+                onBlur={(event) => void commitField("address", event.target.value)}
+                placeholder="Add the billing address"
+                rows={3}
+                className="surface-body min-h-20 resize-y"
+              />
+            </div>
             <DetailsRow label="Company Size">
               <Select
                 value={company.companySize ?? ""}
@@ -297,6 +311,12 @@ export function CompanyDetails({
             {!hideDescription && <DetailRow label="Description" value={company.description} editable={false} />}
             <DetailRow label="Industry" value={company.industry} editable={false} />
             <DetailRow label="Location" value={company.location} editable={false} />
+            {company.address && (
+              <div className="surface-body space-y-1 py-2.5">
+                <span className="text-muted-foreground">Address</span>
+                <p className="whitespace-pre-line font-medium text-foreground">{company.address}</p>
+              </div>
+            )}
             <DetailRow
               label="Company Size"
               value={company.companySize ? `${company.companySize} employees` : undefined}

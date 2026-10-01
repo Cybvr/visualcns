@@ -20,6 +20,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 import {
   Select,
   SelectContent,
@@ -40,6 +41,7 @@ export default function CompanyEditPage() {
     logoUrl: organization?.logoUrl || client.photoURL || "",
     industry: organization?.industry ?? "",
     location: organization?.location ?? "",
+    address: organization?.address ?? "",
     website: organization?.website ?? "",
     slug: organization?.slug ?? "",
   })
@@ -70,6 +72,7 @@ export default function CompanyEditPage() {
           logoUrl: form.logoUrl.trim(),
           industry: form.industry.trim(),
           location: form.location.trim(),
+          address: form.address.trim(),
           website: form.website.trim(),
           slug,
         }),
@@ -149,6 +152,16 @@ export default function CompanyEditPage() {
               value={form.location}
               onChange={(event) => set("location", event.target.value)}
               placeholder="Lagos, Nigeria"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="address">Address</Label>
+            <Textarea
+              id="address"
+              rows={3}
+              value={form.address}
+              onChange={(event) => set("address", event.target.value)}
+              placeholder="Street, city, state, postal code"
             />
           </div>
           <div className="space-y-1.5">

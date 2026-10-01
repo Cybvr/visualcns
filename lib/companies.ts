@@ -45,6 +45,7 @@ export async function findOrCreateCompany(input: {
   logoUrl?: string
   industry?: string
   location?: string
+  address?: string
 }): Promise<CompanyRef> {
   const name = input.name.trim()
   const existing = await findCompanyByName(name)
@@ -57,6 +58,7 @@ export async function findOrCreateCompany(input: {
     logoUrl: input.logoUrl?.trim() || "",
     industry: input.industry?.trim() || "",
     location: input.location?.trim() || "",
+    address: input.address?.trim() || "",
   })
   return { id: uid, name }
 }

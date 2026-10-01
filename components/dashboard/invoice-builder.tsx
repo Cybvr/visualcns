@@ -16,6 +16,7 @@ import {
 } from "@/components/dashboard/billing-editor"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import {
@@ -114,7 +115,7 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate }: {
   const [currency, setCurrency] = useState(invoice?.currency || initialEstimate?.currency || "USD")
 
   const [billToEmail, setBillToEmail] = useState(invoice?.billTo?.email ?? initialEstimate?.preparedFor?.email ?? "")
-  const [billToAddress, setBillToAddress] = useState(invoice?.billTo?.address ?? initialEstimate?.preparedFor?.address ?? "")
+  const [billToAddress, setBillToAddress] = useState(invoice?.billTo?.address ?? "")
   const [billToTaxNumber, setBillToTaxNumber] = useState(invoice?.billTo?.taxNumber ?? "")
   const [poReference, setPoReference] = useState(invoice?.poReference ?? "")
 
@@ -234,12 +235,13 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate }: {
     }
   }, [isEdit])
 
-  // Fill the billing email from the chosen client unless it was already set.
+  // Fill billing details from the chosen client unless they were already set.
   useEffect(() => {
     if (!companyId) return
     const client = clients.find((entry) => entry.id === companyId)
     if (!client) return
     setBillToEmail((current) => current || client.email || "")
+    setBillToAddress((current) => current || client.address || "")
   }, [companyId, clients])
 
   useEffect(() => {
@@ -291,6 +293,13 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate }: {
   const selectedProject = projects.find((entry) => entry.id === projectId)
   const clientName = selectedClient?.name
     ?? (companyId === invoice?.companyId ? invoice.client : companyId === initialEstimate?.companyId ? initialEstimate.client : "")
+
+  function selectClient(value: string) {
+    setCompanyId(value)
+    const client = clients.find((entry) => entry.id === value)
+    setBillToEmail(client?.email ?? "")
+    setBillToAddress(client?.address ?? "")
+  }
   const draftInvoice: Invoice = {
     ...(invoice ?? {}),
     id: invoice?.id ?? "preview",
@@ -528,7 +537,7 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate }: {
       <EditorCard title="Bill to">
         <div className="space-y-3">
           <EditorField label="Client" htmlFor="client">
-            <Select value={companyId} onValueChange={setCompanyId}>
+            <Select value={companyId} onValueChange={selectClient}>
               <SelectTrigger id="client">
                 <SelectValue placeholder={optionsLoading ? "Loading..." : "Choose a client"} />
               </SelectTrigger>
@@ -551,11 +560,12 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate }: {
             />
           </EditorField>
           <EditorField label="Address" htmlFor="bill-address">
-            <Input
+            <Textarea
               id="bill-address"
               value={billToAddress}
               onChange={(event) => setBillToAddress(event.target.value)}
-              placeholder="Address or website"
+              placeholder="Client billing address"
+              rows={3}
             />
           </EditorField>
           <EditorField label="Tax / VAT number" htmlFor="tax-number">

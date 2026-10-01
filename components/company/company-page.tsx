@@ -201,6 +201,7 @@ export interface CompanyPageCompany {
   categoryLabel: string
   industry?: string
   location?: string
+  address?: string
   website?: string
   links?: CompanyLink[]
   description?: string
@@ -523,6 +524,7 @@ export function CompanyPage({
     logoUrl: company.logoUrl,
     industry: company.industry,
     location: company.location,
+    address: company.address,
     website: company.website,
     description: company.description,
     companySize: company.companySize,

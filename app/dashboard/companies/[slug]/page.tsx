@@ -46,6 +46,7 @@ export default function DashboardCompanyPage() {
         categoryLabel,
         industry: organization?.industry,
         location: organization?.location,
+        address: organization?.address,
         website: organization?.website,
         description: organization?.description,
         targetCustomers: organization?.targetCustomers,

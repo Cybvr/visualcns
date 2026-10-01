@@ -8,6 +8,7 @@ import { ImageDropzone } from "@/components/image-dropzone"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 import {
   Select,
   SelectContent,
@@ -30,6 +31,7 @@ type FormState = {
   logoUrl: string
   industry: string
   location: string
+  address: string
 }
 
 const EMPTY_FORM: FormState = {
@@ -37,6 +39,7 @@ const EMPTY_FORM: FormState = {
   logoUrl: "",
   industry: "",
   location: "",
+  address: "",
 }
 
 export function CompanyCreateSheet({
@@ -74,6 +77,7 @@ export function CompanyCreateSheet({
         logoUrl: form.logoUrl.trim(),
         industry: form.industry.trim(),
         location: form.location.trim(),
+        address: form.address.trim(),
       })
       reset()
       await onSaved(company.id)
@@ -133,6 +137,17 @@ export function CompanyCreateSheet({
                   placeholder="Lagos, Nigeria"
                 />
               </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="company-address">Address</Label>
+              <Textarea
+                id="company-address"
+                rows={3}
+                value={form.address}
+                onChange={(event) => set("address", event.target.value)}
+                placeholder="Street, city, state, postal code"
+              />
             </div>
 
             {error && <p className="text-sm text-destructive">{error}</p>}
