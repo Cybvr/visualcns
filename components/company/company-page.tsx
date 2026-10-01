@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { ExternalLink, LogOut, Mail, MoreVertical, Share2 } from "lucide-react"
+import { ExternalLink, Facebook, Linkedin, LogOut, Mail, MessageCircle, MoreVertical, Share2, Twitter } from "lucide-react"
 import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
@@ -47,6 +47,37 @@ function ShareLink({ value, label }: { value: string; label: string }) {
       >
         Copy link
       </Button>
+    </div>
+  )
+}
+
+function SocialShareLinks({ url, companyName }: { url: string; companyName: string }) {
+  const encodedUrl = encodeURIComponent(url)
+  const encodedText = encodeURIComponent(`See ${companyName}'s company page`)
+  const links = [
+    { label: "WhatsApp", href: `https://wa.me/?text=${encodedText}%20${encodedUrl}`, icon: MessageCircle },
+    { label: "LinkedIn", href: `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`, icon: Linkedin },
+    { label: "Facebook", href: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`, icon: Facebook },
+    { label: "X", href: `https://x.com/intent/post?text=${encodedText}&url=${encodedUrl}`, icon: Twitter },
+  ]
+
+  return (
+    <div className="pt-4">
+      <p className="text-sm font-medium text-foreground">Share on social media</p>
+      <div className="mt-2 grid grid-cols-2 gap-2">
+        {links.map(({ label, href, icon: Icon }) => (
+          <a
+            key={label}
+            href={href}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-input bg-background px-3 text-sm font-medium text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <Icon className="size-4" aria-hidden="true" />
+            {label}
+          </a>
+        ))}
+      </div>
     </div>
   )
 }
@@ -165,12 +196,13 @@ function DashboardCompanyView() {
           </Dialog>
 
           <Dialog open={shareOpen} onOpenChange={setShareOpen}>
-            <DialogContent className="max-h-[85vh] max-w-2xl overflow-y-auto">
+            <DialogContent className="max-w-md">
               <DialogHeader>
                 <DialogTitle>Share company page</DialogTitle>
                 <DialogDescription>Copy this link to share {company.name}&apos;s client page.</DialogDescription>
               </DialogHeader>
               <ShareLink value={absoluteUrl(admin.sharePath)} label="Company link" />
+              <SocialShareLinks url={absoluteUrl(admin.sharePath)} companyName={company.name} />
             </DialogContent>
           </Dialog>
         </>
