@@ -1207,7 +1207,7 @@ export default function EmailPage() {
     const known = new Set(contacts.map((contact) => recipientEmail(contact.email)))
     const fresh = [...new Set(emails.map(recipientEmail))].filter((email) => EMAIL_PATTERN.test(email) && !known.has(email))
     if (!fresh.length) return
-    const added = await Promise.all(fresh.map(async (email) => {
+    const added = await Promise.all(fresh.map(async (email): Promise<EmailContact | null> => {
       try {
         await createUser(crypto.randomUUID(), { email, displayName: "", company: "", companyId: "", photoURL: "", role: "client" })
         return { email, label: email, name: email.split("@")[0], companyId: "" } satisfies EmailContact
