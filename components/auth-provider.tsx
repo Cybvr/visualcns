@@ -248,8 +248,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   async function joinVisitorCompany(companyName: string) {
     const current = auth.currentUser
     if (!current) throw new Error("Please sign in again.")
-    // Make sure the user record exists before the server fills it in.
-    await upsertUserOnLogin({ uid: current.uid, email: current.email, displayName: current.displayName, photoURL: current.photoURL })
+    // The server provisions the profile with Admin SDK after validating the
+    // account. Avoid a client-side profile write here: a signed-in account may
+    // be completing this onboarding before its Firestore permissions are ready.
     const response = await fetch("/api/visitors/signup", {
       method: "POST",
       headers: { Authorization: `Bearer ${await current.getIdToken()}`, "Content-Type": "application/json" },

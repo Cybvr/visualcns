@@ -13,10 +13,10 @@ export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
 /**
- * Self sign-up for Visitor Sign-in, from the demo page. The signed-in person
- * becomes a client of VisualCNS with their own company, the front desk is
- * switched on and the free trial starts. Returns the company slug so the
- * browser can open /{slug}?tab=visitors.
+ * Self sign-up for Visitor Sign-in. A new account becomes a VisualCNS client;
+ * an existing VisualCNS admin can also create a company while keeping their
+ * current role. The front desk is switched on and the free trial starts.
+ * Returns the company slug so the browser can open /{slug}?tab=visitors.
  *
  * Someone whose account already belongs to a company is sent to it instead.
  * A company name that's already taken is refused: typing a name must never
@@ -86,13 +86,15 @@ export async function POST(request: NextRequest) {
   const agencyId = getSiteAgencyId()
   const userRef = db.collection("users").doc(decoded.uid)
   const existing = (await userRef.get()).data() ?? {}
+  const existingRole = String(existing.role || "")
+  const isSiteAgencyAdmin = existing.agencyId === agencyId && ["admin", "superadmin"].includes(existingRole)
 
   // Already a member of a company: just send them there.
   if (existing.agencyId && existing.companyId && existing.role === "client") {
     const org = (await db.collection("organizations").doc(String(existing.companyId)).get()).data()
     return json({ slug: org?.slug || existing.companyId, existing: true })
   }
-  if (existing.agencyId || existing.role) {
+  if ((existing.agencyId || existing.role) && !isSiteAgencyAdmin) {
     return json({ error: "This account already belongs to another organization. Sign in with a different email." }, 409)
   }
   if (!companyName) return json({ error: "Enter your company name." }, 400)
@@ -122,17 +124,19 @@ export async function POST(request: NextRequest) {
     createdAt: now,
     updatedAt: now,
   })
-  batch.set(userRef, {
-    email,
-    displayName: personName,
-    role: "client",
-    agencyId,
-    companyId: orgRef.id,
-    company: companyName,
-    onboardingStatus: "active",
-    updatedAt: FieldValue.serverTimestamp(),
-    ...(existing.createdAt ? {} : { createdAt: FieldValue.serverTimestamp() }),
-  }, { merge: true })
+  if (!isSiteAgencyAdmin) {
+    batch.set(userRef, {
+      email,
+      displayName: personName,
+      role: "client",
+      agencyId,
+      companyId: orgRef.id,
+      company: companyName,
+      onboardingStatus: "active",
+      updatedAt: FieldValue.serverTimestamp(),
+      ...(existing.createdAt ? {} : { createdAt: FieldValue.serverTimestamp() }),
+    }, { merge: true })
+  }
   const notice = signupNotice({ name: companyName, slug }, { name: personName, email })
   batch.set(db.collection("agencies").doc(agencyId).collection("emailInboxEvents").doc(`visitor_${orgRef.id}`), {
     agencyId,
