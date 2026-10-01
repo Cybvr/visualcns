@@ -112,12 +112,12 @@ export function CompanyProfileShell({ children }: { children: ReactNode }) {
   const sectionLabel = sections.find((item) => item.key === section)?.label
 
   return (
-    <div className="mx-auto flex min-h-svh w-full max-w-7xl md:gap-6 md:px-6 lg:gap-8">
+    <div className="mx-auto flex min-h-svh w-full max-w-[1600px] md:gap-6 md:px-6 lg:gap-8">
       <aside className="sticky top-0 hidden h-svh w-[52px] shrink-0 flex-col border-r border-border px-1 py-6 print:hidden md:flex lg:w-[232px] lg:px-3">
         <SidebarBody />
       </aside>
 
-      <div className="min-w-0 flex-1">
+      <div className="min-w-0 flex-1 md:border-r md:border-border">
         <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-border bg-background/95 px-2 backdrop-blur print:hidden md:hidden">
           <button
             type="button"
@@ -133,7 +133,7 @@ export function CompanyProfileShell({ children }: { children: ReactNode }) {
           </div>
         </header>
 
-        <main className="min-w-0 px-4 pb-16 pt-4 sm:px-6 sm:pt-6 md:px-0">
+        <main className="min-w-0 px-4 pb-16 pt-4 sm:px-6 sm:pt-6 md:pl-0 md:pr-5 lg:pr-8">
           {children}
         </main>
       </div>

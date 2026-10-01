@@ -11,7 +11,7 @@ import { PageTitleProvider } from "@/components/dashboard/page-title-context"
 import { Skeleton } from "@/components/ui/skeleton"
 
 function LoadingState() {
-  return <div className="min-h-svh bg-background px-4 py-6" role="status" aria-label="Loading company page"><div className="mx-auto max-w-7xl space-y-5"><Skeleton className="h-32 w-full" /><div className="flex items-center gap-4"><Skeleton className="size-20 rounded-full" /><div className="space-y-2"><Skeleton className="h-6 w-56" /><Skeleton className="h-4 w-40" /></div></div><Skeleton className="h-10 w-full" /></div></div>
+  return <div className="min-h-svh bg-background px-4 py-6" role="status" aria-label="Loading company page"><div className="mx-auto max-w-[1600px] space-y-5"><Skeleton className="h-32 w-full" /><div className="flex items-center gap-4"><Skeleton className="size-20 rounded-full" /><div className="space-y-2"><Skeleton className="h-6 w-56" /><Skeleton className="h-4 w-40" /></div></div><Skeleton className="h-10 w-full" /></div></div>
 }
 
 function PublicCompany({ children }: { children: ReactNode }) {

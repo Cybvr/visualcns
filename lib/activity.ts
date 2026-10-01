@@ -45,7 +45,12 @@ export interface ActivitySources {
 export function buildActivity(sources: ActivitySources, limit = 12): ActivityItem[] {
   const items: ActivityItem[] = []
   for (const p of sources.projects ?? []) items.push({ id: `project:${p.id}`, kind: "project", refId: p.id, title: p.title, subtitle: "Project created", at: tsToMillis(p.createdAt) })
-  for (const t of sources.tasks ?? []) items.push({ id: `task:${t.id}`, kind: "task", refId: t.id, title: t.name, subtitle: t.project ? `Task · ${t.project}` : "Task created", at: tsToMillis(t.createdAt) })
+  for (const t of sources.tasks ?? []) {
+    const createdAt = tsToMillis(t.createdAt)
+    const updatedAt = tsToMillis(t.updatedAt)
+    const action = t.status === "done" ? "Task completed" : updatedAt > createdAt ? "Task updated" : "Task created"
+    items.push({ id: `task:${t.id}`, kind: "task", refId: t.id, title: t.name, subtitle: t.project ? `${action} · ${t.project}` : action, at: Math.max(createdAt, updatedAt) })
+  }
   for (const inv of sources.invoices ?? []) items.push({ id: `invoice:${inv.id}`, kind: "invoice", refId: inv.id, title: `Invoice ${inv.invoiceNumber}`, subtitle: `${formatMoney(inv.amount, inv.currency)} · ${inv.status}`, at: tsToMillis(inv.createdAt) })
   for (const est of sources.estimates ?? []) items.push({ id: `estimate:${est.id}`, kind: "estimate", refId: est.id, title: est.title || `Estimate ${est.estimateNumber}`, subtitle: `${formatMoney(est.amount, est.currency)} · ${est.status}`, at: tsToMillis(est.createdAt) })
   for (const c of sources.contracts ?? []) items.push({ id: `contract:${c.id}`, kind: "contract", refId: c.id, title: c.title, subtitle: `Contract · ${c.status}`, at: tsToMillis(c.createdAt) })

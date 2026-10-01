@@ -111,7 +111,7 @@ export async function syncPortalTask(id: string, patch: Partial<Task>) {
   }
   const safe: Record<string, string | boolean> = {}
   for (const key of ["name", "status", "dueDate", "isPublic"] as const) { const value = patch[key]; if (value !== undefined) safe[key] = value }
-  if (Object.keys(safe).length) batch.update(ref, safe)
+  if (Object.keys(safe).length) batch.update(ref, { ...safe, updatedAt: serverTimestamp() })
   await batch.commit()
 }
 
