@@ -5,8 +5,11 @@ import { adminServices } from "@/lib/firebase-admin"
 export const runtime = "nodejs"
 
 export async function GET(request: NextRequest) {
-  const slug = request.nextUrl.searchParams.get("slug")?.trim().toLowerCase() || ""
-  if (!/^[a-z0-9][a-z0-9-]{0,127}$/.test(slug)) {
+  // Slugs are lowercase, but links can also carry the company id, which is
+  // case-sensitive, so the id lookup below uses the value exactly as given.
+  const ref = request.nextUrl.searchParams.get("slug")?.trim() || ""
+  const slug = ref.toLowerCase()
+  if (!/^[a-zA-Z0-9][a-zA-Z0-9-]{0,127}$/.test(ref)) {
     return NextResponse.json({ error: "Invalid company link." }, { status: 400 })
   }
 
@@ -29,7 +32,7 @@ export async function GET(request: NextRequest) {
     }
     let organization: FirebaseFirestore.DocumentSnapshot | undefined = matches.docs.find(isPublicMatch)
     if (!organization) {
-      const legacy = await organizations.doc(slug).get()
+      const legacy = await organizations.doc(ref).get()
       if (legacy.exists && isPublicMatch(legacy)) organization = legacy
     }
     if (!organization) return NextResponse.json({ error: "Company not found." }, { status: 404 })
