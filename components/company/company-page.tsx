@@ -171,7 +171,6 @@ function DashboardCompanyView() {
                 <DialogDescription>Copy this link to share {company.name}&apos;s client page.</DialogDescription>
               </DialogHeader>
               <ShareLink value={absoluteUrl(admin.sharePath)} label="Company link" />
-              <p className="text-xs text-muted-foreground">The link opens this company page with its shared projects, tasks, documents, and details.</p>
             </DialogContent>
           </Dialog>
         </>
