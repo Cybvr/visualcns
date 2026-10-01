@@ -188,35 +188,33 @@ export function CompanyVisitors({ agencyId, companyId, slug }: { agencyId: strin
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
             <Label htmlFor="kiosk-toggle" className="text-sm font-semibold text-foreground">Front desk sign-in</Label>
-            <p className="mt-1 text-sm text-muted-foreground">Use this link at reception. Hosts get an email when visitors sign in.</p>
+            <p className="mt-1 text-sm text-muted-foreground">Share the link with reception.</p>
           </div>
           <Switch id="kiosk-toggle" checked={Boolean(kiosk?.enabled)} onCheckedChange={(checked) => void toggleKiosk(checked)} disabled={kioskBusy} />
         </div>
         {link && (
-          <div className="mt-4 space-y-3">
-            <p className="truncate rounded-lg bg-card px-3 py-2 font-mono text-xs text-muted-foreground">{link}</p>
+          <div className="mt-4">
             <div className="flex flex-wrap gap-2">
-              <Button type="button" variant="outline" size="sm" onClick={() => { void navigator.clipboard.writeText(link); toast.success("Link copied") }}>
+              <Button type="button" size="sm" onClick={() => { void navigator.clipboard.writeText(link); toast.success("Link copied") }}>
                 <Copy className="size-4" aria-hidden="true" /> Copy link
               </Button>
               <Button type="button" variant="outline" size="sm" asChild>
                 <a href={link} target="_blank" rel="noreferrer"><ExternalLink className="size-4" aria-hidden="true" /> Open</a>
               </Button>
-              <Button type="button" variant="ghost" size="sm" onClick={() => void newLink()} disabled={kioskBusy}>
-                <RefreshCw className="size-4" aria-hidden="true" /> New link
-              </Button>
             </div>
+            <details className="mt-3 text-sm text-muted-foreground">
+              <summary className="w-fit cursor-pointer rounded-sm outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring">Link settings</summary>
+              <div className="mt-3 space-y-2">
+                <p className="break-all text-xs">{link}</p>
+                <Button type="button" variant="ghost" size="sm" onClick={() => void newLink()} disabled={kioskBusy}>
+                  <RefreshCw className="size-4" aria-hidden="true" /> Make a new link
+                </Button>
+              </div>
+            </details>
           </div>
         )}
         <BillingStatus billing={billing} seats={staffInfo?.seats ?? null} busy={billingBusy} onSubscribe={(plan) => void openPaystack("subscribe", plan)} onManage={() => void openPaystack("manage")} />
       </section>
-
-      {staffInfo && (
-        <p className="text-sm text-muted-foreground">
-          Staff: {staffInfo.seats} of {staffInfo.limit} seats ·{" "}
-          <button type="button" onClick={() => router.push(`${pathname}?tab=team`)} className="font-medium text-foreground underline underline-offset-4">Manage in Team</button>
-        </p>
-      )}
 
       {error ? (
         <div role="alert" className="flex flex-wrap items-center gap-3 text-sm">
@@ -238,7 +236,7 @@ export function CompanyVisitors({ agencyId, companyId, slug }: { agencyId: strin
             </div>
           )}
           <section>
-            <h2 className="sidebar-nav-label font-sans text-muted-foreground [font-family:inherit]">In the building now · {onSite.length}</h2>
+            <h2 className="text-sm font-semibold text-foreground">On site · {onSite.length}</h2>
             {onSite.length ? (
               <ul className="mt-3 divide-y divide-border overflow-hidden rounded-2xl border border-border bg-background">
                 {onSite.map((visitor) => (
@@ -257,12 +255,12 @@ export function CompanyVisitors({ agencyId, companyId, slug }: { agencyId: strin
                 ))}
               </ul>
             ) : (
-              <p className="mt-3 text-sm text-muted-foreground">Nobody is signed in.</p>
+              <p className="mt-2 text-sm text-muted-foreground">No visitors right now.</p>
             )}
           </section>
 
           <section>
-            <h2 className="sidebar-nav-label font-sans text-muted-foreground [font-family:inherit]">Past visits</h2>
+            <h2 className="text-sm font-semibold text-foreground">Past visits</h2>
             {past.length ? (
               <ul className="mt-3 divide-y divide-border overflow-hidden rounded-2xl border border-border bg-background">
                 {past.map((visitor) => (
@@ -297,6 +295,7 @@ function shortDate(ms: number) {
 
 /** Trial, paid or paused, with the plan buttons that fit. */
 function BillingStatus({ billing, seats, busy, onSubscribe, onManage }: { billing: VisitorBilling | null | undefined; seats: number | null; busy: boolean; onSubscribe: (plan: VisitorPlanKey) => void; onManage: () => void }) {
+  const [plansOpen, setPlansOpen] = useState(false)
   if (billing === undefined) return null
   const access = billing ? visitorAccess(billing) : null
   const subscribed = Boolean(billing?.subscriptionCode)
@@ -336,13 +335,20 @@ function BillingStatus({ billing, seats, busy, onSubscribe, onManage }: { billin
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">
           <p className={`text-sm font-semibold ${tone}`}>{title}</p>
-          <p className="mt-0.5 text-sm text-muted-foreground">{detail}</p>
+          {(plansOpen || access?.state !== "trial") && <p className="mt-0.5 text-sm text-muted-foreground">{detail}</p>}
         </div>
-        {showManage && (
-          <Button type="button" variant="outline" size="sm" onClick={onManage} disabled={busy}>Change card or cancel</Button>
-        )}
+        <div className="flex flex-wrap items-center gap-2">
+          {access && plansToShow.length > 0 && (
+            <Button type="button" variant="ghost" size="sm" onClick={() => setPlansOpen((open) => !open)} aria-expanded={plansOpen}>
+              {plansOpen ? "Hide plans" : canUpgrade ? "Upgrade plan" : "View plans"}
+            </Button>
+          )}
+          {showManage && (
+            <Button type="button" variant="outline" size="sm" onClick={onManage} disabled={busy}>Manage billing</Button>
+          )}
+        </div>
       </div>
-      {access && plansToShow.length > 0 && (
+      {access && plansOpen && plansToShow.length > 0 && (
         <div className="mt-3 grid gap-2 sm:grid-cols-2">
           {plansToShow.map((key) => {
             const option = VISITOR_PLANS[key]
@@ -368,7 +374,7 @@ function BillingStatus({ billing, seats, busy, onSubscribe, onManage }: { billin
           })}
         </div>
       )}
-      {access && choosePlan && (
+      {access && plansOpen && choosePlan && (
         <p className="mt-2 text-xs text-muted-foreground">More than {VISITOR_PLANS.business.staff} staff or more than one site? Contact us for Enterprise.</p>
       )}
     </div>

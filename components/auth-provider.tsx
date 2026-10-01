@@ -72,6 +72,7 @@ type AuthContextValue = {
   signUpWithEmail: (name: string, email: string, password: string, agencyName?: string, createWorkspace?: boolean, keepSignedIn?: boolean) => Promise<void>
   signInWithEmail: (email: string, password: string, keepSignedIn?: boolean) => Promise<void>
   signInWithGoogle: (agencyName?: string, createWorkspace?: boolean, workspaceId?: string, keepSignedIn?: boolean) => Promise<void>
+  joinVisitorCompany: (companyName: string, details?: { website?: string }) => Promise<{ slug: string; existing: boolean }>
   signOut: () => Promise<void>
 }
 
@@ -243,6 +244,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (createWorkspace) setAgencyStatus("trial")
   }
 
+  async function joinVisitorCompany(companyName: string, details?: { website?: string }) {
+    const current = auth.currentUser
+    if (!current) throw new Error("Please sign in again.")
+    const response = await fetch("/api/visitors/signup", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${await current.getIdToken()}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ companyName, ...details }),
+    })
+    const data = (await response.json().catch(() => ({}))) as { slug?: string; existing?: boolean; error?: string }
+    if (!response.ok || !data.slug) throw new Error(data.error || "We couldn't set up your company. Try again.")
+    return { slug: data.slug, existing: data.existing === true }
+  }
+
   async function signOut() {
     sessionStorage.removeItem(VIEW_AS_KEY)
     setImpersonated(null)
@@ -285,6 +299,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signUpWithEmail,
         signInWithEmail,
         signInWithGoogle,
+        joinVisitorCompany,
         signOut,
       }}
     >

@@ -10,7 +10,7 @@ import type { BrandItem } from "@/lib/brands"
 import type { Capability } from "@/lib/capabilities"
 import type { BlogPost } from "@/lib/blog"
 
-const VISITOR_SIGN_UP = `/signup?next=${encodeURIComponent("/dashboard/visitors")}`
+const VISITOR_SIGN_UP = `/signup?next=${encodeURIComponent("/onboarding")}`
 
 // Editorial section frame: a big title on the left, a mono index tag on the
 // right, a hairline underneath. Every block on the page shares it.

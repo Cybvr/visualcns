@@ -14,7 +14,7 @@ import { VISITOR_TRIAL_DAYS } from "@/lib/visitor-billing"
 type DemoScreen = "start" | KioskTab | "signed-in" | "signed-out"
 type DemoVisitor = { id: string; name: string; at: number }
 
-const SIGNUP_HREF = `/signup?next=${encodeURIComponent("/dashboard/visitors")}`
+const SIGNUP_HREF = `/signup?next=${encodeURIComponent("/onboarding")}`
 const HOSTS = ["Tunde Bello", "Ngozi Eze", "Kemi Adeyemi"]
 const PURPOSES = ["Meeting", "Interview", "Delivery", "Collection", "Maintenance", "Personal", "Other"]
 

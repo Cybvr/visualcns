@@ -5,7 +5,6 @@ import { useEffect, useState, type FormEvent, type ReactNode } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { ArrowLeft, Bell, Briefcase, Building2, FileText, Home, ListTodo, Plus, Receipt, ScrollText, Users } from "lucide-react"
-import Image from "next/image"
 import { FiCheckSquare, FiMail, FiUser } from "react-icons/fi"
 
 import { useAgent } from "@/components/agent/agent-context"
@@ -74,23 +73,12 @@ function QuickCreateMenu({ trigger, onSelect }: { trigger: ReactNode; onSelect: 
   )
 }
 
-/** Bottom tab bar for mobile, replacing the floating Ngai composer. Must render inside SidebarProvider. */
-function DashboardMobileFooterNav({ rootHref, unreadEmailCount }: { rootHref: string; unreadEmailCount: number }) {
-  const { setOpen: setAgentOpen } = useAgent()
-
+/** Bottom tab bar for mobile. Must render inside SidebarProvider. */
+function DashboardMobileFooterNav({ unreadEmailCount }: { unreadEmailCount: number }) {
   const items: MobileFooterNavItem[] = [
     { key: "tasks", label: "Tasks", icon: FiCheckSquare, href: "/dashboard/tasks" },
     { key: "email", label: "Emails", icon: FiMail, href: "/dashboard/email", badge: unreadEmailCount },
-    {
-      key: "ngai",
-      render: ({ className }) => (
-        <Link href={rootHref} aria-label="Ngai" onClick={() => setAgentOpen(false)} className={cn(className, "-mt-5")}>
-          <span className="flex size-14 items-center justify-center rounded-full border-4 border-background bg-background shadow-lg ring-1 ring-border">
-            <Image src="/ngai-logo.png" alt="" width={32} height={32} />
-          </span>
-        </Link>
-      ),
-    },
+    { key: "clients", label: "Clients", icon: Building2, href: "/dashboard/clients" },
     { key: "invoices", label: "Invoices", icon: Receipt, href: "/dashboard/invoices" },
     { key: "profile", label: "Profile", icon: FiUser, href: "/dashboard/account" },
   ]
@@ -262,7 +250,7 @@ export function DashboardShell({
           {children}
         </SidebarInset>
         <NgaiSidePanel />
-        {!hideMobileFooter && <DashboardMobileFooterNav rootHref={rootHref} unreadEmailCount={unreadEmailCount} />}
+        {!hideMobileFooter && <DashboardMobileFooterNav unreadEmailCount={unreadEmailCount} />}
       </SidebarProvider>
 
       <Dialog

@@ -3,7 +3,7 @@
 import { useEffect, useState, type FormEvent } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { ArrowRight, Building2, ClipboardList, FolderKanban, Loader2, Users } from "lucide-react"
+import { ArrowRight, ClipboardList, FolderKanban, Loader2, Users } from "lucide-react"
 
 import { useAuth } from "@/components/auth-provider"
 import { authErrorMessage, GoogleIcon } from "@/components/auth-ui"
@@ -12,7 +12,6 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { safeReturnTo } from "@/lib/navigation"
-import { trackMetaLead } from "@/components/meta-pixel"
 
 type SignupAction = "email" | "google" | null
 
@@ -22,14 +21,18 @@ const onboardingFeatures = [
   { icon: ClipboardList, label: "Set up visitor sign-in when you need it" },
 ]
 
+function signupErrorMessage(error: unknown) {
+  const message = error instanceof Error ? error.message : ""
+  return message && !message.startsWith("Firebase") ? message : authErrorMessage(error)
+}
+
 export default function SignupPage() {
   const router = useRouter()
-  const { user, appUser, loading, signUpWithEmail, signInWithGoogle } = useAuth()
+  const { user, loading, signUpWithEmail, signInWithGoogle } = useAuth()
   const [inviteToken, setInviteToken] = useState("")
   const [returnTo, setReturnTo] = useState<string | null>(null)
   const [queryReady, setQueryReady] = useState(false)
   const [name, setName] = useState("")
-  const [companyName, setCompanyName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [emailFormOpen, setEmailFormOpen] = useState(false)
@@ -46,47 +49,43 @@ export default function SignupPage() {
   }, [])
 
   useEffect(() => {
-    if (!queryReady || loading || action || !user) return
+    if (!queryReady || loading || action || !user || !inviteToken) return
+    router.replace(`/invite/${inviteToken}`)
+  }, [queryReady, loading, action, user, router, inviteToken])
+
+  function continueAfterSignup() {
     if (inviteToken) {
       router.replace(`/invite/${inviteToken}`)
       return
     }
-    if (!appUser?.role || !appUser.agencyId) return
-    router.replace(returnTo || "/dashboard")
-  }, [queryReady, loading, action, user, appUser, router, inviteToken, returnTo])
+    const destination = returnTo === "/dashboard/visitors" ? "/onboarding" : returnTo || "/onboarding"
+    router.replace(destination)
+  }
 
   async function handleEmailSignup(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (!inviteToken && !companyName.trim()) {
-      setError("Enter your company name to continue.")
-      return
-    }
     setAction("email")
     setError(null)
     try {
-      await signUpWithEmail(name.trim(), email.trim(), password, companyName.trim(), !inviteToken)
-      if (!inviteToken) trackMetaLead()
+      await signUpWithEmail(name.trim(), email.trim(), password)
+      continueAfterSignup()
     } catch (err) {
-      setError(authErrorMessage(err))
+      setError(signupErrorMessage(err))
     } finally {
       setAction(null)
     }
   }
 
   async function handleGoogleSignup() {
-    if (!inviteToken && !companyName.trim()) {
-      setError("Enter your company name to continue.")
-      return
-    }
     setAction("google")
     setError(null)
     try {
-      await signInWithGoogle(inviteToken ? "" : companyName.trim(), !inviteToken)
-      if (!inviteToken) trackMetaLead()
+      await signInWithGoogle()
+      continueAfterSignup()
     } catch (err) {
       const message = err instanceof Error ? err.message : ""
       if (!message.includes("popup-closed-by-user") && !message.includes("cancelled-popup-request")) {
-        setError(authErrorMessage(err))
+        setError(signupErrorMessage(err))
       }
     } finally {
       setAction(null)
@@ -102,9 +101,7 @@ export default function SignupPage() {
           <BrandLockup logoSize={34} invert />
         </Link>
         <div className="mx-auto w-full max-w-xl py-12">
-          <p className="font-mono text-xs uppercase tracking-[0.22em] text-primary-foreground/70">Your VisualCNS workspace</p>
-          <h1 className="mt-5 text-5xl font-medium leading-[1.05] tracking-[-0.04em] xl:text-6xl">One account for the work you run.</h1>
-          <p className="mt-5 max-w-lg text-lg leading-7 text-primary-foreground/75">Create your company workspace and bring your day-to-day operations together.</p>
+          <h1 className="text-5xl font-medium leading-[1.05] tracking-[-0.04em] xl:text-6xl">One account for your company.</h1>
           <ul className="mt-10 space-y-5">
             {onboardingFeatures.map(({ icon: Icon, label }) => (
               <li key={label} className="flex items-center gap-3 text-sm text-primary-foreground/90">
@@ -116,7 +113,6 @@ export default function SignupPage() {
             ))}
           </ul>
         </div>
-        <p className="text-xs text-primary-foreground/60">Clients · projects · tasks · visitor log</p>
       </section>
 
       <section className="flex min-h-svh items-center justify-center px-5 py-8 sm:px-10 lg:px-12">
@@ -126,35 +122,30 @@ export default function SignupPage() {
           </Link>
 
           <div className="mb-8">
-            <p className="font-mono text-xs uppercase tracking-[0.2em] text-primary">Get started</p>
-            <h2 className="mt-3 text-3xl font-medium tracking-[-0.035em] sm:text-4xl">
-              {inviteToken ? "Create your account" : "Set up your workspace"}
+            {inviteToken && <p className="mb-3 text-sm font-medium text-primary">Accept invitation</p>}
+            <h2 className="text-3xl font-medium tracking-[-0.035em] sm:text-4xl">
+              Create your account
             </h2>
-            <p className="mt-3 text-sm leading-6 text-muted-foreground">
-              {inviteToken ? "Create an account to join your team." : "Start with your company and account details. You can set up the rest inside the app."}
-            </p>
+            {inviteToken && <p className="mt-3 text-sm leading-6 text-muted-foreground">Create an account to join your team.</p>}
           </div>
 
-          {!inviteToken && (
-            <div className="mb-5 space-y-2">
-              <Label htmlFor="companyName">Company name</Label>
-              <div className="relative">
-                <Building2 className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
-                <Input id="companyName" name="companyName" type="text" autoComplete="organization" value={companyName} onChange={(event) => setCompanyName(event.target.value)} placeholder="Your company" className="h-11 pl-10" disabled={busy} maxLength={120} required />
-              </div>
+          {user && !inviteToken ? (
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">Signed in as <span className="font-medium text-foreground">{user.email}</span>.</p>
+              <Button type="button" size="lg" className="h-11 w-full" onClick={continueAfterSignup}>Continue <ArrowRight className="size-4" aria-hidden="true" /></Button>
             </div>
-          )}
-
-          <Button type="button" size="lg" className="h-11 w-full gap-3" onClick={handleGoogleSignup} disabled={busy} aria-busy={action === "google"}>
-            {action === "google" ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <GoogleIcon />}
-            {action === "google" ? "Creating your workspace…" : "Continue with Google"}
-          </Button>
-
-          {!emailFormOpen ? (
-            <Button type="button" variant="ghost" className="mt-2 h-10 w-full" onClick={() => setEmailFormOpen(true)} disabled={busy}>
-              Use email instead
-            </Button>
           ) : (
+            <>
+              <Button type="button" size="lg" className="h-11 w-full gap-3" onClick={handleGoogleSignup} disabled={busy} aria-busy={action === "google"}>
+                {action === "google" ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <GoogleIcon />}
+                {action === "google" ? "Creating your account…" : "Continue with Google"}
+              </Button>
+
+              {!emailFormOpen ? (
+                <Button type="button" variant="ghost" className="mt-2 h-10 w-full" onClick={() => setEmailFormOpen(true)} disabled={busy}>
+                  Use email instead
+                </Button>
+              ) : (
             <form className="mt-5 space-y-4 border-t border-border pt-5" onSubmit={handleEmailSignup}>
               <div className="space-y-2">
                 <Label htmlFor="name">Your name</Label>
@@ -172,6 +163,8 @@ export default function SignupPage() {
                 {action === "email" ? <><Loader2 className="size-4 animate-spin" aria-hidden="true" /> Creating your account…</> : <>Create account <ArrowRight className="size-4" aria-hidden="true" /></>}
               </Button>
             </form>
+              )}
+            </>
           )}
 
           {error && <p role="alert" className="mt-4 text-sm leading-5 text-destructive">{error}</p>}
