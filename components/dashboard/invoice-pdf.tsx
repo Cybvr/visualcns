@@ -105,7 +105,7 @@ export function InvoicePdf({ invoice, issuer }: { invoice: Invoice; issuer?: Inv
         <View style={styles.metaGrid}>
           <View style={styles.metaColumn}>
             <Text style={styles.label}>Bill to</Text>
-            <Text style={styles.value}>{invoice.billTo?.name || invoice.client || "-"}</Text>
+            <Text style={styles.value}>{invoice.client || invoice.billTo?.name || "-"}</Text>
             {invoice.billTo?.email && <Text style={styles.muted}>{invoice.billTo.email}</Text>}
             {invoice.billTo?.address && <Text style={styles.muted}>{invoice.billTo.address}</Text>}
             {invoice.project && <Text style={[styles.muted, { marginTop: 7 }]}>Project: {invoice.project}</Text>}

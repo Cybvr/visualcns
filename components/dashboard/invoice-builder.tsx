@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation"
 import { ArrowLeft, BellRing, Loader2, Plus, Printer, Share2, X } from "lucide-react"
 
 import {
-  DepartmentField,
   EditorActionBar,
   EditorCard,
   EditorDeleteCard,
@@ -114,7 +113,6 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate }: {
   const [status, setStatus] = useState<InvoiceStatus>(invoice?.status ?? "draft")
   const [currency, setCurrency] = useState(invoice?.currency || initialEstimate?.currency || "USD")
 
-  const [billToName, setBillToName] = useState(invoice?.billTo?.name ?? initialEstimate?.preparedFor?.name ?? "")
   const [billToEmail, setBillToEmail] = useState(invoice?.billTo?.email ?? initialEstimate?.preparedFor?.email ?? "")
   const [billToAddress, setBillToAddress] = useState(invoice?.billTo?.address ?? initialEstimate?.preparedFor?.address ?? "")
   const [billToTaxNumber, setBillToTaxNumber] = useState(invoice?.billTo?.taxNumber ?? "")
@@ -236,14 +234,13 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate }: {
     }
   }, [isEdit])
 
-  // Addressing details follow the chosen client until they are edited by hand.
+  // Fill the billing email from the chosen client unless it was already set.
   useEffect(() => {
-    if (!companyId || billToName) return
+    if (!companyId) return
     const client = clients.find((entry) => entry.id === companyId)
     if (!client) return
-    setBillToName(client.name)
     setBillToEmail((current) => current || client.email || "")
-  }, [companyId, clients, billToName])
+  }, [companyId, clients])
 
   useEffect(() => {
     if (optionsLoading || !projectId) return
@@ -292,18 +289,20 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate }: {
 
   const selectedClient = clients.find((entry) => entry.id === companyId)
   const selectedProject = projects.find((entry) => entry.id === projectId)
+  const clientName = selectedClient?.name
+    ?? (companyId === invoice?.companyId ? invoice.client : companyId === initialEstimate?.companyId ? initialEstimate.client : "")
   const draftInvoice: Invoice = {
     ...(invoice ?? {}),
     id: invoice?.id ?? "preview",
     companyId,
-    client: selectedClient?.name ?? "",
+    client: clientName,
     invoiceNumber: invoiceNumber || "Invoice preview",
     title: invoiceTitle,
     projectId: projectId || "",
     project: selectedProject?.title || "",
     status,
     billTo: {
-      name: billToName,
+      name: clientName,
       email: billToEmail,
       address: billToAddress,
       taxNumber: billToTaxNumber,
@@ -385,7 +384,7 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate }: {
         project: project?.title || "",
         status,
         billTo: {
-          name: billToName.trim(),
+          name: client?.name ?? "",
           email: billToEmail.trim(),
           address: billToAddress.trim(),
           taxNumber: billToTaxNumber.trim(),
@@ -541,9 +540,6 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate }: {
                 ))}
               </SelectContent>
             </Select>
-          </EditorField>
-          <EditorField label="Department" htmlFor="bill-to">
-            <DepartmentField id="bill-to" companyId={companyId} value={billToName} onChange={setBillToName} />
           </EditorField>
           <EditorField label="Email" htmlFor="bill-email">
             <Input

@@ -60,7 +60,7 @@ export interface Invoice {
   projectId?: string
   project?: string
   status: InvoiceStatus
-  /** Who the invoice is addressed to, which is often not the account name */
+  /** Billing details for the selected client. */
   billTo?: InvoiceParty
   /** The client's own order number, printed so their finance team can match it */
   poReference?: string

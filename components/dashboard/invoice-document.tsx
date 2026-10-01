@@ -53,7 +53,7 @@ export function InvoiceDocument({ invoice, issuer = INVOICE_ISSUER }: { invoice:
       <div className="grid gap-8 px-3 py-6 sm:grid-cols-2 sm:px-10 sm:py-8">
         <section>
           <h2 className="text-sm font-medium uppercase tracking-[0.12em] text-muted-foreground">Bill to</h2>
-          <p className="mt-2 font-medium">{invoice.billTo?.name || invoice.client || "—"}</p>
+          <p className="mt-2 font-medium">{invoice.client || invoice.billTo?.name || "—"}</p>
           {invoice.billTo?.email && <p className="mt-1 text-sm text-muted-foreground">{invoice.billTo.email}</p>}
           {invoice.billTo?.address && <p className="mt-1 whitespace-pre-line text-sm leading-6 text-muted-foreground">{invoice.billTo.address}</p>}
           {invoice.project && <p className="mt-3 text-sm text-muted-foreground">Project: {invoice.project}</p>}
