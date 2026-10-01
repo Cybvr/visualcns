@@ -705,7 +705,7 @@ export default function EmailPage() {
         if (!active) return
         const seen = new Set<string>()
         const nextContacts = users
-          .filter((contact) => contact.role === "client" && contact.email?.trim())
+          .filter((contact) => contact.email?.trim())
           .map((contact) => ({
             // Lists store emails lowercased, so match that here or saved
             // members show as unticked when the list is reopened.
