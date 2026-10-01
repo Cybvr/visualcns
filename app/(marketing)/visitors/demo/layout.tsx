@@ -5,7 +5,7 @@ import { AuthProvider } from "@/components/auth-provider"
 
 export const metadata: Metadata = { title: "Visitor sign-in demo" }
 
-// Sign-in is needed for the Get started modal.
+// Sign-in is needed if an existing account opens Visitor Sign-in onboarding.
 export default function VisitorsDemoLayout({ children }: { children: ReactNode }) {
   return <AuthProvider>{children}</AuthProvider>
 }

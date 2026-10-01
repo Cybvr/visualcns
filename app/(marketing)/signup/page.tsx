@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState, type FormEvent } from "react"
+import { useEffect, useState, type FormEvent } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Loader2 } from "lucide-react"
@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { safeReturnTo } from "@/lib/navigation"
 import { VISITOR_TRIAL_DAYS } from "@/lib/visitor-billing"
-import { VisitorSignupForm, visitorsTab } from "@/components/visitors/visitor-signup-form"
+import { VisitorSignupForm } from "@/components/visitors/visitor-signup-form"
 import { trackMetaLead } from "@/components/meta-pixel"
 
 type SignupAction = "email" | "google" | null
@@ -23,7 +23,7 @@ const VISITORS_PATH = "/dashboard/visitors"
 
 export default function SignupPage() {
   const router = useRouter()
-  const { user, appUser, loading, signUpWithEmail, signInWithGoogle, joinVisitorCompany } = useAuth()
+  const { user, appUser, loading, signUpWithEmail, signInWithGoogle } = useAuth()
   const [inviteToken, setInviteToken] = useState("")
   const [returnTo, setReturnTo] = useState<string | null>(null)
   const [queryReady, setQueryReady] = useState(false)
@@ -33,7 +33,6 @@ export default function SignupPage() {
   const [password, setPassword] = useState("")
   const [action, setAction] = useState<SignupAction>(null)
   const [error, setError] = useState<string | null>(null)
-  const redirectingRef = useRef(false)
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
@@ -43,21 +42,21 @@ export default function SignupPage() {
   }, [])
 
   useEffect(() => {
-    if (!queryReady || loading || action || !user) return
+    if (!queryReady || action) return
+    // Keep old Visitor Sign-in campaign links working while sending people
+    // through the dedicated onboarding page.
+    if (returnTo === VISITORS_PATH) {
+      router.replace("/visitors/onboarding")
+      return
+    }
+    if (loading || !user) return
     if (inviteToken) {
       router.replace(`/invite/${inviteToken}`)
       return
     }
     if (!appUser?.role || !appUser.agencyId) return
-    // A client coming from the visitor demo goes to their own company's Visitors tab.
-    if (returnTo === VISITORS_PATH && appUser.role === "client") {
-      if (redirectingRef.current) return
-      redirectingRef.current = true
-      void joinVisitorCompany("").then((slug) => window.location.assign(visitorsTab(slug))).catch(() => router.replace(returnTo))
-      return
-    }
     router.replace(returnTo || "/dashboard")
-  }, [queryReady, loading, action, user, appUser, router, inviteToken, returnTo, joinVisitorCompany])
+  }, [queryReady, loading, action, user, appUser, router, inviteToken, returnTo])
 
   async function handleEmailSignup(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
