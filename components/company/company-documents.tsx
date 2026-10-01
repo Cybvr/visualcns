@@ -83,14 +83,15 @@ export function CompanyDocuments({
 
           {invoices.map((invoice) => {
             const status = invoiceStatusMeta[invoice.status]
+            const title = invoice.title?.trim() || invoice.invoiceNumber || "Invoice"
             return (
               <MobileDataCard
                 key={`invoice-${invoice.id}`}
-                title={invoice.invoiceNumber || "Invoice"}
+                title={title}
                 subtitle={`${formatMoney(invoice.amount, invoice.currency)} · ${status.label}`}
-                ariaLabel={`Open invoice ${invoice.invoiceNumber || ""}`}
+                ariaLabel={`Open invoice ${title}`}
                 icon={<Receipt className="size-5 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />}
-                menuLabel={`Options for ${invoice.invoiceNumber || "Invoice"}`}
+                menuLabel={`Options for invoice ${title}`}
                 menu={<DropdownMenuItem onSelect={() => onSelect("invoice", invoice.id)}>Open invoice</DropdownMenuItem>}
                 onClick={() => onSelect("invoice", invoice.id)}
               />
