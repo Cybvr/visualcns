@@ -125,10 +125,11 @@ export async function getOrganizationBySlug(slug: string): Promise<Organization 
 /** Resolve a company slug for the public profile without requiring Firebase Auth. */
 export async function getPublicOrganizationBySlug(slug: string): Promise<Organization | null> {
   if (!slug) return null
-  const snapshot = await getDocs(query(collection(db, COLLECTION_NAME), where("publicVisible", "==", true), where("slug", "==", slug)))
-  if (snapshot.empty) return null
-  const first = snapshot.docs[0]
-  return { ...(first.data() as object), id: first.id } as Organization
+  const response = await fetch(`/api/organizations/public?slug=${encodeURIComponent(slug)}`, { cache: "no-store" })
+  if (response.status === 404) return null
+  if (!response.ok) throw new Error("This company page could not be loaded. Try again.")
+  const result = (await response.json()) as { organization?: Organization }
+  return result.organization ?? null
 }
 
 /**
