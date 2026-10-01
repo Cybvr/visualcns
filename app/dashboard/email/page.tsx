@@ -1879,6 +1879,7 @@ export default function EmailPage() {
         contactQuery={contactQuery}
         selectedList={selectedList || null}
         handleRecipientChange={handleRecipientChange}
+        contacts={contacts}
         visibleContactOptions={visibleContactOptions}
         contactInitials={contactInitials}
         contactAvatarTone={contactAvatarTone}

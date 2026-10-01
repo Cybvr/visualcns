@@ -1,7 +1,7 @@
 "use client"
 
 import { ArrowLeft, Check, ChevronDown, ChevronsUpDown, Clock, Eye, FileText, MoreVertical, Trash2, X } from "lucide-react"
-import type { FormEvent } from "react"
+import { useMemo, useState, type FormEvent } from "react"
 import { IoSend } from "react-icons/io5"
 
 import { RichTextEditor } from "@/components/dashboard/rich-text-editor"
@@ -44,6 +44,7 @@ export type EmailComposerProps = {
   contactQuery: string
   selectedList: ContactList | null
   handleRecipientChange: (value: string) => void
+  contacts: EmailContact[]
   visibleContactOptions: EmailContact[]
   contactInitials: (name: string, email: string) => string
   contactAvatarTone: (value: string) => string
@@ -104,6 +105,7 @@ export function EmailComposer({
   contactQuery,
   selectedList,
   handleRecipientChange,
+  contacts,
   visibleContactOptions,
   contactInitials,
   contactAvatarTone,
@@ -139,6 +141,22 @@ export function EmailComposer({
   composerPreviewHtml,
   sendNotice,
 }: EmailComposerProps) {
+  const [recipientSuggestionsOpen, setRecipientSuggestionsOpen] = useState(false)
+  const [activeRecipientIndex, setActiveRecipientIndex] = useState(0)
+  const recipientMatches = useMemo(() => {
+    const query = to.trim().toLowerCase()
+    if (!query) return []
+    return contacts
+      .filter((contact) => `${contact.name} ${contact.email} ${contact.label}`.toLowerCase().includes(query))
+      .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }))
+      .slice(0, 6)
+  }, [contacts, to])
+
+  function selectRecipient(contact: EmailContact) {
+    handleRecipientChange(contact.email)
+    setRecipientSuggestionsOpen(false)
+  }
+
   if (!composeOpen) return null
 
   return (
@@ -186,7 +204,53 @@ export function EmailComposer({
               <div className="grid shrink-0 grid-cols-[minmax(0,1fr)_9rem] items-center border-b border-border"><div className="flex min-w-0 items-center gap-2 px-4 py-2"><span className="shrink-0 text-xs font-medium text-muted-foreground">From</span>{senderOptions.length > 1 ? <Select value={senderAddress} onValueChange={setSenderAddress}><SelectTrigger aria-label="Sender address" className="h-7 min-w-0 flex-1 border-0 bg-transparent px-0 text-left text-sm shadow-none hover:bg-transparent data-[state=open]:bg-transparent"><SelectValue /></SelectTrigger><SelectContent align="start" className="w-72">{senderOptions.map((sender) => <SelectItem key={sender} value={sender}>{cleanSenderDisplay(sender)}</SelectItem>)}</SelectContent></Select> : <p className="min-w-0 truncate text-sm">{cleanSenderDisplay(senderAddress || (showOpsDetail ? "Not configured" : "Not available yet"))}</p>}</div><div className="px-3 py-1"><Select value={messageKind} onValueChange={(value) => setMessageKind(value as EmailMessageKind)}><SelectTrigger aria-label="Message type" className="h-7 w-full border-0 bg-transparent px-1 text-xs shadow-none hover:bg-transparent data-[state=open]:bg-transparent"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="transactional">Service message</SelectItem><SelectItem value="marketing">Marketing email</SelectItem></SelectContent></Select></div></div>
 
               <div className="grid shrink-0 grid-cols-2 gap-3 border-b border-border px-4 py-2.5">
-                <div className="flex min-w-0 items-center gap-2 border-b border-input"><Input id="email-to" name="message-to" type="email" inputMode="email" autoComplete="off" aria-label="Recipient email" value={selectedListId ? "" : to} onChange={(event) => handleRecipientChange(event.target.value)} placeholder={selectedList ? `Sending to ${selectedList.contactEmails.length} contacts` : "To"} disabled={Boolean(selectedListId)} className="h-8 min-w-0 flex-1 border-0 px-0 shadow-none focus-visible:ring-0 disabled:opacity-60" /><Popover open={contactPickerOpen} onOpenChange={(open) => { setContactPickerOpen(open); if (!open) setContactQuery("") }}><PopoverTrigger asChild><button type="button" aria-label="Choose contact" disabled={Boolean(selectedListId)} className="flex size-8 shrink-0 items-center justify-center text-muted-foreground outline-none transition-colors hover:text-foreground disabled:pointer-events-none disabled:opacity-50"><ChevronsUpDown className="size-4" aria-hidden="true" /></button></PopoverTrigger><PopoverContent align="start" className="w-[var(--radix-popover-trigger-width)] min-w-[280px] p-0"><Command><CommandInput autoFocus placeholder="Search contacts" value={contactQuery} onValueChange={setContactQuery} /><CommandList><CommandEmpty className="px-3 py-6 text-center text-sm text-muted-foreground">No matching contacts.</CommandEmpty><CommandGroup>{visibleContactOptions.map((contact) => { const isSelected = recipientEmail(contact.email) === recipientEmail(to); return <CommandItem key={contact.email} value={`${contact.name} ${contact.email}`} onSelect={() => { handleRecipientChange(contact.email); setContactPickerOpen(false); setContactQuery("") }} className="items-center gap-3 px-3 py-2.5"><Avatar className={cn("size-10", contactAvatarTone(contact.name || contact.email))}><AvatarFallback className="bg-transparent text-sm font-medium">{contactInitials(contact.name, contact.email)}</AvatarFallback></Avatar><span className="min-w-0 flex-1"><span className="block truncate text-sm font-medium text-foreground">{contact.name || "Unnamed contact"}</span><span className="block truncate text-xs text-muted-foreground">{contact.email}</span></span><Check className={cn("size-4 shrink-0", isSelected ? "opacity-100" : "opacity-0")} aria-hidden="true" /></CommandItem> })}</CommandGroup></CommandList></Command></PopoverContent></Popover></div>
+                <div className="relative flex min-w-0 items-center gap-2 border-b border-input" onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setRecipientSuggestionsOpen(false) }}>
+                  <Input
+                    id="email-to"
+                    name="message-to"
+                    type="email"
+                    inputMode="email"
+                    autoComplete="off"
+                    aria-label="Recipient email"
+                    aria-autocomplete="list"
+                    aria-expanded={recipientSuggestionsOpen && Boolean(to.trim()) && !selectedListId}
+                    aria-controls="email-to-suggestions"
+                    aria-activedescendant={recipientSuggestionsOpen && recipientMatches.length ? `email-to-option-${activeRecipientIndex}` : undefined}
+                    value={selectedListId ? "" : to}
+                    onFocus={() => setRecipientSuggestionsOpen(Boolean(to.trim()))}
+                    onChange={(event) => { handleRecipientChange(event.target.value); setActiveRecipientIndex(0); setRecipientSuggestionsOpen(Boolean(event.target.value.trim())) }}
+                    onKeyDown={(event) => {
+                      if (!recipientSuggestionsOpen) return
+                      if (event.key === "ArrowDown" && recipientMatches.length) { event.preventDefault(); setActiveRecipientIndex((index) => (index + 1) % recipientMatches.length) }
+                      if (event.key === "ArrowUp" && recipientMatches.length) { event.preventDefault(); setActiveRecipientIndex((index) => (index - 1 + recipientMatches.length) % recipientMatches.length) }
+                      if (event.key === "Enter") { event.preventDefault(); if (recipientMatches.length) selectRecipient(recipientMatches[activeRecipientIndex] ?? recipientMatches[0]); else setRecipientSuggestionsOpen(false) }
+                      if (event.key === "Escape") { event.preventDefault(); setRecipientSuggestionsOpen(false) }
+                    }}
+                    placeholder={selectedList ? `Sending to ${selectedList.contactEmails.length} contacts` : "To"}
+                    disabled={Boolean(selectedListId)}
+                    className="h-8 min-w-0 flex-1 border-0 px-0 shadow-none focus-visible:ring-0 disabled:opacity-60"
+                  />
+                  <Popover open={contactPickerOpen} onOpenChange={(open) => { setContactPickerOpen(open); if (open) setRecipientSuggestionsOpen(false); else setContactQuery("") }}><PopoverTrigger asChild><button type="button" aria-label="Choose contact" disabled={Boolean(selectedListId)} className="flex size-8 shrink-0 items-center justify-center text-muted-foreground outline-none transition-colors hover:text-foreground disabled:pointer-events-none disabled:opacity-50"><ChevronsUpDown className="size-4" aria-hidden="true" /></button></PopoverTrigger><PopoverContent align="start" className="w-[var(--radix-popover-trigger-width)] min-w-[280px] p-0"><Command><CommandInput autoFocus placeholder="Search contacts" value={contactQuery} onValueChange={setContactQuery} /><CommandList><CommandEmpty className="px-3 py-6 text-center text-sm text-muted-foreground">No matching contacts.</CommandEmpty><CommandGroup>{visibleContactOptions.map((contact) => { const isSelected = recipientEmail(contact.email) === recipientEmail(to); return <CommandItem key={contact.email} value={`${contact.name} ${contact.email}`} onSelect={() => { selectRecipient(contact); setContactPickerOpen(false); setContactQuery("") }} className="items-center gap-3 px-3 py-2.5"><Avatar className={cn("size-10", contactAvatarTone(contact.name || contact.email))}><AvatarFallback className="bg-transparent text-sm font-medium">{contactInitials(contact.name, contact.email)}</AvatarFallback></Avatar><span className="min-w-0 flex-1"><span className="block truncate text-sm font-medium text-foreground">{contact.name || "Unnamed contact"}</span><span className="block truncate text-xs text-muted-foreground">{contact.email}</span></span><Check className={cn("size-4 shrink-0", isSelected ? "opacity-100" : "opacity-0")} aria-hidden="true" /></CommandItem> })}</CommandGroup></CommandList></Command></PopoverContent></Popover>
+                  {recipientSuggestionsOpen && to.trim() && !selectedListId && (
+                    <div id="email-to-suggestions" role="listbox" aria-label="Matching contacts" className="absolute left-0 top-full z-50 mt-1 max-h-64 w-[min(26rem,calc(100vw-2rem))] overflow-y-auto rounded-md border border-border bg-popover p-1 text-popover-foreground shadow-lg">
+                      {recipientMatches.length ? recipientMatches.map((contact, index) => (
+                        <button
+                          key={contact.email}
+                          id={`email-to-option-${index}`}
+                          type="button"
+                          role="option"
+                          aria-selected={index === activeRecipientIndex}
+                          tabIndex={-1}
+                          onClick={() => selectRecipient(contact)}
+                          className={cn("flex w-full items-center gap-3 rounded px-2 py-2 text-left outline-none hover:bg-accent", index === activeRecipientIndex && "bg-accent")}
+                        >
+                          <Avatar className={cn("size-9 shrink-0", contactAvatarTone(contact.name || contact.email))}><AvatarFallback className="bg-transparent text-xs font-medium">{contactInitials(contact.name, contact.email)}</AvatarFallback></Avatar>
+                          <span className="min-w-0"><span className="block truncate text-sm font-medium">{contact.name || "Unnamed contact"}</span><span className="block truncate text-xs text-muted-foreground">{contact.email}</span></span>
+                        </button>
+                      )) : <p className="px-3 py-2 text-xs text-muted-foreground">No saved contact matches. You can still use this email address.</p>}
+                    </div>
+                  )}
+                </div>
                 <Select value={selectedListId || "none"} onValueChange={(value) => { setSelectedListId(value === "none" ? "" : value); if (value !== "none") setTo("") }}><SelectTrigger aria-label="Contact list" className="h-8"><SelectValue placeholder="Select list" /></SelectTrigger><SelectContent><SelectItem value="none">No list</SelectItem>{[...lists].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" })).map((list) => <SelectItem key={list.id} value={list.id}>{list.name} ({list.contactEmails.length})</SelectItem>)}</SelectContent></Select>
               </div>
 
