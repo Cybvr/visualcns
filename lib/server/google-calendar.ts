@@ -74,13 +74,14 @@ export async function saveGoogleBookingEvent(agencyId: string, booking: Calendar
     method: eventId ? "PATCH" : "POST",
     body: JSON.stringify(body),
   })
-  if (!eventId && body.conferenceData && event.id && !meetUrl(event)) {
+  const createdEventId = event.id
+  if (!eventId && body.conferenceData && createdEventId && !meetUrl(event)) {
     for (let attempt = 0; attempt < 4 && !meetUrl(event); attempt++) {
       await new Promise((resolve) => setTimeout(resolve, 750))
-      event = await calendarRequest<GoogleCalendarEvent>(agencyId, `/${encodeURIComponent(event.id)}?conferenceDataVersion=1`, { method: "GET" })
+      event = await calendarRequest<GoogleCalendarEvent>(agencyId, `/${encodeURIComponent(createdEventId)}?conferenceDataVersion=1`, { method: "GET" })
     }
   }
-  return { eventId: event.id || eventId || "", meetingUrl: meetUrl(event) }
+  return { eventId: event.id || createdEventId || eventId || "", meetingUrl: meetUrl(event) }
 }
 
 export async function deleteGoogleBookingEvent(agencyId: string, eventId: string) {

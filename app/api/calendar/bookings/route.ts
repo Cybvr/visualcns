@@ -86,7 +86,7 @@ async function serialize(snapshot: FirebaseFirestore.QueryDocumentSnapshot | Fir
   } as CalendarBooking
 }
 
-async function validateStaffBooking(caller: Caller, input: Input, current?: CalendarBooking) {
+async function validateStaffBooking(caller: Caller, input: Input, current?: CalendarBooking): Promise<Omit<CalendarBooking, "id">> {
   const companyId = clean(input.companyId, 160) || current?.companyId || ""
   const company = await companyFor(caller, companyId)
   const title = clean(input.title, 140) || current?.title || ""
@@ -132,8 +132,9 @@ async function validateStaffBooking(caller: Caller, input: Input, current?: Cale
     meetingUrl: input.meetingUrl === undefined ? current?.meetingUrl || "" : meetingUrl,
     staffNotes: input.staffNotes === undefined ? current?.staffNotes || "" : clean(input.staffNotes, 2000),
     status: input.status === "completed" ? "completed" : "scheduled",
+    createdBy: current?.createdBy || caller.uid,
+    createdAt: current?.createdAt || now,
     updatedAt: now,
-    ...(!current ? { createdBy: caller.uid, createdAt: now } : {}),
   }
 }
 
