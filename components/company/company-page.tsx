@@ -274,7 +274,8 @@ export function CompanyPage({
   const [removedPersonIds, setRemovedPersonIds] = useState<string[]>([])
 
   const tabParam = searchParams.get("tab")
-  const section: SectionKey = sections.some((s) => s.key === tabParam) ? (tabParam as SectionKey) : "projects"
+  const taskParam = searchParams.get("task")
+  const section: SectionKey = sections.some((s) => s.key === tabParam) ? (tabParam as SectionKey) : taskParam && !admin ? "tasks" : "projects"
 
   const [docKind, docId] = (searchParams.get("doc") ?? "").split(":")
   const selectedDocument = useMemo(() => {
@@ -305,7 +306,7 @@ export function CompanyPage({
   const [issuer, setIssuer] = useState<BusinessProfile | null>(null)
   const [activityTasks, setActivityTasks] = useState<Task[]>([])
   const [tasksLoading, setTasksLoading] = useState(true)
-  const [viewingTaskId, setViewingTaskId] = useState<string | null>(null)
+  const viewingTaskId = !admin && section === "tasks" ? taskParam : null
   const [viewingTaskContent, setViewingTaskContent] = useState<string | null>(null)
   const [viewingTaskError, setViewingTaskError] = useState(false)
   const [viewingTaskRetry, setViewingTaskRetry] = useState(0)
@@ -399,19 +400,25 @@ export function CompanyPage({
       })
   }
 
-  function updateParams(next: Record<string, string | null>) {
+  function updateParams(next: Record<string, string | null>, replace = false) {
     const params = new URLSearchParams(searchParams.toString())
     for (const [key, value] of Object.entries(next)) {
       if (value === null) params.delete(key)
       else params.set(key, value)
     }
     const query = params.toString()
-    router.push(query ? `${pathname}?${query}` : pathname, { scroll: false })
+    const href = query ? `${pathname}?${query}` : pathname
+    if (replace) router.replace(href, { scroll: false })
+    else router.push(href, { scroll: false })
   }
 
   function handleSectionChange(key: SectionKey) {
     if (key !== "projects") setSelectedProject(null)
-    updateParams({ tab: key === "projects" ? null : key, doc: null })
+    updateParams({ tab: key === "projects" ? null : key, doc: null, task: null })
+  }
+
+  function publicTaskPath(id: string) {
+    return `${pathname}?tab=tasks&task=${encodeURIComponent(id)}`
   }
 
   function handleSelectDocument(kind: CompanyDocumentKind, id: string) {
@@ -872,9 +879,9 @@ export function CompanyPage({
                   <ul className="mt-4 divide-y divide-border rounded-lg border border-border">
                     {activityTasks.map((task) => (
                       <li key={task.id}>
-                        <button
-                          type="button"
-                          onClick={() => setViewingTaskId(task.id)}
+                        <Link
+                          href={publicTaskPath(task.id)}
+                          scroll={false}
                           className="flex w-full flex-wrap items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
                           aria-label={`View task: ${task.name}`}
                         >
@@ -890,7 +897,7 @@ export function CompanyPage({
                             </span>
                             <ChevronRight className="size-4 text-muted-foreground" aria-hidden="true" />
                           </span>
-                        </button>
+                        </Link>
                       </li>
                     ))}
                   </ul>
@@ -1100,7 +1107,7 @@ export function CompanyPage({
       </div>
 
       {!admin && (
-        <Dialog open={Boolean(viewingTask)} onOpenChange={(open) => { if (!open) setViewingTaskId(null) }}>
+        <Dialog open={Boolean(viewingTask)} onOpenChange={(open) => { if (!open) updateParams({ task: null }, true) }}>
           <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg">
             <DialogHeader>
               <DialogTitle>{viewingTask?.name || "Task"}</DialogTitle>
@@ -1108,6 +1115,10 @@ export function CompanyPage({
             </DialogHeader>
             {viewingTask && (
               <div className="space-y-5">
+                <div>
+                  <p className="text-sm font-medium text-foreground">Task URL</p>
+                  <ShareLink value={absoluteUrl(publicTaskPath(viewingTask.id))} label="Task URL" />
+                </div>
                 <dl className="grid gap-4 rounded-lg bg-muted/40 p-4 text-sm sm:grid-cols-2">
                   <div>
                     <dt className="text-muted-foreground">Project</dt>
