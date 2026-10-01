@@ -421,6 +421,16 @@ export function CompanyPage({
     return `${pathname}?tab=tasks&task=${encodeURIComponent(id)}`
   }
 
+  async function copyPublicTaskLink(task: Task) {
+    const url = absoluteUrl(publicTaskPath(task.id))
+    try {
+      await navigator.clipboard.writeText(url)
+      toast.success("Task link copied")
+    } catch {
+      toast.error("Couldn’t copy the task link.")
+    }
+  }
+
   function handleSelectDocument(kind: CompanyDocumentKind, id: string) {
     updateParams({ tab: "documents", doc: `${kind}:${id}` })
   }
@@ -1109,16 +1119,25 @@ export function CompanyPage({
       {!admin && (
         <Dialog open={Boolean(viewingTask)} onOpenChange={(open) => { if (!open) updateParams({ task: null }, true) }}>
           <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg">
-            <DialogHeader>
+            {viewingTask && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="absolute right-11 top-2.5 size-8 text-muted-foreground hover:text-foreground"
+                onClick={() => void copyPublicTaskLink(viewingTask)}
+                aria-label="Copy task link"
+                title="Copy task link"
+              >
+                <Share2 className="size-4" aria-hidden="true" />
+              </Button>
+            )}
+            <DialogHeader className="pr-20">
               <DialogTitle>{viewingTask?.name || "Task"}</DialogTitle>
               <DialogDescription className="sr-only">Task details</DialogDescription>
             </DialogHeader>
             {viewingTask && (
               <div className="space-y-5">
-                <div>
-                  <p className="text-sm font-medium text-foreground">Task URL</p>
-                  <ShareLink value={absoluteUrl(publicTaskPath(viewingTask.id))} label="Task URL" />
-                </div>
                 <dl className="grid gap-4 rounded-lg bg-muted/40 p-4 text-sm sm:grid-cols-2">
                   <div>
                     <dt className="text-muted-foreground">Project</dt>
