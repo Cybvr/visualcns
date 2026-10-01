@@ -38,20 +38,24 @@ export function EmailNotificationControl({ workspaceId }: { workspaceId: string 
   }, [storageKey])
 
   async function toggle() {
-    if (status === "on") {
-      localStorage.removeItem(storageKey)
-      setStatus("off")
-      window.dispatchEvent(new Event(EMAIL_NOTIFICATION_PREFERENCE_EVENT))
-      return
-    }
-    if (status !== "off") return
-    const permission = Notification.permission === "granted" ? "granted" : await Notification.requestPermission()
-    if (permission === "granted") {
-      localStorage.setItem(storageKey, "enabled")
-      setStatus("on")
-      window.dispatchEvent(new Event(EMAIL_NOTIFICATION_PREFERENCE_EVENT))
-    } else {
-      setStatus(permission === "denied" ? "blocked" : "off")
+    try {
+      if (status === "on") {
+        localStorage.removeItem(storageKey)
+        setStatus("off")
+        window.dispatchEvent(new Event(EMAIL_NOTIFICATION_PREFERENCE_EVENT))
+        return
+      }
+      if (status !== "off") return
+      const permission = Notification.permission === "granted" ? "granted" : await Notification.requestPermission()
+      if (permission === "granted") {
+        localStorage.setItem(storageKey, "enabled")
+        setStatus("on")
+        window.dispatchEvent(new Event(EMAIL_NOTIFICATION_PREFERENCE_EVENT))
+      } else {
+        setStatus(permission === "denied" ? "blocked" : "off")
+      }
+    } catch {
+      setStatus("unavailable")
     }
   }
 
@@ -59,9 +63,12 @@ export function EmailNotificationControl({ workspaceId }: { workspaceId: string 
   const help = status === "blocked" ? "Allow notifications in your browser's site settings." : status === "unavailable" ? "Browser alerts need a supported browser and a secure connection." : "Notify me about new inbox emails while VisualCNS is open."
 
   return (
-    <Button type="button" variant="outline" size="sm" onClick={() => void toggle()} disabled={status === "blocked" || status === "unavailable"} aria-pressed={status === "on"} aria-label={label} title={help} className="gap-2 max-sm:size-9 max-sm:border-transparent max-sm:bg-transparent max-sm:px-0 max-sm:shadow-none">
-      {status === "on" ? <Bell className="size-4" aria-hidden="true" /> : <BellOff className="size-4" aria-hidden="true" />}
-      <span className="max-sm:hidden">{label}</span>
-    </Button>
+    <div className="flex flex-col items-start gap-1 sm:items-end">
+      <Button type="button" variant="outline" size="sm" onClick={() => void toggle()} disabled={status === "blocked" || status === "unavailable"} aria-pressed={status === "on"} aria-label={label} title={help} className="gap-2">
+        {status === "on" ? <Bell className="size-4" aria-hidden="true" /> : <BellOff className="size-4" aria-hidden="true" />}
+        <span>{label}</span>
+      </Button>
+      {(status === "blocked" || status === "unavailable") && <p className="max-w-56 text-xs text-muted-foreground" role="status">{help}</p>}
+    </div>
   )
 }

@@ -23,6 +23,7 @@ export function dashboardPageTitle(pathname: string): string {
     case "account":
       if (record === "profile") return "Profile"
       if (record === "customization") return "App Settings"
+      if (record === "notifications") return "Notifications"
       if (record === "business") return "Agency Settings"
       if (record === "team") return "Team"
       return "Account"

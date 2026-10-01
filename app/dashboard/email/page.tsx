@@ -46,7 +46,6 @@ import { deleteEmailDraft, getEmailDrafts, saveEmailDraft, type EmailDraftRecord
 import { deleteEmailMessage, getAllEmailMessages, getEmailMessages, saveEmailMessage, updateEmailMessageStatus, type EmailMessageRecord, type EmailRecipient } from "@/lib/email-messages"
 import { getHiddenReceivedIds, hideReceivedEmail } from "@/lib/email-received-hidden"
 import { EMAIL_INBOX_REFRESH_EVENT, publishUnreadEmailCount } from "@/components/dashboard/email/use-unread-email-count"
-import { EmailNotificationControl } from "@/components/dashboard/email/email-notification-control"
 import { contextualEmailBody, parseEmailList, readEmailComposeContext, type EmailComposeContext } from "@/lib/email-composer"
 import { getBusinessProfile, type BusinessProfile } from "@/lib/business-profile"
 import { deleteEmailTemplate, getEmailTemplates, saveEmailTemplate } from "@/lib/email-templates-store"
@@ -1710,7 +1709,6 @@ export default function EmailPage() {
           searchClassName={tab === "messages" || tab === "inbox" ? "sm:max-w-[16rem]" : undefined}
           actions={
             <>
-            {tab === "inbox" && <EmailNotificationControl workspaceId={workspaceId} />}
             {tab === "templates" && mobileTemplateView === "list" && (
               <Button type="button" size="sm" className="hidden lg:inline-flex" onClick={() => { resetTemplateEditor(); setMobileTemplateView("editor") }}>
                 <Plus className="size-4" aria-hidden="true" />New template
