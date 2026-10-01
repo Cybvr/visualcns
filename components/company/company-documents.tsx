@@ -23,6 +23,7 @@ export function CompanyDocuments({
   estimates,
   documents,
   onSelect,
+  onEdit,
   canAdd = false,
   onAdd,
 }: {
@@ -31,6 +32,7 @@ export function CompanyDocuments({
   estimates: Estimate[]
   documents: CompanyDocument[]
   onSelect: (kind: CompanyDocumentKind, id: string) => void
+  onEdit?: (kind: CompanyDocumentKind, id: string) => void
   canAdd?: boolean
   onAdd?: (kind: CompanyDocumentKind) => void
 }) {
@@ -75,7 +77,10 @@ export function CompanyDocuments({
                 ariaLabel={`Open ${document.title || "Document"}`}
                 icon={<FileText className="size-5 text-blue-600 dark:text-blue-400" aria-hidden="true" />}
                 menuLabel={`Options for ${document.title || "Document"}`}
-                menu={<DropdownMenuItem onSelect={() => onSelect("document", document.id)}>Open document</DropdownMenuItem>}
+                menu={<>
+                  <DropdownMenuItem onSelect={() => onSelect("document", document.id)}>Open document</DropdownMenuItem>
+                  {onEdit && <DropdownMenuItem onSelect={() => onEdit("document", document.id)}>Edit document</DropdownMenuItem>}
+                </>}
                 onClick={() => onSelect("document", document.id)}
               />
             )
@@ -92,7 +97,10 @@ export function CompanyDocuments({
                 ariaLabel={`Open invoice ${title}`}
                 icon={<Receipt className="size-5 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />}
                 menuLabel={`Options for invoice ${title}`}
-                menu={<DropdownMenuItem onSelect={() => onSelect("invoice", invoice.id)}>Open invoice</DropdownMenuItem>}
+                menu={<>
+                  <DropdownMenuItem onSelect={() => onSelect("invoice", invoice.id)}>Open invoice</DropdownMenuItem>
+                  {onEdit && <DropdownMenuItem onSelect={() => onEdit("invoice", invoice.id)}>Edit invoice</DropdownMenuItem>}
+                </>}
                 onClick={() => onSelect("invoice", invoice.id)}
               />
             )
@@ -108,7 +116,10 @@ export function CompanyDocuments({
                 ariaLabel={`Open ${contract.title || "Contract"}`}
                 icon={<FileSignature className="size-5 text-indigo-600 dark:text-indigo-400" aria-hidden="true" />}
                 menuLabel={`Options for ${contract.title || "Contract"}`}
-                menu={<DropdownMenuItem onSelect={() => onSelect("contract", contract.id)}>Open contract</DropdownMenuItem>}
+                menu={<>
+                  <DropdownMenuItem onSelect={() => onSelect("contract", contract.id)}>Open contract</DropdownMenuItem>
+                  {onEdit && <DropdownMenuItem onSelect={() => onEdit("contract", contract.id)}>Edit contract</DropdownMenuItem>}
+                </>}
                 onClick={() => onSelect("contract", contract.id)}
               />
             )
@@ -124,7 +135,10 @@ export function CompanyDocuments({
                 ariaLabel={`Open estimate ${estimate.estimateNumber || estimate.title || ""}`}
                 icon={<ClipboardList className="size-5 text-amber-600 dark:text-amber-400" aria-hidden="true" />}
                 menuLabel={`Options for ${estimate.estimateNumber || estimate.title || "Estimate"}`}
-                menu={<DropdownMenuItem onSelect={() => onSelect("estimate", estimate.id)}>Open estimate</DropdownMenuItem>}
+                menu={<>
+                  <DropdownMenuItem onSelect={() => onSelect("estimate", estimate.id)}>Open estimate</DropdownMenuItem>
+                  {onEdit && <DropdownMenuItem onSelect={() => onEdit("estimate", estimate.id)}>Edit estimate</DropdownMenuItem>}
+                </>}
                 onClick={() => onSelect("estimate", estimate.id)}
               />
             )

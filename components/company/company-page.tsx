@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react"
 import Link from "next/link"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
-import { ArrowLeft, Briefcase, ExternalLink, FolderOpen, ListTodo, LogOut, Mail, MoreVertical, Share2, User as UserIcon, X } from "lucide-react"
+import { ArrowLeft, Briefcase, ExternalLink, FolderOpen, ListTodo, LogOut, Mail, MoreVertical, Pencil, Share2, User as UserIcon, X } from "lucide-react"
 import { toast } from "sonner"
 
 import { CompanyDocuments, type CompanyDocumentKind } from "@/components/company/company-documents"
@@ -261,7 +261,8 @@ export function CompanyPage({
   const isAdmin = Boolean(admin)
 
   // Visitors are private: the agency and the company's own signed-in staff only.
-  const { appUser, user, signOut } = useAuth()
+  const { appUser, user, signOut, isImpersonating } = useAuth()
+  const canEditDocuments = Boolean(admin) && !isImpersonating
   const canSeeVisitors = isAdmin || (Boolean(appUser?.companyId) && appUser?.companyId === company.id)
   const visitorAgencyId = company.agencyId || appUser?.agencyId || ""
   const sections = useMemo(() => SECTIONS.filter((item) => item.key !== "visitors" || canSeeVisitors), [canSeeVisitors])
@@ -413,6 +414,14 @@ export function CompanyPage({
 
   function handleCloseDocument() {
     updateParams({ doc: null })
+  }
+
+  function documentEditHref(kind: CompanyDocumentKind, id: string) {
+    return `/dashboard/${kind}s/${encodeURIComponent(id)}/edit`
+  }
+
+  function handleEditDocument(kind: CompanyDocumentKind, id: string) {
+    router.push(documentEditHref(kind, id))
   }
 
   function handleAddDocument(kind: CompanyDocumentKind) {
@@ -994,11 +1003,18 @@ export function CompanyPage({
                       <ArrowLeft className="size-4" aria-hidden="true" />
                       Back to Documents
                     </button>
-                    {!admin && (
+                    {canEditDocuments ? (
+                      <Button asChild variant="outline" size="sm">
+                        <Link href={documentEditHref(selectedDocument.kind, selectedDocument.id)}>
+                          <Pencil className="size-4" aria-hidden="true" />
+                          Edit {selectedDocument.kind}
+                        </Link>
+                      </Button>
+                    ) : !admin ? (
                       <DocumentActions
                         title={`${company.name} ${selectedDocument.kind === "invoice" ? "Invoice" : selectedDocument.kind === "contract" ? "Contract" : selectedDocument.kind === "estimate" ? "Estimate" : "Document"}`}
                       />
-                    )}
+                    ) : null}
                   </div>
                   {selectedDocument.kind === "invoice" && (
                     <InvoiceDocument
@@ -1032,6 +1048,7 @@ export function CompanyPage({
                   estimates={estimates}
                   documents={documents}
                   onSelect={handleSelectDocument}
+                  onEdit={canEditDocuments ? handleEditDocument : undefined}
                   canAdd={Boolean(admin)}
                   onAdd={handleAddDocument}
                 />
