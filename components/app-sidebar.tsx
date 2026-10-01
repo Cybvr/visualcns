@@ -3,7 +3,7 @@
 import * as React from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { FiChevronRight, FiMessageSquare } from "react-icons/fi"
+import { FiChevronRight } from "react-icons/fi"
 import type { ComponentType, ReactNode } from "react"
 
 import { useAuth } from "@/components/auth-provider"
@@ -222,7 +222,6 @@ export function AppSidebar({
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild isActive={isActive(pathname, "/dashboard/chats", rootHref)} tooltip="All chats" className={mobileNavButton}>
                     <Link href="/dashboard/chats" onClick={() => handleNavigate()}>
-                      <FiMessageSquare className="h-4 w-4" />
                       <span className="sidebar-nav-label">All chats</span>
                     </Link>
                   </SidebarMenuButton>

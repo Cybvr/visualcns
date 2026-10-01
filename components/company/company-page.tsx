@@ -7,6 +7,7 @@ import { ArrowLeft, Briefcase, ExternalLink, FolderOpen, ListTodo, LogOut, Mail,
 import { toast } from "sonner"
 
 import { CompanyDocuments, type CompanyDocumentKind } from "@/components/company/company-documents"
+import { CompanyBookings } from "@/components/company/company-bookings"
 import { CompanyDocumentView } from "@/components/dashboard/company-document-view"
 import { CompanyEmptyState } from "@/components/company/empty-state"
 import { CompanyLinks } from "@/components/company/company-links"
@@ -878,6 +879,7 @@ export function CompanyPage({
                 </div>
               ) : (
                 <>
+                  <CompanyBookings companyId={company.id} canCancel={!admin && Boolean(user)} />
                   <div className="flex items-center justify-between gap-4">
                     <h2 className="sr-only">Projects</h2>
                     <span className="sidebar-nav-label text-muted-foreground">Projects</span>

@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { MessageSquare, Plus } from "lucide-react"
@@ -10,7 +11,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { DashboardPageSkeleton } from "@/components/dashboard/dashboard-page-skeleton"
 import { EmptySearchState, FirstRunState } from "@/components/dashboard/empty-state"
 import { FilterBar, useFilterBar, type SortOption } from "@/components/dashboard/filter-bar"
-import { MobileDataCard } from "@/components/dashboard/mobile-data-card"
+import { GridCard, GridCardList } from "@/components/dashboard/grid-card"
+import { TableBulkBar } from "@/components/dashboard/table-bulk-bar"
+import { Checkbox } from "@/components/ui/checkbox"
+import { useRowSelection } from "@/hooks/use-row-selection"
+import { DropdownMenuCheckboxItem, DropdownMenuItem } from "@/components/ui/dropdown-menu"
 
 const CHAT_SORTS: SortOption<AgentConversation>[] = [
   { value: "updatedAt", label: "Last modified", get: (chat) => chat.updatedAt, ascLabel: "Oldest", descLabel: "Newest" },
@@ -33,7 +38,9 @@ function formatUpdatedAt(value?: number) {
 
 export default function AllChatsPage() {
   const router = useRouter()
-  const { conversations, conversationsLoading, activeConversationId, selectConversation, reset } = useAgent()
+  const [bulkDeleting, setBulkDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
+  const { conversations, conversationsLoading, activeConversationId, selectConversation, reset, deleteConversations } = useAgent()
   const { results: visibleChats, bar } = useFilterBar({
     items: conversations,
     search: searchChat,
@@ -41,6 +48,21 @@ export default function AllChatsPage() {
     defaultSort: "updatedAt",
     defaultDirection: "desc",
   })
+  const selection = useRowSelection(visibleChats, (chat) => chat.id)
+
+  async function handleBulkDelete() {
+    if (selection.selectedCount === 0 || bulkDeleting) return
+    setBulkDeleting(true)
+    setDeleteError(null)
+    try {
+      await deleteConversations(selection.selectedIds)
+      selection.clear()
+    } catch (error) {
+      setDeleteError(error instanceof Error ? error.message : "Chats could not be deleted. Please try again.")
+    } finally {
+      setBulkDeleting(false)
+    }
+  }
 
   function openChat(chat: AgentConversation) {
     selectConversation(chat.id)
@@ -59,6 +81,7 @@ export default function AllChatsPage() {
         placeholder="Search chats"
         actions={<Button variant="ghost" className="bg-transparent text-foreground hover:bg-transparent" onClick={startChat}><Plus className="h-4 w-4" />New Chat</Button>}
       />
+      {deleteError && <p role="alert" className="mb-3 text-sm text-destructive">{deleteError}</p>}
 
       {conversationsLoading ? (
         <DashboardPageSkeleton rows={6} />
@@ -73,27 +96,66 @@ export default function AllChatsPage() {
         <EmptySearchState label="No chats match your search." />
       ) : (
         <>
-          <ul className="space-y-2 sm:hidden">
-            {visibleChats.map((chat) => (
-              <li key={chat.id}>
-                <MobileDataCard
+          <TableBulkBar
+            count={selection.selectedCount}
+            noun="chat"
+            deleting={bulkDeleting}
+            onClear={() => { selection.clear(); setDeleteError(null) }}
+            onDelete={handleBulkDelete}
+          />
+          <div className="sm:hidden">
+            <label className="mb-3 flex items-center gap-2 text-sm text-muted-foreground">
+              <Checkbox
+                aria-label="Select all chats"
+                checked={selection.allSelected}
+                indeterminate={selection.someSelected}
+                onChange={selection.toggleAll}
+              />
+              Select all chats
+            </label>
+            <GridCardList>
+              {visibleChats.map((chat) => (
+                <GridCard
+                  key={chat.id}
                   title={chat.title || "Untitled chat"}
-                  subtitle={<span className="flex flex-col gap-1"><span className="truncate">{lastMessage(chat)}</span><span>Modified {formatUpdatedAt(chat.updatedAt)}</span></span>}
-                  icon={<MessageSquare className="size-5 text-muted-foreground" aria-hidden="true" />}
+                  icon={<MessageSquare className={`size-4 ${chat.id === activeConversationId ? "text-primary" : "text-muted-foreground"}`} aria-hidden="true" />}
+                  preview={
+                    <div className="flex size-full min-w-0 flex-col justify-between gap-2 p-3 text-left">
+                      <p className="line-clamp-3 w-full break-words text-xs text-foreground">{lastMessage(chat)}</p>
+                      <span className="text-[11px] text-muted-foreground">Modified {formatUpdatedAt(chat.updatedAt)}</span>
+                    </div>
+                  }
                   onClick={() => openChat(chat)}
-                  selected={chat.id === activeConversationId}
+                  selected={selection.isSelected(chat.id)}
                   ariaLabel={`Open ${chat.title || "chat"}`}
+                  menuLabel={`Options for ${chat.title || "chat"}`}
+                  menu={
+                    <>
+                      <DropdownMenuItem onSelect={() => openChat(chat)}>Open chat</DropdownMenuItem>
+                      <DropdownMenuCheckboxItem checked={selection.isSelected(chat.id)} onCheckedChange={() => selection.toggle(chat.id)}>
+                        Select chat
+                      </DropdownMenuCheckboxItem>
+                    </>
+                  }
                 />
-              </li>
-            ))}
-          </ul>
+              ))}
+            </GridCardList>
+          </div>
 
           <div className="hidden overflow-x-hidden sm:block">
             <Table className="w-full table-fixed">
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[28%]">Chat</TableHead>
-                  <TableHead className="w-[44%]">Last message</TableHead>
+                  <TableHead className="w-10 px-2">
+                    <Checkbox
+                      aria-label="Select all chats"
+                      checked={selection.allSelected}
+                      indeterminate={selection.someSelected}
+                      onChange={selection.toggleAll}
+                    />
+                  </TableHead>
+                  <TableHead className="w-[27%]">Chat</TableHead>
+                  <TableHead className="w-[39%]">Last message</TableHead>
                   <TableHead className="w-[16%]">Last modified</TableHead>
                   <TableHead className="w-[12%] text-right">Messages</TableHead>
                 </TableRow>
@@ -101,6 +163,13 @@ export default function AllChatsPage() {
               <TableBody>
                 {visibleChats.map((chat) => (
                   <TableRow key={chat.id} className="cursor-pointer" onClick={() => openChat(chat)}>
+                    <TableCell onClick={(event) => event.stopPropagation()}>
+                      <Checkbox
+                        aria-label={`Select ${chat.title || "chat"}`}
+                        checked={selection.isSelected(chat.id)}
+                        onChange={(event) => selection.toggle(chat.id, (event.nativeEvent as MouseEvent).shiftKey)}
+                      />
+                    </TableCell>
                     <TableCell className="max-w-0 font-medium">
                       <Link href={`/dashboard/agent/${encodeURIComponent(chat.id)}`} onClick={(event) => { event.stopPropagation(); selectConversation(chat.id) }} className="block truncate rounded px-1 py-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                         {chat.title || "Untitled chat"}

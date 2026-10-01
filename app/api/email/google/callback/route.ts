@@ -2,7 +2,7 @@ import { createHmac, timingSafeEqual } from "node:crypto"
 import { NextResponse } from "next/server"
 
 import { setAgencySecret } from "@/lib/server/agency-secrets"
-import { gmailProfile, googleOAuthConfig } from "@/lib/server/google-gmail"
+import { GOOGLE_CALENDAR_EVENTS_SCOPE, gmailProfile, googleOAuthConfig } from "@/lib/server/google-gmail"
 
 const STATE_COOKIE = "visualhq-google-oauth-state"
 
@@ -52,9 +52,11 @@ export async function GET(request: Request) {
       body: new URLSearchParams({ code, client_id: config.clientId, client_secret: config.clientSecret, redirect_uri: config.redirectUri, grant_type: "authorization_code" }),
       cache: "no-store",
     })
-    const tokens = await tokenResponse.json().catch(() => ({})) as { refresh_token?: string; error_description?: string; error?: string }
+    const tokens = await tokenResponse.json().catch(() => ({})) as { refresh_token?: string; scope?: string; error_description?: string; error?: string }
     if (!tokenResponse.ok || !tokens.refresh_token) throw new Error(tokens.error_description || tokens.error || "Google did not return a refresh token.")
     await setAgencySecret(decoded.agencyId as string, "GMAIL_REFRESH_TOKEN", tokens.refresh_token)
+    const grantedScopes = (tokens.scope || "").split(/\s+/)
+    await setAgencySecret(decoded.agencyId as string, "GOOGLE_CALENDAR_CONNECTED", String(grantedScopes.includes(GOOGLE_CALENDAR_EVENTS_SCOPE)))
     const profile = await gmailProfile(decoded.agencyId as string)
     await setAgencySecret(decoded.agencyId as string, "GMAIL_CONNECTED_EMAIL", profile?.emailAddress || "info@visualcns.com")
     await setAgencySecret(decoded.agencyId as string, "GMAIL_CONNECTED_AT", new Date().toISOString())

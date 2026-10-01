@@ -1,0 +1,206 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;700;800&display=block" rel="stylesheet">
+<style>
+  :root { --gold:#c4ae71; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  html,body { width:1080px; height:1920px; overflow:hidden; background:#000; }
+  body { font-family:Inter, sans-serif; -webkit-font-smoothing:antialiased; color:#fff; }
+  .cut { position:absolute; inset:0; overflow:hidden; visibility:hidden; background:#000; }
+  .w { position:absolute; left:60px; font-family:Anton, sans-serif; line-height:.9; white-space:nowrap; text-transform:uppercase; }
+  .small { position:absolute; left:64px; right:64px; font-size:34px; font-weight:600; line-height:1.35; }
+  .photo { position:absolute; inset:-40px; background-size:cover; background-position:center; filter:grayscale(1) contrast(1.35) brightness(.5); }
+  .grain { position:absolute; inset:0; opacity:.16; mix-blend-mode:overlay; pointer-events:none; }
+  #flash { position:absolute; inset:0; background:#fff; mix-blend-mode:difference; visibility:hidden; z-index:99; }
+
+  /* Registration form, styled after the page */
+  #form { position:absolute; left:60px; right:60px; top:250px; }
+  .lab { font-size:30px; font-weight:600; color:#bdbdbd; letter-spacing:.02em; margin-bottom:14px; }
+  .fld { height:124px; border:3px solid #444; border-radius:14px; display:flex; align-items:center; justify-content:space-between; padding:0 36px; font-size:50px; font-weight:500; margin-bottom:44px; background:#0d0d0d; }
+  .fld.on { border-color:var(--gold); box-shadow:0 0 0 8px rgba(196,174,113,.18); }
+  .fld .ph { color:#666; }
+  .fld svg { width:44px; height:44px; stroke:#bdbdbd; fill:none; stroke-width:2.5; }
+  .caret { display:inline-block; width:5px; height:56px; background:var(--gold); margin-left:6px; vertical-align:-8px; }
+  .decl { display:flex; gap:28px; align-items:flex-start; font-size:32px; line-height:1.4; color:#d6d6d6; margin:10px 0 50px; }
+  .box { width:64px; height:64px; border:3px solid #666; border-radius:10px; flex-shrink:0; display:flex; align-items:center; justify-content:center; }
+  .box.on { background:var(--gold); border-color:var(--gold); }
+  .box svg { width:42px; height:42px; stroke:#000; fill:none; stroke-width:3.5; }
+  #submit { height:140px; border-radius:14px; background:#fff; color:#000; display:flex; align-items:center; justify-content:center; font-size:48px; font-weight:800; letter-spacing:.02em; text-transform:uppercase; }
+  #tap { position:absolute; width:160px; height:160px; margin:-80px 0 0 -80px; border-radius:50%; border:6px solid var(--gold); background:rgba(196,174,113,.25); visibility:hidden; z-index:5; }
+  #done { position:absolute; inset:0; background:#000; visibility:hidden; z-index:6; }
+  #tick { position:absolute; left:60px; top:620px; width:260px; height:260px; border-radius:50%; background:var(--gold); display:flex; align-items:center; justify-content:center; }
+  #tick svg { width:150px; height:150px; stroke:#000; fill:none; stroke-width:3; }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute">
+  <filter id="noise"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" seed="3"/><feColorMatrix type="saturate" values="0"/></filter>
+</svg>
+
+<!-- HOOK -->
+<div class="cut" data-in="0" data-out="1.5" id="hook">
+  <span class="w" id="k4" style="top:170px">4</span>
+  <span class="w" id="kOct" style="top:900px">October</span>
+  <span class="w" id="kWho" style="top:1330px; color:var(--gold)">Who's stepping in?</span>
+</div>
+
+<!-- SOLUTION -->
+<div class="cut" data-in="1.5" data-out="3" id="sol">
+  <div class="photo" id="sPhoto" style="background-image:url(fight.jpg); background-position:60% 40%"></div>
+  <svg class="grain" width="1080" height="1920"><rect width="100%" height="100%" filter="url(#noise)"/></svg>
+  <span class="w fit" id="s1" style="top:520px">KO Style</span>
+  <span class="w fit" id="s2" style="top:800px">Sparring</span>
+  <span class="w fit" id="s3" style="top:1080px; color:var(--gold)">Series</span>
+  <p class="small" id="sWhere" style="top:1480px">Spartans Boxing Club, Dubai Production City<br><span style="color:var(--gold)">12:30pm to 4pm</span></p>
+</div>
+
+<!-- DEMO -->
+<div class="cut" data-in="3" data-out="5.5" id="demo">
+  <p class="small" style="top:110px; color:var(--gold); font-weight:800; letter-spacing:.14em; font-size:30px">SPARRING SIGN UP</p>
+  <div id="form">
+    <p class="lab">Current weight (kg)</p>
+    <div class="fld" id="fW"><span id="vW"></span></div>
+    <p class="lab">Stance</p>
+    <div class="fld" id="fS"><span id="vS"></span><svg viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></div>
+    <p class="lab">Sanctioned / amateur bouts</p>
+    <div class="fld" id="fB"><span id="vB"></span><svg viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></div>
+    <div class="decl"><span class="box" id="bx"></span><span>I confirm I am medically fit to train or compete, and I understand KO Style may request ID or medical clearance before I am matched.</span></div>
+    <div id="submit">Submit registration</div>
+  </div>
+  <div id="tap"></div>
+  <div id="done">
+    <div id="tick"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></div>
+    <span class="w" id="dT" style="top:960px; font-size:170px">You're<br><span style="color:var(--gold)">registered.</span></span>
+  </div>
+</div>
+
+<!-- FEATURES -->
+<div class="cut feat" data-in="5.5" data-out="6"><span class="w big" style="color:var(--gold)">10</span><p class="small line">sparring matches</p></div>
+<div class="cut feat" data-in="6" data-out="6.5" style="background:var(--gold); color:#000"><span class="w big">3×3</span><p class="small line">3 rounds of 3 minutes</p></div>
+<div class="cut feat" data-in="6.5" data-out="7"><span class="w big" style="color:var(--gold)">Free</span><p class="small line">entry</p></div>
+<div class="cut feat" data-in="7" data-out="7.5">
+  <div class="photo" style="background-image:url(gloves.jpg); background-position:30% 40%; filter:grayscale(1) contrast(1.3) brightness(.45)"></div>
+  <span class="w big" style="color:var(--gold)">Gloves</span><p class="small line">KO Style sparring gloves included</p></div>
+<div class="cut feat" data-in="7.5" data-out="8" style="background:#fff; color:#000"><span class="w big">Free tee</span><p class="small line">A KO Style T-shirt for every fighter</p></div>
+<div class="cut feat" data-in="8" data-out="8.5"><span class="w big" style="color:var(--gold)">Bring<br>your team</span><p class="small line">Coaches and friends get in free</p></div>
+
+<!-- OUTRO -->
+<div class="cut" data-in="8.5" data-out="10.1" id="outro">
+  <img id="logo" src="ko-logo.svg" style="position:absolute; left:60px; top:300px; width:620px">
+  <span class="w" id="oReg" style="top:620px; color:var(--gold)">Register now</span>
+  <p class="small" id="oUrl" style="top:1010px; font-size:52px; font-weight:700">kostyle.ae/sparringsessions</p>
+  <p class="small" id="oHead" style="top:1120px; color:#9a9a9a">Bring your own head guard.</p>
+  <span class="w" id="oDate" style="top:1440px; font-size:150px">4 October · Dubai</span>
+</div>
+
+<div id="flash"></div>
+
+<script>
+const $ = id => document.getElementById(id)
+const cl = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v))
+const p = (t, a, b) => cl((t - a) / (b - a))
+const outExpo = x => x === 1 ? 1 : 1 - Math.pow(2, -10 * x)
+const outBack = x => { const c = 1.9; return 1 + (c + 1) * Math.pow(x - 1, 3) + c * Math.pow(x - 1, 2) }
+const lerp = (a, b, x) => a + (b - a) * x
+
+function fitWidth(el, len) { el.style.fontSize = '200px'; el.style.fontSize = (200 * len / el.offsetWidth) + 'px' }
+function setup() {
+  $('k4').style.fontSize = '760px'
+  fitWidth($('kOct'), 960); fitWidth($('kWho'), 960)
+  ;['s1', 's2', 's3'].forEach(id => fitWidth($(id), 960))
+  fitWidth($('oReg'), 960); fitWidth($('oDate'), 960)
+  document.querySelectorAll('.feat').forEach(c => {
+    const big = c.querySelector('.big'), line = c.querySelector('.line')
+    big.style.fontSize = '200px'
+    const size = Math.min(200 * 960 / big.offsetWidth, 900)
+    big.style.fontSize = size + 'px'
+    big.style.top = (1060 - big.offsetHeight / 2) + 'px'
+    line.style.top = (1060 + big.offsetHeight / 2 + 40) + 'px'
+    line.style.fontSize = '54px'
+  })
+}
+
+// A word lands oversized and snaps to size, with the frame shaking on impact.
+function slam(el, t, at, from = 1.3) {
+  el.style.visibility = t >= at ? 'visible' : 'hidden'
+  el.style.transformOrigin = '0 50%'
+  el.style.transform = `scale(${lerp(from, 1, outExpo(p(t, at, at + .12)))})`
+}
+function shake(t, hits, power = 24) {
+  for (const at of hits) {
+    const k = 1 - (t - at) / .2
+    if (t >= at && k > 0) return `translate(${Math.sin(t * 210) * power * k}px, ${Math.cos(t * 260) * power * k}px)`
+  }
+  return ''
+}
+const cuts = [...document.querySelectorAll('.cut')]
+
+let ready = false
+function render(t) {
+  if (!ready) { setup(); ready = true }
+  for (const c of cuts) { c.style.visibility = 'visible'; c.style.display = t >= +c.dataset.in && t < +c.dataset.out ? 'block' : 'none' }
+
+  // Hook: 4, October, then the question
+  slam($('k4'), t, 0); slam($('kOct'), t, .25); slam($('kWho'), t, .75, 1.15)
+  $('hook').style.transform = shake(t, [0, .25, .75])
+
+  // Solution: the photo pushes in under the stacked title
+  $('sPhoto').style.transform = `scale(${lerp(1.18, 1.05, p(t, 1.5, 3))})`
+  slam($('s1'), t, 1.5); slam($('s2'), t, 1.75); slam($('s3'), t, 2.0)
+  $('sWhere').style.clipPath = `inset(0 ${100 - outExpo(p(t, 2.3, 2.7)) * 100}% 0 0)`
+  $('sol').style.transform = shake(t, [1.5, 2.0], 18)
+
+  // Demo: the form fills on the beat, then submit
+  $('form').style.transform = `scale(${lerp(1.06, 1, outExpo(p(t, 3, 3.3)))})`
+  const focus = t < 3.55 ? 'fW' : t < 3.95 ? 'fS' : t < 4.35 ? 'fB' : ''
+  ;['fW', 'fS', 'fB'].forEach(f => $(f).classList.toggle('on', f === focus))
+  const typed = '72'.slice(0, Math.round(p(t, 3.15, 3.45) * 2))
+  const caret = focus === 'fW' && Math.floor(t * 5) % 2 === 0 ? '<span class="caret"></span>' : ''
+  $('vW').innerHTML = typed ? typed + ' kg' + caret : (caret || '<span class="ph">e.g. 72</span>')
+  $('vS').innerHTML = t >= 3.75 ? 'Southpaw' : '<span class="ph">Select</span>'
+  $('vB').innerHTML = t >= 4.15 ? '1-3' : '<span class="ph">Select</span>'
+  const ticked = t >= 4.5
+  $('bx').classList.toggle('on', ticked)
+  $('bx').innerHTML = ticked ? '<svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>' : ''
+  $('bx').style.transform = `scale(${ticked ? lerp(1.3, 1, outExpo(p(t, 4.5, 4.62))) : 1})`
+  const r = $('submit').getBoundingClientRect(), press = t >= 4.75 && t < 4.87
+  $('submit').style.transform = `scale(${press ? .96 : 1})`
+  $('tap').style.visibility = t >= 4.62 && t < 5.0 ? 'visible' : 'hidden'
+  $('tap').style.left = (r.left + r.width * .62) + 'px'
+  $('tap').style.top = lerp(r.top + r.height / 2 + 300, r.top + r.height / 2, outExpo(p(t, 4.62, 4.75))) + 'px'
+  $('tap').style.transform = `scale(${t >= 4.75 ? lerp(.85, 2.6, p(t, 4.75, 5.0)) : 1})`
+  $('tap').style.opacity = t >= 4.75 ? 1 - p(t, 4.75, 5.0) : 1
+  $('done').style.visibility = t >= 5.0 ? 'visible' : 'hidden'
+  $('tick').style.transform = `scale(${outBack(p(t, 5.0, 5.2))})`
+  $('dT').style.clipPath = `inset(0 0 ${100 - outExpo(p(t, 5.08, 5.35)) * 100}% 0)`
+  $('demo').style.transform = shake(t, [5.0], 20)
+
+  // Features: every cut lands like a punch
+  document.querySelectorAll('.feat').forEach(c => {
+    const at = +c.dataset.in
+    const big = c.querySelector('.big')
+    big.style.transformOrigin = '0 50%'
+    big.style.transform = `scale(${lerp(1.25, 1, outExpo(p(t, at, at + .12)))})`
+    c.querySelector('.line').style.clipPath = `inset(0 ${100 - outExpo(p(t, at + .08, at + .3)) * 100}% 0 0)`
+    const photo = c.querySelector('.photo')
+    if (photo) photo.style.transform = `scale(${lerp(1.15, 1.05, p(t, at, at + .5))})`
+    c.style.transform = shake(t, [at], 16)
+  })
+
+  // Outro
+  $('logo').style.clipPath = `inset(0 ${100 - outExpo(p(t, 8.5, 8.8)) * 100}% 0 0)`
+  slam($('oReg'), t, 8.75, 1.2)
+  $('oUrl').style.clipPath = `inset(0 ${100 - outExpo(p(t, 9.0, 9.3)) * 100}% 0 0)`
+  $('oHead').style.clipPath = `inset(0 ${100 - outExpo(p(t, 9.1, 9.4)) * 100}% 0 0)`
+  slam($('oDate'), t, 9.25, 1.15)
+  $('outro').style.transform = shake(t, [8.75, 9.25], 14)
+
+  const hits = [0, .25, 1.5, 5.0, 8.5]
+  $('flash').style.visibility = hits.some(h => t >= h && t < h + 1 / 30) ? 'visible' : 'hidden'
+}
+window.render = render
+</script>
+</body>
+</html>

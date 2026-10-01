@@ -4,7 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 
 import { useAuth } from "@/components/auth-provider"
 import { db } from "@/lib/firebase"
-import { collection, doc, getDoc, getDocs, orderBy, query, setDoc, Timestamp } from "firebase/firestore"
+import { collection, deleteDoc, doc, getDoc, getDocs, orderBy, query, setDoc, Timestamp } from "firebase/firestore"
 
 /** One field in an inline form the agent asks the user to fill in. */
 export type AgentFormField = {
@@ -105,6 +105,7 @@ interface AgentContextValue {
   send: (text: string, images?: string[], files?: AgentFile[]) => void
   reset: () => void
   selectConversation: (id: string) => void
+  deleteConversations: (ids: string[]) => Promise<void>
 }
 
 const AgentContext = createContext<AgentContextValue | null>(null)
@@ -319,11 +320,31 @@ export function AgentProvider({ children }: { children: ReactNode }) {
     setActiveConversationId(id)
     setMessages(conversation.messages)
   }, [conversations])
+  const deleteConversations = useCallback(async (ids: string[]) => {
+    if (!user?.uid || ids.length === 0) return
+    if (sending && ids.includes(activeConversationId)) {
+      throw new Error("Wait for the current response to finish before deleting this chat.")
+    }
+
+    const results = await Promise.allSettled(ids.map((id) =>
+      deleteDoc(id === "previous-chat" && !conversations.find((chat) => chat.id === id)?.updatedAt
+        ? doc(db, "agentConversations", user.uid)
+        : doc(db, "agentConversations", user.uid, "chats", id)),
+    ))
+    const deleted = new Set(ids.filter((_, index) => results[index].status === "fulfilled"))
+    if (deleted.size > 0) {
+      setConversations((current) => current.filter((chat) => !deleted.has(chat.id)))
+      if (deleted.has(activeConversationId)) reset()
+    }
+    if (results.some((result) => result.status === "rejected")) {
+      throw new Error("Some chats could not be deleted. Please try again.")
+    }
+  }, [user?.uid, sending, activeConversationId, conversations, reset])
   const toggle = useCallback(() => setOpen((current) => !current), [])
 
   const value = useMemo(
-    () => ({ open, setOpen, toggle, messages, conversations, conversationsLoading, activeConversationId, sending, firstName, send, reset, selectConversation }),
-    [open, toggle, messages, conversations, conversationsLoading, activeConversationId, sending, firstName, send, reset, selectConversation],
+    () => ({ open, setOpen, toggle, messages, conversations, conversationsLoading, activeConversationId, sending, firstName, send, reset, selectConversation, deleteConversations }),
+    [open, toggle, messages, conversations, conversationsLoading, activeConversationId, sending, firstName, send, reset, selectConversation, deleteConversations],
   )
 
   return <AgentContext.Provider value={value}>{children}</AgentContext.Provider>

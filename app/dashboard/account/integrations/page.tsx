@@ -14,6 +14,7 @@ export default function IntegrationsPage() {
   const { user, isAdmin, loading: authLoading } = useAuth()
   const searchParams = useSearchParams()
   const [googleConfigured, setGoogleConfigured] = useState(false)
+  const [googleCalendarConfigured, setGoogleCalendarConfigured] = useState(false)
   const [googleEmail, setGoogleEmail] = useState<string | null>(null)
   const [statusLoading, setStatusLoading] = useState(true)
   const [connecting, setConnecting] = useState(false)
@@ -22,6 +23,7 @@ export default function IntegrationsPage() {
   useEffect(() => {
     if (!user) {
       setGoogleConfigured(false)
+      setGoogleCalendarConfigured(false)
       setGoogleEmail(null)
       setStatusLoading(false)
       return
@@ -33,9 +35,10 @@ export default function IntegrationsPage() {
       headers: { Authorization: `Bearer ${idToken}` },
       cache: "no-store",
     })).then(async (response) => {
-      const result = await response.json().catch(() => ({})) as { configured?: boolean; email?: string | null; warning?: string }
+      const result = await response.json().catch(() => ({})) as { configured?: boolean; calendarConfigured?: boolean; email?: string | null; warning?: string }
       if (!active) return
       setGoogleConfigured(Boolean(result.configured))
+      setGoogleCalendarConfigured(Boolean(result.calendarConfigured))
       setGoogleEmail(result.email || null)
       if (result.warning) setNotice({ tone: "error", text: result.warning })
     }).catch(() => {
@@ -50,7 +53,7 @@ export default function IntegrationsPage() {
   useEffect(() => {
     const status = searchParams.get("google")
     if (status === "connected") {
-      setNotice({ tone: "success", text: "Google mailbox connected." })
+      setNotice({ tone: "success", text: "Google permissions updated. Check the Calendar status below." })
     } else if (status === "error") {
       setNotice({ tone: "error", text: searchParams.get("message") || "Google mailbox connection failed." })
     }
@@ -87,19 +90,22 @@ export default function IntegrationsPage() {
               <Link2 className="size-4" aria-hidden="true" />
             </span>
             <div className="min-w-0">
-              <h2 className="font-medium">Google mailbox</h2>
-              <p className="mt-1 text-sm text-muted-foreground">Connect the mailbox used to send and receive email.</p>
+              <h2 className="font-medium">Google account</h2>
+              <p className="mt-1 text-sm text-muted-foreground">Connect Gmail for email and Google Calendar to add Meet links to bookings.</p>
               <p className="mt-3 flex items-center gap-2 text-sm">
                 {googleConfigured ? <CheckCircle2 className="size-4 text-emerald-600" aria-hidden="true" /> : <span className="size-2 rounded-full bg-muted-foreground/50" aria-hidden="true" />}
                 <span className="text-muted-foreground">
                   {statusLoading ? "Checking connection…" : googleConfigured ? `Connected${googleEmail ? ` as ${googleEmail}` : ""}` : "Not connected"}
                 </span>
               </p>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Google Calendar: {statusLoading ? "Checking…" : googleCalendarConfigured ? "Connected · Meet links can be created" : googleConfigured ? "Reconnect Google to enable Meet links" : "Not connected"}
+              </p>
             </div>
           </div>
           <Button type="button" variant="outline" onClick={connectGoogleMailbox} disabled={connecting || statusLoading}>
             {connecting && <Loader2 className="size-4 animate-spin" aria-hidden="true" />}
-            {connecting ? "Connecting…" : googleConfigured ? "Reconnect Google" : "Connect Google"}
+            {connecting ? "Connecting…" : googleConfigured && !googleCalendarConfigured ? "Enable Google Calendar" : googleConfigured ? "Reconnect Google" : "Connect Google"}
           </Button>
         </div>
         {notice && <p role="status" className={`mt-4 text-sm ${notice.tone === "error" ? "text-destructive" : "text-emerald-700 dark:text-emerald-300"}`}>{notice.text}</p>}

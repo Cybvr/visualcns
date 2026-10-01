@@ -12,7 +12,7 @@ import { existsSync } from "node:fs"
 import { pathToFileURL, fileURLToPath } from "node:url"
 import path from "node:path"
 
-const FPS = 30, DURATION = 10
+const FPS = 30
 const CHROME = process.env.CHROME || "C:/Program Files/Google/Chrome/Application/chrome.exe"
 
 const [name, ...rest] = process.argv.slice(2)
@@ -30,6 +30,8 @@ const page = await browser.newPage()
 await page.setViewport({ width: 1080, height: 1920, deviceScaleFactor: 1 })
 await page.goto(pathToFileURL(path.join(folder, "index.html")).href, { waitUntil: "networkidle0" })
 await page.evaluate(() => document.fonts.ready)
+// A page can set window.DURATION (seconds); 10 is the default.
+const DURATION = await page.evaluate(() => window.DURATION || 10)
 
 if (stills) {
   for (const t of stills) {

@@ -30,6 +30,8 @@ export function dashboardPageTitle(pathname: string): string {
       return "Agent"
     case "chats":
       return "All Chats"
+    case "calendar":
+      return "Calendar"
     case "overview":
       return "Overview"
     case "companies":

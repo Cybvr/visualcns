@@ -1,0 +1,263 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow:ital,wght@1,200;1,300&family=Barlow+Condensed:ital,wght@1,800;1,900&family=Big+Shoulders+Stencil+Display:wght@900&family=IBM+Plex+Mono:wght@500;600&display=block" rel="stylesheet">
+<style>
+  :root { --gold:#c4ae71; --char:#141414; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  html,body { width:1080px; height:1920px; overflow:hidden; background:#000; }
+  body { color:#fff; -webkit-font-smoothing:antialiased; }
+  .pre { position:absolute; left:-9999px; }
+  .cut { position:absolute; inset:0; overflow:hidden; background:#000; display:none; }
+  .an { position:absolute; font-family:Anton, sans-serif; text-transform:uppercase; line-height:.9; white-space:nowrap; }
+  .bc { position:absolute; font-family:'Barlow Condensed', sans-serif; font-weight:900; font-style:italic; text-transform:uppercase; line-height:.86; white-space:nowrap; }
+  .st { position:absolute; font-family:'Big Shoulders Stencil Display', sans-serif; font-weight:900; text-transform:uppercase; line-height:.8; white-space:nowrap; }
+  .th { position:absolute; font-family:Barlow, sans-serif; font-weight:200; font-style:italic; line-height:1.05; white-space:nowrap; }
+  .mono { position:absolute; font-family:'IBM Plex Mono', monospace; font-weight:600; text-transform:uppercase; letter-spacing:.1em; line-height:1.5; }
+  /* Duotone: black shadows, gold highlights, a faint halftone on top */
+  .duo { position:absolute; overflow:hidden; background:#000; }
+  .duo .ph { position:absolute; inset:0; background-size:cover; background-repeat:no-repeat; filter:grayscale(1) contrast(1.5) brightness(1.05); }
+  .duo::after { content:""; position:absolute; inset:0; background:var(--gold); mix-blend-mode:multiply; }
+  .duo::before { content:""; position:absolute; inset:0; z-index:2; background-image:radial-gradient(rgba(0,0,0,.35) 1.2px, transparent 1.6px); background-size:7px 7px; mix-blend-mode:multiply; }
+  .grain { position:absolute; inset:0; opacity:.13; mix-blend-mode:overlay; pointer-events:none; z-index:80; }
+  #hud { position:absolute; inset:0; z-index:90; pointer-events:none; }
+  #flash { position:absolute; inset:0; background:#fff; mix-blend-mode:difference; visibility:hidden; z-index:99; }
+  .card { position:absolute; width:470px; background:#0c0c0c; border:2px solid #2c2c2c; border-radius:22px; overflow:hidden; }
+  .card .duo { position:relative; width:100%; height:520px; }
+  .card .rows { padding:22px 26px 30px; }
+  .card .k { font-family:'IBM Plex Mono', monospace; font-weight:600; font-size:20px; letter-spacing:.14em; color:#8a8a8a; margin-top:16px; }
+  .card .v { font-family:'Barlow Condensed', sans-serif; font-weight:900; font-style:italic; font-size:66px; line-height:1; text-transform:uppercase; height:66px; }
+  .tile { position:absolute; overflow:hidden; background:var(--char); border:3px solid #000; }
+  svg.abs { position:absolute; overflow:visible; }
+</style>
+</head>
+<body>
+<span class="pre" style="font-family:Anton">A</span><span class="pre" style="font-family:'Barlow Condensed'; font-weight:900; font-style:italic">A</span><span class="pre" style="font-family:Barlow; font-weight:200; font-style:italic">A</span><span class="pre" style="font-family:'Big Shoulders Stencil Display'; font-weight:900">A</span><span class="pre" style="font-family:'IBM Plex Mono'; font-weight:600">A</span>
+<svg width="0" height="0" style="position:absolute">
+  <filter id="noise"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" seed="11"/><feColorMatrix type="saturate" values="0"/></filter>
+  <defs>
+    <pattern id="hex" width="120" height="208" patternUnits="userSpaceOnUse"><path d="M60 0 L120 34.6 L120 104 L60 138.6 L0 104 L0 34.6 Z M60 138.6 L60 208 M0 104 L-60 138.6 M120 104 L180 138.6" fill="none" stroke="#c4ae71" stroke-width="1.5" opacity=".22"/></pattern>
+    <path id="circA" d="M180 180 m-132 0 a132 132 0 1 1 264 0 a132 132 0 1 1 -264 0"/>
+  </defs>
+  <symbol id="chev" viewBox="0 0 300 100"><path d="M10 10 L60 50 L10 90 M100 10 L150 50 L100 90 M190 10 L240 50 L190 90" fill="none" stroke="#c4ae71" stroke-width="18" stroke-linejoin="miter"/></symbol>
+  <symbol id="ast" viewBox="-50 -50 100 100"><g fill="#c4ae71"><rect x="-8" y="-48" width="16" height="96"/><rect x="-8" y="-48" width="16" height="96" transform="rotate(60)"/><rect x="-8" y="-48" width="16" height="96" transform="rotate(-60)"/></g></symbol>
+</svg>
+
+<!-- Sticker used in the hook and the outro -->
+<template id="badgeT">
+  <svg width="360" height="360" viewBox="0 0 360 360">
+    <circle cx="180" cy="180" r="176" fill="#c4ae71"/><circle cx="180" cy="180" r="96" fill="#000"/>
+    <g class="spin" style="transform-origin:180px 180px"><text font-family="IBM Plex Mono" font-weight="600" font-size="30" letter-spacing="4" fill="#000"><textPath href="#circA">KO STYLE · SPARRING SERIES · DUBAI ·</textPath></text></g>
+    <text x="180" y="212" text-anchor="middle" font-family="Anton" font-size="88" fill="#c4ae71">KO</text>
+  </svg>
+</template>
+
+<!-- HOOK -->
+<div class="cut" data-in="0" data-out="3" id="hook">
+  <div id="stack"></div>
+  <div id="hB1" style="position:absolute; left:640px; top:330px; z-index:5"></div>
+  <div id="band" style="position:absolute; left:-20px; right:-20px; top:1180px; height:420px; background:#000; transform:rotate(-4deg); z-index:6"></div>
+  <span class="bc" id="hH1" style="left:60px; top:1235px; z-index:7">Spar someone</span>
+  <span class="bc" id="hH2" style="left:60px; top:1400px; color:var(--gold); z-index:7">at your level.</span>
+  <svg class="abs" id="hAst" width="150" height="150" style="left:870px; top:1090px; z-index:8"><use href="#ast"/></svg>
+</div>
+
+<!-- SOLUTION: SPAR / RING around a photo card -->
+<div class="cut" data-in="3" data-out="5" id="sol">
+  <span class="st" id="sSpar" style="top:40px">Spar</span>
+  <span class="st" id="sRing" style="top:1360px">Ring</span>
+  <div class="duo" id="sCard" style="left:170px; top:470px; width:740px; height:920px; z-index:3"><div class="ph" data-img="1.12.2" style="background-position:50% 35%"></div></div>
+  <span class="bc" id="sL" style="left:88px; top:1160px; font-size:66px; transform-origin:0 0; transform:rotate(-90deg); z-index:4">Series</span>
+  <span class="bc" id="sR" style="left:1000px; top:560px; font-size:66px; transform-origin:0 0; transform:rotate(90deg); z-index:4">04.10.26</span>
+  <svg class="abs" id="sAst" width="230" height="230" style="left:790px; top:1260px; z-index:5"><use href="#ast"/></svg>
+  <p class="mono" id="sVenue" style="left:170px; top:1318px; font-size:22px; padding:10px 16px; background:#000; z-index:6">Spartans Boxing Club · Dubai Production City</p>
+</div>
+
+<!-- DEMO: matchmaking -->
+<div class="cut" data-in="5" data-out="10" id="demo" style="background:#080808">
+  <svg class="abs" width="1080" height="1920" style="left:0; top:0"><rect width="1080" height="1920" fill="url(#hex)"/></svg>
+  <span class="bc" id="dHead" style="left:60px; top:150px; font-size:120px; color:var(--gold)">How we match</span>
+  <p class="th" id="dTh" style="left:520px; top:290px; font-size:40px; color:#bdbdbd">by weight<br><span style="padding-left:40px">by stance</span><br><span style="padding-left:80px">by <b style="font-weight:300; color:#fff">record</b></span></p>
+  <div class="card" id="cA" style="left:50px; top:470px"><div class="duo"><div class="ph" data-img="1.7.1" style="background-position:45% 40%"></div></div><div class="rows">
+    <p class="k" style="margin-top:0; color:var(--gold)">Fighter A</p>
+    <p class="k">Weight</p><p class="v" id="a0"></p><p class="k">Stance</p><p class="v" id="a1"></p><p class="k">Bouts</p><p class="v" id="a2"></p></div></div>
+  <div class="card" id="cB" style="left:560px; top:560px"><div class="duo"><div class="ph" data-img="2.13.1" style="background-position:30% 40%"></div></div><div class="rows">
+    <p class="k" style="margin-top:0; color:var(--gold)">Fighter B</p>
+    <p class="k">Weight</p><p class="v" id="b0"></p><p class="k">Stance</p><p class="v" id="b1"></p><p class="k">Bouts</p><p class="v" id="b2"></p></div></div>
+  <svg class="abs" id="vs" width="200" height="200" style="left:440px; top:900px; z-index:5"><circle cx="100" cy="100" r="92" fill="#000" stroke="#c4ae71" stroke-width="3"/><text x="100" y="124" text-anchor="middle" font-family="Barlow" font-style="italic" font-weight="200" font-size="70" fill="#fff">vs</text></svg>
+  <svg class="abs" id="dChev" width="420" height="140" style="top:1520px; z-index:4"><use href="#chev" width="420" height="140"/></svg>
+  <div id="slab" style="position:absolute; left:-60px; right:-60px; top:1300px; height:300px; background:var(--gold); transform:rotate(-7deg); z-index:7"></div>
+  <span class="bc" id="dMatch" style="left:70px; top:1318px; color:#000; z-index:8">Matched.</span>
+  <p class="mono" id="dFine" style="left:60px; right:60px; top:1720px; font-size:22px; color:#9a9a9a; z-index:8">3 rounds × 3 min · ID or medical clearance may be requested</p>
+</div>
+
+<!-- FEATURES -->
+<div id="feats"></div>
+
+<!-- OUTRO: sticker collage -->
+<div class="cut" data-in="13" data-out="15.1" id="outro" style="background:#000">
+  <div class="tile" id="t0" style="left:0; top:0; width:420px; height:900px">
+    <div style="position:absolute; left:70px; top:110px; width:280px; height:700px; border-radius:60px; background:var(--gold); display:flex; align-items:center; justify-content:center">
+      <span class="an" style="position:relative; font-size:230px; color:#000; transform:rotate(-90deg)">KO&nbsp;Style</span></div></div>
+  <div class="tile" id="t1" style="left:420px; top:0; width:660px; height:900px; background:#1b1b1b">
+    <div id="oBadge" style="position:absolute; left:150px; top:170px"></div>
+    <img src="../ko-sparring/ko-logo.svg" style="position:absolute; left:130px; top:640px; width:400px">
+    <p class="mono" style="left:130px; top:760px; font-size:20px; color:#8a8a8a">By fighters · For fighters</p></div>
+  <div class="tile" id="t2" style="left:0; top:900px; width:1080px; height:520px; background:var(--gold)">
+    <span class="bc" id="oDate" style="left:40px; top:40px; color:#000; -webkit-text-stroke:4px #000">04.10</span>
+    <p class="mono" style="right:50px; top:60px; font-size:26px; color:#000; text-align:right">12:30 to 16:00<br>10 matches<br>3 × 3 min</p></div>
+  <div class="tile" id="t3" style="left:0; top:1420px; width:460px; height:500px">
+    <div style="position:absolute; left:50px; top:50px; width:360px; height:360px; border-radius:50%; background:#000; border:10px solid #2e2e2e; box-shadow:inset 0 -18px 30px rgba(255,255,255,.08); display:flex; flex-direction:column; align-items:center; justify-content:center">
+      <span class="bc" style="position:relative; font-size:120px">Free</span><span class="mono" style="position:relative; font-size:26px; color:var(--gold)">Entry</span></div></div>
+  <div class="tile" id="t4" style="left:460px; top:1420px; width:620px; height:500px">
+    <p class="mono" style="left:44px; top:60px; right:40px; font-size:27px; line-height:1.55">Register →<br><span style="color:var(--gold)">kostyle.ae/<br>sparringsessions</span><br><br><span style="color:#8a8a8a; font-size:21px">Spartans Boxing Club<br>Dubai Production City<br>Bring your own head guard.</span></p></div>
+</div>
+
+<div id="hud">
+  <p class="bc" id="hudL" style="left:44px; top:40px; font-size:38px; color:var(--gold)">KO Style × Sparring</p>
+  <p class="mono" id="hudR" style="right:44px; top:46px; font-size:22px">04.10.26 · Dubai</p>
+</div>
+<svg class="grain" width="1080" height="1920"><rect width="100%" height="100%" filter="url(#noise)"/></svg>
+<div id="flash"></div>
+
+<script>
+window.DURATION = 15
+const IMG = n => `url('../ko-sparring%20II/Still%202026-07-09%20012858_${n}.jpg')`
+const $ = id => document.getElementById(id)
+const cl = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v))
+const p = (t, a, b) => cl((t - a) / (b - a))
+const outExpo = x => x === 1 ? 1 : 1 - Math.pow(2, -10 * x)
+const outBack = x => { const c = 1.8; return 1 + (c + 1) * Math.pow(x - 1, 3) + c * Math.pow(x - 1, 2) }
+const lerp = (a, b, x) => a + (b - a) * x
+
+// Feature cards: still, crop, numeral, headline (second line in gold), thin line, start
+const FEATS = [
+  ['1.12.3', '55% 35%', '01', 'Free', 'entry.', 'by fighters, for fighters', 10.0],
+  ['1.1.1', '35% 45%', '02', 'Gloves', 'included.', 'KO Style sparring gloves', 10.75],
+  ['1.10.1', '40% 40%', '03', 'Free', 'tee.', 'a KO Style T-shirt for every fighter', 11.5],
+  ['2.13.1', '60% 35%', '04', 'Bring your', 'corner.', 'coaches and friends get in free', 12.25],
+]
+
+function build() {
+  // The repeated word, with a mono row through the middle
+  $('stack').innerHTML = Array.from({ length: 8 }, (_, i) => i === 3
+    ? `<p class="mono sk" style="left:60px; font-size:34px; color:#fff; letter-spacing:.2em">Weight · Stance · Record</p>`
+    : `<span class="an sk" style="left:60px; color:var(--gold)">Your level</span>`).join('')
+  $('hB1').innerHTML = $('oBadge').innerHTML = document.getElementById('badgeT').innerHTML
+  $('feats').innerHTML = FEATS.map(([img, pos, n, h1, h2, th, at], i) => `
+    <div class="cut feat" data-in="${at}" data-out="${i < 3 ? FEATS[i + 1][6] : 13}" id="f${i}">
+      <div class="duo fd" style="inset:0; clip-path:polygon(0 0, 100% 0, 100% 64%, 0 78%)"><div class="ph" style="background-image:${IMG(img)}; background-position:${pos}"></div></div>
+      <span class="st fn" style="right:-30px; top:980px; font-size:760px; color:transparent; -webkit-text-stroke:6px var(--gold)">${n}</span>
+      <svg class="abs fc" width="300" height="100" style="left:60px; top:1270px"><use href="#chev" width="300" height="100"/></svg>
+      <span class="bc fh" style="left:56px; top:1400px">${h1}<br><span style="color:var(--gold)">${h2}</span></span>
+      <p class="th ft" style="left:60px; top:1790px; font-size:38px; color:#cfcfcf">${th}</p>
+    </div>`).join('')
+  document.querySelectorAll('[data-img]').forEach(el => { el.style.backgroundImage = IMG(el.dataset.img) })
+}
+
+function fit(el, width, max = 9999) { el.style.fontSize = '100px'; el.style.fontSize = Math.min(max, 100 * width / el.offsetWidth) + 'px' }
+function setup() {
+  build()
+  document.querySelectorAll('.cut').forEach(c => { c.style.display = 'block' })
+  let y = 150
+  document.querySelectorAll('.sk').forEach(el => {
+    if (el.classList.contains('an')) fit(el, 960)
+    el.style.top = y + 'px'; y += el.offsetHeight + (el.classList.contains('mono') ? 18 : 2)
+  })
+  fit($('hH1'), 940); fit($('hH2'), 940)
+  ;['sSpar', 'sRing'].forEach(id => { const el = $(id); fit(el, 1180); el.style.left = ((1080 - el.offsetWidth) / 2) + 'px' })
+  fit($('dMatch'), 940, 290)
+  document.querySelectorAll('.fh').forEach(el => fit(el, 900, 220))
+  fit($('oDate'), 700)
+}
+
+function pop(el, t, at, from = 1.3, base = '') {
+  el.style.visibility = t >= at ? 'visible' : 'hidden'
+  el.style.transform = `${base} scale(${lerp(from, 1, outExpo(p(t, at, at + .12)))})`
+}
+function slap(el, t, at, base = '') {
+  // A sticker lands: squashed and tilted, then settles
+  el.style.visibility = t >= at ? 'visible' : 'hidden'
+  const x = outBack(p(t, at, at + .22))
+  el.style.transform = `${base} rotate(${lerp(-25, 0, x)}deg) scale(${lerp(1.6, 1, x)})`
+}
+function shake(t, hits, power = 16) {
+  for (const at of hits) {
+    const k = 1 - (t - at) / .2
+    if (t >= at && k > 0) return `translate(${Math.sin(t * 210) * power * k}px, ${Math.cos(t * 260) * power * k}px)`
+  }
+  return ''
+}
+function type(el, text, t, a, b) { el.textContent = text.slice(0, Math.round(text.length * p(t, a, b))) }
+const cutsOf = () => [...document.querySelectorAll('.cut')]
+
+let ready = false, cuts
+function render(t) {
+  if (!ready) { setup(); cuts = cutsOf(); ready = true }
+  for (const c of cuts) c.style.display = t >= +c.dataset.in && t < +c.dataset.out ? 'block' : 'none'
+  $('hud').style.display = t >= 13 ? 'none' : 'block'
+  document.querySelectorAll('.spin').forEach(s => { s.style.transform = `rotate(${t * 80}deg)` })
+
+  // Hook: the stack builds line by line, the sticker slaps on, the band cuts across
+  document.querySelectorAll('.sk').forEach((el, i) => { el.style.visibility = t >= .1 + i * .125 ? 'visible' : 'hidden' })
+  $('stack').style.opacity = t >= 1.75 ? .45 : 1
+  slap($('hB1'), t, 1.25)
+  $('band').style.visibility = t >= 1.75 ? 'visible' : 'hidden'
+  $('band').style.transform = `rotate(-4deg) scaleX(${outExpo(p(t, 1.75, 1.9))})`
+  pop($('hH1'), t, 1.85, 1.2); pop($('hH2'), t, 2.25, 1.2)
+  slap($('hAst'), t, 2.5)
+  $('hAst').style.transform += ` rotate(${t * 60}deg)`
+  $('hook').style.transform = shake(t, [1.25, 2.25])
+
+  // Solution: SPAR, the card, RING, the side labels
+  pop($('sSpar'), t, 3.0, 1.15); pop($('sRing'), t, 3.5, 1.15)
+  $('sCard').style.clipPath = `inset(${100 - outExpo(p(t, 3.25, 3.45)) * 100}% 0 0 0)`
+  $('sCard').querySelector('.ph').style.transform = `scale(${lerp(1.2, 1.05, p(t, 3.25, 5))})`
+  $('sL').style.clipPath = `inset(0 ${100 - outExpo(p(t, 3.75, 4.0)) * 100}% 0 0)`
+  $('sR').style.clipPath = `inset(0 ${100 - outExpo(p(t, 3.75, 4.0)) * 100}% 0 0)`
+  slap($('sAst'), t, 4.0)
+  $('sAst').style.transform += ` rotate(${t * 90}deg)`
+  $('sVenue').style.clipPath = `inset(0 ${100 - outExpo(p(t, 4.25, 4.6)) * 100}% 0 0)`
+  $('sol').style.transform = shake(t, [3.0, 3.5], 18)
+
+  // Demo: two profile cards fill in, then MATCHED
+  pop($('dHead'), t, 5.0, 1.15)
+  $('dTh').style.clipPath = `inset(0 ${100 - p(t, 5.2, 5.7) * 100}% 0 0)`
+  $('cA').style.transform = `translateX(${lerp(-700, 0, outExpo(p(t, 5.25, 5.55)))}px)`
+  $('cB').style.transform = `translateX(${lerp(700, 0, outExpo(p(t, 6.5, 6.8)))}px)`
+  type($('a0'), '72 kg', t, 5.6, 5.85); type($('a1'), 'Southpaw', t, 5.95, 6.2); type($('a2'), '1-3', t, 6.25, 6.4)
+  type($('b0'), '71 kg', t, 6.85, 7.1); type($('b1'), 'Orthodox', t, 7.2, 7.45); type($('b2'), '1-3', t, 7.5, 7.65)
+  slap($('vs'), t, 7.75)
+  $('dChev').style.visibility = t >= 7.9 ? 'visible' : 'hidden'
+  $('dChev').style.left = lerp(-450, 1100, p(t, 7.9, 8.3)) + 'px'
+  $('slab').style.visibility = t >= 8.25 ? 'visible' : 'hidden'
+  $('slab').style.transform = `rotate(-7deg) scaleX(${outExpo(p(t, 8.25, 8.4))})`
+  pop($('dMatch'), t, 8.3, 1.4, 'rotate(-7deg)')
+  $('dFine').style.clipPath = `inset(0 ${100 - outExpo(p(t, 8.75, 9.2)) * 100}% 0 0)`
+  $('demo').style.transform = shake(t, [8.3], 22)
+
+  // Features: numbered cards
+  FEATS.forEach((f, i) => {
+    const at = f[6], c = $('f' + i)
+    c.querySelector('.fd .ph').style.transform = `scale(${lerp(1.18, 1.05, p(t, at, at + .75))})`
+    pop(c.querySelector('.fn'), t, at, 1.12)
+    c.querySelector('.fc').style.transform = `translateX(${lerp(-400, 0, outExpo(p(t, at + .05, at + .25)))}px)`
+    pop(c.querySelector('.fh'), t, at + .08, 1.2)
+    c.querySelector('.ft').style.clipPath = `inset(0 ${100 - p(t, at + .2, at + .55) * 100}% 0 0)`
+    c.style.transform = shake(t, [at], 14)
+  })
+
+  // Outro: stickers slap down tile by tile
+  ;[['t0', 13.0], ['t1', 13.15], ['t2', 13.3], ['t3', 13.5], ['t4', 13.65]].forEach(([id, at]) => pop($(id), t, at, 1.12))
+  slap($('oBadge'), t, 13.3)
+  pop($('oDate'), t, 13.4, 1.3)
+  $('outro').style.transform = shake(t, [13.0, 13.3, 13.5], 12)
+
+  const hits = [1.25, 3.0, 8.3, 13.0]
+  $('flash').style.visibility = hits.some(h => t >= h && t < h + 1 / 30) ? 'visible' : 'hidden'
+}
+window.render = render
+</script>
+</body>
+</html>

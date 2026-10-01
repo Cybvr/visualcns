@@ -3,6 +3,7 @@ import { NextResponse } from "next/server"
 import { adminServices } from "@/lib/firebase-admin"
 import { getAgencySecret } from "@/lib/server/agency-secrets"
 import { gmailSenders, hasGmailConnection } from "@/lib/server/google-gmail"
+import { hasGoogleCalendarConnection } from "@/lib/server/google-calendar"
 
 export async function GET(request: Request) {
   const authorization = request.headers.get("authorization")
@@ -15,12 +16,13 @@ export async function GET(request: Request) {
     const agencyId = typeof account.agencyId === "string" ? account.agencyId.trim() : ""
     if (!agencyId) return NextResponse.json({ error: "Your account has no agency assigned." }, { status: 403 })
     const configured = await hasGmailConnection(agencyId)
-    if (!configured) return NextResponse.json({ configured: false, email: null, senders: [] })
+    const calendarConfigured = configured && await hasGoogleCalendarConnection(agencyId)
+    if (!configured) return NextResponse.json({ configured: false, calendarConfigured: false, email: null, senders: [] })
     const email = await getAgencySecret(agencyId, "GMAIL_CONNECTED_EMAIL", "")
     let senders: Awaited<ReturnType<typeof gmailSenders>> = []
     try { senders = await gmailSenders(agencyId) } catch { /* The connected mailbox can still send using its primary address. */ }
-    return NextResponse.json({ configured: true, email: email || null, senders })
+    return NextResponse.json({ configured: true, calendarConfigured, email: email || null, senders })
   } catch {
-    return NextResponse.json({ configured: false, email: null, senders: [], warning: "Google mailbox status could not be loaded." })
+    return NextResponse.json({ configured: false, calendarConfigured: false, email: null, senders: [], warning: "Google connection status could not be loaded." })
   }
 }

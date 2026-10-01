@@ -409,7 +409,8 @@ export function DriveView() {
     items: documents,
     search: searchDocument,
     sorts: DOCUMENT_SORTS,
-    defaultSort: "title",
+    defaultSort: "createdAt",
+    defaultDirection: "desc",
   })
 
   // Preview navigation moves through the same list the grid shows, so the

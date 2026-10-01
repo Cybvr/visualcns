@@ -1,0 +1,208 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@500;600;700;800&display=block" rel="stylesheet">
+<style>
+  :root { --gold:#c4ae71; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  html,body { width:1080px; height:1920px; overflow:hidden; background:#000; }
+  body { font-family:Inter, sans-serif; -webkit-font-smoothing:antialiased; color:#fff; }
+  .cut { position:absolute; inset:0; overflow:hidden; background:#000; display:none; }
+  .w { position:absolute; font-family:Anton, sans-serif; line-height:.86; white-space:nowrap; text-transform:uppercase; }
+  .fine { position:absolute; font-size:24px; font-weight:700; letter-spacing:.18em; text-transform:uppercase; line-height:1.5; }
+  /* Stills graded to black and white with crushed shadows */
+  .ph { position:absolute; background-size:cover; background-repeat:no-repeat; filter:grayscale(1) contrast(1.4) brightness(.62); }
+  /* The same still, keeping only its lit parts, laid over type so the type sits behind the fighter */
+  .matte { filter:grayscale(1) contrast(1.4) brightness(.62) url(#matte); -webkit-mask-image:var(--zone); mask-image:var(--zone); }
+  .grain { position:absolute; inset:0; opacity:.14; mix-blend-mode:overlay; pointer-events:none; z-index:40; }
+  #hud { position:absolute; inset:0; z-index:50; mix-blend-mode:difference; pointer-events:none; }
+  #flash { position:absolute; inset:0; background:#fff; mix-blend-mode:difference; visibility:hidden; z-index:99; }
+  .strip { position:absolute; top:230px; width:240px; height:1460px; overflow:hidden; }
+  .strip .ph { inset:0; }
+  .strip .big { position:absolute; left:18px; bottom:96px; font-family:Anton, sans-serif; font-size:100px; line-height:.9; color:var(--gold); text-transform:uppercase; white-space:nowrap; }
+  .strip .sm { position:absolute; left:20px; bottom:44px; font-size:30px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; }
+  .strip::after { content:""; position:absolute; inset:0; background:linear-gradient(transparent 55%, rgba(0,0,0,.85)); }
+  .strip > * { z-index:1; }
+</style>
+</head>
+<body>
+<span style="position:absolute; left:-9999px; font-family:Anton">Aa</span><span style="position:absolute; left:-9999px; font-weight:800">Aa</span>
+<svg width="0" height="0" style="position:absolute">
+  <filter id="matte" color-interpolation-filters="sRGB">
+    <feColorMatrix in="SourceGraphic" type="luminanceToAlpha" result="lum"/>
+    <feGaussianBlur in="lum" stdDeviation="9" result="soft"/>
+    <feComponentTransfer in="soft" result="cut"><feFuncA type="linear" slope="7" intercept="-1.35"/></feComponentTransfer>
+    <feComposite in="SourceGraphic" in2="cut" operator="in"/>
+  </filter>
+  <filter id="noise"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" seed="5"/><feColorMatrix type="saturate" values="0"/></filter>
+</svg>
+
+<!-- HOOK: the stare-down, with PROVE behind the fighter -->
+<div class="cut" data-in="0" data-out="2" id="hook">
+  <div class="ph" id="hP" style="inset:0; background-image:url('../ko-sparring%20II/Still%202026-07-09%20012858_1.16.2.jpg'); background-position:84% 40%"></div>
+  <span class="w" id="hProve" style="top:285px; font-size:560px">Prove</span>
+  <div class="ph" id="hM" style="clip-path:polygon(448px 590px, 462px 510px, 505px 452px, 580px 410px, 680px 390px, 780px 392px, 868px 418px, 930px 468px, 966px 540px, 984px 650px, 990px 762px, 966px 868px, 906px 962px, 826px 1056px, 722px 1110px, 596px 1100px, 510px 1040px, 456px 900px, 432px 768px); inset:0; background-image:url('../ko-sparring%20II/Still%202026-07-09%20012858_1.16.2.jpg'); background-position:84% 40%"></div>
+  <span class="w" id="hTrain" style="left:60px; top:120px">Train all year.</span>
+  <span class="w" id="hIt" style="left:60px; top:1400px; color:var(--gold)">It on the 4th.</span>
+</div>
+
+<!-- SOLUTION: the fighter boxed between 04 and 10 -->
+<div class="cut" data-in="2" data-out="3.5" id="sol">
+  <span class="w" id="s04" style="top:300px; left:-190px; font-size:1400px; color:transparent; -webkit-text-stroke:8px var(--gold)">4</span>
+  <span class="w" id="s10" style="top:300px; right:-470px; font-size:1400px; color:transparent; -webkit-text-stroke:8px var(--gold)">10</span>
+  <div id="sBox" style="position:absolute; left:210px; top:430px; width:660px; height:1060px; overflow:hidden; outline:4px solid var(--gold); outline-offset:14px">
+    <div class="ph" id="sP" style="inset:0; background-image:url('../ko-sparring%20II/Still%202026-07-09%20012858_1.15.1.jpg'); background-position:50% 30%"></div>
+  </div>
+  <span class="w" id="sTitle" style="left:60px; top:170px">Sparring series</span>
+  <p class="fine" id="sWhere" style="left:60px; right:60px; top:1600px; text-align:center">Spartans Boxing Club · Dubai Production City<br><span style="color:var(--gold)">12:30pm to 4pm</span></p>
+</div>
+
+<!-- DEMO: the day as four strips -->
+<div class="cut" data-in="3.5" data-out="6.5" id="demo">
+  <p class="fine" style="left:40px; top:150px; color:var(--gold)">The day · 04.10</p>
+  <div class="strip" id="st0" style="left:36px"><div class="ph" style="background-image:url('../ko-sparring%20II/Still%202026-07-09%20012858_1.26.1.jpg'); background-position:30% 50%"></div><span class="big">12:30</span><span class="sm">Arrive</span></div>
+  <div class="strip" id="st1" style="left:292px"><div class="ph" style="background-image:url('../ko-sparring%20II/Still%202026-07-09%20012858_1.19.1.jpg'); background-position:42% 50%"></div><span class="big">Gloves</span><span class="sm">On</span></div>
+  <div class="strip" id="st2" style="left:548px"><div class="ph" style="background-image:url('../ko-sparring%20II/Still%202026-07-09%20012858_1.32.1.jpg'); background-position:45% 50%"></div><span class="big">10</span><span class="sm">Matches</span></div>
+  <div class="strip" id="st3" style="left:804px"><div class="ph" style="background-image:url('../ko-sparring%20II/Still%202026-07-09%20012858_1.29.1.jpg'); background-position:38% 50%"></div><span class="big">4PM</span><span class="sm">Hands up</span></div>
+</div>
+
+<!-- FEATURES -->
+<div class="cut feat" data-in="6.5" data-out="7" id="f1">
+  <div class="ph fp" style="inset:0; background-image:url('../ko-sparring%20II/Still%202026-07-09%20012858_1.3.1.jpg'); background-position:55% 40%"></div>
+  <div id="band" style="position:absolute; left:-300px; top:830px; width:1680px; height:430px; background:var(--gold); transform-origin:50% 50%"></div>
+  <span class="w" id="f1t" style="left:120px; top:830px; font-size:470px; color:#000">3×3</span>
+  <p class="fine" style="left:60px; bottom:220px">3 rounds of 3 minutes</p>
+</div>
+<div class="cut feat" data-in="7" data-out="7.5" id="f2">
+  <div class="ph fp" style="inset:0; background-image:url('../ko-sparring%20II/Still%202026-07-09%20012858_1.24.1.jpg'); background-position:78% 40%"></div>
+  <span class="w" id="f2t" style="font-size:760px; transform-origin:0 0">Free</span>
+  <span class="w" style="left:470px; top:1480px; font-size:230px; color:var(--gold)">Entry.</span>
+</div>
+<div class="cut feat" data-in="7.5" data-out="8" id="f3">
+  <div class="ph fp" style="inset:0; background-image:url('../ko-sparring%20II/Still%202026-07-09%20012858_1.30.1.jpg'); background-position:62% 50%"></div>
+  <span class="w" id="f3a" style="left:60px; top:190px">Gloves</span>
+  <span class="w" id="f3b" style="left:60px; top:520px; color:var(--gold)">+ Tee</span>
+  <p class="fine" style="left:60px; width:440px; bottom:200px">KO Style sparring gloves included</p>
+  <p class="fine" style="left:580px; width:440px; bottom:200px">A free KO Style T-shirt for every fighter</p>
+</div>
+<div class="cut feat" data-in="8" data-out="8.5" id="f4">
+  <div class="ph fp" style="inset:0; background-image:url('../ko-sparring%20II/Still%202026-07-09%20012858_1.15.2.jpg'); background-position:50% 30%"></div>
+  <span class="w" id="f4t" style="left:40px; top:600px; font-size:370px; line-height:.84">Bring<br>your<br>team</span>
+  <p class="fine" style="left:60px; bottom:200px; color:var(--gold)">Coaches and friends get in free</p>
+</div>
+
+<!-- OUTRO -->
+<div class="cut" data-in="8.5" data-out="10.1" id="outro">
+  <div class="ph" id="oP" style="inset:0; background-image:url('../ko-sparring%20II/Still%202026-07-09%20012858_2.16.1.jpg'); background-position:40% 40%; filter:grayscale(1) contrast(1.3) brightness(.32)"></div>
+  <img id="logo" src="../ko-sparring/ko-logo.svg" style="position:absolute; left:60px; top:230px; width:520px">
+  <span class="w" id="o1" style="left:60px; top:720px">By fighters.</span>
+  <span class="w" id="o2" style="left:60px; top:960px; color:var(--gold)">For fighters.</span>
+  <p class="fine" id="oFine" style="left:60px; right:60px; top:1330px; font-size:30px; line-height:1.7">Register: kostyle.ae/sparringsessions<br>4 October · Dubai<br><span style="color:#9a9a9a">Bring your own head guard.</span></p>
+</div>
+
+<!-- Poster fine print around the frame -->
+<div id="hud">
+  <p class="fine" style="left:40px; top:44px">KO Style sparring series</p>
+  <p class="fine" style="right:40px; top:44px">04.10.2026</p>
+  <p class="fine" style="left:40px; bottom:44px">Dubai</p>
+  <p class="fine" id="count" style="right:40px; bottom:44px">01 / 05</p>
+</div>
+<svg class="grain" width="1080" height="1920"><rect width="100%" height="100%" filter="url(#noise)"/></svg>
+<div id="flash"></div>
+
+<script>
+const $ = id => document.getElementById(id)
+const cl = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v))
+const p = (t, a, b) => cl((t - a) / (b - a))
+const outExpo = x => x === 1 ? 1 : 1 - Math.pow(2, -10 * x)
+const lerp = (a, b, x) => a + (b - a) * x
+function fitWidth(el, len) { el.style.fontSize = '200px'; el.style.fontSize = (200 * len / el.offsetWidth) + 'px' }
+
+function setup() {
+  document.querySelectorAll('.cut').forEach(c => { c.style.display = 'block' })
+  fitWidth($('hTrain'), 960); fitWidth($('hIt'), 960); fitWidth($('sTitle'), 960)
+  fitWidth($('f3a'), 960); fitWidth($('f3b'), 620); fitWidth($('o1'), 960); fitWidth($('o2'), 960)
+  const pr = $('hProve'); fitWidth(pr, 1150); pr.style.left = ((1080 - pr.offsetWidth) / 2) + 'px'
+  document.querySelectorAll('.strip .big').forEach(b => { if (b.offsetWidth > 204) b.style.fontSize = (100 * 204 / b.offsetWidth) + 'px' })
+  // FREE runs bottom-to-top along the left edge, cropped by the frame.
+  const fr = $('f2t'); fr.style.left = '-40px'; fr.style.top = (1920 + 60) + 'px'; fr.dataset.base = 'rotate(-90deg)'
+}
+
+function slam(el, t, at, from = 1.3, base = '') {
+  el.style.visibility = t >= at ? 'visible' : 'hidden'
+  if (!el.style.transformOrigin) el.style.transformOrigin = '0 50%'
+  el.style.transform = `${base} scale(${lerp(from, 1, outExpo(p(t, at, at + .12)))})`
+}
+function shake(t, hits, power = 20) {
+  for (const at of hits) {
+    const k = 1 - (t - at) / .2
+    if (t >= at && k > 0) return `translate(${Math.sin(t * 210) * power * k}px, ${Math.cos(t * 260) * power * k}px)`
+  }
+  return ''
+}
+const cuts = [...document.querySelectorAll('.cut')]
+
+let ready = false
+function render(t) {
+  if (!ready) { setup(); ready = true }
+  for (const c of cuts) c.style.display = t >= +c.dataset.in && t < +c.dataset.out ? 'block' : 'none'
+  const scene = t < 2 ? 1 : t < 3.5 ? 2 : t < 6.5 ? 3 : t < 8.5 ? 4 : 5
+  $('count').textContent = `0${scene} / 05`
+
+  // Hook
+  const push = `scale(${lerp(1.14, 1.04, p(t, 0, 2))})`
+  $('hP').style.transform = push; $('hM').style.transform = push
+  slam($('hTrain'), t, .25, 1.2)
+  $('hProve').style.visibility = t >= .75 ? 'visible' : 'hidden'
+  $('hProve').style.transformOrigin = '50% 50%'
+  $('hProve').style.transform = `scale(${lerp(1.25, 1, outExpo(p(t, .75, .9)))})`
+  slam($('hIt'), t, 1.25, 1.2)
+  $('hook').style.transform = shake(t, [.25, .75, 1.25])
+
+  // Solution
+  $('sP').style.transform = `scale(${lerp(1.2, 1.05, p(t, 2, 3.5))})`
+  $('sBox').style.clipPath = `inset(${100 - outExpo(p(t, 2, 2.25)) * 100}% 0 0 0)`
+  slam($('s04'), t, 2.25, 1.1); slam($('s10'), t, 2.25, 1.1)
+  $('s10').style.transformOrigin = '100% 50%'
+  slam($('sTitle'), t, 2.5, 1.2)
+  $('sWhere').style.clipPath = `inset(0 0 ${100 - outExpo(p(t, 2.75, 3.1)) * 100}% 0)`
+  $('sol').style.transform = shake(t, [2.0, 2.5], 16)
+
+  // Demo: strips slam up from below, one per beat
+  ;[3.5, 4.0, 4.5, 5.0].forEach((at, i) => {
+    const s = $('st' + i), x = outExpo(p(t, at, at + .2))
+    s.style.visibility = t >= at ? 'visible' : 'hidden'
+    s.style.transform = `translateY(${lerp(500, 0, x)}px)`
+    s.querySelector('.ph').style.transform = `scale(${lerp(1.3, 1.1, p(t, at, 6.5))})`
+  })
+  $('demo').style.transform = shake(t, [3.5, 4.0, 4.5, 5.0], 12)
+
+  // Features
+  document.querySelectorAll('.fp').forEach(ph => {
+    const at = +ph.closest('.cut').dataset.in
+    ph.style.transform = `scale(${lerp(1.15, 1.04, p(t, at, at + .5))})`
+  })
+  $('band').style.transform = `rotate(-14deg) scaleX(${outExpo(p(t, 6.5, 6.65))})`
+  slam($('f1t'), t, 6.55, 1.3, 'rotate(-14deg)')
+  $('f1t').style.transformOrigin = '50% 50%'
+  slam($('f2t'), t, 7.0, 1.15, 'rotate(-90deg)')
+  $('f2t').style.transformOrigin = '0 0'
+  slam($('f3a'), t, 7.5, 1.2); slam($('f3b'), t, 7.62, 1.2)
+  slam($('f4t'), t, 8.0, 1.15)
+  ;['f1', 'f2', 'f3', 'f4'].forEach(id => { const c = $(id); c.style.transform = shake(t, [+c.dataset.in], 14) })
+
+  // Outro
+  $('oP').style.transform = `scale(${lerp(1.15, 1.03, p(t, 8.5, 10))})`
+  $('logo').style.clipPath = `inset(0 ${100 - outExpo(p(t, 8.5, 8.85)) * 100}% 0 0)`
+  slam($('o1'), t, 8.75, 1.2); slam($('o2'), t, 9.0, 1.2)
+  $('oFine').style.clipPath = `inset(0 0 ${100 - outExpo(p(t, 9.2, 9.6)) * 100}% 0)`
+  $('outro').style.transform = shake(t, [8.75, 9.0], 14)
+
+  const hits = [.75, 2.0, 5.0, 8.5]
+  $('flash').style.visibility = hits.some(h => t >= h && t < h + 1 / 30) ? 'visible' : 'hidden'
+}
+window.render = render
+</script>
+</body>
+</html>

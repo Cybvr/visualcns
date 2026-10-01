@@ -4,7 +4,7 @@ import dynamic from "next/dynamic"
 import { Suspense, useEffect, type ReactNode } from "react"
 import Image from "next/image"
 import { usePathname, useRouter } from "next/navigation"
-import { ClipboardList, Eye, FileText, LogOut, Pencil, Receipt, UserCheck } from "lucide-react"
+import { CalendarDays, ClipboardList, Eye, FileText, LogOut, Pencil, Receipt, UserCheck } from "lucide-react"
 import { FiBriefcase, FiCheckSquare, FiFileText, FiImage, FiMail, FiUsers } from "react-icons/fi"
 import { AuthProvider, useAuth } from "@/components/auth-provider"
 import { AgentProvider } from "@/components/agent/agent-context"
@@ -19,6 +19,7 @@ const AgentDock = dynamic(() => import("@/components/agent/agent-dock").then((mo
 
 const DASHBOARD_NAV: NavLink[] = [
   { label: "New Chat", href: "/dashboard/agent", icon: Pencil, startsNewChat: true },
+  { label: "Calendar", href: "/dashboard/calendar", icon: CalendarDays, adminOnly: true },
   { label: "Clients", href: "/dashboard/clients", icon: FiBriefcase, adminOnly: true },
   { label: "Contacts", href: "/dashboard/users", icon: FiUsers, adminOnly: true },
   { label: "Email", href: "/dashboard/email", icon: FiMail },

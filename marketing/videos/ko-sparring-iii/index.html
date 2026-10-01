@@ -1,0 +1,294 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Big+Shoulders+Display:wght@800;900&family=Permanent+Marker&family=Space+Mono:wght@400;700&display=block" rel="stylesheet">
+<style>
+  :root { --gold:#c4ae71; --paper:#efe8d8; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  html,body { width:1080px; height:1920px; overflow:hidden; background:#000; }
+  body { color:#fff; -webkit-font-smoothing:antialiased; }
+  .pre { position:absolute; left:-9999px; }
+  .cut { position:absolute; inset:0; overflow:hidden; background:#000; display:none; }
+  .ph { position:absolute; background-size:cover; background-repeat:no-repeat; filter:grayscale(1) contrast(1.4) brightness(.55); }
+  .sh { position:absolute; font-family:'Big Shoulders Display', sans-serif; font-weight:900; text-transform:uppercase; line-height:.82; white-space:nowrap; transform-origin:0 100%; }
+  .an { position:absolute; font-family:Anton, sans-serif; text-transform:uppercase; line-height:.88; white-space:nowrap; }
+  .mono { position:absolute; font-family:'Space Mono', monospace; font-weight:700; text-transform:uppercase; letter-spacing:.12em; }
+  .mk { position:absolute; font-family:'Permanent Marker', cursive; color:var(--gold); line-height:1.05; }
+  svg.draw { position:absolute; overflow:visible; }
+  svg.draw path { fill:none; stroke:var(--gold); stroke-linecap:round; stroke-linejoin:round; }
+  .grain { position:absolute; inset:0; opacity:.15; mix-blend-mode:overlay; pointer-events:none; z-index:80; }
+  #hud { position:absolute; inset:0; z-index:90; pointer-events:none; mix-blend-mode:difference; }
+  #card { position:absolute; inset:0; z-index:95; background:#000; display:none; }
+  #flash { position:absolute; inset:0; background:#fff; mix-blend-mode:difference; visibility:hidden; z-index:99; }
+
+  /* Ticket */
+  #ticket { position:absolute; left:100px; top:300px; width:880px; height:1380px; background:var(--paper); color:#0b0b0b; border-radius:18px; padding:64px 60px; transform-origin:50% 100%; box-shadow:0 40px 80px rgba(0,0,0,.6); }
+  #ticket .notch { position:absolute; top:640px; width:84px; height:84px; border-radius:50%; background:#000; }
+  #ticket .perf { position:absolute; left:70px; right:70px; top:681px; border-top:5px dashed #0b0b0b; opacity:.5; }
+  #ticket .rowk { font-family:'Space Mono', monospace; font-size:24px; font-weight:700; letter-spacing:.14em; opacity:.55; }
+  #ticket .rowv { font-family:'Big Shoulders Display', sans-serif; font-weight:900; font-size:64px; line-height:1; text-transform:uppercase; margin-top:4px; }
+  #stamp { position:absolute; right:40px; top:840px; width:400px; height:400px; border-radius:50%; border:12px solid var(--gold); display:flex; flex-direction:column; align-items:center; justify-content:center; color:var(--gold); mix-blend-mode:multiply; }
+  #stamp::before { content:""; position:absolute; inset:16px; border-radius:50%; border:4px solid var(--gold); }
+
+  /* Scrapbook */
+  #board { position:absolute; left:0; top:0; width:1080px; height:4200px; background:#0e0e0e; background-image:repeating-linear-gradient(0deg, #1b1b1b 0 2px, transparent 2px 90px), repeating-linear-gradient(90deg, #1b1b1b 0 2px, transparent 2px 90px); }
+  .pola { position:absolute; width:640px; padding:20px 20px 80px; background:#f4f1ea; box-shadow:0 30px 60px rgba(0,0,0,.7); }
+  .pola .img { width:600px; height:600px; background-size:cover; filter:grayscale(1) contrast(1.35) brightness(.8); }
+  .pola .tape { position:absolute; left:220px; top:-26px; width:200px; height:56px; background:rgba(239,232,216,.75); transform:rotate(-3deg); }
+  .pola .cap { position:absolute; left:24px; bottom:22px; font-family:'Space Mono', monospace; font-weight:700; font-size:24px; letter-spacing:.12em; color:#111; }
+
+  /* Grid */
+  .cell { position:absolute; width:540px; height:640px; overflow:hidden; border:4px solid #000; }
+  .cell .ph { inset:0; }
+  .cell .sh { left:34px; bottom:92px; }
+  .cell .mono { left:38px; bottom:40px; font-size:24px; }
+</style>
+</head>
+<body>
+<span class="pre" style="font-family:Anton">A</span><span class="pre" style="font-family:'Big Shoulders Display'; font-weight:900">A</span><span class="pre" style="font-family:'Permanent Marker'">A</span><span class="pre" style="font-family:'Space Mono'; font-weight:700">A</span>
+<svg width="0" height="0" style="position:absolute"><filter id="noise"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" seed="8"/><feColorMatrix type="saturate" values="0"/></filter></svg>
+
+<!-- HOOK: the manifesto -->
+<div class="cut" data-in="0" data-out="3" id="hook">
+  <div class="ph" id="hP" data-img="1.16.1" style="inset:0; background-position:78% 40%"></div>
+  <div style="position:absolute; inset:0; background:linear-gradient(90deg, rgba(0,0,0,.75), rgba(0,0,0,.1) 70%)"></div>
+  <span class="sh man" id="m0">I don't spar</span>
+  <span class="sh man" id="m1">To <span id="m1s">look good.</span></span>
+  <span class="sh man" id="m2">I spar</span>
+  <span class="sh man" id="m3">to get</span>
+  <span class="sh man" id="m4" style="color:var(--gold)">better.</span>
+  <svg class="draw" id="strike" width="1080" height="1920" style="left:0; top:0"><path stroke-width="16"/></svg>
+  <svg class="draw" id="ring" width="1080" height="1920" style="left:0; top:0"><path stroke-width="12"/></svg>
+  <p class="mono" id="rail" style="font-size:24px; color:var(--gold); transform-origin:0 0; transform:rotate(90deg); left:1040px; top:300px; white-space:nowrap">KO Style · Sparring series · Dubai · 04.10.26 · Spartans Boxing Club</p>
+</div>
+
+<!-- SOLUTION: the ticket -->
+<div class="cut" data-in="3" data-out="5.5" id="sol">
+  <div id="rows"></div>
+  <div id="ticket">
+    <img src="../ko-sparring/ko-logo.svg" style="width:300px; filter:invert(1)">
+    <p class="sh" style="position:relative; font-size:170px; margin-top:34px; line-height:.84">Sparring<br>series</p>
+    <p class="rowk" style="margin-top:34px">Admit one fighter · No. 004</p>
+    <div class="notch" style="left:-42px"></div><div class="notch" style="right:-42px"></div><div class="perf"></div>
+    <div style="position:absolute; left:60px; right:60px; top:740px; display:grid; grid-template-columns:1fr 1fr; row-gap:34px; column-gap:30px">
+      <div><p class="rowk">Date</p><p class="rowv">04.10.2026</p></div>
+      <div><p class="rowk">Card</p><p class="rowv">10 matches</p></div>
+      <div><p class="rowk">Doors</p><p class="rowv">12:30</p></div>
+      <div><p class="rowk">Ends</p><p class="rowv">16:00</p></div>
+      <div style="grid-column:span 2"><p class="rowk">Venue</p><p class="rowv" style="font-size:54px">Spartans Boxing Club<br>Dubai Production City</p></div>
+    </div>
+    <div style="position:absolute; left:60px; right:60px; bottom:56px; height:70px; background:repeating-linear-gradient(90deg, #0b0b0b 0 6px, transparent 6px 10px, #0b0b0b 10px 12px, transparent 12px 20px, #0b0b0b 20px 28px, transparent 28px 32px)"></div>
+    <div id="stamp"><span class="an" style="position:relative; font-size:170px; line-height:.9">Free</span><span style="font-family:'Space Mono'; font-weight:700; font-size:30px; letter-spacing:.3em">ENTRY</span></div>
+  </div>
+</div>
+
+<!-- DEMO: the scrapbook of the day -->
+<div class="cut" data-in="5.5" data-out="9.5" id="demo">
+  <div id="board"></div>
+</div>
+
+<!-- FEATURES: the grid -->
+<div class="cut" data-in="9.5" data-out="12.5" id="feat">
+  <div id="grid"></div>
+  <svg id="badge" width="380" height="380" viewBox="0 0 380 380" style="position:absolute; left:350px; top:770px; z-index:5">
+    <defs><path id="circ" d="M190 190 m-140 0 a140 140 0 1 1 280 0 a140 140 0 1 1 -280 0"/></defs>
+    <circle cx="190" cy="190" r="186" fill="#000"/><circle cx="190" cy="190" r="100" fill="var(--gold)"/>
+    <g id="spin" style="transform-origin:190px 190px"><text font-family="Space Mono" font-weight="700" font-size="33" letter-spacing="6" fill="#c4ae71"><textPath href="#circ">BY FIGHTERS · FOR FIGHTERS ·</textPath></text></g>
+    <text x="190" y="222" text-anchor="middle" font-family="Anton" font-size="92" fill="#000">KO</text>
+  </svg>
+</div>
+
+<!-- OUTRO -->
+<div class="cut" data-in="12.5" data-out="15.1" id="outro">
+  <div class="ph" id="oP" data-img="1.12.3" style="inset:0; background-position:55% 40%; filter:grayscale(1) contrast(1.3) brightness(.3)"></div>
+  <img id="oLogo" src="../ko-sparring/ko-logo.svg" style="position:absolute; left:60px; top:170px; width:440px">
+  <span class="sh" id="o0" style="left:56px">See you</span>
+  <span class="sh" id="o1" style="left:56px">in the</span>
+  <span class="sh" id="o2" style="left:56px; color:var(--gold)">ring.</span>
+  <p class="mono" id="oD" style="left:60px; right:60px; top:1460px; font-size:30px; line-height:1.8">Register → kostyle.ae/sparringsessions<br><span style="color:#9a9a9a">04.10.26 · Spartans Boxing Club · Dubai<br>12:30 to 16:00 · Free entry</span></p>
+  <p class="mk" id="oNote" style="left:560px; top:1340px; font-size:62px; transform:rotate(-6deg)">register now ↗</p>
+</div>
+
+<!-- Round card between rounds -->
+<div id="card"><span class="an" id="cardT" style="left:60px; top:700px; color:var(--gold)">Round 1</span></div>
+
+<!-- Fight clock and marks -->
+<div id="hud">
+  <p class="mono" style="left:40px; top:44px; font-size:24px">KO Style</p>
+  <p class="mono" id="rnd" style="right:40px; top:44px; font-size:24px">Round 1</p>
+  <p class="mono" id="clock" style="left:40px; bottom:44px; font-size:24px">3:00</p>
+  <p class="mono" style="right:40px; bottom:44px; font-size:24px">04.10.26</p>
+</div>
+<svg class="grain" width="1080" height="1920"><rect width="100%" height="100%" filter="url(#noise)"/></svg>
+<div id="flash"></div>
+
+<script>
+window.DURATION = 15
+const IMG = n => `url('../ko-sparring%20II/Still%202026-07-09%20012858_${n}.jpg')`
+const $ = id => document.getElementById(id)
+const cl = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v))
+const p = (t, a, b) => cl((t - a) / (b - a))
+const outExpo = x => x === 1 ? 1 : 1 - Math.pow(2, -10 * x)
+const outBack = x => { const c = 1.7; return 1 + (c + 1) * Math.pow(x - 1, 3) + c * Math.pow(x - 1, 2) }
+const inOut = x => x < .5 ? 4 * x ** 3 : 1 - Math.pow(-2 * x + 2, 3) / 2
+const lerp = (a, b, x) => a + (b - a) * x
+
+// Scrapbook cards: still, marker note, caption, when it sticks on
+const CARDS = [
+  ['1.26.1', '30% 50%', '12:30<br>arrive', 'Doors 12:30', 5.5],
+  ['1.19.1', '45% 50%', 'gloves on<br>(ours)', 'KO Style gloves', 6.25],
+  ['1.1.1', '40% 50%', '10<br>matches', 'The card', 7.0],
+  ['1.18.1', '50% 50%', '3 rounds<br>× 3 min<br>|||', 'Per match', 7.75],
+  ['1.29.1', '35% 50%', '4pm<br>shake<br>hands', 'Ends 16:00', 8.5],
+]
+// Grid cells: still (or a solid), big word, small line, when it lands
+const CELLS = [
+  ['1.24.1', '70% 40%', 'Free<br>entry', 'For everyone', 9.5],
+  ['1.30.1', '60% 50%', 'Gloves<br>included', 'KO Style sparring gloves', 10.0],
+  ['gold', '', 'Free<br>tee', 'For every fighter', 10.5],
+  ['1.15.2', '50% 30%', 'Coaches<br>free', 'Bring your corner', 11.0],
+  ['2.13.1', '45% 40%', 'Friends<br>free', 'Bring the team', 11.5],
+  ['paper', '', 'Head<br>guard', 'Bring your own', 12.0],
+]
+
+function build() {
+  document.querySelectorAll('[data-img]').forEach(el => { el.style.backgroundImage = IMG(el.dataset.img) })
+  // Repeated outline type behind the ticket
+  $('rows').innerHTML = Array.from({ length: 8 }, (_, i) =>
+    `<p class="an rowtxt" style="left:-400px; top:${i * 250 - 40}px; font-size:250px; color:transparent; -webkit-text-stroke:2px rgba(196,174,113,.3)">${'Sparring series · '.repeat(4)}</p>`).join('')
+  $('board').innerHTML = CARDS.map(([img, pos, note, cap], i) => {
+    const left = i % 2 ? 380 : 60, top = 600 + i * 700, rot = i % 2 ? 4 : -5
+    const nl = i % 2 ? 50 : 712
+    return `<div class="pola" id="c${i}" data-rot="${rot}" style="left:${left}px; top:${top}px"><div class="img" style="background-image:${IMG(img)}; background-position:${pos}"></div><div class="tape"></div><p class="cap">${cap}</p></div>
+      <p class="mk" id="n${i}" style="left:${nl}px; top:${top + 170}px; font-size:62px; transform:rotate(${i % 2 ? -6 : 5}deg)">${note}</p>`
+  }).join('')
+  $('grid').innerHTML = CELLS.map(([img, pos, big, small], i) => {
+    const x = (i % 2) * 540, y = Math.floor(i / 2) * 640
+    const bg = img === 'gold' ? 'background:var(--gold); color:#000' : img === 'paper' ? 'background:var(--paper); color:#000' : ''
+    const inner = img === 'gold' || img === 'paper' ? '' : `<div class="ph" style="background-image:${IMG(img)}; background-position:${pos}"></div><div style="position:absolute; inset:0; background:linear-gradient(transparent 35%, rgba(0,0,0,.8))"></div>`
+    return `<div class="cell" id="g${i}" style="left:${x}px; top:${y}px; ${bg}">${inner}<span class="sh gw" style="font-size:150px; transform:skewX(-9deg)">${big}</span><p class="mono" style="color:${bg ? '#000' : 'var(--gold)'}">${small}</p></div>`
+  }).join('')
+}
+
+function fit(el, width, max) { el.style.fontSize = '100px'; el.style.fontSize = Math.min(max, 100 * width / el.offsetWidth) + 'px' }
+// A marker stroke with a little wobble, like it was drawn by hand
+function wobblyLine(x1, y1, x2, y2) {
+  let d = `M${x1} ${y1}`
+  for (let i = 1; i <= 8; i++) { const k = i / 8; d += ` L${lerp(x1, x2, k)} ${lerp(y1, y2, k) + Math.sin(i * 2.1) * 6}` }
+  return d
+}
+function wobblyLoop(cx, cy, rx, ry) {
+  let d = ''
+  for (let i = 0; i <= 44; i++) { const a = -2.6 + i / 40 * Math.PI * 2, r = 1 + Math.sin(i * 1.3) * .03; d += `${i ? 'L' : 'M'}${cx + Math.cos(a) * rx * r} ${cy + Math.sin(a) * ry * r} ` }
+  return d
+}
+function prep(path) { const L = path.getTotalLength(); path.style.strokeDasharray = L; path.dataset.len = L }
+function draw(path, x) { path.style.strokeDashoffset = path.dataset.len * (1 - x) }
+
+function setup() {
+  build()
+  document.querySelectorAll('.cut').forEach(c => { c.style.display = 'block' })
+  // Manifesto: every line fills the width, capped so short lines don't get absurd
+  const caps = [999, 999, 360, 360, 999]
+  let y = 250
+  ;['m0', 'm1', 'm2', 'm3', 'm4'].forEach((id, i) => {
+    const el = $(id); fit(el, 900, caps[i])
+    el.style.left = '60px'; el.style.top = y + 'px'
+    y += el.offsetHeight + 14
+  })
+  const s = $('m1s').getBoundingClientRect()
+  $('strike').querySelector('path').setAttribute('d', wobblyLine(s.left - 20, s.top + s.height * .52, s.right + 10, s.top + s.height * .46))
+  const b = $('m4').getBoundingClientRect()
+  $('ring').querySelector('path').setAttribute('d', wobblyLoop(b.left + b.width / 2 + 10, b.top + b.height / 2, b.width / 2 + 60, b.height / 2 + 50))
+  prep($('strike').querySelector('path')); prep($('ring').querySelector('path'))
+  document.querySelectorAll('.cell .gw').forEach(el => fit(el, 440, 170))
+  let oy = 560
+  ;['o0', 'o1', 'o2'].forEach(id => { const el = $(id); fit(el, 940, 420); el.style.top = oy + 'px'; oy += el.offsetHeight + 10 })
+  $('card').style.display = 'block'; fit($('cardT'), 960, 600); $('card').style.display = 'none'
+  $('oD').style.top = (oy + 30) + 'px'; $('oNote').style.top = (oy + 250) + 'px'
+}
+
+function slam(el, t, at, from = 1.3, base = '') {
+  el.style.visibility = t >= at ? 'visible' : 'hidden'
+  el.style.transform = `${base} scale(${lerp(from, 1, outExpo(p(t, at, at + .12)))})`
+}
+function shake(t, hits, power = 18) {
+  for (const at of hits) {
+    const k = 1 - (t - at) / .2
+    if (t >= at && k > 0) return `translate(${Math.sin(t * 210) * power * k}px, ${Math.cos(t * 260) * power * k}px)`
+  }
+  return ''
+}
+const ROUNDS = [[0, 5.5], [5.5, 9.5], [9.5, 15]]
+const cuts = [...document.querySelectorAll('.cut')]
+
+let ready = false
+function render(t) {
+  if (!ready) { setup(); ready = true }
+  for (const c of cuts) c.style.display = t >= +c.dataset.in && t < +c.dataset.out ? 'block' : 'none'
+
+  // Round card flashes up on each bell, and the fight clock runs down each round
+  const r = ROUNDS.findIndex(([a, b]) => t >= a && t < b), ri = r < 0 ? 2 : r
+  const onCard = ROUNDS.some(([a]) => t >= a && t < a + .25)
+  $('card').style.display = onCard ? 'block' : 'none'
+  $('cardT').textContent = `Round ${ri + 1}`
+  $('cardT').style.transform = `scale(${lerp(1.2, 1, outExpo(p(t, ROUNDS[ri][0], ROUNDS[ri][0] + .15)))})`
+  $('rnd').textContent = t >= 12.5 ? 'Final bell' : `Round ${ri + 1}`
+  const left = Math.max(0, Math.round(180 * (1 - p(t, ...ROUNDS[ri]))))
+  $('clock').textContent = `${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')}`
+
+  // Hook
+  $('hP').style.transform = `scale(${lerp(1.15, 1.04, p(t, 0, 3))})`
+  ;[['m0', .25], ['m1', .75], ['m2', 1.5], ['m3', 2.0], ['m4', 2.25]].forEach(([id, at]) => slam($(id), t, at, 1.25, 'skewX(-9deg)'))
+  draw($('strike').querySelector('path'), outExpo(p(t, 1.2, 1.45)))
+  draw($('ring').querySelector('path'), p(t, 2.45, 2.85))
+  $('rail').style.clipPath = `inset(0 ${100 - p(t, .3, 2.6) * 100}% 0 0)`
+  $('hook').style.transform = shake(t, [.25, .75, 1.5, 2.25])
+
+  // Solution: the rows drift, the ticket slams up, the stamp lands
+  document.querySelectorAll('.rowtxt').forEach((row, i) => { row.style.transform = `translateX(${(i % 2 ? 1 : -1) * (t - 3) * 260}px)` })
+  const tk = outBack(p(t, 3.0, 3.35))
+  $('ticket').style.transform = `translateY(${lerp(1500, 0, tk)}px) rotate(${lerp(8, -4, tk)}deg)${shake(t, [4.5], 16) ? ' ' + shake(t, [4.5], 16) : ''}`
+  $('stamp').style.visibility = t >= 4.5 ? 'visible' : 'hidden'
+  $('stamp').style.transform = `rotate(-16deg) scale(${lerp(2.2, 1, outExpo(p(t, 4.5, 4.62)))})`
+
+  // Demo: cards stick on as the camera steps down the board
+  const focus = i => Math.max(-(4200 - 1920), Math.min(0, 960 - (600 + i * 700 + 360)))
+  let cam = focus(0)
+  CARDS.forEach((c, i) => { if (i && t >= c[4] - .25) cam = lerp(focus(i - 1), focus(i), inOut(p(t, c[4] - .25, c[4]))) })
+  $('board').style.transform = `translateY(${cam}px)${shake(t, CARDS.map(c => c[4]), 12) ? ' ' + shake(t, CARDS.map(c => c[4]), 12) : ''}`
+  CARDS.forEach((c, i) => {
+    const at = c[4], card = $('c' + i), rot = +card.dataset.rot, x = outExpo(p(t, at, at + .16))
+    card.style.visibility = t >= at ? 'visible' : 'hidden'
+    card.style.transform = `rotate(${lerp(rot + 8, rot, x)}deg) scale(${lerp(1.25, 1, x)})`
+    $('n' + i).style.clipPath = `inset(0 ${100 - p(t, at + .12, at + .45) * 100}% 0 0)`
+  })
+
+  // Features: the grid fills one cell per beat, the sticker spins
+  CELLS.forEach((c, i) => {
+    const at = c[4], el = $('g' + i)
+    el.style.visibility = t >= at ? 'visible' : 'hidden'
+    el.style.transform = `scale(${lerp(1.12, 1, outExpo(p(t, at, at + .14)))})`
+    el.style.zIndex = i
+  })
+  $('badge').style.visibility = t >= 10.0 ? 'visible' : 'hidden'
+  $('badge').style.transform = `scale(${outBack(p(t, 10.0, 10.25))})`
+  $('spin').style.transform = `rotate(${(t - 10) * 70}deg)`
+  $('feat').style.transform = shake(t, CELLS.map(c => c[4]), 12)
+
+  // Outro
+  $('oP').style.transform = `scale(${lerp(1.15, 1.03, p(t, 12.5, 15))})`
+  $('oLogo').style.clipPath = `inset(0 ${100 - outExpo(p(t, 12.5, 12.85)) * 100}% 0 0)`
+  slam($('o0'), t, 12.5, 1.25, 'skewX(-9deg)'); slam($('o1'), t, 12.75, 1.25, 'skewX(-9deg)'); slam($('o2'), t, 13.0, 1.3, 'skewX(-9deg)')
+  $('oD').style.clipPath = `inset(0 0 ${100 - outExpo(p(t, 13.3, 13.7)) * 100}% 0)`
+  $('oNote').style.clipPath = `inset(0 ${100 - p(t, 13.6, 14.0) * 100}% 0 0)`
+  $('outro').style.transform = shake(t, [12.5, 13.0, 14.0, 14.25, 14.5], 14)
+
+  const hits = [0, 3.0, 4.5, 5.5, 9.5, 12.5]
+  $('flash').style.visibility = hits.some(h => t >= h && t < h + 1 / 30) ? 'visible' : 'hidden'
+}
+window.render = render
+</script>
+</body>
+</html>

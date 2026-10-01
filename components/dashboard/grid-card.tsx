@@ -17,6 +17,7 @@ type GridCardProps = {
   placeholder?: ReactNode
   menu?: ReactNode
   menuLabel?: string
+  selected?: boolean
   href?: string
   onClick?: () => void
   ariaLabel?: string
@@ -35,6 +36,7 @@ export function GridCard({
   placeholder,
   menu,
   menuLabel = "More options",
+  selected = false,
   href,
   onClick,
   ariaLabel,
@@ -45,6 +47,7 @@ export function GridCard({
     <div
       className={cn(
         "relative flex flex-col gap-3 rounded-2xl bg-muted/60 p-3 transition-colors hover:bg-muted",
+        selected && "bg-muted ring-2 ring-primary/60",
         (href || onClick) && "cursor-pointer",
       )}
     >

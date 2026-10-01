@@ -3,7 +3,8 @@ import { getAgencySecret } from "@/lib/server/agency-secrets"
 export const GOOGLE_GMAIL_SEND_SCOPE = "https://www.googleapis.com/auth/gmail.send"
 export const GOOGLE_GMAIL_MODIFY_SCOPE = "https://www.googleapis.com/auth/gmail.modify"
 export const GOOGLE_GMAIL_SETTINGS_SCOPE = "https://www.googleapis.com/auth/gmail.settings.basic"
-export const GOOGLE_GMAIL_SCOPES = [GOOGLE_GMAIL_SEND_SCOPE, GOOGLE_GMAIL_MODIFY_SCOPE, GOOGLE_GMAIL_SETTINGS_SCOPE]
+export const GOOGLE_CALENDAR_EVENTS_SCOPE = "https://www.googleapis.com/auth/calendar.events.owned"
+export const GOOGLE_GMAIL_SCOPES = [GOOGLE_GMAIL_SEND_SCOPE, GOOGLE_GMAIL_MODIFY_SCOPE, GOOGLE_GMAIL_SETTINGS_SCOPE, GOOGLE_CALENDAR_EVENTS_SCOPE]
 
 const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
 const GMAIL_API_URL = "https://gmail.googleapis.com/gmail/v1/users/me"
@@ -79,7 +80,7 @@ async function gmailFetch<T>(accessToken: string, path: string, init?: RequestIn
   return result
 }
 
-async function accessTokenFor(agencyId: string) {
+export async function googleAccessTokenForAgency(agencyId: string) {
   const refreshToken = await getAgencySecret(agencyId, "GMAIL_REFRESH_TOKEN", "")
   if (!refreshToken) return null
   const { clientId, clientSecret } = googleOAuthConfig()
@@ -96,14 +97,14 @@ async function accessTokenFor(agencyId: string) {
 
 export async function hasGmailConnection(agencyId: string) {
   try {
-    return Boolean(await accessTokenFor(agencyId))
+    return Boolean(await googleAccessTokenForAgency(agencyId))
   } catch {
     return false
   }
 }
 
 export async function gmailProfile(agencyId: string) {
-  const token = await accessTokenFor(agencyId)
+  const token = await googleAccessTokenForAgency(agencyId)
   if (!token) return null
   return gmailFetch<{ emailAddress?: string; messagesTotal?: number; threadsTotal?: number }>(token, "/profile")
 }
@@ -113,7 +114,7 @@ function senderDisplay(email: string, name?: string) {
 }
 
 export async function gmailSenders(agencyId: string): Promise<GmailSender[]> {
-  const token = await accessTokenFor(agencyId)
+  const token = await googleAccessTokenForAgency(agencyId)
   if (!token) return []
   const result = await gmailFetch<{
     sendAs?: Array<{
@@ -169,7 +170,7 @@ export function buildRawGmailMessage(input: { from: string; to: string[]; cc?: s
 }
 
 export async function sendGmailMessage(agencyId: string, input: Parameters<typeof buildRawGmailMessage>[0]) {
-  const token = await accessTokenFor(agencyId)
+  const token = await googleAccessTokenForAgency(agencyId)
   if (!token) throw new Error("Google mailbox is not connected.")
   return gmailFetch<{ id?: string; threadId?: string }>(token, "/messages/send", {
     method: "POST",
@@ -212,7 +213,7 @@ function gmailMessagePayload(message: GmailMessage) {
 }
 
 export async function listGmailInbox(agencyId: string) {
-  const token = await accessTokenFor(agencyId)
+  const token = await googleAccessTokenForAgency(agencyId)
   if (!token) return { data: [], hasMore: false }
   const list = await gmailFetch<GmailListResponse>(token, "/messages?labelIds=INBOX&maxResults=100")
   const messages = await Promise.all((list.messages || []).filter((item) => item.id).map((item) => gmailFetch<GmailMessage>(token, `/messages/${encodeURIComponent(item.id as string)}?format=full`)))
@@ -220,7 +221,7 @@ export async function listGmailInbox(agencyId: string) {
 }
 
 export async function getGmailMessage(agencyId: string, id: string) {
-  const token = await accessTokenFor(agencyId)
+  const token = await googleAccessTokenForAgency(agencyId)
   if (!token) return null
   const message = await gmailFetch<GmailMessage>(token, `/messages/${encodeURIComponent(id)}?format=full`)
   return gmailMessagePayload(message)
