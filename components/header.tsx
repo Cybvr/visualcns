@@ -3,9 +3,10 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useEffect, useRef, useState, type CSSProperties } from "react"
-import { ArrowUpRight, ChevronDown, LayoutDashboard, LogIn, Menu, X } from "lucide-react"
-import { onAuthStateChanged } from "firebase/auth"
+import { ArrowUpRight, ChevronDown, LogIn, Menu, X } from "lucide-react"
+import { onAuthStateChanged, type User } from "firebase/auth"
 import { Button } from "@/components/ui/button"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { auth } from "@/lib/firebase"
 import { getBrandItems } from "@/lib/brands"
 import { capabilities } from "@/lib/capabilities"
@@ -96,14 +97,14 @@ const NAV_LABEL = "text-sm font-medium"
 
 export function Header() {
   const [activeMenu, setActiveMenu] = useState<MenuKind | null>(null)
-  const [signedIn, setSignedIn] = useState(false)
+  const [currentUser, setCurrentUser] = useState<User | null>(null)
   const open = activeMenu !== null
   const closeMenu = () => setActiveMenu(null)
   const toggleMenu = (kind: MenuKind) => setActiveMenu((current) => (current === kind ? null : kind))
   const headerRef = useRef<HTMLElement>(null)
   const pathname = usePathname()
 
-  useEffect(() => onAuthStateChanged(auth, (user) => setSignedIn(Boolean(user))), [])
+  useEffect(() => onAuthStateChanged(auth, setCurrentUser), [])
 
   // Any navigation dismisses the menu.
   useEffect(() => {
@@ -153,8 +154,13 @@ export function Header() {
   }, [open])
 
   const isCurrent = (href: string) => pathname === href || pathname.startsWith(`${href}/`)
-  const accountHref = signedIn ? "/dashboard" : "/login"
-  const accountLabel = signedIn ? "Dashboard" : "Sign in"
+  const accountName = currentUser?.displayName || currentUser?.email?.split("@")[0] || "Account"
+  const accountInitials = accountName
+    .split(" ")
+    .map((part) => part[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase()
 
   const renderRows = (rows: MenuRow[]) =>
     rows.map((row, rowIndex) => (
@@ -303,15 +309,30 @@ export function Header() {
           </div>
 
           <div className="flex items-center gap-2">
-            <Button asChild variant="ghost" size="icon-lg" className="lg:hidden">
-              <Link href={accountHref} aria-label={accountLabel}>
-                {signedIn ? <LayoutDashboard aria-hidden="true" /> : <LogIn aria-hidden="true" />}
+            {currentUser ? (
+              <Link
+                href="/dashboard"
+                aria-label="Dashboard"
+                className="inline-flex size-10 items-center justify-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              >
+                <Avatar>
+                  {currentUser.photoURL && <AvatarImage src={currentUser.photoURL} alt="" referrerPolicy="no-referrer" />}
+                  <AvatarFallback>{accountInitials}</AvatarFallback>
+                </Avatar>
               </Link>
-            </Button>
-            <Button asChild variant="ghost" size="lg" className="hidden lg:inline-flex">
-              <Link href={accountHref}>{accountLabel}</Link>
-            </Button>
-            <Button asChild size="lg">
+            ) : (
+              <>
+                <Button asChild variant="ghost" size="icon-lg" className="lg:hidden">
+                  <Link href="/login" aria-label="Sign in">
+                    <LogIn aria-hidden="true" />
+                  </Link>
+                </Button>
+                <Button asChild variant="ghost" size="lg" className="hidden lg:inline-flex">
+                  <Link href="/login">Sign in</Link>
+                </Button>
+              </>
+            )}
+            <Button asChild size="lg" className="px-3">
               <Link href="/contact">Talk to sales</Link>
             </Button>
           </div>
