@@ -18,6 +18,7 @@ export type EmailListRowProps = {
   onOpen: () => void
   onDelete?: () => void
   deleteLabel: string
+  deleteText?: string
   ariaLabel: string
   compact?: boolean
   selectable?: boolean
@@ -69,6 +70,7 @@ export function EmailListRow({
   onOpen,
   onDelete,
   deleteLabel,
+  deleteText = "Delete",
   ariaLabel,
   compact = false,
   selectable = false,
@@ -108,7 +110,7 @@ export function EmailListRow({
             onLongPress={selectable && onCheckedChange ? () => onCheckedChange(!checked) : undefined}
             ariaLabel={unread ? `Unread. ${ariaLabel}` : ariaLabel}
             menuLabel={`Options for ${title}`}
-            menu={onDelete ? <DropdownMenuItem variant="destructive" onSelect={onDelete}>Delete</DropdownMenuItem> : undefined}
+            menu={onDelete ? <DropdownMenuItem variant="destructive" onSelect={onDelete}>{deleteText}</DropdownMenuItem> : undefined}
           />
         </div>
       </div>

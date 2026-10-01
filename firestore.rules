@@ -186,15 +186,19 @@ service cloud.firestore {
           'agencyId',
           'createdAt', 'from', 'replyTo', 'bodyHtml', 'bodyText', 'recipients',
           'projectId', 'projectName', 'documentType', 'documentId', 'documentTitle',
-          'companyName', 'messageKind', 'status', 'cc'
+          'companyName', 'messageKind', 'status', 'scheduledAt', 'trashedAt', 'cc'
         ])
         && request.resource.data.id == id
         && request.resource.data.providerId is string
         && request.resource.data.to is string
         && request.resource.data.subject is string
         && request.resource.data.createdAt is string);
-      allow update: if agencyAdmin(resource.data) && sameAgency(request.resource.data);
-      allow delete: if agencyAdmin(resource.data);
+      allow update: if (agencyAdmin(resource.data) && sameAgency(request.resource.data))
+        || (owns(resource.data) && resource.data.createdBy == request.auth.uid
+          && sameAgency(request.resource.data)
+          && request.resource.data.companyId == resource.data.companyId
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['trashedAt']));
+      allow delete: if agencyAdmin(resource.data) || (owns(resource.data) && resource.data.createdBy == request.auth.uid);
     }
 
     match /emailLists/{id} {
@@ -211,6 +215,17 @@ service cloud.firestore {
       allow create: if (isAdmin() && sameAgency(request.resource.data)) || (owns(request.resource.data) && request.resource.data.createdBy == request.auth.uid);
       allow update: if (agencyAdmin(resource.data) && sameAgency(request.resource.data)) || (owns(request.resource.data) && request.resource.data.createdBy == request.auth.uid);
       allow delete: if agencyAdmin(resource.data) || (owns(resource.data) && resource.data.createdBy == request.auth.uid);
+    }
+
+    match /hiddenReceivedEmails/{id} {
+      allow read: if agencyAdmin(resource.data) || owns(resource.data);
+      allow create: if (isAdmin() && sameAgency(request.resource.data))
+        || (owns(request.resource.data) && request.resource.data.createdBy == request.auth.uid);
+      allow update: if (agencyAdmin(resource.data) || owns(resource.data))
+        && sameAgency(request.resource.data)
+        && request.resource.data.companyId == resource.data.companyId
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['trashedAt', 'message', 'hiddenAt']);
+      allow delete: if agencyAdmin(resource.data) || owns(resource.data);
     }
 
     // Email is an agency tool: agency admins can manage templates for every company in their agency.

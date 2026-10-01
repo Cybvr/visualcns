@@ -1,4 +1,4 @@
-import { collection, deleteDoc, doc, getDocs, query, setDoc, where } from "firebase/firestore"
+import { collection, deleteDoc, doc, getDocs, query, setDoc, updateDoc, where } from "firebase/firestore"
 
 import { db } from "./firebase"
 import { getCurrentAgencyId } from "./agency-scope"
@@ -39,6 +39,7 @@ export type EmailMessageRecord = {
   status?: EmailMessageStatus
   /** ISO time a scheduled email is queued to send. Set when status is "scheduled". */
   scheduledAt?: string
+  trashedAt?: string | null
 }
 
 export async function getEmailMessages(companyId: string): Promise<EmailMessageRecord[]> {
@@ -71,4 +72,9 @@ export async function updateEmailMessageStatus(id: string, status: EmailMessageS
 export async function deleteEmailMessage(id: string): Promise<void> {
   if (!id) return
   await deleteDoc(doc(db, COLLECTION_NAME, id))
+}
+
+export async function setEmailMessageTrashed(id: string, trashedAt: string | null): Promise<void> {
+  if (!id) return
+  await updateDoc(doc(db, COLLECTION_NAME, id), { trashedAt })
 }

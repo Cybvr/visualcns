@@ -1,4 +1,4 @@
-import { collection, deleteDoc, doc, getDocs, query, setDoc, where } from "firebase/firestore"
+import { collection, deleteDoc, doc, getDocs, query, setDoc, updateDoc, where } from "firebase/firestore"
 
 import { db } from "./firebase"
 import { getCurrentAgencyId } from "./agency-scope"
@@ -21,6 +21,7 @@ export type EmailDraftRecord = {
   /** The compose context (recipient, document, cta) so a draft reopens where it was started. */
   context?: Record<string, unknown> | null
   updatedAt: string
+  trashedAt?: string | null
 }
 
 export async function getEmailDrafts(companyId: string, allAgencyDrafts = false): Promise<EmailDraftRecord[]> {
@@ -43,4 +44,8 @@ export async function saveEmailDraft(draft: EmailDraftRecord): Promise<void> {
 
 export async function deleteEmailDraft(id: string): Promise<void> {
   await deleteDoc(doc(db, COLLECTION_NAME, id))
+}
+
+export async function setEmailDraftTrashed(id: string, trashedAt: string | null): Promise<void> {
+  await updateDoc(doc(db, COLLECTION_NAME, id), { trashedAt })
 }

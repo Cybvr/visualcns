@@ -1,7 +1,7 @@
 "use client"
 
 import { ArrowLeft, Check, ChevronDown, ChevronsUpDown, Clock, Eye, FileText, MoreVertical, Trash2, X } from "lucide-react"
-import { useEffect, useMemo, useRef, useState, type FormEvent } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { IoSend } from "react-icons/io5"
 
 import { RichTextEditor } from "@/components/dashboard/rich-text-editor"
@@ -103,7 +103,7 @@ export type EmailComposerProps = {
   scheduleAt: string
   scheduleMin: string
   setScheduleAt: (value: string) => void
-  sendEmail: (event: FormEvent<HTMLFormElement>) => void
+  sendEmail: () => void
   draftStatus: "idle" | "saving" | "saved" | "error"
   savingDraft: boolean
   setComposerPreviewOpen: (value: boolean) => void
@@ -205,6 +205,10 @@ export function EmailComposer({
   const ccParts = cc.split(/[,;]/)
   const ccChips = ccParts.slice(0, -1).map((email) => email.trim()).filter(Boolean)
   const ccDraft = ccParts.at(-1) ?? ""
+  const hasRecipient = selectedListId
+    ? Boolean(selectedList?.contactEmails.length && selectedList.contactEmails.every((email) => EMAIL_PATTERN.test(email.trim())))
+    : EMAIL_PATTERN.test(to.trim())
+  const sendDisabled = !senderConfigured || !senderAddress.trim() || !hasRecipient || sending || !subject.trim() || !htmlToText(body).trim() || (scheduleEnabled && !scheduleAt)
 
   function writeCc(chips: string[], draft: string) {
     setCc(chips.length ? `${chips.join(", ")}, ${draft.trimStart()}` : draft.trimStart())
@@ -242,7 +246,7 @@ export function EmailComposer({
             <div className="flex shrink-0 items-center justify-between gap-2 border-b border-border bg-background px-3 py-2.5 text-foreground">
               <button type="button" onClick={closeCompose} aria-label="Back" className="-ml-1 flex size-8 shrink-0 items-center justify-center rounded outline-none transition-colors hover:bg-muted"><ArrowLeft className="size-5" aria-hidden="true" /></button>
               <div className="flex shrink-0 items-center gap-1">
-                <Button type="submit" form="email-compose-form" size="icon" variant="ghost" aria-label={scheduleEnabled ? "Schedule email" : "Send email"} title={scheduleEnabled ? "Schedule email" : "Send email"} disabled={!senderConfigured || sending || (!selectedListId && !to.trim()) || (selectedListId && !selectedList?.contactEmails.length) || !subject.trim() || !htmlToText(body).trim() || (scheduleEnabled && !scheduleAt)}>
+                <Button type="button" onClick={sendEmail} size="icon" variant="ghost" aria-label={scheduleEnabled ? "Schedule email" : "Send email"} title={scheduleEnabled ? "Schedule email" : "Send email"} disabled={sendDisabled}>
                   {sending ? <Skeleton className="size-4 rounded-sm" aria-hidden="true" /> : scheduleEnabled ? <Clock className="size-4" aria-hidden="true" /> : <ReactIcon icon={IoSend} className="size-4" aria-hidden="true" />}
                 </Button>
                 <DropdownMenu>
@@ -275,8 +279,8 @@ export function EmailComposer({
             <form
               id="email-compose-form"
               autoComplete="off"
-              onSubmit={sendEmail}
-              // Enter in a one-line field (To, Cc, Subject) must never send; only the Send button does.
+              onSubmit={(event) => event.preventDefault()}
+              // Enter in a field cannot send; only an explicit Send button action does.
               onKeyDown={(event) => { if (event.key === "Enter" && event.target instanceof HTMLInputElement) event.preventDefault() }}
               className="flex min-h-0 flex-1 flex-col overflow-hidden"
             >
@@ -415,7 +419,7 @@ export function EmailComposer({
                 <div className="flex min-w-0 shrink-0 flex-nowrap items-center gap-1 overflow-x-auto border-t border-border px-2 py-2 [scrollbar-width:none]">
                   <div className="flex shrink-0 items-center gap-1">
                     <div className="inline-flex items-stretch">
-                      <Button type="submit" className="rounded-r-none" disabled={!senderConfigured || sending || (!selectedListId && !to.trim()) || (selectedListId && !selectedList?.contactEmails.length) || !subject.trim() || !htmlToText(body).trim() || (scheduleEnabled && !scheduleAt)}>{sending ? <Skeleton className="mr-1 size-4 rounded-sm bg-primary-foreground/30" aria-hidden="true" /> : scheduleEnabled ? <Clock aria-hidden="true" /> : <ReactIcon icon={IoSend} aria-hidden="true" />}{sending ? (scheduleEnabled ? "Scheduling" : "Sending") : scheduleEnabled ? "Schedule" : "Send"}</Button>
+                      <Button type="button" onClick={sendEmail} className="rounded-r-none" disabled={sendDisabled}>{sending ? <Skeleton className="mr-1 size-4 rounded-sm bg-primary-foreground/30" aria-hidden="true" /> : scheduleEnabled ? <Clock aria-hidden="true" /> : <ReactIcon icon={IoSend} aria-hidden="true" />}{sending ? (scheduleEnabled ? "Scheduling" : "Sending") : scheduleEnabled ? "Schedule" : "Send"}</Button>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild><Button type="button" aria-label="Choose send action" title="Choose send action" className="rounded-l-none border-l border-primary-foreground/25 px-2" disabled={sending}><ChevronDown aria-hidden="true" /></Button></DropdownMenuTrigger>
                         <DropdownMenuContent align="start">{scheduleEnabled ? <DropdownMenuItem onSelect={() => { setScheduleEnabled(false); setScheduleAt("") }}><ReactIcon icon={IoSend} aria-hidden="true" />Send now</DropdownMenuItem> : <DropdownMenuItem onSelect={() => setScheduleEnabled(true)}><Clock aria-hidden="true" />Schedule</DropdownMenuItem>}</DropdownMenuContent>

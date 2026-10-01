@@ -614,6 +614,10 @@ export default function EmailPage() {
         to: result.to || item.to,
         subject: result.subject || item.subject,
       } : item))
+      setTrashedReceived((current) => current.map((entry) => entry.receivedId === message.id ? {
+        ...entry,
+        message: { ...message, ...result, id: message.id, from: result.from || message.from, to: result.to || message.to, subject: result.subject || message.subject },
+      } : entry))
     } catch (error) {
       setReceivedError(error instanceof Error ? error.message : "The received email could not be loaded.")
     } finally {
@@ -1075,7 +1079,7 @@ export default function EmailPage() {
       return
     }
     setHiddenReceivedIds((current) => new Set(current).add(message.id))
-    setTrashedReceived((current) => [{ receivedId: message.id, companyId: workspaceId, createdBy: user.uid, agencyId: "", hiddenAt: trashedAt, trashedAt, message }, ...current.filter((item) => item.receivedId !== message.id)])
+    setTrashedReceived((current) => [{ receivedId: message.id, companyId: workspaceId, createdBy: user.uid, hiddenAt: trashedAt, trashedAt, message }, ...current.filter((item) => item.receivedId !== message.id)])
     if (selectedReceivedId === message.id) { setSelectedReceivedId(null); setMobileMessageView("list") }
   }
 
@@ -1255,10 +1259,11 @@ export default function EmailPage() {
         bodyText: result.text || undefined,
       }
       setMessages((current) => current.map((item) => item.id === message.id ? hydratedMessage : item))
+      setTrashedMessages((current) => current.map((item) => item.id === message.id ? hydratedMessage : item))
       try {
         await saveEmailMessage({
           ...hydratedMessage,
-          companyId: workspaceId,
+          companyId: message.companyId || workspaceId,
           createdBy: user.uid,
         })
       } catch {
@@ -1943,6 +1948,16 @@ export default function EmailPage() {
             visibleItems={visibleBinItems}
             onRestore={restoreBinItem}
             onPermanentDelete={permanentlyDeleteBinItems}
+            onOpen={(item) => {
+              if (item.kind === "received") {
+                const message = receivedMessages.find((entry) => entry.id === item.id) || trashedReceived.find((entry) => entry.receivedId === item.id)?.message
+                if (message) void hydrateReceivedMessage(message)
+              } else if (item.kind === "sent") {
+                const message = trashedMessages.find((entry) => entry.id === item.id)
+                if (message) void hydrateMessageBody(message)
+              }
+            }}
+            loadingKey={loadingReceivedId ? `received:${loadingReceivedId}` : loadingMessageId ? `sent:${loadingMessageId}` : null}
             contactInitials={contactInitials}
             contactAvatarTone={contactAvatarTone}
             formatListDate={formatListDate}
