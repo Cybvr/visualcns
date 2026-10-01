@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { trackMetaLead } from "@/components/meta-pixel"
 
 export function visitorsTab(slug: string) {
   return `/${encodeURIComponent(slug)}?tab=visitors`
@@ -46,6 +47,7 @@ export function VisitorSignupForm() {
 
   async function finishSignup() {
     const slug = await joinVisitorCompany(companyName.trim())
+    trackMetaLead()
     // A full page load picks up the new client account.
     window.location.assign(visitorsTab(slug))
   }

@@ -49,8 +49,12 @@ const sections: LegalSection[] = [
           technologies under their own privacy policies.
         </p>
         <p>
-          We do not currently use cookies on the marketing website for targeted advertising. If that changes, we will
-          update this policy and provide any choices required by applicable law.
+          We use the Meta Pixel on the marketing website to measure visits and completed sign-ups from our ads. Meta
+          may use cookies and similar technologies to match these events to ad activity. You can manage cookies in
+          your browser, and Meta explains its data practices in its{" "}
+          <a href="https://www.facebook.com/privacy/policy/" target="_blank" rel="noreferrer">
+            Privacy Policy
+          </a>.
         </p>
       </>
     ),

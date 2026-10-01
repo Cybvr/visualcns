@@ -14,6 +14,7 @@ import { Label } from "@/components/ui/label"
 import { safeReturnTo } from "@/lib/navigation"
 import { VISITOR_TRIAL_DAYS } from "@/lib/visitor-billing"
 import { VisitorSignupForm, visitorsTab } from "@/components/visitors/visitor-signup-form"
+import { trackMetaLead } from "@/components/meta-pixel"
 
 type SignupAction = "email" | "google" | null
 
@@ -69,6 +70,7 @@ export default function SignupPage() {
 
     try {
       await signUpWithEmail(name, email.trim(), password, agencyName.trim(), !inviteToken)
+      if (!inviteToken) trackMetaLead()
     } catch (err) {
       setError(authErrorMessage(err))
     } finally {
@@ -82,6 +84,7 @@ export default function SignupPage() {
 
     try {
       await signInWithGoogle(inviteToken ? "" : agencyName.trim(), !inviteToken)
+      if (!inviteToken) trackMetaLead()
     } catch (err) {
       const message = err instanceof Error ? err.message : ""
       if (!message.includes("popup-closed-by-user") && !message.includes("cancelled-popup-request")) {

@@ -99,6 +99,12 @@ const sections: LegalSection[] = [
             for website delivery and analytics; and
           </li>
           <li>
+            <a href="https://www.facebook.com/privacy/policy/" target="_blank" rel="noreferrer">
+              Meta
+            </a>{" "}
+            for measuring website visits and sign-ups that result from our ads.
+          </li>
+          <li>
             <a href="https://cal.com/privacy" target="_blank" rel="noreferrer">
               Cal.com
             </a>{" "}
