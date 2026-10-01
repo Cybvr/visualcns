@@ -173,7 +173,7 @@ export function DashboardShell({
           className={cn(
             "min-h-0",
             isAgentRoute ? "overflow-y-auto md:overflow-hidden md:pb-0" : "overflow-y-auto md:pb-6",
-            !hideMobileFooter && "max-md:pb-[calc(4.5rem+env(safe-area-inset-bottom))]",
+            !hideMobileFooter && "max-md:pb-[calc(3.5rem+env(safe-area-inset-bottom))]",
             isEmailRoute && "lg:min-h-0 lg:overflow-hidden lg:pb-0",
             isCompanyDetailRoute && "md:peer-data-[variant=inset]:mt-0",
           )}

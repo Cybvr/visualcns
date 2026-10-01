@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, type ReactNode } from "react"
 import Image from "next/image"
-import { ChevronRight, Download, Loader2, Mail, Printer } from "lucide-react"
+import { ChevronRight, Download, Eye, Loader2, Mail, Printer, Share2, Trash2 } from "lucide-react"
 
 import {
   AlertDialog,
@@ -34,6 +34,7 @@ export function EditorHeader({
   status,
   onPrint,
   onDownload,
+  onShare,
   downloading = false,
 }: {
   issuer: BusinessProfile | null
@@ -42,10 +43,12 @@ export function EditorHeader({
   status?: { label: string; className: string }
   onPrint: () => void
   onDownload: () => void
+  /** Shown beside Download when the record can be shared by link. */
+  onShare?: () => void
   downloading?: boolean
 }) {
   const round =
-    "inline-flex size-10 items-center justify-center rounded-full bg-primary/10 text-primary outline-none transition-colors hover:bg-primary/15 focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
+    "inline-flex size-8 items-center justify-center rounded-full bg-primary/10 text-primary outline-none transition-colors hover:bg-primary/15 focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
   return (
     <header className="flex items-start justify-between gap-4 px-1 py-2">
       <div className="flex min-w-0 items-center gap-3">
@@ -68,11 +71,16 @@ export function EditorHeader({
             <span className={cn("rounded-full px-3 py-1 font-medium", status.className)}>{status.label}</span>
           )}
           <button type="button" onClick={onPrint} title="Print" aria-label="Print" className={round}>
-            <Printer className="size-[18px]" aria-hidden="true" />
+            <Printer className="size-4" aria-hidden="true" />
           </button>
           <button type="button" onClick={onDownload} disabled={downloading} title="Download PDF" aria-label="Download PDF" className={round}>
-            {downloading ? <Loader2 className="size-[18px] animate-spin" aria-hidden="true" /> : <Download className="size-[18px]" aria-hidden="true" />}
+            {downloading ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <Download className="size-4" aria-hidden="true" />}
           </button>
+          {onShare && (
+            <button type="button" onClick={onShare} title={`Share ${kind.toLowerCase()}`} aria-label={`Share ${kind.toLowerCase()}`} className={round}>
+              <Share2 className="size-4" aria-hidden="true" />
+            </button>
+          )}
         </div>
       </div>
     </header>
@@ -236,9 +244,11 @@ export function EditorDeleteCard({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="billing-editor-delete w-full rounded-2xl border border-border bg-background p-4 text-center text-destructive outline-none transition-colors hover:bg-destructive/5 focus-visible:ring-2 focus-visible:ring-ring"
+        aria-label={`Delete ${label}`}
+        title={`Delete ${label}`}
+        className="billing-editor-delete grid size-11 shrink-0 place-items-center rounded-xl text-destructive outline-none transition-colors hover:bg-destructive/10 focus-visible:ring-2 focus-visible:ring-ring"
       >
-        Delete {label}
+        <Trash2 className="size-5" aria-hidden="true" />
       </button>
       <AlertDialog open={open} onOpenChange={(next) => !deleting && setOpen(next)}>
         <AlertDialogContent>
@@ -266,30 +276,40 @@ export function EditorDeleteCard({
   )
 }
 
-/** Editor actions, stuck to the bottom of the screen. */
+/**
+ * Editor actions in one row, stuck to the bottom of the screen: the delete icon
+ * on the left, Preview, Send and Save on the right.
+ * The page pads its bottom by 1.5rem from md up, so md:-bottom-6 sits it flush
+ * with the screen edge instead of floating above that padding.
+ */
 export function EditorActionBar({
   onPreview,
   onSend,
   saving,
   saveLabel,
+  deleteAction,
 }: {
   onPreview: () => void
   onSend?: () => void
   saving: boolean
   saveLabel: string
+  /** An EditorDeleteCard, shown first in the row for saved records. */
+  deleteAction?: ReactNode
 }) {
   return (
-    <div className={cn("sticky bottom-0 z-20 -mx-4 mt-2 gap-2 border-t border-border bg-background px-4 py-3 sm:rounded-b-2xl", onSend ? "grid grid-cols-[1fr_0.9fr_1.4fr] sm:flex" : "flex sm:gap-3")}>
-      <Button type="button" onClick={onPreview} className={cn("billing-editor-action h-12 min-w-0 rounded-xl bg-primary/10 text-primary shadow-none hover:bg-primary/15", onSend ? "px-2 sm:px-6" : "px-6")}>
-        Preview
+    <div className="sticky bottom-0 z-20 -mx-4 mt-2 flex items-center gap-2 border-t border-border bg-background px-4 py-3 sm:rounded-b-2xl md:-bottom-6">
+      {deleteAction}
+      <Button type="button" onClick={onPreview} aria-label="Preview" className="billing-editor-action ml-auto h-11 shrink-0 rounded-xl bg-primary/10 px-3 text-primary shadow-none hover:bg-primary/15">
+        <Eye className="size-4" aria-hidden="true" />
+        <span className="max-sm:sr-only">Preview</span>
       </Button>
       {onSend && (
-        <Button type="button" onClick={onSend} disabled={saving} title="Save and open email draft" className="billing-editor-action h-12 min-w-0 rounded-xl bg-primary/10 px-2 text-primary shadow-none hover:bg-primary/15 sm:px-5">
-          <Mail className="hidden size-4 sm:block" aria-hidden="true" />
-          Send
+        <Button type="button" onClick={onSend} disabled={saving} aria-label="Send" title="Save and open email draft" className="billing-editor-action h-11 shrink-0 rounded-xl bg-primary/10 px-3 text-primary shadow-none hover:bg-primary/15">
+          <Mail className="size-4" aria-hidden="true" />
+          <span className="max-sm:sr-only">Send</span>
         </Button>
       )}
-      <Button type="submit" disabled={saving} className="billing-editor-action h-12 min-w-0 flex-1 rounded-xl bg-primary px-2 text-primary-foreground hover:bg-primary/90 sm:px-4">
+      <Button type="submit" disabled={saving} className="billing-editor-action h-11 shrink-0 rounded-xl bg-primary px-5 text-primary-foreground hover:bg-primary/90">
         {saving && <Loader2 className="mr-2 size-4 animate-spin" aria-hidden="true" />}
         {saveLabel}
       </Button>

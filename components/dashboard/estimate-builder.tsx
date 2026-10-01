@@ -599,18 +599,22 @@ export function EstimateBuilder({ estimate, initialCompanyId }: { estimate?: Est
         <ExpandableTextRow id="estimate-notes" label="Estimate disclaimer" value={notes} onChange={setNotes} rows={5} />
       </EditorCard>
 
-      {isEdit && estimate && (
-        <EditorDeleteCard
-          label="estimate"
-          confirmTitle="Delete this estimate?"
-          confirmDescription={`${estimate.estimateNumber} will be removed for good. This cannot be undone.`}
-          onDelete={handleDelete}
-        />
-      )}
-
       {error && <p className="px-1 text-destructive">{error}</p>}
 
-      <EditorActionBar onPreview={() => setPreviewOpen(true)} onSend={() => void saveEstimate("email")} saving={saving} saveLabel={isEdit ? "Save estimate" : "Create estimate"} />
+      <EditorActionBar
+        onPreview={() => setPreviewOpen(true)}
+        onSend={() => void saveEstimate("email")}
+        saving={saving}
+        saveLabel="Save"
+        deleteAction={isEdit && estimate ? (
+          <EditorDeleteCard
+            label="estimate"
+            confirmTitle="Delete this estimate?"
+            confirmDescription={`${estimate.estimateNumber} will be removed for good. This cannot be undone.`}
+            onDelete={handleDelete}
+          />
+        ) : undefined}
+      />
     </form>
 
     <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>

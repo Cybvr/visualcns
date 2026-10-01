@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { ArrowLeft, BellRing, Loader2, Plus, Printer, Share2, X } from "lucide-react"
+import { ArrowLeft, Loader2, Plus, Printer, X } from "lucide-react"
 
 import {
   EditorActionBar,
@@ -49,8 +49,7 @@ import { ShareLinkField } from "@/components/dashboard/share-link-field"
 import { InvoiceDocument } from "@/components/dashboard/invoice-document"
 import { downloadInvoicePdf } from "@/components/dashboard/invoice-pdf"
 import { DocumentPreviewFrame } from "@/components/dashboard/document-preview-frame"
-import { buildEmailComposeHref, parseEmailList, type EmailComposeContext } from "@/lib/email-composer"
-import { invoiceIsOpen, reminderBody, reminderSubject } from "@/lib/invoice-reminders"
+import { buildEmailComposeHref, parseEmailList } from "@/lib/email-composer"
 import { invoiceEmailContext } from "@/lib/document-emails"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
@@ -464,16 +463,6 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate }: {
   const statusMeta = invoiceStatusMeta[status]
   const reminderCcCheck = parseEmailList(reminderCc)
 
-  // Remind uses the saved invoice; Send saves current changes before composing.
-  const emailContext: EmailComposeContext | null = invoice ? invoiceEmailContext(invoice, companyRefFor(invoice.companyId)) : null
-  const reminderContext: EmailComposeContext | null = invoice && emailContext && invoiceIsOpen(invoice) ? {
-    ...emailContext,
-    subject: reminderSubject(invoice),
-    body: reminderBody(invoice),
-    cc: (invoice.reminderCc ?? []).join(", "),
-    ctaText: "View and pay",
-    intent: "reminder",
-  } : null
 
   return (
     <>
@@ -486,18 +475,9 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate }: {
         >
           <ArrowLeft className="size-4" aria-hidden="true" />
         </Link>
-        <span className="flex-1" />
-        {reminderContext && (
-          <Button asChild variant="ghost" size="sm">
-            <Link href={buildEmailComposeHref(reminderContext)}><BellRing className="size-4" aria-hidden="true" />Remind</Link>
-          </Button>
-        )}
-        <Button type="button" variant="ghost" size="icon" title="Share invoice" aria-label="Share invoice" onClick={() => setShareOpen(true)}>
-          <Share2 className="size-4" aria-hidden="true" />
-        </Button>
       </div>
 
-      <EditorHeader issuer={issuer} kind="Invoice" onPrint={() => window.print()} onDownload={() => void handleDownloadPdf()} downloading={pdfDownloading} number={invoiceNumber} status={statusMeta} />
+      <EditorHeader issuer={issuer} kind="Invoice" onPrint={() => window.print()} onDownload={() => void handleDownloadPdf()} onShare={() => setShareOpen(true)} downloading={pdfDownloading} number={invoiceNumber} status={statusMeta} />
 
       <EditorCard>
         <EditorField label="Title" htmlFor="invoice-title">
@@ -837,18 +817,22 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate }: {
         </EditorCard>
       )}
 
-      {isEdit && invoice && (
-        <EditorDeleteCard
-          label="invoice"
-          confirmTitle="Delete this invoice?"
-          confirmDescription={`${invoice.invoiceNumber} will be removed for good. This cannot be undone.`}
-          onDelete={handleDelete}
-        />
-      )}
-
       {error && <p className="px-1 text-destructive">{error}</p>}
 
-      <EditorActionBar onPreview={() => setPreviewOpen(true)} onSend={() => void saveInvoice("email")} saving={saving} saveLabel={isEdit ? "Save invoice" : "Create invoice"} />
+      <EditorActionBar
+        onPreview={() => setPreviewOpen(true)}
+        onSend={() => void saveInvoice("email")}
+        saving={saving}
+        saveLabel="Save"
+        deleteAction={isEdit && invoice ? (
+          <EditorDeleteCard
+            label="invoice"
+            confirmTitle="Delete this invoice?"
+            confirmDescription={`${invoice.invoiceNumber} will be removed for good. This cannot be undone.`}
+            onDelete={handleDelete}
+          />
+        ) : undefined}
+      />
 
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
         <DialogContent className="w-[calc(100vw-0.5rem)] max-h-[calc(100vh-0.5rem)] max-w-5xl overflow-hidden p-2 print:hidden sm:p-6">

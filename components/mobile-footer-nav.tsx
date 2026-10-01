@@ -29,7 +29,8 @@ export function MobileFooterNav({ items, className }: { items: MobileFooterNavIt
     <nav
       aria-label="Primary"
       className={cn(
-        "fixed inset-x-0 bottom-0 z-40 flex border-t border-border bg-background pb-[env(safe-area-inset-bottom)] md:hidden",
+        // Exactly 3.5rem tall, the same space the dashboard reserves for it, so sticky footers sit flush on top.
+        "fixed inset-x-0 bottom-0 z-40 flex h-[calc(3.5rem+env(safe-area-inset-bottom))] border-t border-border bg-background pb-[env(safe-area-inset-bottom)] md:hidden",
         className,
       )}
     >
