@@ -42,14 +42,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { FilterBar, useFilterBar, type SortOption } from "@/components/dashboard/filter-bar"
 import { deleteEmailList, getEmailLists, saveEmailList, type EmailContactList } from "@/lib/email-lists"
-import { deleteEmailDraft, getEmailDrafts, saveEmailDraft, type EmailDraftRecord } from "@/lib/email-drafts"
-import { deleteEmailMessage, getAllEmailMessages, getEmailMessages, saveEmailMessage, updateEmailMessageStatus, type EmailMessageRecord, type EmailRecipient } from "@/lib/email-messages"
-import { getHiddenReceivedIds, hideReceivedEmail } from "@/lib/email-received-hidden"
+import { deleteEmailDraft, getEmailDrafts, saveEmailDraft, setEmailDraftTrashed, type EmailDraftRecord } from "@/lib/email-drafts"
+import { deleteEmailMessage, getAllEmailMessages, getEmailMessages, saveEmailMessage, setEmailMessageTrashed, updateEmailMessageStatus, type EmailMessageRecord, type EmailRecipient } from "@/lib/email-messages"
+import { getHiddenReceivedEmails, hideReceivedEmail, permanentlyHideReceivedEmail, restoreReceivedEmail, trashReceivedEmail, type HiddenReceivedEmail } from "@/lib/email-received-hidden"
 import { EMAIL_INBOX_REFRESH_EVENT, publishUnreadEmailCount } from "@/components/dashboard/email/use-unread-email-count"
 import { contextualEmailBody, parseEmailList, readEmailComposeContext, type EmailComposeContext } from "@/lib/email-composer"
 import { getBusinessProfile, type BusinessProfile } from "@/lib/business-profile"
 import { deleteEmailTemplate, getEmailTemplates, saveEmailTemplate } from "@/lib/email-templates-store"
 import { markdownToHtml } from "@/lib/markdown"
+import { companyPath } from "@/lib/navigation"
+import { getOrganization } from "@/lib/organizations"
 import { createUser, getUsers } from "@/lib/users"
 import { VISITOR_PRICE_NAIRA, VISITOR_TRIAL_DAYS } from "@/lib/visitor-billing"
 import { cn } from "@/lib/utils"
@@ -76,6 +78,7 @@ import { EmailComposer } from "@/components/dashboard/email/email-composer"
 import { useHideMobileFooter } from "@/components/dashboard/page-title-context"
 import { EmailListPicker, EmailLists } from "@/components/dashboard/email/email-lists"
 import { EmailMessageSurfaces } from "@/components/dashboard/email/email-message-surfaces"
+import { EmailBin, type EmailBinItem } from "@/components/dashboard/email/email-bin"
 import { EmailTemplates } from "@/components/dashboard/email/email-templates"
 
 type Notice = {
@@ -102,6 +105,15 @@ const RECEIVED_SORTS: SortOption<ReceivedMessage>[] = [
   { value: "from", label: "Sender", get: (message) => message.from, ascLabel: "A–Z", descLabel: "Z–A" },
   { value: "subject", label: "Subject", get: (message) => message.subject, ascLabel: "A–Z", descLabel: "Z–A" },
 ]
+
+const BIN_SORTS: SortOption<EmailBinItem>[] = [
+  { value: "deletedAt", label: "Deleted", get: (item) => item.deletedAt, ascLabel: "Oldest", descLabel: "Newest" },
+  { value: "subject", label: "Subject", get: (item) => item.subject, ascLabel: "A–Z", descLabel: "Z–A" },
+]
+
+function searchBinItem(item: EmailBinItem) {
+  return [item.title, item.subject, item.kind]
+}
 
 function searchMessage(message: SentMessage) {
   return [message.to, message.subject, message.companyName, message.projectName, message.documentTitle, message.documentType, message.from, message.status]
@@ -268,8 +280,10 @@ export default function EmailPage() {
   const [selectedSentId, setSelectedSentId] = useState<string | null>(null)
   const [templates, setTemplates] = useState<EmailTemplate[]>([])
   const [messages, setMessages] = useState<SentMessage[]>([])
+  const [trashedMessages, setTrashedMessages] = useState<SentMessage[]>([])
   const [receivedMessages, setReceivedMessages] = useState<ReceivedMessage[]>([])
   const [hiddenReceivedIds, setHiddenReceivedIds] = useState<Set<string>>(new Set())
+  const [trashedReceived, setTrashedReceived] = useState<HiddenReceivedEmail[]>([])
   const [readReceivedIds, setReadReceivedIds] = useState<Set<string>>(new Set())
   const [readStateHydrated, setReadStateHydrated] = useState(false)
   const [selectedReceivedIds, setSelectedReceivedIds] = useState<Set<string>>(new Set())
@@ -303,6 +317,7 @@ export default function EmailPage() {
   const [scheduleAt, setScheduleAt] = useState("")
   const [scheduleMin, setScheduleMin] = useState("")
   const [drafts, setDrafts] = useState<EmailDraftRecord[]>([])
+  const [trashedDrafts, setTrashedDrafts] = useState<EmailDraftRecord[]>([])
   const [editingDraftId, setEditingDraftId] = useState<string | null>(null)
   const [savingDraft, setSavingDraft] = useState(false)
   const [draftStatus, setDraftStatus] = useState<DraftStatus>("idle")
@@ -386,6 +401,22 @@ export default function EmailPage() {
     const local = email.includes("@") ? email.split("@")[0] : email
     return local ? local.replace(/[._-]+/g, " ").replace(/\b\w/g, (character) => character.toUpperCase()) : cleaned
   }
+  const binItems: EmailBinItem[] = [
+    ...trashedReceived.flatMap((entry): EmailBinItem[] => {
+      const message = receivedMessages.find((item) => item.id === entry.receivedId) || entry.message
+      if (!entry.trashedAt || !message) return []
+      return [{ key: `received:${entry.receivedId}`, id: entry.receivedId, kind: "received", title: resolveName(message.from), subject: message.subject || "(No subject)", deletedAt: entry.trashedAt, previewHtml: message.html || message.text ? receivedMessagePreview(message) : null }]
+    }),
+    ...trashedDrafts.flatMap((draft): EmailBinItem[] => draft.trashedAt ? [{ key: `draft:${draft.id}`, id: draft.id, kind: "draft", title: draft.to ? resolveName(draft.to) : "No recipient", subject: draft.subject?.trim() || "(No subject)", deletedAt: draft.trashedAt, previewHtml: draft.body ? formatTemplateBody(draft.body) : null }] : []),
+    ...trashedMessages.flatMap((message): EmailBinItem[] => message.trashedAt ? [{ key: `sent:${message.id}`, id: message.id, kind: "sent", title: resolveName(message.to, message.recipients?.[0]?.name), subject: message.subject || "(No subject)", deletedAt: message.trashedAt, previewHtml: message.bodyHtml || message.bodyText ? sentMessagePreview(message) : null }] : []),
+  ].sort((a, b) => Date.parse(b.deletedAt) - Date.parse(a.deletedAt))
+  const { results: visibleBinItems, bar: binFilterBar } = useFilterBar({
+    items: binItems,
+    search: searchBinItem,
+    sorts: BIN_SORTS,
+    defaultSort: "deletedAt",
+    defaultDirection: "desc",
+  })
   const { results: visibleReceivedMessages, bar: receivedFilterBar } = useFilterBar({
     items: activeReceivedMessages,
     search: searchReceivedMessage,
@@ -517,6 +548,8 @@ export default function EmailPage() {
       ? draftFilterBar
     : tab === "messages"
       ? messageFilterBar
+      : tab === "bin"
+        ? binFilterBar
       : tab === "templates"
         ? templateFilterBar
         : listFilterBar
@@ -524,6 +557,7 @@ export default function EmailPage() {
     { key: "inbox", label: "Inbox", icon: Inbox, count: () => unreadReceivedCount },
     { key: "drafts", label: "Drafts", icon: FileText, count: () => drafts.length },
     { key: "messages", label: "Sent", icon: Send, count: () => messages.length },
+    { key: "bin", label: "Bin", icon: Trash2, count: () => binItems.length },
     { key: "templates", label: "Templates", icon: FileText, count: () => templates.length },
     { key: "lists", label: "Lists", icon: List, count: () => lists.length },
   ]
@@ -618,6 +652,7 @@ export default function EmailPage() {
 
     let active = true
     setMessages([])
+    setTrashedMessages([])
     setLists([])
 
     void getEmailTemplates(workspaceId, showOpsDetail)
@@ -656,11 +691,16 @@ export default function EmailPage() {
         }
 
         if (!active) return
-        setMessages([...storedMessages, ...messagesToMigrate].sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)))
+        const allMessages = [...storedMessages, ...messagesToMigrate].sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))
+        setMessages(allMessages.filter((message) => !message.trashedAt))
+        setTrashedMessages(allMessages.filter((message) => Boolean(message.trashedAt)))
         localStorage.removeItem(messageStorageKey)
       })
       .catch(() => {
-        if (active) setMessages(legacyMessages)
+        if (active) {
+          setMessages(legacyMessages.filter((message) => !message.trashedAt))
+          setTrashedMessages(legacyMessages.filter((message) => Boolean(message.trashedAt)))
+        }
       })
 
     return () => {
@@ -672,17 +712,17 @@ export default function EmailPage() {
     if (!user?.uid || !workspaceId) return
     let active = true
     void getEmailDrafts(workspaceId, showOpsDetail)
-      .then((storedDrafts) => { if (active) setDrafts(storedDrafts) })
-      .catch(() => { if (active) setDrafts([]) })
+      .then((storedDrafts) => { if (active) { setDrafts(storedDrafts.filter((draft) => !draft.trashedAt)); setTrashedDrafts(storedDrafts.filter((draft) => Boolean(draft.trashedAt))) } })
+      .catch(() => { if (active) { setDrafts([]); setTrashedDrafts([]) } })
     return () => { active = false }
   }, [showOpsDetail, user?.uid, workspaceId])
 
   useEffect(() => {
     if (!user?.uid || !workspaceId) return
     let active = true
-    void getHiddenReceivedIds(workspaceId)
-      .then((ids) => { if (active) setHiddenReceivedIds(new Set(ids)) })
-      .catch(() => { if (active) setHiddenReceivedIds(new Set()) })
+    void getHiddenReceivedEmails(workspaceId)
+      .then((records) => { if (active) { setHiddenReceivedIds(new Set(records.map((record) => record.receivedId))); setTrashedReceived(records.filter((record) => Boolean(record.trashedAt))) } })
+      .catch(() => { if (active) { setHiddenReceivedIds(new Set()); setTrashedReceived([]) } })
     return () => { active = false }
   }, [user?.uid, workspaceId])
 
@@ -770,10 +810,32 @@ export default function EmailPage() {
     setCc(nextContext.cc || "")
     setSelectedListId("")
     setSubject(nextContext.subject || "")
-    setBody(nextContext.body || contextualEmailBody(nextContext))
+    const startingBody = nextContext.body || contextualEmailBody(nextContext)
+    setBody(startingBody)
     setMessageKind(nextContext.messageKind === "marketing" ? "marketing" : "transactional")
     setSelectedTemplateId("")
     setSendNotice(null)
+
+    // Invoices, estimates and documents only know their company's id, so links
+    // start as /{id}/…; swap in the company's slug once it's looked up.
+    let active = true
+    const idPrefix = nextContext.companyId ? companyPath(nextContext.companyId) : ""
+    const ctaUrl = nextContext.ctaUrl
+    if (idPrefix && ctaUrl?.startsWith(`${idPrefix}/`)) {
+      void getOrganization(nextContext.companyId as string)
+        .then((organization) => {
+          if (!active || !organization?.slug || organization.slug === nextContext.companyId) return
+          const slugUrl = `${companyPath(organization.slug)}${ctaUrl.slice(idPrefix.length)}`
+          const withSlug = { ...nextContext, ctaUrl: slugUrl }
+          if (nextContext.body) setComposeContext(withSlug)
+          // Only replace the message if it hasn't been edited yet.
+          else setBody((current) => current === startingBody ? contextualEmailBody(withSlug) : current)
+        })
+        .catch(() => {
+          // The id link still opens the company page.
+        })
+    }
+    return () => { active = false }
   }, [searchParams])
 
   useEffect(() => {
@@ -987,27 +1049,34 @@ export default function EmailPage() {
   }
 
   async function removeDraft(id: string) {
+    const draft = drafts.find((item) => item.id === id)
+    if (!draft) return
+    const trashedAt = new Date().toISOString()
+    try {
+      await setEmailDraftTrashed(id, trashedAt)
+    } catch {
+      setSendNotice({ tone: "error", text: "The draft could not be moved to Bin." })
+      return
+    }
     setDrafts((current) => current.filter((item) => item.id !== id))
+    setTrashedDrafts((current) => [{ ...draft, trashedAt }, ...current])
     setSelectedDraftIds((current) => { const next = new Set(current); next.delete(id); return next })
     if (editingDraftId === id) setEditingDraftId(null)
     if (draftIdRef.current === id) draftIdRef.current = null
-    try {
-      await deleteEmailDraft(id)
-    } catch {
-      setSendNotice({ tone: "error", text: "The draft could not be deleted." })
-    }
   }
 
   async function deleteReceivedMessage(message: ReceivedMessage) {
     if (!user) return
-    setHiddenReceivedIds((current) => new Set(current).add(message.id))
-    if (selectedReceivedId === message.id) { setSelectedReceivedId(null); setMobileMessageView("list") }
+    const trashedAt = new Date().toISOString()
     try {
-      await hideReceivedEmail({ receivedId: message.id, companyId: workspaceId, createdBy: user.uid })
+      await trashReceivedEmail({ message, companyId: workspaceId, createdBy: user.uid, trashedAt })
     } catch {
-      setHiddenReceivedIds((current) => { const next = new Set(current); next.delete(message.id); return next })
-      setReceivedError("The message could not be deleted.")
+      setReceivedError("The message could not be moved to Bin.")
+      return
     }
+    setHiddenReceivedIds((current) => new Set(current).add(message.id))
+    setTrashedReceived((current) => [{ receivedId: message.id, companyId: workspaceId, createdBy: user.uid, agencyId: "", hiddenAt: trashedAt, trashedAt, message }, ...current.filter((item) => item.receivedId !== message.id)])
+    if (selectedReceivedId === message.id) { setSelectedReceivedId(null); setMobileMessageView("list") }
   }
 
   function toggleDraftSelection(id: string, checked: boolean) {
@@ -1078,14 +1147,17 @@ export default function EmailPage() {
   }
 
   async function deleteSentMessage(message: SentMessage) {
+    const trashedAt = new Date().toISOString()
+    try {
+      await setEmailMessageTrashed(message.id, trashedAt)
+    } catch {
+      setSendNotice({ tone: "error", text: "The message could not be moved to Bin." })
+      return
+    }
     setMessages((current) => current.filter((item) => item.id !== message.id))
+    setTrashedMessages((current) => [{ ...message, trashedAt }, ...current])
     setSelectedMessageIds((current) => { const next = new Set(current); next.delete(message.id); return next })
     if (selectedSentId === message.id) { setSelectedSentId(null); setMobileMessageView("list") }
-    try {
-      await deleteEmailMessage(message.id)
-    } catch {
-      setSendNotice({ tone: "error", text: "The message could not be deleted." })
-    }
   }
 
   function toggleMessageSelection(id: string, checked: boolean) {
@@ -1109,6 +1181,41 @@ export default function EmailPage() {
       const message = messages.find((item) => item.id === id)
       return message ? deleteSentMessage(message) : Promise.resolve()
     }))
+  }
+
+  async function restoreBinItem(item: EmailBinItem) {
+    if (item.kind === "draft") {
+      const draft = trashedDrafts.find((entry) => entry.id === item.id)
+      if (!draft) throw new Error("Draft not found")
+      await setEmailDraftTrashed(item.id, null)
+      setTrashedDrafts((current) => current.filter((entry) => entry.id !== item.id))
+      setDrafts((current) => [{ ...draft, trashedAt: null }, ...current])
+    } else if (item.kind === "sent") {
+      const message = trashedMessages.find((entry) => entry.id === item.id)
+      if (!message) throw new Error("Message not found")
+      await setEmailMessageTrashed(item.id, null)
+      setTrashedMessages((current) => current.filter((entry) => entry.id !== item.id))
+      setMessages((current) => [{ ...message, trashedAt: null }, ...current])
+    } else {
+      await restoreReceivedEmail(workspaceId, item.id)
+      setTrashedReceived((current) => current.filter((entry) => entry.receivedId !== item.id))
+      setHiddenReceivedIds((current) => { const next = new Set(current); next.delete(item.id); return next })
+    }
+  }
+
+  async function permanentlyDeleteBinItems(items: EmailBinItem[]) {
+    for (const item of items) {
+      if (item.kind === "draft") {
+        await deleteEmailDraft(item.id)
+        setTrashedDrafts((current) => current.filter((entry) => entry.id !== item.id))
+      } else if (item.kind === "sent") {
+        await deleteEmailMessage(item.id)
+        setTrashedMessages((current) => current.filter((entry) => entry.id !== item.id))
+      } else {
+        await permanentlyHideReceivedEmail(workspaceId, item.id)
+        setTrashedReceived((current) => current.filter((entry) => entry.receivedId !== item.id))
+      }
+    }
   }
 
   // Sent emails store only their metadata; the full body is fetched from the
@@ -1220,14 +1327,14 @@ export default function EmailPage() {
     if (saved.length) setContacts((current) => [...current, ...saved])
   }
 
-  async function sendEmail(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    if (!user || sending || !senderConfigured) return
+  async function sendEmail() {
+    if (!user || sending || !senderConfigured || !senderAddress?.trim()) return
 
     setSendNotice(null)
 
     const trimmedSubject = subject.trim()
     const recipientEmails = selectedList ? selectedList.contactEmails : [to.trim()]
+    if ((selectedListId && !selectedList) || !recipientEmails.length || recipientEmails.some((email) => !EMAIL_PATTERN.test(email.trim()))) return
     if (EMAIL_PATTERN.test(trimmedSubject) || recipientEmails.some((email) => email.toLowerCase() === trimmedSubject.toLowerCase())) {
       setSendNotice({ tone: "error", text: "Add a message subject—the recipient email cannot be used as the subject." })
       return
@@ -1725,8 +1832,8 @@ export default function EmailPage() {
           mobileVariant="drawer"
           headerOnMobile
           className="mb-2"
-          placeholder={tab === "inbox" ? "Search inbox" : tab === "messages" ? "Search sent" : tab === "templates" ? "Search templates" : "Search lists"}
-          searchClassName={tab === "messages" || tab === "inbox" ? "sm:max-w-[16rem]" : undefined}
+          placeholder={tab === "inbox" ? "Search inbox" : tab === "drafts" ? "Search drafts" : tab === "messages" ? "Search sent" : tab === "bin" ? "Search bin" : tab === "templates" ? "Search templates" : "Search lists"}
+          searchClassName={tab === "messages" || tab === "inbox" || tab === "bin" ? "sm:max-w-[16rem]" : undefined}
           actions={
             <>
             {tab === "templates" && mobileTemplateView === "list" && (
@@ -1752,7 +1859,7 @@ export default function EmailPage() {
             </>
           }
         />
-        <div className="mb-2 flex w-full items-center gap-1 rounded-md bg-muted/50 p-0.5 lg:hidden" role="tablist" aria-label="Email">
+        <div className="mb-2 flex w-full items-center gap-1 overflow-x-auto rounded-md bg-muted/50 p-0.5 lg:hidden" role="tablist" aria-label="Email">
           {EMAIL_FOLDERS.map((folder) => (
             <button
               key={folder.key}
@@ -1764,7 +1871,7 @@ export default function EmailPage() {
                 if (folder.key === "templates") setMobileTemplateView("list")
               }}
               className={cn(
-                "flex-1 rounded-md px-2 py-1.5 text-xs font-medium transition-colors",
+                "shrink-0 rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
                 tab === folder.key ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
               )}
             >
@@ -1827,6 +1934,19 @@ export default function EmailPage() {
             formatListDate={formatListDate}
             cleanSenderDisplay={cleanSenderDisplay}
             isScheduledPastDue={isScheduledPastDue}
+          />
+        )}
+
+        {tab === "bin" && (
+          <EmailBin
+            items={binItems}
+            visibleItems={visibleBinItems}
+            onRestore={restoreBinItem}
+            onPermanentDelete={permanentlyDeleteBinItems}
+            contactInitials={contactInitials}
+            contactAvatarTone={contactAvatarTone}
+            formatListDate={formatListDate}
+            formatMessageDate={formatMessageDate}
           />
         )}
 
