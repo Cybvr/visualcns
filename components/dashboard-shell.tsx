@@ -12,6 +12,7 @@ import { useAgent } from "@/components/agent/agent-context"
 import { AppSidebar, type NavLink } from "@/components/app-sidebar"
 import { MobileFooterNav, type MobileFooterNavItem } from "@/components/mobile-footer-nav"
 import { DashboardSearchButton } from "@/components/dashboard/dashboard-search-button"
+import { useUnreadEmailCount } from "@/components/dashboard/email/use-unread-email-count"
 import { NewDocumentDialog } from "@/components/dashboard/new-document-dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -74,12 +75,12 @@ function QuickCreateMenu({ trigger, onSelect }: { trigger: ReactNode; onSelect: 
 }
 
 /** Bottom tab bar for mobile, replacing the floating Ngai composer. Must render inside SidebarProvider. */
-function DashboardMobileFooterNav({ rootHref }: { rootHref: string }) {
+function DashboardMobileFooterNav({ rootHref, unreadEmailCount }: { rootHref: string; unreadEmailCount: number }) {
   const { setOpen: setAgentOpen } = useAgent()
 
   const items: MobileFooterNavItem[] = [
     { key: "tasks", label: "Tasks", icon: FiCheckSquare, href: "/dashboard/tasks" },
-    { key: "email", label: "Emails", icon: FiMail, href: "/dashboard/email" },
+    { key: "email", label: "Emails", icon: FiMail, href: "/dashboard/email", badge: unreadEmailCount },
     {
       key: "ngai",
       render: ({ className }) => (
@@ -132,6 +133,7 @@ export function DashboardShell({
   const [sidebarOpen, setSidebarOpen] = useState(!isDocumentRoute)
   const { open: agentOpen } = useAgent()
   const { agency } = useAuth()
+  const unreadEmailCount = useUnreadEmailCount()
   const { override: titleOverride, titleNode, actions: headerActions, replacesMobileDefaults, setHeaderSlot, hideMobileFooter } = usePageHeaderOverride()
   const [createItem, setCreateItem] = useState<(typeof QUICK_CREATE_LINKS)[number] | null>(null)
   const [createName, setCreateName] = useState("")
@@ -177,7 +179,7 @@ export function DashboardShell({
           banner && "[&_[data-slot=sidebar-container]]:top-10 [&_[data-slot=sidebar-container]]:h-[calc(100svh-2.5rem)]"
         )}
       >
-        <AppSidebar navLinks={navLinks} rootHref={rootHref} navExtra={navExtra} brandName={agency?.name} brandLogoUrl={agency?.logoUrl} />
+        <AppSidebar navLinks={navLinks} rootHref={rootHref} navExtra={navExtra} brandName={agency?.name} brandLogoUrl={agency?.logoUrl} unreadEmailCount={unreadEmailCount} />
         {/* overflow-y-auto: this column is the scroll container, not the body */}
         <SidebarInset
           className={cn(
@@ -260,7 +262,7 @@ export function DashboardShell({
           {children}
         </SidebarInset>
         <NgaiSidePanel />
-        {!hideMobileFooter && <DashboardMobileFooterNav rootHref={rootHref} />}
+        {!hideMobileFooter && <DashboardMobileFooterNav rootHref={rootHref} unreadEmailCount={unreadEmailCount} />}
       </SidebarProvider>
 
       <Dialog

@@ -16,6 +16,7 @@ export type MobileFooterNavItem = {
   href?: string
   onClick?: () => void
   isActive?: boolean
+  badge?: number
   /** Custom rendering for this slot instead of the default link/button, e.g. a menu trigger. Receives the shared item className to stay aligned with the other tabs. */
   render?: (props: { className: string }) => ReactNode
 }
@@ -43,7 +44,10 @@ export function MobileFooterNav({ items, className }: { items: MobileFooterNavIt
         const active = item.isActive ?? (item.href ? pathname === item.href || pathname?.startsWith(`${item.href}/`) : false)
         const body = (
           <>
-            {Icon && <Icon className={cn("size-5", active ? "text-foreground" : "text-muted-foreground")} aria-hidden="true" />}
+            {Icon && <span className="relative inline-flex">
+              <Icon className={cn("size-5", active ? "text-foreground" : "text-muted-foreground")} aria-hidden="true" />
+              {item.badge && item.badge > 0 ? <span className="absolute -right-3 -top-2 min-w-4 rounded-full bg-primary px-1 text-center text-[9px] font-bold leading-4 tabular-nums text-primary-foreground" aria-hidden="true">{item.badge > 99 ? "99+" : item.badge}</span> : null}
+            </span>}
             {item.label && (
               <span className={cn("text-[11px] font-semibold", active ? "text-foreground" : "text-muted-foreground")}>{item.label}</span>
             )}
@@ -51,7 +55,7 @@ export function MobileFooterNav({ items, className }: { items: MobileFooterNavIt
         )
 
         return item.href ? (
-          <Link key={item.key} href={item.href} onClick={item.onClick} aria-label={item.ariaLabel ?? item.label} className={sharedClassName}>
+          <Link key={item.key} href={item.href} onClick={item.onClick} aria-label={item.badge && item.badge > 0 ? `${item.ariaLabel ?? item.label}, ${item.badge} unread` : item.ariaLabel ?? item.label} className={sharedClassName}>
             {body}
           </Link>
         ) : (

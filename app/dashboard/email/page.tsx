@@ -45,6 +45,7 @@ import { deleteEmailList, getEmailLists, saveEmailList, type EmailContactList } 
 import { deleteEmailDraft, getEmailDrafts, saveEmailDraft, type EmailDraftRecord } from "@/lib/email-drafts"
 import { deleteEmailMessage, getAllEmailMessages, getEmailMessages, saveEmailMessage, updateEmailMessageStatus, type EmailMessageRecord, type EmailRecipient } from "@/lib/email-messages"
 import { getHiddenReceivedIds, hideReceivedEmail } from "@/lib/email-received-hidden"
+import { publishUnreadEmailCount } from "@/components/dashboard/email/use-unread-email-count"
 import { contextualEmailBody, parseEmailList, readEmailComposeContext, type EmailComposeContext } from "@/lib/email-composer"
 import { getBusinessProfile, type BusinessProfile } from "@/lib/business-profile"
 import { deleteEmailTemplate, getEmailTemplates, saveEmailTemplate } from "@/lib/email-templates-store"
@@ -349,6 +350,11 @@ export default function EmailPage() {
     () => receivedMessages.filter((message) => !hiddenReceivedIds.has(message.id)),
     [receivedMessages, hiddenReceivedIds],
   )
+  const unreadReceivedCount = activeReceivedMessages.filter((message) => !readReceivedIds.has(message.id)).length
+
+  useEffect(() => {
+    if (user?.uid && readStateHydrated) publishUnreadEmailCount(workspaceId, unreadReceivedCount)
+  }, [user?.uid, readStateHydrated, workspaceId, unreadReceivedCount])
 
   // The lists show a person's name, never a raw address: prefer an explicit name,
   // then a "Name <email>" display part, then a saved contact, then the local part.
@@ -498,7 +504,7 @@ export default function EmailPage() {
         ? templateFilterBar
         : listFilterBar
   const EMAIL_FOLDERS: { key: EmailTab; label: string; icon: typeof Inbox; count: () => number }[] = [
-    { key: "inbox", label: "Inbox", icon: Inbox, count: () => receivedMessages.length },
+    { key: "inbox", label: "Inbox", icon: Inbox, count: () => unreadReceivedCount },
     { key: "drafts", label: "Drafts", icon: FileText, count: () => drafts.length },
     { key: "messages", label: "Sent", icon: Send, count: () => messages.length },
     { key: "templates", label: "Templates", icon: FileText, count: () => templates.length },

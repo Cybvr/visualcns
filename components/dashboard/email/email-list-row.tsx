@@ -94,9 +94,9 @@ export function EmailListRow({
         {selectable && selectionMode && onCheckedChange ? <div className="pt-4">{renderSelectionControl()}</div> : null}
         <div className="min-w-0 flex-1">
           <MobileDataCard
-            title={title}
-            subtitle={subject}
-            trailing={formattedDate && date ? <time dateTime={date}>{formattedDate}</time> : undefined}
+            title={<span className={unread ? "font-bold" : undefined}>{title}</span>}
+            subtitle={<span className={unread ? "font-semibold text-foreground" : undefined}>{subject}</span>}
+            trailing={formattedDate && date ? <time dateTime={date} className={unread ? "font-semibold text-foreground" : undefined}>{formattedDate}</time> : undefined}
             icon={(
               <Avatar className={cn("size-9", avatarTone)} aria-hidden="true">
                 <AvatarFallback className="bg-transparent font-medium">{avatarInitials}</AvatarFallback>
@@ -106,7 +106,7 @@ export function EmailListRow({
             pressed={selectionMode ? checked : undefined}
             onClick={() => selectionMode && onCheckedChange ? onCheckedChange(!checked) : onOpen()}
             onLongPress={selectable && onCheckedChange ? () => onCheckedChange(!checked) : undefined}
-            ariaLabel={ariaLabel}
+            ariaLabel={unread ? `Unread. ${ariaLabel}` : ariaLabel}
             menuLabel={`Options for ${title}`}
             menu={onDelete ? <DropdownMenuItem variant="destructive" onSelect={onDelete}>Delete</DropdownMenuItem> : undefined}
           />
@@ -121,7 +121,7 @@ export function EmailListRow({
           "group hidden cursor-pointer items-center gap-3 border-b border-border p-2 outline-none transition-colors last:border-b-0 hover:bg-muted/50 focus-visible:bg-muted/50 sm:flex",
           selected && "bg-muted hover:bg-muted",
         )}
-        aria-label={ariaLabel}
+        aria-label={unread ? `Unread. ${ariaLabel}` : ariaLabel}
       >
         {renderSelectionControl()}
         <Avatar className={cn("size-8 shrink-0", avatarTone)} aria-hidden="true">
@@ -129,10 +129,10 @@ export function EmailListRow({
         </Avatar>
         <div className={cn("flex min-w-0 flex-1 flex-col gap-0.5", !compact && "sm:contents")}>
           <div className={cn("flex min-w-0 items-center justify-between gap-2", !compact && "sm:w-[34%] sm:shrink-0 sm:justify-start")}>
-            <span className={cn("truncate text-foreground", unread ? "font-semibold" : "font-medium")}>{title}</span>
+            <span className={cn("truncate text-foreground", unread ? "font-bold" : "font-medium")}>{title}</span>
             {formattedDate && date ? <time dateTime={date} className={cn("shrink-0 text-muted-foreground", !compact && "sm:hidden")}>{formattedDate}</time> : null}
           </div>
-          <span className={cn("min-w-0 flex-1 truncate", unread ? "font-medium text-foreground" : "text-muted-foreground")}>{subject}</span>
+          <span className={cn("min-w-0 flex-1 truncate", unread ? "font-semibold text-foreground" : "text-muted-foreground")}>{subject}</span>
         </div>
         {!compact && formattedDate && date ? <time dateTime={date} className={cn("hidden w-24 shrink-0 text-right sm:block", unread ? "font-medium text-foreground" : "text-muted-foreground")}>{formattedDate}</time> : null}
         {onDelete ? (
