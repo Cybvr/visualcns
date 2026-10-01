@@ -105,7 +105,14 @@ export function EmailTemplates({
           </div>
         </div>
         <div className="sticky bottom-0 z-10 mt-5 flex shrink-0 flex-col gap-3 border-t border-border bg-background pt-3 pb-4 sm:flex-row sm:items-center sm:justify-between lg:static lg:bg-transparent lg:pt-4 lg:pb-0">
-          <div aria-live="polite" className="min-h-5 text-sm">{templateNotice && <span className={templateNotice.tone === "success" ? "text-emerald-700 dark:text-emerald-300" : "text-destructive"}>{templateNotice.text}</span>}</div>
+          <div className="flex min-w-0 items-center gap-3">
+            {editingTemplateId && (
+              <Button type="button" variant="outline" size="icon" onClick={() => deleteTemplate(editingTemplateId)} aria-label="Delete template" title="Delete template" className="shrink-0 text-muted-foreground hover:text-destructive">
+                <Trash2 aria-hidden="true" />
+              </Button>
+            )}
+            <div aria-live="polite" className="min-h-5 min-w-0 text-sm">{templateNotice && <span className={templateNotice.tone === "success" ? "text-emerald-700 dark:text-emerald-300" : "text-destructive"}>{templateNotice.text}</span>}</div>
+          </div>
           <div className="flex flex-wrap items-center gap-2"><Button type="button" variant="outline" onClick={previewEditingTemplate} disabled={!templateBody.trim()}><Eye aria-hidden="true" />Preview</Button><Button type="button" variant="outline" onClick={useEditingTemplate} disabled={!editingTemplateId}>Use template</Button><Button type="submit">Save</Button></div>
         </div>
       </form>

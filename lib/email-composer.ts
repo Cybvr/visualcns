@@ -69,6 +69,29 @@ export function contextualEmailBody(context: EmailComposeContext) {
   return `Hi ${recipient},\n\n${link ? `Open your company page here: ${link}` : "Here is an update from VisualCNS."}\n\nBest regards,\nVisualCNS Team`
 }
 
+function escapeHtml(value: string) {
+  return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;")
+}
+
+/**
+ * Plain text for the rich editor: blank lines become paragraphs, single line
+ * breaks stay as breaks, and web addresses become links. Text that is already
+ * HTML is returned as it is.
+ */
+export function plainTextToEditorHtml(text: string) {
+  if (/<(p|div|br|a|ul|ol|h[1-6])[\s>/]/i.test(text)) return text
+  return text
+    .replace(/\r\n?/g, "\n")
+    .split(/\n\s*\n/)
+    .map((paragraph) => paragraph.trim())
+    .filter(Boolean)
+    .map((paragraph) => {
+      const linked = escapeHtml(paragraph).replace(/https?:\/\/[^\s<]+[^\s<.,;:!?)]/g, (url) => `<a href="${url}">${url}</a>`)
+      return `<p>${linked.replace(/\n/g, "<br>")}</p>`
+    })
+    .join("")
+}
+
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 /** "a@x.com, b@y.com; c@z.com" into clean, de-duplicated addresses, plus anything that isn't one. */

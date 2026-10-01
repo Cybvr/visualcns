@@ -11,7 +11,14 @@ import { companyDocumentPath } from "@/lib/navigation"
  * company's slug from `organizationRef()`, and links use the public slug URL.
  */
 
+/** "Invoice INV-0001: Website redesign", or just the number when the record has no name. */
+function numberedTitle(kind: string, number: string, name?: string) {
+  const numbered = `${kind} ${number}`.trim()
+  return name?.trim() ? `${numbered}: ${name.trim()}` : numbered
+}
+
 export function invoiceEmailContext(invoice: Invoice, companyRef: string): EmailComposeContext {
+  const title = numberedTitle("Invoice", invoice.invoiceNumber, invoice.title)
   return {
     companyId: invoice.companyId,
     companyName: invoice.client,
@@ -21,15 +28,15 @@ export function invoiceEmailContext(invoice: Invoice, companyRef: string): Email
     projectName: invoice.project,
     documentType: "invoice",
     documentId: invoice.id,
-    documentTitle: `Invoice ${invoice.invoiceNumber}`,
-    subject: `Invoice ${invoice.invoiceNumber}`,
+    documentTitle: title,
+    subject: title,
     ctaText: "View invoice",
     ctaUrl: companyDocumentPath(companyRef, "invoice", invoice.id),
   }
 }
 
 export function estimateEmailContext(estimate: Estimate, companyRef: string): EmailComposeContext {
-  const title = estimate.title || `Estimate ${estimate.estimateNumber}`
+  const title = numberedTitle("Estimate", estimate.estimateNumber, estimate.title)
   return {
     companyId: estimate.companyId,
     companyName: estimate.client,
@@ -40,7 +47,7 @@ export function estimateEmailContext(estimate: Estimate, companyRef: string): Em
     documentType: "estimate",
     documentId: estimate.id,
     documentTitle: title,
-    subject: `Estimate ${estimate.estimateNumber}: ${estimate.title}`.replace(/: $/, ""),
+    subject: title,
     ctaText: "View estimate",
     ctaUrl: companyDocumentPath(companyRef, "estimate", estimate.id),
   }

@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react"
-import { useSearchParams } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import {
   ArrowLeft,
   Check,
@@ -27,6 +27,7 @@ import {
 import { useAuth } from "@/components/auth-provider"
 import { RichTextEditor } from "@/components/dashboard/rich-text-editor"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import {
@@ -46,7 +47,7 @@ import { deleteEmailDraft, getEmailDrafts, saveEmailDraft, setEmailDraftTrashed,
 import { deleteEmailMessage, getAllEmailMessages, getEmailMessages, saveEmailMessage, setEmailMessageTrashed, updateEmailMessageStatus, type EmailMessageRecord, type EmailRecipient } from "@/lib/email-messages"
 import { getHiddenReceivedEmails, hideReceivedEmail, permanentlyHideReceivedEmail, restoreReceivedEmail, trashReceivedEmail, type HiddenReceivedEmail } from "@/lib/email-received-hidden"
 import { EMAIL_INBOX_REFRESH_EVENT, publishUnreadEmailCount } from "@/components/dashboard/email/use-unread-email-count"
-import { contextualEmailBody, parseEmailList, readEmailComposeContext, type EmailComposeContext } from "@/lib/email-composer"
+import { contextualEmailBody, parseEmailList, plainTextToEditorHtml, readEmailComposeContext, type EmailComposeContext } from "@/lib/email-composer"
 import { getBusinessProfile, type BusinessProfile } from "@/lib/business-profile"
 import { deleteEmailTemplate, getEmailTemplates, saveEmailTemplate } from "@/lib/email-templates-store"
 import { markdownToHtml } from "@/lib/markdown"
@@ -258,6 +259,7 @@ function recipientEmail(value: string) {
 export default function EmailPage() {
   const { user, appUser, isAdmin, isImpersonating } = useAuth()
   const searchParams = useSearchParams()
+  const router = useRouter()
   const isMobile = useIsMobile()
   // An admin "viewing as" a client sees exactly what that client sees.
   const showOpsDetail = isAdmin && !isImpersonating
@@ -288,6 +290,9 @@ export default function EmailPage() {
   const [selectedDraftIds, setSelectedDraftIds] = useState<Set<string>>(new Set())
   const [selectedMessageIds, setSelectedMessageIds] = useState<Set<string>>(new Set())
   const [selectedTemplateIds, setSelectedTemplateIds] = useState<Set<string>>(new Set())
+  // Templates and lists are only deleted after the person confirms.
+  const [pendingDelete, setPendingDelete] = useState<{ kind: "template" | "list"; ids: string[] } | null>(null)
+  const [confirmingDelete, setConfirmingDelete] = useState(false)
   const [receivedLoading, setReceivedLoading] = useState(false)
   const [receivedError, setReceivedError] = useState("")
   const [selectedReceivedId, setSelectedReceivedId] = useState<string | null>(null)
@@ -555,9 +560,9 @@ export default function EmailPage() {
     { key: "inbox", label: "Inbox", icon: Inbox, count: () => unreadReceivedCount },
     { key: "drafts", label: "Drafts", icon: FileText, count: () => drafts.length },
     { key: "messages", label: "Sent", icon: Send, count: () => messages.length },
-    { key: "bin", label: "Bin", icon: Trash2, count: () => binItems.length },
     { key: "templates", label: "Templates", icon: FileText, count: () => templates.length },
     { key: "lists", label: "Lists", icon: List, count: () => lists.length },
+    { key: "bin", label: "Bin", icon: Trash2, count: () => binItems.length },
   ]
   const selectedReceived = receivedMessages.find((message) => message.id === selectedReceivedId) || null
   const selectedSent = messages.find((message) => message.id === selectedSentId) || null
@@ -812,11 +817,15 @@ export default function EmailPage() {
     setCc(nextContext.cc || "")
     setSelectedListId("")
     setSubject(nextContext.subject || "")
-    setBody(nextContext.body || contextualEmailBody(nextContext))
+    // Messages written for a record are plain text; the editor needs paragraphs and real links.
+    setBody(plainTextToEditorHtml(nextContext.body || contextualEmailBody(nextContext)))
     setMessageKind(nextContext.messageKind === "marketing" ? "marketing" : "transactional")
     setSelectedTemplateId("")
     setSendNotice(null)
-  }, [searchParams])
+    // The request to compose is used once. Left in the URL, every refresh,
+    // Back, or re-read of the URL would open the composer again.
+    router.replace("/dashboard/email", { scroll: false })
+  }, [router, searchParams])
 
   useEffect(() => {
     let active = true
@@ -1672,7 +1681,11 @@ export default function EmailPage() {
       setTemplates((current) => current.filter((template) => template.id !== templateId))
       setSelectedTemplateIds((current) => { const next = new Set(current); next.delete(templateId); return next })
       if (selectedTemplateId === templateId) setSelectedTemplateId("")
-      if (editingTemplateId === templateId) resetTemplateEditor()
+      // Deleting the template that's open leaves nothing to edit, so go back to the list.
+      if (editingTemplateId === templateId) {
+        resetTemplateEditor()
+        setMobileTemplateView("list")
+      }
     } catch {
       setTemplateNotice({ tone: "error", text: "The template could not be deleted. Try again." })
     }
@@ -1691,11 +1704,21 @@ export default function EmailPage() {
     setSelectedTemplateIds(checked ? new Set(visibleTemplates.map((template) => template.id)) : new Set())
   }
 
-  async function deleteSelectedTemplates() {
-    const ids = [...selectedTemplateIds]
-    if (!ids.length) return
-    setSelectedTemplateIds(new Set())
-    await Promise.all(ids.map((id) => deleteTemplate(id)))
+  /** Runs the delete the person confirmed in the dialog. */
+  async function confirmPendingDelete() {
+    if (!pendingDelete || confirmingDelete) return
+    setConfirmingDelete(true)
+    try {
+      if (pendingDelete.kind === "template") {
+        setSelectedTemplateIds((current) => { const next = new Set(current); pendingDelete.ids.forEach((id) => next.delete(id)); return next })
+        await Promise.all(pendingDelete.ids.map((id) => deleteTemplate(id)))
+      } else {
+        await Promise.all(pendingDelete.ids.map((id) => deleteList(id)))
+      }
+      setPendingDelete(null)
+    } finally {
+      setConfirmingDelete(false)
+    }
   }
 
   function resetListEditor() {
@@ -1840,7 +1863,7 @@ export default function EmailPage() {
             </>
           }
         />
-        <div className="mb-2 flex w-full items-center gap-1 overflow-x-auto rounded-md bg-muted/50 p-0.5 lg:hidden" role="tablist" aria-label="Email">
+        <div className="scrollbar-none mb-2 flex w-full items-center gap-1 overflow-x-auto rounded-md bg-muted/50 p-0.5 lg:hidden" role="tablist" aria-label="Email">
           {EMAIL_FOLDERS.map((folder) => (
             <button
               key={folder.key}
@@ -1965,7 +1988,7 @@ export default function EmailPage() {
               visibleLists={visibleLists}
               editingListId={editingListId}
               editList={editList}
-              deleteList={deleteList}
+              deleteList={(id) => setPendingDelete({ kind: "list", ids: [id] })}
               contactInitials={contactInitials}
               contactAvatarTone={contactAvatarTone}
             />
@@ -1979,7 +2002,7 @@ export default function EmailPage() {
             selectedTemplateIds={[...selectedTemplateIds]}
             onToggleAllTemplates={toggleAllTemplates}
             onToggleTemplate={toggleTemplateSelection}
-            onDeleteSelectedTemplates={() => void deleteSelectedTemplates()}
+            onDeleteSelectedTemplates={() => { if (selectedTemplateIds.size) setPendingDelete({ kind: "template", ids: [...selectedTemplateIds] }) }}
             editingTemplateId={editingTemplateId}
             templateName={templateName}
             setTemplateName={setTemplateName}
@@ -2001,7 +2024,7 @@ export default function EmailPage() {
             addVisitorWelcomeTemplate={addVisitorWelcomeTemplate}
             addVisitorSalesTemplate={addVisitorSalesTemplate}
             resetTemplateEditor={resetTemplateEditor}
-            deleteTemplate={deleteTemplate}
+            deleteTemplate={(id) => setPendingDelete({ kind: "template", ids: [id] })}
             contactInitials={contactInitials}
             contactAvatarTone={contactAvatarTone}
             formatListDate={formatListDate}
@@ -2135,6 +2158,35 @@ export default function EmailPage() {
           </div>
         </div>
       )}
+
+      <AlertDialog open={pendingDelete !== null} onOpenChange={(open) => { if (!open && !confirmingDelete) setPendingDelete(null) }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {pendingDelete?.kind === "list"
+                ? `Delete ${lists.find((list) => list.id === pendingDelete.ids[0])?.name || "this list"}?`
+                : pendingDelete && pendingDelete.ids.length > 1
+                  ? `Delete ${pendingDelete.ids.length} templates?`
+                  : `Delete ${templates.find((template) => template.id === pendingDelete?.ids[0])?.name || "this template"}?`}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingDelete?.kind === "list"
+                ? "The list is removed for everyone in the agency. The contacts in it stay saved. This cannot be undone."
+                : "Deleted templates can't be used to send email any more. This cannot be undone."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={confirmingDelete}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={confirmingDelete}
+              onClick={(event) => { event.preventDefault(); void confirmPendingDelete() }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {confirmingDelete ? "Deleting…" : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </main>
   )
 }

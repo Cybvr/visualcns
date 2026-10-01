@@ -44,9 +44,9 @@ export default function CompanyHomePage() {
         contactCount={people.length}
       />
       {/* grid-cols-1 keeps the phone column at screen width; without it the column grows to fit the longest line. */}
-      <div className="grid min-w-0 grid-cols-1 gap-8 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
-        <AboutSection singleColumn />
+      <div className="grid min-w-0 grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
         <ActivitySection heading="Activity" prominent />
+        <AboutSection singleColumn />
       </div>
     </>
   )
