@@ -14,9 +14,9 @@ export default function CompanyHomePage() {
   const router = useRouter()
   const redirected = useRef(false)
 
-  // Older links put the section in ?tab=, and shared task links were /{slug}?task={id}.
+  // Older links put the section in ?tab=, and shared task and document links were /{slug}?task= and ?doc=.
   const tab = searchParams.get("tab")
-  const legacySection = isCompanySection(tab) && tab !== "about" ? tab : searchParams.get("task") ? "tasks" : null
+  const legacySection = isCompanySection(tab) && tab !== "about" ? tab : searchParams.get("task") ? "tasks" : searchParams.get("doc") ? "documents" : null
 
   useEffect(() => {
     if (!legacySection || redirected.current) return

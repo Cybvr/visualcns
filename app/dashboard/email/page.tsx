@@ -50,7 +50,7 @@ import { contextualEmailBody, parseEmailList, readEmailComposeContext, type Emai
 import { getBusinessProfile, type BusinessProfile } from "@/lib/business-profile"
 import { deleteEmailTemplate, getEmailTemplates, saveEmailTemplate } from "@/lib/email-templates-store"
 import { markdownToHtml } from "@/lib/markdown"
-import { getUsers } from "@/lib/users"
+import { createUser, getUsers } from "@/lib/users"
 import { VISITOR_PRICE_NAIRA, VISITOR_TRIAL_DAYS } from "@/lib/visitor-billing"
 import { cn } from "@/lib/utils"
 import { useIsMobile } from "@/hooks/use-mobile"
@@ -760,7 +760,8 @@ export default function EmailPage() {
   useEffect(() => {
     const nextContext = readEmailComposeContext(searchParams)
     if (!nextContext) return
-    setComposeContext(nextContext)
+    // A message we write for them carries the link in its text, so it gets no button as well.
+    setComposeContext(nextContext.body ? nextContext : { ...nextContext, ctaText: undefined, ctaUrl: undefined })
     setComposeFullPage(false)
     setComposeOpen(true)
     setComposeMinimized(false)
@@ -1201,6 +1202,24 @@ export default function EmailPage() {
     if (isScheduledPastDue(message)) void reconcileScheduled(message)
   }
 
+  /** Anyone emailed who isn't a contact yet is saved as an agency contact, so they're there next time. */
+  async function saveNewContacts(emails: string[]) {
+    const known = new Set(contacts.map((contact) => recipientEmail(contact.email)))
+    const fresh = [...new Set(emails.map(recipientEmail))].filter((email) => EMAIL_PATTERN.test(email) && !known.has(email))
+    if (!fresh.length) return
+    const added = await Promise.all(fresh.map(async (email) => {
+      try {
+        await createUser(crypto.randomUUID(), { email, displayName: "", company: "", companyId: "", photoURL: "", role: "client" })
+        return { email, label: email, name: email.split("@")[0], companyId: "" } satisfies EmailContact
+      } catch (error) {
+        console.error("Couldn't save the new contact:", error)
+        return null
+      }
+    }))
+    const saved = added.filter((contact): contact is EmailContact => contact !== null)
+    if (saved.length) setContacts((current) => [...current, ...saved])
+  }
+
   async function sendEmail(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (!user || sending || !senderConfigured) return
@@ -1316,6 +1335,7 @@ export default function EmailPage() {
       }
       const historySaved = result.historySaved !== false
       setMessages((current) => [sentMessage, ...current])
+      if (showOpsDetail) void saveNewContacts([...(selectedList ? [] : [to]), ...ccList.valid])
       setTo("")
       setCc("")
       setSelectedListId("")
@@ -1686,8 +1706,8 @@ export default function EmailPage() {
               type="button"
               onClick={() => setTab(folder.key)}
               className={cn(
-                "flex items-center gap-3 rounded-full px-4 py-2 text-sm font-medium transition-colors",
-                tab === folder.key ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                "flex items-center gap-3 rounded-full px-4 py-2 text-sm font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring",
+                tab === folder.key ? "bg-muted text-foreground hover:bg-muted" : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
               )}
               aria-current={tab === folder.key ? "page" : undefined}
             >

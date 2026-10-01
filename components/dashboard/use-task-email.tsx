@@ -6,7 +6,7 @@ import { Loader2 } from "lucide-react"
 import { toast } from "sonner"
 
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
-import { buildEmailComposeHref } from "@/lib/email-composer"
+import { buildEmailComposeHref, siteUrl } from "@/lib/email-composer"
 import { getOrganization } from "@/lib/organizations"
 import { updateTask, type Task } from "@/lib/tasks"
 import { getUsersByCompanyId } from "@/lib/users"
@@ -35,6 +35,7 @@ export function useTaskEmail() {
       const greeting = recipientName.trim().split(/\s+/)[0] || "there"
       const project = task.project ? ` for ${task.project}` : ""
       const dueDate = task.dueDate ? ` It is due ${task.dueDate}.` : ""
+      const taskUrl = siteUrl(`/share/tasks/${encodeURIComponent(task.id)}`)
 
       setPendingTask(null)
       router.push(buildEmailComposeHref({
@@ -48,10 +49,8 @@ export function useTaskEmail() {
         documentId: task.id,
         documentTitle: title,
         subject: `Task: ${title}`,
-        body: `Hi ${greeting},\n\nPlease review the task “${title}”${project}.${dueDate}\n\nUse the button below to view the task.\n\nBest regards,`,
+        body: `Hi ${greeting},\n\nPlease review the task “${title}”${project}.${dueDate}\n\nView the task here: ${taskUrl}\n\nBest regards,`,
         messageKind: "transactional",
-        ctaText: "View task",
-        ctaUrl: `/share/tasks/${encodeURIComponent(task.id)}`,
       }))
     } catch {
       toast.error("Couldn’t prepare this task for email. Try again.")

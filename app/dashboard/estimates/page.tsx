@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { Copy, Eye, Loader2, Plus, Receipt, Trash2 } from "lucide-react"
+import { Copy, Eye, Loader2, Mail, Plus, Receipt, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
@@ -40,6 +40,8 @@ import {
   nextEstimateNumber,
   type Estimate,
 } from "@/lib/billing"
+import { estimateEmailContext } from "@/lib/document-emails"
+import { buildEmailComposeHref } from "@/lib/email-composer"
 import { formatTimestamp, tsToMillis } from "@/lib/tasks"
 import { cn } from "@/lib/utils"
 
@@ -228,6 +230,7 @@ export default function EstimatesPage() {
                       menu={
                         <>
                           <DropdownMenuItem onSelect={() => router.push(`/dashboard/estimates/${estimate.id}`)}>View estimate</DropdownMenuItem>
+                          {adminView && <DropdownMenuItem onSelect={() => router.push(buildEmailComposeHref(estimateEmailContext(estimate)))}>Email estimate</DropdownMenuItem>}
                           {adminView && <DropdownMenuItem onSelect={() => router.push(`/dashboard/invoices/new?estimateId=${encodeURIComponent(estimate.id)}`)}>Convert to invoice</DropdownMenuItem>}
                           {adminView && (
                             <>
@@ -261,7 +264,7 @@ export default function EstimatesPage() {
                     <TableHead className="w-[13%] text-right">Amount</TableHead>
                     <TableHead className="w-[13%]">Valid until</TableHead>
                     <TableHead className="w-[10%]">Status</TableHead>
-                    <TableHead className="w-24 text-right"><span className="sr-only">Actions</span></TableHead>
+                    <TableHead className="w-44 text-right"><span className="sr-only">Actions</span></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -284,10 +287,11 @@ export default function EstimatesPage() {
                         <TableCell className="whitespace-nowrap text-right">{formatMoney(estimate.amount, estimate.currency)}</TableCell>
                         <TableCell className="whitespace-nowrap">{formatDate(estimate.validUntil)}</TableCell>
                         <TableCell className="whitespace-nowrap"><span className={cn("inline-flex rounded-full px-2 py-0.5 text-xs font-medium", meta.className)}>{meta.label}</span></TableCell>
-                        <TableCell className="w-24">
+                        <TableCell className="w-44">
                           <div className="flex items-center justify-end gap-1.5">
                             <Link href={`/dashboard/estimates/${estimate.id}`} aria-label={`View estimate ${estimate.estimateNumber}`} className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"><Eye className="size-4" aria-hidden="true" /></Link>
                             {adminView && <>
+                              <Link href={buildEmailComposeHref(estimateEmailContext(estimate))} aria-label={`Email estimate ${estimate.estimateNumber}`} title="Email estimate" className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"><Mail className="size-4" aria-hidden="true" /></Link>
                               <Link href={`/dashboard/invoices/new?estimateId=${encodeURIComponent(estimate.id)}`} aria-label={`Convert ${estimate.estimateNumber} to invoice`} className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"><Receipt className="size-4" aria-hidden="true" /></Link>
                               <button type="button" onClick={() => setDuplicateTarget(estimate)} aria-label={`Duplicate estimate ${estimate.estimateNumber}`} className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"><Copy className="size-4" aria-hidden="true" /></button>
                               <button type="button" onClick={() => setConfirmDelete(estimate)} aria-label={`Delete estimate ${estimate.estimateNumber}`} className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-destructive focus-visible:ring-2 focus-visible:ring-ring"><Trash2 className="size-4" aria-hidden="true" /></button>

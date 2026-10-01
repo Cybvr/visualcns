@@ -46,15 +46,27 @@ export function readEmailComposeContext(params: URLSearchParams): EmailComposeCo
   return context
 }
 
+/** The live site, even when the email is written from localhost, so links in emails always work. */
+export function siteUrl(path: string) {
+  if (/^https?:\/\//i.test(path)) return path
+  const origin = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") || "https://www.visualcns.com"
+  return `${origin}${path.startsWith("/") ? path : `/${path}`}`
+}
+
+/**
+ * The starting message for an email opened from a record. The link goes in the
+ * text itself rather than a button, so the composer drops the button for these.
+ */
 export function contextualEmailBody(context: EmailComposeContext) {
-  const recipient = context.recipientName || "there"
+  const recipient = context.recipientName?.trim().split(/\s+/)[0] || "there"
+  const link = context.ctaUrl ? siteUrl(context.ctaUrl) : ""
   if (context.documentTitle) {
-    return `Hi ${recipient},\n\n${context.documentTitle} is ready for you to review. Please use the button below to open it from your company page.\n\nBest regards,\nVisualCNS Team`
+    return `Hi ${recipient},\n\n${context.documentTitle} is ready for you to review.${link ? `\n\nView it here: ${link}` : ""}\n\nBest regards,\nVisualCNS Team`
   }
   if (context.projectName) {
-    return `Hi ${recipient},\n\nHere is an update on ${context.projectName}. Please use the button below to open the project workspace from your company page.\n\nBest regards,\nVisualCNS Team`
+    return `Hi ${recipient},\n\nHere is an update on ${context.projectName}.${link ? `\n\nView the project here: ${link}` : ""}\n\nBest regards,\nVisualCNS Team`
   }
-  return `Hi ${recipient},\n\nPlease use the button below to open your company page.\n\nBest regards,\nVisualCNS Team`
+  return `Hi ${recipient},\n\n${link ? `Open your company page here: ${link}` : "Here is an update from VisualCNS."}\n\nBest regards,\nVisualCNS Team`
 }
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/

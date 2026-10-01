@@ -1,7 +1,7 @@
 "use client"
 
 import { ArrowLeft, Check, ChevronDown, ChevronsUpDown, Clock, Eye, FileText, MoreVertical, Trash2, X } from "lucide-react"
-import { useMemo, useState, type FormEvent } from "react"
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react"
 import { IoSend } from "react-icons/io5"
 
 import { RichTextEditor } from "@/components/dashboard/rich-text-editor"
@@ -27,6 +27,34 @@ function matchingContacts(contacts: EmailContact[], query: string): EmailContact
     .filter((contact) => `${contact.name} ${contact.email} ${contact.label}`.toLowerCase().includes(search))
     .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }))
     .slice(0, 6)
+}
+
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+/** An entered address shown as a removable badge, named when it's a saved contact. */
+function EmailChip({ email, contacts, onRemove, onEdit }: { email: string; contacts: EmailContact[]; onRemove: () => void; onEdit?: () => void }) {
+  const contact = contacts.find((item) => item.email.toLowerCase() === email.toLowerCase())
+  const invalid = !EMAIL_PATTERN.test(email)
+  return (
+    <span
+      title={invalid ? `${email} isn't a valid email address` : email}
+      className={cn("inline-flex h-6 min-w-0 max-w-full shrink-0 items-center gap-1 rounded-full py-0.5 pl-2.5 pr-1 text-xs font-medium", invalid ? "bg-destructive/10 text-destructive" : "bg-muted text-foreground")}
+    >
+      {onEdit ? (
+        <button type="button" onClick={onEdit} className="min-w-0 truncate outline-none">{contact?.name || email}</button>
+      ) : (
+        <span className="min-w-0 truncate">{contact?.name || email}</span>
+      )}
+      <button
+        type="button"
+        onClick={onRemove}
+        aria-label={`Remove ${email}`}
+        className="grid size-4 shrink-0 place-items-center rounded-full text-muted-foreground outline-none transition-colors hover:bg-background hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        <X className="size-3" aria-hidden="true" />
+      </button>
+    </span>
+  )
 }
 
 export type EmailComposerProps = {
@@ -161,9 +189,37 @@ export function EmailComposer({
     return matchingContacts(contacts, ccQuery).filter((contact) => !entered.has(contact.email.toLowerCase()))
   }, [cc, ccQuery, contacts])
 
+  // The recipient shows as a badge once it's a whole address and you've left the field.
+  const toInputRef = useRef<HTMLInputElement>(null)
+  const [editingTo, setEditingTo] = useState(false)
+  const showToChip = !selectedListId && !editingTo && EMAIL_PATTERN.test(to.trim())
+
+  function editTo() {
+    setEditingTo(true)
+    requestAnimationFrame(() => toInputRef.current?.focus())
+  }
+
+  // Cc is kept as "a@x.com, b@y.com, draft": every finished address is a badge,
+  // and the input only holds the one being typed.
+  const ccInputRef = useRef<HTMLInputElement>(null)
+  const ccParts = cc.split(/[,;]/)
+  const ccChips = ccParts.slice(0, -1).map((email) => email.trim()).filter(Boolean)
+  const ccDraft = ccParts.at(-1) ?? ""
+
+  function writeCc(chips: string[], draft: string) {
+    setCc(chips.length ? `${chips.join(", ")}, ${draft.trimStart()}` : draft.trimStart())
+  }
+
+  // A Cc filled in from elsewhere (a reply, a draft) becomes badges too.
+  useEffect(() => {
+    if (document.activeElement !== ccInputRef.current && EMAIL_PATTERN.test(ccDraft.trim())) writeCc([...ccChips, ccDraft.trim()], "")
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cc])
+
   function selectRecipient(contact: EmailContact) {
     handleRecipientChange(contact.email)
     setRecipientSuggestionsOpen(false)
+    setEditingTo(false)
   }
 
   function selectCc(contact: EmailContact) {
@@ -216,12 +272,25 @@ export function EmailComposer({
           )}
 
           {(fullPage || !composeMinimized) && (
-            <form id="email-compose-form" autoComplete="off" onSubmit={sendEmail} className="flex min-h-0 flex-1 flex-col overflow-hidden">
+            <form
+              id="email-compose-form"
+              autoComplete="off"
+              onSubmit={sendEmail}
+              // Enter in a one-line field (To, Cc, Subject) must never send; only the Send button does.
+              onKeyDown={(event) => { if (event.key === "Enter" && event.target instanceof HTMLInputElement) event.preventDefault() }}
+              className="flex min-h-0 flex-1 flex-col overflow-hidden"
+            >
               <div className="grid shrink-0 grid-cols-[minmax(0,1fr)_9rem] items-center border-b border-border"><div className="flex min-w-0 items-center gap-2 px-4 py-2"><span className="shrink-0 text-xs font-medium text-muted-foreground">From</span>{senderOptions.length > 1 ? <Select value={senderAddress} onValueChange={setSenderAddress}><SelectTrigger aria-label="Sender address" className="h-7 min-w-0 flex-1 border-0 bg-transparent px-0 text-left text-sm shadow-none hover:bg-transparent data-[state=open]:bg-transparent"><SelectValue /></SelectTrigger><SelectContent align="start" className="w-72">{senderOptions.map((sender) => <SelectItem key={sender} value={sender}>{cleanSenderDisplay(sender)}</SelectItem>)}</SelectContent></Select> : <p className="min-w-0 truncate text-sm">{cleanSenderDisplay(senderAddress || (showOpsDetail ? "Not configured" : "Not available yet"))}</p>}</div><div className="px-3 py-1"><Select value={messageKind} onValueChange={(value) => setMessageKind(value as EmailMessageKind)}><SelectTrigger aria-label="Message type" className="h-7 w-full border-0 bg-transparent px-1 text-xs shadow-none hover:bg-transparent data-[state=open]:bg-transparent"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="transactional">Service message</SelectItem><SelectItem value="marketing">Marketing email</SelectItem></SelectContent></Select></div></div>
 
               <div className="grid shrink-0 grid-cols-2 gap-3 border-b border-border px-4 py-2.5">
                 <div className="relative flex min-w-0 items-center gap-2 border-b border-input" onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setRecipientSuggestionsOpen(false) }}>
+                  {showToChip ? (
+                    <div className="flex h-8 min-w-0 flex-1 items-center">
+                      <EmailChip email={to.trim()} contacts={contacts} onEdit={editTo} onRemove={() => { handleRecipientChange(""); editTo() }} />
+                    </div>
+                  ) : (
                   <Input
+                    ref={toInputRef}
                     id="email-to"
                     name="message-to"
                     type="email"
@@ -233,9 +302,12 @@ export function EmailComposer({
                     aria-controls="email-to-suggestions"
                     aria-activedescendant={recipientSuggestionsOpen && recipientMatches.length ? `email-to-option-${activeRecipientIndex}` : undefined}
                     value={selectedListId ? "" : to}
-                    onFocus={() => setRecipientSuggestionsOpen(Boolean(to.trim()))}
+                    onFocus={() => { setEditingTo(true); setRecipientSuggestionsOpen(Boolean(to.trim())) }}
+                    onBlur={() => setEditingTo(false)}
                     onChange={(event) => { handleRecipientChange(event.target.value); setActiveRecipientIndex(0); setRecipientSuggestionsOpen(Boolean(event.target.value.trim())) }}
                     onKeyDown={(event) => {
+                      // Enter or a comma finishes the address and turns it into a badge.
+                      if ((event.key === "Enter" || event.key === ",") && EMAIL_PATTERN.test(to.trim()) && !(recipientSuggestionsOpen && recipientMatches.length)) { event.preventDefault(); setRecipientSuggestionsOpen(false); setEditingTo(false); return }
                       if (!recipientSuggestionsOpen) return
                       if (event.key === "ArrowDown" && recipientMatches.length) { event.preventDefault(); setActiveRecipientIndex((index) => (index + 1) % recipientMatches.length) }
                       if (event.key === "ArrowUp" && recipientMatches.length) { event.preventDefault(); setActiveRecipientIndex((index) => (index - 1 + recipientMatches.length) % recipientMatches.length) }
@@ -246,6 +318,7 @@ export function EmailComposer({
                     disabled={Boolean(selectedListId)}
                     className="h-8 min-w-0 flex-1 border-0 px-0 shadow-none focus-visible:ring-0 disabled:opacity-60"
                   />
+                  )}
                   <Popover open={contactPickerOpen} onOpenChange={(open) => { setContactPickerOpen(open); if (open) setRecipientSuggestionsOpen(false); else setContactQuery("") }}><PopoverTrigger asChild><button type="button" aria-label="Choose contact" disabled={Boolean(selectedListId)} className="flex size-8 shrink-0 items-center justify-center text-muted-foreground outline-none transition-colors hover:text-foreground disabled:pointer-events-none disabled:opacity-50"><ChevronsUpDown className="size-4" aria-hidden="true" /></button></PopoverTrigger><PopoverContent align="start" className="w-[var(--radix-popover-trigger-width)] min-w-[280px] p-0"><Command><CommandInput autoFocus placeholder="Search contacts" value={contactQuery} onValueChange={setContactQuery} /><CommandList><CommandEmpty className="px-3 py-6 text-center text-sm text-muted-foreground">No matching contacts.</CommandEmpty><CommandGroup>{visibleContactOptions.map((contact) => { const isSelected = recipientEmail(contact.email) === recipientEmail(to); return <CommandItem key={contact.email} value={`${contact.name} ${contact.email}`} onSelect={() => { selectRecipient(contact); setContactPickerOpen(false); setContactQuery("") }} className="items-center gap-3 px-3 py-2.5"><Avatar className={cn("size-10", contactAvatarTone(contact.name || contact.email))}><AvatarFallback className="bg-transparent text-sm font-medium">{contactInitials(contact.name, contact.email)}</AvatarFallback></Avatar><span className="min-w-0 flex-1"><span className="block truncate text-sm font-medium text-foreground">{contact.name || "Unnamed contact"}</span><span className="block truncate text-xs text-muted-foreground">{contact.email}</span></span><Check className={cn("size-4 shrink-0", isSelected ? "opacity-100" : "opacity-0")} aria-hidden="true" /></CommandItem> })}</CommandGroup></CommandList></Command></PopoverContent></Popover>
                   {recipientSuggestionsOpen && to.trim() && !selectedListId && (
                     <div id="email-to-suggestions" role="listbox" aria-label="Matching contacts" className="absolute left-0 top-full z-50 mt-1 max-h-64 w-[min(26rem,calc(100vw-2rem))] overflow-y-auto rounded-md border border-border bg-popover p-1 text-popover-foreground shadow-lg">
@@ -271,9 +344,13 @@ export function EmailComposer({
               </div>
 
               {messageKind === "transactional" && (
-                <div className="relative flex shrink-0 items-center gap-2 border-b border-border px-4 py-1.5" onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setCcSuggestionsOpen(false) }}>
+                <div className="relative flex shrink-0 flex-wrap items-center gap-x-2 gap-y-1 border-b border-border px-4 py-1.5" onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setCcSuggestionsOpen(false) }}>
                   <label htmlFor="email-cc" className="shrink-0 text-xs font-medium text-muted-foreground">Cc</label>
+                  {ccChips.map((email, index) => (
+                    <EmailChip key={`${email}-${index}`} email={email} contacts={contacts} onRemove={() => writeCc(ccChips.filter((_, i) => i !== index), ccDraft)} />
+                  ))}
                   <Input
+                    ref={ccInputRef}
                     id="email-cc"
                     name="message-cc"
                     type="text"
@@ -283,18 +360,31 @@ export function EmailComposer({
                     aria-expanded={ccSuggestionsOpen && Boolean(ccQuery)}
                     aria-controls="email-cc-suggestions"
                     aria-activedescendant={ccSuggestionsOpen && ccMatches.length ? `email-cc-option-${Math.min(activeCcIndex, ccMatches.length - 1)}` : undefined}
-                    value={cc}
+                    value={ccDraft.trimStart()}
                     onFocus={() => setCcSuggestionsOpen(Boolean(ccQuery))}
-                    onChange={(event) => { setCc(event.target.value); setActiveCcIndex(0); setCcSuggestionsOpen(Boolean(event.target.value.split(/[,;]/).at(-1)?.trim())) }}
+                    onBlur={(event) => {
+                      // Picking a suggestion moves focus inside the field, so don't turn the half-typed text into a badge then.
+                      if (ccDraft.trim() && !event.currentTarget.parentElement?.contains(event.relatedTarget)) writeCc([...ccChips, ccDraft.trim()], "")
+                    }}
+                    onChange={(event) => {
+                      // A comma, semicolon or space finishes an address and turns it into a badge.
+                      const parts = event.target.value.split(/[,;\s]+/)
+                      const draft = parts.pop() ?? ""
+                      writeCc([...ccChips, ...parts.filter(Boolean)], draft)
+                      setActiveCcIndex(0)
+                      setCcSuggestionsOpen(Boolean(draft.trim()))
+                    }}
                     onKeyDown={(event) => {
+                      if (event.key === "Backspace" && !ccDraft.trim() && ccChips.length) { event.preventDefault(); writeCc(ccChips.slice(0, -1), ""); return }
+                      if (event.key === "Enter" && ccDraft.trim() && !(ccSuggestionsOpen && ccMatches.length)) { event.preventDefault(); writeCc([...ccChips, ccDraft.trim()], ""); setCcSuggestionsOpen(false); return }
                       if (!ccSuggestionsOpen) return
                       if (event.key === "ArrowDown" && ccMatches.length) { event.preventDefault(); setActiveCcIndex((index) => (index + 1) % ccMatches.length) }
                       if (event.key === "ArrowUp" && ccMatches.length) { event.preventDefault(); setActiveCcIndex((index) => (index - 1 + ccMatches.length) % ccMatches.length) }
                       if (event.key === "Enter") { event.preventDefault(); if (ccMatches.length) selectCc(ccMatches[activeCcIndex] ?? ccMatches[0]); else setCcSuggestionsOpen(false) }
                       if (event.key === "Escape") { event.preventDefault(); setCcSuggestionsOpen(false) }
                     }}
-                    placeholder="Add emails, separated by commas"
-                    className="h-8 border-0 px-0 shadow-none focus-visible:ring-0"
+                    placeholder={ccChips.length ? "" : "Add emails"}
+                    className="h-8 w-auto min-w-32 flex-1 border-0 px-0 shadow-none focus-visible:ring-0"
                   />
                   {ccSuggestionsOpen && ccQuery && (
                     <div id="email-cc-suggestions" role="listbox" aria-label="Matching Cc contacts" className="absolute left-4 right-4 top-full z-50 mt-1 max-h-64 overflow-y-auto rounded-md border border-border bg-popover p-1 text-popover-foreground shadow-lg">

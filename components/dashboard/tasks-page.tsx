@@ -391,6 +391,11 @@ export default function TasksAdminPage() {
                 {selectedId === "new" && <SheetDescription>Create a task for any client.</SheetDescription>}
               </div>
               {selectedTask && (
+                <Button variant="ghost" size="icon" className="absolute top-2 right-16 z-10" title="Email task" aria-label="Email task" onClick={() => emailTask(selectedTask)} disabled={emailingId !== null}>
+                  {emailingId === selectedTask.id ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <Mail className="size-4" aria-hidden="true" />}
+                </Button>
+              )}
+              {selectedTask && (
                 <Button variant="ghost" size="icon" asChild className="absolute top-2 right-8 z-10" title="Open full task page">
                   <Link href={`/dashboard/tasks/${encodeURIComponent(selectedTask.id)}`} aria-label="Open full task page">
                     <Maximize2 className="size-4" aria-hidden="true" />
@@ -405,10 +410,6 @@ export default function TasksAdminPage() {
                 key={selectedId}
                 task={selectedId === "new" ? null : selectedTask}
                 leadingAction={selectedTask ? (
-                  <>
-                  <Button type="button" variant="outline" onClick={() => emailTask(selectedTask)} disabled={emailingId !== null}>
-                    <Mail className="size-4" aria-hidden="true" /> Email task
-                  </Button>
                   <Button
                     type="button"
                     variant="destructive"
@@ -420,7 +421,6 @@ export default function TasksAdminPage() {
                     {deleting === selectedTask.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4 sm:mr-2" />}
                     <span className="hidden sm:inline">Delete task</span>
                   </Button>
-                  </>
                 ) : undefined}
                 onSaved={handleSaved}
                 onCancel={() => setSelectedId(null)}

@@ -14,6 +14,24 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const MAX_CC = 20
 const VISUALCNS_SENDER_LOCALS = ["jide", "hello", "info", "visitors"]
 
+/** Turns web addresses in already-escaped plain text into links, so a pasted URL is clickable. */
+function linkify(escaped: string) {
+  return escaped.replace(/https?:\/\/[^\s<]+[^\s<.,;:!?)]/g, (url) => `<a href="${url}">${url}</a>`)
+}
+
+/** The same for HTML from the editor: only text outside tags and existing links is touched. */
+function linkifyHtml(html: string) {
+  let insideLink = 0
+  return html.split(/(<[^>]+>)/).map((part) => {
+    if (part.startsWith("<")) {
+      if (/^<a[\s>]/i.test(part)) insideLink += 1
+      else if (/^<\/a>/i.test(part)) insideLink = Math.max(0, insideLink - 1)
+      return part
+    }
+    return insideLink ? part : linkify(part)
+  }).join("")
+}
+
 function senderOptions(from: string) {
   const configured = (process.env.EMAIL_FROM_ADDRESSES || "")
     .split(",")
@@ -473,9 +491,9 @@ export async function POST(request: Request) {
     }
   }
 
-  const richHtml = requestedHtml.replace(/(src=["'])\/([^"']*)/gi, `$1${SITE_ORIGIN}/$2`)
+  const richHtml = linkifyHtml(requestedHtml.replace(/(src=["'])\/([^"']*)/gi, `$1${SITE_ORIGIN}/$2`))
   const messageContent = [
-    richHtml || text.split(/\n\s*\n/).map((paragraph) => `<p>${escapeHtml(paragraph).replace(/\n/g, "<br />")}</p>`).join(""),
+    richHtml || text.split(/\n\s*\n/).map((paragraph) => `<p>${linkify(escapeHtml(paragraph)).replace(/\n/g, "<br />")}</p>`).join(""),
     imagePath && !requestedHtml
       ? `<p><img src="${escapeHtml(`${SITE_ORIGIN}${imagePath}`)}" alt="Ngai AI assistant" style="display:block;width:100%;max-width:720px;height:auto;border-radius:12px;margin-top:24px;" /></p>`
       : "",

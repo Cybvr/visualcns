@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { Copy, Eye, FileUp, Loader2, Pencil, Plus, Trash2 } from "lucide-react"
+import { Copy, Eye, FileUp, Loader2, Mail, Pencil, Plus, Trash2 } from "lucide-react"
 import { FaFileAlt } from "react-icons/fa"
 import { toast } from "sonner"
 
@@ -43,6 +43,8 @@ import {
   type CompanyDocument,
   type CompanyDocumentKind,
 } from "@/lib/company-documents"
+import { companyDocumentEmailContext } from "@/lib/document-emails"
+import { buildEmailComposeHref } from "@/lib/email-composer"
 import { tsToMillis } from "@/lib/tasks"
 import { cn } from "@/lib/utils"
 
@@ -250,6 +252,7 @@ export default function DocumentsPage() {
                 menu={
                   <>
                     <DropdownMenuItem onSelect={() => router.push(row.viewHref)}>View document</DropdownMenuItem>
+                    {adminView && <DropdownMenuItem onSelect={() => router.push(buildEmailComposeHref(companyDocumentEmailContext(row.source)))}>Email document</DropdownMenuItem>}
                     {adminView && row.editHref && <DropdownMenuItem onSelect={() => row.editHref && router.push(row.editHref)}>Edit</DropdownMenuItem>}
                     {adminView && <DropdownMenuItem onSelect={() => setDuplicateTarget(row)}>Duplicate</DropdownMenuItem>}
                     {adminView && <DropdownMenuItem variant="destructive" onSelect={() => setConfirmDelete(row)}>Delete</DropdownMenuItem>}
@@ -275,6 +278,7 @@ export default function DocumentsPage() {
                   menu={
                     <>
                       <DropdownMenuItem onSelect={() => router.push(row.viewHref)}>View document</DropdownMenuItem>
+                    {adminView && <DropdownMenuItem onSelect={() => router.push(buildEmailComposeHref(companyDocumentEmailContext(row.source)))}>Email document</DropdownMenuItem>}
                       {adminView && row.editHref && <DropdownMenuItem onSelect={() => row.editHref && router.push(row.editHref)}>Edit</DropdownMenuItem>}
                       {adminView && <DropdownMenuItem onSelect={() => setDuplicateTarget(row)}>Duplicate</DropdownMenuItem>}
                       {adminView && <DropdownMenuItem variant="destructive" onSelect={() => setConfirmDelete(row)}>Delete</DropdownMenuItem>}
@@ -293,7 +297,7 @@ export default function DocumentsPage() {
                 {adminView && <TableHead className="w-[22%]">Company</TableHead>}
                 <TableHead className="w-[15%]">Updated</TableHead>
                 <TableHead className="w-[15%]">Status</TableHead>
-                <TableHead className="w-24 text-right"><span className="sr-only">Actions</span></TableHead>
+                <TableHead className="w-44 text-right"><span className="sr-only">Actions</span></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -311,9 +315,10 @@ export default function DocumentsPage() {
                   )}
                   <TableCell className="whitespace-nowrap">{row.updatedAtMs ? formatDate(new Date(row.updatedAtMs).toISOString().slice(0, 10)) : "—"}</TableCell>
                   <TableCell className="whitespace-nowrap">{row.statusLabel && <span className={cn("inline-flex rounded-full px-2 py-0.5 text-xs font-medium", row.statusClassName)}>{row.statusLabel}</span>}</TableCell>
-                  <TableCell className="w-24">
+                  <TableCell className="w-44">
                     <div className="flex items-center justify-end gap-1.5">
                       <Link href={row.viewHref} aria-label={`View ${row.title}`} className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"><Eye className="size-4" aria-hidden="true" /></Link>
+                      {adminView && <Link href={buildEmailComposeHref(companyDocumentEmailContext(row.source))} aria-label={`Email ${row.title}`} title="Email document" className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"><Mail className="size-4" aria-hidden="true" /></Link>}
                       {adminView && row.editHref && (
                         <Link href={row.editHref} aria-label={`Edit ${row.title}`} className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"><Pencil className="size-4" aria-hidden="true" /></Link>
                       )}

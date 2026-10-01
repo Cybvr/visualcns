@@ -62,6 +62,8 @@ import {
   type EstimateLineItem,
   type EstimateStatus,
 } from "@/lib/billing"
+import { estimateEmailContext } from "@/lib/document-emails"
+import { buildEmailComposeHref } from "@/lib/email-composer"
 import { getProjects, type Project } from "@/lib/projects"
 import { getUsers, type AppUser } from "@/lib/users"
 
@@ -329,8 +331,13 @@ export function EstimateBuilder({ estimate, initialCompanyId }: { estimate?: Est
     })
   }
 
-  async function submit(event: FormEvent<HTMLFormElement>) {
+  function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    void saveEstimate("page")
+  }
+
+  /** Saves, then opens the estimate, or the email composer with it attached. */
+  async function saveEstimate(destination: "page" | "email") {
     if (saving) return
     if (!companyId) return setError("Choose which client this estimate is for.")
     if (!title.trim()) return setError("Give this estimate a title.")
@@ -379,7 +386,8 @@ export function EstimateBuilder({ estimate, initialCompanyId }: { estimate?: Est
 
       const id = estimate ? estimate.id : await createEstimate(payload)
       if (estimate) await updateEstimate(estimate.id, payload)
-      router.push(`/dashboard/estimates/${id}`)
+      if (destination === "email") router.push(buildEmailComposeHref(estimateEmailContext({ ...estimate, ...payload, id } as Estimate)))
+      else router.push(`/dashboard/estimates/${id}`)
     } catch (saveError) {
       console.error("Error saving estimate:", saveError)
       setError("Couldn’t save this estimate. Try again.")
@@ -600,7 +608,7 @@ export function EstimateBuilder({ estimate, initialCompanyId }: { estimate?: Est
 
       {error && <p className="px-1 text-destructive">{error}</p>}
 
-      <EditorActionBar onPreview={() => setPreviewOpen(true)} saving={saving} saveLabel={isEdit ? "Save estimate" : "Create estimate"} />
+      <EditorActionBar onPreview={() => setPreviewOpen(true)} onSend={() => void saveEstimate("email")} saving={saving} saveLabel={isEdit ? "Save estimate" : "Create estimate"} />
     </form>
 
     <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>

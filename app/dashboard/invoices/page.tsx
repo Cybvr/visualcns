@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { Copy, Eye, Loader2, Plus, Receipt, Trash2 } from "lucide-react"
+import { Copy, Eye, Loader2, Mail, Plus, Receipt, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
@@ -51,6 +51,8 @@ import { formatTimestamp, tsToMillis } from "@/lib/tasks"
 import { cn } from "@/lib/utils"
 import { getOrganizations, type Organization } from "@/lib/organizations"
 import { getExchangeRate } from "@/lib/currency"
+import { invoiceEmailContext } from "@/lib/document-emails"
+import { buildEmailComposeHref } from "@/lib/email-composer"
 
 function OutstandingSummary({ invoices }: { invoices: Invoice[] }) {
   const unpaid = invoices.filter((invoice) => invoice.status === "sent" || invoice.status === "overdue")
@@ -319,6 +321,7 @@ export default function InvoicesPage() {
                             <DropdownMenuItem onSelect={() => router.push(`/dashboard/invoices/${invoice.id}`)}>View invoice</DropdownMenuItem>
                             {adminView && (
                               <>
+                                <DropdownMenuItem onSelect={() => router.push(buildEmailComposeHref(invoiceEmailContext(invoice)))}>Email invoice</DropdownMenuItem>
                                 <DropdownMenuItem onSelect={() => setDuplicateTarget(invoice)}>Duplicate</DropdownMenuItem>
                                 <DropdownMenuItem variant="destructive" onSelect={() => setConfirmDelete(invoice)}>Delete invoice</DropdownMenuItem>
                               </>
@@ -350,7 +353,7 @@ export default function InvoicesPage() {
                     <TableHead className="w-[11%]">Due</TableHead>
                     <TableHead className="w-[10%]">Status</TableHead>
                     <TableHead className="w-[13%] text-right">Amount</TableHead>
-                    <TableHead className="w-24 text-right">
+                    <TableHead className="w-36 text-right">
                       <span className="sr-only">Actions</span>
                     </TableHead>
                   </TableRow>
@@ -405,7 +408,7 @@ export default function InvoicesPage() {
                             {formatMoney(invoice.amount, invoice.currency)}
                           </span>
                         </TableCell>
-                        <TableCell className="w-24">
+                        <TableCell className="w-36">
                           <div className="flex items-center justify-end gap-1.5">
                             <Link
                               href={`/dashboard/invoices/${invoice.id}`}
@@ -416,6 +419,14 @@ export default function InvoicesPage() {
                             </Link>
                             {adminView && (
                               <>
+                                <Link
+                                  href={buildEmailComposeHref(invoiceEmailContext(invoice))}
+                                  aria-label={`Email invoice ${invoice.invoiceNumber}`}
+                                  title="Email invoice"
+                                  className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+                                >
+                                  <Mail className="size-4" aria-hidden="true" />
+                                </Link>
                                 <button
                                   type="button"
                                   onClick={() => setDuplicateTarget(invoice)}
