@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react"
 import Link from "next/link"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
-import { ArrowLeft, Briefcase, ExternalLink, FolderOpen, ListTodo, LogOut, Mail, MoreVertical, Pencil, Share2, User as UserIcon, X } from "lucide-react"
+import { ArrowLeft, Briefcase, ChevronRight, ExternalLink, FolderOpen, ListTodo, LogOut, Mail, MoreVertical, Pencil, Share2, User as UserIcon, X } from "lucide-react"
 import { toast } from "sonner"
 
 import { CompanyDocuments, type CompanyDocumentKind } from "@/components/company/company-documents"
@@ -304,6 +304,7 @@ export function CompanyPage({
   const [issuer, setIssuer] = useState<BusinessProfile | null>(null)
   const [activityTasks, setActivityTasks] = useState<Task[]>([])
   const [tasksLoading, setTasksLoading] = useState(true)
+  const [viewingTaskId, setViewingTaskId] = useState<string | null>(null)
   const [taskRevision, setTaskRevision] = useState(0)
   const [deletingTaskId, setDeletingTaskId] = useState<string | null>(null)
   const [teamDialogOpen, setTeamDialogOpen] = useState(false)
@@ -465,6 +466,9 @@ export function CompanyPage({
     () => buildActivity({ projects, tasks: activityTasks, invoices, estimates, contracts, documents }),
     [activityTasks, contracts, documents, estimates, invoices, projects],
   )
+  const viewingTask = !admin && viewingTaskId
+    ? activityTasks.find((task) => task.id === viewingTaskId) ?? null
+    : null
 
   function openTeamDialog() {
     setTeamContactIds([])
@@ -841,16 +845,26 @@ export function CompanyPage({
                 ) : (
                   <ul className="mt-4 divide-y divide-border rounded-lg border border-border">
                     {activityTasks.map((task) => (
-                      <li key={task.id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
-                        <div className="min-w-0">
-                          <p className="font-medium text-foreground">{task.name}</p>
-                          <p className="mt-1 text-sm text-muted-foreground">
-                            {[task.project, task.dueDate ? `Due ${task.dueDate}` : null].filter(Boolean).join(" · ")}
-                          </p>
-                        </div>
-                        <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-foreground">
-                          {(taskStatusMeta[task.status] ?? taskStatusMeta.todo).label}
-                        </span>
+                      <li key={task.id}>
+                        <button
+                          type="button"
+                          onClick={() => setViewingTaskId(task.id)}
+                          className="flex w-full flex-wrap items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+                          aria-label={`View task: ${task.name}`}
+                        >
+                          <div className="min-w-0">
+                            <p className="font-medium text-foreground">{task.name}</p>
+                            <p className="mt-1 text-sm text-muted-foreground">
+                              {[task.project, task.dueDate ? `Due ${task.dueDate}` : null].filter(Boolean).join(" · ")}
+                            </p>
+                          </div>
+                          <span className="flex items-center gap-2">
+                            <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-foreground">
+                              {(taskStatusMeta[task.status] ?? taskStatusMeta.todo).label}
+                            </span>
+                            <ChevronRight className="size-4 text-muted-foreground" aria-hidden="true" />
+                          </span>
+                        </button>
                       </li>
                     ))}
                   </ul>
@@ -1058,6 +1072,41 @@ export function CompanyPage({
             </div>
           )}
       </div>
+
+      {!admin && (
+        <Dialog open={Boolean(viewingTask)} onOpenChange={(open) => { if (!open) setViewingTaskId(null) }}>
+          <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg">
+            <DialogHeader>
+              <DialogTitle>{viewingTask?.name || "Task"}</DialogTitle>
+              <DialogDescription>View-only task details shared with {company.name}.</DialogDescription>
+            </DialogHeader>
+            {viewingTask && (
+              <div className="space-y-5">
+                <dl className="grid gap-4 rounded-lg bg-muted/40 p-4 text-sm sm:grid-cols-2">
+                  <div>
+                    <dt className="text-muted-foreground">Project</dt>
+                    <dd className="mt-1 font-medium text-foreground">{viewingTask.project || "No project"}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-muted-foreground">Status</dt>
+                    <dd className="mt-1 font-medium text-foreground">{(taskStatusMeta[viewingTask.status] ?? taskStatusMeta.todo).label}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-muted-foreground">Due date</dt>
+                    <dd className="mt-1 font-medium text-foreground">{viewingTask.dueDate || "No due date"}</dd>
+                  </div>
+                </dl>
+                <section>
+                  <h3 className="text-sm font-medium text-foreground">Instructions</h3>
+                  <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-muted-foreground">
+                    {viewingTask.content?.trim() || "No instructions shared."}
+                  </p>
+                </section>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+      )}
 
       {admin && (
         <>
