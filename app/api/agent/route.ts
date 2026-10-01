@@ -1123,6 +1123,7 @@ async function runAgentTool(name: string, rawArgs: string, uid: string) {
       location: optionalText(args, "location"),
       description: optionalText(args, "description"),
       isOwner: false,
+      publicVisible: true,
       agencyId,
       createdAt: now,
       updatedAt: now,
