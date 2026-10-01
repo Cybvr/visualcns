@@ -44,14 +44,14 @@ import {
 } from "@/lib/billing"
 import { getBusinessProfile, type BusinessProfile } from "@/lib/business-profile"
 import { getProjects, type Project } from "@/lib/projects"
-import { getOrganizations, type Organization } from "@/lib/organizations"
+import { getOrganizations, organizationRef, type Organization } from "@/lib/organizations"
 import { ShareLinkField } from "@/components/dashboard/share-link-field"
 import { InvoiceDocument } from "@/components/dashboard/invoice-document"
 import { downloadInvoicePdf } from "@/components/dashboard/invoice-pdf"
 import { DocumentPreviewFrame } from "@/components/dashboard/document-preview-frame"
 import { buildEmailComposeHref, parseEmailList, type EmailComposeContext } from "@/lib/email-composer"
 import { invoiceIsOpen, reminderBody, reminderSubject } from "@/lib/invoice-reminders"
-import { companyDocumentPath } from "@/lib/navigation"
+import { invoiceEmailContext } from "@/lib/document-emails"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
 const CURRENCIES = [
@@ -182,6 +182,8 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate }: {
   const [reminderCc, setReminderCc] = useState((invoice?.reminderCc ?? []).join(", "))
 
   const [clients, setClients] = useState<Organization[]>([])
+  // Email links use the company's slug; a company that no longer exists falls back to its id.
+  const companyRefFor = (id: string) => { const organization = clients.find((entry) => entry.id === id); return organization ? organizationRef(organization) : id }
   const [projects, setProjects] = useState<Project[]>([])
   const [issuer, setIssuer] = useState<BusinessProfile | null>(null)
   const [optionsLoading, setOptionsLoading] = useState(true)
@@ -423,20 +425,7 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate }: {
       if (invoice) await updateInvoice(savedId, payload)
 
       if (destination === "email") {
-        router.push(buildEmailComposeHref({
-          companyId: payload.companyId,
-          companyName: payload.client,
-          recipientEmail: payload.billTo.email,
-          recipientName: payload.billTo.name,
-          projectId: payload.projectId,
-          projectName: payload.project,
-          documentType: "invoice",
-          documentId: savedId,
-          documentTitle: payload.invoiceNumber,
-          subject: `Invoice ${payload.invoiceNumber}`,
-          ctaText: "View invoice",
-          ctaUrl: companyDocumentPath(payload.companyId, "invoice", savedId),
-        }))
+        router.push(buildEmailComposeHref(invoiceEmailContext({ ...invoice, ...payload, id: savedId } as Invoice, companyRefFor(payload.companyId))))
       } else {
         router.push("/dashboard/invoices")
       }
@@ -476,20 +465,7 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate }: {
   const reminderCcCheck = parseEmailList(reminderCc)
 
   // Remind uses the saved invoice; Send saves current changes before composing.
-  const emailContext: EmailComposeContext | null = invoice ? {
-    companyId: invoice.companyId,
-    companyName: invoice.client,
-    recipientEmail: invoice.billTo?.email,
-    recipientName: invoice.billTo?.name,
-    projectId: invoice.projectId,
-    projectName: invoice.project,
-    documentType: "invoice",
-    documentId: invoice.id,
-    documentTitle: invoice.invoiceNumber,
-    subject: `Invoice ${invoice.invoiceNumber}`,
-    ctaText: "View invoice",
-    ctaUrl: companyDocumentPath(invoice.companyId, "invoice", invoice.id),
-  } : null
+  const emailContext: EmailComposeContext | null = invoice ? invoiceEmailContext(invoice, companyRefFor(invoice.companyId)) : null
   const reminderContext: EmailComposeContext | null = invoice && emailContext && invoiceIsOpen(invoice) ? {
     ...emailContext,
     subject: reminderSubject(invoice),

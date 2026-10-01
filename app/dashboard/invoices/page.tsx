@@ -49,7 +49,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { useRowSelection } from "@/hooks/use-row-selection"
 import { formatTimestamp, tsToMillis } from "@/lib/tasks"
 import { cn } from "@/lib/utils"
-import { getOrganizations, type Organization } from "@/lib/organizations"
+import { getOrganizations, organizationRef, type Organization } from "@/lib/organizations"
 import { getExchangeRate } from "@/lib/currency"
 import { invoiceEmailContext } from "@/lib/document-emails"
 import { buildEmailComposeHref } from "@/lib/email-composer"
@@ -157,6 +157,12 @@ export default function InvoicesPage() {
     () => new Map(organizations.map((organization) => [organization.id, organization.name])),
     [organizations],
   )
+  // Email links use the company's slug; a company that no longer exists falls back to its id.
+  const organizationRefById = useMemo(
+    () => new Map(organizations.map((organization) => [organization.id, organizationRef(organization)])),
+    [organizations],
+  )
+  const companyRefFor = (id: string) => organizationRefById.get(id) ?? id
 
   useEffect(() => {
     fetchData()
@@ -321,7 +327,7 @@ export default function InvoicesPage() {
                             <DropdownMenuItem onSelect={() => router.push(`/dashboard/invoices/${invoice.id}`)}>View invoice</DropdownMenuItem>
                             {adminView && (
                               <>
-                                <DropdownMenuItem onSelect={() => router.push(buildEmailComposeHref(invoiceEmailContext(invoice)))}>Email invoice</DropdownMenuItem>
+                                <DropdownMenuItem onSelect={() => router.push(buildEmailComposeHref(invoiceEmailContext(invoice, companyRefFor(invoice.companyId))))}>Email invoice</DropdownMenuItem>
                                 <DropdownMenuItem onSelect={() => setDuplicateTarget(invoice)}>Duplicate</DropdownMenuItem>
                                 <DropdownMenuItem variant="destructive" onSelect={() => setConfirmDelete(invoice)}>Delete invoice</DropdownMenuItem>
                               </>
@@ -420,7 +426,7 @@ export default function InvoicesPage() {
                             {adminView && (
                               <>
                                 <Link
-                                  href={buildEmailComposeHref(invoiceEmailContext(invoice))}
+                                  href={buildEmailComposeHref(invoiceEmailContext(invoice, companyRefFor(invoice.companyId)))}
                                   aria-label={`Email invoice ${invoice.invoiceNumber}`}
                                   title="Email invoice"
                                   className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"

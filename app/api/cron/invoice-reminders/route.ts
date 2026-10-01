@@ -59,6 +59,16 @@ export async function GET(request: Request) {
     return sender
   }
 
+  // Invoices only store their company's id; links use the company's slug.
+  const companyRefs = new Map<string, string>()
+  async function companyRefFor(companyId: string) {
+    if (!companyRefs.has(companyId)) {
+      const organization = (await db.collection("organizations").doc(companyId).get()).data()
+      companyRefs.set(companyId, typeof organization?.slug === "string" && organization.slug ? organization.slug : companyId)
+    }
+    return companyRefs.get(companyId) as string
+  }
+
   for (const item of snapshot.docs) {
     const invoice = { ...(item.data() as Omit<Invoice, "id">), id: item.id } as Invoice
     if (!invoiceIsOpen(invoice) || !invoice.agencyId) continue
@@ -81,7 +91,7 @@ export async function GET(request: Request) {
     const cc = parseEmailList(invoice.reminderCc ?? []).valid.filter((email) => email !== to)
     const subject = reminderSubject(invoice, today)
     const text = reminderBody(invoice, today)
-    const cta = { text: "View and pay", url: `${SITE_ORIGIN}${companyDocumentPath(invoice.companyId, "invoice", invoice.id)}` }
+    const cta = { text: "View and pay", url: `${SITE_ORIGIN}${companyDocumentPath(await companyRefFor(invoice.companyId), "invoice", invoice.id)}` }
     const html = brandedEmail(markdownToHtml(text), subject, sender.brand, sender.from, cta)
     const footer = [sender.brand.name || "VisualCNS", extractEmailAddress(sender.from)].filter(Boolean).join(" · ")
     const plain = `${text}\n\n${cta.text}: ${cta.url}\n\n---\n${footer}\nX: ${X_URL}\nLinkedIn: ${LINKEDIN_URL}`

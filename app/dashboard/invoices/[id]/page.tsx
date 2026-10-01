@@ -8,13 +8,11 @@ import { ArrowLeft } from "lucide-react"
 import { useAuth } from "@/components/auth-provider"
 import { DashboardPageSkeleton } from "@/components/dashboard/dashboard-page-skeleton"
 import { DocumentActions } from "@/components/dashboard/document-actions"
-import { ContextualEmailButton } from "@/components/dashboard/contextual-email-button"
 import { InvoiceBuilder } from "@/components/dashboard/invoice-builder"
 import { InvoiceDocument } from "@/components/dashboard/invoice-document"
 import { usePageTitle } from "@/components/dashboard/page-title-context"
 import { getBusinessProfile, type BusinessProfile } from "@/lib/business-profile"
 import { getInvoice, type Invoice } from "@/lib/billing"
-import { invoiceEmailContext } from "@/lib/document-emails"
 
 export default function InvoiceDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -77,7 +75,6 @@ export default function InvoiceDetailPage() {
       <div className="mb-6 flex items-center justify-between gap-4 print:hidden">
         <Link href="/dashboard/invoices" className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"><ArrowLeft className="size-4" />Back to invoices</Link>
         <div className="flex items-center gap-2">
-          {isAdmin && !isImpersonating && <ContextualEmailButton label="Send invoice" context={invoiceEmailContext(invoice)} />}
           <DocumentActions url={invoice.url} />
         </div>
       </div>

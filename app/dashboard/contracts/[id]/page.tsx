@@ -11,6 +11,7 @@ import { ContractDocument } from "@/components/dashboard/contract-document"
 import { ContextualEmailButton } from "@/components/dashboard/contextual-email-button"
 import { DocumentActions } from "@/components/dashboard/document-actions"
 import { usePageTitle } from "@/components/dashboard/page-title-context"
+import { useCompanyRef } from "@/components/dashboard/use-company-ref"
 import { getBusinessProfile, type BusinessProfile } from "@/lib/business-profile"
 import { getContract, type Contract } from "@/lib/billing"
 import { contractEmailContext } from "@/lib/document-emails"
@@ -22,6 +23,8 @@ export default function ContractDetailPage() {
   const [issuer, setIssuer] = useState<BusinessProfile | null>(null)
   const [loading, setLoading] = useState(true)
   const [failed, setFailed] = useState(false)
+
+  const companyRef = useCompanyRef(contract?.companyId, isAdmin && !isImpersonating)
 
   usePageTitle(contract?.title ?? null, "/dashboard/contracts")
 
@@ -68,7 +71,7 @@ export default function ContractDetailPage() {
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3 print:hidden">
         <Link href="/dashboard/contracts" className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"><ArrowLeft className="size-4" />Back to contracts</Link>
         <div className="flex items-center gap-2">
-          {isAdmin && !isImpersonating && <ContextualEmailButton label="Send contract" context={contractEmailContext(contract)} />}
+          {isAdmin && !isImpersonating && companyRef && <ContextualEmailButton label="Send contract" context={contractEmailContext(contract, companyRef)} />}
           <DocumentActions url={contract.url} />
         </div>
       </div>

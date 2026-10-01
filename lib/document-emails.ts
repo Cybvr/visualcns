@@ -6,9 +6,12 @@ import { companyDocumentPath } from "@/lib/navigation"
 /**
  * Opening the email composer for an invoice, estimate, contract or document.
  * The composer writes the message with the record's link in its text.
+ *
+ * Records only store their company's id, so callers pass `companyRef`, the
+ * company's slug from `organizationRef()`, and links use the public slug URL.
  */
 
-export function invoiceEmailContext(invoice: Invoice): EmailComposeContext {
+export function invoiceEmailContext(invoice: Invoice, companyRef: string): EmailComposeContext {
   return {
     companyId: invoice.companyId,
     companyName: invoice.client,
@@ -21,11 +24,11 @@ export function invoiceEmailContext(invoice: Invoice): EmailComposeContext {
     documentTitle: `Invoice ${invoice.invoiceNumber}`,
     subject: `Invoice ${invoice.invoiceNumber}`,
     ctaText: "View invoice",
-    ctaUrl: companyDocumentPath(invoice.companyId, "invoice", invoice.id),
+    ctaUrl: companyDocumentPath(companyRef, "invoice", invoice.id),
   }
 }
 
-export function estimateEmailContext(estimate: Estimate): EmailComposeContext {
+export function estimateEmailContext(estimate: Estimate, companyRef: string): EmailComposeContext {
   const title = estimate.title || `Estimate ${estimate.estimateNumber}`
   return {
     companyId: estimate.companyId,
@@ -39,11 +42,11 @@ export function estimateEmailContext(estimate: Estimate): EmailComposeContext {
     documentTitle: title,
     subject: `Estimate ${estimate.estimateNumber}: ${estimate.title}`.replace(/: $/, ""),
     ctaText: "View estimate",
-    ctaUrl: companyDocumentPath(estimate.companyId, "estimate", estimate.id),
+    ctaUrl: companyDocumentPath(companyRef, "estimate", estimate.id),
   }
 }
 
-export function contractEmailContext(contract: Contract): EmailComposeContext {
+export function contractEmailContext(contract: Contract, companyRef: string): EmailComposeContext {
   return {
     companyId: contract.companyId,
     companyName: contract.client,
@@ -54,11 +57,11 @@ export function contractEmailContext(contract: Contract): EmailComposeContext {
     documentTitle: contract.title,
     subject: contract.title,
     ctaText: "Review contract",
-    ctaUrl: companyDocumentPath(contract.companyId, "contract", contract.id),
+    ctaUrl: companyDocumentPath(companyRef, "contract", contract.id),
   }
 }
 
-export function companyDocumentEmailContext(record: CompanyDocument): EmailComposeContext {
+export function companyDocumentEmailContext(record: CompanyDocument, companyRef: string): EmailComposeContext {
   return {
     companyId: record.companyId,
     companyName: record.client,
@@ -69,6 +72,6 @@ export function companyDocumentEmailContext(record: CompanyDocument): EmailCompo
     documentTitle: record.title,
     subject: `${record.title} is ready for review`,
     ctaText: "Review document",
-    ctaUrl: companyDocumentPath(record.companyId, "document", record.id),
+    ctaUrl: companyDocumentPath(companyRef, "document", record.id),
   }
 }

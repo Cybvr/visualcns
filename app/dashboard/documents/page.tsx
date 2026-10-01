@@ -44,6 +44,7 @@ import {
   type CompanyDocumentKind,
 } from "@/lib/company-documents"
 import { companyDocumentEmailContext } from "@/lib/document-emails"
+import { getOrganizations, organizationRef, type Organization } from "@/lib/organizations"
 import { buildEmailComposeHref } from "@/lib/email-composer"
 import { tsToMillis } from "@/lib/tasks"
 import { cn } from "@/lib/utils"
@@ -122,12 +123,21 @@ export default function DocumentsPage() {
   const [importing, setImporting] = useState(false)
   const [duplicateTarget, setDuplicateTarget] = useState<DocumentRow | null>(null)
   const [duplicating, setDuplicating] = useState(false)
+  const [organizations, setOrganizations] = useState<Organization[]>([])
 
   const fetchData = useCallback(async () => {
     setError(false)
     try {
-      const docs = adminView ? await getCompanyDocuments() : await getCompanyDocumentsByCompanyId(companyId)
-      setRows(docs.map((d) => companyDocToRow(d, adminView)))
+      if (adminView) {
+        // Companies give each email link its slug.
+        const [docs, organizationList] = await Promise.all([getCompanyDocuments(), getOrganizations()])
+        setRows(docs.map((d) => companyDocToRow(d, adminView)))
+        setOrganizations(organizationList)
+      } else {
+        const docs = await getCompanyDocumentsByCompanyId(companyId)
+        setRows(docs.map((d) => companyDocToRow(d, adminView)))
+        setOrganizations([])
+      }
     } catch (loadError) {
       console.error("Error loading documents:", loadError)
       setError(true)
@@ -137,6 +147,13 @@ export default function DocumentsPage() {
   }, [adminView, companyId])
 
   useEffect(() => { void fetchData() }, [fetchData])
+
+  // Email links use the company's slug; a company that no longer exists falls back to its id.
+  const organizationRefById = useMemo(
+    () => new Map(organizations.map((organization) => [organization.id, organizationRef(organization)])),
+    [organizations],
+  )
+  const companyRefFor = (id: string) => organizationRefById.get(id) ?? id
 
   async function removeRow() {
     if (!confirmDelete) return
@@ -252,7 +269,7 @@ export default function DocumentsPage() {
                 menu={
                   <>
                     <DropdownMenuItem onSelect={() => router.push(row.viewHref)}>View document</DropdownMenuItem>
-                    {adminView && <DropdownMenuItem onSelect={() => router.push(buildEmailComposeHref(companyDocumentEmailContext(row.source)))}>Email document</DropdownMenuItem>}
+                    {adminView && <DropdownMenuItem onSelect={() => router.push(buildEmailComposeHref(companyDocumentEmailContext(row.source, companyRefFor(row.companyId))))}>Email document</DropdownMenuItem>}
                     {adminView && row.editHref && <DropdownMenuItem onSelect={() => row.editHref && router.push(row.editHref)}>Edit</DropdownMenuItem>}
                     {adminView && <DropdownMenuItem onSelect={() => setDuplicateTarget(row)}>Duplicate</DropdownMenuItem>}
                     {adminView && <DropdownMenuItem variant="destructive" onSelect={() => setConfirmDelete(row)}>Delete</DropdownMenuItem>}
@@ -278,7 +295,7 @@ export default function DocumentsPage() {
                   menu={
                     <>
                       <DropdownMenuItem onSelect={() => router.push(row.viewHref)}>View document</DropdownMenuItem>
-                    {adminView && <DropdownMenuItem onSelect={() => router.push(buildEmailComposeHref(companyDocumentEmailContext(row.source)))}>Email document</DropdownMenuItem>}
+                    {adminView && <DropdownMenuItem onSelect={() => router.push(buildEmailComposeHref(companyDocumentEmailContext(row.source, companyRefFor(row.companyId))))}>Email document</DropdownMenuItem>}
                       {adminView && row.editHref && <DropdownMenuItem onSelect={() => row.editHref && router.push(row.editHref)}>Edit</DropdownMenuItem>}
                       {adminView && <DropdownMenuItem onSelect={() => setDuplicateTarget(row)}>Duplicate</DropdownMenuItem>}
                       {adminView && <DropdownMenuItem variant="destructive" onSelect={() => setConfirmDelete(row)}>Delete</DropdownMenuItem>}
@@ -318,7 +335,7 @@ export default function DocumentsPage() {
                   <TableCell className="w-44">
                     <div className="flex items-center justify-end gap-1.5">
                       <Link href={row.viewHref} aria-label={`View ${row.title}`} className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"><Eye className="size-4" aria-hidden="true" /></Link>
-                      {adminView && <Link href={buildEmailComposeHref(companyDocumentEmailContext(row.source))} aria-label={`Email ${row.title}`} title="Email document" className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"><Mail className="size-4" aria-hidden="true" /></Link>}
+                      {adminView && <Link href={buildEmailComposeHref(companyDocumentEmailContext(row.source, companyRefFor(row.companyId)))} aria-label={`Email ${row.title}`} title="Email document" className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"><Mail className="size-4" aria-hidden="true" /></Link>}
                       {adminView && row.editHref && (
                         <Link href={row.editHref} aria-label={`Edit ${row.title}`} className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"><Pencil className="size-4" aria-hidden="true" /></Link>
                       )}

@@ -50,7 +50,7 @@ import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { DEFAULT_ESTIMATE_NOTES, DEFAULT_ESTIMATE_TERMS, getBusinessProfile, type BusinessProfile } from "@/lib/business-profile"
-import { getOrganizations, type Organization } from "@/lib/organizations"
+import { getOrganizations, organizationRef, type Organization } from "@/lib/organizations"
 import {
   createEstimate,
   deleteEstimate,
@@ -183,6 +183,8 @@ export function EstimateBuilder({ estimate, initialCompanyId }: { estimate?: Est
 
   const [clients, setClients] = useState<AppUser[]>([])
   const [organizations, setOrganizations] = useState<Organization[]>([])
+  // Email links use the company's slug; a company that no longer exists falls back to its id.
+  const companyRefFor = (id: string) => { const organization = organizations.find((entry) => entry.id === id); return organization ? organizationRef(organization) : id }
   const [projects, setProjects] = useState<Project[]>([])
   const [issuer, setIssuer] = useState<BusinessProfile | null>(null)
   const [optionsLoading, setOptionsLoading] = useState(true)
@@ -386,7 +388,7 @@ export function EstimateBuilder({ estimate, initialCompanyId }: { estimate?: Est
 
       const id = estimate ? estimate.id : await createEstimate(payload)
       if (estimate) await updateEstimate(estimate.id, payload)
-      if (destination === "email") router.push(buildEmailComposeHref(estimateEmailContext({ ...estimate, ...payload, id } as Estimate)))
+      if (destination === "email") router.push(buildEmailComposeHref(estimateEmailContext({ ...estimate, ...payload, id } as Estimate, companyRefFor(companyId))))
       else router.push(`/dashboard/estimates/${id}`)
     } catch (saveError) {
       console.error("Error saving estimate:", saveError)

@@ -50,8 +50,6 @@ import { contextualEmailBody, parseEmailList, readEmailComposeContext, type Emai
 import { getBusinessProfile, type BusinessProfile } from "@/lib/business-profile"
 import { deleteEmailTemplate, getEmailTemplates, saveEmailTemplate } from "@/lib/email-templates-store"
 import { markdownToHtml } from "@/lib/markdown"
-import { companyPath } from "@/lib/navigation"
-import { getOrganization } from "@/lib/organizations"
 import { createUser, getUsers } from "@/lib/users"
 import { VISITOR_PRICE_NAIRA, VISITOR_TRIAL_DAYS } from "@/lib/visitor-billing"
 import { cn } from "@/lib/utils"
@@ -814,32 +812,10 @@ export default function EmailPage() {
     setCc(nextContext.cc || "")
     setSelectedListId("")
     setSubject(nextContext.subject || "")
-    const startingBody = nextContext.body || contextualEmailBody(nextContext)
-    setBody(startingBody)
+    setBody(nextContext.body || contextualEmailBody(nextContext))
     setMessageKind(nextContext.messageKind === "marketing" ? "marketing" : "transactional")
     setSelectedTemplateId("")
     setSendNotice(null)
-
-    // Invoices, estimates and documents only know their company's id, so links
-    // start as /{id}/…; swap in the company's slug once it's looked up.
-    let active = true
-    const idPrefix = nextContext.companyId ? companyPath(nextContext.companyId) : ""
-    const ctaUrl = nextContext.ctaUrl
-    if (idPrefix && ctaUrl?.startsWith(`${idPrefix}/`)) {
-      void getOrganization(nextContext.companyId as string)
-        .then((organization) => {
-          if (!active || !organization?.slug || organization.slug === nextContext.companyId) return
-          const slugUrl = `${companyPath(organization.slug)}${ctaUrl.slice(idPrefix.length)}`
-          const withSlug = { ...nextContext, ctaUrl: slugUrl }
-          if (nextContext.body) setComposeContext(withSlug)
-          // Only replace the message if it hasn't been edited yet.
-          else setBody((current) => current === startingBody ? contextualEmailBody(withSlug) : current)
-        })
-        .catch(() => {
-          // The id link still opens the company page.
-        })
-    }
-    return () => { active = false }
   }, [searchParams])
 
   useEffect(() => {

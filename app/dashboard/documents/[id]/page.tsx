@@ -11,6 +11,7 @@ import { CompanyDocumentView } from "@/components/dashboard/company-document-vie
 import { ContextualEmailButton } from "@/components/dashboard/contextual-email-button"
 import { DocumentActions } from "@/components/dashboard/document-actions"
 import { usePageTitle } from "@/components/dashboard/page-title-context"
+import { useCompanyRef } from "@/components/dashboard/use-company-ref"
 import { getBusinessProfile, type BusinessProfile } from "@/lib/business-profile"
 import { getCompanyDocument, type CompanyDocument } from "@/lib/company-documents"
 import { companyDocumentEmailContext } from "@/lib/document-emails"
@@ -23,6 +24,7 @@ export default function DocumentDetailPage() {
   const [loading, setLoading] = useState(true)
   const [failed, setFailed] = useState(false)
   const adminView = isAdmin && !isImpersonating
+  const companyRef = useCompanyRef(record?.companyId, adminView)
 
   usePageTitle(record?.title ?? null, "/dashboard/documents")
 
@@ -76,7 +78,7 @@ export default function DocumentDetailPage() {
               <Pencil className="size-4" aria-hidden="true" />Edit
             </Link>
           )}
-          {adminView && <ContextualEmailButton label="Send for review" context={companyDocumentEmailContext(record)} />}
+          {adminView && companyRef && <ContextualEmailButton label="Send for review" context={companyDocumentEmailContext(record, companyRef)} />}
           <DocumentActions title={record.title} />
         </div>
       </div>

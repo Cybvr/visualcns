@@ -41,6 +41,7 @@ import {
   type Estimate,
 } from "@/lib/billing"
 import { estimateEmailContext } from "@/lib/document-emails"
+import { getOrganizations, organizationRef, type Organization } from "@/lib/organizations"
 import { buildEmailComposeHref } from "@/lib/email-composer"
 import { formatTimestamp, tsToMillis } from "@/lib/tasks"
 import { cn } from "@/lib/utils"
@@ -72,11 +73,20 @@ export default function EstimatesPage() {
   const [bulkDeleting, setBulkDeleting] = useState(false)
   const [duplicateTarget, setDuplicateTarget] = useState<Estimate | null>(null)
   const [duplicating, setDuplicating] = useState(false)
+  const [organizations, setOrganizations] = useState<Organization[]>([])
 
   const fetchData = useCallback(async () => {
     setError(false)
     try {
-      setEstimates(adminView ? await getEstimates() : await getEstimatesByCompanyId(companyId))
+      if (adminView) {
+        // Companies give each email link its slug.
+        const [rows, organizationList] = await Promise.all([getEstimates(), getOrganizations()])
+        setEstimates(rows)
+        setOrganizations(organizationList)
+      } else {
+        setEstimates(await getEstimatesByCompanyId(companyId))
+        setOrganizations([])
+      }
     } catch (loadError) {
       console.error("Error loading estimates:", loadError)
       setError(true)
@@ -88,6 +98,13 @@ export default function EstimatesPage() {
   useEffect(() => {
     void fetchData()
   }, [fetchData])
+
+  // Email links use the company's slug; a company that no longer exists falls back to its id.
+  const organizationRefById = useMemo(
+    () => new Map(organizations.map((organization) => [organization.id, organizationRef(organization)])),
+    [organizations],
+  )
+  const companyRefFor = (id: string) => organizationRefById.get(id) ?? id
 
   async function confirmDuplicateEstimate(selection: DuplicateSelection) {
     if (!duplicateTarget || duplicating) return
@@ -230,7 +247,7 @@ export default function EstimatesPage() {
                       menu={
                         <>
                           <DropdownMenuItem onSelect={() => router.push(`/dashboard/estimates/${estimate.id}`)}>View estimate</DropdownMenuItem>
-                          {adminView && <DropdownMenuItem onSelect={() => router.push(buildEmailComposeHref(estimateEmailContext(estimate)))}>Email estimate</DropdownMenuItem>}
+                          {adminView && <DropdownMenuItem onSelect={() => router.push(buildEmailComposeHref(estimateEmailContext(estimate, companyRefFor(estimate.companyId))))}>Email estimate</DropdownMenuItem>}
                           {adminView && <DropdownMenuItem onSelect={() => router.push(`/dashboard/invoices/new?estimateId=${encodeURIComponent(estimate.id)}`)}>Convert to invoice</DropdownMenuItem>}
                           {adminView && (
                             <>
@@ -291,7 +308,7 @@ export default function EstimatesPage() {
                           <div className="flex items-center justify-end gap-1.5">
                             <Link href={`/dashboard/estimates/${estimate.id}`} aria-label={`View estimate ${estimate.estimateNumber}`} className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"><Eye className="size-4" aria-hidden="true" /></Link>
                             {adminView && <>
-                              <Link href={buildEmailComposeHref(estimateEmailContext(estimate))} aria-label={`Email estimate ${estimate.estimateNumber}`} title="Email estimate" className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"><Mail className="size-4" aria-hidden="true" /></Link>
+                              <Link href={buildEmailComposeHref(estimateEmailContext(estimate, companyRefFor(estimate.companyId)))} aria-label={`Email estimate ${estimate.estimateNumber}`} title="Email estimate" className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"><Mail className="size-4" aria-hidden="true" /></Link>
                               <Link href={`/dashboard/invoices/new?estimateId=${encodeURIComponent(estimate.id)}`} aria-label={`Convert ${estimate.estimateNumber} to invoice`} className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"><Receipt className="size-4" aria-hidden="true" /></Link>
                               <button type="button" onClick={() => setDuplicateTarget(estimate)} aria-label={`Duplicate estimate ${estimate.estimateNumber}`} className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"><Copy className="size-4" aria-hidden="true" /></button>
                               <button type="button" onClick={() => setConfirmDelete(estimate)} aria-label={`Delete estimate ${estimate.estimateNumber}`} className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-destructive focus-visible:ring-2 focus-visible:ring-ring"><Trash2 className="size-4" aria-hidden="true" /></button>
