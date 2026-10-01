@@ -322,8 +322,8 @@ export function EmailComposer({
               <div className="min-h-0 flex-1 overflow-hidden px-2 py-2"><RichTextEditor value={body} onChange={setBody} placeholder="Write your message" scrollable compact flat allowHtml className="h-full min-h-0" /></div>
 
               {!fullPage && (
-                <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-t border-border px-3 py-2">
-                  <div className="flex items-center gap-1">
+                <div className="flex min-w-0 shrink-0 flex-nowrap items-center gap-1 overflow-x-auto border-t border-border px-2 py-2 [scrollbar-width:none]">
+                  <div className="flex shrink-0 items-center gap-1">
                     <div className="inline-flex items-stretch">
                       <Button type="submit" className="rounded-r-none" disabled={!senderConfigured || sending || (!selectedListId && !to.trim()) || (selectedListId && !selectedList?.contactEmails.length) || !subject.trim() || !htmlToText(body).trim() || (scheduleEnabled && !scheduleAt)}>{sending ? <Skeleton className="mr-1 size-4 rounded-sm bg-primary-foreground/30" aria-hidden="true" /> : scheduleEnabled ? <Clock aria-hidden="true" /> : <ReactIcon icon={IoSend} aria-hidden="true" />}{sending ? (scheduleEnabled ? "Scheduling" : "Sending") : scheduleEnabled ? "Schedule" : "Send"}</Button>
                       <DropdownMenu>
@@ -331,17 +331,17 @@ export function EmailComposer({
                         <DropdownMenuContent align="start">{scheduleEnabled ? <DropdownMenuItem onSelect={() => { setScheduleEnabled(false); setScheduleAt("") }}><ReactIcon icon={IoSend} aria-hidden="true" />Send now</DropdownMenuItem> : <DropdownMenuItem onSelect={() => setScheduleEnabled(true)}><Clock aria-hidden="true" />Schedule</DropdownMenuItem>}</DropdownMenuContent>
                       </DropdownMenu>
                     </div>
-                    {scheduleEnabled && <Input type="datetime-local" aria-label="Schedule date and time" value={scheduleAt} min={scheduleMin || undefined} onChange={(event) => setScheduleAt(event.target.value)} className="h-9 w-auto" />}
                   </div>
-                  <div className="flex items-center gap-2">
-                    {draftStatus !== "idle" && <span className="hidden text-xs text-muted-foreground sm:inline">{draftStatus === "saving" || savingDraft ? "Saving…" : draftStatus === "saved" ? "Saved" : "Not saved"}</span>}
-                    <label className="hidden items-center gap-1.5 text-xs text-muted-foreground sm:flex" title="Add the VisualCNS header, footer and CTA">
+                  {scheduleEnabled && <Input type="datetime-local" aria-label="Schedule date and time" value={scheduleAt} min={scheduleMin || undefined} onChange={(event) => setScheduleAt(event.target.value)} className="h-9 w-36 shrink-0" />}
+                  <div className="ml-auto flex shrink-0 items-center gap-1">
+                    {draftStatus !== "idle" && <span className="hidden whitespace-nowrap px-1 text-xs text-muted-foreground sm:inline">{draftStatus === "saving" || savingDraft ? "Saving…" : draftStatus === "saved" ? "Saved" : "Not saved"}</span>}
+                    <label className="hidden items-center gap-1 whitespace-nowrap px-1 text-xs text-muted-foreground sm:flex" title="Add the VisualCNS header, footer and CTA">
                       <input type="checkbox" checked={brandedEmail} onChange={(event) => setBrandedEmail(event.target.checked)} className="size-3.5 accent-primary" />
-                      Branded layout
+                      Branded
                     </label>
-                    <Button type="button" variant="outline" size="sm" onClick={() => setComposerPreviewOpen(true)}><Eye aria-hidden="true" />Preview</Button>
+                    <Button type="button" variant="outline" size="icon" aria-label="Preview email" title="Preview email" onClick={() => setComposerPreviewOpen(true)}><Eye aria-hidden="true" /></Button>
                     <DropdownMenu>
-                      <DropdownMenuTrigger asChild><Button type="button" variant="ghost" size="sm" className="max-w-40 justify-start px-2"><FileText aria-hidden="true" /><span className="truncate">{selectedTemplate?.name || "Template"}</span></Button></DropdownMenuTrigger>
+                      <DropdownMenuTrigger asChild><Button type="button" variant="ghost" size="icon" aria-label={selectedTemplate ? `Template: ${selectedTemplate.name}` : "Choose template"} title={selectedTemplate?.name || "Choose template"}><FileText aria-hidden="true" /></Button></DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="w-72"><DropdownMenuItem onSelect={() => applyTemplate("")}>Start without a template</DropdownMenuItem>{[...templates].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" })).map((template) => <DropdownMenuItem key={template.id} onSelect={() => applyTemplate(template.id)}><span className="truncate">{template.name}</span></DropdownMenuItem>)}</DropdownMenuContent>
                     </DropdownMenu>
                     <button type="button" onClick={() => { if (editingDraftId) void removeDraft(editingDraftId); clearComposer(); closeCompose() }} aria-label="Discard draft" title="Discard" className="flex size-9 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-destructive/10 hover:text-destructive"><Trash2 className="size-4" aria-hidden="true" /></button>
