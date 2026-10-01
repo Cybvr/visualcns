@@ -20,6 +20,15 @@ import type { ContactList, EmailContact, EmailMessageKind, EmailTemplate } from 
 
 type Notice = { tone: "success" | "error"; text: string } | null
 
+function matchingContacts(contacts: EmailContact[], query: string): EmailContact[] {
+  const search = query.trim().toLowerCase()
+  if (!search) return []
+  return contacts
+    .filter((contact) => `${contact.name} ${contact.email} ${contact.label}`.toLowerCase().includes(search))
+    .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }))
+    .slice(0, 6)
+}
+
 export type EmailComposerProps = {
   composeOpen: boolean
   /** Drafts open as a full page; new-mail compose stays a docked popup. */
@@ -143,18 +152,25 @@ export function EmailComposer({
 }: EmailComposerProps) {
   const [recipientSuggestionsOpen, setRecipientSuggestionsOpen] = useState(false)
   const [activeRecipientIndex, setActiveRecipientIndex] = useState(0)
-  const recipientMatches = useMemo(() => {
-    const query = to.trim().toLowerCase()
-    if (!query) return []
-    return contacts
-      .filter((contact) => `${contact.name} ${contact.email} ${contact.label}`.toLowerCase().includes(query))
-      .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }))
-      .slice(0, 6)
-  }, [contacts, to])
+  const [ccSuggestionsOpen, setCcSuggestionsOpen] = useState(false)
+  const [activeCcIndex, setActiveCcIndex] = useState(0)
+  const recipientMatches = useMemo(() => matchingContacts(contacts, to), [contacts, to])
+  const ccQuery = cc.split(/[,;]/).at(-1)?.trim() ?? ""
+  const ccMatches = useMemo(() => {
+    const entered = new Set(cc.split(/[,;]/).slice(0, -1).map((email) => email.trim().toLowerCase()))
+    return matchingContacts(contacts, ccQuery).filter((contact) => !entered.has(contact.email.toLowerCase()))
+  }, [cc, ccQuery, contacts])
 
   function selectRecipient(contact: EmailContact) {
     handleRecipientChange(contact.email)
     setRecipientSuggestionsOpen(false)
+  }
+
+  function selectCc(contact: EmailContact) {
+    const separator = Math.max(cc.lastIndexOf(","), cc.lastIndexOf(";"))
+    const previous = separator < 0 ? "" : `${cc.slice(0, separator + 1).trimEnd()} `
+    setCc(`${previous}${contact.email}, `)
+    setCcSuggestionsOpen(false)
   }
 
   if (!composeOpen) return null
@@ -255,9 +271,50 @@ export function EmailComposer({
               </div>
 
               {messageKind === "transactional" && (
-                <div className="flex shrink-0 items-center gap-2 border-b border-border px-4 py-1.5">
+                <div className="relative flex shrink-0 items-center gap-2 border-b border-border px-4 py-1.5" onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setCcSuggestionsOpen(false) }}>
                   <label htmlFor="email-cc" className="shrink-0 text-xs font-medium text-muted-foreground">Cc</label>
-                  <Input id="email-cc" name="message-cc" type="text" inputMode="email" autoComplete="off" value={cc} onChange={(event) => setCc(event.target.value)} placeholder="Add emails, separated by commas" className="h-8 border-0 px-0 shadow-none focus-visible:ring-0" />
+                  <Input
+                    id="email-cc"
+                    name="message-cc"
+                    type="text"
+                    inputMode="email"
+                    autoComplete="off"
+                    aria-autocomplete="list"
+                    aria-expanded={ccSuggestionsOpen && Boolean(ccQuery)}
+                    aria-controls="email-cc-suggestions"
+                    aria-activedescendant={ccSuggestionsOpen && ccMatches.length ? `email-cc-option-${Math.min(activeCcIndex, ccMatches.length - 1)}` : undefined}
+                    value={cc}
+                    onFocus={() => setCcSuggestionsOpen(Boolean(ccQuery))}
+                    onChange={(event) => { setCc(event.target.value); setActiveCcIndex(0); setCcSuggestionsOpen(Boolean(event.target.value.split(/[,;]/).at(-1)?.trim())) }}
+                    onKeyDown={(event) => {
+                      if (!ccSuggestionsOpen) return
+                      if (event.key === "ArrowDown" && ccMatches.length) { event.preventDefault(); setActiveCcIndex((index) => (index + 1) % ccMatches.length) }
+                      if (event.key === "ArrowUp" && ccMatches.length) { event.preventDefault(); setActiveCcIndex((index) => (index - 1 + ccMatches.length) % ccMatches.length) }
+                      if (event.key === "Enter") { event.preventDefault(); if (ccMatches.length) selectCc(ccMatches[activeCcIndex] ?? ccMatches[0]); else setCcSuggestionsOpen(false) }
+                      if (event.key === "Escape") { event.preventDefault(); setCcSuggestionsOpen(false) }
+                    }}
+                    placeholder="Add emails, separated by commas"
+                    className="h-8 border-0 px-0 shadow-none focus-visible:ring-0"
+                  />
+                  {ccSuggestionsOpen && ccQuery && (
+                    <div id="email-cc-suggestions" role="listbox" aria-label="Matching Cc contacts" className="absolute left-4 right-4 top-full z-50 mt-1 max-h-64 overflow-y-auto rounded-md border border-border bg-popover p-1 text-popover-foreground shadow-lg">
+                      {ccMatches.length ? ccMatches.map((contact, index) => (
+                        <button
+                          key={contact.email}
+                          id={`email-cc-option-${index}`}
+                          type="button"
+                          role="option"
+                          aria-selected={index === activeCcIndex}
+                          tabIndex={-1}
+                          onClick={() => selectCc(contact)}
+                          className={cn("flex w-full items-center gap-3 rounded px-2 py-2 text-left outline-none hover:bg-accent", index === activeCcIndex && "bg-accent")}
+                        >
+                          <Avatar className={cn("size-9 shrink-0", contactAvatarTone(contact.name || contact.email))}><AvatarFallback className="bg-transparent text-xs font-medium">{contactInitials(contact.name, contact.email)}</AvatarFallback></Avatar>
+                          <span className="min-w-0"><span className="block truncate text-sm font-medium">{contact.name || "Unnamed contact"}</span><span className="block truncate text-xs text-muted-foreground">{contact.email}</span></span>
+                        </button>
+                      )) : <p className="px-3 py-2 text-xs text-muted-foreground">No saved contact matches. You can still use this email address.</p>}
+                    </div>
+                  )}
                 </div>
               )}
               <div className="shrink-0 border-b border-border px-4 py-1.5"><Input id="email-subject" name="message-subject" aria-label="Subject" autoComplete="off" value={subject} onChange={(event) => setSubject(event.target.value)} maxLength={200} placeholder="Subject" className="h-8 border-0 px-0 shadow-none focus-visible:ring-0" required /></div>
