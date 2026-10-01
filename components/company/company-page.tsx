@@ -17,7 +17,6 @@ import { SectionNav } from "@/components/company/section-nav"
 import { CompanySection } from "@/components/company/sections/company-section"
 import { usePageHeaderActions } from "@/components/dashboard/page-title-context"
 import { ImageDropzone } from "@/components/image-dropzone"
-import { PortalPublishingPanel } from "@/components/portal/portal-publishing"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
@@ -53,7 +52,7 @@ function ShareLink({ value, label }: { value: string; label: string }) {
 }
 
 function DashboardCompanyView() {
-  const { company, people, projects, admin, sections, section, sectionHref, goToSection, setMediaAddOpen, absoluteUrl } = useCompanyPage()
+  const { company, people, admin, sections, section, sectionHref, goToSection, setMediaAddOpen, absoluteUrl } = useCompanyPage()
   const { user, signOut } = useAuth()
   const router = useRouter()
   const pathname = usePathname()
@@ -169,13 +168,10 @@ function DashboardCompanyView() {
             <DialogContent className="max-h-[85vh] max-w-2xl overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Share company page</DialogTitle>
-                <DialogDescription>Control what {company.name} sees after signing in, then share their company page link.</DialogDescription>
+                <DialogDescription>Copy this link to share {company.name}&apos;s client page.</DialogDescription>
               </DialogHeader>
               <ShareLink value={absoluteUrl(admin.sharePath)} label="Company link" />
-              <p className="text-xs text-muted-foreground">Clients sign in with their invited account. Previously shared company links continue to open this company page.</p>
-              <div className="border-t border-border pt-4">
-                <PortalPublishingPanel companyId={company.id} projects={projects} people={people} active={shareOpen} />
-              </div>
+              <p className="text-xs text-muted-foreground">The link opens this company page with its shared projects, tasks, documents, and details.</p>
             </DialogContent>
           </Dialog>
         </>
