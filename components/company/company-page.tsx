@@ -9,6 +9,7 @@ import { toast } from "sonner"
 import { CompanyDocuments, type CompanyDocumentKind } from "@/components/company/company-documents"
 import { CompanyBookings } from "@/components/company/company-bookings"
 import { CompanyDocumentView } from "@/components/dashboard/company-document-view"
+import { TaskContent } from "@/components/dashboard/task-content"
 import { CompanyEmptyState } from "@/components/company/empty-state"
 import { CompanyLinks } from "@/components/company/company-links"
 import { CompanyMedia } from "@/components/company/company-media"
@@ -305,6 +306,9 @@ export function CompanyPage({
   const [activityTasks, setActivityTasks] = useState<Task[]>([])
   const [tasksLoading, setTasksLoading] = useState(true)
   const [viewingTaskId, setViewingTaskId] = useState<string | null>(null)
+  const [viewingTaskContent, setViewingTaskContent] = useState<string | null>(null)
+  const [viewingTaskError, setViewingTaskError] = useState(false)
+  const [viewingTaskRetry, setViewingTaskRetry] = useState(0)
   const [taskRevision, setTaskRevision] = useState(0)
   const [deletingTaskId, setDeletingTaskId] = useState<string | null>(null)
   const [teamDialogOpen, setTeamDialogOpen] = useState(false)
@@ -469,6 +473,28 @@ export function CompanyPage({
   const viewingTask = !admin && viewingTaskId
     ? activityTasks.find((task) => task.id === viewingTaskId) ?? null
     : null
+
+  useEffect(() => {
+    if (isAdmin || !viewingTaskId) {
+      setViewingTaskContent(null)
+      setViewingTaskError(false)
+      return
+    }
+    const controller = new AbortController()
+    setViewingTaskContent(null)
+    setViewingTaskError(false)
+    fetch(`/api/organizations/public/task-content?companyId=${encodeURIComponent(company.id)}&taskId=${encodeURIComponent(viewingTaskId)}`, {
+      cache: "no-store",
+      signal: controller.signal,
+    })
+      .then((response) => {
+        if (!response.ok) throw new Error("Task content unavailable")
+        return response.json() as Promise<{ content: string }>
+      })
+      .then((result) => setViewingTaskContent(result.content))
+      .catch(() => { if (!controller.signal.aborted) setViewingTaskError(true) })
+    return () => controller.abort()
+  }, [company.id, isAdmin, viewingTaskId, viewingTaskRetry])
 
   function openTeamDialog() {
     setTeamContactIds([])
@@ -1078,7 +1104,7 @@ export function CompanyPage({
           <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg">
             <DialogHeader>
               <DialogTitle>{viewingTask?.name || "Task"}</DialogTitle>
-              <DialogDescription>View-only task details shared with {company.name}.</DialogDescription>
+              <DialogDescription className="sr-only">Task details</DialogDescription>
             </DialogHeader>
             {viewingTask && (
               <div className="space-y-5">
@@ -1097,10 +1123,17 @@ export function CompanyPage({
                   </div>
                 </dl>
                 <section>
-                  <h3 className="text-sm font-medium text-foreground">Instructions</h3>
-                  <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-muted-foreground">
-                    {viewingTask.content?.trim() || "No instructions shared."}
-                  </p>
+                  <h3 className="text-sm font-medium text-foreground">Content</h3>
+                  {viewingTaskError ? (
+                    <div className="mt-2 text-sm text-muted-foreground">
+                      <p>Couldn’t load the task content.</p>
+                      <button type="button" className="mt-2 font-medium text-foreground underline underline-offset-4" onClick={() => setViewingTaskRetry((value) => value + 1)}>Try again</button>
+                    </div>
+                  ) : viewingTaskContent === null ? (
+                    <p className="mt-2 text-sm text-muted-foreground" role="status">Loading content…</p>
+                  ) : (
+                    <TaskContent value={viewingTaskContent} className="mt-2" />
+                  )}
                 </section>
               </div>
             )}
