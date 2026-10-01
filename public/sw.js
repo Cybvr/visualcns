@@ -66,3 +66,21 @@ self.addEventListener("fetch", (event) => {
     )
   }
 })
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close()
+  const url = new URL(event.notification.data?.url || "/dashboard/email", self.location.origin)
+  if (url.origin !== self.location.origin || url.pathname !== "/dashboard/email") return
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(async (clients) => {
+      const existing = clients.find((client) => new URL(client.url).origin === self.location.origin)
+      if (existing) {
+        try {
+          const navigated = await existing.navigate(url.href)
+          if (navigated) return navigated.focus()
+        } catch { /* Open a new window if the existing client cannot navigate. */ }
+      }
+      return self.clients.openWindow(url.href)
+    }),
+  )
+})

@@ -6,6 +6,41 @@ import { useAuth } from "@/components/auth-provider"
 import { getHiddenReceivedIds } from "@/lib/email-received-hidden"
 
 export const UNREAD_EMAIL_COUNT_EVENT = "visualcns-email-unread-count"
+export const EMAIL_NOTIFICATION_PREFERENCE_EVENT = "visualcns-email-notification-preference"
+export const EMAIL_INBOX_REFRESH_EVENT = "visualcns-email-inbox-refresh"
+
+type InboxMessage = { id: string; from: string; subject: string }
+
+async function showNewEmailNotifications(messages: InboxMessage[]) {
+  if (!("Notification" in window) || Notification.permission !== "granted") return
+  try {
+    if ("serviceWorker" in navigator) {
+      const registration = await navigator.serviceWorker.ready
+      for (const message of messages) {
+        await registration.showNotification(message.from || "New email", {
+          body: message.subject || "(No subject)",
+          icon: "/icon-192.png",
+          badge: "/icon-192.png",
+          tag: `visualcns-email:${message.id}`,
+          data: { url: "/dashboard/email" },
+        })
+      }
+    } else {
+      for (const message of messages) {
+        const notification = new Notification(message.from || "New email", {
+          body: message.subject || "(No subject)",
+          icon: "/icon-192.png",
+          tag: `visualcns-email:${message.id}`,
+        })
+        notification.onclick = () => {
+          window.focus()
+          window.location.assign("/dashboard/email")
+          notification.close()
+        }
+      }
+    }
+  } catch { /* A browser can revoke permission or suspend its service worker. */ }
+}
 
 export function publishUnreadEmailCount(workspaceId: string, count: number) {
   window.dispatchEvent(new CustomEvent(UNREAD_EMAIL_COUNT_EVENT, { detail: { workspaceId, count } }))
@@ -27,8 +62,10 @@ export function useUnreadEmailCount() {
     let active = true
     let requestId = 0
     const readStorageKey = `visualcns-email-received-read:${workspaceId}`
+    const seenStorageKey = `visualcns-email-received-seen:${workspaceId}`
+    const preferenceStorageKey = `visualcns-email-notifications:${workspaceId}`
 
-    async function refresh() {
+    async function refresh(suppressNotifications = false) {
       const currentRequest = ++requestId
       try {
         const idToken = await currentUser.getIdToken()
@@ -40,7 +77,7 @@ export function useUnreadEmailCount() {
           getHiddenReceivedIds(workspaceId).catch(() => [] as string[]),
         ])
         if (!response.ok) return
-        const result = (await response.json()) as { data?: Array<{ id: string }> }
+        const result = (await response.json()) as { data?: InboxMessage[] }
         const messages = Array.isArray(result.data) ? result.data : []
         let readIds: string[] = []
         try {
@@ -51,6 +88,22 @@ export function useUnreadEmailCount() {
         const hidden = new Set(hiddenIds)
         if (active && currentRequest === requestId) {
           setCount(messages.filter((message) => !hidden.has(message.id) && !read.has(message.id)).length)
+          window.dispatchEvent(new CustomEvent(EMAIL_INBOX_REFRESH_EVENT, { detail: { workspaceId, messages } }))
+          try {
+            const stored = localStorage.getItem(seenStorageKey)
+            const parsed = stored ? JSON.parse(stored) : []
+            const seen = new Set<string>(Array.isArray(parsed) ? parsed.filter((id): id is string => typeof id === "string") : [])
+            const newlyReceived = stored !== null && !suppressNotifications && localStorage.getItem(preferenceStorageKey) === "enabled"
+              ? messages.filter((message) => !seen.has(message.id) && !hidden.has(message.id) && !read.has(message.id))
+              : []
+            localStorage.setItem(seenStorageKey, JSON.stringify([...new Set([...messages.map((message) => message.id), ...seen])].slice(0, 300)))
+            if (newlyReceived.length > 0) {
+              const alerts = newlyReceived.length > 3
+                ? [{ id: newlyReceived[0].id, from: "New inbox mail", subject: `${newlyReceived.length} new emails` }]
+                : newlyReceived
+              void showNewEmailNotifications(alerts)
+            }
+          } catch { /* Counting still works if browser storage is unavailable. */ }
         }
       } catch { /* Keep the last known count when the inbox is unavailable. */ }
     }
@@ -72,19 +125,27 @@ export function useUnreadEmailCount() {
 
     void refresh()
     const interval = window.setInterval(() => {
-      if (document.visibilityState === "visible") void refresh()
+      try {
+        if (document.visibilityState === "visible" || localStorage.getItem(preferenceStorageKey) === "enabled") void refresh()
+      } catch {
+        if (document.visibilityState === "visible") void refresh()
+      }
     }, 60_000)
+    const onFocus = () => { void refresh() }
+    const onPreferenceChanged = () => { void refresh(true) }
     window.addEventListener(UNREAD_EMAIL_COUNT_EVENT, onCountChanged)
+    window.addEventListener(EMAIL_NOTIFICATION_PREFERENCE_EVENT, onPreferenceChanged)
     window.addEventListener("storage", onStorage)
-    window.addEventListener("focus", refresh)
+    window.addEventListener("focus", onFocus)
     document.addEventListener("visibilitychange", onVisibilityChange)
     return () => {
       active = false
       ++requestId
       window.clearInterval(interval)
       window.removeEventListener(UNREAD_EMAIL_COUNT_EVENT, onCountChanged)
+      window.removeEventListener(EMAIL_NOTIFICATION_PREFERENCE_EVENT, onPreferenceChanged)
       window.removeEventListener("storage", onStorage)
-      window.removeEventListener("focus", refresh)
+      window.removeEventListener("focus", onFocus)
       document.removeEventListener("visibilitychange", onVisibilityChange)
     }
   }, [user, isAdmin, workspaceId])

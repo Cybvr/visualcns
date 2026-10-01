@@ -45,7 +45,8 @@ import { deleteEmailList, getEmailLists, saveEmailList, type EmailContactList } 
 import { deleteEmailDraft, getEmailDrafts, saveEmailDraft, type EmailDraftRecord } from "@/lib/email-drafts"
 import { deleteEmailMessage, getAllEmailMessages, getEmailMessages, saveEmailMessage, updateEmailMessageStatus, type EmailMessageRecord, type EmailRecipient } from "@/lib/email-messages"
 import { getHiddenReceivedIds, hideReceivedEmail } from "@/lib/email-received-hidden"
-import { publishUnreadEmailCount } from "@/components/dashboard/email/use-unread-email-count"
+import { EMAIL_INBOX_REFRESH_EVENT, publishUnreadEmailCount } from "@/components/dashboard/email/use-unread-email-count"
+import { EmailNotificationControl } from "@/components/dashboard/email/email-notification-control"
 import { contextualEmailBody, parseEmailList, readEmailComposeContext, type EmailComposeContext } from "@/lib/email-composer"
 import { getBusinessProfile, type BusinessProfile } from "@/lib/business-profile"
 import { deleteEmailTemplate, getEmailTemplates, saveEmailTemplate } from "@/lib/email-templates-store"
@@ -355,6 +356,23 @@ export default function EmailPage() {
   useEffect(() => {
     if (user?.uid && readStateHydrated) publishUnreadEmailCount(workspaceId, unreadReceivedCount)
   }, [user?.uid, readStateHydrated, workspaceId, unreadReceivedCount])
+
+  useEffect(() => {
+    function onInboxRefresh(event: Event) {
+      const detail = (event as CustomEvent<{ workspaceId: string; messages: ReceivedMessage[] }>).detail
+      if (detail?.workspaceId !== workspaceId) return
+      setReceivedMessages((current) => {
+        const existing = new Map(current.map((message) => [message.id, message]))
+        return detail.messages.map((message) => ({
+          ...message,
+          html: message.html ?? existing.get(message.id)?.html,
+          text: message.text ?? existing.get(message.id)?.text,
+        }))
+      })
+    }
+    window.addEventListener(EMAIL_INBOX_REFRESH_EVENT, onInboxRefresh)
+    return () => window.removeEventListener(EMAIL_INBOX_REFRESH_EVENT, onInboxRefresh)
+  }, [workspaceId])
 
   // The lists show a person's name, never a raw address: prefer an explicit name,
   // then a "Name <email>" display part, then a saved contact, then the local part.
@@ -1692,6 +1710,7 @@ export default function EmailPage() {
           searchClassName={tab === "messages" || tab === "inbox" ? "sm:max-w-[16rem]" : undefined}
           actions={
             <>
+            {tab === "inbox" && <EmailNotificationControl workspaceId={workspaceId} />}
             {tab === "templates" && mobileTemplateView === "list" && (
               <Button type="button" size="sm" className="hidden lg:inline-flex" onClick={() => { resetTemplateEditor(); setMobileTemplateView("editor") }}>
                 <Plus className="size-4" aria-hidden="true" />New template
