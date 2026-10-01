@@ -218,6 +218,7 @@ export function ProjectDetail({
       projects={[project]}
       companyId={project.companyId || companyId}
       clientName={project.client || clientName}
+      canDuplicate={isAdmin}
       deleting={deleting}
       onDelete={handleDelete}
       onPatch={handlePatch}

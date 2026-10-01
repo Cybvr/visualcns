@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
+import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import {
@@ -30,8 +31,9 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet"
-import { ListTodo, Maximize2, Pencil, Plus, Trash2, Loader2 } from "lucide-react"
+import { Copy, ListTodo, Maximize2, Pencil, Plus, Trash2, Loader2 } from "lucide-react"
 import {
+  duplicateTask,
   getTasks,
   deleteTask,
   taskStatusMeta,
@@ -90,6 +92,7 @@ export default function TasksAdminPage() {
   const [bulkDeleting, setBulkDeleting] = useState(false)
   const [selectedId, setSelectedId] = useState<string | "new" | null>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
+  const [duplicatingId, setDuplicatingId] = useState<string | null>(null)
 
   async function fetchData() {
     setError(null)
@@ -127,6 +130,20 @@ export default function TasksAdminPage() {
   async function handleSaved() {
     await fetchData()
     setSelectedId(null)
+  }
+
+  async function handleDuplicate(task: Task) {
+    if (duplicatingId) return
+    setDuplicatingId(task.id)
+    try {
+      await duplicateTask(task)
+      await fetchData()
+      toast.success("Task duplicated")
+    } catch {
+      toast.error("Couldn’t duplicate the task. Try again.")
+    } finally {
+      setDuplicatingId(null)
+    }
   }
 
   const { results: visibleTasks, bar } = useFilterBar({
@@ -201,6 +218,7 @@ export default function TasksAdminPage() {
                       menu={
                         <>
                           <DropdownMenuItem onSelect={() => setSelectedId(t.id)}>Edit task</DropdownMenuItem>
+                          <DropdownMenuItem disabled={duplicatingId !== null} onSelect={() => void handleDuplicate(t)}>Duplicate task</DropdownMenuItem>
                           <DropdownMenuItem onSelect={() => setDeleteId(t.id)}>Delete task</DropdownMenuItem>
                         </>
                       }
@@ -209,7 +227,7 @@ export default function TasksAdminPage() {
                 ))}
               </ul>
 
-              <div className="hidden overflow-x-hidden sm:block">
+              <div className="hidden overflow-x-auto sm:block">
               <TableBulkBar
                 count={selection.selectedCount}
                 noun="task"
@@ -217,7 +235,7 @@ export default function TasksAdminPage() {
                 onClear={selection.clear}
                 onDelete={handleBulkDelete}
               />
-              <Table className="w-full table-fixed">
+              <Table className="w-full min-w-[760px] table-fixed">
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-10 px-2">
@@ -228,11 +246,11 @@ export default function TasksAdminPage() {
                         onChange={selection.toggleAll}
                       />
                     </TableHead>
-                    <TableHead className="w-[34%]">Task</TableHead>
-                    <TableHead className="w-[19%]">Client</TableHead>
-                    <TableHead className="w-[24%]">Project</TableHead>
+                    <TableHead className="w-[30%]">Task</TableHead>
+                    <TableHead className="w-[18%]">Client</TableHead>
+                    <TableHead className="w-[22%]">Project</TableHead>
                     <TableHead className="w-[14%]">Status</TableHead>
-                    <TableHead className="w-24 text-right">Actions</TableHead>
+                    <TableHead className="w-28 text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -275,6 +293,17 @@ export default function TasksAdminPage() {
                             aria-label="Edit task"
                           >
                             <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                            onClick={() => void handleDuplicate(t)}
+                            disabled={duplicatingId !== null}
+                            aria-label={`Duplicate ${t.name || "task"}`}
+                            title="Duplicate task"
+                          >
+                            {duplicatingId === t.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : <Copy className="h-3.5 w-3.5" aria-hidden="true" />}
                           </Button>
                           <AlertDialog>
                             <AlertDialogTrigger asChild>

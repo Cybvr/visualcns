@@ -72,7 +72,7 @@ export function ClientSectionPage({ section }: { section: "projects" | "tasks" }
               <TemplatesView companyId={companyId} clientName={clientName} onCreated={fetchData} />
             </>
           )
-          : <TasksView tasks={tasks} projects={projects} companyId={companyId} clientName={clientName} deleting={deleting} onDelete={handleDelete} onPatch={handlePatch} onSaved={fetchData} />}
+          : <TasksView tasks={tasks} projects={projects} companyId={companyId} clientName={clientName} canDuplicate={false} deleting={deleting} onDelete={handleDelete} onPatch={handlePatch} onSaved={fetchData} />}
       </main>
       {section === "projects" && (
         <ClientProjectCreateSheet

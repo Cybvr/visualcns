@@ -174,6 +174,21 @@ export async function createTask(data: Omit<Task, "id" | "createdAt" | "updatedA
   return ref.id
 }
 
+export async function duplicateTask(task: Task, companyId = task.companyId, clientName = task.client): Promise<string> {
+  return createTask({
+    name: `${task.name} copy`,
+    companyId,
+    client: clientName,
+    projectId: task.projectId,
+    project: task.project,
+    status: task.status,
+    priority: task.priority,
+    dueDate: task.dueDate || "",
+    content: task.content || "",
+    isPublic: false,
+  })
+}
+
 export async function updateTask(id: string, data: Partial<Omit<Task, "id" | "createdAt">>): Promise<void> {
   await updateDoc(doc(db, COLLECTION_NAME, id), { ...data, updatedAt: Timestamp.now() })
   const snapshot = await getDoc(doc(db, COLLECTION_NAME, id))

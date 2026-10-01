@@ -1,5 +1,6 @@
 import { useState } from "react"
-import { ListTodo, Loader2, Pencil, Plus, Trash2 } from "lucide-react"
+import { Copy, ListTodo, Loader2, Pencil, Plus, Trash2 } from "lucide-react"
+import { toast } from "sonner"
 
 import { ContextualEmailButton } from "@/components/dashboard/contextual-email-button"
 import { MobileDataCard } from "@/components/dashboard/mobile-data-card"
@@ -8,14 +9,14 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Badge, InlineDate, InlineProject, InlineSelect, InlineText } from "@/components/inline-table-cells"
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { formatTimestamp, taskPriorityMeta, taskStatusMeta, type Task, type TaskPriority, type TaskStatus } from "@/lib/tasks"
+import { duplicateTask, formatTimestamp, taskPriorityMeta, taskStatusMeta, type Task, type TaskPriority, type TaskStatus } from "@/lib/tasks"
 import { type Project } from "@/lib/projects"
 import { companyPath } from "@/lib/navigation"
 
 const STATUS_OPTIONS: TaskStatus[] = ["todo", "in-progress", "review", "done"]
 const PRIORITY_OPTIONS: TaskPriority[] = ["low", "medium", "high"]
 
-function RowActions({ task, onEdit, onDelete, deleting, companyId, clientName }: { task: Task; onEdit: () => void; onDelete: () => void; deleting: boolean; companyId: string; clientName: string }) {
+function RowActions({ task, onEdit, onDuplicate, onDelete, canDuplicate, duplicating, deleting, companyId, clientName }: { task: Task; onEdit: () => void; onDuplicate: () => void; onDelete: () => void; canDuplicate: boolean; duplicating: boolean; deleting: boolean; companyId: string; clientName: string }) {
   return (
     <div className="flex shrink-0 items-center gap-1.5">
       <ContextualEmailButton
@@ -29,6 +30,11 @@ function RowActions({ task, onEdit, onDelete, deleting, companyId, clientName }:
       <button type="button" onClick={onEdit} aria-label="Edit task" className="inline-flex size-7 items-center justify-center rounded-md text-muted-foreground hover:bg-muted/80 hover:text-foreground">
         <Pencil className="size-3.5" aria-hidden="true" />
       </button>
+      {canDuplicate && (
+        <button type="button" onClick={onDuplicate} disabled={duplicating} aria-label={`Duplicate ${task.name}`} title="Duplicate task" className="inline-flex size-7 items-center justify-center rounded-md text-muted-foreground hover:bg-muted/80 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50">
+          {duplicating ? <Loader2 className="size-3.5 animate-spin" aria-hidden="true" /> : <Copy className="size-3.5" aria-hidden="true" />}
+        </button>
+      )}
       <AlertDialog>
         <AlertDialogTrigger asChild>
           <button type="button" disabled={deleting} aria-label="Delete task" className="inline-flex size-7 items-center justify-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive disabled:opacity-50">
@@ -55,17 +61,33 @@ interface TasksViewProps {
   projects: Project[]
   companyId: string
   clientName: string
+  canDuplicate?: boolean
   deleting: string | null
   onDelete: (id: string) => void
   onPatch: (id: string, patch: Partial<Task>) => void
-  onSaved: () => void
+  onSaved: () => void | Promise<void>
 }
 
-export function TasksView({ tasks, projects, companyId, clientName, deleting, onDelete, onPatch, onSaved }: TasksViewProps) {
+export function TasksView({ tasks, projects, companyId, clientName, canDuplicate = true, deleting, onDelete, onPatch, onSaved }: TasksViewProps) {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [adding, setAdding] = useState<{ status?: TaskStatus } | null>(null)
   const [mobileDeleteTarget, setMobileDeleteTarget] = useState<Task | null>(null)
+  const [duplicatingId, setDuplicatingId] = useState<string | null>(null)
   const editingTask = editingId ? tasks.find((task) => task.id === editingId) ?? null : null
+
+  async function handleDuplicate(task: Task) {
+    if (duplicatingId) return
+    setDuplicatingId(task.id)
+    try {
+      await duplicateTask(task, companyId, clientName)
+      await onSaved()
+      toast.success("Task duplicated")
+    } catch {
+      toast.error("Couldn’t duplicate the task. Try again.")
+    } finally {
+      setDuplicatingId(null)
+    }
+  }
 
   function openAdd() {
     setEditingId(null)
@@ -112,7 +134,7 @@ export function TasksView({ tasks, projects, companyId, clientName, deleting, on
                   title={task.name}
                   subtitle={<span className="flex flex-col gap-1"><span className="flex flex-wrap items-center gap-x-2 gap-y-1"><span>{task.project || "No project"}</span><span>·</span><span>{status.label}</span><span>·</span><span>{priority.label}</span>{task.dueDate && <><span>·</span><span>Due {task.dueDate}</span></>}</span><span>Modified {formatTimestamp(task.updatedAt ?? task.createdAt)}</span></span>}
                   menuLabel={`Options for ${task.name}`}
-                  menu={<><DropdownMenuItem onSelect={() => openEdit(task.id)}>Edit task</DropdownMenuItem><DropdownMenuItem variant="destructive" onSelect={() => setMobileDeleteTarget(task)}>Delete task</DropdownMenuItem></>}
+                  menu={<><DropdownMenuItem onSelect={() => openEdit(task.id)}>Edit task</DropdownMenuItem>{canDuplicate && <DropdownMenuItem disabled={duplicatingId !== null} onSelect={() => void handleDuplicate(task)}>Duplicate task</DropdownMenuItem>}<DropdownMenuItem variant="destructive" onSelect={() => setMobileDeleteTarget(task)}>Delete task</DropdownMenuItem></>}
                 />
               )
             })}
@@ -124,12 +146,12 @@ export function TasksView({ tasks, projects, companyId, clientName, deleting, on
         <Table className="w-full min-w-[960px] table-fixed">
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[28%]">Task</TableHead>
+              <TableHead className={canDuplicate ? "w-[25%]" : "w-[28%]"}>Task</TableHead>
               <TableHead className="w-[20%]">Project</TableHead>
               <TableHead className="w-[12%]">Priority</TableHead>
               <TableHead className="w-[12%]">Status</TableHead>
               <TableHead className="w-[16%]">Due</TableHead>
-              <TableHead className="w-[12%] text-right"><span className="sr-only">Actions</span></TableHead>
+              <TableHead className={canDuplicate ? "w-[15%] text-right" : "w-[12%] text-right"}><span className="sr-only">Actions</span></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -151,7 +173,7 @@ export function TasksView({ tasks, projects, companyId, clientName, deleting, on
                   <TableCell><InlineSelect value={task.priority} options={PRIORITY_OPTIONS} onChange={(value) => onPatch(task.id, { priority: value })} renderOption={(value) => taskPriorityMeta[value].label} trigger={<Badge className={priority.className}>{priority.label}</Badge>} /></TableCell>
                   <TableCell><InlineSelect value={task.status} options={STATUS_OPTIONS} onChange={(value) => onPatch(task.id, { status: value })} renderOption={(value) => taskStatusMeta[value].label} trigger={<Badge className={status.className}>{status.label}</Badge>} /></TableCell>
                   <TableCell><InlineDate value={task.dueDate} onCommit={(dueDate) => onPatch(task.id, { dueDate })} /></TableCell>
-                  <TableCell><div className="flex justify-end"><RowActions task={task} onEdit={() => openEdit(task.id)} onDelete={() => onDelete(task.id)} deleting={deleting === task.id} companyId={companyId} clientName={clientName} /></div></TableCell>
+                  <TableCell><div className="flex justify-end"><RowActions task={task} onEdit={() => openEdit(task.id)} onDuplicate={() => void handleDuplicate(task)} onDelete={() => onDelete(task.id)} canDuplicate={canDuplicate} duplicating={duplicatingId === task.id} deleting={deleting === task.id} companyId={companyId} clientName={clientName} /></div></TableCell>
                 </TableRow>
               )
             })}

@@ -2,19 +2,22 @@
 
 import { useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
-import { ArrowLeft, ExternalLink, Share2 } from "lucide-react"
+import { ArrowLeft, Copy, ExternalLink, Share2 } from "lucide-react"
+import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
+import { useAuth } from "@/components/auth-provider"
 import { Card, CardContent } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { DashboardPageSkeleton } from "@/components/dashboard/dashboard-page-skeleton"
 import { ShareLinkField } from "@/components/dashboard/share-link-field"
 import { TaskForm } from "@/components/dashboard/task-form"
-import { getTask, updateTask, type Task } from "@/lib/tasks"
+import { duplicateTask, getTask, updateTask, type Task } from "@/lib/tasks"
 
 export default function TaskEditPage() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
+  const { appUser, isAdmin } = useAuth()
   const [task, setTask] = useState<Task | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -22,9 +25,13 @@ export default function TaskEditPage() {
   const [shareEnabled, setShareEnabled] = useState(false)
   const [shareSaving, setShareSaving] = useState(false)
   const [shareError, setShareError] = useState<string | null>(null)
+  const [duplicating, setDuplicating] = useState(false)
+  const canDuplicate = isAdmin && (!task?.agencyId || task.agencyId === appUser?.agencyId)
 
   useEffect(() => {
     if (!id) return
+    setLoading(true)
+    setError(null)
     getTask(id)
       .then((found) => {
         setTask(found)
@@ -40,6 +47,20 @@ export default function TaskEditPage() {
     setShareEnabled(Boolean(task.shareEnabled))
     setShareError(null)
     setShareOpen(true)
+  }
+
+  async function handleDuplicate() {
+    if (!task || !canDuplicate || duplicating) return
+    setDuplicating(true)
+    try {
+      const copyId = await duplicateTask(task)
+      toast.success("Task duplicated")
+      router.push(`/dashboard/tasks/${encodeURIComponent(copyId)}`)
+    } catch {
+      toast.error("Couldn’t duplicate the task. Try again.")
+    } finally {
+      setDuplicating(false)
+    }
   }
 
   async function saveSharing() {
@@ -81,6 +102,12 @@ export default function TaskEditPage() {
           Back to tasks
         </Button>
         <div className="flex justify-end gap-2">
+          {canDuplicate && (
+            <Button variant="outline" size="sm" onClick={() => void handleDuplicate()} disabled={duplicating}>
+              <Copy className="mr-2 size-4" aria-hidden="true" />
+              {duplicating ? "Duplicating…" : "Duplicate"}
+            </Button>
+          )}
           <Button variant="outline" size="sm" onClick={openShare}>
             <Share2 className="mr-2 size-4" aria-hidden="true" />
             Share
