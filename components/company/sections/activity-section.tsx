@@ -16,7 +16,7 @@ export function ActivitySection({ heading, prominent = false }: { heading?: stri
   )
 
   return (
-    <div className="mt-5">
+    <div className="mt-5 min-w-0">
       <h2 className={prominent ? "py-2 text-xl font-semibold tracking-[-0.02em] text-foreground" : "sidebar-nav-label text-muted-foreground"}>{title}</h2>
       <ActivityFeed
         items={activity}

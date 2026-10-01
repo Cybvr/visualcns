@@ -148,7 +148,7 @@ export function TeamSection() {
                 </p>
               ) : (
                 <div className="max-h-72 overflow-y-auto rounded-xl border border-border p-2">
-                  <div className="grid gap-1 sm:grid-cols-2">
+                  <div className="grid grid-cols-1 gap-1 sm:grid-cols-2">
                     {matchingContacts.map((person) => (
                       <label key={person.id} className="flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors hover:bg-muted">
                         <Checkbox

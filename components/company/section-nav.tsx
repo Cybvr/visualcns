@@ -42,8 +42,11 @@ export function SectionNav<K extends string>({ sections, active, href, className
   )
 }
 
-/** Vertical icon menu for the side of the public company page, in the style of X and Facebook. */
-export function SectionRail<K extends string>({ sections, active, href, className }: SectionNavProps<K>) {
+/**
+ * Vertical icon menu for the side of the public company page, in the style of X
+ * and Facebook. `expanded` always shows the labels, for the phone drawer.
+ */
+export function SectionRail<K extends string>({ sections, active, href, className, expanded = false, onNavigate }: SectionNavProps<K> & { expanded?: boolean; onNavigate?: () => void }) {
   return (
     <nav className={cn("flex flex-col gap-0.5", className)}>
       {sections.map((s) => {
@@ -53,17 +56,19 @@ export function SectionRail<K extends string>({ sections, active, href, classNam
           <Link
             key={s.key}
             href={href(s.key)}
+            onClick={onNavigate}
             aria-current={isActive ? "page" : undefined}
             aria-label={s.label}
             title={s.label}
             className={cn(
-              "flex items-center justify-center gap-3 rounded-full p-2.5 text-foreground outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring lg:w-full lg:justify-start lg:px-3 lg:py-2",
+              "flex items-center gap-3 rounded-full text-foreground outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring",
+              expanded ? "w-full justify-start px-3 py-2.5" : "justify-center p-2.5 lg:w-full lg:justify-start lg:px-3 lg:py-2",
               isActive ? "font-semibold" : "font-normal",
             )}
           >
             {Icon && <Icon className="size-[18px] shrink-0" strokeWidth={isActive ? 2.4 : 1.8} aria-hidden="true" />}
             {/* Icons only on tablets, like X; labels come in once there is room. */}
-            <span className="hidden truncate text-[14px] lg:inline">{s.label}</span>
+            <span className={cn("truncate", expanded ? "text-[15px]" : "hidden text-[14px] lg:inline")}>{s.label}</span>
           </Link>
         )
       })}

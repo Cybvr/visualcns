@@ -131,7 +131,7 @@ export function TasksSection() {
           </DialogHeader>
           {viewingTask && (
             <div className="space-y-5">
-              <dl className="grid gap-4 rounded-lg bg-muted/40 p-4 text-sm sm:grid-cols-2">
+              <dl className="grid grid-cols-1 gap-4 rounded-lg bg-muted/40 p-4 text-sm sm:grid-cols-2">
                 <div>
                   <dt className="text-muted-foreground">Project</dt>
                   <dd className="mt-1 font-medium text-foreground">{viewingTask.project || "No project"}</dd>

@@ -202,7 +202,7 @@ export function BusinessHealthIntro({
               {FIELDS.map((field) => {
                 const value = details[field.key]?.trim()
                 return (
-                  <div key={field.key} className="grid grid-cols-[1.25rem_1fr] items-start gap-x-3 gap-y-0.5 py-3 sm:grid-cols-[1.25rem_9rem_1fr]">
+                  <div key={field.key} className="grid grid-cols-[1.25rem_minmax(0,1fr)] items-start gap-x-3 gap-y-0.5 py-3 sm:grid-cols-[1.25rem_9rem_minmax(0,1fr)]">
                     <field.icon className="mt-0.5 size-5 text-muted-foreground" aria-hidden="true" />
                     <dt className="text-sm text-muted-foreground sm:mt-0.5">{field.label}</dt>
                     <dd className={cn("col-start-2 flex min-w-0 items-start gap-2 sm:col-start-3", value ? "text-foreground" : "text-muted-foreground")}>
