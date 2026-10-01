@@ -202,10 +202,13 @@
     padding: 0 0.875rem !important;
     color: var(--foreground);
   }
+  .billing-editor [data-slot="input"] {
+    background: transparent !important;
+  }
   .billing-editor [data-slot="textarea"] {
     border: 1px solid var(--border) !important;
     border-radius: 0.75rem !important;
-    background: var(--background) !important;
+    background: transparent !important;
     padding: 0.625rem 0.875rem !important;
     box-shadow: none !important;
   }
