@@ -14,6 +14,7 @@ import { VISITOR_TRIAL_DAYS } from "@/lib/visitor-billing"
 type DemoScreen = "start" | KioskTab | "signed-in" | "signed-out"
 type DemoVisitor = { id: string; name: string; at: number }
 
+const SIGNUP_HREF = `/signup?next=${encodeURIComponent("/dashboard/visitors")}`
 const HOSTS = ["Tunde Bello", "Ngozi Eze", "Kemi Adeyemi"]
 const PURPOSES = ["Meeting", "Interview", "Delivery", "Collection", "Maintenance", "Personal", "Other"]
 
@@ -69,7 +70,7 @@ export default function VisitorsDemoPage() {
     <main className="kiosk kiosk-page flex min-h-svh flex-col bg-card text-foreground">
       <div className="flex shrink-0 flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-border bg-background px-4 py-3 text-sm">
         <p className="text-muted-foreground"><span className="font-medium text-foreground">This is a demo.</span> Get your own: free for {VISITOR_TRIAL_DAYS} days, no card needed.</p>
-        <Link href="/visitors/onboarding" className="inline-flex h-9 shrink-0 items-center rounded-full bg-foreground px-4 font-medium text-background outline-none transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring">Get started</Link>
+        <Link href={SIGNUP_HREF} className="inline-flex h-9 shrink-0 items-center rounded-full bg-foreground px-4 font-medium text-background outline-none transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring">Get started</Link>
       </div>
       <div className="flex flex-1 flex-col">
         {screen === "start" && (
@@ -165,7 +166,7 @@ export default function VisitorsDemoPage() {
         <footer className="px-4 py-4 text-center">
           <PoweredBy>
             <span aria-hidden="true">·</span>
-            <Link href="/visitors/onboarding" className="underline underline-offset-2 hover:text-foreground">Interested?</Link>
+            <Link href={SIGNUP_HREF} className="underline underline-offset-2 hover:text-foreground">Interested?</Link>
           </PoweredBy>
         </footer>
       </div>

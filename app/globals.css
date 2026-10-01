@@ -667,11 +667,6 @@
     .kiosk .kiosk-panel form > div:first-child > :not(:first-child) { margin-top: 0.25rem; }
     .kiosk .kiosk-footer > p { margin-top: 0; }
   }
-  @media (max-width: 639px) and (max-height: 600px) {
-    .visitor-signup-page .visitor-signup-brand,
-    .visitor-signup-page .visitor-signup-trial { display: none; }
-    .visitor-signup-page .visitor-signup-heading { margin-top: 0.25rem; margin-bottom: 0.5rem; }
-  }
   @media print {
     .kiosk-badge {
       display: flex !important;

@@ -3,7 +3,7 @@
 import { useEffect, useState, type FormEvent } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { Loader2 } from "lucide-react"
+import { ArrowRight, Building2, ClipboardList, FolderKanban, Loader2, Users } from "lucide-react"
 
 import { useAuth } from "@/components/auth-provider"
 import { authErrorMessage, GoogleIcon } from "@/components/auth-ui"
@@ -12,14 +12,15 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { safeReturnTo } from "@/lib/navigation"
-import { VISITOR_TRIAL_DAYS } from "@/lib/visitor-billing"
-import { VisitorSignupForm } from "@/components/visitors/visitor-signup-form"
 import { trackMetaLead } from "@/components/meta-pixel"
 
 type SignupAction = "email" | "google" | null
 
-const VISITORS_PATH = "/dashboard/visitors"
-
+const onboardingFeatures = [
+  { icon: Users, label: "Keep your clients and contacts together" },
+  { icon: FolderKanban, label: "Manage projects and tasks" },
+  { icon: ClipboardList, label: "Set up visitor sign-in when you need it" },
+]
 
 export default function SignupPage() {
   const router = useRouter()
@@ -28,28 +29,24 @@ export default function SignupPage() {
   const [returnTo, setReturnTo] = useState<string | null>(null)
   const [queryReady, setQueryReady] = useState(false)
   const [name, setName] = useState("")
-  const [agencyName, setAgencyName] = useState("")
+  const [companyName, setCompanyName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [emailFormOpen, setEmailFormOpen] = useState(false)
   const [action, setAction] = useState<SignupAction>(null)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
-    setInviteToken(params.get("invite") || "")
+    const invite = params.get("invite") || ""
+    setInviteToken(invite)
     setReturnTo(safeReturnTo(params.get("next")))
+    if (invite) setEmailFormOpen(true)
     setQueryReady(true)
   }, [])
 
   useEffect(() => {
-    if (!queryReady || action) return
-    // Keep old Visitor Sign-in campaign links working while sending people
-    // through the dedicated onboarding page.
-    if (returnTo === VISITORS_PATH) {
-      router.replace("/visitors/onboarding")
-      return
-    }
-    if (loading || !user) return
+    if (!queryReady || loading || action || !user) return
     if (inviteToken) {
       router.replace(`/invite/${inviteToken}`)
       return
@@ -60,15 +57,14 @@ export default function SignupPage() {
 
   async function handleEmailSignup(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (!inviteToken && !agencyName.trim()) {
-      setError("Enter your business name to continue.")
+    if (!inviteToken && !companyName.trim()) {
+      setError("Enter your company name to continue.")
       return
     }
     setAction("email")
     setError(null)
-
     try {
-      await signUpWithEmail(name, email.trim(), password, agencyName.trim(), !inviteToken)
+      await signUpWithEmail(name.trim(), email.trim(), password, companyName.trim(), !inviteToken)
       if (!inviteToken) trackMetaLead()
     } catch (err) {
       setError(authErrorMessage(err))
@@ -78,11 +74,14 @@ export default function SignupPage() {
   }
 
   async function handleGoogleSignup() {
+    if (!inviteToken && !companyName.trim()) {
+      setError("Enter your company name to continue.")
+      return
+    }
     setAction("google")
     setError(null)
-
     try {
-      await signInWithGoogle(inviteToken ? "" : agencyName.trim(), !inviteToken)
+      await signInWithGoogle(inviteToken ? "" : companyName.trim(), !inviteToken)
       if (!inviteToken) trackMetaLead()
     } catch (err) {
       const message = err instanceof Error ? err.message : ""
@@ -95,163 +94,95 @@ export default function SignupPage() {
   }
 
   const busy = loading || action !== null
-  const visitorSignup = returnTo === VISITORS_PATH
-  const businessNameField = !inviteToken && (
-    <div className="space-y-2">
-      <Label htmlFor="agencyName">{visitorSignup ? "Company name" : "Agency name"}</Label>
-      <Input id="agencyName" name="agencyName" type="text" value={agencyName} onChange={(event) => setAgencyName(event.target.value)} placeholder={visitorSignup ? "Your company" : "Your agency"} className="h-10 rounded-none bg-background text-base md:text-sm" disabled={busy} maxLength={120} required />
-    </div>
-  )
-  const googleButton = (
-    <Button
-      type="button"
-      variant="outline"
-      size="lg"
-      className="h-10 w-full gap-3 border-input bg-background hover:bg-muted hover:text-foreground"
-      onClick={handleGoogleSignup}
-      disabled={busy}
-      aria-busy={action === "google"}
-    >
-      {action === "google" ? (
-        <>
-          <Loader2 className="size-4 animate-spin" aria-hidden="true" />
-          Continuing…
-        </>
-      ) : (
-        <>
-          <GoogleIcon />
-          Continue with Google
-        </>
-      )}
-    </Button>
-  )
 
   return (
-    <main className={`flex min-h-svh items-center justify-center bg-muted/40 px-4 ${visitorSignup ? "visitor-signup-page py-2 sm:py-4" : "py-8"}`}>
-      <section
-        aria-labelledby="signup-heading"
-        className={`w-full border border-border bg-background ${visitorSignup ? "max-h-[calc(100dvh-1rem)] max-w-lg overflow-y-auto px-4 py-4 sm:px-6 sm:py-5" : "max-w-sm px-6 py-7 sm:px-7 sm:py-8"}`}
-      >
-        <div className={`flex justify-center ${visitorSignup ? "visitor-signup-brand" : ""}`}>
-          <Link
-            href="/"
-            aria-label="Return to VisualCNS home"
-            className="inline-flex outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-4"
-          >
-            <BrandLockup logoSize={26} gapClassName="gap-0.5" />
+    <main className="grid min-h-svh bg-background text-foreground lg:grid-cols-[1fr_1fr]">
+      <section className="hidden flex-col justify-between bg-primary px-10 py-9 text-primary-foreground lg:flex xl:px-16 xl:py-12">
+        <Link href="/" aria-label="VisualCNS home" className="w-fit rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-primary-foreground">
+          <BrandLockup logoSize={34} invert />
+        </Link>
+        <div className="mx-auto w-full max-w-xl py-12">
+          <p className="font-mono text-xs uppercase tracking-[0.22em] text-primary-foreground/70">Your VisualCNS workspace</p>
+          <h1 className="mt-5 text-5xl font-medium leading-[1.05] tracking-[-0.04em] xl:text-6xl">One account for the work you run.</h1>
+          <p className="mt-5 max-w-lg text-lg leading-7 text-primary-foreground/75">Create your company workspace and bring your day-to-day operations together.</p>
+          <ul className="mt-10 space-y-5">
+            {onboardingFeatures.map(({ icon: Icon, label }) => (
+              <li key={label} className="flex items-center gap-3 text-sm text-primary-foreground/90">
+                <span className="flex size-9 items-center justify-center rounded-full border border-primary-foreground/20 bg-primary-foreground/10">
+                  <Icon className="size-4" aria-hidden="true" />
+                </span>
+                {label}
+              </li>
+            ))}
+          </ul>
+        </div>
+        <p className="text-xs text-primary-foreground/60">Clients · projects · tasks · visitor log</p>
+      </section>
+
+      <section className="flex min-h-svh items-center justify-center px-5 py-8 sm:px-10 lg:px-12">
+        <div className="w-full max-w-md">
+          <Link href="/" aria-label="VisualCNS home" className="mb-10 inline-flex rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-ring lg:hidden">
+            <BrandLockup logoSize={30} />
           </Link>
-        </div>
 
-        <div className={visitorSignup ? "visitor-signup-heading mb-3 mt-3" : "mb-6 mt-7"}>
-          <h1 id="signup-heading" className={`text-center tracking-[-0.02em] text-foreground ${visitorSignup ? "text-2xl" : "text-3xl"}`}>
-            {visitorSignup ? "Set up visitor sign-in" : "Create your VisualHQ account"}
-          </h1>
-          {visitorSignup && <p className="visitor-signup-trial surface-caption mt-1 text-center">Free for {VISITOR_TRIAL_DAYS} days. No card needed.</p>}
-        </div>
-
-        {visitorSignup && (inviteToken ? googleButton : <VisitorSignupForm />)}
-
-        {!visitorSignup && <form className="space-y-4" onSubmit={handleEmailSignup}>
-          <div className="space-y-2">
-            <Label htmlFor="name">Name</Label>
-            <Input
-              id="name"
-              name="name"
-              type="text"
-              autoComplete="name"
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              className="h-10 rounded-none bg-background text-base md:text-sm"
-              disabled={busy}
-              maxLength={100}
-              required
-            />
+          <div className="mb-8">
+            <p className="font-mono text-xs uppercase tracking-[0.2em] text-primary">Get started</p>
+            <h2 className="mt-3 text-3xl font-medium tracking-[-0.035em] sm:text-4xl">
+              {inviteToken ? "Create your account" : "Set up your workspace"}
+            </h2>
+            <p className="mt-3 text-sm leading-6 text-muted-foreground">
+              {inviteToken ? "Create an account to join your team." : "Start with your company and account details. You can set up the rest inside the app."}
+            </p>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              name="email"
-              type="email"
-              autoComplete="email"
-              inputMode="email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              className="h-10 rounded-none bg-background text-base md:text-sm"
-              disabled={busy}
-              required
-            />
-          </div>
-
-          {!visitorSignup && businessNameField}
-
-          <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
-            <Input
-              id="password"
-              name="password"
-              type="password"
-              autoComplete="new-password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              className="h-10 rounded-none bg-background text-base md:text-sm"
-              disabled={busy}
-              minLength={8}
-              required
-            />
-          </div>
-
-          <Button type="submit" size="lg" className="h-10 w-full" disabled={busy} aria-busy={action === "email"}>
-            {action === "email" ? (
-              <>
-                <Loader2 className="size-4 animate-spin" aria-hidden="true" />
-                Creating account…
-              </>
-            ) : (
-              "Create account"
-            )}
-          </Button>
-        </form>}
-
-        {!visitorSignup && (
-          <>
-            <div className="my-5 flex items-center gap-4" aria-hidden="true">
-              <div className="h-px flex-1 bg-border" />
-              <span className="text-xs uppercase tracking-[0.14em] text-muted-foreground">or</span>
-              <div className="h-px flex-1 bg-border" />
+          {!inviteToken && (
+            <div className="mb-5 space-y-2">
+              <Label htmlFor="companyName">Company name</Label>
+              <div className="relative">
+                <Building2 className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+                <Input id="companyName" name="companyName" type="text" autoComplete="organization" value={companyName} onChange={(event) => setCompanyName(event.target.value)} placeholder="Your company" className="h-11 pl-10" disabled={busy} maxLength={120} required />
+              </div>
             </div>
-            {googleButton}
-          </>
-        )}
+          )}
 
-        {error && (
-          <p role="alert" className="mt-4 text-sm leading-5 text-destructive">
-            {error}
+          <Button type="button" size="lg" className="h-11 w-full gap-3" onClick={handleGoogleSignup} disabled={busy} aria-busy={action === "google"}>
+            {action === "google" ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <GoogleIcon />}
+            {action === "google" ? "Creating your workspace…" : "Continue with Google"}
+          </Button>
+
+          {!emailFormOpen ? (
+            <Button type="button" variant="ghost" className="mt-2 h-10 w-full" onClick={() => setEmailFormOpen(true)} disabled={busy}>
+              Use email instead
+            </Button>
+          ) : (
+            <form className="mt-5 space-y-4 border-t border-border pt-5" onSubmit={handleEmailSignup}>
+              <div className="space-y-2">
+                <Label htmlFor="name">Your name</Label>
+                <Input id="name" name="name" type="text" autoComplete="name" value={name} onChange={(event) => setName(event.target.value)} className="h-11" disabled={busy} maxLength={100} required />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="email">Email address</Label>
+                <Input id="email" name="email" type="email" autoComplete="email" inputMode="email" value={email} onChange={(event) => setEmail(event.target.value)} className="h-11" disabled={busy} required />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <Input id="password" name="password" type="password" autoComplete="new-password" value={password} onChange={(event) => setPassword(event.target.value)} className="h-11" disabled={busy} minLength={8} required />
+              </div>
+              <Button type="submit" size="lg" className="h-11 w-full" disabled={busy} aria-busy={action === "email"}>
+                {action === "email" ? <><Loader2 className="size-4 animate-spin" aria-hidden="true" /> Creating your account…</> : <>Create account <ArrowRight className="size-4" aria-hidden="true" /></>}
+              </Button>
+            </form>
+          )}
+
+          {error && <p role="alert" className="mt-4 text-sm leading-5 text-destructive">{error}</p>}
+
+          <p className="mt-7 text-sm text-muted-foreground">
+            Already have an account? <Link href={returnTo ? `/login?next=${encodeURIComponent(returnTo)}` : "/login"} className="font-medium text-foreground underline underline-offset-4 hover:text-primary">Sign in</Link>
           </p>
-        )}
-
-        <p className={`${visitorSignup ? "mt-3 text-xs" : "mt-5 text-sm"} text-center text-muted-foreground`}>
-          Already have an account?{" "}
-          <Link href={returnTo ? `/login?next=${encodeURIComponent(returnTo)}` : "/login"} className="font-medium text-foreground underline underline-offset-4 hover:text-accent">
-            Sign in
-          </Link>
-        </p>
-
-        {visitorSignup ? (
-          <p className="surface-caption mt-2 text-center">
-            By continuing, you agree to our <Link href="/terms" className="underline">Terms</Link> and <Link href="/privacy" className="underline">Privacy Policy</Link>.
+          <p className="mt-5 text-xs leading-5 text-muted-foreground">
+            By continuing, you agree to VisualCNS&apos;s <Link href="/terms" className="underline underline-offset-2">Terms</Link> and <Link href="/privacy" className="underline underline-offset-2">Privacy Policy</Link>.
           </p>
-        ) : <p className="mt-6 text-center text-[10px] leading-4 text-muted-foreground/60">
-          By continuing, you agree to VisualCNS’s{" "}
-          <Link href="/terms" className="text-muted-foreground/75 underline underline-offset-4 hover:text-foreground/80">
-            Terms of Service
-          </Link>{" "}
-          and{" "}
-          <Link href="/privacy" className="text-muted-foreground/75 underline underline-offset-4 hover:text-foreground/80">
-          Privacy Policy
-          </Link>, and to receive periodic emails with updates.
-        </p>}
+        </div>
       </section>
     </main>
   )
