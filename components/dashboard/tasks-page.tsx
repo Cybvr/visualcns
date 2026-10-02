@@ -19,8 +19,6 @@ import {
   Table,
   TableBody,
   TableCell,
-  TableHead,
-  TableHeader,
   TableRow,
 } from "@/components/ui/table"
 import {
@@ -297,11 +295,6 @@ export default function TasksAdminPage() {
               <div className="lg:grid lg:grid-cols-[minmax(18rem,0.7fr)_minmax(0,1.3fr)] lg:items-start lg:gap-6">
               <div className="hidden overflow-x-auto sm:block">
               <Table className="w-full min-w-[280px] table-fixed">
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Title</TableHead>
-                  </TableRow>
-                </TableHeader>
                 <TableBody>
                   {visibleTasks.map((t) => (
                     <TableRow
@@ -309,10 +302,10 @@ export default function TasksAdminPage() {
                       className="cursor-pointer"
                       onClick={() => setSelectedId(t.id)}
                     >
-                      <TableCell className="max-w-0 py-3 font-medium">
+                      <TableCell className="max-w-0 py-3">
                         <button
                           type="button"
-                          className="w-full truncate rounded px-1 py-0.5 text-left font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                          className="w-full truncate rounded px-1 py-0.5 text-left text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                           onClick={() => setSelectedId(t.id)}
                         >
                           <span className="block truncate">{t.name || "Untitled task"}</span>
