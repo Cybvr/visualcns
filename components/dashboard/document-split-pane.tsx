@@ -4,6 +4,7 @@ import { ArrowLeft } from "lucide-react"
 import type { ReactNode } from "react"
 
 import { EmptySearchState } from "@/components/dashboard/empty-state"
+import { CompactListSkeleton } from "@/components/dashboard/compact-list-row"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
@@ -14,6 +15,7 @@ export function DocumentSplitPane<T>({
   sectionLabel,
   filter,
   listExtra,
+  loading = false,
   emptySearchLabel,
   getKey,
   renderItem,
@@ -27,6 +29,7 @@ export function DocumentSplitPane<T>({
   sectionLabel: string
   filter: ReactNode
   listExtra?: ReactNode
+  loading?: boolean
   emptySearchLabel: string
   getKey: (item: T) => string
   renderItem: (item: T, active: boolean) => ReactNode
@@ -39,7 +42,9 @@ export function DocumentSplitPane<T>({
       <div className={cn("min-w-0", selectedId && "hidden sm:block")}>
         {filter}
         {listExtra}
-        {visibleItems.length === 0 ? (
+        {loading ? (
+          <CompactListSkeleton />
+        ) : visibleItems.length === 0 ? (
           <EmptySearchState label={emptySearchLabel} />
         ) : (
           <ul className="mt-1">

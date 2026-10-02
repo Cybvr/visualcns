@@ -6,7 +6,8 @@ import { EllipsisVertical, Loader2, LogOut, Search } from "lucide-react"
 import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
-import { DashboardPageSkeleton } from "@/components/dashboard/dashboard-page-skeleton"
+import { TableRowsSkeleton } from "@/components/dashboard/collection-skeletons"
+import { CompactListSkeleton } from "@/components/dashboard/compact-list-row"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
@@ -109,7 +110,10 @@ export default function VisitorsPage() {
           </Button>
         </div>
       ) : visitors === null ? (
-        <DashboardPageSkeleton rows={6} />
+        <div className="mt-5 min-w-0">
+          <div className="sm:hidden"><CompactListSkeleton /></div>
+          <div className="hidden sm:block"><TableRowsSkeleton headers={["Visitor", "Host", "Visit", ""]} /></div>
+        </div>
       ) : rows.length === 0 ? (
         <div className="mt-16 text-center">
           <p className="text-sm font-medium text-foreground">{visitors.length ? "No visitors match." : "No visitors yet"}</p>

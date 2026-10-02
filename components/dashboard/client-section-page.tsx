@@ -4,7 +4,6 @@ import { useCallback, useEffect, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useAuth } from "@/components/auth-provider"
 import { ClientProjectCreateSheet } from "@/components/dashboard/client-project-create-sheet"
-import { DashboardPageSkeleton } from "@/components/dashboard/dashboard-page-skeleton"
 import { ProjectsView } from "@/components/dashboard/projects-view"
 import { TemplatesView } from "@/components/dashboard/templates-view"
 import { TasksView } from "@/components/dashboard/tasks-view"
@@ -64,15 +63,14 @@ export function ClientSectionPage({ section }: { section: "projects" | "tasks" }
   return (
     <>
       <main className="mx-auto w-full max-w-5xl px-4 pb-12 sm:px-6">
-        {loading ? <DashboardPageSkeleton rows={6} />
-          : error ? <p className="py-12 text-sm text-destructive">Couldn&apos;t load this section.</p>
+        {error ? <p className="py-12 text-sm text-destructive">Couldn&apos;t load this section.</p>
           : section === "projects" ? (
             <>
-              <ProjectsView projects={projects} onChanged={fetchData} />
+              <ProjectsView projects={projects} loading={loading} onChanged={fetchData} />
               <TemplatesView companyId={companyId} clientName={clientName} onCreated={fetchData} />
             </>
           )
-          : <TasksView tasks={tasks} projects={projects} companyId={companyId} clientName={clientName} canDuplicate={false} deleting={deleting} onDelete={handleDelete} onPatch={handlePatch} onSaved={fetchData} />}
+          : <TasksView tasks={tasks} projects={projects} companyId={companyId} clientName={clientName} canDuplicate={false} loading={loading} deleting={deleting} onDelete={handleDelete} onPatch={handlePatch} onSaved={fetchData} />}
       </main>
       {section === "projects" && (
         <ClientProjectCreateSheet

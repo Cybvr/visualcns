@@ -49,6 +49,7 @@ import { getHiddenReceivedEmails, hideReceivedEmail, permanentlyHideReceivedEmai
 import { EMAIL_INBOX_REFRESH_EVENT, publishUnreadEmailCount } from "@/components/dashboard/email/use-unread-email-count"
 import { contextualEmailBody, parseEmailList, plainTextToEditorHtml, readEmailComposeContext, type EmailComposeContext } from "@/lib/email-composer"
 import { getBusinessProfile, type BusinessProfile } from "@/lib/business-profile"
+import { MAX_EMAIL_ATTACHMENTS, MAX_EMAIL_ATTACHMENT_BYTES, readEmailAttachment } from "@/lib/email-attachments"
 import { deleteEmailTemplate, getEmailTemplates, saveEmailTemplate } from "@/lib/email-templates-store"
 import { markdownToHtml } from "@/lib/markdown"
 import { createUser, getUsers } from "@/lib/users"
@@ -312,6 +313,7 @@ export default function EmailPage() {
   const [selectedListId, setSelectedListId] = useState("")
   const [subject, setSubject] = useState("")
   const [body, setBody] = useState("")
+  const [attachments, setAttachments] = useState<File[]>([])
   const [messageKind, setMessageKind] = useState<EmailMessageKind>("transactional")
   const [brandedEmail, setBrandedEmail] = useState(true)
   const [composeContext, setComposeContext] = useState<EmailComposeContext | null>(null)
@@ -940,6 +942,7 @@ export default function EmailPage() {
     setSelectedListId("")
     setSubject("")
     setBody("")
+    setAttachments([])
     setMessageKind("transactional")
     setComposeContext(null)
     setSelectedTemplateId("")
@@ -1022,6 +1025,7 @@ export default function EmailPage() {
     setSelectedListId(draft.listId || "")
     setSubject(draft.subject || "")
     setBody(draft.body || "")
+    if (draft.id !== draftIdRef.current) setAttachments([])
     setMessageKind(draft.messageKind === "marketing" ? "marketing" : "transactional")
     setBrandedEmail(draft.brandedEmail !== false)
     setComposeContext((draft.context as EmailComposeContext | null) ?? (draft.companyId !== workspaceId ? { companyId: draft.companyId } : null))
@@ -1317,6 +1321,25 @@ export default function EmailPage() {
     if (saved.length) setContacts((current) => [...current, ...saved])
   }
 
+  function addAttachments(files: File[]) {
+    if (!files.length) return
+    const next = [...attachments, ...files]
+    if (next.length > MAX_EMAIL_ATTACHMENTS) {
+      setSendNotice({ tone: "error", text: `Attach up to ${MAX_EMAIL_ATTACHMENTS} files.` })
+      return
+    }
+    if (next.some((file) => !file.size)) {
+      setSendNotice({ tone: "error", text: "Empty files cannot be attached." })
+      return
+    }
+    if (next.reduce((total, file) => total + file.size, 0) > MAX_EMAIL_ATTACHMENT_BYTES) {
+      setSendNotice({ tone: "error", text: "Attachments can total up to 5 MB." })
+      return
+    }
+    setAttachments(next)
+    setSendNotice(null)
+  }
+
   async function sendEmail() {
     if (!user || sending || !senderConfigured || !senderAddress?.trim()) return
 
@@ -1353,6 +1376,7 @@ export default function EmailPage() {
     setSending(true)
 
     try {
+      const encodedAttachments = await Promise.all(attachments.map(readEmailAttachment))
       const sentBody = personalizeGreeting(body, composeRecipientName)
       const textBody = htmlToText(sentBody).trim()
       const bodyHtml = sentBody.includes("<") ? sentBody : markdownToHtml(sentBody)
@@ -1391,6 +1415,7 @@ export default function EmailPage() {
           documentType: composeContext?.documentType,
           documentId: composeContext?.documentId,
           scheduledAt: scheduledAtIso || undefined,
+          attachments: encodedAttachments,
           history: {
             companyId: savedCompanyId,
             to: selectedList ? `${selectedList.name} (${selectedList.contactEmails.length})` : to.trim(),
@@ -1429,6 +1454,7 @@ export default function EmailPage() {
         messageKind,
         status: scheduledAtIso ? "scheduled" : "sent",
         scheduledAt: scheduledAtIso || undefined,
+        attachments: attachments.map((file) => ({ filename: file.name, size: file.size })),
       }
       const historySaved = result.historySaved !== false
       setMessages((current) => [sentMessage, ...current])
@@ -1438,6 +1464,7 @@ export default function EmailPage() {
       setSelectedListId("")
       setSubject("")
       setBody("")
+      setAttachments([])
       setMessageKind("transactional")
       setComposeContext(null)
       setSelectedTemplateId("")
@@ -2031,6 +2058,9 @@ export default function EmailPage() {
         lists={lists}
         body={body}
         setBody={setBody}
+        attachments={attachments}
+        addAttachments={addAttachments}
+        removeAttachment={(index) => setAttachments((current) => current.filter((_, position) => position !== index))}
         senderConfigured={Boolean(senderConfigured)}
         sending={sending}
         scheduleEnabled={Boolean(scheduleEnabled)}

@@ -5,12 +5,15 @@ import { ArrowLeft, ListChecks, Plus, Trash2, X } from "lucide-react"
 import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
-import { DashboardPageSkeleton } from "@/components/dashboard/dashboard-page-skeleton"
+import { useRecordTitle } from "@/components/dashboard/page-title-context"
+import { useUrlSelection } from "@/hooks/use-url-selection"
+import { CompactListRow, CompactListSkeleton } from "@/components/dashboard/compact-list-row"
 import { EmptySearchState, FirstRunState } from "@/components/dashboard/empty-state"
 import { FilterBar, useFilterBar } from "@/components/dashboard/filter-bar"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { getCurrentAgencyId } from "@/lib/agency-scope"
 import { createNote, deleteNote, updateNote, watchNotes, type Note } from "@/lib/notes"
 import { cn } from "@/lib/utils"
@@ -65,13 +68,18 @@ export default function NotesPage() {
   const uid = user?.uid || ""
   const [notes, setNotes] = useState<Note[] | null>(null)
   const [error, setError] = useState(false)
-  const [openId, setOpenId] = useState("")
+  const [selectedId, select] = useUrlSelection("note")
+  const openId = selectedId ?? ""
   const [title, setTitle] = useState("")
   const [body, setBody] = useState("")
   const [checklistMode, setChecklistMode] = useState(false)
   const [saving, setSaving] = useState(false)
   const pending = useRef<{ id: string; title: string; body: string } | null>(null)
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // Which note the editor fields currently hold, so a note opened from the URL loads once.
+  const loadedId = useRef("")
+
+  useRecordTitle(openId ? noteTitle({ title, body }) : null)
 
   useEffect(() => {
     if (!uid) return
@@ -114,28 +122,50 @@ export default function NotesPage() {
     timer.current = setTimeout(() => void flush(), SAVE_DELAY)
   }
 
-  async function open(note: Note) {
-    if (note.id === openId) return
-    await flush()
-    setOpenId(note.id)
+  function load(note: Note) {
     const nextTitle = typeof note.title === "string" ? note.title : ""
     const nextBody = typeof note.body === "string" ? note.body : ""
+    loadedId.current = note.id
     setTitle(nextTitle)
     setBody(nextBody)
     setChecklistMode(isChecklist(nextBody))
+  }
+
+  // A note opened from the address bar, or by going back and forward, fills the editor once the list arrives.
+  useEffect(() => {
+    if (!notes || openId === loadedId.current) return
+    void flush()
+    if (!openId) { loadedId.current = ""; return }
+    const note = notes.find((item) => item.id === openId)
+    if (note) load(note)
+    else select(null, { replace: true })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [notes, openId])
+
+  async function open(note: Note) {
+    if (note.id === openId) return
+    await flush()
+    load(note)
+    select(note.id)
   }
 
   async function add() {
     await flush()
     try {
       const id = await createNote(uid)
-      setOpenId(id)
+      loadedId.current = id
       setTitle("")
       setBody("")
       setChecklistMode(false)
+      select(id)
     } catch {
       toast.error("Couldn't create a note.")
     }
+  }
+
+  function close() {
+    void flush()
+    select(null)
   }
 
   async function remove() {
@@ -143,10 +173,23 @@ export default function NotesPage() {
     pending.current = null
     if (timer.current) clearTimeout(timer.current)
     setSaving(false)
-    setOpenId("")
+    loadedId.current = ""
+    select(null)
     setChecklistMode(false)
     try {
       await deleteNote(id)
+    } catch {
+      toast.error("Couldn't delete the note.")
+    }
+  }
+
+  async function removeFromList(note: Note) {
+    if (note.id === openId) {
+      await remove()
+      return
+    }
+    try {
+      await deleteNote(note.id)
     } catch {
       toast.error("Couldn't delete the note.")
     }
@@ -201,7 +244,13 @@ export default function NotesPage() {
       {error ? (
         <p role="alert" className="mt-10 text-sm text-destructive">Notes unavailable. Refresh to try again.</p>
       ) : notes === null ? (
-        <DashboardPageSkeleton rows={6} />
+        <div className="lg:grid lg:grid-cols-[minmax(18rem,0.7fr)_minmax(0,1.3fr)] lg:items-start lg:gap-6">
+          <div className="min-w-0">
+            {noteFilter}
+            <CompactListSkeleton />
+          </div>
+          <div className="hidden min-h-[34rem] sm:block" aria-hidden="true" />
+        </div>
       ) : notes.length === 0 ? (
         <>
           <div className="lg:max-w-[30rem]">{noteFilter}</div>
@@ -225,20 +274,17 @@ export default function NotesPage() {
                   const active = note.id === openId
                   return (
                     <li key={note.id}>
-                      <button
-                        type="button"
+                      <CompactListRow
+                        title={noteTitle(shown)}
+                        subtitle={`${editedAt(note.updatedAt)}${typeof shown.title === "string" && typeof shown.body === "string" && shown.title.trim() && shown.body.trim() ? ` · ${shown.body.trim().split("\n")[0]}` : ""}`}
+                        active={active}
                         onClick={() => void open(note)}
-                        aria-current={active ? "true" : undefined}
-                        className={cn(
-                          "w-full rounded-md border-b border-border/60 px-1 py-2 text-left outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring hover:bg-muted/50",
-                          active && "bg-muted/50",
-                        )}
-                      >
-                        <span className={cn("sidebar-nav-label block truncate font-medium text-sidebar-foreground/70", active && "text-sidebar-accent-foreground")}>{noteTitle(shown)}</span>
-                        <span className="block text-[10px] font-normal leading-tight text-muted-foreground">
-                          {editedAt(note.updatedAt)}{typeof shown.title === "string" && typeof shown.body === "string" && shown.title.trim() && shown.body.trim() ? ` · ${shown.body.trim().split("\n")[0]}` : ""}
-                        </span>
-                      </button>
+                        menuLabel={`Options for ${noteTitle(shown)}`}
+                        menu={<>
+                          <DropdownMenuItem onSelect={() => void open(note)}>Open note</DropdownMenuItem>
+                          <DropdownMenuItem variant="destructive" onSelect={() => void removeFromList(note)}>Delete note</DropdownMenuItem>
+                        </>}
+                      />
                     </li>
                   )
                 })}
@@ -253,7 +299,7 @@ export default function NotesPage() {
             {openId ? (
               <div className="flex min-h-[70svh] flex-1 flex-col lg:min-h-0">
                 <div className="flex h-16 items-center gap-3 border-b border-border py-0">
-                  <Button type="button" variant="ghost" size="sm" className="-ml-2 shrink-0 sm:hidden" onClick={() => { void flush(); setOpenId("") }}>
+                  <Button type="button" variant="ghost" size="sm" className="-ml-2 shrink-0 sm:hidden" onClick={close}>
                     <ArrowLeft className="size-4" aria-hidden="true" /> Notes
                   </Button>
                   <input

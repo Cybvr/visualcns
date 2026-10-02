@@ -24,6 +24,9 @@ interface PageTitleContextValue {
   /** Hides the mobile footer nav, e.g. while a full-screen composer is open. */
   hideMobileFooter: boolean
   setHideMobileFooter: Dispatch<SetStateAction<boolean>>
+  /** The item open in a list/detail page, shown first in the browser tab title. */
+  recordTitle: string | null
+  setRecordTitle: Dispatch<SetStateAction<string | null>>
 }
 
 const PageTitleContext = createContext<PageTitleContextValue | null>(null)
@@ -35,9 +38,10 @@ export function PageTitleProvider({ children }: { children: ReactNode }) {
   const [replacesMobileDefaults, setReplacesMobileDefaults] = useState(false)
   const [headerSlot, setHeaderSlot] = useState<HTMLElement | null>(null)
   const [hideMobileFooter, setHideMobileFooter] = useState(false)
+  const [recordTitle, setRecordTitle] = useState<string | null>(null)
   const value = useMemo(
-    () => ({ override, setOverride, titleNode, setTitleNode, actions, setActions, replacesMobileDefaults, setReplacesMobileDefaults, headerSlot, setHeaderSlot, hideMobileFooter, setHideMobileFooter }),
-    [override, titleNode, actions, replacesMobileDefaults, headerSlot, hideMobileFooter],
+    () => ({ override, setOverride, titleNode, setTitleNode, actions, setActions, replacesMobileDefaults, setReplacesMobileDefaults, headerSlot, setHeaderSlot, hideMobileFooter, setHideMobileFooter, recordTitle, setRecordTitle }),
+    [override, titleNode, actions, replacesMobileDefaults, headerSlot, hideMobileFooter, recordTitle],
   )
   return <PageTitleContext.Provider value={value}>{children}</PageTitleContext.Provider>
 }
@@ -61,6 +65,19 @@ export function usePageTitle(title: string | null, homeHref?: string) {
     return () => setOverride(null)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [title, homeHref])
+}
+
+/**
+ * Puts the open item's name in the browser tab ("Q3 plan · Notes | VisualCNS")
+ * without changing the dashboard header. Clears itself on unmount.
+ */
+export function useRecordTitle(title: string | null | undefined) {
+  const { setRecordTitle } = usePageHeaderOverride()
+
+  useEffect(() => {
+    setRecordTitle(title?.trim() || null)
+    return () => setRecordTitle(null)
+  }, [title, setRecordTitle])
 }
 
 /** Adds temporary actions to the dashboard header while the current page is mounted. */

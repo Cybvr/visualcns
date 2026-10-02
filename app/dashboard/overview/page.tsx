@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react"
 import Image from "next/image"
 import { useAuth } from "@/components/auth-provider"
 import { ActivityFeed } from "@/components/dashboard/activity-feed"
-import { DashboardPageSkeleton } from "@/components/dashboard/dashboard-page-skeleton"
+import { CompactListSkeleton } from "@/components/dashboard/compact-list-row"
 import { HomeTaskList } from "@/components/dashboard/home-task-list"
 import { NewProjectDialog } from "@/components/dashboard/new-project-dialog"
 import { ProjectsView } from "@/components/dashboard/projects-view"
@@ -74,9 +74,7 @@ export default function DashboardPage() {
 
   return (
     <main className="mx-auto w-full max-w-5xl px-4 pb-10 pt-4 sm:px-6">
-      {loading ? (
-        <DashboardPageSkeleton variant="home" rows={4} />
-      ) : error ? (
+      {error ? (
         <p className="mt-10 text-sm text-destructive">{error}</p>
       ) : (
         <>
@@ -94,11 +92,12 @@ export default function DashboardPage() {
                 onNewProject={() => setCreatingProject(true)}
                 hideHeader
                 minimal
+                loading={loading}
               />
-              <HomeTaskList tasks={tasks.slice(0, HOME_TASK_LIMIT)} onSaved={fetchData} className="mt-4" />
+              {loading ? <div className="mt-4"><CompactListSkeleton rows={4} /></div> : <HomeTaskList tasks={tasks.slice(0, HOME_TASK_LIMIT)} onSaved={fetchData} className="mt-4" />}
             </TabsContent>
             <TabsContent value="activity" className="mt-0">
-              <ActivityFeed items={activity} hrefFor={activityHref} showHeader={false} className="mt-0" />
+              {loading ? <CompactListSkeleton rows={4} /> : <ActivityFeed items={activity} hrefFor={activityHref} showHeader={false} className="mt-0" />}
             </TabsContent>
           </Tabs>
           <div className="mt-6 overflow-hidden rounded-lg bg-card">

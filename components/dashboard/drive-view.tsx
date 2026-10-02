@@ -41,7 +41,7 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { EmptyState, EmptySearchState } from "@/components/dashboard/empty-state"
-import { DashboardPageSkeleton } from "@/components/dashboard/dashboard-page-skeleton"
+import { GridCardsSkeleton } from "@/components/dashboard/collection-skeletons"
 import { Skeleton } from "@/components/ui/skeleton"
 import { getUsers, type AppUser } from "@/lib/users"
 import { getOrganizations } from "@/lib/organizations"
@@ -475,7 +475,7 @@ export function DriveView() {
       )}
 
       {loading ? (
-        <DashboardPageSkeleton rows={6} />
+        <GridCardsSkeleton />
       ) : error ? (
         <Card>
           <div className="py-10 text-center text-sm text-destructive">{error}</div>

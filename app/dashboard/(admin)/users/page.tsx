@@ -22,18 +22,20 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { EllipsisVertical, Plus, Loader2, User as UserIcon, UserPlus } from "lucide-react"
+import { EllipsisVertical, Plus, Loader2, UserPlus } from "lucide-react"
 import { FaUser } from "react-icons/fa"
 import { getUsers, deleteUser, type AppUser } from "@/lib/users"
 import { getOrganizations } from "@/lib/organizations"
-import { DashboardPageSkeleton } from "@/components/dashboard/dashboard-page-skeleton"
+import { CompactListRow, CompactListSkeleton } from "@/components/dashboard/compact-list-row"
+import { GridCardsSkeleton, TableRowsSkeleton } from "@/components/dashboard/collection-skeletons"
 import { ReactIcon } from "@/components/react-icon"
 import { UserEditorSheet } from "@/components/dashboard/user-editor-sheet"
-import { MobileDataCard } from "@/components/dashboard/mobile-data-card"
 import { GridCard, GridCardList } from "@/components/dashboard/grid-card"
 import { ViewToggle, useViewMode } from "@/components/dashboard/view-toggle"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { useAuth } from "@/components/auth-provider"
+import { useRecordTitle } from "@/components/dashboard/page-title-context"
+import { useUrlSelection } from "@/hooks/use-url-selection"
 import { FilterBar, useFilterBar, type SortOption } from "@/components/dashboard/filter-bar"
 import { TableBulkBar } from "@/components/dashboard/table-bulk-bar"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -51,7 +53,7 @@ export default function UsersAdminPage() {
   const [deleting, setDeleting] = useState<string | null>(null)
   const [pendingDelete, setPendingDelete] = useState<AppUser | null>(null)
   const [bulkDeleting, setBulkDeleting] = useState(false)
-  const [selectedId, setSelectedId] = useState<string | "new" | null>(null)
+  const [selectedId, setSelectedId] = useUrlSelection("contact")
   const [view, setView] = useViewMode("contacts")
   const [inviting, setInviting] = useState(false)
 
@@ -202,6 +204,19 @@ export default function UsersAdminPage() {
 
   const selectedUser =
     typeof selectedId === "string" && selectedId !== "new" ? users.find((u) => u.uid === selectedId) ?? null : null
+  useRecordTitle(selectedId === "new" ? "New contact" : selectedUser?.displayName || selectedUser?.email || null)
+
+  const mobileRows = visibleUsers.map((u) => (
+    <CompactListRow
+      key={u.uid}
+      onClick={() => setSelectedId(u.uid)}
+      ariaLabel={`Open ${u.displayName || u.email || "contact"}`}
+      title={u.displayName || u.email || "—"}
+      subtitle={`${u.email || companyNameOf(u) || "—"} · ${formatTimestamp(u.updatedAt ?? u.createdAt)}`}
+      menuLabel={`Options for ${u.displayName || u.email || "contact"}`}
+      menu={contactActions(u)}
+    />
+  ))
 
   return (
     <main className="mx-auto w-full max-w-6xl px-4 pt-4 pb-12 sm:px-6">
@@ -210,7 +225,7 @@ export default function UsersAdminPage() {
         mobileVariant="drawer"
         headerOnMobile
         placeholder="Search contacts"
-        controls={<ViewToggle view={view} onChange={setView} />}
+        controls={<div className="hidden sm:block"><ViewToggle view={view} onChange={setView} /></div>}
         actions={
           <div className="flex gap-2">
             <Button variant="outline" size="icon" disabled={inviting} onClick={() => void handleInvite()} aria-label="Invite contact" title="Invite contact">
@@ -224,7 +239,10 @@ export default function UsersAdminPage() {
       />
 
       {loading ? (
-        <DashboardPageSkeleton rows={6} />
+        <>
+          <div className="sm:hidden"><CompactListSkeleton /></div>
+          <div className="hidden sm:block">{view === "grid" ? <GridCardsSkeleton /> : <TableRowsSkeleton headers={["", "Contact", "Company", "Updated", ""]} />}</div>
+        </>
       ) : error ? (
         <Card>
           <CardContent className="py-10 text-center text-sm text-destructive">{error}</CardContent>
@@ -248,42 +266,28 @@ export default function UsersAdminPage() {
               </CardContent>
             </Card>
           ) : view === "grid" ? (
-            <GridCardList>
-              {visibleUsers.map((u) => (
-                <GridCard
-                  key={u.uid}
-                  onClick={() => setSelectedId(u.uid)}
-                  ariaLabel={`Open ${u.displayName || u.email || "contact"}`}
-                  title={u.displayName || u.email || "—"}
-                  icon={<ReactIcon icon={FaUser} className="size-4 text-violet-600 dark:text-violet-400" aria-hidden="true" />}
-                  imageUrl={u.photoURL}
-                  placeholder={
-                    <span className="flex size-16 items-center justify-center rounded-full bg-muted text-2xl font-medium text-muted-foreground">
-                      {(u.displayName || u.email || "?").trim().charAt(0).toUpperCase()}
-                    </span>
-                  }
-                  menuLabel={`Options for ${u.displayName || u.email || "contact"}`}
-                  menu={contactActions(u)}
-                />
-              ))}
-            </GridCardList>
+            <>
+              <div className="sm:hidden">{mobileRows}</div>
+              <div className="hidden sm:block">
+                <GridCardList>
+                  {visibleUsers.map((u) => (
+                    <GridCard
+                      key={u.uid}
+                      onClick={() => setSelectedId(u.uid)}
+                      ariaLabel={`Open ${u.displayName || u.email || "contact"}`}
+                      title={u.displayName || u.email || "—"}
+                      icon={<ReactIcon icon={FaUser} className="size-4 text-violet-600 dark:text-violet-400" aria-hidden="true" />}
+                      placeholder={<ReactIcon icon={FaUser} className="size-12 text-muted-foreground/40" aria-hidden="true" />}
+                      menuLabel={`Options for ${u.displayName || u.email || "contact"}`}
+                      menu={contactActions(u)}
+                    />
+                  ))}
+                </GridCardList>
+              </div>
+            </>
           ) : (
             <>
-              <div className="space-y-2 sm:hidden">
-                {visibleUsers.map((u) => (
-                  <MobileDataCard
-                    key={u.uid}
-                    onClick={() => setSelectedId(u.uid)}
-                    ariaLabel={`Open ${u.displayName || u.email || "contact"}`}
-                    title={u.displayName || u.email || "—"}
-                    subtitle={<span className="flex flex-col gap-1"><span>{u.email || companyNameOf(u) || "—"}</span><span>Modified {formatTimestamp(u.updatedAt ?? u.createdAt)}</span></span>}
-                    imageUrl={u.photoURL}
-                    icon={<ReactIcon icon={FaUser} className="size-5 text-violet-600 dark:text-violet-400" aria-hidden="true" />}
-                    menuLabel={`Options for ${u.displayName || u.email || "contact"}`}
-                    menu={contactActions(u)}
-                  />
-                ))}
-              </div>
+              <div className="sm:hidden">{mobileRows}</div>
 
               <div className="hidden min-w-0 sm:block">
               <TableBulkBar
@@ -325,25 +329,10 @@ export default function UsersAdminPage() {
                         />
                       </TableCell>
                       <TableCell className="max-w-0">
-                        <div className="flex min-w-0 items-center gap-3">
-                          {u.photoURL ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img
-                              src={u.photoURL}
-                              alt=""
-                              className="h-8 w-8 shrink-0 rounded-full"
-                              referrerPolicy="no-referrer"
-                            />
-                          ) : (
-                            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted">
-                              <UserIcon className="h-4 w-4 text-muted-foreground" />
-                            </span>
-                          )}
-                          <span className="min-w-0">
-                            <span className="block truncate font-medium">{u.displayName || u.email || "—"}</span>
-                            <span className="block truncate text-muted-foreground">{u.email || "—"}</span>
-                          </span>
-                        </div>
+                        <span className="block min-w-0">
+                          <span className="block truncate font-medium">{u.displayName || u.email || "—"}</span>
+                          <span className="block truncate text-muted-foreground">{u.email || "—"}</span>
+                        </span>
                       </TableCell>
                       <TableCell className="max-w-0 text-muted-foreground"><span className="block truncate">{companyNameOf(u) || "—"}</span></TableCell>
                       <TableCell className="text-muted-foreground">{formatTimestamp(u.updatedAt ?? u.createdAt)}</TableCell>

@@ -7,7 +7,7 @@ import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
 import { AccountHeader, AccountNav } from "@/components/account/account-nav"
-import { DashboardPageSkeleton } from "@/components/dashboard/dashboard-page-skeleton"
+import { Skeleton } from "@/components/ui/skeleton"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -164,7 +164,16 @@ export default function AccountTeamPage() {
       )}
 
       {loading ? (
-        <DashboardPageSkeleton rows={4} />
+        <section className="mt-8" role="status" aria-label="Loading members">
+          <h2 className="text-sm font-medium">Members</h2>
+          <ul className="mt-2 divide-y divide-border rounded-xl border border-border">
+            {Array.from({ length: 4 }, (_, index) => <li key={index} className="flex items-center gap-3 p-3">
+              <Skeleton className="size-9 shrink-0 rounded-full" />
+              <div className="min-w-0 flex-1 space-y-2"><Skeleton className="h-4 w-40 max-w-full" /><Skeleton className="h-3 w-56 max-w-full" /></div>
+              <Skeleton className="h-3 w-16 shrink-0" />
+            </li>)}
+          </ul>
+        </section>
       ) : (
         <>
           <section className="mt-8">

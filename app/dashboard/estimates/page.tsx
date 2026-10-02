@@ -7,25 +7,23 @@ import { ExternalLink, Mail, MoreHorizontal, Plus } from "lucide-react"
 import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
-import { DashboardPageSkeleton } from "@/components/dashboard/dashboard-page-skeleton"
+import { useRecordTitle } from "@/components/dashboard/page-title-context"
+import { useUrlSelection } from "@/hooks/use-url-selection"
+import { CompactListRow } from "@/components/dashboard/compact-list-row"
 import { DocumentSplitPane } from "@/components/dashboard/document-split-pane"
 import { DuplicateDocumentDialog, type DuplicateSelection } from "@/components/dashboard/duplicate-document-dialog"
 import { EstimateDocument } from "@/components/dashboard/estimate-document"
 import { EstimateBuilder } from "@/components/dashboard/estimate-builder"
 import { FirstRunState } from "@/components/dashboard/empty-state"
 import { FilterBar, useFilterBar } from "@/components/dashboard/filter-bar"
-import { TableBulkBar } from "@/components/dashboard/table-bulk-bar"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
-import { Checkbox } from "@/components/ui/checkbox"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { useRowSelection } from "@/hooks/use-row-selection"
 import { createEstimate, deleteEstimate, estimateStatusMeta, formatMoney, getEstimates, getEstimatesByCompanyId, nextEstimateNumber, type Estimate } from "@/lib/billing"
 import { estimateEmailContext } from "@/lib/document-emails"
 import { buildEmailComposeHref } from "@/lib/email-composer"
 import { getOrganizations, organizationRef, type Organization } from "@/lib/organizations"
 import { formatTimestamp } from "@/lib/tasks"
-import { cn } from "@/lib/utils"
 
 function searchEstimate(estimate: Estimate) {
   return [estimate.estimateNumber, estimate.title, estimate.client, estimate.companyId, estimate.project, estimateStatusMeta[estimate.status]?.label]
@@ -39,10 +37,9 @@ export default function EstimatesPage() {
   const [estimates, setEstimates] = useState<Estimate[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
-  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [selectedId, setSelectedId] = useUrlSelection("estimate")
   const [confirmDelete, setConfirmDelete] = useState<Estimate | null>(null)
   const [deleting, setDeleting] = useState(false)
-  const [bulkDeleting, setBulkDeleting] = useState(false)
   const [duplicateTarget, setDuplicateTarget] = useState<Estimate | null>(null)
   const [duplicating, setDuplicating] = useState(false)
   const [organizations, setOrganizations] = useState<Organization[]>([])
@@ -71,8 +68,8 @@ export default function EstimatesPage() {
   const organizationRefById = useMemo(() => new Map(organizations.map((organization) => [organization.id, organizationRef(organization)])), [organizations])
   const companyRefFor = (id: string) => organizationRefById.get(id) ?? id
   const { results: visibleEstimates, bar } = useFilterBar({ items: estimates, search: searchEstimate, sorts: [] })
-  const selection = useRowSelection(visibleEstimates, (estimate) => estimate.id)
   const selectedEstimate = selectedId ? estimates.find((estimate) => estimate.id === selectedId) ?? null : null
+  useRecordTitle(selectedEstimate ? selectedEstimate.title || (selectedEstimate.estimateNumber ? `Estimate ${selectedEstimate.estimateNumber}` : "Estimate") : null)
 
   async function removeEstimate() {
     if (!confirmDelete) return
@@ -87,24 +84,6 @@ export default function EstimatesPage() {
       toast.error("Couldn't delete this estimate.")
     } finally {
       setDeleting(false)
-    }
-  }
-
-  async function handleBulkDelete() {
-    const ids = selection.selectedIds
-    if (!ids.length || bulkDeleting) return
-    setBulkDeleting(true)
-    try {
-      await Promise.all(ids.map((id) => deleteEstimate(id)))
-      const removed = new Set(ids)
-      setEstimates((current) => current.filter((row) => !removed.has(row.id)))
-      if (selectedId && removed.has(selectedId)) setSelectedId(null)
-      selection.clear()
-    } catch (deleteError) {
-      console.error("Error deleting estimates:", deleteError)
-      toast.error("Couldn't delete the selected estimates.")
-    } finally {
-      setBulkDeleting(false)
     }
   }
 
@@ -139,19 +118,19 @@ export default function EstimatesPage() {
 
   return (
     <main className="mx-auto w-full max-w-6xl px-4 pt-4 pb-12 sm:px-6">
-      {loading ? <DashboardPageSkeleton rows={6} /> : error ? <p className="mt-10 text-sm text-destructive">Couldn’t load estimates right now.</p> : estimates.length === 0 ? (
+      {error ? <p className="mt-10 text-sm text-destructive">Couldn’t load estimates right now.</p> : !loading && estimates.length === 0 ? (
         <>
           <div className="lg:max-w-[30rem]">{estimateFilter}</div>
           <FirstRunState label="Estimate" title={adminView ? "Let's create your first estimate" : "No estimates yet"} description={adminView ? "Price and scope work before it becomes an invoice." : "Estimates sent to you will show up here."} action={adminView ? <Button asChild><Link href="/dashboard/estimates/new">New estimate</Link></Button> : undefined} />
         </>
       ) : (
         <DocumentSplitPane
-          visibleItems={visibleEstimates}
+          visibleItems={loading ? [] : visibleEstimates}
+          loading={loading}
           selectedId={selectedId}
           onClearSelection={() => setSelectedId(null)}
           sectionLabel="Estimates"
           filter={estimateFilter}
-          listExtra={adminView ? <TableBulkBar count={selection.selectedCount} noun="estimate" deleting={bulkDeleting} onClear={selection.clear} onDelete={handleBulkDelete} /> : undefined}
           emptySearchLabel="No estimates match your search."
           getKey={(estimate) => estimate.id}
           selectedTitle={selectedEstimate?.title || selectedEstimate?.estimateNumber || "Estimate"}
@@ -164,15 +143,22 @@ export default function EstimatesPage() {
           )}
           content={selectedEstimate ? (adminView ? <EstimateBuilder estimate={selectedEstimate} /> : <EstimateDocument estimate={selectedEstimate} />) : null}
           renderItem={(estimate, active) => {
-            const meta = estimateStatusMeta[estimate.status] ?? estimateStatusMeta.draft
-            return <div className={cn("flex items-center gap-2 border-b border-border/60 px-1 py-2 transition-colors hover:bg-muted/50", active && "bg-muted/50")}>
-              {adminView && <Checkbox aria-label={`Select estimate ${estimate.estimateNumber}`} checked={selection.isSelected(estimate.id)} onChange={() => selection.toggle(estimate.id)} />}
-              <button type="button" onClick={() => setSelectedId(estimate.id)} aria-current={active ? "true" : undefined} className="min-w-0 flex-1 rounded-md text-left outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                <span className={cn("sidebar-nav-label block truncate font-medium text-sidebar-foreground/70", active && "text-sidebar-accent-foreground")}>{estimate.title || "Untitled estimate"}</span>
-                <span className="block truncate text-[10px] font-normal leading-tight text-muted-foreground">{estimate.estimateNumber} · {formatMoney(estimate.amount, estimate.currency)} · {formatTimestamp(estimate.updatedAt ?? estimate.createdAt)}</span>
-              </button>
-              <span className={cn("shrink-0 rounded-full px-1.5 py-px text-[10px] font-medium", meta.className)}>{meta.label}</span>
-            </div>
+            return <CompactListRow
+              title={estimate.title || "Untitled estimate"}
+              subtitle={`${estimate.estimateNumber} · ${formatMoney(estimate.amount, estimate.currency)} · ${formatTimestamp(estimate.updatedAt ?? estimate.createdAt)}`}
+              mobileSubtitle={formatTimestamp(estimate.updatedAt ?? estimate.createdAt)}
+              active={active}
+              onClick={() => setSelectedId(estimate.id)}
+              menuLabel={`Options for ${estimate.title || estimate.estimateNumber}`}
+              menu={<>
+                <DropdownMenuItem onSelect={() => setSelectedId(estimate.id)}>Open estimate</DropdownMenuItem>
+                {adminView && <DropdownMenuItem onSelect={() => router.push(`/dashboard/estimates/${estimate.id}/edit`)}>Edit estimate</DropdownMenuItem>}
+                {adminView && <DropdownMenuItem onSelect={() => router.push(buildEmailComposeHref(estimateEmailContext(estimate, companyRefFor(estimate.companyId))))}>Email estimate</DropdownMenuItem>}
+                {adminView && <DropdownMenuItem onSelect={() => setDuplicateTarget(estimate)}>Duplicate estimate</DropdownMenuItem>}
+                {adminView && <DropdownMenuItem onSelect={() => router.push(`/dashboard/invoices/new?estimateId=${encodeURIComponent(estimate.id)}`)}>Convert to invoice</DropdownMenuItem>}
+                {adminView && <DropdownMenuItem variant="destructive" onSelect={() => setConfirmDelete(estimate)}>Delete estimate</DropdownMenuItem>}
+              </>}
+            />
           }}
         />
       )}

@@ -1,9 +1,6 @@
 "use client"
 
-import { Trash2 } from "lucide-react"
-
-import { MobileDataCard } from "@/components/dashboard/mobile-data-card"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { CompactListRow } from "@/components/dashboard/compact-list-row"
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
 
@@ -28,12 +25,7 @@ export type EmailListRowProps = {
   unread?: boolean
 }
 
-export function EmailListHeader({
-  primaryLabel,
-  dateLabel,
-  compact = false,
-  selectable = false,
-}: {
+export function EmailListHeader({ primaryLabel, dateLabel, selectable = false }: {
   primaryLabel: string
   dateLabel: string
   compact?: boolean
@@ -41,108 +33,53 @@ export function EmailListHeader({
 }) {
   return (
     <div className="surface-table-header hidden h-10 items-center gap-3 border-b border-border px-2 sm:flex">
-      {selectable ? <span className="size-4 shrink-0" aria-hidden="true" /> : null}
-      <span className="size-8 shrink-0" aria-hidden="true" />
-      {compact ? (
-        <span className="min-w-0 flex-1">{primaryLabel}</span>
-      ) : (
-        <>
-          <span className="w-[34%] shrink-0">{primaryLabel}</span>
-          <span className="min-w-0 flex-1">Subject</span>
-          <span className="w-24 shrink-0 text-right">{dateLabel}</span>
-        </>
-      )}
-      <span className="w-8 shrink-0 text-right"><span className="sr-only">Actions</span></span>
+      {selectable && <span className="size-4 shrink-0" aria-hidden="true" />}
+      <span className="min-w-0 flex-1">Subject</span>
+      <span className="shrink-0">{primaryLabel} · {dateLabel}</span>
+      <span className="w-11 shrink-0" aria-hidden="true" />
     </div>
   )
 }
 
-// One compact row shape shared by inbox, sent, drafts and templates. Its density,
-// avatar size and type roles mirror the dashboard's Users table.
+/** Shared list treatment for inbox, sent, drafts, templates and other dashboard lists. */
 export function EmailListRow({
   title,
   subject,
   date,
   formattedDate,
-  avatarInitials,
-  avatarTone,
   selected,
   onOpen,
   onDelete,
-  deleteLabel,
   deleteText = "Delete",
   ariaLabel,
-  compact = false,
   selectable = false,
   selectionMode = false,
   checked = false,
   onCheckedChange,
   unread = false,
 }: EmailListRowProps) {
-  const renderSelectionControl = () => selectable && onCheckedChange ? (
+  const selectionControl = selectable && onCheckedChange ? (
     <input
       type="checkbox"
       checked={checked}
       onChange={(event) => onCheckedChange(event.target.checked)}
-      onClick={(event) => event.stopPropagation()}
-      aria-label={`Select ${subject}`}
-      className="size-4 shrink-0 accent-primary"
+      aria-label={`Select ${subject || title}`}
+      className={cn("size-4 shrink-0 accent-primary", !selectionMode && "max-sm:hidden")}
     />
-  ) : null
+  ) : undefined
 
   return (
-    <>
-      <div className="mb-2 flex items-start gap-2 sm:hidden">
-        {selectable && selectionMode && onCheckedChange ? <div className="pt-4">{renderSelectionControl()}</div> : null}
-        <div className="min-w-0 flex-1">
-          <MobileDataCard
-            title={<span className={unread ? "font-bold" : undefined}>{title}</span>}
-            subtitle={<span className={unread ? "font-semibold text-foreground" : undefined}>{subject}</span>}
-            trailing={formattedDate && date ? <time dateTime={date} className={unread ? "font-semibold text-foreground" : undefined}>{formattedDate}</time> : undefined}
-            icon={(
-              <Avatar className={cn("size-9", avatarTone)} aria-hidden="true">
-                <AvatarFallback className="bg-transparent font-medium">{avatarInitials}</AvatarFallback>
-              </Avatar>
-            )}
-            selected={selected}
-            pressed={selectionMode ? checked : undefined}
-            onClick={() => selectionMode && onCheckedChange ? onCheckedChange(!checked) : onOpen()}
-            onLongPress={selectable && onCheckedChange ? () => onCheckedChange(!checked) : undefined}
-            ariaLabel={unread ? `Unread. ${ariaLabel}` : ariaLabel}
-            menuLabel={`Options for ${title}`}
-            menu={onDelete ? <DropdownMenuItem variant="destructive" onSelect={onDelete}>{deleteText}</DropdownMenuItem> : undefined}
-          />
-        </div>
-      </div>
-      <div
-        role="button"
-        tabIndex={0}
-        onClick={onOpen}
-        onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); onOpen() } }}
-        className={cn(
-          "group hidden cursor-pointer items-center gap-3 border-b border-border p-2 outline-none transition-colors last:border-b-0 hover:bg-muted/50 focus-visible:bg-muted/50 sm:flex",
-          selected && "bg-muted hover:bg-muted",
-        )}
-        aria-label={unread ? `Unread. ${ariaLabel}` : ariaLabel}
-      >
-        {renderSelectionControl()}
-        <Avatar className={cn("size-8 shrink-0", avatarTone)} aria-hidden="true">
-          <AvatarFallback className="bg-transparent font-medium">{avatarInitials}</AvatarFallback>
-        </Avatar>
-        <div className={cn("flex min-w-0 flex-1 flex-col gap-0.5", !compact && "sm:contents")}>
-          <div className={cn("flex min-w-0 items-center justify-between gap-2", !compact && "sm:w-[34%] sm:shrink-0 sm:justify-start")}>
-            <span className={cn("truncate text-foreground", unread ? "font-bold" : "font-medium")}>{title}</span>
-            {formattedDate && date ? <time dateTime={date} className={cn("shrink-0 text-muted-foreground", !compact && "sm:hidden")}>{formattedDate}</time> : null}
-          </div>
-          <span className={cn("min-w-0 flex-1 truncate", unread ? "font-semibold text-foreground" : "text-muted-foreground")}>{subject}</span>
-        </div>
-        {!compact && formattedDate && date ? <time dateTime={date} className={cn("hidden w-24 shrink-0 text-right sm:block", unread ? "font-medium text-foreground" : "text-muted-foreground")}>{formattedDate}</time> : null}
-        {onDelete ? (
-          <button type="button" onClick={(event) => { event.stopPropagation(); onDelete() }} aria-label={deleteLabel} className="hidden size-8 shrink-0 items-center justify-center rounded-sm text-muted-foreground opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive focus-visible:opacity-100 group-hover:opacity-100 sm:inline-flex">
-            <Trash2 className="size-3.5" aria-hidden="true" />
-          </button>
-        ) : <span className="hidden size-8 shrink-0 sm:block" aria-hidden="true" />}
-      </div>
-    </>
+    <CompactListRow
+      title={<span className={unread ? "font-bold text-foreground" : undefined}>{subject || "(No subject)"}</span>}
+      subtitle={`${title} · ${formattedDate || "No date"}`}
+      mobileSubtitle={date && formattedDate ? <time dateTime={date}>{formattedDate}</time> : "No date"}
+      active={selected}
+      leading={selectionControl}
+      onClick={() => selectionMode && onCheckedChange ? onCheckedChange(!checked) : onOpen()}
+      ariaLabel={unread ? `Unread. ${ariaLabel}` : ariaLabel}
+      menuLabel={`Options for ${subject || title}`}
+      menu={onDelete ? <DropdownMenuItem variant="destructive" onSelect={onDelete}>{deleteText}</DropdownMenuItem> : undefined}
+      className="px-2"
+    />
   )
 }

@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import { DashboardPageSkeleton } from "@/components/dashboard/dashboard-page-skeleton"
+import { CompactListSkeleton } from "@/components/dashboard/compact-list-row"
 import { getOrganizations, type Organization } from "@/lib/organizations"
 import { getProjects, type Project } from "@/lib/projects"
 import { getTasks, type Task } from "@/lib/tasks"
@@ -219,7 +219,7 @@ export function CalendarPage() {
         </div>
       </div>
 
-      {loading ? <DashboardPageSkeleton rows={6} /> : error ? (
+      {error ? (
         <div className="rounded-lg border border-destructive/30 p-5 text-sm text-destructive">{error}</div>
       ) : (
         <>
@@ -243,19 +243,19 @@ export function CalendarPage() {
                   >
                     <span className={`inline-flex size-6 items-center justify-center rounded-full text-xs ${key === dateKey(new Date()) ? "bg-primary text-primary-foreground" : ""}`}>{day.getDate()}</span>
                     <span className="mt-1 hidden space-y-1 sm:block">
-                      {dayTasks.slice(0, 2).map((task) => (
+                      {loading ? <span className="block h-3 w-3/4 animate-pulse rounded-md bg-accent" /> : dayTasks.slice(0, 2).map((task) => (
                         <span key={task.id} className={`block truncate rounded px-1.5 py-0.5 text-left text-xs ${task.status === "done" ? "bg-muted text-muted-foreground line-through" : "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"}`}>
                           Task · {task.name}
                         </span>
                       ))}
-                      {dayBookings.slice(0, Math.max(0, 2 - Math.min(dayTasks.length, 2))).map((booking) => (
+                      {!loading && dayBookings.slice(0, Math.max(0, 2 - Math.min(dayTasks.length, 2))).map((booking) => (
                         <span key={booking.id} className={`block truncate rounded px-1.5 py-0.5 text-left text-xs ${booking.status === "scheduled" ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground line-through"}`}>
                           {bookingTime(booking)} {booking.title}
                         </span>
                       ))}
-                      {itemCount > 2 && <span className="block px-1 text-[11px] text-muted-foreground">+{itemCount - 2} more</span>}
+                      {!loading && itemCount > 2 && <span className="block px-1 text-[11px] text-muted-foreground">+{itemCount - 2} more</span>}
                     </span>
-                    {itemCount > 0 && <span className="mt-1 flex justify-center gap-0.5 sm:hidden">{dayTasks.slice(0, 3).map((task) => <span key={`task-${task.id}`} className={`size-1.5 rounded-full ${task.status === "done" ? "bg-muted-foreground" : "bg-emerald-500"}`} />)}{dayBookings.slice(0, Math.max(0, 3 - dayTasks.length)).map((booking) => <span key={`booking-${booking.id}`} className={`size-1.5 rounded-full ${booking.status === "scheduled" ? "bg-primary" : "bg-muted-foreground"}`} />)}</span>}
+                    {loading ? <span className="mx-auto mt-1 block size-1.5 animate-pulse rounded-full bg-accent sm:hidden" /> : itemCount > 0 && <span className="mt-1 flex justify-center gap-0.5 sm:hidden">{dayTasks.slice(0, 3).map((task) => <span key={`task-${task.id}`} className={`size-1.5 rounded-full ${task.status === "done" ? "bg-muted-foreground" : "bg-emerald-500"}`} />)}{dayBookings.slice(0, Math.max(0, 3 - dayTasks.length)).map((booking) => <span key={`booking-${booking.id}`} className={`size-1.5 rounded-full ${booking.status === "scheduled" ? "bg-primary" : "bg-muted-foreground"}`} />)}</span>}
                   </button>
                 )
               })}
@@ -267,7 +267,9 @@ export function CalendarPage() {
               <h3 className="text-base font-semibold">{readableDate(new Date(`${selectedDate}T12:00:00`))}</h3>
               {calendarFilter !== "tasks" && <Button variant="ghost" size="sm" onClick={() => newBooking(selectedDate)}><Plus className="size-4" />Add booking</Button>}
             </div>
-            {selectedBookings.length === 0 && selectedTasks.length === 0 ? (
+            {loading ? (
+              <CompactListSkeleton rows={3} />
+            ) : selectedBookings.length === 0 && selectedTasks.length === 0 ? (
               <div className="rounded-lg border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground">No calendar items on this day.</div>
             ) : (
               <div className="divide-y divide-border rounded-lg border border-border">

@@ -29,7 +29,7 @@ import { FaFolderOpen } from "react-icons/fa"
 import { getProjects, deleteProject, projectSlug, projectStatusMeta, type Project } from "@/lib/projects"
 import { NewProjectDialog } from "@/components/dashboard/new-project-dialog"
 import { MobileDataCard } from "@/components/dashboard/mobile-data-card"
-import { DashboardPageSkeleton } from "@/components/dashboard/dashboard-page-skeleton"
+import { GridCardsSkeleton, MobileCardsSkeleton, TableRowsSkeleton } from "@/components/dashboard/collection-skeletons"
 import { ReactIcon } from "@/components/react-icon"
 import { ProjectCover } from "@/components/project-card"
 import { GridCard, GridCardList } from "@/components/dashboard/grid-card"
@@ -166,7 +166,10 @@ export default function ProjectsAdminPage() {
       </FilterBar>
 
       {loading ? (
-        <DashboardPageSkeleton rows={6} />
+        view === "grid" ? <GridCardsSkeleton /> : <>
+          <div className="sm:hidden"><MobileCardsSkeleton /></div>
+          <div className="hidden sm:block"><TableRowsSkeleton headers={["", "Project", "Client", "Status", "Updated", ""]} /></div>
+        </>
       ) : error ? (
         <Card>
           <CardContent className="py-10 text-center text-sm text-destructive">{error}</CardContent>

@@ -2,7 +2,8 @@ import { useState } from "react"
 import { Copy, ListTodo, Loader2, Mail, Pencil, Plus, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 
-import { MobileDataCard } from "@/components/dashboard/mobile-data-card"
+import { CompactListRow, CompactListSkeleton } from "@/components/dashboard/compact-list-row"
+import { TableRowsSkeleton } from "@/components/dashboard/collection-skeletons"
 import { TaskEditorSheet } from "@/components/dashboard/task-editor-sheet"
 import { useTaskEmail } from "@/components/dashboard/use-task-email"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
@@ -56,13 +57,14 @@ interface TasksViewProps {
   companyId: string
   clientName: string
   canDuplicate?: boolean
+  loading?: boolean
   deleting: string | null
   onDelete: (id: string) => void
   onPatch: (id: string, patch: Partial<Task>) => void
   onSaved: () => void | Promise<void>
 }
 
-export function TasksView({ tasks, projects, companyId, clientName, canDuplicate = true, deleting, onDelete, onPatch, onSaved }: TasksViewProps) {
+export function TasksView({ tasks, projects, companyId, clientName, canDuplicate = true, loading = false, deleting, onDelete, onPatch, onSaved }: TasksViewProps) {
   const { emailTask, emailDialog, emailingId } = useTaskEmail()
   const [editingId, setEditingId] = useState<string | null>(null)
   const [adding, setAdding] = useState<{ status?: TaskStatus } | null>(null)
@@ -114,24 +116,21 @@ export function TasksView({ tasks, projects, companyId, clientName, canDuplicate
       </div>
 
       <div className="mt-3 sm:hidden">
-        {tasks.length === 0 ? (
+        {loading ? <CompactListSkeleton /> : tasks.length === 0 ? (
           <div className="rounded-lg border border-dashed border-border px-4 py-10 text-center">
             <ListTodo className="mx-auto mb-2 size-6 text-muted-foreground/60" aria-hidden="true" />
             <p className="font-bold">No tasks yet</p>
             <p className="mt-1 text-xs text-muted-foreground">Add a task to start tracking work.</p>
           </div>
         ) : (
-          <div className="space-y-2">
+          <div>
             {tasks.map((task) => {
-              const status = taskStatusMeta[task.status] ?? taskStatusMeta.todo
-              const priority = taskPriorityMeta[task.priority] ?? taskPriorityMeta.medium
               return (
-                <MobileDataCard
+                <CompactListRow
                   key={task.id}
-                  variant="task"
-                  icon={<ListTodo className="size-5 text-violet-600 dark:text-violet-400" aria-hidden="true" />}
                   title={task.name}
-                  subtitle={<span className="flex flex-col gap-1"><span className="flex flex-wrap items-center gap-x-2 gap-y-1"><span>{task.project || "No project"}</span><span>·</span><span>{status.label}</span><span>·</span><span>{priority.label}</span>{task.dueDate && <><span>·</span><span>Due {task.dueDate}</span></>}</span><span>Modified {formatTimestamp(task.updatedAt ?? task.createdAt)}</span></span>}
+                  subtitle={formatTimestamp(task.updatedAt ?? task.createdAt)}
+                  onClick={() => openEdit(task.id)}
                   menuLabel={`Options for ${task.name}`}
                   menu={<><DropdownMenuItem disabled={emailingId !== null} onSelect={() => emailCompanyTask(task)}>Email task</DropdownMenuItem><DropdownMenuItem onSelect={() => openEdit(task.id)}>Edit task</DropdownMenuItem>{canDuplicate && <DropdownMenuItem disabled={duplicatingId !== null} onSelect={() => void handleDuplicate(task)}>Duplicate task</DropdownMenuItem>}<DropdownMenuItem variant="destructive" onSelect={() => setMobileDeleteTarget(task)}>Delete task</DropdownMenuItem></>}
                 />
@@ -141,7 +140,7 @@ export function TasksView({ tasks, projects, companyId, clientName, canDuplicate
         )}
       </div>
 
-      <div className="mt-3 hidden overflow-x-auto rounded-lg border border-border sm:block">
+      {loading ? <div className="mt-3 hidden sm:block"><TableRowsSkeleton headers={["Task", "Project", "Priority", "Status", "Due", ""]} /></div> : <div className="mt-3 hidden overflow-x-auto rounded-lg border border-border sm:block">
         <Table className="w-full min-w-[960px] table-fixed">
           <TableHeader>
             <TableRow>
@@ -184,6 +183,7 @@ export function TasksView({ tasks, projects, companyId, clientName, canDuplicate
           </TableBody>
         </Table>
       </div>
+      }
 
       {emailDialog}
 

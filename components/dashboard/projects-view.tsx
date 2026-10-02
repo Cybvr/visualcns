@@ -7,6 +7,7 @@ import { FaFolderOpen } from "react-icons/fa"
 
 import { FirstRunState } from "@/components/dashboard/empty-state"
 import { MobileDataCard } from "@/components/dashboard/mobile-data-card"
+import { MobileCardsSkeleton } from "@/components/dashboard/collection-skeletons"
 import { ReactIcon } from "@/components/react-icon"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -38,6 +39,7 @@ export function ProjectsView({
   onNewProject,
   hideHeader = false,
   minimal = false,
+  loading = false,
 }: {
   projects: Project[]
   onChanged?: () => Promise<void>
@@ -47,6 +49,7 @@ export function ProjectsView({
   hideHeader?: boolean
   /** Home page: skip the pitch copy and support line in the empty state. */
   minimal?: boolean
+  loading?: boolean
 }) {
   const [renaming, setRenaming] = useState<Project | null>(null)
   const [deleting, setDeleting] = useState<Project | null>(null)
@@ -104,7 +107,7 @@ export function ProjectsView({
       {!hideHeader && (
         <div className="flex items-center gap-2">
           <h2 className="text-xs font-medium text-muted-foreground">Projects</h2>
-          <span className="text-xs font-medium text-muted-foreground">{projects.length}</span>
+          {!loading && <span className="text-xs font-medium text-muted-foreground">{projects.length}</span>}
         </div>
       )}
 
@@ -114,7 +117,9 @@ export function ProjectsView({
         </p>
       )}
 
-      {projects.length === 0 ? (
+      {loading ? (
+        <div className="mt-2"><MobileCardsSkeleton rows={4} /></div>
+      ) : projects.length === 0 ? (
         <FirstRunState
           className="mt-4"
           label="Project"

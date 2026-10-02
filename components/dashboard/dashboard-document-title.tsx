@@ -7,8 +7,15 @@ import { usePageHeaderOverride } from "@/components/dashboard/page-title-context
 
 const APP_NAME = "VisualCNS"
 
-function documentTitle(page: string): string {
-  return `${page} | ${APP_NAME}`
+function documentTitle(page: string, record?: string | null): string {
+  return record && record !== page ? `${record} · ${page} | ${APP_NAME}` : `${page} | ${APP_NAME}`
+}
+
+/** "Invoices", "New Invoice", "Edit Invoice" or "Invoice" for a record section. */
+function recordSection(plural: string, singular: string, record?: string, action?: string): string {
+  if (!record) return plural
+  if (record === "new") return `New ${singular}`
+  return action === "edit" ? `Edit ${singular}` : singular
 }
 
 export function dashboardPageTitle(pathname: string): string {
@@ -25,8 +32,14 @@ export function dashboardPageTitle(pathname: string): string {
       if (record === "customization") return "App Settings"
       if (record === "notifications") return "Notifications"
       if (record === "business") return "Agency Settings"
+      if (record === "agency") return "Agency"
+      if (record === "billing") return "Billing"
+      if (record === "data") return "Data"
+      if (record === "integrations") return "Integrations"
       if (record === "team") return "Team"
       return "Account"
+    case "admin":
+      return record === "agencies" ? "Agencies" : "Admin"
     case "agent":
       return "Agent"
     case "chats":
@@ -40,23 +53,21 @@ export function dashboardPageTitle(pathname: string): string {
       if (!record) return "Clients"
       return action === "edit" ? "Edit Client" : "Client"
     case "contracts":
-      if (!record) return "Contracts"
-      if (record === "new") return "New Contract"
-      return action === "edit" ? "Edit Contract" : "Contract"
+      return recordSection("Contracts", "Contract", record, action)
+    case "documents":
+      return recordSection("Documents", "Document", record, action)
     case "drive":
       return "Drive"
     case "email":
       return "Email"
     case "estimates":
-      if (!record) return "Estimates"
-      if (record === "new") return "New Estimate"
-      return action === "edit" ? "Edit Estimate" : "Estimate"
+      return recordSection("Estimates", "Estimate", record, action)
     case "invoices":
-      if (!record) return "Invoices"
-      if (record === "new") return "New Invoice"
-      return action === "edit" ? "Edit Invoice" : "Invoice"
+      return recordSection("Invoices", "Invoice", record, action)
     case "media":
       return "Media"
+    case "notes":
+      return "Notes"
     case "projects":
       return record ? "Project" : "Projects"
     case "seo":
@@ -64,9 +75,11 @@ export function dashboardPageTitle(pathname: string): string {
     case "settings":
       return record === "business" ? "Organization Profile" : "Settings"
     case "tasks":
-      return "Tasks"
+      return record ? "Task" : "Tasks"
     case "users":
       return "Contacts"
+    case "visitors":
+      return "Visitors"
     default:
       // The remaining dynamic /dashboard/[slug] route redirects to the
       // dashboard home, so it should never inherit a marketing-page title.
@@ -76,11 +89,11 @@ export function dashboardPageTitle(pathname: string): string {
 
 export function DashboardDocumentTitle() {
   const pathname = usePathname()
-  const { override } = usePageHeaderOverride()
+  const { override, recordTitle } = usePageHeaderOverride()
 
   useEffect(() => {
-    document.title = documentTitle(override?.title ?? dashboardPageTitle(pathname ?? "/dashboard"))
-  }, [override?.title, pathname])
+    document.title = documentTitle(override?.title ?? dashboardPageTitle(pathname ?? "/dashboard"), recordTitle)
+  }, [override?.title, pathname, recordTitle])
 
   return null
 }

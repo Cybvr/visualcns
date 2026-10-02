@@ -1,6 +1,6 @@
 "use client"
 
-import { ArrowLeft, Check, ChevronDown, ChevronsUpDown, Clock, Eye, FileText, MoreVertical, Trash2, X } from "lucide-react"
+import { ArrowLeft, Check, ChevronDown, ChevronsUpDown, Clock, Eye, FileText, MoreVertical, Paperclip, Trash2, X } from "lucide-react"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { IoSend } from "react-icons/io5"
 
@@ -96,6 +96,9 @@ export type EmailComposerProps = {
   lists: ContactList[]
   body: string
   setBody: (value: string) => void
+  attachments: File[]
+  addAttachments: (files: File[]) => void
+  removeAttachment: (index: number) => void
   senderConfigured: boolean
   sending: boolean
   scheduleEnabled: boolean
@@ -156,6 +159,9 @@ export function EmailComposer({
   lists,
   body,
   setBody,
+  attachments,
+  addAttachments,
+  removeAttachment,
   senderConfigured,
   sending,
   scheduleEnabled,
@@ -182,6 +188,7 @@ export function EmailComposer({
   const [activeRecipientIndex, setActiveRecipientIndex] = useState(0)
   const [ccSuggestionsOpen, setCcSuggestionsOpen] = useState(false)
   const [activeCcIndex, setActiveCcIndex] = useState(0)
+  const attachmentInputRef = useRef<HTMLInputElement>(null)
   const recipientMatches = useMemo(() => matchingContacts(contacts, to), [contacts, to])
   const ccQuery = cc.split(/[,;]/).at(-1)?.trim() ?? ""
   const ccMatches = useMemo(() => {
@@ -414,6 +421,22 @@ export function EmailComposer({
               <div className="shrink-0 border-b border-border px-4 py-1.5"><Input id="email-subject" name="message-subject" aria-label="Subject" autoComplete="off" value={subject} onChange={(event) => setSubject(event.target.value)} maxLength={200} placeholder="Subject" className="h-8 border-0 px-0 shadow-none focus-visible:ring-0" required /></div>
               {messageKind === "marketing" && <p className="shrink-0 border-b border-border px-4 py-1.5 text-xs leading-5 text-muted-foreground">Only subscribed contacts will receive this. An unsubscribe link is added automatically.</p>}
               <div className="min-h-0 flex-1 overflow-hidden px-2 py-2"><RichTextEditor value={body} onChange={setBody} placeholder="Write your message" scrollable compact flat allowHtml className="h-full min-h-0" /></div>
+
+              <div className="shrink-0 border-t border-border px-3 py-2">
+                <input ref={attachmentInputRef} type="file" multiple className="sr-only" tabIndex={-1} aria-label="Choose email attachments" onChange={(event) => { addAttachments(Array.from(event.target.files || [])); event.target.value = "" }} />
+                <button type="button" onClick={() => attachmentInputRef.current?.click()} disabled={sending} className="inline-flex h-8 items-center gap-2 rounded-md px-2 text-sm text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"><Paperclip className="size-4" aria-hidden="true" />Attach files</button>
+                {attachments.length > 0 && (
+                  <div className="mt-1 flex flex-wrap gap-1.5">
+                    {attachments.map((file, index) => (
+                      <span key={`${file.name}-${index}`} className="inline-flex max-w-full items-center gap-1 rounded-md bg-muted px-2 py-1 text-xs">
+                        <span className="max-w-48 truncate" title={file.name}>{file.name}</span>
+                        <button type="button" onClick={() => removeAttachment(index)} disabled={sending} aria-label={`Remove ${file.name}`} className="rounded p-0.5 text-muted-foreground hover:text-foreground disabled:opacity-50"><X className="size-3" aria-hidden="true" /></button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+                {attachments.length > 0 && <p className="mt-1 text-xs text-muted-foreground">Files stay attached while this composer is open. Reattach them if you reopen the draft.</p>}
+              </div>
 
               {!fullPage && (
                 <div className="flex min-w-0 shrink-0 flex-nowrap items-center gap-1 overflow-x-auto border-t border-border px-2 py-2 [scrollbar-width:none]">

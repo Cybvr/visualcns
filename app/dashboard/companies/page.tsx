@@ -1,19 +1,19 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
+import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { Building2, EllipsisVertical, Plus } from "lucide-react"
-import { FaBuilding } from "react-icons/fa"
+import { Building2, Maximize2, Pencil, Plus } from "lucide-react"
 import type { Timestamp } from "firebase/firestore"
 
 import { useAuth } from "@/components/auth-provider"
+import { ClientPreview } from "@/components/dashboard/client-preview"
+import { CompactListRow } from "@/components/dashboard/compact-list-row"
 import { CompanyCreateSheet } from "@/components/dashboard/company-create-sheet"
-import { DashboardPageSkeleton } from "@/components/dashboard/dashboard-page-skeleton"
-import { ReactIcon } from "@/components/react-icon"
-import { MobileDataCard } from "@/components/dashboard/mobile-data-card"
-import { GridCard, GridCardList } from "@/components/dashboard/grid-card"
-import { ViewToggle, useViewMode } from "@/components/dashboard/view-toggle"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { DocumentSplitPane } from "@/components/dashboard/document-split-pane"
+import { FirstRunState } from "@/components/dashboard/empty-state"
+import { useRecordTitle } from "@/components/dashboard/page-title-context"
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,19 +25,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
 import { FilterBar, useFilterBar, type SortOption } from "@/components/dashboard/filter-bar"
-import { TableBulkBar } from "@/components/dashboard/table-bulk-bar"
-import { Checkbox } from "@/components/ui/checkbox"
-import { useRowSelection } from "@/hooks/use-row-selection"
+import { useUrlSelection } from "@/hooks/use-url-selection"
 import { deleteOrganization, getOrganizations, type Organization } from "@/lib/organizations"
 import { formatTimestamp, tsToMillis } from "@/lib/tasks"
 import { getProjects, type Project } from "@/lib/projects"
@@ -69,6 +58,19 @@ function normalize(value?: string): string {
   return (value ?? "").trim().toLowerCase()
 }
 
+/** The ref a client is addressed by, in its page URL and in ?client= on this page. */
+function companyRefOf(row: CompanyRow): string {
+  // Company pages are addressed by the organization slug. A user slug can
+  // differ from it (for example, sadaya vs sadaya-client), which would make
+  // the same company appear at two different dashboard URLs.
+  return row.slug || (row.user ? userRef(row.user) : row.id)
+}
+
+function companyHref(row: CompanyRow): string {
+  return `/dashboard/clients/${companyRefOf(row)}`
+}
+
+/** Clients as a list on the left and the open client on the right, like tasks and notes. */
 export default function CompaniesPage() {
   const router = useRouter()
   const { viewAsUser } = useAuth()
@@ -78,10 +80,9 @@ export default function CompaniesPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
-  const [bulkDeleting, setBulkDeleting] = useState(false)
   const [pendingDelete, setPendingDelete] = useState<CompanyRow | null>(null)
   const [creating, setCreating] = useState(false)
-  const [view, setView] = useViewMode("clients")
+  const [selectedRef, setSelectedRef] = useUrlSelection("client")
 
   async function fetchCompanies() {
     setError(null)
@@ -181,7 +182,9 @@ export default function CompaniesPage() {
     defaultDirection: "desc",
   })
 
-  const selection = useRowSelection(visibleCompanies, (row) => row.id)
+  // ?client= holds the slug, but an old link may carry the raw workspace id.
+  const selected = selectedRef ? companies.find((row) => companyRefOf(row) === selectedRef || row.id === selectedRef) ?? null : null
+  useRecordTitle(selected?.name ?? null)
 
   async function handleDelete(row: CompanyRow) {
     if (deleting) return
@@ -191,6 +194,7 @@ export default function CompaniesPage() {
       if (row.hasOrg) await deleteOrganization(row.id)
       if (row.user) await deleteUser(row.user.uid)
       setPendingDelete(null)
+      if (selected?.id === row.id) setSelectedRef(null)
       await fetchCompanies()
     } catch (deleteError) {
       console.error("Error deleting company:", deleteError)
@@ -200,59 +204,28 @@ export default function CompaniesPage() {
     }
   }
 
-  async function handleBulkDelete() {
-    const ids = selection.selectedIds
-    if (ids.length === 0 || bulkDeleting) return
-    setBulkDeleting(true)
-    setError(null)
-    try {
-      const byId = new Map(companies.map((row) => [row.id, row]))
-      await Promise.all(
-        ids.map(async (id) => {
-          const row = byId.get(id)
-          if (!row) return
-          if (row.hasOrg) await deleteOrganization(row.id)
-          if (row.user) await deleteUser(row.user.uid)
-        }),
-      )
-      selection.clear()
-      await fetchCompanies()
-    } catch (deleteError) {
-      console.error("Error deleting companies:", deleteError)
-      setError(deleteError instanceof Error ? deleteError.message : "Some clients could not be removed. Try again.")
-    } finally {
-      setBulkDeleting(false)
-    }
-  }
-
-  function companyHref(row: CompanyRow): string {
-    // Company pages are addressed by the organization slug. A user slug can
-    // differ from it (for example, sadaya vs sadaya-client), which would make
-    // the same company appear at two different dashboard URLs.
-    return `/dashboard/clients/${row.slug || (row.user ? userRef(row.user) : row.id)}`
-  }
-
   function handleViewWorkspace(row: CompanyRow) {
     if (!row.user || row.user.role !== "client" || !row.user.companyId) return
     viewAsUser(row.user)
     router.push(`/${encodeURIComponent(row.slug || row.user.companyId)}`)
   }
 
+  const clientFilter = (
+    <FilterBar
+      {...bar}
+      className="mb-0 h-16 border-b border-border"
+      placeholder="Search clients"
+      actions={
+        <Button variant="ghost" className="bg-transparent text-foreground hover:bg-transparent" onClick={() => setCreating(true)}>
+          <Plus className="size-4" aria-hidden="true" />
+          New
+        </Button>
+      }
+    />
+  )
+
   return (
     <main className="mx-auto w-full max-w-6xl px-4 pb-12 pt-4 sm:px-6">
-      <FilterBar
-        {...bar}
-        mobileVariant="drawer"
-        headerOnMobile
-        placeholder="Search clients"
-        controls={<ViewToggle view={view} onChange={setView} />}
-        actions={
-          <Button variant="ghost" size="icon" className="bg-transparent text-foreground hover:bg-transparent" onClick={() => setCreating(true)} aria-label="Add client" title="Add client">
-            <Plus className="size-4" aria-hidden="true" />
-          </Button>
-        }
-      />
-
       {error && (
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
           <p>{error}</p>
@@ -262,162 +235,62 @@ export default function CompaniesPage() {
         </div>
       )}
 
-      {loading ? (
-        <DashboardPageSkeleton rows={6} />
-      ) : companies.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center py-16 text-center">
-            <span className="flex h-11 w-11 items-center justify-center rounded-full bg-muted">
-              <Building2 className="h-5 w-5 text-muted-foreground" />
-            </span>
-            <h2 className="mt-4 font-medium">No clients yet</h2>
-            <p className="mt-1 max-w-sm text-sm text-muted-foreground">
-              Add a client to create a company for their projects, tasks, and documents.
-            </p>
-            <Button className="mt-5" onClick={() => setCreating(true)}>
-              <Plus className="mr-2 h-4 w-4" />
-              Add Client
-            </Button>
-          </CardContent>
-        </Card>
-      ) : visibleCompanies.length === 0 ? (
-        <Card>
-          <CardContent className="py-16 text-center text-sm text-muted-foreground">
-            No clients match your search.
-          </CardContent>
-        </Card>
-      ) : view === "grid" ? (
-        <GridCardList>
-          {visibleCompanies.map((row) => (
-            <GridCard
-              key={row.id}
-              href={companyHref(row)}
-              ariaLabel={`Open ${row.name}`}
-              title={row.name}
-              icon={<ReactIcon icon={FaBuilding} className="size-4 text-blue-600 dark:text-blue-400" aria-hidden="true" />}
-              preview={row.logoUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={row.logoUrl} alt="" loading="lazy" referrerPolicy="no-referrer" className="size-full object-contain p-6" />
-              ) : undefined}
-              placeholder={<ReactIcon icon={FaBuilding} className="size-12 text-muted-foreground/40" aria-hidden="true" />}
-              menuLabel={`Options for ${row.name}`}
-              menu={
-                <>
-                  <DropdownMenuItem onSelect={() => router.push(companyHref(row))}>Open client</DropdownMenuItem>
-                  <DropdownMenuItem onSelect={() => router.push(`${companyHref(row)}/edit`)}>Edit client</DropdownMenuItem>
-                  <DropdownMenuItem variant="destructive" onSelect={() => setPendingDelete(row)}>Remove client</DropdownMenuItem>
-                </>
-              }
-            />
-          ))}
-        </GridCardList>
-      ) : (
+      {!loading && companies.length === 0 ? (
         <>
-          <div className="space-y-2 sm:hidden">
-            {visibleCompanies.map((row) => (
-              <MobileDataCard
-                key={row.id}
-                href={companyHref(row)}
-                title={row.name}
-                subtitle={<span className="flex flex-col gap-1"><span>{row.label || (row.projectCount ? `${row.projectCount} project${row.projectCount === 1 ? "" : "s"}` : "No projects yet")}</span><span>Modified {formatTimestamp(row.updatedAt ?? row.createdAt)}</span></span>}
-                imageUrl={row.logoUrl}
-                icon={<ReactIcon icon={FaBuilding} className="size-5 text-blue-600 dark:text-blue-400" aria-hidden="true" />}
-                menuLabel={`Options for ${row.name}`}
-                menu={
-                  <>
-                    <DropdownMenuItem onSelect={() => router.push(companyHref(row))}>Open client</DropdownMenuItem>
-                    <DropdownMenuItem onSelect={() => router.push(`${companyHref(row)}/edit`)}>Edit client</DropdownMenuItem>
-                    <DropdownMenuItem variant="destructive" onSelect={() => setPendingDelete(row)}>Remove client</DropdownMenuItem>
-                  </>
-                }
-              />
-            ))}
-          </div>
-
-          <div className="hidden min-w-0 sm:block">
-          <TableBulkBar
-            count={selection.selectedCount}
-            noun="client"
-            nounPlural="clients"
-            deleting={bulkDeleting}
-            onClear={selection.clear}
-            onDelete={handleBulkDelete}
+          <div className="lg:max-w-[30rem]">{clientFilter}</div>
+          <FirstRunState
+            label="Client"
+            title="Let's add your first client"
+            description="Add a client to create a company for their projects, tasks, and documents."
+            action={<Button onClick={() => setCreating(true)}>Add client</Button>}
           />
-          <Table className="w-full table-fixed">
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-10">
-                  <Checkbox
-                    aria-label="Select all clients"
-                    checked={selection.allSelected}
-                    indeterminate={selection.someSelected}
-                    onChange={selection.toggleAll}
-                  />
-                </TableHead>
-                <TableHead>Client</TableHead>
-                <TableHead className="w-20">Projects</TableHead>
-                <TableHead className="w-28">Added</TableHead>
-                <TableHead className="w-12 text-right"><span className="sr-only">Actions</span></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {visibleCompanies.map((row) => (
-                <TableRow
-                  key={row.id}
-                  className="cursor-pointer"
-                  onClick={() => router.push(companyHref(row))}
-                >
-                  <TableCell onClick={(e) => e.stopPropagation()}>
-                    <Checkbox
-                      aria-label={`Select ${row.name}`}
-                      checked={selection.isSelected(row.id)}
-                      onChange={() => selection.toggle(row.id)}
-                    />
-                  </TableCell>
-                  <TableCell className="max-w-0">
-                    <div className="flex min-w-0 items-center gap-3">
-                      {row.logoUrl ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={row.logoUrl}
-                          alt=""
-                          className="h-8 w-8 shrink-0 rounded-full object-cover"
-                          referrerPolicy="no-referrer"
-                        />
-                      ) : (
-                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted">
-                          <Building2 className="h-4 w-4 text-muted-foreground" />
-                        </span>
-                      )}
-                      <span className="min-w-0">
-                        <span className="block truncate font-medium">{row.name}</span>
-                        <span className="block truncate text-muted-foreground">{row.label || "—"}</span>
-                      </span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">{row.projectCount}</TableCell>
-                  <TableCell className="text-muted-foreground">{formatTimestamp(row.createdAt)}</TableCell>
-                  <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="size-8 text-muted-foreground hover:text-foreground" aria-label={`Actions for ${row.name}`}>
-                          <EllipsisVertical className="size-4" aria-hidden="true" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onSelect={() => router.push(companyHref(row))}>Open client</DropdownMenuItem>
-                        {row.user && <DropdownMenuItem onSelect={() => handleViewWorkspace(row)}>View workspace</DropdownMenuItem>}
-                        <DropdownMenuItem onSelect={() => router.push(`${companyHref(row)}/edit`)}>Edit client</DropdownMenuItem>
-                        <DropdownMenuItem variant="destructive" onSelect={() => setPendingDelete(row)}>Remove client</DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-          </div>
         </>
+      ) : (
+        <DocumentSplitPane
+          visibleItems={loading ? [] : visibleCompanies}
+          loading={loading}
+          selectedId={selected ? companyRefOf(selected) : null}
+          onClearSelection={() => setSelectedRef(null)}
+          sectionLabel="Clients"
+          filter={clientFilter}
+          emptySearchLabel="No clients match your search."
+          getKey={companyRefOf}
+          selectedTitle={selected?.name}
+          headerActions={selected && (
+            <>
+              <Button asChild variant="ghost" size="icon" className="size-8 text-muted-foreground hover:text-foreground" aria-label="Edit client" title="Edit client">
+                <Link href={`${companyHref(selected)}/edit`}><Pencil className="size-4" aria-hidden="true" /></Link>
+              </Button>
+              <Button asChild variant="ghost" size="icon" className="size-8 text-muted-foreground hover:text-foreground" aria-label="Open full client page" title="Open full client page">
+                <Link href={companyHref(selected)}><Maximize2 className="size-4" aria-hidden="true" /></Link>
+              </Button>
+            </>
+          )}
+          content={selected ? <ClientPreview companyRef={companyRefOf(selected)} href={companyHref(selected)} /> : null}
+          renderItem={(row, active) => (
+            <CompactListRow
+              leading={row.logoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={row.logoUrl} alt="" referrerPolicy="no-referrer" className="size-8 rounded-full object-cover" />
+              ) : (
+                <span className="flex size-8 items-center justify-center rounded-full bg-muted"><Building2 className="size-4 text-muted-foreground" aria-hidden="true" /></span>
+              )}
+              title={row.name}
+              subtitle={`${row.label || (row.projectCount ? `${row.projectCount} project${row.projectCount === 1 ? "" : "s"}` : "No projects yet")} · ${formatTimestamp(row.updatedAt ?? row.createdAt)}`}
+              mobileSubtitle={row.label || formatTimestamp(row.updatedAt ?? row.createdAt)}
+              active={active}
+              onClick={() => setSelectedRef(companyRefOf(row))}
+              menuLabel={`Options for ${row.name}`}
+              menu={<>
+                <DropdownMenuItem onSelect={() => setSelectedRef(companyRefOf(row))}>Open client</DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => router.push(companyHref(row))}>Open full page</DropdownMenuItem>
+                {row.user && <DropdownMenuItem onSelect={() => handleViewWorkspace(row)}>View workspace</DropdownMenuItem>}
+                <DropdownMenuItem onSelect={() => router.push(`${companyHref(row)}/edit`)}>Edit client</DropdownMenuItem>
+                <DropdownMenuItem variant="destructive" onSelect={() => setPendingDelete(row)}>Remove client</DropdownMenuItem>
+              </>}
+            />
+          )}
+        />
       )}
 
       <AlertDialog open={Boolean(pendingDelete)} onOpenChange={(open) => !open && !deleting && setPendingDelete(null)}>
@@ -445,13 +318,13 @@ export default function CompaniesPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Creating stays a sheet; the new company's own page opens once it saves. */}
+      {/* Creating stays a sheet; the new client opens in the right pane once it saves. */}
       <CompanyCreateSheet
         open={creating}
         onClose={() => setCreating(false)}
         onSaved={(workspaceId) => {
           setCreating(false)
-          router.push(`/dashboard/clients/${workspaceId}`)
+          void fetchCompanies().then(() => setSelectedRef(workspaceId))
         }}
       />
     </main>

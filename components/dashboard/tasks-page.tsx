@@ -16,19 +16,13 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableRow,
-} from "@/components/ui/table"
-import {
   Sheet,
   SheetContent,
   SheetDescription,
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet"
-import { ListTodo, Mail, Maximize2, Plus, Trash2, Loader2 } from "lucide-react"
+import { Mail, Maximize2, Plus, Trash2, Loader2 } from "lucide-react"
 import {
   duplicateTask,
   getTasks,
@@ -39,14 +33,14 @@ import {
   tsToMillis,
   type Task,
 } from "@/lib/tasks"
-import { DashboardPageSkeleton } from "@/components/dashboard/dashboard-page-skeleton"
+import { CompactListRow, CompactListSkeleton } from "@/components/dashboard/compact-list-row"
+import { useRecordTitle } from "@/components/dashboard/page-title-context"
+import { useUrlSelection } from "@/hooks/use-url-selection"
 import { TaskForm } from "@/components/dashboard/task-form"
 import { EmptySearchState, FirstRunState } from "@/components/dashboard/empty-state"
 import { FilterBar, useFilterBar } from "@/components/dashboard/filter-bar"
-import { MobileDataCard } from "@/components/dashboard/mobile-data-card"
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { useTaskEmail } from "@/components/dashboard/use-task-email"
-import { cn } from "@/lib/utils"
 
 function searchTask(t: Task) {
   return [t.name, t.client, t.companyId, t.project, taskStatusMeta[t.status]?.label, taskPriorityMeta[t.priority]?.label]
@@ -136,7 +130,7 @@ export default function TasksAdminPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
-  const [selectedId, setSelectedId] = useState<string | "new" | null>(null)
+  const [selectedId, setSelectedId] = useUrlSelection("task")
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [duplicatingId, setDuplicatingId] = useState<string | null>(null)
   const [isDesktop, setIsDesktop] = useState(false)
@@ -209,6 +203,7 @@ export default function TasksAdminPage() {
 
   const selectedTask =
     typeof selectedId === "string" && selectedId !== "new" ? tasks.find((t) => t.id === selectedId) ?? null : null
+  useRecordTitle(selectedId === "new" ? "New task" : selectedTask?.name || null)
 
   const taskFilter = (
     <FilterBar
@@ -224,7 +219,10 @@ export default function TasksAdminPage() {
   return (
     <main className="mx-auto w-full max-w-6xl px-4 pt-4 pb-12 sm:px-6">
       {loading ? (
-        <DashboardPageSkeleton rows={6} />
+        <div className="lg:grid lg:grid-cols-[minmax(18rem,0.7fr)_minmax(0,1.3fr)] lg:items-start lg:gap-6">
+          <div className="min-w-0">{taskFilter}<CompactListSkeleton /></div>
+          <div className="hidden min-h-[34rem] lg:block" aria-hidden="true" />
+        </div>
       ) : error ? (
         <Card>
           <CardContent className="py-10 text-center text-sm text-destructive">{error}</CardContent>
@@ -251,14 +249,15 @@ export default function TasksAdminPage() {
               <div className="lg:grid lg:grid-cols-[minmax(18rem,0.7fr)_minmax(0,1.3fr)] lg:items-start lg:gap-6">
                 <div className="min-w-0">
                   {taskFilter}
-                  <ul className="space-y-2 sm:hidden">
+                  <ul>
                     {visibleTasks.map((t) => (
                       <li key={t.id}>
-                        <MobileDataCard
+                        <CompactListRow
                           title={t.name || "Untitled task"}
-                          subtitle={<span className="flex flex-col gap-1"><span>{[t.reminder ? "Reminder" : null, t.client || t.companyId, t.project, taskStatusMeta[t.status]?.label].filter(Boolean).join(" · ") || "—"}</span><span>Modified {formatTimestamp(t.updatedAt ?? t.createdAt)}</span></span>}
-                          icon={<ListTodo className="size-5 text-muted-foreground" aria-hidden="true" />}
+                          subtitle={[t.reminder ? "Reminder" : null, t.project || t.client || t.companyId, taskStatusMeta[t.status]?.label, t.dueDate || formatTimestamp(t.updatedAt ?? t.createdAt)].filter(Boolean).join(" · ")}
+                          mobileSubtitle={formatTimestamp(t.updatedAt ?? t.createdAt)}
                           onClick={() => setSelectedId(t.id)}
+                          active={selectedId === t.id}
                           ariaLabel={`Open ${t.name || "task"}`}
                           menuLabel={`Options for ${t.name || "task"}`}
                           menu={
@@ -273,31 +272,6 @@ export default function TasksAdminPage() {
                       </li>
                     ))}
                   </ul>
-
-                  <div className="hidden overflow-x-auto sm:block">
-                    <Table className="w-full min-w-[280px] table-fixed">
-                      <TableBody>
-                        {visibleTasks.map((t) => (
-                          <TableRow
-                            key={t.id}
-                            className={cn("cursor-pointer hover:bg-muted/50", selectedId === t.id && "bg-muted/50")}
-                            onClick={() => setSelectedId(t.id)}
-                          >
-                            <TableCell className="max-w-0 py-2">
-                              <button
-                                type="button"
-                                className="w-full truncate rounded px-1 py-0 text-left text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                                onClick={() => setSelectedId(t.id)}
-                              >
-                                <span className={cn("sidebar-nav-label block truncate font-medium text-sidebar-foreground/70", selectedId === t.id && "text-sidebar-accent-foreground")}>{t.name || "Untitled task"}</span>
-                                <span className="block text-[10px] font-normal leading-tight text-muted-foreground">{t.dueDate || formatTimestamp(t.updatedAt ?? t.createdAt)}</span>
-                              </button>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
                 </div>
                 <TaskContentPane
                   selectedId={selectedId}

@@ -1,4 +1,5 @@
 import { getAgencySecret } from "@/lib/server/agency-secrets"
+import type { EmailAttachment } from "@/lib/email-attachments"
 
 export const GOOGLE_GMAIL_SEND_SCOPE = "https://www.googleapis.com/auth/gmail.send"
 export const GOOGLE_GMAIL_MODIFY_SCOPE = "https://www.googleapis.com/auth/gmail.modify"
@@ -138,7 +139,8 @@ function encodedSubject(subject: string) {
   return `=?UTF-8?B?${Buffer.from(subject, "utf8").toString("base64")}?=`
 }
 
-export function buildRawGmailMessage(input: { from: string; to: string[]; cc?: string[]; replyTo?: string; subject: string; text: string; html?: string }) {
+export function buildRawGmailMessage(input: { from: string; to: string[]; cc?: string[]; replyTo?: string; subject: string; text: string; html?: string; attachments?: EmailAttachment[] }) {
+  const hasAttachments = Boolean(input.attachments?.length)
   const headers = [
     mimeHeader("From", input.from),
     mimeHeader("To", input.to.join(", ")),
@@ -146,13 +148,14 @@ export function buildRawGmailMessage(input: { from: string; to: string[]; cc?: s
     ...(input.replyTo ? [mimeHeader("Reply-To", input.replyTo)] : []),
     mimeHeader("Subject", encodedSubject(input.subject)),
     "MIME-Version: 1.0",
-    "Content-Type: multipart/alternative; boundary=visualhq_boundary",
+    hasAttachments ? "Content-Type: multipart/mixed; boundary=visualhq_mixed" : "Content-Type: multipart/alternative; boundary=visualhq_boundary",
   ]
   const plain = Buffer.from(input.text, "utf8").toString("base64")
   const html = Buffer.from(input.html || `<p>${input.text.replace(/\n/g, "<br />")}</p>`, "utf8").toString("base64")
   const body = [
     ...headers,
     "",
+    ...(hasAttachments ? ["--visualhq_mixed", "Content-Type: multipart/alternative; boundary=visualhq_boundary", ""] : []),
     "--visualhq_boundary",
     "Content-Type: text/plain; charset=UTF-8",
     "Content-Transfer-Encoding: base64",
@@ -164,6 +167,12 @@ export function buildRawGmailMessage(input: { from: string; to: string[]; cc?: s
     "",
     html,
     "--visualhq_boundary--",
+    ...(input.attachments || []).flatMap((attachment) => {
+      const filename = attachment.filename.replace(/[\r\n"\\]/g, "_")
+      const contentType = attachment.contentType.replace(/[\r\n]/g, "") || "application/octet-stream"
+      return ["--visualhq_mixed", `Content-Type: ${contentType}; name="${filename}"`, `Content-Disposition: attachment; filename="${filename}"`, "Content-Transfer-Encoding: base64", "", attachment.content]
+    }),
+    ...(hasAttachments ? ["--visualhq_mixed--"] : []),
     "",
   ].join("\r\n")
   return base64UrlEncode(body)

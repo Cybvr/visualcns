@@ -7,6 +7,7 @@ import { markdownToHtml } from "@/lib/markdown"
 import { getAgencySecret, recordAgencyUsage } from "@/lib/server/agency-secrets"
 import { requireAgencyId } from "@/lib/require-agency-id"
 import { parseEmailList } from "@/lib/email-composer"
+import { MAX_EMAIL_ATTACHMENTS, MAX_EMAIL_ATTACHMENT_BYTES, type EmailAttachment, type EmailAttachmentInfo } from "@/lib/email-attachments"
 import { SITE_ORIGIN, X_URL, LINKEDIN_URL, absoluteWebUrl, brandedEmail, escapeHtml, extractEmailAddress, normalizeEmailAddress, safeBrandValue } from "@/lib/server/email-branding"
 import { getGmailMessage, gmailSenders, hasGmailConnection, sendGmailMessage } from "@/lib/server/google-gmail"
 
@@ -177,7 +178,7 @@ async function saveEmailHistory(
   agencyId: string,
   id: string,
   input: EmailHistoryInput,
-  details: { to: string[]; cc: string[]; subject: string; from: string; replyTo: string; html: string; text: string; scheduledAt: string; messageKind: EmailMessageKind; context: EmailContext },
+  details: { to: string[]; cc: string[]; subject: string; from: string; replyTo: string; html: string; text: string; scheduledAt: string; messageKind: EmailMessageKind; context: EmailContext; attachments: EmailAttachmentInfo[] },
 ) {
   const recipients = Array.isArray(input.recipients)
     ? input.recipients.filter((value): value is Record<string, unknown> => Boolean(value) && typeof value === "object").map((recipient) => ({
@@ -210,6 +211,7 @@ async function saveEmailHistory(
     messageKind: details.messageKind,
     status: details.scheduledAt ? "scheduled" : "sent",
     scheduledAt: details.scheduledAt || undefined,
+    attachments: details.attachments.length ? details.attachments : undefined,
   }).filter(([, value]) => value !== undefined))
   await caller.db.collection("emailMessages").doc(id).set(record, { merge: true })
 }
@@ -324,11 +326,32 @@ export async function POST(request: Request) {
   let from = normalizeEmailAddress(process.env.EMAIL_FROM || "")
   let replyTo = normalizeEmailAddress(process.env.EMAIL_REPLY_TO || "") || from
 
-  let payload: { to?: unknown; cc?: unknown; from?: unknown; intent?: unknown; subject?: unknown; text?: unknown; html?: unknown; imageUrl?: unknown; brand?: unknown; cta?: unknown; branded?: unknown; type?: unknown; welcome?: unknown; templateId?: unknown; companyId?: unknown; projectId?: unknown; documentType?: unknown; documentId?: unknown; scheduledAt?: unknown; history?: EmailHistoryInput }
+  let payload: { to?: unknown; cc?: unknown; from?: unknown; intent?: unknown; subject?: unknown; text?: unknown; html?: unknown; imageUrl?: unknown; brand?: unknown; cta?: unknown; branded?: unknown; type?: unknown; welcome?: unknown; templateId?: unknown; companyId?: unknown; projectId?: unknown; documentType?: unknown; documentId?: unknown; scheduledAt?: unknown; history?: EmailHistoryInput; attachments?: unknown }
   try {
     payload = (await request.json()) as typeof payload
   } catch {
     return NextResponse.json({ error: "The email request could not be read." }, { status: 400 })
+  }
+
+  const rawAttachments = payload.attachments === undefined ? [] : payload.attachments
+  if (!Array.isArray(rawAttachments) || rawAttachments.length > MAX_EMAIL_ATTACHMENTS) {
+    return NextResponse.json({ error: `Attach up to ${MAX_EMAIL_ATTACHMENTS} files.` }, { status: 400 })
+  }
+  const attachments: EmailAttachment[] = []
+  const attachmentInfo: EmailAttachmentInfo[] = []
+  let attachmentBytes = 0
+  for (const item of rawAttachments) {
+    if (!item || typeof item !== "object") return NextResponse.json({ error: "An attachment could not be read." }, { status: 400 })
+    const file = item as Record<string, unknown>
+    if (typeof file.filename !== "string" || !file.filename.trim() || file.filename.length > 255 || typeof file.content !== "string" || file.content.length > Math.ceil(MAX_EMAIL_ATTACHMENT_BYTES / 3) * 4 || !/^[A-Za-z0-9+/]+={0,2}$/.test(file.content) || file.content.length % 4 !== 0) {
+      return NextResponse.json({ error: "An attachment could not be read." }, { status: 400 })
+    }
+    const contentType = typeof file.contentType === "string" && /^[\w.+-]+\/[\w.+-]+$/.test(file.contentType) ? file.contentType : "application/octet-stream"
+    const size = Buffer.from(file.content, "base64").length
+    attachmentBytes += size
+    if (!size || attachmentBytes > MAX_EMAIL_ATTACHMENT_BYTES) return NextResponse.json({ error: "Attachments can total up to 5 MB." }, { status: 400 })
+    attachments.push({ filename: file.filename.replace(/[\r\n]/g, "_"), contentType, content: file.content })
+    attachmentInfo.push({ filename: file.filename.replace(/[\r\n]/g, "_"), size })
   }
 
   let recipients = (Array.isArray(payload.to) ? payload.to : [payload.to])
@@ -519,7 +542,7 @@ export async function POST(request: Request) {
       ? `${text}\n\n${ctaText}: ${ctaUrl}\n\n---\n${footerText}\nX: ${X_URL}\nLinkedIn: ${LINKEDIN_URL}${unsubscribeLink ? `\nUnsubscribe: ${unsubscribeLink}` : ""}`
       : `${text}${unsubscribeLink ? `\n\nUnsubscribe: ${unsubscribeLink}` : ""}`
     if (useGmail) {
-      const result = await sendGmailMessage(agencyId, { from, to, cc: copy, replyTo, subject, text: brandedText, html })
+      const result = await sendGmailMessage(agencyId, { from, to, cc: copy, replyTo, subject, text: brandedText, html, attachments })
       return { response: { ok: Boolean(result.id), status: result.id ? 200 : 502 }, result: { id: result.id ? `gmail:${result.id}` : undefined } as ResendResponse, html, brandedText }
     }
     const response = await fetch("https://api.resend.com/emails", {
@@ -537,6 +560,7 @@ export async function POST(request: Request) {
         subject,
         text: brandedText,
         html,
+        ...(attachments.length ? { attachments: attachments.map(({ filename, content }) => ({ filename, content })) } : {}),
         reply_to: replyTo,
         ...(scheduledAtIso ? { scheduled_at: scheduledAtIso } : {}),
         ...(unsubscribeLink
@@ -581,6 +605,7 @@ export async function POST(request: Request) {
         scheduledAt: scheduledAtIso,
         messageKind,
         context,
+        attachments: attachmentInfo,
       })
     } catch {
       historySaved = false
@@ -594,7 +619,6 @@ export async function POST(request: Request) {
       replyTo: replyTo || null,
       suppressedCount: suppressedRecipients.length,
       scheduledAt: scheduledAtIso || null,
-      context,
       historySaved,
     })
   }
@@ -631,6 +655,7 @@ export async function POST(request: Request) {
       scheduledAt: scheduledAtIso,
       messageKind,
       context,
+      attachments: attachmentInfo,
     })
   } catch {
     historySaved = false

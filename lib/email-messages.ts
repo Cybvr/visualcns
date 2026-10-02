@@ -2,6 +2,7 @@ import { collection, deleteDoc, doc, getDocs, query, setDoc, updateDoc, where } 
 
 import { db } from "./firebase"
 import { getCurrentAgencyId } from "./agency-scope"
+import type { EmailAttachmentInfo } from "./email-attachments"
 
 const COLLECTION_NAME = "emailMessages"
 
@@ -28,6 +29,7 @@ export type EmailMessageRecord = {
   replyTo?: string
   bodyHtml?: string
   bodyText?: string
+  attachments?: EmailAttachmentInfo[]
   recipients?: EmailRecipient[]
   projectId?: string
   projectName?: string

@@ -68,7 +68,7 @@ export default function AgencyOperationsPage() {
     finally { setDeleting(false) }
   }
 
-  if (loading || busy) return <main className="mx-auto w-full max-w-4xl px-4 py-10 sm:px-6"><AccountNav /><div className="mt-7"><DashboardPageSkeleton rows={5} /></div></main>
+  if (loading || busy) return <main className="mx-auto w-full max-w-4xl px-4 py-10 sm:px-6"><AccountNav /><h1 className="mt-7 text-xl font-semibold">Agency management</h1><div className="mt-6 border border-border"><DashboardPageSkeleton rows={5} /></div></main>
   if (role !== "superadmin") return <main className="mx-auto w-full max-w-4xl px-4 py-10 sm:px-6"><AccountNav /><p className="mt-6 text-sm text-muted-foreground">This area is restricted to platform operations.</p></main>
 
   return <main className="mx-auto w-full max-w-4xl px-4 py-10 sm:px-6">

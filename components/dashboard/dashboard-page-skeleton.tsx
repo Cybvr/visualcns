@@ -1,4 +1,5 @@
 import { Skeleton } from "@/components/ui/skeleton"
+import { CompactListSkeleton } from "@/components/dashboard/compact-list-row"
 
 type DashboardPageSkeletonProps = {
   rows?: number
@@ -61,18 +62,5 @@ export function DashboardPageSkeleton({ rows = 5, variant = "list" }: DashboardP
     )
   }
 
-  return (
-    <div className="space-y-2" role="status" aria-label="Loading">
-      {Array.from({ length: rows }, (_, index) => (
-        <div key={index} className="flex items-center gap-3 rounded-sm bg-card p-3">
-          <Skeleton className="size-11 rounded-xs" />
-          <div className="min-w-0 flex-1 space-y-2">
-            <Skeleton className="h-4 w-2/3" />
-            <Skeleton className="h-3 w-1/3" />
-          </div>
-          <Skeleton className="size-8 rounded-full" />
-        </div>
-      ))}
-    </div>
-  )
+  return <CompactListSkeleton rows={rows} />
 }

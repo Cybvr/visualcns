@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useAuth } from "@/components/auth-provider"
-import { DashboardPageSkeleton } from "@/components/dashboard/dashboard-page-skeleton"
+import { GridCardsSkeleton } from "@/components/dashboard/collection-skeletons"
 import { createProjectFromTemplate, getTemplates, getTemplateSteps, projectSlug, type Project } from "@/lib/projects"
 import { TemplateGallery, type TemplateCard } from "@/components/template-gallery"
 
@@ -75,7 +75,7 @@ export function TemplatesView({
     return (
       <section className="mt-4">
         <h2 className="text-xs font-medium text-muted-foreground">Templates</h2>
-        <div className="mt-2"><DashboardPageSkeleton rows={3} /></div>
+        <div className="mt-2"><GridCardsSkeleton rows={3} /></div>
       </section>
     )
   }

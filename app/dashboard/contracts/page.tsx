@@ -8,7 +8,7 @@ import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
 import { DuplicateDocumentDialog, type DuplicateSelection } from "@/components/dashboard/duplicate-document-dialog"
-import { DashboardPageSkeleton } from "@/components/dashboard/dashboard-page-skeleton"
+import { MobileCardsSkeleton, TableRowsSkeleton } from "@/components/dashboard/collection-skeletons"
 import { EmptySearchState, FirstRunState } from "@/components/dashboard/empty-state"
 import { MobileDataCard } from "@/components/dashboard/mobile-data-card"
 import { UserEditorSheet } from "@/components/dashboard/user-editor-sheet"
@@ -192,7 +192,10 @@ export default function ContractsPage() {
       />
 
       {loading ? (
-        <DashboardPageSkeleton rows={6} />
+        <div className="mt-6">
+          <div className="sm:hidden"><MobileCardsSkeleton /></div>
+          <div className="hidden sm:block"><TableRowsSkeleton headers={adminView ? ["", "Title", "Client", "Project", "Starts", "Ends", "Signed", "Status", ""] : ["Title", "Project", "Starts", "Ends", "Signed", "Status", ""]} /></div>
+        </div>
       ) : error ? (
         <p className="mt-10 text-sm text-destructive">Couldn&apos;t load contracts right now.</p>
       ) : contracts.length === 0 ? (

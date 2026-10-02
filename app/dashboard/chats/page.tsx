@@ -8,7 +8,7 @@ import { MessageSquare, Plus } from "lucide-react"
 import { useAgent, type AgentConversation } from "@/components/agent/agent-context"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { DashboardPageSkeleton } from "@/components/dashboard/dashboard-page-skeleton"
+import { GridCardsSkeleton, TableRowsSkeleton } from "@/components/dashboard/collection-skeletons"
 import { EmptySearchState, FirstRunState } from "@/components/dashboard/empty-state"
 import { FilterBar, useFilterBar, type SortOption } from "@/components/dashboard/filter-bar"
 import { GridCard, GridCardList } from "@/components/dashboard/grid-card"
@@ -84,7 +84,10 @@ export default function AllChatsPage() {
       {deleteError && <p role="alert" className="mb-3 text-sm text-destructive">{deleteError}</p>}
 
       {conversationsLoading ? (
-        <DashboardPageSkeleton rows={6} />
+        <>
+          <div className="sm:hidden"><GridCardsSkeleton /></div>
+          <div className="hidden sm:block"><TableRowsSkeleton headers={["", "Chat", "Updated", ""]} /></div>
+        </>
       ) : conversations.length === 0 ? (
         <FirstRunState
           label="Chat"
