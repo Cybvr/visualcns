@@ -3,50 +3,27 @@
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { Copy, Eye, FileUp, Loader2, Mail, Pencil, Plus, Trash2 } from "lucide-react"
+import { ExternalLink, FileUp, Mail, Pencil, Plus } from "lucide-react"
 import { FaFileAlt } from "react-icons/fa"
 import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
+import { CompanyDocumentView } from "@/components/dashboard/company-document-view"
 import { DashboardPageSkeleton } from "@/components/dashboard/dashboard-page-skeleton"
-import { ReactIcon } from "@/components/react-icon"
-import { FirstRunState } from "@/components/dashboard/empty-state"
-import { NewDocumentDialog } from "@/components/dashboard/new-document-dialog"
-import { ImportWordDocumentDialog } from "@/components/dashboard/import-word-document-dialog"
+import { DocumentSplitPane } from "@/components/dashboard/document-split-pane"
 import { DuplicateDocumentDialog, type DuplicateSelection } from "@/components/dashboard/duplicate-document-dialog"
-import { usePageTitle } from "@/components/dashboard/page-title-context"
-import { FilterBar, useFilterBar, type SortOption } from "@/components/dashboard/filter-bar"
-import { UserEditorSheet } from "@/components/dashboard/user-editor-sheet"
-import { MobileDataCard } from "@/components/dashboard/mobile-data-card"
-import { GridCard, GridCardList } from "@/components/dashboard/grid-card"
-import { ViewToggle, useViewMode } from "@/components/dashboard/view-toggle"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
+import { FirstRunState } from "@/components/dashboard/empty-state"
+import { ImportWordDocumentDialog } from "@/components/dashboard/import-word-document-dialog"
+import { NewDocumentDialog } from "@/components/dashboard/new-document-dialog"
+import { FilterBar, useFilterBar } from "@/components/dashboard/filter-bar"
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
-import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { formatDate } from "@/lib/billing"
-import {
-  companyDocumentStatusMeta,
-  createCompanyDocument,
-  deleteCompanyDocument,
-  getCompanyDocuments,
-  getCompanyDocumentsByCompanyId,
-  type CompanyDocument,
-  type CompanyDocumentKind,
-} from "@/lib/company-documents"
-import { companyDocumentEmailContext } from "@/lib/document-emails"
-import { getOrganizations, organizationRef, type Organization } from "@/lib/organizations"
+import { usePageTitle } from "@/components/dashboard/page-title-context"
 import { buildEmailComposeHref } from "@/lib/email-composer"
-import { tsToMillis } from "@/lib/tasks"
+import { companyDocumentEmailContext } from "@/lib/document-emails"
+import { companyDocumentKindMeta, companyDocumentStatusMeta, createCompanyDocument, deleteCompanyDocument, getCompanyDocuments, getCompanyDocumentsByCompanyId, type CompanyDocument, type CompanyDocumentKind } from "@/lib/company-documents"
+import { getOrganizations, organizationRef, type Organization } from "@/lib/organizations"
+import { formatTimestamp, tsToMillis } from "@/lib/tasks"
 import { cn } from "@/lib/utils"
 
 const KIND_ICON = {
@@ -87,20 +64,20 @@ interface DocumentRow {
   source: CompanyDocument
 }
 
-function companyDocToRow(d: CompanyDocument, adminView: boolean): DocumentRow {
-  const meta = companyDocumentStatusMeta[d.status] ?? companyDocumentStatusMeta.draft
+function companyDocToRow(document: CompanyDocument, adminView: boolean): DocumentRow {
+  const meta = companyDocumentStatusMeta[document.status] ?? companyDocumentStatusMeta.draft
   return {
-    id: d.id,
-    kind: d.kind,
-    title: d.title,
-    company: d.client || d.companyId,
-    companyId: d.companyId,
+    id: document.id,
+    kind: document.kind,
+    title: document.title,
+    company: document.client || document.companyId,
+    companyId: document.companyId,
     statusLabel: meta.label,
     statusClassName: meta.className,
-    updatedAtMs: Math.max(tsToMillis(d.updatedAt), tsToMillis(d.createdAt)),
-    viewHref: `/dashboard/documents/${d.id}`,
-    editHref: adminView ? `/dashboard/documents/${d.id}/edit` : undefined,
-    source: d,
+    updatedAtMs: Math.max(tsToMillis(document.updatedAt), tsToMillis(document.createdAt)),
+    viewHref: `/dashboard/documents/${document.id}`,
+    editHref: adminView ? `/dashboard/documents/${document.id}/edit` : undefined,
+    source: document,
   }
 }
 
@@ -115,11 +92,10 @@ export default function DocumentsPage() {
   const [rows, setRows] = useState<DocumentRow[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
+  const [selectedId, setSelectedId] = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete] = useState<DocumentRow | null>(null)
-  const [clientSheet, setClientSheet] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [creating, setCreating] = useState(false)
-  const [view, setView] = useViewMode("documents")
   const [importing, setImporting] = useState(false)
   const [duplicateTarget, setDuplicateTarget] = useState<DocumentRow | null>(null)
   const [duplicating, setDuplicating] = useState(false)
@@ -129,13 +105,12 @@ export default function DocumentsPage() {
     setError(false)
     try {
       if (adminView) {
-        // Companies give each email link its slug.
-        const [docs, organizationList] = await Promise.all([getCompanyDocuments(), getOrganizations()])
-        setRows(docs.map((d) => companyDocToRow(d, adminView)))
+        const [documents, organizationList] = await Promise.all([getCompanyDocuments(), getOrganizations()])
+        setRows(documents.map((document) => companyDocToRow(document, adminView)))
         setOrganizations(organizationList)
       } else {
-        const docs = await getCompanyDocumentsByCompanyId(companyId)
-        setRows(docs.map((d) => companyDocToRow(d, adminView)))
+        const documents = await getCompanyDocumentsByCompanyId(companyId)
+        setRows(documents.map((document) => companyDocToRow(document, adminView)))
         setOrganizations([])
       }
     } catch (loadError) {
@@ -148,12 +123,10 @@ export default function DocumentsPage() {
 
   useEffect(() => { void fetchData() }, [fetchData])
 
-  // Email links use the company's slug; a company that no longer exists falls back to its id.
-  const organizationRefById = useMemo(
-    () => new Map(organizations.map((organization) => [organization.id, organizationRef(organization)])),
-    [organizations],
-  )
+  const organizationRefById = useMemo(() => new Map(organizations.map((organization) => [organization.id, organizationRef(organization)])), [organizations])
   const companyRefFor = (id: string) => organizationRefById.get(id) ?? id
+  const { results: visibleRows, bar } = useFilterBar({ items: rows, search: (row) => [row.title, row.company, row.statusLabel, companyDocumentKindMeta[row.kind]?.label], sorts: [] })
+  const selectedRow = selectedId ? rows.find((row) => row.id === selectedId) ?? null : null
 
   async function removeRow() {
     if (!confirmDelete) return
@@ -161,10 +134,11 @@ export default function DocumentsPage() {
     try {
       await deleteCompanyDocument(confirmDelete.id)
       setRows((current) => current.filter((row) => row.id !== confirmDelete.id))
+      if (selectedId === confirmDelete.id) setSelectedId(null)
       setConfirmDelete(null)
     } catch (deleteError) {
       console.error("Error deleting document:", deleteError)
-      toast.error("Couldn't delete this.")
+      toast.error("Couldn't delete this document.")
     } finally {
       setDeleting(false)
     }
@@ -175,20 +149,8 @@ export default function DocumentsPage() {
     setDuplicating(true)
     try {
       const source = duplicateTarget.source
-      let newId = ""
-      const document = source
-      const { id: _id, createdAt: _createdAt, updatedAt: _updatedAt, ...rest } = document
-      newId = await createCompanyDocument({
-        ...rest,
-        title: `${document.title || "Document"} (Copy)`,
-        status: "draft",
-        shareEnabled: false,
-        companyId: selection.companyId,
-        client: selection.client || document.client,
-        projectId: selection.projectId,
-        project: selection.project,
-      })
-
+      const { id: _id, createdAt: _createdAt, updatedAt: _updatedAt, ...rest } = source
+      const newId = await createCompanyDocument({ ...rest, title: `${source.title || "Document"} (Copy)`, status: "draft", shareEnabled: false, companyId: selection.companyId, client: selection.client || source.client, projectId: selection.projectId, project: selection.project })
       setDuplicateTarget(null)
       await fetchData()
       router.push(`/dashboard/documents/${newId}/edit`)
@@ -200,188 +162,65 @@ export default function DocumentsPage() {
     }
   }
 
-  const sorts: SortOption<DocumentRow>[] = useMemo(() => {
-    const all: SortOption<DocumentRow>[] = [
-      { value: "updated", label: "Last updated", get: (row) => row.updatedAtMs, ascLabel: "Oldest", descLabel: "Newest" },
-      { value: "title", label: "Title", get: (row) => row.title, ascLabel: "A–Z", descLabel: "Z–A" },
-      { value: "company", label: "Company", get: (row) => row.company, ascLabel: "A–Z", descLabel: "Z–A" },
-      { value: "status", label: "Status", get: (row) => row.statusLabel, ascLabel: "A–Z", descLabel: "Z–A" },
-    ]
-    return adminView ? all : all.filter((option) => option.value !== "company")
-  }, [adminView])
-
-  const { results: visibleRows, bar } = useFilterBar({
-    items: rows,
-    sorts,
-    defaultSort: "updated",
-    defaultDirection: "desc",
-  })
-
   if (!user) return null
+
+  const documentFilter = (
+    <FilterBar
+      {...bar}
+      className="mb-0 h-16 border-b border-border"
+      placeholder="Search documents"
+      actions={adminView && (
+        <>
+          <Button variant="ghost" size="icon" className="bg-transparent text-foreground hover:bg-transparent" onClick={() => setImporting(true)} aria-label="Import document" title="Import document"><FileUp className="size-4" aria-hidden="true" /></Button>
+          <Button variant="ghost" className="bg-transparent text-foreground hover:bg-transparent" onClick={() => setCreating(true)}><Plus className="size-4" aria-hidden="true" />New</Button>
+        </>
+      )}
+    />
+  )
 
   return (
     <main className="mx-auto w-full max-w-6xl px-4 pt-4 pb-12 sm:px-6">
-      <FilterBar
-        {...bar}
-        mobileVariant="drawer"
-        headerOnMobile
-        controls={<ViewToggle view={view} onChange={setView} />}
-        actions={
-          adminView && (
-            <>
-              <Button variant="ghost" size="icon" className="bg-transparent shadow-none hover:bg-transparent" onClick={() => setImporting(true)} aria-label="Import document" title="Import document"><FileUp className="size-4" aria-hidden="true" /></Button>
-              <Button variant="ghost" size="sm" className="bg-transparent px-3 text-foreground hover:bg-transparent" onClick={() => setCreating(true)}>
-                <Plus className="size-4" aria-hidden="true" />
-                New document
-              </Button>
-            </>
-          )
-        }
-      />
-
-      {loading ? (
-        <DashboardPageSkeleton rows={6} />
-      ) : error ? (
-        <p className="mt-10 text-sm text-destructive">Couldn&rsquo;t load documents right now.</p>
-      ) : rows.length === 0 ? (
-        <FirstRunState
-          className="mt-2"
-          label="Document"
-          title={adminView ? "Let's create your first document" : "Nothing here yet"}
-          description={adminView
-            ? "Proposals and other documents you create for clients will show up here."
-            : "Documents your agency shares with you will show up here."}
-          action={adminView ? <Button onClick={() => setCreating(true)}>New Document</Button> : undefined}
-        />
-      ) : view === "grid" ? (
-        <GridCardList>
-          {visibleRows.map((row) => {
-            const KindIcon = KIND_ICON[row.kind]
-            return (
-              <GridCard
-                key={`${row.kind}-${row.id}`}
-                href={row.editHref ?? row.viewHref}
-                ariaLabel={`Open ${row.title}`}
-                title={row.title}
-                icon={<ReactIcon icon={KindIcon} className={cn("size-4", KIND_ICON_COLOR[row.kind])} aria-hidden="true" />}
-                placeholder={<ReactIcon icon={KindIcon} className={cn("size-12 opacity-40", KIND_ICON_COLOR[row.kind])} aria-hidden="true" />}
-                menuLabel={`Options for ${row.title}`}
-                menu={
-                  <>
-                    <DropdownMenuItem onSelect={() => router.push(row.viewHref)}>View document</DropdownMenuItem>
-                    {adminView && <DropdownMenuItem onSelect={() => router.push(buildEmailComposeHref(companyDocumentEmailContext(row.source, companyRefFor(row.companyId))))}>Email document</DropdownMenuItem>}
-                    {adminView && row.editHref && <DropdownMenuItem onSelect={() => row.editHref && router.push(row.editHref)}>Edit</DropdownMenuItem>}
-                    {adminView && <DropdownMenuItem onSelect={() => setDuplicateTarget(row)}>Duplicate</DropdownMenuItem>}
-                    {adminView && <DropdownMenuItem variant="destructive" onSelect={() => setConfirmDelete(row)}>Delete</DropdownMenuItem>}
-                  </>
-                }
-              />
-            )
-          })}
-        </GridCardList>
-      ) : (
+      {loading ? <DashboardPageSkeleton rows={6} /> : error ? <p className="mt-10 text-sm text-destructive">Couldn’t load documents right now.</p> : rows.length === 0 ? (
         <>
-          <div className="space-y-2 sm:hidden">
-            {visibleRows.map((row) => {
-              const KindIcon = KIND_ICON[row.kind]
-              return (
-                <MobileDataCard
-                  key={`${row.kind}-${row.id}`}
-                  href={row.editHref ?? row.viewHref}
-                  title={row.title}
-                  subtitle={row.updatedAtMs ? `Modified ${formatDate(new Date(row.updatedAtMs).toISOString().slice(0, 10))}` : "Not modified yet"}
-                  icon={<ReactIcon icon={KindIcon} className={cn("size-5", KIND_ICON_COLOR[row.kind])} aria-hidden="true" />}
-                  menuLabel={`Options for ${row.title}`}
-                  menu={
-                    <>
-                      <DropdownMenuItem onSelect={() => router.push(row.viewHref)}>View document</DropdownMenuItem>
-                    {adminView && <DropdownMenuItem onSelect={() => router.push(buildEmailComposeHref(companyDocumentEmailContext(row.source, companyRefFor(row.companyId))))}>Email document</DropdownMenuItem>}
-                      {adminView && row.editHref && <DropdownMenuItem onSelect={() => row.editHref && router.push(row.editHref)}>Edit</DropdownMenuItem>}
-                      {adminView && <DropdownMenuItem onSelect={() => setDuplicateTarget(row)}>Duplicate</DropdownMenuItem>}
-                      {adminView && <DropdownMenuItem variant="destructive" onSelect={() => setConfirmDelete(row)}>Delete</DropdownMenuItem>}
-                    </>
-                  }
-                />
-              )
-            })}
-          </div>
-
-          <div className="hidden overflow-x-hidden sm:block">
-          <Table className="w-full table-fixed">
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-[38%]">Title</TableHead>
-                {adminView && <TableHead className="w-[22%]">Company</TableHead>}
-                <TableHead className="w-[15%]">Updated</TableHead>
-                <TableHead className="w-[15%]">Status</TableHead>
-                <TableHead className="w-44 text-right"><span className="sr-only">Actions</span></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {visibleRows.map((row) => (
-                <TableRow key={`${row.kind}-${row.id}`}>
-                  <TableCell className="max-w-0 font-medium">
-                    <Link href={row.editHref ?? row.viewHref} className="block truncate rounded-sm outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring">{row.title}</Link>
-                  </TableCell>
-                  {adminView && (
-                    <TableCell className="max-w-0">
-                      {row.companyId ? (
-                        <button type="button" onClick={() => setClientSheet(row.companyId)} className="block max-w-full truncate rounded-sm text-left outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring">{row.company || "Company"}</button>
-                      ) : "—"}
-                    </TableCell>
-                  )}
-                  <TableCell className="whitespace-nowrap">{row.updatedAtMs ? formatDate(new Date(row.updatedAtMs).toISOString().slice(0, 10)) : "—"}</TableCell>
-                  <TableCell className="whitespace-nowrap">{row.statusLabel && <span className={cn("inline-flex rounded-full px-2 py-0.5 text-xs font-medium", row.statusClassName)}>{row.statusLabel}</span>}</TableCell>
-                  <TableCell className="w-44">
-                    <div className="flex items-center justify-end gap-1.5">
-                      <Link href={row.viewHref} aria-label={`View ${row.title}`} className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"><Eye className="size-4" aria-hidden="true" /></Link>
-                      {adminView && <Link href={buildEmailComposeHref(companyDocumentEmailContext(row.source, companyRefFor(row.companyId)))} aria-label={`Email ${row.title}`} title="Email document" className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"><Mail className="size-4" aria-hidden="true" /></Link>}
-                      {adminView && row.editHref && (
-                        <Link href={row.editHref} aria-label={`Edit ${row.title}`} className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"><Pencil className="size-4" aria-hidden="true" /></Link>
-                      )}
-                      {adminView && (
-                        <button type="button" onClick={() => setDuplicateTarget(row)} aria-label={`Duplicate ${row.title}`} className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"><Copy className="size-4" aria-hidden="true" /></button>
-                      )}
-                      {adminView && (
-                        <button type="button" onClick={() => setConfirmDelete(row)} aria-label={`Delete ${row.title}`} className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-destructive focus-visible:ring-2 focus-visible:ring-ring"><Trash2 className="size-4" aria-hidden="true" /></button>
-                      )}
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-          </div>
+          <div className="lg:max-w-[30rem]">{documentFilter}</div>
+          <FirstRunState label="Document" title={adminView ? "Let's create your first document" : "Nothing here yet"} description={adminView ? "Proposals and other documents you create for clients will show up here." : "Documents your agency shares with you will show up here."} action={adminView ? <Button onClick={() => setCreating(true)}>New document</Button> : undefined} />
         </>
-      )}
-
-      {adminView && (
-        <AlertDialog open={confirmDelete !== null} onOpenChange={(open) => !open && setConfirmDelete(null)}>
-          <AlertDialogContent>
-            <AlertDialogHeader><AlertDialogTitle>Delete this document?</AlertDialogTitle><AlertDialogDescription>{confirmDelete?.title} will be removed for good. This cannot be undone.</AlertDialogDescription></AlertDialogHeader>
-            <AlertDialogFooter><AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel><AlertDialogAction onClick={(event) => { event.preventDefault(); void removeRow() }} disabled={deleting}>{deleting && <Loader2 className="size-4 animate-spin" aria-hidden="true" />}Delete</AlertDialogAction></AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      )}
-
-      {adminView && <NewDocumentDialog open={creating} onOpenChange={setCreating} />}
-
-      {adminView && (
-        <DuplicateDocumentDialog
-          open={duplicateTarget !== null}
-          onOpenChange={(open) => !open && !duplicating && setDuplicateTarget(null)}
-          title={`Duplicate ${duplicateTarget?.title ?? "document"}`}
-          description="Choose where the duplicate should live."
-          defaultCompanyId={duplicateTarget?.companyId ?? ""}
-          defaultProjectId={duplicateTarget?.source && "projectId" in duplicateTarget.source ? duplicateTarget.source.projectId : undefined}
-          submitting={duplicating}
-          onConfirm={confirmDuplicate}
+      ) : (
+        <DocumentSplitPane
+          visibleItems={visibleRows}
+          selectedId={selectedId}
+          onClearSelection={() => setSelectedId(null)}
+          sectionLabel="Documents"
+          filter={documentFilter}
+          emptySearchLabel="No documents match your search."
+          getKey={(row) => row.id}
+          selectedTitle={selectedRow?.title || "Document"}
+          headerActions={selectedRow && (
+            <>
+              {adminView && selectedRow.editHref && <Button asChild variant="ghost" size="icon" className="size-8 text-muted-foreground hover:text-foreground" aria-label="Edit document"><Link href={selectedRow.editHref}><Pencil className="size-4" /></Link></Button>}
+              {adminView && <Button asChild variant="ghost" size="icon" className="size-8 text-muted-foreground hover:text-foreground" aria-label="Email document"><Link href={buildEmailComposeHref(companyDocumentEmailContext(selectedRow.source, companyRefFor(selectedRow.companyId)))}><Mail className="size-4" /></Link></Button>}
+              <Button asChild variant="ghost" size="icon" className="size-8 text-muted-foreground hover:text-foreground" aria-label="Open document"><Link href={selectedRow.viewHref}><ExternalLink className="size-4" /></Link></Button>
+            </>
+          )}
+          content={selectedRow ? <CompanyDocumentView document={selectedRow.source} /> : null}
+          renderItem={(row, active) => {
+            const KindIcon = KIND_ICON[row.kind]
+            return <button type="button" onClick={() => setSelectedId(row.id)} aria-current={active ? "true" : undefined} className={cn("flex w-full items-center gap-2 border-b border-border/60 px-1 py-2 text-left transition-colors outline-none hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring", active && "bg-muted/50")}>
+              <KindIcon className={cn("size-4 shrink-0", KIND_ICON_COLOR[row.kind])} aria-hidden="true" />
+              <span className="min-w-0 flex-1">
+                <span className={cn("sidebar-nav-label block truncate font-medium text-sidebar-foreground/70", active && "text-sidebar-accent-foreground")}>{row.title || "Untitled document"}</span>
+                <span className="block truncate text-[10px] font-normal leading-tight text-muted-foreground">{companyDocumentKindMeta[row.kind]?.label ?? "Document"} · {formatTimestamp(row.source.updatedAt ?? row.source.createdAt)}</span>
+              </span>
+              <span className={cn("shrink-0 rounded-full px-1.5 py-px text-[10px] font-medium", row.statusClassName)}>{row.statusLabel}</span>
+            </button>
+          }}
         />
       )}
 
+      <AlertDialog open={confirmDelete !== null} onOpenChange={(open) => !open && setConfirmDelete(null)}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Delete this document?</AlertDialogTitle><AlertDialogDescription>{confirmDelete?.title} will be removed for good. This cannot be undone.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel><AlertDialogAction onClick={(event) => { event.preventDefault(); void removeRow() }} disabled={deleting}>{deleting ? "Deleting…" : "Delete"}</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
+      {adminView && <NewDocumentDialog open={creating} onOpenChange={setCreating} />}
       {adminView && <ImportWordDocumentDialog open={importing} onOpenChange={setImporting} />}
-
-      {adminView && <UserEditorSheet open={clientSheet !== null} companyId={clientSheet ?? ""} onClose={() => setClientSheet(null)} onSaved={() => setClientSheet(null)} />}
+      {adminView && <DuplicateDocumentDialog open={duplicateTarget !== null} onOpenChange={(open) => !open && !duplicating && setDuplicateTarget(null)} title={`Duplicate ${duplicateTarget?.title ?? "document"}`} description="Choose where the duplicate should live." defaultCompanyId={duplicateTarget?.companyId ?? ""} defaultProjectId={duplicateTarget?.source && "projectId" in duplicateTarget.source ? duplicateTarget.source.projectId : undefined} submitting={duplicating} onConfirm={confirmDuplicate} />}
     </main>
   )
 }

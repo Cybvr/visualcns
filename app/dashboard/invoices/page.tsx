@@ -1,58 +1,30 @@
 "use client"
 
 import Link from "next/link"
-import { useRouter } from "next/navigation"
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { Copy, Eye, Loader2, Mail, Plus, Receipt, Trash2 } from "lucide-react"
+import { ExternalLink, Mail, MoreHorizontal, Plus } from "lucide-react"
 import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
-import { DuplicateDocumentDialog, type DuplicateSelection } from "@/components/dashboard/duplicate-document-dialog"
 import { DashboardPageSkeleton } from "@/components/dashboard/dashboard-page-skeleton"
-import { EmptySearchState, FirstRunState } from "@/components/dashboard/empty-state"
-import { UserEditorSheet } from "@/components/dashboard/user-editor-sheet"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
-import { Button } from "@/components/ui/button"
-import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
-import { MobileDataCard } from "@/components/dashboard/mobile-data-card"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
-import {
-  createInvoice,
-  deleteInvoice,
-  formatDate,
-  formatMoney,
-  getInvoices,
-  getInvoicesByCompanyId,
-  invoiceStatusMeta,
-  nextInvoiceNumber,
-  type Invoice,
-} from "@/lib/billing"
-import { FilterBar, useFilterBar, type SortOption } from "@/components/dashboard/filter-bar"
+import { DocumentSplitPane } from "@/components/dashboard/document-split-pane"
+import { DuplicateDocumentDialog, type DuplicateSelection } from "@/components/dashboard/duplicate-document-dialog"
+import { FirstRunState } from "@/components/dashboard/empty-state"
+import { FilterBar, useFilterBar } from "@/components/dashboard/filter-bar"
+import { InvoiceDocument } from "@/components/dashboard/invoice-document"
 import { TableBulkBar } from "@/components/dashboard/table-bulk-bar"
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
+import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { useRowSelection } from "@/hooks/use-row-selection"
-import { formatTimestamp, tsToMillis } from "@/lib/tasks"
-import { cn } from "@/lib/utils"
-import { getOrganizations, organizationRef, type Organization } from "@/lib/organizations"
-import { getExchangeRate } from "@/lib/currency"
+import { createInvoice, deleteInvoice, formatMoney, getInvoices, getInvoicesByCompanyId, invoiceStatusMeta, nextInvoiceNumber, type Invoice } from "@/lib/billing"
 import { invoiceEmailContext } from "@/lib/document-emails"
 import { buildEmailComposeHref } from "@/lib/email-composer"
+import { getExchangeRate } from "@/lib/currency"
+import { getOrganizations, organizationRef, type Organization } from "@/lib/organizations"
+import { formatTimestamp } from "@/lib/tasks"
+import { cn } from "@/lib/utils"
 
 function OutstandingSummary({ invoices }: { invoices: Invoice[] }) {
   const unpaid = invoices.filter((invoice) => invoice.status === "sent" || invoice.status === "overdue")
@@ -66,69 +38,39 @@ function OutstandingSummary({ invoices }: { invoices: Invoice[] }) {
     setSummary(null)
     setConversionError(false)
     if (!unpaid.length) return () => { active = false }
-
     async function calculate() {
       try {
-        const rates = Object.fromEntries(
-          await Promise.all(
-            currencies
-              .filter((currency) => currency !== targetCurrency)
-              .map(async (currency) => [currency, await getExchangeRate(currency, targetCurrency)] as const),
-          ),
-        )
-        const amount = unpaid.reduce((total, invoice) => total + Math.round((invoice.amount ?? 0) * (rates[invoice.currency || "USD"] ?? 1)), 0)
+        const rates = Object.fromEntries(await Promise.all(currencies.filter((currency) => currency !== targetCurrency).map(async (currency) => [currency, await getExchangeRate(currency, targetCurrency)] as const)))
+      const amount = unpaid.reduce((total, invoice) => total + Math.round((invoice.amount ?? 0) * (rates[invoice.currency || "USD"] ?? 1)), 0)
         if (active) setSummary({ amount, currency: targetCurrency, converted: currencies.length > 1 })
       } catch {
         if (active) setConversionError(true)
       }
     }
-
     void calculate()
     return () => { active = false }
   }, [invoices, targetCurrency, currencies.join(",")])
 
   if (!unpaid.length) return null
-  if (conversionError) {
-    const totals = currencies.map((currency) => `${formatMoney(unpaid.filter((invoice) => (invoice.currency || "USD") === currency).reduce((total, invoice) => total + (invoice.amount ?? 0), 0), currency)}`).join(" · ")
-    return <p className="mt-6 rounded-[12px] bg-amber-500/10 px-4 py-3 text-sm leading-6 text-amber-900 dark:text-amber-200">{totals} outstanding across {unpaid.length} invoices. Conversion unavailable, so currencies are shown separately.</p>
-  }
-  if (!summary) return <p className="mt-6 rounded-[12px] bg-amber-500/10 px-4 py-3 text-sm leading-6 text-amber-900 dark:text-amber-200">Calculating outstanding balance across {unpaid.length} invoices…</p>
-
-  return <p className="mt-6 rounded-[12px] bg-amber-500/10 px-4 py-3 text-sm leading-6 text-amber-900 dark:text-amber-200" title={summary.converted ? "Converted using daily reference exchange rates." : undefined}>{formatMoney(summary.amount, summary.currency)} outstanding across {unpaid.length} invoice{unpaid.length === 1 ? "" : "s"}{summary.converted ? ` (converted to ${summary.currency})` : ""}.</p>
+  if (conversionError) return <p className="mb-4 rounded-[12px] bg-amber-500/10 px-4 py-3 text-sm leading-6 text-amber-900 dark:text-amber-200">{currencies.map((currency) => formatMoney(unpaid.filter((invoice) => (invoice.currency || "USD") === currency).reduce((total, invoice) => total + (invoice.amount ?? 0), 0), currency)).join(" · ")} outstanding across {unpaid.length} invoices.</p>
+  if (!summary) return <p className="mb-4 rounded-[12px] bg-amber-500/10 px-4 py-3 text-sm leading-6 text-amber-900 dark:text-amber-200">Calculating outstanding balance across {unpaid.length} invoices…</p>
+  return <p className="mb-4 rounded-[12px] bg-amber-500/10 px-4 py-3 text-sm leading-6 text-amber-900 dark:text-amber-200">{formatMoney(summary.amount, summary.currency)} outstanding across {unpaid.length} invoice{unpaid.length === 1 ? "" : "s"}{summary.converted ? ` (converted to ${summary.currency})` : ""}.</p>
 }
 
-const INVOICE_SORTS: SortOption<Invoice>[] = [
-  { value: "updatedAt", label: "Last modified", get: (i) => Math.max(tsToMillis(i.updatedAt), tsToMillis(i.createdAt)), ascLabel: "Oldest", descLabel: "Newest" },
-  { value: "issuedOn", label: "Issue date", get: (i) => i.issuedOn, ascLabel: "Oldest", descLabel: "Newest" },
-  { value: "dueOn", label: "Due date", get: (i) => i.dueOn, ascLabel: "Soonest", descLabel: "Latest" },
-  { value: "invoiceNumber", label: "Invoice no.", get: (i) => i.invoiceNumber, ascLabel: "A–Z", descLabel: "Z–A" },
-  { value: "client", label: "Client", get: (i) => i.client || i.companyId, ascLabel: "A–Z", descLabel: "Z–A" },
-  { value: "amount", label: "Amount", get: (i) => i.amount ?? 0, ascLabel: "Lowest", descLabel: "Highest" },
-  {
-    value: "status",
-    label: "Status",
-    get: (i) => invoiceStatusMeta[i.status]?.label ?? i.status,
-    ascLabel: "A–Z",
-    descLabel: "Z–A",
-  },
-]
-
-function searchInvoice(i: Invoice) {
-  return [i.invoiceNumber, i.title, i.client, i.companyId, i.project, i.poReference, invoiceStatusMeta[i.status]?.label]
+function searchInvoice(invoice: Invoice) {
+  return [invoice.invoiceNumber, invoice.title, invoice.client, invoice.companyId, invoice.project, invoice.poReference, invoiceStatusMeta[invoice.status]?.label]
 }
 
 export default function InvoicesPage() {
-  const router = useRouter()
   const { user, appUser, isAdmin, isImpersonating } = useAuth()
   const companyId = appUser?.companyId ?? ""
   const adminView = isAdmin && !isImpersonating
-
   const [invoices, setInvoices] = useState<Invoice[]>([])
   const [organizations, setOrganizations] = useState<Organization[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
+  const [selectedId, setSelectedId] = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete] = useState<Invoice | null>(null)
-  const [clientSheet, setClientSheet] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [bulkDeleting, setBulkDeleting] = useState(false)
   const [duplicateTarget, setDuplicateTarget] = useState<Invoice | null>(null)
@@ -145,54 +87,21 @@ export default function InvoicesPage() {
         setInvoices(await getInvoicesByCompanyId(companyId))
         setOrganizations([])
       }
-    } catch (err) {
-      console.error("Error loading invoices:", err)
+    } catch (loadError) {
+      console.error("Error loading invoices:", loadError)
       setError(true)
     } finally {
       setLoading(false)
     }
   }, [adminView, companyId])
 
-  const organizationNameById = useMemo(
-    () => new Map(organizations.map((organization) => [organization.id, organization.name])),
-    [organizations],
-  )
-  // Email links use the company's slug; a company that no longer exists falls back to its id.
-  const organizationRefById = useMemo(
-    () => new Map(organizations.map((organization) => [organization.id, organizationRef(organization)])),
-    [organizations],
-  )
+  useEffect(() => { void fetchData() }, [fetchData])
+
+  const organizationRefById = useMemo(() => new Map(organizations.map((organization) => [organization.id, organizationRef(organization)])), [organizations])
   const companyRefFor = (id: string) => organizationRefById.get(id) ?? id
-
-  useEffect(() => {
-    fetchData()
-  }, [fetchData])
-
-  async function confirmDuplicateInvoice(selection: DuplicateSelection) {
-    if (!duplicateTarget || duplicating) return
-    setDuplicating(true)
-    try {
-      const invoiceNumber = await nextInvoiceNumber()
-      const { id: _id, createdAt: _createdAt, updatedAt: _updatedAt, ...rest } = duplicateTarget
-      const newId = await createInvoice({
-        ...rest,
-        invoiceNumber,
-        status: "draft",
-        shareEnabled: false,
-        companyId: selection.companyId,
-        client: selection.client || duplicateTarget.client,
-        projectId: selection.projectId,
-        project: selection.project,
-      })
-      setDuplicateTarget(null)
-      router.push(`/dashboard/invoices/${newId}`)
-    } catch (err) {
-      console.error("Error duplicating invoice:", err)
-      toast.error("Couldn't duplicate this invoice.")
-    } finally {
-      setDuplicating(false)
-    }
-  }
+  const { results: visibleInvoices, bar } = useFilterBar({ items: invoices, search: searchInvoice, sorts: [] })
+  const selection = useRowSelection(visibleInvoices, (invoice) => invoice.id)
+  const selectedInvoice = selectedId ? invoices.find((invoice) => invoice.id === selectedId) ?? null : null
 
   async function removeInvoice() {
     if (!confirmDelete) return
@@ -200,319 +109,108 @@ export default function InvoicesPage() {
     try {
       await deleteInvoice(confirmDelete.id)
       setInvoices((current) => current.filter((row) => row.id !== confirmDelete.id))
+      if (selectedId === confirmDelete.id) setSelectedId(null)
       setConfirmDelete(null)
-    } catch (err) {
-      console.error("Error deleting invoice:", err)
+    } catch (deleteError) {
+      console.error("Error deleting invoice:", deleteError)
+      toast.error("Couldn't delete this invoice.")
     } finally {
       setDeleting(false)
     }
   }
 
-  const sorts = useMemo(
-    () => (adminView ? INVOICE_SORTS : INVOICE_SORTS.filter((option) => option.value !== "client")),
-    [adminView],
-  )
-  const { results: visibleInvoices, bar } = useFilterBar({
-    items: invoices,
-    search: searchInvoice,
-    sorts,
-    defaultSort: "updatedAt",
-    defaultDirection: "desc",
-  })
-
-  const selection = useRowSelection(visibleInvoices, (invoice) => invoice.id)
-
   async function handleBulkDelete() {
     const ids = selection.selectedIds
-    if (ids.length === 0 || bulkDeleting) return
+    if (!ids.length || bulkDeleting) return
     setBulkDeleting(true)
     try {
       await Promise.all(ids.map((id) => deleteInvoice(id)))
       const removed = new Set(ids)
       setInvoices((current) => current.filter((row) => !removed.has(row.id)))
-      if (confirmDelete && removed.has(confirmDelete.id)) setConfirmDelete(null)
+      if (selectedId && removed.has(selectedId)) setSelectedId(null)
       selection.clear()
-    } catch (err) {
-      console.error("Error deleting invoices:", err)
+    } catch (deleteError) {
+      console.error("Error deleting invoices:", deleteError)
+      toast.error("Couldn't delete the selected invoices.")
     } finally {
       setBulkDeleting(false)
     }
   }
 
+  async function confirmDuplicate(selectionValue: DuplicateSelection) {
+    if (!duplicateTarget || duplicating) return
+    setDuplicating(true)
+    try {
+      const invoiceNumber = await nextInvoiceNumber()
+      const { id: _id, createdAt: _createdAt, updatedAt: _updatedAt, ...rest } = duplicateTarget
+      const newId = await createInvoice({ ...rest, invoiceNumber, status: "draft", shareEnabled: false, companyId: selectionValue.companyId, client: selectionValue.client || duplicateTarget.client, projectId: selectionValue.projectId, project: selectionValue.project })
+      setDuplicateTarget(null)
+      await fetchData()
+      setSelectedId(newId)
+    } catch (duplicateError) {
+      console.error("Error duplicating invoice:", duplicateError)
+      toast.error("Couldn't duplicate this invoice.")
+    } finally {
+      setDuplicating(false)
+    }
+  }
+
   if (!user) return null
 
-  return (
-    <main className="mx-auto w-full max-w-5xl px-4 pt-4 pb-12 sm:px-6">
-      <FilterBar
-        {...bar}
-        mobileVariant="drawer"
-        headerOnMobile
-        placeholder="Search invoices"
-        actions={
-          adminView && (
-            <Button asChild variant="ghost" size="icon" className="bg-transparent text-foreground hover:bg-transparent" aria-label="New invoice" title="New invoice">
-              <Link href="/dashboard/invoices/new"><Plus className="size-4" aria-hidden="true" /></Link>
-            </Button>
-          )
-        }
-      />
+  const invoiceFilter = (
+    <FilterBar
+      {...bar}
+      className="mb-0 h-16 border-b border-border"
+      placeholder="Search invoices"
+      actions={adminView && <Button asChild variant="ghost" className="bg-transparent text-foreground hover:bg-transparent"><Link href="/dashboard/invoices/new" aria-label="New invoice"><Plus className="size-4" aria-hidden="true" />New</Link></Button>}
+    />
+  )
 
-      {loading ? (
-        <DashboardPageSkeleton rows={6} />
-      ) : error ? (
-        <p className="mt-10 text-sm text-destructive">Couldn&apos;t load invoices right now.</p>
-      ) : invoices.length === 0 ? (
-        <FirstRunState
-          className="mt-8"
-          label="Invoice"
-          title={adminView ? "Let's raise your first invoice" : "No invoices yet"}
-          description={
-            adminView
-              ? "This is where you bill clients. Issue an invoice, keep track of what's outstanding, and mark it paid once the money lands."
-              : "Invoices issued to you will show up here."
-          }
-          action={
-            adminView ? (
-              <Button asChild>
-                <Link href="/dashboard/invoices/new">New Invoice</Link>
-              </Button>
-            ) : undefined
-          }
-        />
+  return (
+    <main className="mx-auto w-full max-w-6xl px-4 pt-4 pb-12 sm:px-6">
+      {loading ? <DashboardPageSkeleton rows={6} /> : error ? <p className="mt-10 text-sm text-destructive">Couldn’t load invoices right now.</p> : invoices.length === 0 ? (
+        <>
+          <div className="lg:max-w-[30rem]">{invoiceFilter}</div>
+          <FirstRunState label="Invoice" title={adminView ? "Let's raise your first invoice" : "No invoices yet"} description={adminView ? "This is where you bill clients and track what’s outstanding." : "Invoices issued to you will show up here."} action={adminView ? <Button asChild><Link href="/dashboard/invoices/new">New invoice</Link></Button> : undefined} />
+        </>
       ) : (
         <>
           <OutstandingSummary invoices={invoices} />
-
-          <div className="mt-6">
-            {visibleInvoices.length === 0 ? (
-              <EmptySearchState label="No invoices match your search." />
-            ) : (
+          <DocumentSplitPane
+            visibleItems={visibleInvoices}
+            selectedId={selectedId}
+            onClearSelection={() => setSelectedId(null)}
+            sectionLabel="Invoices"
+            filter={invoiceFilter}
+            listExtra={adminView ? <TableBulkBar count={selection.selectedCount} noun="invoice" deleting={bulkDeleting} onClear={selection.clear} onDelete={handleBulkDelete} /> : undefined}
+            emptySearchLabel="No invoices match your search."
+            getKey={(invoice) => invoice.id}
+            selectedTitle={selectedInvoice?.title || selectedInvoice?.invoiceNumber || "Invoice"}
+            headerActions={selectedInvoice && (
               <>
-                {adminView && (
-                  <TableBulkBar
-                    count={selection.selectedCount}
-                    noun="invoice"
-                    deleting={bulkDeleting}
-                    onClear={selection.clear}
-                    onDelete={handleBulkDelete}
-                  />
-                )}
-                <div className="space-y-2 sm:hidden">
-                  {visibleInvoices.map((invoice) => {
-                    const meta = invoiceStatusMeta[invoice.status] ?? invoiceStatusMeta.draft
-                    const href = `/dashboard/invoices/${invoice.id}`
-                    return (
-                      <MobileDataCard
-                        key={invoice.id}
-                        href={href}
-                        ariaLabel={`Open invoice ${invoice.title || invoice.invoiceNumber}`}
-                        title={
-                          <span className="truncate">{invoice.title || "Untitled invoice"}</span>
-                        }
-                        subtitle={
-                          <span className="flex flex-col gap-1">
-                            <span className="truncate">{invoice.invoiceNumber}</span>
-                            <span className="flex items-center justify-between gap-2">
-                              <span className="truncate">{adminView ? organizationNameById.get(invoice.companyId) || "—" : invoice.project || formatDate(invoice.issuedOn)} · Due {formatDate(invoice.dueOn)}</span>
-                              <span className={cn("shrink-0 rounded-full px-1.5 py-px text-[10px] font-medium", meta.className)}>{meta.label}</span>
-                            </span>
-                            <span className="font-medium text-foreground">{formatMoney(invoice.amount, invoice.currency)}</span>
-                            <span>Modified {formatTimestamp(invoice.updatedAt ?? invoice.createdAt)}</span>
-                          </span>
-                        }
-                        icon={<Receipt className="size-5 text-blue-600 dark:text-blue-400" aria-hidden="true" />}
-                        menuLabel={`Options for ${invoice.invoiceNumber}`}
-                        menu={
-                          <>
-                            <DropdownMenuItem onSelect={() => router.push(`/dashboard/invoices/${invoice.id}`)}>View invoice</DropdownMenuItem>
-                            {adminView && (
-                              <>
-                                <DropdownMenuItem onSelect={() => router.push(buildEmailComposeHref(invoiceEmailContext(invoice, companyRefFor(invoice.companyId))))}>Email invoice</DropdownMenuItem>
-                                <DropdownMenuItem onSelect={() => setDuplicateTarget(invoice)}>Duplicate</DropdownMenuItem>
-                                <DropdownMenuItem variant="destructive" onSelect={() => setConfirmDelete(invoice)}>Delete invoice</DropdownMenuItem>
-                              </>
-                            )}
-                          </>
-                        }
-                      />
-                    )
-                  })}
-                </div>
-                <div className="hidden overflow-x-hidden sm:block">
-                <Table className="w-full table-fixed">
-                <TableHeader>
-                  <TableRow>
-                    {adminView && (
-                      <TableHead className="w-10 px-2">
-                        <Checkbox
-                          aria-label="Select all invoices"
-                          checked={selection.allSelected}
-                          indeterminate={selection.someSelected}
-                          onChange={selection.toggleAll}
-                        />
-                      </TableHead>
-                    )}
-                    <TableHead className="w-[14%]">Invoice no.</TableHead>
-                    <TableHead className="w-[30%]">Title</TableHead>
-                    {adminView && <TableHead className="w-[14%]">Client</TableHead>}
-                    <TableHead className="w-[11%]">Issued</TableHead>
-                    <TableHead className="w-[11%]">Due</TableHead>
-                    <TableHead className="w-[10%]">Status</TableHead>
-                    <TableHead className="w-[13%] text-right">Amount</TableHead>
-                    <TableHead className="w-36 text-right">
-                      <span className="sr-only">Actions</span>
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {visibleInvoices.map((invoice) => {
-                    const meta = invoiceStatusMeta[invoice.status] ?? invoiceStatusMeta.draft
-                    return (
-                      <TableRow key={invoice.id}>
-                        {adminView && (
-                          <TableCell onClick={(e) => e.stopPropagation()}>
-                            <Checkbox
-                              aria-label={`Select invoice ${invoice.invoiceNumber}`}
-                              checked={selection.isSelected(invoice.id)}
-                              onChange={() => selection.toggle(invoice.id)}
-                            />
-                          </TableCell>
-                        )}
-                        <TableCell className="max-w-0"><span className="block truncate" title={invoice.invoiceNumber}>{invoice.invoiceNumber}</span></TableCell>
-                        <TableCell className="max-w-0 font-medium">
-                          <Link
-                            href={`/dashboard/invoices/${invoice.id}`}
-                            className="block truncate rounded-sm outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring"
-                          >
-                            {invoice.title || "Untitled invoice"}
-                          </Link>
-                        </TableCell>
-                        {adminView && (
-                          <TableCell className="max-w-0">
-                            {invoice.companyId && organizationNameById.has(invoice.companyId) ? (
-                              <button
-                                type="button"
-                                onClick={() => setClientSheet(invoice.companyId)}
-                                className="block max-w-full truncate rounded-sm text-left outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring"
-                              >
-                                {organizationNameById.get(invoice.companyId)}
-                              </button>
-                            ) : (
-                              "—"
-                            )}
-                          </TableCell>
-                        )}
-                        <TableCell className="whitespace-nowrap">{formatDate(invoice.issuedOn)}</TableCell>
-                        <TableCell className="whitespace-nowrap">{formatDate(invoice.dueOn)}</TableCell>
-                        <TableCell className="whitespace-nowrap">
-                          <span className={cn("inline-flex rounded-full px-2 py-0.5 text-xs font-medium", meta.className)}>
-                            {meta.label}
-                          </span>
-                        </TableCell>
-                        <TableCell className="max-w-0 overflow-hidden text-right font-medium">
-                          <span className="block truncate" title={formatMoney(invoice.amount, invoice.currency)}>
-                            {formatMoney(invoice.amount, invoice.currency)}
-                          </span>
-                        </TableCell>
-                        <TableCell className="w-36">
-                          <div className="flex items-center justify-end gap-1.5">
-                            <Link
-                              href={`/dashboard/invoices/${invoice.id}`}
-                              aria-label={`View invoice ${invoice.invoiceNumber}`}
-                              className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
-                            >
-                              <Eye className="size-4" aria-hidden="true" />
-                            </Link>
-                            {adminView && (
-                              <>
-                                <Link
-                                  href={buildEmailComposeHref(invoiceEmailContext(invoice, companyRefFor(invoice.companyId)))}
-                                  aria-label={`Email invoice ${invoice.invoiceNumber}`}
-                                  title="Email invoice"
-                                  className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
-                                >
-                                  <Mail className="size-4" aria-hidden="true" />
-                                </Link>
-                                <button
-                                  type="button"
-                                  onClick={() => setDuplicateTarget(invoice)}
-                                  aria-label={`Duplicate invoice ${invoice.invoiceNumber}`}
-                                  className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
-                                >
-                                  <Copy className="size-4" aria-hidden="true" />
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => setConfirmDelete(invoice)}
-                                  aria-label={`Delete invoice ${invoice.invoiceNumber}`}
-                                  className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-destructive focus-visible:ring-2 focus-visible:ring-ring"
-                                >
-                                  <Trash2 className="size-4" aria-hidden="true" />
-                                </button>
-                              </>
-                            )}
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    )
-                  })}
-                </TableBody>
-              </Table>
-              </div>
+                {adminView && <DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="size-8 text-muted-foreground hover:text-foreground" aria-label="Invoice actions"><MoreHorizontal className="size-4" /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onSelect={() => setDuplicateTarget(selectedInvoice)}>Duplicate</DropdownMenuItem><DropdownMenuItem variant="destructive" onSelect={() => setConfirmDelete(selectedInvoice)}>Delete invoice</DropdownMenuItem></DropdownMenuContent></DropdownMenu>}
+                {adminView && <Button asChild variant="ghost" size="icon" className="size-8 text-muted-foreground hover:text-foreground" aria-label="Email invoice"><Link href={buildEmailComposeHref(invoiceEmailContext(selectedInvoice, companyRefFor(selectedInvoice.companyId)))}><Mail className="size-4" /></Link></Button>}
+                <Button asChild variant="ghost" size="icon" className="size-8 text-muted-foreground hover:text-foreground" aria-label="Open invoice"><Link href={`/dashboard/invoices/${selectedInvoice.id}`}><ExternalLink className="size-4" /></Link></Button>
               </>
             )}
-          </div>
-        </>
-      )}
-
-      {adminView && (
-        <>
-
-          <AlertDialog open={confirmDelete !== null} onOpenChange={(open) => !open && setConfirmDelete(null)}>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Delete this invoice?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  {confirmDelete?.invoiceNumber} will be removed for good. This cannot be undone.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={(event) => {
-                    event.preventDefault()
-                    removeInvoice()
-                  }}
-                  disabled={deleting}
-                >
-                  {deleting && <Loader2 className="mr-2 size-4 animate-spin" />}
-                  Delete
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-
-          <DuplicateDocumentDialog
-            open={duplicateTarget !== null}
-            onOpenChange={(open) => !open && setDuplicateTarget(null)}
-            title={`Duplicate ${duplicateTarget?.invoiceNumber ?? "invoice"}`}
-            description="Choose which client and project the copy belongs to."
-            defaultCompanyId={duplicateTarget?.companyId ?? ""}
-            defaultProjectId={duplicateTarget?.projectId}
-            submitting={duplicating}
-            onConfirm={confirmDuplicateInvoice}
+            content={selectedInvoice ? <InvoiceDocument invoice={selectedInvoice} /> : null}
+            renderItem={(invoice, active) => {
+              const meta = invoiceStatusMeta[invoice.status] ?? invoiceStatusMeta.draft
+              return <div className={cn("flex items-center gap-2 border-b border-border/60 px-1 py-2 transition-colors hover:bg-muted/50", active && "bg-muted/50")}>
+                {adminView && <Checkbox aria-label={`Select invoice ${invoice.invoiceNumber}`} checked={selection.isSelected(invoice.id)} onChange={() => selection.toggle(invoice.id)} />}
+                <button type="button" onClick={() => setSelectedId(invoice.id)} aria-current={active ? "true" : undefined} className="min-w-0 flex-1 rounded-md text-left outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                  <span className={cn("sidebar-nav-label block truncate font-medium text-sidebar-foreground/70", active && "text-sidebar-accent-foreground")}>{invoice.title || "Untitled invoice"}</span>
+                  <span className="block truncate text-[10px] font-normal leading-tight text-muted-foreground">{invoice.invoiceNumber} · {formatMoney(invoice.amount, invoice.currency)} · {formatTimestamp(invoice.updatedAt ?? invoice.createdAt)}</span>
+                </button>
+                <span className={cn("shrink-0 rounded-full px-1.5 py-px text-[10px] font-medium", meta.className)}>{meta.label}</span>
+              </div>
+            }}
           />
         </>
       )}
 
-      {adminView && (
-        <UserEditorSheet
-          open={clientSheet !== null}
-          companyId={clientSheet ?? ""}
-          onClose={() => setClientSheet(null)}
-          onSaved={() => setClientSheet(null)}
-        />
-      )}
+      <AlertDialog open={confirmDelete !== null} onOpenChange={(open) => !open && setConfirmDelete(null)}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Delete this invoice?</AlertDialogTitle><AlertDialogDescription>{confirmDelete?.invoiceNumber} will be removed for good. This cannot be undone.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel><AlertDialogAction onClick={(event) => { event.preventDefault(); void removeInvoice() }} disabled={deleting}>{deleting ? "Deleting…" : "Delete"}</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
+      <DuplicateDocumentDialog open={duplicateTarget !== null} onOpenChange={(open) => !open && setDuplicateTarget(null)} title={`Duplicate ${duplicateTarget?.invoiceNumber ?? "invoice"}`} description="Choose which client and project the copy belongs to." defaultCompanyId={duplicateTarget?.companyId ?? ""} defaultProjectId={duplicateTarget?.projectId} submitting={duplicating} onConfirm={confirmDuplicate} />
     </main>
   )
 }

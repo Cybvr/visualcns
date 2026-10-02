@@ -3,57 +3,28 @@
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { Copy, Eye, Loader2, Mail, Plus, Receipt, Trash2 } from "lucide-react"
+import { ExternalLink, Mail, MoreHorizontal, Plus } from "lucide-react"
 import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
-import { DuplicateDocumentDialog, type DuplicateSelection } from "@/components/dashboard/duplicate-document-dialog"
 import { DashboardPageSkeleton } from "@/components/dashboard/dashboard-page-skeleton"
-import { EmptySearchState, FirstRunState } from "@/components/dashboard/empty-state"
-import { FilterBar, useFilterBar, type SortOption } from "@/components/dashboard/filter-bar"
-import { MobileDataCard } from "@/components/dashboard/mobile-data-card"
+import { DocumentSplitPane } from "@/components/dashboard/document-split-pane"
+import { DuplicateDocumentDialog, type DuplicateSelection } from "@/components/dashboard/duplicate-document-dialog"
+import { EstimateDocument } from "@/components/dashboard/estimate-document"
+import { FirstRunState } from "@/components/dashboard/empty-state"
+import { FilterBar, useFilterBar } from "@/components/dashboard/filter-bar"
 import { TableBulkBar } from "@/components/dashboard/table-bulk-bar"
-import { UserEditorSheet } from "@/components/dashboard/user-editor-sheet"
-import { Checkbox } from "@/components/ui/checkbox"
-import { useRowSelection } from "@/hooks/use-row-selection"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
-import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import {
-  createEstimate,
-  deleteEstimate,
-  estimateStatusMeta,
-  formatDate,
-  formatMoney,
-  getEstimates,
-  getEstimatesByCompanyId,
-  nextEstimateNumber,
-  type Estimate,
-} from "@/lib/billing"
+import { Checkbox } from "@/components/ui/checkbox"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { useRowSelection } from "@/hooks/use-row-selection"
+import { createEstimate, deleteEstimate, estimateStatusMeta, formatMoney, getEstimates, getEstimatesByCompanyId, nextEstimateNumber, type Estimate } from "@/lib/billing"
 import { estimateEmailContext } from "@/lib/document-emails"
-import { getOrganizations, organizationRef, type Organization } from "@/lib/organizations"
 import { buildEmailComposeHref } from "@/lib/email-composer"
-import { formatTimestamp, tsToMillis } from "@/lib/tasks"
+import { getOrganizations, organizationRef, type Organization } from "@/lib/organizations"
+import { formatTimestamp } from "@/lib/tasks"
 import { cn } from "@/lib/utils"
-
-const ESTIMATE_SORTS: SortOption<Estimate>[] = [
-  { value: "updatedAt", label: "Last modified", get: (estimate) => Math.max(tsToMillis(estimate.updatedAt), tsToMillis(estimate.createdAt)), ascLabel: "Oldest", descLabel: "Newest" },
-  { value: "estimateNumber", label: "Estimate no.", get: (estimate) => estimate.estimateNumber, ascLabel: "A–Z", descLabel: "Z–A" },
-  { value: "client", label: "Client", get: (estimate) => estimate.client || estimate.companyId, ascLabel: "A–Z", descLabel: "Z–A" },
-  { value: "amount", label: "Amount", get: (estimate) => estimate.amount, ascLabel: "Lowest", descLabel: "Highest" },
-  { value: "validUntil", label: "Valid until", get: (estimate) => estimate.validUntil, ascLabel: "Soonest", descLabel: "Latest" },
-  { value: "status", label: "Status", get: (estimate) => estimateStatusMeta[estimate.status]?.label ?? estimate.status, ascLabel: "A–Z", descLabel: "Z–A" },
-]
 
 function searchEstimate(estimate: Estimate) {
   return [estimate.estimateNumber, estimate.title, estimate.client, estimate.companyId, estimate.project, estimateStatusMeta[estimate.status]?.label]
@@ -67,8 +38,8 @@ export default function EstimatesPage() {
   const [estimates, setEstimates] = useState<Estimate[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
+  const [selectedId, setSelectedId] = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete] = useState<Estimate | null>(null)
-  const [clientSheet, setClientSheet] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [bulkDeleting, setBulkDeleting] = useState(false)
   const [duplicateTarget, setDuplicateTarget] = useState<Estimate | null>(null)
@@ -79,7 +50,6 @@ export default function EstimatesPage() {
     setError(false)
     try {
       if (adminView) {
-        // Companies give each email link its slug.
         const [rows, organizationList] = await Promise.all([getEstimates(), getOrganizations()])
         setEstimates(rows)
         setOrganizations(organizationList)
@@ -95,35 +65,58 @@ export default function EstimatesPage() {
     }
   }, [adminView, companyId])
 
-  useEffect(() => {
-    void fetchData()
-  }, [fetchData])
+  useEffect(() => { void fetchData() }, [fetchData])
 
-  // Email links use the company's slug; a company that no longer exists falls back to its id.
-  const organizationRefById = useMemo(
-    () => new Map(organizations.map((organization) => [organization.id, organizationRef(organization)])),
-    [organizations],
-  )
+  const organizationRefById = useMemo(() => new Map(organizations.map((organization) => [organization.id, organizationRef(organization)])), [organizations])
   const companyRefFor = (id: string) => organizationRefById.get(id) ?? id
+  const { results: visibleEstimates, bar } = useFilterBar({ items: estimates, search: searchEstimate, sorts: [] })
+  const selection = useRowSelection(visibleEstimates, (estimate) => estimate.id)
+  const selectedEstimate = selectedId ? estimates.find((estimate) => estimate.id === selectedId) ?? null : null
 
-  async function confirmDuplicateEstimate(selection: DuplicateSelection) {
+  async function removeEstimate() {
+    if (!confirmDelete) return
+    setDeleting(true)
+    try {
+      await deleteEstimate(confirmDelete.id)
+      setEstimates((current) => current.filter((row) => row.id !== confirmDelete.id))
+      if (selectedId === confirmDelete.id) setSelectedId(null)
+      setConfirmDelete(null)
+    } catch (deleteError) {
+      console.error("Error deleting estimate:", deleteError)
+      toast.error("Couldn't delete this estimate.")
+    } finally {
+      setDeleting(false)
+    }
+  }
+
+  async function handleBulkDelete() {
+    const ids = selection.selectedIds
+    if (!ids.length || bulkDeleting) return
+    setBulkDeleting(true)
+    try {
+      await Promise.all(ids.map((id) => deleteEstimate(id)))
+      const removed = new Set(ids)
+      setEstimates((current) => current.filter((row) => !removed.has(row.id)))
+      if (selectedId && removed.has(selectedId)) setSelectedId(null)
+      selection.clear()
+    } catch (deleteError) {
+      console.error("Error deleting estimates:", deleteError)
+      toast.error("Couldn't delete the selected estimates.")
+    } finally {
+      setBulkDeleting(false)
+    }
+  }
+
+  async function confirmDuplicate(selectionValue: DuplicateSelection) {
     if (!duplicateTarget || duplicating) return
     setDuplicating(true)
     try {
       const estimateNumber = await nextEstimateNumber()
       const { id: _id, createdAt: _createdAt, updatedAt: _updatedAt, ...rest } = duplicateTarget
-      const newId = await createEstimate({
-        ...rest,
-        estimateNumber,
-        status: "draft",
-        shareEnabled: false,
-        companyId: selection.companyId,
-        client: selection.client || duplicateTarget.client,
-        projectId: selection.projectId,
-        project: selection.project,
-      })
+      const newId = await createEstimate({ ...rest, estimateNumber, status: "draft", shareEnabled: false, companyId: selectionValue.companyId, client: selectionValue.client || duplicateTarget.client, projectId: selectionValue.projectId, project: selectionValue.project })
       setDuplicateTarget(null)
-      router.push(`/dashboard/estimates/${newId}`)
+      await fetchData()
+      setSelectedId(newId)
     } catch (duplicateError) {
       console.error("Error duplicating estimate:", duplicateError)
       toast.error("Couldn't duplicate this estimate.")
@@ -132,222 +125,59 @@ export default function EstimatesPage() {
     }
   }
 
-  async function removeEstimate() {
-    if (!confirmDelete) return
-    setDeleting(true)
-    try {
-      await deleteEstimate(confirmDelete.id)
-      setEstimates((current) => current.filter((row) => row.id !== confirmDelete.id))
-      setConfirmDelete(null)
-    } catch (deleteError) {
-      console.error("Error deleting estimate:", deleteError)
-    } finally {
-      setDeleting(false)
-    }
-  }
-
-  const sorts = useMemo(
-    () => (adminView ? ESTIMATE_SORTS : ESTIMATE_SORTS.filter((option) => option.value !== "client")),
-    [adminView],
-  )
-  const { results: visibleEstimates, bar } = useFilterBar({
-    items: estimates,
-    search: searchEstimate,
-    sorts,
-    defaultSort: "updatedAt",
-    defaultDirection: "desc",
-  })
-
-  const selection = useRowSelection(visibleEstimates, (estimate) => estimate.id)
-
-  async function handleBulkDelete() {
-    const ids = selection.selectedIds
-    if (ids.length === 0 || bulkDeleting) return
-    setBulkDeleting(true)
-    try {
-      await Promise.all(ids.map((id) => deleteEstimate(id)))
-      const removed = new Set(ids)
-      setEstimates((current) => current.filter((row) => !removed.has(row.id)))
-      if (confirmDelete && removed.has(confirmDelete.id)) setConfirmDelete(null)
-      selection.clear()
-    } catch (deleteError) {
-      console.error("Error deleting estimates:", deleteError)
-    } finally {
-      setBulkDeleting(false)
-    }
-  }
-
   if (!user) return null
-  const awaiting = estimates.filter((estimate) => estimate.status === "sent").length
+
+  const estimateFilter = (
+    <FilterBar
+      {...bar}
+      className="mb-0 h-16 border-b border-border"
+      placeholder="Search estimates"
+      actions={adminView && <Button asChild variant="ghost" className="bg-transparent text-foreground hover:bg-transparent"><Link href="/dashboard/estimates/new"><Plus className="size-4" aria-hidden="true" />New</Link></Button>}
+    />
+  )
 
   return (
-    <main className="mx-auto w-full max-w-5xl px-4 pt-4 pb-12 sm:px-6">
-      <FilterBar
-        {...bar}
-        placeholder="Search estimates"
-        actions={
-          adminView && <Button asChild variant="ghost" className="bg-transparent text-foreground hover:bg-transparent"><Link href="/dashboard/estimates/new"><Plus className="size-4" aria-hidden="true" />New</Link></Button>
-        }
-      />
-      <p className="mb-6 text-sm text-muted-foreground">Price and scope work before it becomes an invoice.</p>
-
-      {loading ? (
-        <DashboardPageSkeleton rows={6} />
-      ) : error ? (
-        <p className="mt-10 text-sm text-destructive">Couldn’t load estimates right now.</p>
-      ) : estimates.length === 0 ? (
-        <FirstRunState
-          className="mt-8"
-          label="Estimate"
-          title={adminView ? "Let's create your first estimate" : "No estimates yet"}
-          description={adminView
-            ? "Price and scope work before it becomes an invoice. Build up the line items, send it over, and turn it into an invoice once the client accepts."
-            : "Estimates sent to you will show up here."}
-          action={adminView ? <Button asChild><Link href="/dashboard/estimates/new">New Estimate</Link></Button> : undefined}
-        />
-      ) : (
+    <main className="mx-auto w-full max-w-6xl px-4 pt-4 pb-12 sm:px-6">
+      {loading ? <DashboardPageSkeleton rows={6} /> : error ? <p className="mt-10 text-sm text-destructive">Couldn’t load estimates right now.</p> : estimates.length === 0 ? (
         <>
-          {awaiting > 0 && <p className="mt-6 rounded-[12px] bg-amber-500/10 px-4 py-3 text-sm leading-6 text-amber-900 dark:text-amber-200">{awaiting} estimate{awaiting === 1 ? "" : "s"} awaiting a response.</p>}
-          <div className="mt-6">
-            {visibleEstimates.length === 0 ? <EmptySearchState label="No estimates match your search." /> : (
-              <>
-              {adminView && (
-                <TableBulkBar
-                  count={selection.selectedCount}
-                  noun="estimate"
-                  deleting={bulkDeleting}
-                  onClear={selection.clear}
-                  onDelete={handleBulkDelete}
-                />
-              )}
-              <div className="space-y-2 sm:hidden">
-                {visibleEstimates.map((estimate) => {
-                  const meta = estimateStatusMeta[estimate.status] ?? estimateStatusMeta.draft
-                  const href = `/dashboard/estimates/${estimate.id}`
-                  return (
-                    <MobileDataCard
-                      key={estimate.id}
-                      href={href}
-                      ariaLabel={`Open estimate ${estimate.estimateNumber}`}
-                      title={
-                        <span className="truncate">{estimate.title || "Untitled estimate"}</span>
-                      }
-                      subtitle={
-                        <span className="flex flex-col gap-1">
-                          <span className="flex items-center justify-between gap-2">
-                            <span className="truncate">{estimate.estimateNumber}{adminView && estimate.client ? ` · ${estimate.client}` : ""}</span>
-                            <span className={cn("shrink-0 rounded-full px-1.5 py-px text-[10px] font-medium", meta.className)}>{meta.label}</span>
-                          </span>
-                          <span className="font-medium text-foreground">{formatMoney(estimate.amount, estimate.currency)}</span>
-                          <span>Modified {formatTimestamp(estimate.updatedAt ?? estimate.createdAt)}</span>
-                        </span>
-                      }
-                      icon={<Eye className="size-5 text-blue-600 dark:text-blue-400" aria-hidden="true" />}
-                      menuLabel={`Options for ${estimate.estimateNumber}`}
-                      menu={
-                        <>
-                          <DropdownMenuItem onSelect={() => router.push(`/dashboard/estimates/${estimate.id}`)}>View estimate</DropdownMenuItem>
-                          {adminView && <DropdownMenuItem onSelect={() => router.push(buildEmailComposeHref(estimateEmailContext(estimate, companyRefFor(estimate.companyId))))}>Email estimate</DropdownMenuItem>}
-                          {adminView && <DropdownMenuItem onSelect={() => router.push(`/dashboard/invoices/new?estimateId=${encodeURIComponent(estimate.id)}`)}>Convert to invoice</DropdownMenuItem>}
-                          {adminView && (
-                            <>
-                              <DropdownMenuItem onSelect={() => setDuplicateTarget(estimate)}>Duplicate</DropdownMenuItem>
-                              <DropdownMenuItem variant="destructive" onSelect={() => setConfirmDelete(estimate)}>Delete estimate</DropdownMenuItem>
-                            </>
-                          )}
-                        </>
-                      }
-                    />
-                  )
-                })}
-              </div>
-              <div className="hidden overflow-x-hidden sm:block">
-              <Table className="w-full table-fixed">
-                <TableHeader>
-                  <TableRow>
-                    {adminView && (
-                      <TableHead className="w-10 px-2">
-                        <Checkbox
-                          aria-label="Select all estimates"
-                          checked={selection.allSelected}
-                          indeterminate={selection.someSelected}
-                          onChange={selection.toggleAll}
-                        />
-                      </TableHead>
-                    )}
-                    <TableHead className="w-[16%]">Estimate no.</TableHead>
-                    <TableHead className="w-[25%]">Title</TableHead>
-                    {adminView && <TableHead className="w-[18%]">Client</TableHead>}
-                    <TableHead className="w-[13%] text-right">Amount</TableHead>
-                    <TableHead className="w-[13%]">Valid until</TableHead>
-                    <TableHead className="w-[10%]">Status</TableHead>
-                    <TableHead className="w-44 text-right"><span className="sr-only">Actions</span></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {visibleEstimates.map((estimate) => {
-                    const meta = estimateStatusMeta[estimate.status] ?? estimateStatusMeta.draft
-                    return (
-                      <TableRow key={estimate.id}>
-                        {adminView && (
-                          <TableCell onClick={(e) => e.stopPropagation()}>
-                            <Checkbox
-                              aria-label={`Select estimate ${estimate.estimateNumber}`}
-                              checked={selection.isSelected(estimate.id)}
-                              onChange={() => selection.toggle(estimate.id)}
-                            />
-                          </TableCell>
-                        )}
-                        <TableCell className="max-w-0 font-medium"><span className="block truncate">{estimate.estimateNumber}</span></TableCell>
-                        <TableCell className="max-w-0"><Link href={`/dashboard/estimates/${estimate.id}`} className="block truncate rounded-sm outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring">{estimate.title || "Untitled estimate"}</Link></TableCell>
-                        {adminView && <TableCell className="max-w-0">{estimate.companyId ? <button type="button" onClick={() => setClientSheet(estimate.companyId)} className="block max-w-full truncate rounded-sm text-left outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring">{estimate.client || "Client"}</button> : "—"}</TableCell>}
-                        <TableCell className="whitespace-nowrap text-right">{formatMoney(estimate.amount, estimate.currency)}</TableCell>
-                        <TableCell className="whitespace-nowrap">{formatDate(estimate.validUntil)}</TableCell>
-                        <TableCell className="whitespace-nowrap"><span className={cn("inline-flex rounded-full px-2 py-0.5 text-xs font-medium", meta.className)}>{meta.label}</span></TableCell>
-                        <TableCell className="w-44">
-                          <div className="flex items-center justify-end gap-1.5">
-                            <Link href={`/dashboard/estimates/${estimate.id}`} aria-label={`View estimate ${estimate.estimateNumber}`} className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"><Eye className="size-4" aria-hidden="true" /></Link>
-                            {adminView && <>
-                              <Link href={buildEmailComposeHref(estimateEmailContext(estimate, companyRefFor(estimate.companyId)))} aria-label={`Email estimate ${estimate.estimateNumber}`} title="Email estimate" className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"><Mail className="size-4" aria-hidden="true" /></Link>
-                              <Link href={`/dashboard/invoices/new?estimateId=${encodeURIComponent(estimate.id)}`} aria-label={`Convert ${estimate.estimateNumber} to invoice`} className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"><Receipt className="size-4" aria-hidden="true" /></Link>
-                              <button type="button" onClick={() => setDuplicateTarget(estimate)} aria-label={`Duplicate estimate ${estimate.estimateNumber}`} className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"><Copy className="size-4" aria-hidden="true" /></button>
-                              <button type="button" onClick={() => setConfirmDelete(estimate)} aria-label={`Delete estimate ${estimate.estimateNumber}`} className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-destructive focus-visible:ring-2 focus-visible:ring-ring"><Trash2 className="size-4" aria-hidden="true" /></button>
-                            </>}
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    )
-                  })}
-                </TableBody>
-              </Table>
-              </div>
-              </>
-            )}
-          </div>
+          <div className="lg:max-w-[30rem]">{estimateFilter}</div>
+          <FirstRunState label="Estimate" title={adminView ? "Let's create your first estimate" : "No estimates yet"} description={adminView ? "Price and scope work before it becomes an invoice." : "Estimates sent to you will show up here."} action={adminView ? <Button asChild><Link href="/dashboard/estimates/new">New estimate</Link></Button> : undefined} />
         </>
-      )}
-
-      {adminView && <AlertDialog open={confirmDelete !== null} onOpenChange={(open) => !open && setConfirmDelete(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader><AlertDialogTitle>Delete this estimate?</AlertDialogTitle><AlertDialogDescription>{confirmDelete?.estimateNumber} will be removed for good. This cannot be undone.</AlertDialogDescription></AlertDialogHeader>
-          <AlertDialogFooter><AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel><AlertDialogAction onClick={(event) => { event.preventDefault(); void removeEstimate() }} disabled={deleting}>{deleting && <Loader2 className="size-4 animate-spin" aria-hidden="true" />}Delete</AlertDialogAction></AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>}
-
-      {adminView && (
-        <DuplicateDocumentDialog
-          open={duplicateTarget !== null}
-          onOpenChange={(open) => !open && setDuplicateTarget(null)}
-          title={`Duplicate ${duplicateTarget?.estimateNumber ?? "estimate"}`}
-          description="Choose which client and project the copy belongs to."
-          defaultCompanyId={duplicateTarget?.companyId ?? ""}
-          defaultProjectId={duplicateTarget?.projectId}
-          submitting={duplicating}
-          onConfirm={confirmDuplicateEstimate}
+      ) : (
+        <DocumentSplitPane
+          visibleItems={visibleEstimates}
+          selectedId={selectedId}
+          onClearSelection={() => setSelectedId(null)}
+          sectionLabel="Estimates"
+          filter={estimateFilter}
+          listExtra={adminView ? <TableBulkBar count={selection.selectedCount} noun="estimate" deleting={bulkDeleting} onClear={selection.clear} onDelete={handleBulkDelete} /> : undefined}
+          emptySearchLabel="No estimates match your search."
+          getKey={(estimate) => estimate.id}
+          selectedTitle={selectedEstimate?.title || selectedEstimate?.estimateNumber || "Estimate"}
+          headerActions={selectedEstimate && (
+            <>
+              {adminView && <DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="size-8 text-muted-foreground hover:text-foreground" aria-label="Estimate actions"><MoreHorizontal className="size-4" /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onSelect={() => setDuplicateTarget(selectedEstimate)}>Duplicate</DropdownMenuItem><DropdownMenuItem onSelect={() => router.push(`/dashboard/invoices/new?estimateId=${encodeURIComponent(selectedEstimate.id)}`)}>Convert to invoice</DropdownMenuItem><DropdownMenuItem variant="destructive" onSelect={() => setConfirmDelete(selectedEstimate)}>Delete estimate</DropdownMenuItem></DropdownMenuContent></DropdownMenu>}
+              {adminView && <Button asChild variant="ghost" size="icon" className="size-8 text-muted-foreground hover:text-foreground" aria-label="Email estimate"><Link href={buildEmailComposeHref(estimateEmailContext(selectedEstimate, companyRefFor(selectedEstimate.companyId)))}><Mail className="size-4" /></Link></Button>}
+              <Button asChild variant="ghost" size="icon" className="size-8 text-muted-foreground hover:text-foreground" aria-label="Open estimate"><Link href={`/dashboard/estimates/${selectedEstimate.id}`}><ExternalLink className="size-4" /></Link></Button>
+            </>
+          )}
+          content={selectedEstimate ? <EstimateDocument estimate={selectedEstimate} /> : null}
+          renderItem={(estimate, active) => {
+            const meta = estimateStatusMeta[estimate.status] ?? estimateStatusMeta.draft
+            return <div className={cn("flex items-center gap-2 border-b border-border/60 px-1 py-2 transition-colors hover:bg-muted/50", active && "bg-muted/50")}>
+              {adminView && <Checkbox aria-label={`Select estimate ${estimate.estimateNumber}`} checked={selection.isSelected(estimate.id)} onChange={() => selection.toggle(estimate.id)} />}
+              <button type="button" onClick={() => setSelectedId(estimate.id)} aria-current={active ? "true" : undefined} className="min-w-0 flex-1 rounded-md text-left outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                <span className={cn("sidebar-nav-label block truncate font-medium text-sidebar-foreground/70", active && "text-sidebar-accent-foreground")}>{estimate.title || "Untitled estimate"}</span>
+                <span className="block truncate text-[10px] font-normal leading-tight text-muted-foreground">{estimate.estimateNumber} · {formatMoney(estimate.amount, estimate.currency)} · {formatTimestamp(estimate.updatedAt ?? estimate.createdAt)}</span>
+              </button>
+              <span className={cn("shrink-0 rounded-full px-1.5 py-px text-[10px] font-medium", meta.className)}>{meta.label}</span>
+            </div>
+          }}
         />
       )}
 
-      {adminView && <UserEditorSheet open={clientSheet !== null} companyId={clientSheet ?? ""} onClose={() => setClientSheet(null)} onSaved={() => setClientSheet(null)} />}
+      <AlertDialog open={confirmDelete !== null} onOpenChange={(open) => !open && setConfirmDelete(null)}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Delete this estimate?</AlertDialogTitle><AlertDialogDescription>{confirmDelete?.estimateNumber} will be removed for good. This cannot be undone.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel><AlertDialogAction onClick={(event) => { event.preventDefault(); void removeEstimate() }} disabled={deleting}>{deleting ? "Deleting…" : "Delete"}</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
+      <DuplicateDocumentDialog open={duplicateTarget !== null} onOpenChange={(open) => !open && setDuplicateTarget(null)} title={`Duplicate ${duplicateTarget?.estimateNumber ?? "estimate"}`} description="Choose which client and project the copy belongs to." defaultCompanyId={duplicateTarget?.companyId ?? ""} defaultProjectId={duplicateTarget?.projectId} submitting={duplicating} onConfirm={confirmDuplicate} />
     </main>
   )
 }
