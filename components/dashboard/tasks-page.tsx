@@ -146,8 +146,7 @@ function TaskContentPane({
                 onClick={() => setDeleteId(selectedTask.id)}
                 aria-label="Delete task"
               >
-                {deleting === selectedTask.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4 sm:mr-2" />}
-                <span className="hidden sm:inline">Delete task</span>
+                {deleting === selectedTask.id ? <Loader2 className="h-4 w-4" /> : <Trash2 className="h-4 w-4" />}
               </Button>
             ) : undefined}
             onSaved={handleSaved}
@@ -403,8 +402,7 @@ export default function TasksAdminPage() {
                     onClick={() => setDeleteId(selectedTask.id)}
                     aria-label="Delete task"
                   >
-                    {deleting === selectedTask.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4 sm:mr-2" />}
-                    <span className="hidden sm:inline">Delete task</span>
+                    {deleting === selectedTask.id ? <Loader2 className="h-4 w-4" /> : <Trash2 className="h-4 w-4" />}
                   </Button>
                 ) : undefined}
                 onSaved={handleSaved}
