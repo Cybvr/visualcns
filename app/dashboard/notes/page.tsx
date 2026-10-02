@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { ArrowLeft, Plus, Trash2 } from "lucide-react"
+import { ArrowLeft, ListChecks, Plus, Trash2, X } from "lucide-react"
 import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
@@ -9,6 +9,8 @@ import { DashboardPageSkeleton } from "@/components/dashboard/dashboard-page-ske
 import { EmptySearchState, FirstRunState } from "@/components/dashboard/empty-state"
 import { FilterBar, useFilterBar } from "@/components/dashboard/filter-bar"
 import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Input } from "@/components/ui/input"
 import { getCurrentAgencyId } from "@/lib/agency-scope"
 import { createNote, deleteNote, updateNote, watchNotes, type Note } from "@/lib/notes"
 import { cn } from "@/lib/utils"
@@ -30,6 +32,26 @@ function searchNote(note: Note) {
   return [noteTitle(note), note.title, note.body]
 }
 
+type ChecklistItem = { checked: boolean; text: string }
+
+function parseChecklist(value: string): ChecklistItem[] {
+  if (!value.trim()) return [{ checked: false, text: "" }]
+  return value.split("\n").map((line) => {
+    const match = line.match(/^\s*-\s*\[([ xX])\]\s?(.*)$/)
+    return match
+      ? { checked: match[1].toLowerCase() === "x", text: match[2] }
+      : { checked: false, text: line }
+  })
+}
+
+function serializeChecklist(items: ChecklistItem[]) {
+  return items.map((item) => `- [${item.checked ? "x" : " "}] ${item.text}`).join("\n")
+}
+
+function isChecklist(value: string) {
+  return value.trim().length > 0 && value.split("\n").every((line) => /^\s*-\s*\[[ xX]\]\s?.*$/.test(line))
+}
+
 /** Shared agency notes: a list on the left, the open note on the right. */
 export default function NotesPage() {
   const { user } = useAuth()
@@ -39,6 +61,7 @@ export default function NotesPage() {
   const [openId, setOpenId] = useState("")
   const [title, setTitle] = useState("")
   const [body, setBody] = useState("")
+  const [checklistMode, setChecklistMode] = useState(false)
   const [saving, setSaving] = useState(false)
   const pending = useRef<{ id: string; title: string; body: string } | null>(null)
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -90,6 +113,7 @@ export default function NotesPage() {
     setOpenId(note.id)
     setTitle(note.title)
     setBody(note.body)
+    setChecklistMode(isChecklist(note.body))
   }
 
   async function add() {
@@ -99,6 +123,7 @@ export default function NotesPage() {
       setOpenId(id)
       setTitle("")
       setBody("")
+      setChecklistMode(false)
     } catch {
       toast.error("Couldn't create a note.")
     }
@@ -110,11 +135,36 @@ export default function NotesPage() {
     if (timer.current) clearTimeout(timer.current)
     setSaving(false)
     setOpenId("")
+    setChecklistMode(false)
     try {
       await deleteNote(id)
     } catch {
       toast.error("Couldn't delete the note.")
     }
+  }
+
+  function toggleChecklist() {
+    if (checklistMode) {
+      setChecklistMode(false)
+      return
+    }
+    edit({ body: serializeChecklist(parseChecklist(body)) })
+    setChecklistMode(true)
+  }
+
+  function updateChecklist(index: number, changes: Partial<ChecklistItem>) {
+    const items = parseChecklist(body)
+    items[index] = { ...items[index], ...changes }
+    edit({ body: serializeChecklist(items) })
+  }
+
+  function addChecklistItem() {
+    edit({ body: serializeChecklist([...parseChecklist(body), { checked: false, text: "" }]) })
+  }
+
+  function removeChecklistItem(index: number) {
+    const items = parseChecklist(body).filter((_, itemIndex) => itemIndex !== index)
+    edit({ body: items.length > 0 ? serializeChecklist(items) : "" })
   }
 
   const { results: visibleNotes, bar } = useFilterBar({
@@ -206,19 +256,66 @@ export default function NotesPage() {
                   />
                   <div className="flex shrink-0 items-center gap-2">
                     <span className="text-xs text-muted-foreground" aria-live="polite">{saving ? "Saving…" : "Saved"}</span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className={cn("size-8 text-muted-foreground", checklistMode && "bg-muted text-foreground")}
+                      onClick={toggleChecklist}
+                      aria-label={checklistMode ? "Switch to note" : "Add checklist"}
+                      title={checklistMode ? "Switch to note" : "Add checklist"}
+                    >
+                      <ListChecks className="size-4" aria-hidden="true" />
+                    </Button>
                     <Button type="button" variant="ghost" size="icon" className="size-8 text-muted-foreground hover:text-destructive" onClick={() => void remove()} aria-label="Delete note">
                       <Trash2 className="size-4" aria-hidden="true" />
                     </Button>
                   </div>
                 </div>
-                <textarea
-                  value={body}
-                  onChange={(event) => edit({ body: event.target.value })}
-                  placeholder="Start writing"
-                  aria-label="Note"
-                  autoFocus
-                  className="min-h-0 flex-1 resize-none py-5 text-base leading-relaxed text-foreground outline-none placeholder:text-muted-foreground"
-                />
+                {checklistMode ? (
+                  <div className="min-h-0 flex-1 overflow-y-auto py-5">
+                    <div className="space-y-1">
+                      {parseChecklist(body).map((item, index) => (
+                        <div key={index} className="group flex items-center gap-3 py-1">
+                          <Checkbox
+                            checked={item.checked}
+                            onChange={(event) => updateChecklist(index, { checked: event.target.checked })}
+                            aria-label={`Mark item ${index + 1} complete`}
+                          />
+                          <Input
+                            value={item.text}
+                            onChange={(event) => updateChecklist(index, { text: event.target.value })}
+                            placeholder="Checklist item"
+                            aria-label={`Checklist item ${index + 1}`}
+                            className={cn("h-9 flex-1 border-border/60 text-base", item.checked && "text-muted-foreground line-through")}
+                          />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="size-8 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
+                            onClick={() => removeChecklistItem(index)}
+                            aria-label={`Remove item ${index + 1}`}
+                          >
+                            <X className="size-4" aria-hidden="true" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                    <Button type="button" variant="ghost" size="sm" className="mt-3 px-1 text-muted-foreground" onClick={addChecklistItem}>
+                      <Plus className="size-4" aria-hidden="true" /> Add item
+                    </Button>
+                  </div>
+                ) : (
+                  <textarea
+                    value={body}
+                    onChange={(event) => edit({ body: event.target.value })}
+                    placeholder="Start writing"
+                    aria-label="Note"
+                    autoFocus
+                    className="min-h-0 flex-1 resize-none py-5 text-base leading-relaxed text-foreground outline-none placeholder:text-muted-foreground"
+                  />
+                )}
               </div>
             ) : (
               <div className="min-h-[34rem]" aria-hidden="true" />
