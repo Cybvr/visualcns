@@ -2,11 +2,13 @@
 
 import { useEffect } from "react"
 import { useRouter } from "next/navigation"
+import { onAuthStateChanged } from "firebase/auth"
+
+import { auth } from "@/lib/firebase"
 
 /**
- * When the site is launched as an installed PWA (standalone display mode),
- * send the visitor straight to the app instead of the marketing home. The
- * login page then forwards signed-in users on to their dashboard or company page.
+ * Keep the public home page for signed-out visitors, but send signed-in users
+ * straight to the app. Installed PWAs keep the existing signed-out login flow.
  */
 export function PwaRedirect({ to = "/login" }: { to?: string }) {
   const router = useRouter()
@@ -17,7 +19,13 @@ export function PwaRedirect({ to = "/login" }: { to?: string }) {
       window.matchMedia?.("(display-mode: standalone)").matches ||
       // iOS Safari exposes this instead of the display-mode media query.
       (window.navigator as Navigator & { standalone?: boolean }).standalone === true
-    if (standalone) router.replace(to)
+
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) router.replace("/dashboard")
+      else if (standalone) router.replace(to)
+    })
+
+    return unsubscribe
   }, [router, to])
 
   return null
