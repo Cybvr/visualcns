@@ -14,7 +14,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import {
   Table,
@@ -31,7 +30,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet"
-import { Copy, ListTodo, Mail, Maximize2, Pencil, Plus, Trash2, Loader2 } from "lucide-react"
+import { ListTodo, Mail, Maximize2, Plus, Trash2, Loader2 } from "lucide-react"
 import {
   duplicateTask,
   getTasks,
@@ -45,13 +44,9 @@ import {
   type TaskPriority,
 } from "@/lib/tasks"
 import { DashboardPageSkeleton } from "@/components/dashboard/dashboard-page-skeleton"
-import { Badge } from "@/components/inline-table-cells"
 import { TaskForm } from "@/components/dashboard/task-form"
 import { EmptySearchState, FirstRunState } from "@/components/dashboard/empty-state"
 import { FilterBar, useFilterBar, type SortOption } from "@/components/dashboard/filter-bar"
-import { TableBulkBar } from "@/components/dashboard/table-bulk-bar"
-import { Checkbox } from "@/components/ui/checkbox"
-import { useRowSelection } from "@/hooks/use-row-selection"
 import { MobileDataCard } from "@/components/dashboard/mobile-data-card"
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { useTaskEmail } from "@/components/dashboard/use-task-email"
@@ -85,16 +80,95 @@ function searchTask(t: Task) {
   return [t.name, t.client, t.companyId, t.project, taskStatusMeta[t.status]?.label, taskPriorityMeta[t.priority]?.label]
 }
 
+function TaskContentPane({
+  selectedId,
+  selectedTask,
+  deleting,
+  emailTask,
+  emailingId,
+  setDeleteId,
+  handleSaved,
+  setSelectedId,
+}: {
+  selectedId: string | "new" | null
+  selectedTask: Task | null
+  deleting: string | null
+  emailTask: (task: Task) => void
+  emailingId: string | null
+  setDeleteId: (id: string) => void
+  handleSaved: () => Promise<void>
+  setSelectedId: (id: string | "new" | null) => void
+}) {
+  return (
+    <aside className="hidden min-h-[34rem] min-w-0 flex-col overflow-hidden rounded-lg border border-border bg-card lg:flex">
+      <div className="border-b border-border px-5 py-4">
+        <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">Task</p>
+        <h2 className="mt-1 truncate text-lg font-semibold">
+          {selectedId === "new" ? "New task" : selectedTask?.name || "Select a task"}
+        </h2>
+        {selectedId === null && <p className="mt-1 text-sm text-muted-foreground">Choose a task from the list to view and edit it.</p>}
+        {selectedTask && (
+          <div className="mt-3 flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-muted-foreground hover:text-foreground"
+              title="Email task"
+              aria-label="Email task"
+              onClick={() => emailTask(selectedTask)}
+              disabled={emailingId !== null}
+            >
+              {emailingId === selectedTask.id ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <Mail className="size-4" aria-hidden="true" />}
+            </Button>
+            <Button variant="ghost" size="icon" asChild className="h-8 w-8 text-muted-foreground hover:text-foreground" title="Open full task page">
+              <Link href={`/dashboard/tasks/${encodeURIComponent(selectedTask.id)}`} aria-label="Open full task page">
+                <Maximize2 className="size-4" aria-hidden="true" />
+              </Link>
+            </Button>
+          </div>
+        )}
+      </div>
+      <div className="min-h-0 flex-1 overflow-y-auto p-5">
+        {selectedId === null ? (
+          <div className="flex min-h-[23rem] items-center justify-center text-center text-sm text-muted-foreground">
+            Select a task to open its content.
+          </div>
+        ) : (
+          <TaskForm
+            key={selectedId}
+            task={selectedId === "new" ? null : selectedTask}
+            leadingAction={selectedTask ? (
+              <Button
+                type="button"
+                variant="destructive"
+                className="shrink-0"
+                disabled={deleting === selectedTask.id}
+                onClick={() => setDeleteId(selectedTask.id)}
+                aria-label="Delete task"
+              >
+                {deleting === selectedTask.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4 sm:mr-2" />}
+                <span className="hidden sm:inline">Delete task</span>
+              </Button>
+            ) : undefined}
+            onSaved={handleSaved}
+            onCancel={() => setSelectedId(null)}
+          />
+        )}
+      </div>
+    </aside>
+  )
+}
+
 export default function TasksAdminPage() {
   const { emailTask, emailDialog, emailingId } = useTaskEmail()
   const [tasks, setTasks] = useState<Task[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
-  const [bulkDeleting, setBulkDeleting] = useState(false)
   const [selectedId, setSelectedId] = useState<string | "new" | null>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [duplicatingId, setDuplicatingId] = useState<string | null>(null)
+  const [isDesktop, setIsDesktop] = useState(false)
 
   async function fetchData() {
     setError(null)
@@ -113,6 +187,14 @@ export default function TasksAdminPage() {
 
   useEffect(() => {
     fetchData()
+  }, [])
+
+  useEffect(() => {
+    const media = window.matchMedia("(min-width: 1024px)")
+    const update = () => setIsDesktop(media.matches)
+    update()
+    media.addEventListener("change", update)
+    return () => media.removeEventListener("change", update)
   }, [])
 
   async function handleDelete(id: string) {
@@ -155,25 +237,6 @@ export default function TasksAdminPage() {
     defaultSort: "updatedAt",
     defaultDirection: "desc",
   })
-
-  const selection = useRowSelection(visibleTasks, (t) => t.id)
-
-  async function handleBulkDelete() {
-    const ids = selection.selectedIds
-    if (ids.length === 0 || bulkDeleting) return
-    setBulkDeleting(true)
-    try {
-      await Promise.all(ids.map((id) => deleteTask(id)))
-      const removed = new Set(ids)
-      setTasks((prev) => prev.filter((t) => !removed.has(t.id)))
-      if (selectedId && removed.has(selectedId)) setSelectedId(null)
-      selection.clear()
-    } catch (err) {
-      console.error("Error deleting tasks:", err)
-    } finally {
-      setBulkDeleting(false)
-    }
-  }
 
   const selectedTask =
     typeof selectedId === "string" && selectedId !== "new" ? tasks.find((t) => t.id === selectedId) ?? null : null
@@ -230,30 +293,13 @@ export default function TasksAdminPage() {
                 ))}
               </ul>
 
-              <div className="hidden overflow-x-auto sm:block">
-              <TableBulkBar
-                count={selection.selectedCount}
-                noun="task"
-                deleting={bulkDeleting}
-                onClear={selection.clear}
-                onDelete={handleBulkDelete}
-              />
-              <Table className="w-full min-w-[760px] table-fixed">
+              <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(22rem,0.72fr)] lg:items-start lg:gap-4">
+              <div className="hidden overflow-x-auto rounded-lg border border-border sm:block">
+              <Table className="w-full min-w-[420px] table-fixed">
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-10 px-2">
-                      <Checkbox
-                        aria-label="Select all tasks"
-                        checked={selection.allSelected}
-                        indeterminate={selection.someSelected}
-                        onChange={selection.toggleAll}
-                      />
-                    </TableHead>
-                    <TableHead className="w-[30%]">Task</TableHead>
-                    <TableHead className="w-[18%]">Client</TableHead>
-                    <TableHead className="w-[22%]">Project</TableHead>
-                    <TableHead className="w-[14%]">Status</TableHead>
-                    <TableHead className="w-28 text-right">Actions</TableHead>
+                    <TableHead className="w-[68%]">Title</TableHead>
+                    <TableHead className="w-[32%]">Date</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -263,13 +309,6 @@ export default function TasksAdminPage() {
                       className="cursor-pointer"
                       onClick={() => setSelectedId(t.id)}
                     >
-                      <TableCell onClick={(e) => e.stopPropagation()}>
-                        <Checkbox
-                          aria-label={`Select ${t.name || "task"}`}
-                          checked={selection.isSelected(t.id)}
-                          onChange={(event) => selection.toggle(t.id, (event.nativeEvent as MouseEvent).shiftKey)}
-                        />
-                      </TableCell>
                       <TableCell className="max-w-0 font-medium">
                         <button
                           type="button"
@@ -279,81 +318,22 @@ export default function TasksAdminPage() {
                           {t.name || "Untitled task"}
                         </button>
                       </TableCell>
-                      <TableCell className="max-w-0 text-muted-foreground"><span className="block truncate">{t.client || t.companyId || "—"}</span></TableCell>
-                      <TableCell className="max-w-0 text-muted-foreground"><span className="block truncate">{t.project || "—"}</span></TableCell>
-                      <TableCell className="whitespace-nowrap">
-                        <Badge className={(taskStatusMeta[t.status] ?? taskStatusMeta.todo).className}>
-                          {(taskStatusMeta[t.status] ?? taskStatusMeta.todo).label}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right" onClick={(event) => event.stopPropagation()}>
-                        <div className="flex justify-end gap-1.5">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                            onClick={() => emailTask(t)}
-                            disabled={emailingId !== null}
-                            aria-label={`Email ${t.name || "task"}`}
-                            title="Email task"
-                          >
-                            {emailingId === t.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : <Mail className="h-3.5 w-3.5" aria-hidden="true" />}
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                            onClick={() => setSelectedId(t.id)}
-                            aria-label="Edit task"
-                          >
-                            <Pencil className="h-3.5 w-3.5" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                            onClick={() => void handleDuplicate(t)}
-                            disabled={duplicatingId !== null}
-                            aria-label={`Duplicate ${t.name || "task"}`}
-                            title="Duplicate task"
-                          >
-                            {duplicatingId === t.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : <Copy className="h-3.5 w-3.5" aria-hidden="true" />}
-                          </Button>
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                                aria-label="Delete task"
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Delete task?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  This permanently deletes &quot;{t.name || "this task"}&quot;. This cannot be undone.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction
-                                  onClick={() => handleDelete(t.id)}
-                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                >
-                                  {deleting === t.id ? <Loader2 className="h-4 w-4 animate-spin" /> : "Delete"}
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        </div>
-                      </TableCell>
+                      <TableCell className="whitespace-nowrap text-muted-foreground">{t.dueDate || formatTimestamp(t.updatedAt ?? t.createdAt)}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
+              </div>
+              <TaskContentPane
+                selectedId={selectedId}
+                selectedTask={selectedTask}
+                deleting={deleting}
+                emailTask={emailTask}
+                emailingId={emailingId}
+                setDeleteId={(id) => setDeleteId(id)}
+                handleSaved={handleSaved}
+                setSelectedId={setSelectedId}
+              />
               </div>
             </>
           )}
@@ -382,7 +362,7 @@ export default function TasksAdminPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      <Sheet open={selectedId !== null} onOpenChange={(open) => !open && setSelectedId(null)}>
+      <Sheet open={selectedId !== null && (!isDesktop || tasks.length === 0 || visibleTasks.length === 0)} onOpenChange={(open) => !open && setSelectedId(null)}>
         <SheetContent side="right" className="inset-y-2 right-2 h-[calc(100%-1rem)] w-[calc(100%-1rem)] gap-0 overflow-y-auto rounded-lg border sm:max-w-lg">
           <SheetHeader className="border-b">
             <div className="flex items-start justify-between gap-3">
