@@ -25,6 +25,7 @@ export const dynamic = "force-dynamic"
  */
 
 const SOURCE = "Visitor sign-up"
+const INBOX_EMAIL = "info@visualcns.com"
 
 function json(body: Record<string, unknown>, status = 200) {
   return NextResponse.json(body, { status })
@@ -55,14 +56,17 @@ function signupNotice(company: { name: string; slug: string }, person: { name: s
 /** Emails the agency's admins about the new sign-up. Never blocks the sign-up itself. */
 async function notifyAdmins(db: FirebaseFirestore.Firestore, agencyId: string, company: { name: string; slug: string }, person: { name: string; email: string }) {
   const apiKey = await getAgencySecret(agencyId, "RESEND_API_KEY", process.env.RESEND_API_KEY || "")
-  const from = normalizeEmailAddress(await getAgencySecret(agencyId, "EMAIL_FROM", process.env.EMAIL_FROM || ""))
+  const from = normalizeEmailAddress(await getAgencySecret(agencyId, "EMAIL_FROM", process.env.EMAIL_FROM || `VisualCNS <${INBOX_EMAIL}>`))
   if (!apiKey || !from) return
   const [admins, superadmins] = await Promise.all([
     db.collection("users").where("agencyId", "==", agencyId).where("role", "==", "admin").limit(20).get(),
     db.collection("users").where("agencyId", "==", agencyId).where("role", "==", "superadmin").limit(20).get(),
   ])
-  const to = [...new Set([...admins.docs, ...superadmins.docs].map((item) => String(item.data().email || "").trim().toLowerCase()).filter(Boolean))]
-  if (!to.length) return
+  const to = [...new Set([
+    INBOX_EMAIL,
+    ...admins.docs.map((item) => String(item.data().email || "").trim().toLowerCase()),
+    ...superadmins.docs.map((item) => String(item.data().email || "").trim().toLowerCase()),
+  ].filter(Boolean))]
 
   const { subject, text, url } = signupNotice(company, person)
   const html = brandedEmail(`<p>${escapeHtml(text).replace(/\n\n/g, "</p><p>")}</p>`, subject, { name: "VisualCNS" }, from, { text: "Open the company", url })
@@ -72,6 +76,29 @@ async function notifyAdmins(db: FirebaseFirestore.Firestore, agencyId: string, c
     body: JSON.stringify({ from, to, subject, text: `${text}\n\nOpen the company: ${url}`, html }),
     cache: "no-store",
   })
+}
+
+/** Sends the new user a confirmation without blocking account creation. */
+async function sendWelcomeEmail(agencyId: string, company: { name: string; slug: string }, person: { name: string; email: string }) {
+  const apiKey = await getAgencySecret(agencyId, "RESEND_API_KEY", process.env.RESEND_API_KEY || "")
+  const from = normalizeEmailAddress(await getAgencySecret(agencyId, "EMAIL_FROM", process.env.EMAIL_FROM || `VisualCNS <${INBOX_EMAIL}>`))
+  if (!apiKey || !from || !person.email) return false
+
+  const subject = `Welcome to VisualCNS, ${company.name}`
+  const url = `${SITE_ORIGIN}/${encodeURIComponent(company.slug)}`
+  const text = `Hi ${person.name || "there"},\n\nYour ${company.name} Visitor Sign-in account is ready. You can open your company page, manage your front-desk link, and continue setting up your workspace.\n\nYour company page: ${url}`
+  const html = brandedEmail(`<p>${escapeHtml(text).replace(/\n\n/g, "</p><p>")}</p>`, subject, { name: "VisualCNS", email: from }, from, { text: "Open your company page", url })
+  const response = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+      "Idempotency-Key": `visitor-welcome-${company.slug}`,
+    },
+    body: JSON.stringify({ from, to: [person.email], subject, text: `${text}\n\nOpen your company page: ${url}`, html }),
+    cache: "no-store",
+  })
+  return response.ok
 }
 
 export async function POST(request: NextRequest) {
@@ -147,6 +174,7 @@ export async function POST(request: NextRequest) {
       companyId: orgRef.id,
       company: companyName,
       onboardingStatus: "active",
+      welcomeEmailPending: true,
       updatedAt: FieldValue.serverTimestamp(),
       ...(existing.createdAt ? {} : { createdAt: FieldValue.serverTimestamp() }),
     }, { merge: true })
@@ -157,7 +185,7 @@ export async function POST(request: NextRequest) {
     companyId: orgRef.id,
     kind: "visitor-signup",
     from: email,
-    to: ["VisualCNS team"],
+    to: [INBOX_EMAIL],
     subject: notice.subject,
     text: `${notice.text}\n\nOpen the company: ${notice.url}`,
     createdAt: now,
@@ -173,7 +201,16 @@ export async function POST(request: NextRequest) {
   await batch.commit()
   await ensureVisitorBilling(db, agencyId, orgRef.id)
 
-  await notifyAdmins(db, agencyId, { name: companyName, slug }, { name: personName, email }).catch(() => undefined)
+  const company = { name: companyName, slug }
+  const person = { name: personName, email }
+  const [adminEmailResult, welcomeEmailResult] = await Promise.allSettled([
+    notifyAdmins(db, agencyId, company, person),
+    sendWelcomeEmail(agencyId, company, person),
+  ])
+  if (welcomeEmailResult.status === "fulfilled" && welcomeEmailResult.value) {
+    await userRef.set({ welcomeEmailPending: false, welcomeEmailSentAt: new Date().toISOString() }, { merge: true }).catch(() => undefined)
+  }
+  if (adminEmailResult.status === "rejected") console.error("Signup notification failed:", adminEmailResult.reason)
 
   // A new company is a lead. The browser pixel sends the same event id, so Meta counts it once.
   const leadEventId = `lead_${orgRef.id}`
