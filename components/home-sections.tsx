@@ -173,6 +173,9 @@ export function HomeSections({
               <Button asChild variant="outline" className="rounded-full">
                 <Link href="/visitors/demo">Try the demo</Link>
               </Button>
+              <Button asChild variant="ghost" className="rounded-full">
+                <Link href="/pass">Learn more</Link>
+              </Button>
             </div>
           </div>
           <div className="flex flex-col">
