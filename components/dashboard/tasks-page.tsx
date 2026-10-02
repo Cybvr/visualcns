@@ -302,14 +302,14 @@ export default function TasksAdminPage() {
                       className="cursor-pointer"
                       onClick={() => setSelectedId(t.id)}
                     >
-                      <TableCell className="max-w-0 py-3">
+                      <TableCell className="max-w-0 py-2">
                         <button
                           type="button"
-                          className="w-full truncate rounded px-1 py-0.5 text-left text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                          className="w-full truncate rounded px-1 py-0 text-left text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                           onClick={() => setSelectedId(t.id)}
                         >
                           <span className="block truncate">{t.name || "Untitled task"}</span>
-                          <span className="mt-1 block text-xs font-normal text-muted-foreground">{t.dueDate || formatTimestamp(t.updatedAt ?? t.createdAt)}</span>
+                          <span className="mt-0.5 block text-[11px] font-normal text-muted-foreground">{t.dueDate || formatTimestamp(t.updatedAt ?? t.createdAt)}</span>
                         </button>
                       </TableCell>
                     </TableRow>
