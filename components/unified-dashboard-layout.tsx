@@ -22,11 +22,11 @@ const DASHBOARD_NAV: NavLink[] = [
   { label: "Tasks", href: "/dashboard/tasks", icon: FiCheckSquare },
   { label: "Notes", href: "/dashboard/notes", icon: StickyNote },
   { label: "Email", href: "/dashboard/email", icon: FiMail },
-  { label: "Invoices", href: "/dashboard/invoices", icon: Receipt },
-  { label: "Estimates", href: "/dashboard/estimates", icon: ClipboardList },
+  { label: "Invoices", href: "/dashboard/invoices", icon: Receipt, adminOnly: true },
+  { label: "Estimates", href: "/dashboard/estimates", icon: ClipboardList, adminOnly: true },
   { label: "Clients", href: "/dashboard/clients", icon: FiBriefcase, adminOnly: true },
   { label: "Contacts", href: "/dashboard/users", icon: FiUsers, adminOnly: true },
-  { label: "Documents", href: "/dashboard/documents", icon: FileText },
+  { label: "Documents", href: "/dashboard/documents", icon: FileText, adminOnly: true },
   { label: "Media", href: "/dashboard/media", icon: FiImage },
 ]
 

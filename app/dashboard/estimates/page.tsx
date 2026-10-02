@@ -11,6 +11,7 @@ import { DashboardPageSkeleton } from "@/components/dashboard/dashboard-page-ske
 import { DocumentSplitPane } from "@/components/dashboard/document-split-pane"
 import { DuplicateDocumentDialog, type DuplicateSelection } from "@/components/dashboard/duplicate-document-dialog"
 import { EstimateDocument } from "@/components/dashboard/estimate-document"
+import { EstimateBuilder } from "@/components/dashboard/estimate-builder"
 import { FirstRunState } from "@/components/dashboard/empty-state"
 import { FilterBar, useFilterBar } from "@/components/dashboard/filter-bar"
 import { TableBulkBar } from "@/components/dashboard/table-bulk-bar"
@@ -158,10 +159,10 @@ export default function EstimatesPage() {
             <>
               {adminView && <DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="size-8 text-muted-foreground hover:text-foreground" aria-label="Estimate actions"><MoreHorizontal className="size-4" /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onSelect={() => setDuplicateTarget(selectedEstimate)}>Duplicate</DropdownMenuItem><DropdownMenuItem onSelect={() => router.push(`/dashboard/invoices/new?estimateId=${encodeURIComponent(selectedEstimate.id)}`)}>Convert to invoice</DropdownMenuItem><DropdownMenuItem variant="destructive" onSelect={() => setConfirmDelete(selectedEstimate)}>Delete estimate</DropdownMenuItem></DropdownMenuContent></DropdownMenu>}
               {adminView && <Button asChild variant="ghost" size="icon" className="size-8 text-muted-foreground hover:text-foreground" aria-label="Email estimate"><Link href={buildEmailComposeHref(estimateEmailContext(selectedEstimate, companyRefFor(selectedEstimate.companyId)))}><Mail className="size-4" /></Link></Button>}
-              <Button asChild variant="ghost" size="icon" className="size-8 text-muted-foreground hover:text-foreground" aria-label="Open estimate"><Link href={`/dashboard/estimates/${selectedEstimate.id}`}><ExternalLink className="size-4" /></Link></Button>
+              <Button asChild variant="ghost" size="icon" className="size-8 text-muted-foreground hover:text-foreground" aria-label={adminView ? "Edit estimate" : "Open estimate"}><Link href={adminView ? `/dashboard/estimates/${selectedEstimate.id}/edit` : `/dashboard/estimates/${selectedEstimate.id}`}><ExternalLink className="size-4" /></Link></Button>
             </>
           )}
-          content={selectedEstimate ? <EstimateDocument estimate={selectedEstimate} /> : null}
+          content={selectedEstimate ? (adminView ? <EstimateBuilder estimate={selectedEstimate} /> : <EstimateDocument estimate={selectedEstimate} />) : null}
           renderItem={(estimate, active) => {
             const meta = estimateStatusMeta[estimate.status] ?? estimateStatusMeta.draft
             return <div className={cn("flex items-center gap-2 border-b border-border/60 px-1 py-2 transition-colors hover:bg-muted/50", active && "bg-muted/50")}>

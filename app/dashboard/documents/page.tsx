@@ -9,6 +9,7 @@ import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
 import { CompanyDocumentView } from "@/components/dashboard/company-document-view"
+import { CompanyDocumentBuilder } from "@/components/dashboard/company-document-builder"
 import { DashboardPageSkeleton } from "@/components/dashboard/dashboard-page-skeleton"
 import { DocumentSplitPane } from "@/components/dashboard/document-split-pane"
 import { DuplicateDocumentDialog, type DuplicateSelection } from "@/components/dashboard/duplicate-document-dialog"
@@ -202,7 +203,7 @@ export default function DocumentsPage() {
               <Button asChild variant="ghost" size="icon" className="size-8 text-muted-foreground hover:text-foreground" aria-label="Open document"><Link href={selectedRow.viewHref}><ExternalLink className="size-4" /></Link></Button>
             </>
           )}
-          content={selectedRow ? <CompanyDocumentView document={selectedRow.source} /> : null}
+          content={selectedRow ? (adminView ? <CompanyDocumentBuilder document={selectedRow.source} /> : <CompanyDocumentView document={selectedRow.source} />) : null}
           renderItem={(row, active) => {
             const KindIcon = KIND_ICON[row.kind]
             return <button type="button" onClick={() => setSelectedId(row.id)} aria-current={active ? "true" : undefined} className={cn("flex w-full items-center gap-2 border-b border-border/60 px-1 py-2 text-left transition-colors outline-none hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring", active && "bg-muted/50")}>

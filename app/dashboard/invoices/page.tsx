@@ -11,6 +11,7 @@ import { DocumentSplitPane } from "@/components/dashboard/document-split-pane"
 import { DuplicateDocumentDialog, type DuplicateSelection } from "@/components/dashboard/duplicate-document-dialog"
 import { FirstRunState } from "@/components/dashboard/empty-state"
 import { FilterBar, useFilterBar } from "@/components/dashboard/filter-bar"
+import { InvoiceBuilder } from "@/components/dashboard/invoice-builder"
 import { InvoiceDocument } from "@/components/dashboard/invoice-document"
 import { TableBulkBar } from "@/components/dashboard/table-bulk-bar"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
@@ -190,10 +191,10 @@ export default function InvoicesPage() {
               <>
                 {adminView && <DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="size-8 text-muted-foreground hover:text-foreground" aria-label="Invoice actions"><MoreHorizontal className="size-4" /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onSelect={() => setDuplicateTarget(selectedInvoice)}>Duplicate</DropdownMenuItem><DropdownMenuItem variant="destructive" onSelect={() => setConfirmDelete(selectedInvoice)}>Delete invoice</DropdownMenuItem></DropdownMenuContent></DropdownMenu>}
                 {adminView && <Button asChild variant="ghost" size="icon" className="size-8 text-muted-foreground hover:text-foreground" aria-label="Email invoice"><Link href={buildEmailComposeHref(invoiceEmailContext(selectedInvoice, companyRefFor(selectedInvoice.companyId)))}><Mail className="size-4" /></Link></Button>}
-                <Button asChild variant="ghost" size="icon" className="size-8 text-muted-foreground hover:text-foreground" aria-label="Open invoice"><Link href={`/dashboard/invoices/${selectedInvoice.id}`}><ExternalLink className="size-4" /></Link></Button>
+                <Button asChild variant="ghost" size="icon" className="size-8 text-muted-foreground hover:text-foreground" aria-label={adminView ? "Edit invoice" : "Open invoice"}><Link href={adminView ? `/dashboard/invoices/${selectedInvoice.id}/edit` : `/dashboard/invoices/${selectedInvoice.id}`}><ExternalLink className="size-4" /></Link></Button>
               </>
             )}
-            content={selectedInvoice ? <InvoiceDocument invoice={selectedInvoice} /> : null}
+            content={selectedInvoice ? (adminView ? <InvoiceBuilder invoice={selectedInvoice} /> : <InvoiceDocument invoice={selectedInvoice} />) : null}
             renderItem={(invoice, active) => {
               const meta = invoiceStatusMeta[invoice.status] ?? invoiceStatusMeta.draft
               return <div className={cn("flex items-center gap-2 border-b border-border/60 px-1 py-2 transition-colors hover:bg-muted/50", active && "bg-muted/50")}>
