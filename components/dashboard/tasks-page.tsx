@@ -38,42 +38,15 @@ import {
   formatTimestamp,
   tsToMillis,
   type Task,
-  type TaskStatus,
-  type TaskPriority,
 } from "@/lib/tasks"
 import { DashboardPageSkeleton } from "@/components/dashboard/dashboard-page-skeleton"
 import { TaskForm } from "@/components/dashboard/task-form"
 import { EmptySearchState, FirstRunState } from "@/components/dashboard/empty-state"
-import { FilterBar, useFilterBar, type SortOption } from "@/components/dashboard/filter-bar"
+import { FilterBar, useFilterBar } from "@/components/dashboard/filter-bar"
 import { MobileDataCard } from "@/components/dashboard/mobile-data-card"
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { useTaskEmail } from "@/components/dashboard/use-task-email"
 import { cn } from "@/lib/utils"
-
-const STATUS_RANK: Record<TaskStatus, number> = { todo: 0, "in-progress": 1, review: 2, done: 3 }
-const PRIORITY_RANK: Record<TaskPriority, number> = { low: 0, medium: 1, high: 2 }
-
-const TASK_SORTS: SortOption<Task>[] = [
-  {
-    value: "updatedAt",
-    label: "Last modified",
-    get: (t) => Math.max(tsToMillis(t.updatedAt), tsToMillis(t.createdAt)),
-    ascLabel: "Oldest",
-    descLabel: "Newest",
-  },
-  { value: "name", label: "Task", get: (t) => t.name, ascLabel: "A–Z", descLabel: "Z–A" },
-  { value: "client", label: "Client", get: (t) => t.client || t.companyId, ascLabel: "A–Z", descLabel: "Z–A" },
-  { value: "project", label: "Project", get: (t) => t.project, ascLabel: "A–Z", descLabel: "Z–A" },
-  { value: "status", label: "Status", get: (t) => STATUS_RANK[t.status] ?? 0, ascLabel: "To do first", descLabel: "Done first" },
-  {
-    value: "priority",
-    label: "Priority",
-    get: (t) => PRIORITY_RANK[t.priority] ?? 0,
-    ascLabel: "Lowest",
-    descLabel: "Highest",
-  },
-  { value: "dueDate", label: "Due date", get: (t) => t.dueDate, ascLabel: "Soonest", descLabel: "Latest" },
-]
 
 function searchTask(t: Task) {
   return [t.name, t.client, t.companyId, t.project, taskStatusMeta[t.status]?.label, taskPriorityMeta[t.priority]?.label]
@@ -232,9 +205,7 @@ export default function TasksAdminPage() {
   const { results: visibleTasks, bar } = useFilterBar({
     items: tasks,
     search: searchTask,
-    sorts: TASK_SORTS,
-    defaultSort: "updatedAt",
-    defaultDirection: "desc",
+    sorts: [],
   })
 
   const selectedTask =

@@ -7,7 +7,7 @@ import { toast } from "sonner"
 import { useAuth } from "@/components/auth-provider"
 import { DashboardPageSkeleton } from "@/components/dashboard/dashboard-page-skeleton"
 import { EmptySearchState, FirstRunState } from "@/components/dashboard/empty-state"
-import { FilterBar, useFilterBar, type SortOption } from "@/components/dashboard/filter-bar"
+import { FilterBar, useFilterBar } from "@/components/dashboard/filter-bar"
 import { Button } from "@/components/ui/button"
 import { getCurrentAgencyId } from "@/lib/agency-scope"
 import { createNote, deleteNote, updateNote, watchNotes, type Note } from "@/lib/notes"
@@ -25,17 +25,6 @@ function editedAt(iso: string) {
     ? date.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })
     : date.toLocaleDateString(undefined, { day: "numeric", month: "short" })
 }
-
-const NOTE_SORTS: SortOption<Note>[] = [
-  {
-    value: "updatedAt",
-    label: "Last modified",
-    get: (note) => Date.parse(note.updatedAt),
-    ascLabel: "Oldest",
-    descLabel: "Newest",
-  },
-  { value: "title", label: "Title", get: noteTitle, ascLabel: "A–Z", descLabel: "Z–A" },
-]
 
 function searchNote(note: Note) {
   return [noteTitle(note), note.title, note.body]
@@ -131,9 +120,7 @@ export default function NotesPage() {
   const { results: visibleNotes, bar } = useFilterBar({
     items: notes ?? [],
     search: searchNote,
-    sorts: NOTE_SORTS,
-    defaultSort: "updatedAt",
-    defaultDirection: "desc",
+    sorts: [],
   })
 
   const noteFilter = (
