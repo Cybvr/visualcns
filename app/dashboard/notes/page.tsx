@@ -18,7 +18,9 @@ import { cn } from "@/lib/utils"
 const SAVE_DELAY = 600
 
 function noteTitle(note: Pick<Note, "title" | "body">) {
-  return note.title.trim() || note.body.trim().split("\n")[0] || "New note"
+  const title = typeof note.title === "string" ? note.title : ""
+  const body = typeof note.body === "string" ? note.body : ""
+  return title.trim() || body.trim().split("\n")[0] || "New note"
 }
 
 function editedAt(iso: string) {
@@ -29,7 +31,11 @@ function editedAt(iso: string) {
 }
 
 function searchNote(note: Note) {
-  return [noteTitle(note), note.title, note.body]
+  return [
+    noteTitle(note),
+    typeof note.title === "string" ? note.title : "",
+    typeof note.body === "string" ? note.body : "",
+  ]
 }
 
 type ChecklistItem = { checked: boolean; text: string }
@@ -111,9 +117,11 @@ export default function NotesPage() {
     if (note.id === openId) return
     await flush()
     setOpenId(note.id)
-    setTitle(note.title)
-    setBody(note.body)
-    setChecklistMode(isChecklist(note.body))
+    const nextTitle = typeof note.title === "string" ? note.title : ""
+    const nextBody = typeof note.body === "string" ? note.body : ""
+    setTitle(nextTitle)
+    setBody(nextBody)
+    setChecklistMode(isChecklist(nextBody))
   }
 
   async function add() {
@@ -227,7 +235,7 @@ export default function NotesPage() {
                       >
                         <span className={cn("sidebar-nav-label block truncate font-medium text-sidebar-foreground/70", active && "text-sidebar-accent-foreground")}>{noteTitle(shown)}</span>
                         <span className="block text-[10px] font-normal leading-tight text-muted-foreground">
-                          {editedAt(note.updatedAt)}{shown.title.trim() && shown.body.trim() ? ` · ${shown.body.trim().split("\n")[0]}` : ""}
+                          {editedAt(note.updatedAt)}{typeof shown.title === "string" && typeof shown.body === "string" && shown.title.trim() && shown.body.trim() ? ` · ${shown.body.trim().split("\n")[0]}` : ""}
                         </span>
                       </button>
                     </li>

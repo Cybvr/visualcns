@@ -23,7 +23,18 @@ export function watchNotes(agencyId: string, onChange: (notes: Note[]) => void, 
     notesQuery,
     (snapshot) => onChange(
       snapshot.docs
-        .map((item) => ({ ...(item.data() as Omit<Note, "id">), id: item.id }))
+        .map((item) => {
+          const data = item.data() as Partial<Omit<Note, "id">>
+          return {
+            id: item.id,
+            agencyId: typeof data.agencyId === "string" ? data.agencyId : "",
+            createdBy: typeof data.createdBy === "string" ? data.createdBy : "",
+            title: typeof data.title === "string" ? data.title : "",
+            body: typeof data.body === "string" ? data.body : "",
+            createdAt: typeof data.createdAt === "string" ? data.createdAt : "",
+            updatedAt: typeof data.updatedAt === "string" ? data.updatedAt : "",
+          }
+        })
         .sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt)),
     ),
     onError,
