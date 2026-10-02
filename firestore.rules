@@ -217,6 +217,15 @@ service cloud.firestore {
       allow delete: if agencyAdmin(resource.data) || (owns(resource.data) && resource.data.createdBy == request.auth.uid);
     }
 
+    // Notes are private to whoever wrote them, even from other admins.
+    match /notes/{id} {
+      allow read, delete: if sameAgency(resource.data) && resource.data.createdBy == request.auth.uid;
+      allow create: if sameAgency(request.resource.data) && request.resource.data.createdBy == request.auth.uid;
+      allow update: if sameAgency(resource.data) && resource.data.createdBy == request.auth.uid
+        && request.resource.data.agencyId == resource.data.agencyId
+        && request.resource.data.createdBy == resource.data.createdBy;
+    }
+
     match /hiddenReceivedEmails/{id} {
       allow read: if agencyAdmin(resource.data) || owns(resource.data);
       allow create: if (isAdmin() && sameAgency(request.resource.data))
