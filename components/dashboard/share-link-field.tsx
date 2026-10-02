@@ -1,17 +1,13 @@
 "use client"
 
-import { Link2 } from "lucide-react"
-import { toast } from "sonner"
-
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
+import { ShareLinkActions } from "@/components/dashboard/share-link-actions"
 
 /**
- * The public-link toggle shared by invoices, contracts, and estimates. Turning
- * it on is what lets `path` be opened with no account, via the matching
- * /share route and the shareEnabled read rule in firestore.rules.
+ * The public-link toggle shared by tasks, invoices, contracts, and estimates.
+ * Turning it on is what lets `path` be opened with no account, via the
+ * matching /share route and the shareEnabled read rule in firestore.rules.
  */
 export function ShareLinkField({
   enabled,
@@ -26,35 +22,14 @@ export function ShareLinkField({
   const url = path && typeof window !== "undefined" ? `${window.location.origin}${path}` : ""
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-2">
-      <Label htmlFor="share-toggle" className="text-sm font-medium">
-        Public link
-      </Label>
-      <div className="flex flex-wrap items-center gap-2">
-        {enabled && path && (
-          <>
-            <Input
-              readOnly
-              value={url}
-              className="h-8 w-56 font-mono text-xs"
-              onClick={(event) => (event.target as HTMLInputElement).select()}
-            />
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                void navigator.clipboard.writeText(url)
-                toast.success("Link copied")
-              }}
-            >
-              <Link2 className="size-3.5" />
-              Copy
-            </Button>
-          </>
-        )}
+    <div className="space-y-2">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <Label htmlFor="share-toggle" className="text-sm font-medium">
+          Public link
+        </Label>
         <Switch id="share-toggle" checked={enabled} onCheckedChange={onEnabledChange} />
       </div>
+      {enabled && path && <ShareLinkActions url={url} label="Public link" compact />}
     </div>
   )
 }

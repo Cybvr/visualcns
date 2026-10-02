@@ -3,10 +3,11 @@
 import { useEffect, useRef, useState, type FormEvent } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { ChevronDown, ChevronLeft, Eye, Link2, Loader2, MoreVertical, Share2, Trash2 } from "lucide-react"
+import { ChevronDown, ChevronLeft, Eye, Loader2, MoreVertical, Share2, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 
 import { RichTextEditor } from "@/components/dashboard/rich-text-editor"
+import { ShareLinkActions } from "@/components/dashboard/share-link-actions"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -291,20 +292,7 @@ export function CompanyDocumentBuilder({ document: record }: { document: Company
             <Label htmlFor="share-toggle" className="text-sm font-medium">Public sharing</Label>
             <Switch id="share-toggle" checked={shareEnabled} onCheckedChange={setShareEnabled} />
           </div>
-          {shareEnabled && (
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full"
-              onClick={() => {
-                void navigator.clipboard.writeText(`${window.location.origin}/share/documents/${record.id}`)
-                toast.success("Link copied")
-              }}
-            >
-              <Link2 className="size-4" aria-hidden="true" />
-              Copy public link
-            </Button>
-          )}
+          {shareEnabled && <ShareLinkActions url={`${window.location.origin}/share/documents/${record.id}`} label="Public document link" shareText={`View ${record.title}`} />}
         </DialogContent>
       </Dialog>
     </form>

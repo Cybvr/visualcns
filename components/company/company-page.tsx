@@ -3,8 +3,7 @@
 import { useMemo, useState } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { ExternalLink, Facebook, Linkedin, LogOut, Mail, MessageCircle, MoreVertical, Share2, Twitter } from "lucide-react"
-import { toast } from "sonner"
+import { ExternalLink, LogOut, Mail, MoreVertical, Share2 } from "lucide-react"
 
 import { useAuth } from "@/components/auth-provider"
 import {
@@ -17,70 +16,13 @@ import { SectionNav } from "@/components/company/section-nav"
 import { CompanySection } from "@/components/company/sections/company-section"
 import { usePageHeaderActions } from "@/components/dashboard/page-title-context"
 import { ImageDropzone } from "@/components/image-dropzone"
+import { ShareLinkActions } from "@/components/dashboard/share-link-actions"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Input } from "@/components/ui/input"
 import { buildEmailComposeHref } from "@/lib/email-composer"
 
 export type { CompanyPageAdmin, CompanyPageCompany, CompanyPagePerson } from "@/components/company/company-page-context"
-
-function ShareLink({ value, label }: { value: string; label: string }) {
-  return (
-    <div className="flex items-center gap-2 pt-2">
-      <Input
-        readOnly
-        value={value}
-        aria-label={label}
-        className="font-mono text-xs"
-        onClick={(event) => event.currentTarget.select()}
-      />
-      <Button
-        type="button"
-        variant="secondary"
-        size="sm"
-        className="shrink-0"
-        onClick={() => {
-          void navigator.clipboard.writeText(value)
-          toast.success("Link copied to clipboard")
-        }}
-      >
-        Copy link
-      </Button>
-    </div>
-  )
-}
-
-function SocialShareLinks({ url, companyName }: { url: string; companyName: string }) {
-  const encodedUrl = encodeURIComponent(url)
-  const encodedText = encodeURIComponent(`See ${companyName}'s company page`)
-  const links = [
-    { label: "WhatsApp", href: `https://wa.me/?text=${encodedText}%20${encodedUrl}`, icon: MessageCircle },
-    { label: "LinkedIn", href: `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`, icon: Linkedin },
-    { label: "Facebook", href: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`, icon: Facebook },
-    { label: "X", href: `https://x.com/intent/post?text=${encodedText}&url=${encodedUrl}`, icon: Twitter },
-  ]
-
-  return (
-    <div className="pt-4">
-      <p className="text-sm font-medium text-foreground">Share on social media</p>
-      <div className="mt-2 grid grid-cols-2 gap-2">
-        {links.map(({ label, href, icon: Icon }) => (
-          <a
-            key={label}
-            href={href}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-input bg-background px-3 text-sm font-medium text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <Icon className="size-4" aria-hidden="true" />
-            {label}
-          </a>
-        ))}
-      </div>
-    </div>
-  )
-}
 
 function DashboardCompanyView() {
   const { company, people, admin, sections, section, sectionHref, goToSection, setMediaAddOpen, absoluteUrl } = useCompanyPage()
@@ -201,8 +143,11 @@ function DashboardCompanyView() {
                 <DialogTitle>Share company page</DialogTitle>
                 <DialogDescription>Copy this link to share {company.name}&apos;s client page.</DialogDescription>
               </DialogHeader>
-              <ShareLink value={absoluteUrl(admin.sharePath)} label="Company link" />
-              <SocialShareLinks url={absoluteUrl(admin.sharePath)} companyName={company.name} />
+              <ShareLinkActions
+                url={absoluteUrl(admin.sharePath)}
+                label="Company link"
+                shareText={`See ${company.name}'s company page`}
+              />
             </DialogContent>
           </Dialog>
         </>
