@@ -98,7 +98,7 @@ function TaskContentPane({
   setSelectedId: (id: string | "new" | null) => void
 }) {
   return (
-    <aside className="hidden min-h-[34rem] min-w-0 flex-col overflow-hidden lg:flex">
+    <aside className="sticky top-16 hidden h-[calc(100svh-5rem)] min-h-0 min-w-0 flex-col overflow-hidden lg:flex">
       <div className="flex items-center justify-between gap-3 border-b border-border py-4">
         <div className="min-w-0">
           <h2 className="truncate text-lg font-semibold">
