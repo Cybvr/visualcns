@@ -25,6 +25,7 @@ function noteTitle(note: Pick<Note, "title" | "body">) {
 
 function editedAt(iso: string) {
   const date = new Date(iso)
+  if (Number.isNaN(date.getTime())) return "No date"
   return date.toDateString() === new Date().toDateString()
     ? date.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })
     : date.toLocaleDateString(undefined, { day: "numeric", month: "short" })

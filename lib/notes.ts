@@ -2,8 +2,14 @@ import { collection, deleteDoc, doc, onSnapshot, query, setDoc, updateDoc, where
 
 import { db } from "./firebase"
 import { getCurrentAgencyId } from "./agency-scope"
+import { tsToMillis } from "./tasks"
 
 const COLLECTION_NAME = "notes"
+
+function normalizeDate(value: unknown, fallback = "") {
+  const millis = tsToMillis(value)
+  return millis > 0 ? new Date(millis).toISOString() : fallback
+}
 
 /** An agency note shared by the signed-in users in that agency. */
 export type Note = {
@@ -25,17 +31,20 @@ export function watchNotes(agencyId: string, onChange: (notes: Note[]) => void, 
       snapshot.docs
         .map((item) => {
           const data = item.data() as Partial<Omit<Note, "id">>
+          const createdAt = normalizeDate(data.createdAt)
+          const modifiedMillis = Math.max(tsToMillis(data.updatedAt), tsToMillis(data.createdAt))
+          const updatedAt = modifiedMillis > 0 ? new Date(modifiedMillis).toISOString() : ""
           return {
             id: item.id,
             agencyId: typeof data.agencyId === "string" ? data.agencyId : "",
             createdBy: typeof data.createdBy === "string" ? data.createdBy : "",
             title: typeof data.title === "string" ? data.title : "",
             body: typeof data.body === "string" ? data.body : "",
-            createdAt: typeof data.createdAt === "string" ? data.createdAt : "",
-            updatedAt: typeof data.updatedAt === "string" ? data.updatedAt : "",
+            createdAt,
+            updatedAt,
           }
         })
-        .sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt)),
+        .sort((a, b) => tsToMillis(b.updatedAt) - tsToMillis(a.updatedAt)),
     ),
     onError,
   )
