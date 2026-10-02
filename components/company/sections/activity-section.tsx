@@ -3,11 +3,12 @@
 import { useMemo } from "react"
 
 import { useCompanyPage } from "@/components/company/company-page-context"
+import { TaskDetailSheet } from "@/components/company/task-detail-sheet"
 import { ActivityFeed } from "@/components/dashboard/activity-feed"
 import { buildActivity } from "@/lib/activity"
 
 export function ActivitySection({ heading, prominent = false }: { heading?: string; prominent?: boolean } = {}) {
-  const { projects, tasks, invoices, estimates, contracts, documents, sections, sectionHref } = useCompanyPage()
+  const { projects, tasks, invoices, estimates, contracts, documents, sections, updateParams } = useCompanyPage()
   const title = heading ?? sections.find((item) => item.key === "activity")?.label ?? "Activity"
 
   const activity = useMemo(
@@ -20,11 +21,13 @@ export function ActivitySection({ heading, prominent = false }: { heading?: stri
       <h2 className={prominent ? "py-2 text-xl font-semibold tracking-[-0.02em] text-foreground" : "sidebar-nav-label text-muted-foreground"}>{title}</h2>
       <ActivityFeed
         items={activity}
-        hrefFor={(item) => item.kind === "task" ? sectionHref("tasks", { task: item.refId }) : undefined}
+        onItemClick={(item) => updateParams({ task: item.refId })}
+        isItemClickable={(item) => item.kind === "task"}
         emptyLabel={title === "Notifications" ? "No notifications yet." : "No recent activity for this company yet."}
         showHeader={false}
         className="mt-4 sm:rounded-none sm:bg-transparent sm:p-0"
       />
+      <TaskDetailSheet />
     </div>
   )
 }

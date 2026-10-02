@@ -34,6 +34,8 @@ function timeAgo(ms: number): string {
 export function ActivityFeed({
   items,
   hrefFor,
+  onItemClick,
+  isItemClickable,
   title = "Activity",
   emptyLabel = "No recent activity yet.",
   showHeader = true,
@@ -41,6 +43,8 @@ export function ActivityFeed({
 }: {
   items: ActivityItem[]
   hrefFor?: (item: ActivityItem) => string | undefined
+  onItemClick?: (item: ActivityItem) => void
+  isItemClickable?: (item: ActivityItem) => boolean
   title?: string
   emptyLabel?: string
   showHeader?: boolean
@@ -59,7 +63,8 @@ export function ActivityFeed({
           <div className="space-y-2 sm:hidden">
             {items.map((item) => {
               const Icon = KIND_ICON[item.kind]
-              const href = hrefFor?.(item)
+              const clickable = Boolean(onItemClick && (isItemClickable ? isItemClickable(item) : true))
+              const href = clickable ? undefined : hrefFor?.(item)
               return (
                 <MobileDataCard
                   key={item.id}
@@ -67,6 +72,7 @@ export function ActivityFeed({
                   subtitle={[item.subtitle, timeAgo(item.at)].filter(Boolean).join(" · ")}
                   icon={<Icon className="size-5 text-muted-foreground" aria-hidden="true" />}
                   href={href}
+                  onClick={clickable ? () => onItemClick?.(item) : undefined}
                   ariaLabel={`Open ${item.title}`}
                 />
               )
@@ -75,7 +81,8 @@ export function ActivityFeed({
           <ul className="hidden divide-y divide-border sm:block">
           {items.map((item) => {
             const Icon = KIND_ICON[item.kind]
-            const href = hrefFor?.(item)
+            const clickable = Boolean(onItemClick && (isItemClickable ? isItemClickable(item) : true))
+            const href = clickable ? undefined : hrefFor?.(item)
             const body = (
               <div className="flex items-start gap-3 py-3">
                 <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
@@ -90,7 +97,16 @@ export function ActivityFeed({
             )
             return (
               <li key={item.id} className="first:[&>*]:pt-0 last:[&>*]:pb-0">
-                {href ? (
+                {clickable ? (
+                  <button
+                    type="button"
+                    onClick={() => onItemClick?.(item)}
+                    aria-label={`Open ${item.title}`}
+                    className="-mx-2 block w-[calc(100%+1rem)] rounded-md px-2 text-left transition-colors hover:bg-muted/50 focus-visible:outline focus-visible:outline-2"
+                  >
+                    {body}
+                  </button>
+                ) : href ? (
                   <Link href={href} className="-mx-2 block rounded-md px-2 transition-colors hover:bg-muted/50 focus-visible:outline focus-visible:outline-2">
                     {body}
                   </Link>
