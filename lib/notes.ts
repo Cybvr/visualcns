@@ -5,7 +5,7 @@ import { getCurrentAgencyId } from "./agency-scope"
 
 const COLLECTION_NAME = "notes"
 
-/** A private note. Only the person who wrote it can read or change it. */
+/** An agency note shared by the signed-in users in that agency. */
 export type Note = {
   id: string
   agencyId: string
@@ -16,9 +16,9 @@ export type Note = {
   updatedAt: string
 }
 
-/** Live list of someone's notes, most recently edited first. */
-export function watchNotes(agencyId: string, uid: string, onChange: (notes: Note[]) => void, onError: (error: Error) => void) {
-  const notesQuery = query(collection(db, COLLECTION_NAME), where("agencyId", "==", agencyId), where("createdBy", "==", uid))
+/** Live list of the agency's notes, most recently edited first. */
+export function watchNotes(agencyId: string, onChange: (notes: Note[]) => void, onError: (error: Error) => void) {
+  const notesQuery = query(collection(db, COLLECTION_NAME), where("agencyId", "==", agencyId))
   return onSnapshot(
     notesQuery,
     (snapshot) => onChange(

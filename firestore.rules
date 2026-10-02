@@ -217,11 +217,12 @@ service cloud.firestore {
       allow delete: if agencyAdmin(resource.data) || (owns(resource.data) && resource.data.createdBy == request.auth.uid);
     }
 
-    // Notes are private to whoever wrote them, even from other admins.
+    // Notes are shared across the agency. The author is retained for history,
+    // but any signed-in user in the same agency can read and manage them.
     match /notes/{id} {
-      allow read, delete: if sameAgency(resource.data) && resource.data.createdBy == request.auth.uid;
+      allow read, delete: if sameAgency(resource.data);
       allow create: if sameAgency(request.resource.data) && request.resource.data.createdBy == request.auth.uid;
-      allow update: if sameAgency(resource.data) && resource.data.createdBy == request.auth.uid
+      allow update: if sameAgency(resource.data) && sameAgency(request.resource.data)
         && request.resource.data.agencyId == resource.data.agencyId
         && request.resource.data.createdBy == resource.data.createdBy;
     }

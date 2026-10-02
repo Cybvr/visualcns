@@ -30,7 +30,7 @@ function searchNote(note: Note) {
   return [noteTitle(note), note.title, note.body]
 }
 
-/** Private notes for whoever is signed in: a list on the left, the open note on the right. */
+/** Shared agency notes: a list on the left, the open note on the right. */
 export default function NotesPage() {
   const { user } = useAuth()
   const uid = user?.uid || ""
@@ -50,7 +50,7 @@ export default function NotesPage() {
     getCurrentAgencyId()
       .then((agencyId) => {
         if (cancelled) return
-        stop = watchNotes(agencyId, uid, (rows) => { setNotes(rows); setError(false) }, (reason) => { console.error("Notes subscription failed", reason); setError(true) })
+        stop = watchNotes(agencyId, (rows) => { setNotes(rows); setError(false) }, (reason) => { console.error("Notes subscription failed", reason); setError(true) })
       })
       .catch(() => setError(true))
     return () => { cancelled = true; stop() }
@@ -149,7 +149,7 @@ export default function NotesPage() {
           <FirstRunState
             label="Note"
             title="Let's write your first note"
-            description="Keep private notes here for ideas, reminders, and working details."
+            description="Keep shared notes here for ideas, reminders, and working details."
             action={<Button onClick={() => void add()}>New note</Button>}
           />
         </>
