@@ -1,14 +1,12 @@
 import type { ReactNode } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { ArrowRight, BadgeCheck, Bell, FileSignature, KeyRound, ShieldAlert, Users } from "lucide-react"
+import { ArrowRight, Bell, FileSignature, KeyRound, ShieldAlert, Users } from "lucide-react"
 
 import { BrandLockup } from "@/components/brand-lockup"
 
 const PILOT_HREF = "/contact"
 const OVERVIEW_HREF = "/visitors/demo"
-
-const TRUST = ["SOC 2 Type II Certified", "GDPR & CCPA Compliant", "ITAR Ready", "ISO 27001"]
 
 const RISKS = [
   {
@@ -149,17 +147,6 @@ export default function PassPage() {
           </div>
         </section>
 
-        {/* Trust bar */}
-        <section className="border-y border-border bg-muted/40">
-          <ul className="mx-auto flex max-w-6xl flex-wrap items-center justify-center gap-x-8 gap-y-3 px-4 py-5 text-sm font-medium md:px-8">
-            {TRUST.map((item) => (
-              <li key={item} className="inline-flex items-center gap-2">
-                <BadgeCheck className="size-4 text-muted-foreground" aria-hidden />
-                {item}
-              </li>
-            ))}
-          </ul>
-        </section>
 
         {/* Problem */}
         <section className="mx-auto max-w-6xl px-4 py-16 md:px-8 md:py-24">
