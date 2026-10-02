@@ -100,15 +100,16 @@ function TaskContentPane({
   setSelectedId: (id: string | "new" | null) => void
 }) {
   return (
-    <aside className="hidden min-h-[34rem] min-w-0 flex-col overflow-hidden rounded-lg border border-border bg-card lg:flex">
-      <div className="border-b border-border px-5 py-4">
-        <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">Task</p>
-        <h2 className="mt-1 truncate text-lg font-semibold">
-          {selectedId === "new" ? "New task" : selectedTask?.name || "Select a task"}
-        </h2>
-        {selectedId === null && <p className="mt-1 text-sm text-muted-foreground">Choose a task from the list to view and edit it.</p>}
+    <aside className="hidden min-h-[34rem] min-w-0 flex-col overflow-hidden lg:flex">
+      <div className="flex items-center justify-between gap-3 border-b border-border py-4">
+        <div className="min-w-0">
+          <h2 className="truncate text-lg font-semibold">
+            {selectedId === "new" ? "New task" : selectedTask?.name || "Select a task"}
+          </h2>
+          {selectedId === null && <p className="mt-1 text-sm text-muted-foreground">Choose a task to view and edit it.</p>}
+        </div>
         {selectedTask && (
-          <div className="mt-3 flex items-center gap-1">
+          <div className="flex shrink-0 items-center gap-1">
             <Button
               variant="ghost"
               size="icon"
@@ -128,7 +129,7 @@ function TaskContentPane({
           </div>
         )}
       </div>
-      <div className="min-h-0 flex-1 overflow-y-auto p-5">
+      <div className="min-h-0 flex-1 overflow-y-auto py-5">
         {selectedId === null ? (
           <div className="flex min-h-[23rem] items-center justify-center text-center text-sm text-muted-foreground">
             Select a task to open its content.
@@ -293,13 +294,12 @@ export default function TasksAdminPage() {
                 ))}
               </ul>
 
-              <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(22rem,0.72fr)] lg:items-start lg:gap-4">
-              <div className="hidden overflow-x-auto rounded-lg border border-border sm:block">
-              <Table className="w-full min-w-[420px] table-fixed">
+              <div className="lg:grid lg:grid-cols-[minmax(18rem,0.7fr)_minmax(0,1.3fr)] lg:items-start lg:gap-6">
+              <div className="hidden overflow-x-auto sm:block">
+              <Table className="w-full min-w-[280px] table-fixed">
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[68%]">Title</TableHead>
-                    <TableHead className="w-[32%]">Date</TableHead>
+                    <TableHead>Title</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -309,16 +309,16 @@ export default function TasksAdminPage() {
                       className="cursor-pointer"
                       onClick={() => setSelectedId(t.id)}
                     >
-                      <TableCell className="max-w-0 font-medium">
+                      <TableCell className="max-w-0 py-3 font-medium">
                         <button
                           type="button"
                           className="w-full truncate rounded px-1 py-0.5 text-left font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                           onClick={() => setSelectedId(t.id)}
                         >
-                          {t.name || "Untitled task"}
+                          <span className="block truncate">{t.name || "Untitled task"}</span>
+                          <span className="mt-1 block text-xs font-normal text-muted-foreground">{t.dueDate || formatTimestamp(t.updatedAt ?? t.createdAt)}</span>
                         </button>
                       </TableCell>
-                      <TableCell className="whitespace-nowrap text-muted-foreground">{t.dueDate || formatTimestamp(t.updatedAt ?? t.createdAt)}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
