@@ -214,7 +214,7 @@ export default function NotesPage() {
                     onChange={(event) => edit({ title: event.target.value })}
                     placeholder="New note"
                     aria-label="Note title"
-                    className="min-w-0 flex-1 bg-transparent text-lg font-semibold text-foreground outline-none placeholder:text-muted-foreground"
+                    className="sidebar-nav-label min-w-0 flex-1 bg-transparent font-medium text-sidebar-foreground/70 outline-none placeholder:text-muted-foreground"
                   />
                   <div className="flex shrink-0 items-center gap-2">
                     <span className="text-xs text-muted-foreground" aria-live="polite">{saving ? "Saving…" : "Saved"}</span>
