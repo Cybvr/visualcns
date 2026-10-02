@@ -240,16 +240,18 @@ export default function TasksAdminPage() {
   const selectedTask =
     typeof selectedId === "string" && selectedId !== "new" ? tasks.find((t) => t.id === selectedId) ?? null : null
 
+  const taskFilter = (
+    <FilterBar
+      {...bar}
+      placeholder="Search tasks"
+      actions={
+        <Button variant="ghost" className="bg-transparent text-foreground hover:bg-transparent" onClick={() => setSelectedId("new")}><Plus className="h-4 w-4" />Add Task</Button>
+      }
+    />
+  )
+
   return (
     <main className="mx-auto w-full max-w-6xl px-4 pt-4 pb-12 sm:px-6">
-      <FilterBar
-        {...bar}
-        placeholder="Search tasks"
-        actions={
-          <Button variant="ghost" className="bg-transparent text-foreground hover:bg-transparent" onClick={() => setSelectedId("new")}><Plus className="h-4 w-4" />Add Task</Button>
-        }
-      />
-
       {loading ? (
         <DashboardPageSkeleton rows={6} />
       ) : error ? (
@@ -257,76 +259,85 @@ export default function TasksAdminPage() {
           <CardContent className="py-10 text-center text-sm text-destructive">{error}</CardContent>
         </Card>
       ) : tasks.length === 0 ? (
-        <FirstRunState
-          label="Task"
-          title="Let's add your first task"
-          description="Tasks are the individual pieces of work inside a project. Assign one, give it a due date, and it shows up on the client's board too."
-          action={<Button onClick={() => setSelectedId("new")}>New Task</Button>}
-        />
+        <>
+          <div className="lg:max-w-[30rem]">{taskFilter}</div>
+          <FirstRunState
+            label="Task"
+            title="Let's add your first task"
+            description="Tasks are the individual pieces of work inside a project. Assign one, give it a due date, and it shows up on the client's board too."
+            action={<Button onClick={() => setSelectedId("new")}>New Task</Button>}
+          />
+        </>
       ) : (
         <>
           {visibleTasks.length === 0 ? (
-            <EmptySearchState label="No tasks match your search." />
+            <>
+              <div className="lg:max-w-[30rem]">{taskFilter}</div>
+              <EmptySearchState label="No tasks match your search." />
+            </>
           ) : (
             <>
-              <ul className="space-y-2 sm:hidden">
-                {visibleTasks.map((t) => (
-                  <li key={t.id}>
-                    <MobileDataCard
-                      title={t.name || "Untitled task"}
-                      subtitle={<span className="flex flex-col gap-1"><span>{[t.reminder ? "Reminder" : null, t.client || t.companyId, t.project, taskStatusMeta[t.status]?.label].filter(Boolean).join(" · ") || "—"}</span><span>Modified {formatTimestamp(t.updatedAt ?? t.createdAt)}</span></span>}
-                      icon={<ListTodo className="size-5 text-muted-foreground" aria-hidden="true" />}
-                      onClick={() => setSelectedId(t.id)}
-                      ariaLabel={`Open ${t.name || "task"}`}
-                      menuLabel={`Options for ${t.name || "task"}`}
-                      menu={
-                        <>
-                          <DropdownMenuItem onSelect={() => emailTask(t)}>Email task</DropdownMenuItem>
-                          <DropdownMenuItem onSelect={() => setSelectedId(t.id)}>Edit task</DropdownMenuItem>
-                          <DropdownMenuItem disabled={duplicatingId !== null} onSelect={() => void handleDuplicate(t)}>Duplicate task</DropdownMenuItem>
-                          <DropdownMenuItem onSelect={() => setDeleteId(t.id)}>Delete task</DropdownMenuItem>
-                        </>
-                      }
-                    />
-                  </li>
-                ))}
-              </ul>
-
               <div className="lg:grid lg:grid-cols-[minmax(18rem,0.7fr)_minmax(0,1.3fr)] lg:items-start lg:gap-6">
-              <div className="hidden overflow-x-auto sm:block">
-              <Table className="w-full min-w-[280px] table-fixed">
-                <TableBody>
-                  {visibleTasks.map((t) => (
-                    <TableRow
-                      key={t.id}
-                      className="cursor-pointer"
-                      onClick={() => setSelectedId(t.id)}
-                    >
-                      <TableCell className="max-w-0 py-2">
-                        <button
-                          type="button"
-                          className="w-full truncate rounded px-1 py-0 text-left text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                <div className="min-w-0">
+                  {taskFilter}
+                  <ul className="space-y-2 sm:hidden">
+                    {visibleTasks.map((t) => (
+                      <li key={t.id}>
+                        <MobileDataCard
+                          title={t.name || "Untitled task"}
+                          subtitle={<span className="flex flex-col gap-1"><span>{[t.reminder ? "Reminder" : null, t.client || t.companyId, t.project, taskStatusMeta[t.status]?.label].filter(Boolean).join(" · ") || "—"}</span><span>Modified {formatTimestamp(t.updatedAt ?? t.createdAt)}</span></span>}
+                          icon={<ListTodo className="size-5 text-muted-foreground" aria-hidden="true" />}
                           onClick={() => setSelectedId(t.id)}
-                        >
-                          <span className="block truncate">{t.name || "Untitled task"}</span>
-                          <span className="mt-0.5 block text-[11px] font-normal text-muted-foreground">{t.dueDate || formatTimestamp(t.updatedAt ?? t.createdAt)}</span>
-                        </button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-              </div>
-              <TaskContentPane
-                selectedId={selectedId}
-                selectedTask={selectedTask}
-                deleting={deleting}
-                emailTask={emailTask}
-                emailingId={emailingId}
-                setDeleteId={(id) => setDeleteId(id)}
-                handleSaved={handleSaved}
-                setSelectedId={setSelectedId}
-              />
+                          ariaLabel={`Open ${t.name || "task"}`}
+                          menuLabel={`Options for ${t.name || "task"}`}
+                          menu={
+                            <>
+                              <DropdownMenuItem onSelect={() => emailTask(t)}>Email task</DropdownMenuItem>
+                              <DropdownMenuItem onSelect={() => setSelectedId(t.id)}>Edit task</DropdownMenuItem>
+                              <DropdownMenuItem disabled={duplicatingId !== null} onSelect={() => void handleDuplicate(t)}>Duplicate task</DropdownMenuItem>
+                              <DropdownMenuItem onSelect={() => setDeleteId(t.id)}>Delete task</DropdownMenuItem>
+                            </>
+                          }
+                        />
+                      </li>
+                    ))}
+                  </ul>
+
+                  <div className="hidden overflow-x-auto sm:block">
+                    <Table className="w-full min-w-[280px] table-fixed">
+                      <TableBody>
+                        {visibleTasks.map((t) => (
+                          <TableRow
+                            key={t.id}
+                            className="cursor-pointer"
+                            onClick={() => setSelectedId(t.id)}
+                          >
+                            <TableCell className="max-w-0 py-2">
+                              <button
+                                type="button"
+                                className="w-full truncate rounded px-1 py-0 text-left text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                onClick={() => setSelectedId(t.id)}
+                              >
+                                <span className="block truncate">{t.name || "Untitled task"}</span>
+                                <span className="mt-0.5 block text-[11px] font-normal text-muted-foreground">{t.dueDate || formatTimestamp(t.updatedAt ?? t.createdAt)}</span>
+                              </button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+                <TaskContentPane
+                  selectedId={selectedId}
+                  selectedTask={selectedTask}
+                  deleting={deleting}
+                  emailTask={emailTask}
+                  emailingId={emailingId}
+                  setDeleteId={(id) => setDeleteId(id)}
+                  handleSaved={handleSaved}
+                  setSelectedId={setSelectedId}
+                />
               </div>
             </>
           )}
