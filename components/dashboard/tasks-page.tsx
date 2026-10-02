@@ -75,10 +75,11 @@ function TaskContentPane({
     <aside className="sticky top-16 hidden h-[calc(100svh-5rem)] min-h-0 min-w-0 flex-col overflow-hidden lg:flex">
       <div className="flex h-16 items-center justify-between gap-3 border-b border-border py-0">
         <div className="min-w-0">
-          <h2 className="sidebar-nav-label truncate font-medium text-sidebar-foreground/70">
-            {selectedId === "new" ? "New task" : selectedTask?.name || "Select a task"}
-          </h2>
-          {selectedId === null && <p className="mt-1 text-sm text-muted-foreground">Choose a task to view and edit it.</p>}
+          {selectedId !== null && (
+            <h2 className="sidebar-nav-label truncate font-medium text-sidebar-foreground/70">
+              {selectedId === "new" ? "New task" : selectedTask?.name}
+            </h2>
+          )}
         </div>
         {selectedTask && (
           <div className="flex shrink-0 items-center gap-1">
@@ -103,9 +104,7 @@ function TaskContentPane({
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto py-5">
         {selectedId === null ? (
-          <div className="flex min-h-[23rem] items-center justify-center text-center text-sm text-muted-foreground">
-            Select a task to open its content.
-          </div>
+          <div className="min-h-[23rem]" aria-hidden="true" />
         ) : (
           <TaskForm
             key={selectedId}

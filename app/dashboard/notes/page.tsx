@@ -221,9 +221,7 @@ export default function NotesPage() {
                 />
               </div>
             ) : (
-              <div className="flex min-h-[34rem] items-center justify-center text-center text-sm text-muted-foreground">
-                Select a note to open its content.
-              </div>
+              <div className="min-h-[34rem]" aria-hidden="true" />
             )}
           </section>
         </div>
