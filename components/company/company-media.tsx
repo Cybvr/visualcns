@@ -4,9 +4,7 @@ import { useEffect, useState } from "react"
 import { ChevronLeft, ChevronRight, Images, Play, X } from "lucide-react"
 
 import { CompanyEmptyState } from "@/components/company/empty-state"
-import { SectionAddButton } from "@/components/company/section-add-button"
 import { GalleryDropzone } from "@/components/image-dropzone"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { mediaKindForUrl, type MediaKind } from "@/lib/media"
 import type { Project } from "@/lib/projects"
 
@@ -39,8 +37,6 @@ export function CompanyMedia({
   projects,
   uploaded = [],
   onUploadedChange,
-  openAdd = false,
-  onOpenAddChange,
 }: {
   logoUrl?: string
   projects: Project[]
@@ -48,19 +44,13 @@ export function CompanyMedia({
   uploaded?: string[]
   /** Present only for admins; wiring it in turns the section into an editor. */
   onUploadedChange?: (urls: string[]) => void
-  /** Opens the existing uploader from an action outside the Media section. */
-  openAdd?: boolean
-  onOpenAddChange?: (open: boolean) => void
 }) {
   const isAdmin = Boolean(onUploadedChange)
-  const [addOpen, setAddOpen] = useState(false)
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
   const uploadedItems: MediaItem[] = uploaded
     .filter(Boolean)
     .map((url) => ({ url, label: "Uploaded media", project: "Company", kind: mediaKindForUrl(url) }))
 
-  // The uploaded media always shows in the grid; admins manage it through the
-  // modal opened by the Add media button.
   const gallery = [
     ...new Map([...uploadedItems, ...derivedMedia(logoUrl, projects)].map((item) => [item.url, item])).values(),
   ]
@@ -86,28 +76,16 @@ export function CompanyMedia({
       <div className="flex items-center justify-between gap-4">
         <h2 id="company-media-heading" className="sr-only">Media</h2>
         <span className="sidebar-nav-label text-muted-foreground">Media</span>
-        {isAdmin && <SectionAddButton onClick={() => setAddOpen(true)} label="Add media" />}
       </div>
 
       {isAdmin && (
-        <Dialog
-          open={addOpen || openAdd}
-          onOpenChange={(open) => {
-            setAddOpen(open)
-            onOpenAddChange?.(open)
-          }}
-        >
-          <DialogContent className="max-w-lg">
-            <DialogHeader>
-              <DialogTitle>Add media</DialogTitle>
-            </DialogHeader>
-            <GalleryDropzone
-              value={uploaded.filter(Boolean)}
-              acceptVideos
-              onChange={(urls) => onUploadedChange?.(urls)}
-            />
-          </DialogContent>
-        </Dialog>
+        <div className="mt-4">
+          <GalleryDropzone
+            value={uploaded.filter(Boolean)}
+            acceptVideos
+            onChange={(urls) => onUploadedChange?.(urls)}
+          />
+        </div>
       )}
 
       {gallery.length === 0 ? (

@@ -25,7 +25,7 @@ import { buildEmailComposeHref } from "@/lib/email-composer"
 export type { CompanyPageAdmin, CompanyPageCompany, CompanyPagePerson } from "@/components/company/company-page-context"
 
 function DashboardCompanyView() {
-  const { company, people, admin, sections, section, sectionHref, goToSection, setMediaAddOpen, absoluteUrl } = useCompanyPage()
+  const { company, people, admin, sections, section, sectionHref, goToSection, absoluteUrl } = useCompanyPage()
   const { user, signOut } = useAuth()
   const router = useRouter()
   const pathname = usePathname()
@@ -95,10 +95,7 @@ function DashboardCompanyView() {
         onShare={admin ? () => setShareOpen(true) : undefined}
         onEdit={admin ? () => router.push(`${pathname}/edit`) : undefined}
         onChangeLogo={admin ? () => setLogoEditOpen(true) : undefined}
-        onChangeCover={admin ? () => {
-          setMediaAddOpen(true)
-          goToSection("media")
-        } : undefined}
+        onChangeCover={admin ? () => goToSection("media") : undefined}
         accountAction={!admin && user ? (
           <Button
             type="button"

@@ -107,8 +107,6 @@ interface CompanyPageValue extends CompanyPageData {
   patchTask: (id: string, patch: Partial<Task>) => void
   removeTask: (id: string) => void
   refreshTasks: () => void
-  mediaAddOpen: boolean
-  setMediaAddOpen: (open: boolean) => void
 }
 
 const CompanyPageContext = createContext<CompanyPageValue | null>(null)
@@ -190,8 +188,6 @@ export function CompanyPageProvider({
   const [tasksLoading, setTasksLoading] = useState(true)
   const [taskRevision, setTaskRevision] = useState(0)
   const [deletingTaskId, setDeletingTaskId] = useState<string | null>(null)
-  const [mediaAddOpen, setMediaAddOpen] = useState(false)
-
   // Tasks feed both the Tasks and Activity sections, so they load once here.
   useEffect(() => {
     let active = true
@@ -286,8 +282,6 @@ export function CompanyPageProvider({
     patchTask,
     removeTask,
     refreshTasks: () => setTaskRevision((current) => current + 1),
-    mediaAddOpen,
-    setMediaAddOpen,
   }
 
   return <CompanyPageContext.Provider value={value}>{children}</CompanyPageContext.Provider>

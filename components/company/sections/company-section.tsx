@@ -14,7 +14,7 @@ import { TasksSection } from "@/components/company/sections/tasks-section"
 import { TeamSection } from "@/components/company/sections/team-section"
 
 function MediaSection() {
-  const { company, projects, admin, mediaAddOpen, setMediaAddOpen } = useCompanyPage()
+  const { company, projects, admin } = useCompanyPage()
   return (
     <div className="mt-5">
       <CompanyMedia
@@ -22,8 +22,6 @@ function MediaSection() {
         projects={projects}
         uploaded={company.media ?? []}
         onUploadedChange={admin?.onMediaChange ? (urls) => void admin.onMediaChange?.(urls) : undefined}
-        openAdd={mediaAddOpen}
-        onOpenAddChange={setMediaAddOpen}
       />
     </div>
   )
