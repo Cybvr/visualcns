@@ -11,7 +11,7 @@ import { useCompanyPage } from "@/components/company/company-page-context"
 import { TaskContent } from "@/components/dashboard/task-content"
 import { TasksView } from "@/components/dashboard/tasks-view"
 import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { taskStatusMeta, type Task } from "@/lib/tasks"
 
 export function TasksSection() {
@@ -19,7 +19,7 @@ export function TasksSection() {
   const searchParams = useSearchParams()
 
   // Shared task links open the task over the list as ?task={id}.
-  const viewingTaskId = admin ? null : searchParams.get("task")
+  const viewingTaskId = searchParams.get("task")
   const viewingTask = viewingTaskId ? tasks.find((task) => task.id === viewingTaskId) ?? null : null
   const [content, setContent] = useState<string | null>(null)
   const [contentError, setContentError] = useState(false)
@@ -31,9 +31,13 @@ export function TasksSection() {
       setContentError(false)
       return
     }
-    const controller = new AbortController()
     setContent(null)
     setContentError(false)
+    if (admin) {
+      setContent(viewingTask?.content || "")
+      return
+    }
+    const controller = new AbortController()
     fetch(`/api/organizations/public/task-content?companyId=${encodeURIComponent(company.id)}&taskId=${encodeURIComponent(viewingTaskId)}`, {
       cache: "no-store",
       signal: controller.signal,
@@ -45,7 +49,7 @@ export function TasksSection() {
       .then((result) => setContent(result.content))
       .catch(() => { if (!controller.signal.aborted) setContentError(true) })
     return () => controller.abort()
-  }, [company.id, viewingTaskId, retry])
+  }, [admin, company.id, viewingTask, viewingTaskId, retry])
 
   function taskHref(id: string) {
     return sectionHref("tasks", { task: id })
@@ -62,19 +66,72 @@ export function TasksSection() {
 
   if (tasksLoading) return <p className="mt-8 text-sm text-muted-foreground" role="status">Loading tasks…</p>
 
+  const taskSheet = (
+      <Sheet open={Boolean(viewingTask)} onOpenChange={(open) => { if (!open) updateParams({ task: null }, true) }}>
+        <SheetContent side="right" className="w-full gap-0 overflow-y-auto p-0 sm:max-w-lg">
+          {viewingTask && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="absolute right-11 top-2.5 size-8 text-muted-foreground hover:text-foreground"
+              onClick={() => void copyTaskLink(viewingTask)}
+              aria-label="Copy task link"
+              title="Copy task link"
+            >
+              <Share2 className="size-4" aria-hidden="true" />
+            </Button>
+          )}
+          <SheetHeader className="border-b border-border px-5 py-4 pr-20">
+            <SheetTitle>{viewingTask?.name || "Task"}</SheetTitle>
+            <SheetDescription className="sr-only">Task details</SheetDescription>
+          </SheetHeader>
+          {viewingTask && (
+            <div className="space-y-5 p-5">
+              <dl className="grid grid-cols-1 gap-4 rounded-lg bg-muted/40 p-4 text-sm sm:grid-cols-2">
+                <div>
+                  <dt className="text-muted-foreground">Project</dt>
+                  <dd className="mt-1 font-medium text-foreground">{viewingTask.project || "No project"}</dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground">Status</dt>
+                  <dd className="mt-1 font-medium text-foreground">{(taskStatusMeta[viewingTask.status] ?? taskStatusMeta.todo).label}</dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground">Due date</dt>
+                  <dd className="mt-1 font-medium text-foreground">{viewingTask.dueDate || "No due date"}</dd>
+                </div>
+              </dl>
+              <section>
+                <h3 className="text-sm font-medium text-foreground">Content</h3>
+                {contentError ? (
+                  <div className="mt-2 text-sm text-muted-foreground">
+                    <p>Couldn’t load the task content.</p>
+                    <button type="button" className="mt-2 font-medium text-foreground underline underline-offset-4" onClick={() => setRetry((value) => value + 1)}>Try again</button>
+                  </div>
+                ) : content === null ? (
+                  <p className="mt-2 text-sm text-muted-foreground" role="status">Loading content…</p>
+                ) : (
+                  <TaskContent value={content} className="mt-2" />
+                )}
+              </section>
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
+  )
+
   if (admin) {
-    return (
-      <TasksView
-        tasks={tasks}
-        projects={projects}
-        companyId={company.id}
-        clientName={company.name}
-        deleting={deletingTaskId}
-        onDelete={removeTask}
-        onPatch={patchTask}
-        onSaved={refreshTasks}
-      />
-    )
+    return <><TasksView
+      tasks={tasks}
+      projects={projects}
+      companyId={company.id}
+      clientName={company.name}
+      deleting={deletingTaskId}
+      onDelete={removeTask}
+      onPatch={patchTask}
+      onSaved={refreshTasks}
+    />{taskSheet}</>
   }
 
   return (
@@ -109,59 +166,7 @@ export function TasksSection() {
           ))}
         </ul>
       )}
-
-      <Dialog open={Boolean(viewingTask)} onOpenChange={(open) => { if (!open) updateParams({ task: null }, true) }}>
-        <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg">
-          {viewingTask && (
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="absolute right-11 top-2.5 size-8 text-muted-foreground hover:text-foreground"
-              onClick={() => void copyTaskLink(viewingTask)}
-              aria-label="Copy task link"
-              title="Copy task link"
-            >
-              <Share2 className="size-4" aria-hidden="true" />
-            </Button>
-          )}
-          <DialogHeader className="pr-20">
-            <DialogTitle>{viewingTask?.name || "Task"}</DialogTitle>
-            <DialogDescription className="sr-only">Task details</DialogDescription>
-          </DialogHeader>
-          {viewingTask && (
-            <div className="space-y-5">
-              <dl className="grid grid-cols-1 gap-4 rounded-lg bg-muted/40 p-4 text-sm sm:grid-cols-2">
-                <div>
-                  <dt className="text-muted-foreground">Project</dt>
-                  <dd className="mt-1 font-medium text-foreground">{viewingTask.project || "No project"}</dd>
-                </div>
-                <div>
-                  <dt className="text-muted-foreground">Status</dt>
-                  <dd className="mt-1 font-medium text-foreground">{(taskStatusMeta[viewingTask.status] ?? taskStatusMeta.todo).label}</dd>
-                </div>
-                <div>
-                  <dt className="text-muted-foreground">Due date</dt>
-                  <dd className="mt-1 font-medium text-foreground">{viewingTask.dueDate || "No due date"}</dd>
-                </div>
-              </dl>
-              <section>
-                <h3 className="text-sm font-medium text-foreground">Content</h3>
-                {contentError ? (
-                  <div className="mt-2 text-sm text-muted-foreground">
-                    <p>Couldn’t load the task content.</p>
-                    <button type="button" className="mt-2 font-medium text-foreground underline underline-offset-4" onClick={() => setRetry((value) => value + 1)}>Try again</button>
-                  </div>
-                ) : content === null ? (
-                  <p className="mt-2 text-sm text-muted-foreground" role="status">Loading content…</p>
-                ) : (
-                  <TaskContent value={content} className="mt-2" />
-                )}
-              </section>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+      {taskSheet}
     </section>
   )
 }
