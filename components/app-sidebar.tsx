@@ -78,7 +78,7 @@ export function AppSidebar({
   const pathname = usePathname()
   const router = useRouter()
   const { isImpersonating, stopViewingAs } = useAuth()
-  const { open: agentOpen, setOpen: setAgentOpen, conversations, activeConversationId, reset, selectConversation } = useAgent()
+  const { open: agentOpen, setOpen: setAgentOpen, reset } = useAgent()
   const { isMobile, setOpenMobile } = useSidebar()
   const brandHref = isMobile ? "/dashboard/agent" : rootHref
   const displayedBrandName = brandName?.trim() || "VisualCNS"
@@ -202,39 +202,6 @@ export function AppSidebar({
                 </React.Fragment>
               ))}
             </SidebarMenu>
-            <div className="mt-6 group-data-[collapsible=icon]:hidden">
-              <div className="surface-caption px-2 pb-1">Recents</div>
-              {conversations.length > 0 && (
-                <SidebarMenu className="gap-1 max-md:gap-1.5">
-                  {conversations.slice(0, isMobile ? 3 : 5).map((conversation) => (
-                    <SidebarMenuItem key={conversation.id}>
-                      <SidebarMenuButton
-                        type="button"
-                        tooltip={conversation.title}
-                        isActive={conversation.id === activeConversationId}
-                        className="surface-nav sidebar-recent-button h-6 px-2 max-md:h-10 max-md:min-h-10 max-md:px-3 max-md:[&>.sidebar-recent-label]:!text-[14px] max-md:[&>.sidebar-recent-label]:!leading-5"
-                        onClick={() => {
-                          selectConversation(conversation.id)
-                          handleNavigate(false)
-                          router.push(`/dashboard/agent/${encodeURIComponent(conversation.id)}`)
-                        }}
-                      >
-                        <span className="sidebar-recent-label truncate">{conversation.title}</span>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  ))}
-                </SidebarMenu>
-              )}
-              <SidebarMenu className="mt-1 gap-1 max-md:gap-1.5">
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={isActive(pathname, "/dashboard/chats", rootHref)} tooltip="All chats" className={mobileNavButton}>
-                    <Link href="/dashboard/chats" onClick={() => handleNavigate()}>
-                      <span className="sidebar-nav-label">All chats</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              </SidebarMenu>
-            </div>
             {navExtra && <div className="mt-2 group-data-[collapsible=icon]:hidden">{navExtra}</div>}
           </SidebarGroup>
         </SidebarContent>
