@@ -318,8 +318,8 @@ export default function TasksAdminPage() {
                                 className="w-full truncate rounded px-1 py-0 text-left text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                                 onClick={() => setSelectedId(t.id)}
                               >
-                                <span className="block truncate">{t.name || "Untitled task"}</span>
-                                <span className="mt-0.5 block text-[11px] font-normal text-muted-foreground">{t.dueDate || formatTimestamp(t.updatedAt ?? t.createdAt)}</span>
+                                <span className="block truncate leading-tight">{t.name || "Untitled task"}</span>
+                                <span className="block text-[10px] font-normal leading-tight text-muted-foreground">{t.dueDate || formatTimestamp(t.updatedAt ?? t.createdAt)}</span>
                               </button>
                             </TableCell>
                           </TableRow>
