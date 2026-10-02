@@ -25,7 +25,7 @@ const music = path.join(folder, "music.mjs")
 const wav = path.join(folder, "music.wav")
 if (!stills && existsSync(music)) execFileSync(process.execPath, [music], { stdio: "inherit" })
 
-const browser = await puppeteer.launch({ executablePath: CHROME, headless: true, args: ["--allow-file-access-from-files"] })
+const browser = await puppeteer.launch({ executablePath: CHROME, headless: true, args: ["--allow-file-access-from-files", ...(process.getuid?.() === 0 ? ["--no-sandbox"] : [])] })
 const page = await browser.newPage()
 await page.setViewport({ width: 1080, height: 1920, deviceScaleFactor: 1 })
 await page.goto(pathToFileURL(path.join(folder, "index.html")).href, { waitUntil: "networkidle0" })

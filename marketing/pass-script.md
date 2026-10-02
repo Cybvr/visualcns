@@ -55,4 +55,4 @@ VisualCNS Pass. Know who's in your building.
 
 [CONSTRAINTS]: Use only what the Pass page says. Amaka Obi and the counts (214 visits) are example content, not real customers or results. No made-up statistics. No certifications.
 
-[FILES]: marketing/videos/pass. Render with: node render.mjs pass pass/pass-9x16.mp4
+[FILES]: marketing/videos/pass. Put the voiceover at pass/vo.wav, then from marketing/videos run: node pass/align.mjs (times every cut to the voice), then node render.mjs pass pass/pass-9x16.mp4. Without vo.wav, align.mjs estimates the timing and the film renders with music only.

@@ -1,0 +1,21 @@
+// The voiceover, one sentence per line, in the order it is spoken.
+export const LINES = [
+  "Every office has one.",
+  "A paper visitor book.",
+  "Anyone can read the names and numbers above theirs.",
+  "Nobody checks who's coming in.",
+  "And when an auditor asks who visited last March, someone spends days flipping pages.",
+  "Meet Pass, by VisualCNS.",
+  "Visitors sign in on an iPad, or scan a QR code with their phone.",
+  "Done in seconds.",
+  "They sign any forms you need on screen, before they walk in.",
+  "The person they're visiting gets a message straight away.",
+  "They only get through the doors they're allowed through.",
+  "And every visit is saved, so audits take minutes, not days.",
+  "We send you a ready-to-go iPad stand.",
+  "Plug it in, connect to Wi-Fi, done.",
+  "Try it free for 30 days.",
+  "No card needed.",
+  "VisualCNS Pass.",
+  "Know who's in your building.",
+]
