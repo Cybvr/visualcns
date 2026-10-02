@@ -48,6 +48,7 @@ import { FilterBar, useFilterBar, type SortOption } from "@/components/dashboard
 import { MobileDataCard } from "@/components/dashboard/mobile-data-card"
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { useTaskEmail } from "@/components/dashboard/use-task-email"
+import { cn } from "@/lib/utils"
 
 const STATUS_RANK: Record<TaskStatus, number> = { todo: 0, "in-progress": 1, review: 2, done: 3 }
 const PRIORITY_RANK: Record<TaskPriority, number> = { low: 0, medium: 1, high: 2 }
@@ -309,7 +310,7 @@ export default function TasksAdminPage() {
                         {visibleTasks.map((t) => (
                           <TableRow
                             key={t.id}
-                            className="cursor-pointer"
+                            className={cn("cursor-pointer hover:bg-muted/50", selectedId === t.id && "bg-muted/50")}
                             onClick={() => setSelectedId(t.id)}
                           >
                             <TableCell className="max-w-0 py-2">
@@ -318,7 +319,7 @@ export default function TasksAdminPage() {
                                 className="w-full truncate rounded px-1 py-0 text-left text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                                 onClick={() => setSelectedId(t.id)}
                               >
-                                <span className="sidebar-nav-label block truncate font-medium">{t.name || "Untitled task"}</span>
+                                <span className={cn("sidebar-nav-label block truncate font-medium text-sidebar-foreground/70", selectedId === t.id && "text-sidebar-accent-foreground")}>{t.name || "Untitled task"}</span>
                                 <span className="block text-[10px] font-normal leading-tight text-muted-foreground">{t.dueDate || formatTimestamp(t.updatedAt ?? t.createdAt)}</span>
                               </button>
                             </TableCell>
