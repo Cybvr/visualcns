@@ -139,6 +139,7 @@ export default function NotesPage() {
   const noteFilter = (
     <FilterBar
       {...bar}
+      className="mb-0 h-16 border-b border-border"
       placeholder="Search notes"
       actions={
         <Button variant="ghost" className="bg-transparent text-foreground hover:bg-transparent" onClick={() => void add()}>
@@ -205,7 +206,7 @@ export default function NotesPage() {
           )}>
             {openId ? (
               <div className="flex min-h-[70svh] flex-1 flex-col lg:min-h-0">
-                <div className="flex items-center gap-3 border-b border-border py-4">
+                <div className="flex h-16 items-center gap-3 border-b border-border py-0">
                   <Button type="button" variant="ghost" size="sm" className="-ml-2 shrink-0 sm:hidden" onClick={() => { void flush(); setOpenId("") }}>
                     <ArrowLeft className="size-4" aria-hidden="true" /> Notes
                   </Button>
