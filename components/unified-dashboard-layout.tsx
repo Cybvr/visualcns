@@ -18,15 +18,15 @@ import { DashboardPageSkeleton } from "@/components/dashboard/dashboard-page-ske
 const AgentDock = dynamic(() => import("@/components/agent/agent-dock").then((module) => module.AgentDock), { ssr: false })
 
 const DASHBOARD_NAV: NavLink[] = [
-  { label: "New Chat", href: "/dashboard/agent", icon: Pencil, startsNewChat: true },
-  { label: "Clients", href: "/dashboard/clients", icon: FiBriefcase, adminOnly: true },
-  { label: "Contacts", href: "/dashboard/users", icon: FiUsers, adminOnly: true },
-  { label: "Email", href: "/dashboard/email", icon: FiMail },
+  { label: "New", href: "/dashboard/agent", icon: Pencil, startsNewChat: true },
   { label: "Tasks", href: "/dashboard/tasks", icon: FiCheckSquare },
   { label: "Notes", href: "/dashboard/notes", icon: StickyNote },
-  { label: "Documents", href: "/dashboard/documents", icon: FileText },
+  { label: "Email", href: "/dashboard/email", icon: FiMail },
   { label: "Invoices", href: "/dashboard/invoices", icon: Receipt },
   { label: "Estimates", href: "/dashboard/estimates", icon: ClipboardList },
+  { label: "Clients", href: "/dashboard/clients", icon: FiBriefcase, adminOnly: true },
+  { label: "Contacts", href: "/dashboard/users", icon: FiUsers, adminOnly: true },
+  { label: "Documents", href: "/dashboard/documents", icon: FileText },
   { label: "Media", href: "/dashboard/media", icon: FiImage },
 ]
 
