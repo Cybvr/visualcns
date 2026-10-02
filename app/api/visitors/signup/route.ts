@@ -70,12 +70,17 @@ async function notifyAdmins(db: FirebaseFirestore.Firestore, agencyId: string, c
 
   const { subject, text, url } = signupNotice(company, person)
   const html = brandedEmail(`<p>${escapeHtml(text).replace(/\n\n/g, "</p><p>")}</p>`, subject, { name: "VisualCNS" }, from, { text: "Open the company", url })
-  await fetch("https://api.resend.com/emails", {
+  const response = await fetch("https://api.resend.com/emails", {
     method: "POST",
-    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+      "Idempotency-Key": `visitor-notice-${company.slug}`,
+    },
     body: JSON.stringify({ from, to, subject, text: `${text}\n\nOpen the company: ${url}`, html }),
     cache: "no-store",
   })
+  if (!response.ok) throw new Error("Signup notification was not accepted")
 }
 
 /** Sends the new user a confirmation without blocking account creation. */
