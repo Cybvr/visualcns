@@ -99,7 +99,7 @@ export function EmailTemplates({
             )} />
           </div>
         </div>
-        <div className="sticky bottom-0 z-10 mt-5 flex shrink-0 flex-col gap-3 border-t border-border bg-background pt-3 pb-4 sm:flex-row sm:items-center sm:justify-between lg:static lg:bg-transparent lg:pt-4 lg:pb-0">
+        <div className="sticky bottom-0 max-md:bottom-[calc(3.5rem+env(safe-area-inset-bottom))] z-10 mt-5 flex shrink-0 flex-col gap-3 border-t border-border bg-background pt-3 pb-4 sm:flex-row sm:items-center sm:justify-between lg:static lg:bg-transparent lg:pt-4 lg:pb-0">
           <div className="flex min-w-0 items-center gap-3">
             {editingTemplateId && (
               <Button type="button" variant="outline" size="icon" onClick={() => deleteTemplate(editingTemplateId)} aria-label="Delete template" title="Delete template" className="shrink-0 text-muted-foreground hover:text-destructive">
