@@ -1,4 +1,3 @@
-import type { ReactNode } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { ArrowRight, Bell, FileSignature, KeyRound, ShieldAlert, Users } from "lucide-react"
@@ -96,58 +95,50 @@ const DEPLOY_POINTS = [
   },
 ]
 
-function PrimaryCta({ children }: { children: ReactNode }) {
-  return (
-    <Link
-      href={PILOT_HREF}
-      className="inline-flex h-12 items-center justify-center gap-2 whitespace-nowrap rounded-full bg-foreground px-6 font-medium text-background outline-none transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring"
-    >
-      {children} <ArrowRight className="size-4" aria-hidden />
-    </Link>
-  )
-}
-
 export default function PassPage() {
   return (
     <div className="min-h-screen overflow-x-hidden bg-background text-foreground">
       <Header />
 
       <main>
-        {/* Hero */}
-        <section className="mx-auto grid max-w-6xl items-center gap-10 px-4 pb-16 pt-32 md:px-8 md:pb-24 md:pt-40 lg:grid-cols-[1.1fr_1fr]">
-          <div>
-            <p className="mb-4 text-sm font-medium text-muted-foreground">
+        {/* Hero banner: image first, title on top of it */}
+        <section className="relative isolate overflow-hidden bg-foreground">
+          <Image
+            src="/images/visualcns-visitor-reception-nigeria.png"
+            alt="A visitor checking in at a VisualCNS Pass kiosk"
+            fill
+            priority
+            sizes="100vw"
+            className="-z-10 object-cover"
+          />
+          <div className="absolute inset-0 -z-10 bg-gradient-to-r from-black/80 via-black/55 to-black/20" aria-hidden />
+          <div className="mx-auto flex min-h-[36rem] max-w-6xl flex-col justify-end px-4 pb-16 pt-36 text-white md:min-h-[42rem] md:px-8 md:pb-24 md:pt-44">
+            <p className="mb-4 text-sm font-medium text-white/80">
               Enterprise Visitor Management &amp; Physical Access Security
             </p>
-            <h1 className="text-4xl font-semibold leading-tight tracking-tight md:text-5xl">
+            <h1 className="max-w-3xl text-4xl font-semibold leading-tight tracking-tight md:text-6xl">
               Turn your front desk into an audit-ready, automated security checkpoint.
             </h1>
-            <p className="mt-6 max-w-xl text-lg text-muted-foreground">
+            <p className="mt-6 max-w-xl text-lg text-white/85">
               VisualCNS Pass replaces insecure paper logbooks with instant digital check-ins, automated badge
               provisioning, and zero-trust visitor compliance across all your global offices.
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-              <PrimaryCta>Request a 30-day hardware pilot</PrimaryCta>
+              <Link
+                href={PILOT_HREF}
+                className="inline-flex h-12 items-center justify-center gap-2 whitespace-nowrap rounded-full bg-white px-6 font-medium text-black outline-none transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-white"
+              >
+                Request a 30-day hardware pilot <ArrowRight className="size-4" aria-hidden />
+              </Link>
               <Link
                 href={OVERVIEW_HREF}
-                className="inline-flex h-12 items-center justify-center whitespace-nowrap rounded-full border border-border px-6 font-medium transition-colors hover:bg-muted"
+                className="inline-flex h-12 items-center justify-center whitespace-nowrap rounded-full border border-white/40 px-6 font-medium text-white transition-colors hover:bg-white/10"
               >
                 Watch 2-minute security overview
               </Link>
             </div>
           </div>
-          <div className="relative aspect-[16/10] overflow-hidden rounded-2xl border border-border">
-            <Image
-              src="/images/visualcns-visitor-reception-nigeria.png"
-              alt="A visitor checking in at a VisualCNS Pass kiosk"
-              fill
-              priority
-              sizes="(min-width: 1024px) 40vw, 100vw"
-              className="object-cover"
-            />
-          </div>
         </section>
-
 
         {/* Problem */}
         <section className="mx-auto max-w-6xl px-4 py-16 md:px-8 md:py-24">
