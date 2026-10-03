@@ -64,6 +64,8 @@ export function dashboardPageTitle(pathname: string): string {
       return recordSection("Estimates", "Estimate", record, action)
     case "invoices":
       return recordSection("Invoices", "Invoice", record, action)
+    case "leads":
+      return "Leads"
     case "media":
       return "Media"
     case "notes":

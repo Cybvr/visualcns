@@ -232,6 +232,15 @@ service cloud.firestore {
         && request.resource.data.createdBy == resource.data.createdBy;
     }
 
+    // Sales pipeline. Agency admins only; a lead is not a user or client until won.
+    match /leads/{id} {
+      allow read, delete: if agencyAdmin(resource.data);
+      allow create: if isAdmin() && sameAgency(request.resource.data) && request.resource.data.createdBy == request.auth.uid;
+      allow update: if agencyAdmin(resource.data) && sameAgency(request.resource.data)
+        && request.resource.data.agencyId == resource.data.agencyId
+        && request.resource.data.createdBy == resource.data.createdBy;
+    }
+
     match /hiddenReceivedEmails/{id} {
       allow read: if agencyAdmin(resource.data) || owns(resource.data);
       allow create: if (isAdmin() && sameAgency(request.resource.data))

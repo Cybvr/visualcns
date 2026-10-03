@@ -5,7 +5,7 @@ import { Suspense, useEffect, type ReactNode } from "react"
 import Image from "next/image"
 import { usePathname, useRouter } from "next/navigation"
 import { ClipboardList, Eye, FileText, LogOut, Pencil, Receipt, StickyNote } from "lucide-react"
-import { FiBriefcase, FiCheckSquare, FiFileText, FiImage, FiMail, FiUsers } from "react-icons/fi"
+import { FiBriefcase, FiCheckSquare, FiFileText, FiImage, FiMail, FiTrendingUp, FiUsers } from "react-icons/fi"
 import { AuthProvider, useAuth } from "@/components/auth-provider"
 import { AgentProvider } from "@/components/agent/agent-context"
 import { Button } from "@/components/ui/button"
@@ -26,6 +26,7 @@ const DASHBOARD_NAV: NavLink[] = [
   { label: "Estimates", href: "/dashboard/estimates", icon: ClipboardList, adminOnly: true },
   { label: "Clients", href: "/dashboard/clients", icon: FiBriefcase, adminOnly: true },
   { label: "Contacts", href: "/dashboard/users", icon: FiUsers, adminOnly: true },
+  { label: "Leads", href: "/dashboard/leads", icon: FiTrendingUp, adminOnly: true },
   { label: "Documents", href: "/dashboard/documents", icon: FileText, adminOnly: true },
   { label: "Media", href: "/dashboard/media", icon: FiImage },
 ]
