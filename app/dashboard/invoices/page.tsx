@@ -175,7 +175,7 @@ export default function InvoicesPage() {
                 <Button asChild variant="ghost" size="icon" className="size-8 text-muted-foreground hover:text-foreground" aria-label={adminView ? "Edit invoice" : "Open invoice"}><Link href={adminView ? `/dashboard/invoices/${selectedInvoice.id}/edit` : `/dashboard/invoices/${selectedInvoice.id}`}><ExternalLink className="size-4" /></Link></Button>
               </>
             )}
-            content={selectedInvoice ? (adminView ? <InvoiceBuilder key={selectedInvoice.id} invoice={selectedInvoice} /> : <InvoiceDocument key={selectedInvoice.id} invoice={selectedInvoice} />) : null}
+            content={selectedInvoice ? (adminView ? <InvoiceBuilder key={selectedInvoice.id} invoice={selectedInvoice} onSaved={(saved) => setInvoices((current) => current.map((row) => row.id === saved.id ? saved : row))} onDeleted={(id) => { setInvoices((current) => current.filter((row) => row.id !== id)); setSelectedId(null) }} /> : <InvoiceDocument key={selectedInvoice.id} invoice={selectedInvoice} />) : null}
             renderItem={(invoice, active) => {
               return <CompactListRow
                 title={invoice.title || "Untitled invoice"}

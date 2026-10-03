@@ -157,7 +157,11 @@ function SortableEstimateLine({
   )
 }
 
-export function EstimateBuilder({ estimate, initialCompanyId }: { estimate?: Estimate | null; initialCompanyId?: string }) {
+/**
+ * `onSaved` and `onDeleted` are for the estimates split pane: the list updates
+ * in place and the pane stays open, instead of navigating away.
+ */
+export function EstimateBuilder({ estimate, initialCompanyId, onSaved, onDeleted }: { estimate?: Estimate | null; initialCompanyId?: string; onSaved?: (estimate: Estimate) => void; onDeleted?: (id: string) => void }) {
   const router = useRouter()
   const isEdit = Boolean(estimate)
 
@@ -389,6 +393,10 @@ export function EstimateBuilder({ estimate, initialCompanyId }: { estimate?: Est
       const id = estimate ? estimate.id : await createEstimate(payload)
       if (estimate) await updateEstimate(estimate.id, payload)
       if (destination === "email") router.push(buildEmailComposeHref(estimateEmailContext({ ...estimate, ...payload, id } as Estimate, companyRefFor(companyId))))
+      else if (onSaved) {
+        onSaved({ ...estimate, ...payload, id } as Estimate)
+        setSaving(false)
+      }
       else router.push(`/dashboard/estimates/${id}`)
     } catch (saveError) {
       console.error("Error saving estimate:", saveError)
@@ -400,7 +408,8 @@ export function EstimateBuilder({ estimate, initialCompanyId }: { estimate?: Est
   async function handleDelete() {
     if (!estimate) return
     await deleteEstimate(estimate.id)
-    router.push("/dashboard/estimates")
+    if (onDeleted) onDeleted(estimate.id)
+    else router.push("/dashboard/estimates")
   }
 
   async function handleDownloadPdf() {

@@ -141,7 +141,7 @@ export default function EstimatesPage() {
               <Button asChild variant="ghost" size="icon" className="size-8 text-muted-foreground hover:text-foreground" aria-label={adminView ? "Edit estimate" : "Open estimate"}><Link href={adminView ? `/dashboard/estimates/${selectedEstimate.id}/edit` : `/dashboard/estimates/${selectedEstimate.id}`}><ExternalLink className="size-4" /></Link></Button>
             </>
           )}
-          content={selectedEstimate ? (adminView ? <EstimateBuilder key={selectedEstimate.id} estimate={selectedEstimate} /> : <EstimateDocument key={selectedEstimate.id} estimate={selectedEstimate} />) : null}
+          content={selectedEstimate ? (adminView ? <EstimateBuilder key={selectedEstimate.id} estimate={selectedEstimate} onSaved={(saved) => setEstimates((current) => current.map((row) => row.id === saved.id ? saved : row))} onDeleted={(id) => { setEstimates((current) => current.filter((row) => row.id !== id)); setSelectedId(null) }} /> : <EstimateDocument key={selectedEstimate.id} estimate={selectedEstimate} />) : null}
           renderItem={(estimate, active) => {
             return <CompactListRow
               title={estimate.title || "Untitled estimate"}

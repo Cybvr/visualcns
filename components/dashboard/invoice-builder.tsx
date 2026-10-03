@@ -102,7 +102,11 @@ function today(): string {
   return new Date().toISOString().slice(0, 10)
 }
 
-export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate }: { invoice?: Invoice | null; initialCompanyId?: string; initialEstimate?: Estimate }) {
+/**
+ * `onSaved` and `onDeleted` are for the invoices split pane: the list updates
+ * in place and the pane stays open, instead of navigating back to the list.
+ */
+export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate, onSaved, onDeleted }: { invoice?: Invoice | null; initialCompanyId?: string; initialEstimate?: Estimate; onSaved?: (invoice: Invoice) => void; onDeleted?: (id: string) => void }) {
   const router = useRouter()
   const isEdit = Boolean(invoice)
 
@@ -425,6 +429,9 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate }: {
 
       if (destination === "email") {
         router.push(buildEmailComposeHref(invoiceEmailContext({ ...invoice, ...payload, id: savedId } as Invoice, companyRefFor(payload.companyId))))
+      } else if (onSaved) {
+        onSaved({ ...invoice, ...payload, id: savedId } as Invoice)
+        setSaving(false)
       } else {
         router.push("/dashboard/invoices")
       }
@@ -443,7 +450,8 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate }: {
   async function handleDelete() {
     if (!invoice) return
     await deleteInvoice(invoice.id)
-    router.push("/dashboard/invoices")
+    if (onDeleted) onDeleted(invoice.id)
+    else router.push("/dashboard/invoices")
   }
 
   async function handleDownloadPdf() {
