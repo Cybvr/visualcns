@@ -192,7 +192,7 @@ export async function POST(request: Request) {
     const agreement = activeAgreement(settings)
     const agreed = Boolean(agreement && body.agreed === true)
     const live = typeof body.at !== "number" || Date.now() - body.at < LIVE_WINDOW_MS
-    if (agreement && !agreed && live) return json({ error: `Please read and agree to the ${agreement.title} first.` }, 400)
+    if (agreement && !agreed && live) return json({ error: "Please agree to the terms." }, 400)
 
     const hosts = await hostsFor(db, agencyId, orgId)
     const host = hosts.find((person) => person.id === body.hostId)

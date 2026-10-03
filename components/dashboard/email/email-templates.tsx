@@ -27,7 +27,6 @@ export type EmailTemplatesProps = {
   templateNotice: { tone: "success" | "error"; text: string } | null
   saveTemplate: (event: React.FormEvent<HTMLFormElement>) => void
   useEditingTemplate: () => void
-  useTemplateInComposer: (templateId: string) => void
   previewEditingTemplate: () => void
   editTemplate: (template: EmailTemplate) => void
   setMobileTemplateView: (view: "list" | "editor") => void
@@ -60,7 +59,6 @@ export function EmailTemplates({
   templateNotice,
   saveTemplate,
   useEditingTemplate,
-  useTemplateInComposer,
   previewEditingTemplate,
   editTemplate,
   setMobileTemplateView,
@@ -134,10 +132,6 @@ export function EmailTemplates({
               avatarTone={contactAvatarTone(template.name)}
               selected={editingTemplateId === template.id}
               onOpen={() => {
-                if (window.matchMedia("(max-width: 1023px)").matches) {
-                  useTemplateInComposer(template.id)
-                  return
-                }
                 editTemplate(template)
                 setMobileTemplateView("editor")
               }}

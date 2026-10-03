@@ -7,6 +7,7 @@ import { Building2, Check, CloudOff, FileText, Loader2, LogOut, Phone, Printer, 
 import { KioskField, KioskHero, KioskNameList, KioskSubmit, KioskTabs } from "@/components/visitors/kiosk-parts"
 import { PoweredBy } from "@/components/visitors/powered-by"
 import { Button } from "@/components/ui/button"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { enqueue, newClientId, OfflineError, queued, savedInfo, saveInfo, savedPhoneVisit, savePhoneVisit, saveQueue, withQueued, type KioskInfo, type PhoneVisit, type QueuedAction } from "@/lib/kiosk-offline"
 
@@ -202,7 +203,7 @@ export default function VisitorSignInPage() {
     event.preventDefault()
     if (busy) return
     if (name.trim().length < 2) return setError("Please enter your name.")
-    if (agreement && !agreed) return setError(`Please read and agree to the ${agreement.title}.`)
+    if (agreement && !agreed) return setError("Please agree to the terms.")
     setBusy(true)
     setError("")
     const visit: QueuedAction = {
@@ -357,13 +358,16 @@ export default function VisitorSignInPage() {
                         </Select>
                       </KioskField>
                       {agreement && (
-                        <div className="kiosk-agreement">
-                          <p className="kiosk-agreement-title">{agreement.title}</p>
-                          <div className="kiosk-agreement-text" tabIndex={0} aria-label={agreement.title}>{agreement.text}</div>
-                          <label className="kiosk-agree">
-                            <input type="checkbox" checked={agreed} onChange={(event) => setAgreed(event.target.checked)} />
-                            <span>I have read and agree to the {agreement.title}{name.trim() ? `, signed as ${name.trim()}` : ""}.</span>
-                          </label>
+                        <div className="kiosk-agree">
+                          <input id="visitor-agree" type="checkbox" checked={agreed} onChange={(event) => setAgreed(event.target.checked)} />
+                          <label htmlFor="visitor-agree">I agree to the</label>
+                          <Dialog>
+                            <DialogTrigger className="kiosk-agree-link">terms</DialogTrigger>
+                            <DialogContent className="max-h-[85svh] overflow-y-auto">
+                              <DialogHeader><DialogTitle>{agreement.title}</DialogTitle></DialogHeader>
+                              <p className="whitespace-pre-wrap text-sm text-muted-foreground">{agreement.text}</p>
+                            </DialogContent>
+                          </Dialog>
                         </div>
                       )}
                     </div>

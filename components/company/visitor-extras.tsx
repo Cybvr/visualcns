@@ -23,9 +23,9 @@ type Settings = {
 type Kind = "slack" | "teams" | "webhook"
 
 const CONNECTIONS: { kind: Kind; field: "slackUrl" | "teamsUrl" | "webhookUrl"; label: string; placeholder: string; help: string }[] = [
-  { kind: "slack", field: "slackUrl", label: "Slack", placeholder: "https://hooks.slack.com/services/…", help: "In Slack, add the Incoming Webhooks app to a channel and paste its webhook URL." },
-  { kind: "teams", field: "teamsUrl", label: "Microsoft Teams", placeholder: "https://…logic.azure.com/workflows/…", help: "In Teams, open Workflows, choose \"Post to a channel when a webhook request is received\", and paste the link it gives you." },
-  { kind: "webhook", field: "webhookUrl", label: "Webhook (Zapier, Make and others)", placeholder: "https://hooks.zapier.com/…", help: "Every sign-in and sign-out from the front desk is sent here, with the visitor's details." },
+  { kind: "slack", field: "slackUrl", label: "Slack", placeholder: "https://hooks.slack.com/services/…", help: "Slack: add Incoming Webhooks to a channel, paste the URL." },
+  { kind: "teams", field: "teamsUrl", label: "Microsoft Teams", placeholder: "https://…logic.azure.com/workflows/…", help: "Teams: Workflows > \"Post to a channel when a webhook request is received\", paste the URL." },
+  { kind: "webhook", field: "webhookUrl", label: "Webhook (Zapier, Make and others)", placeholder: "https://hooks.zapier.com/…", help: "Gets every sign-in and sign-out." },
 ]
 
 /** Phone sign-in by QR code, the visitor agreement, and Slack, Teams and webhook alerts. */
@@ -94,7 +94,7 @@ export function VisitorExtras({ companyId, slug }: { companyId: string; slug: st
     await call("POST", { action: "save", agreement: next })
     setAgreement(next)
     setSettings((current) => current && { ...current, agreement: next })
-    toast.success(next.enabled ? "Visitors will be asked to agree before they sign in." : "Agreement switched off.")
+    toast.success(next.enabled ? "Terms on." : "Terms off.")
   })
 
   const saveConnection = (field: keyof typeof urls) => run(field, async () => {
@@ -119,7 +119,7 @@ export function VisitorExtras({ companyId, slug }: { companyId: string; slug: st
         </summary>
         <div className="mt-3 space-y-3">
           <div className="flex items-start justify-between gap-4">
-            <p className="text-sm text-muted-foreground">Print the code for reception. Visitors scan it and sign in on their own phone. Phones can&apos;t see who else is in.</p>
+            <p className="text-sm text-muted-foreground">Print it for reception. Visitors scan it to sign in on their phone.</p>
             <Switch checked={Boolean(settings.qrKey)} onCheckedChange={(checked) => void setQr(checked)} disabled={busy === "qr"} aria-label="Phone sign-in" />
           </div>
           {phoneLink && qrImage && (
@@ -141,12 +141,12 @@ export function VisitorExtras({ companyId, slug }: { companyId: string; slug: st
 
       <details className="group">
         <summary className="flex w-full cursor-pointer items-center justify-between gap-3 rounded-sm text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring">
-          <span className="font-semibold text-foreground">Visitor agreement (NDA)</span>
+          <span className="font-semibold text-foreground">Visitor terms (NDA)</span>
           <span className="text-xs text-muted-foreground">{settings.agreement.enabled ? "On" : "Off"}</span>
         </summary>
         <div className="mt-3 space-y-3">
           <div className="flex items-start justify-between gap-4">
-            <p className="text-sm text-muted-foreground">Visitors read it and tick to agree before they can sign in. The exact text is saved with each visit and in the CSV export.</p>
+            <p className="text-sm text-muted-foreground">Visitors tick &quot;I agree to the terms&quot; to sign in.</p>
             <Switch
               checked={agreement.enabled}
               onCheckedChange={(enabled) => (enabled ? setAgreement((current) => ({ ...current, enabled })) : void saveAgreement({ ...agreement, enabled }))}
@@ -165,7 +165,7 @@ export function VisitorExtras({ companyId, slug }: { companyId: string; slug: st
                 <Textarea id="agreement-text" value={agreement.text} maxLength={6000} rows={6} onChange={(event) => setAgreement((current) => ({ ...current, text: event.target.value }))} placeholder="Paste your NDA, safety rules or visitor terms." />
               </div>
               <Button type="button" size="sm" onClick={() => void saveAgreement()} disabled={busy === "agreement"}>
-                {busy === "agreement" && <Loader2 className="size-4 animate-spin" aria-hidden="true" />} Save agreement
+                {busy === "agreement" && <Loader2 className="size-4 animate-spin" aria-hidden="true" />} Save terms
               </Button>
             </>
           )}
@@ -178,7 +178,6 @@ export function VisitorExtras({ companyId, slug }: { companyId: string; slug: st
           <span className="text-xs text-muted-foreground">{[settings.slackUrl && "Slack", settings.teamsUrl && "Teams", settings.webhookUrl && "Webhook"].filter(Boolean).join(" · ") || "Off"}</span>
         </summary>
         <div className="mt-3 space-y-5">
-          <p className="text-sm text-muted-foreground">Post a message when a visitor arrives, as well as the host&apos;s email.</p>
           {CONNECTIONS.map(({ kind, field, label, placeholder, help }) => (
             <div key={kind} className="space-y-1.5">
               <Label htmlFor={`connection-${kind}`}>{label}</Label>

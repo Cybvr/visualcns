@@ -275,6 +275,7 @@ export default function EmailPage() {
   // Drafts open as a full page; new-mail compose stays the docked popup.
   const [composeFullPage, setComposeFullPage] = useState(false)
   const [composerPreviewOpen, setComposerPreviewOpen] = useState(false)
+  const [templatePreviewOpen, setTemplatePreviewOpen] = useState(false)
   const [composeMinimized, setComposeMinimized] = useState(false)
   // The composer covers the bottom of the screen on phones, so the footer nav steps aside.
   useHideMobileFooter(composeOpen)
@@ -900,13 +901,14 @@ export default function EmailPage() {
     })
   }, [contacts, listContactQuery, listShowSelectedOnly, listContactEmails])
 
-  function composerPreviewHtml() {
+  /** The email as it will arrive. Defaults to the open composer; the template editor passes its own draft. */
+  function composerPreviewHtml(previewSubject = subject, previewBody = body, branded = brandedEmail) {
     const origin = typeof window !== "undefined" ? window.location.origin : ""
     const logoUrl = businessProfile?.logoUrl || "/visualcns-email-logo.png"
     const absoluteLogoUrl = logoUrl.startsWith("/") ? `${origin}${logoUrl}` : logoUrl
-    const content = formatTemplateBody(body || "<p>Your message preview will appear here.</p>")
+    const content = formatTemplateBody(previewBody || "<p>Your message preview will appear here.</p>")
       .replace(/(src=["'])\/([^"']*)/gi, `$1${origin}/$2`)
-    if (!brandedEmail) {
+    if (!branded) {
       return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{margin:0;padding:36px;background:#fff;color:#20232d;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.65}p{margin:0 0 1em}a{color:#1649d8}</style></head><body>${content}</body></html>`
     }
     const brandName = businessProfile?.name || "VisualCNS"
@@ -915,7 +917,7 @@ export default function EmailPage() {
     const websiteUrl = website.startsWith("http") ? website : `https://${website}`
     const ctaUrl = composeContext?.ctaUrl || `${origin}/`
     const ctaText = composeContext?.ctaText || "Open your company page"
-    return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>html{color-scheme:light}body{margin:0;padding:0;background:#f3f4f7;color:#20232d;font-family:Arial,Helvetica,sans-serif}table{border-collapse:collapse}img{display:block;max-width:100%;height:auto;max-height:56px;object-fit:contain;object-position:left center}p{margin:0 0 1em}ul,ol{padding-left:1.5rem}a{color:#1649d8}</style></head><body><table role="presentation" width="100%" style="width:100%;background:#f3f4f7"><tr><td align="center" style="padding:28px 12px"><table role="presentation" width="600" style="width:100%;max-width:600px;background:#fff"><tr><td style="padding:22px 28px;height:56px;line-height:0"><img src="${escapeHtmlAttribute(absoluteLogoUrl)}" width="320" alt="${escapeHtmlAttribute(brandName)}" style="display:block;width:320px;max-width:100%;height:auto;max-height:56px;object-fit:contain;object-position:left center;border:0"></td></tr><tr><td style="padding:8px 28px 12px;font-size:15px;line-height:1.65;overflow-wrap:anywhere"><h1 style="margin:0 0 18px;font-size:24px;line-height:1.25;color:#20232d">${escapeHtml(subject || "(No subject)")}</h1>${content}</td></tr><tr><td style="padding:0 28px 30px"><a href="${escapeHtmlAttribute(ctaUrl)}" style="display:inline-block;background:#111318;border-radius:999px;color:#fff;padding:12px 20px;font-size:14px;font-weight:700;line-height:20px;text-decoration:none">${escapeHtml(ctaText)}</a></td></tr><tr><td style="padding:20px 28px;background:#f8f8fa;border-top:1px solid #e7e8ec;font-size:12px;line-height:1.6;color:#6d7280"><strong style="color:#303440">${escapeHtml(brandName)}</strong><br>${escapeHtml(address)}<br><a href="${escapeHtmlAttribute(websiteUrl)}" style="color:#5f6472">${escapeHtml(website)}</a></td></tr></table></td></tr></table></body></html>`
+    return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>html{color-scheme:light}body{margin:0;padding:0;background:#f3f4f7;color:#20232d;font-family:Arial,Helvetica,sans-serif}table{border-collapse:collapse}img{display:block;max-width:100%;height:auto;max-height:56px;object-fit:contain;object-position:left center}p{margin:0 0 1em}ul,ol{padding-left:1.5rem}a{color:#1649d8}</style></head><body><table role="presentation" width="100%" style="width:100%;background:#f3f4f7"><tr><td align="center" style="padding:28px 12px"><table role="presentation" width="600" style="width:100%;max-width:600px;background:#fff"><tr><td style="padding:22px 28px;height:56px;line-height:0"><img src="${escapeHtmlAttribute(absoluteLogoUrl)}" width="320" alt="${escapeHtmlAttribute(brandName)}" style="display:block;width:320px;max-width:100%;height:auto;max-height:56px;object-fit:contain;object-position:left center;border:0"></td></tr><tr><td style="padding:8px 28px 12px;font-size:15px;line-height:1.65;overflow-wrap:anywhere"><h1 style="margin:0 0 18px;font-size:24px;line-height:1.25;color:#20232d">${escapeHtml(previewSubject || "(No subject)")}</h1>${content}</td></tr><tr><td style="padding:0 28px 30px"><a href="${escapeHtmlAttribute(ctaUrl)}" style="display:inline-block;background:#111318;border-radius:999px;color:#fff;padding:12px 20px;font-size:14px;font-weight:700;line-height:20px;text-decoration:none">${escapeHtml(ctaText)}</a></td></tr><tr><td style="padding:20px 28px;background:#f8f8fa;border-top:1px solid #e7e8ec;font-size:12px;line-height:1.6;color:#6d7280"><strong style="color:#303440">${escapeHtml(brandName)}</strong><br>${escapeHtml(address)}<br><a href="${escapeHtmlAttribute(websiteUrl)}" style="color:#5f6472">${escapeHtml(website)}</a></td></tr></table></td></tr></table></body></html>`
   }
 
   function applyTemplate(templateId: string) {
@@ -1531,16 +1533,9 @@ export default function EmailPage() {
     setComposeMinimized(false)
   }
 
+  /** Shows the template being edited as an email, without opening the composer. */
   function previewEditingTemplate() {
-    if (!templateBody.trim()) return
-    setSubject(templateSubject)
-    setBody(withMessageImage(templateBody))
-    setSelectedTemplateId(editingTemplateId || "")
-    setSendNotice(null)
-    setComposeFullPage(false)
-    setComposeOpen(true)
-    setComposeMinimized(false)
-    setComposerPreviewOpen(true)
+    if (templateBody.trim()) setTemplatePreviewOpen(true)
   }
 
   async function saveTemplate(event: FormEvent<HTMLFormElement>) {
@@ -2002,7 +1997,6 @@ export default function EmailPage() {
             templateNotice={templateNotice}
             saveTemplate={saveTemplate}
             useEditingTemplate={useEditingTemplate}
-            useTemplateInComposer={useTemplateInComposer}
             previewEditingTemplate={previewEditingTemplate}
             editTemplate={editTemplate}
             setMobileTemplateView={setMobileTemplateView}
@@ -2020,6 +2014,23 @@ export default function EmailPage() {
         )}
 
       </div>
+
+      {templatePreviewOpen && (
+        <div className="fixed inset-0 z-50 flex flex-col bg-black/70 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label="Template preview" onClick={() => setTemplatePreviewOpen(false)} onKeyDown={(event) => { if (event.key === "Escape") setTemplatePreviewOpen(false) }}>
+          <div className="flex shrink-0 items-center justify-between gap-3 px-4 py-3 text-white sm:px-6" onClick={(event) => event.stopPropagation()}>
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold">{templateName || "Template preview"}</p>
+              <p className="truncate text-xs text-white/70">{templateSubject || "(No subject)"}</p>
+            </div>
+            <button type="button" autoFocus onClick={() => setTemplatePreviewOpen(false)} aria-label="Close template preview" className="flex size-9 items-center justify-center rounded-full text-white/80 outline-none transition-colors hover:bg-white/15 hover:text-white focus-visible:ring-2 focus-visible:ring-white/60">
+              <X className="size-5" aria-hidden="true" />
+            </button>
+          </div>
+          <div className="min-h-0 flex-1 overflow-hidden px-2 pb-6 sm:px-6" onClick={(event) => event.stopPropagation()}>
+            <iframe title="Template preview" srcDoc={composerPreviewHtml(templateSubject, withMessageImage(templateBody), true)} sandbox="allow-same-origin" className="h-full w-full border-0 bg-[#f3f4f7]" />
+          </div>
+        </div>
+      )}
 
       <EmailComposer
         composeOpen={composeOpen}
