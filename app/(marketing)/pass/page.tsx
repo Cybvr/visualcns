@@ -3,7 +3,8 @@ import Link from "next/link"
 import Image from "next/image"
 import { ArrowRight, Bell, FileSignature, KeyRound, ShieldAlert, Users } from "lucide-react"
 
-import { BrandLockup } from "@/components/brand-lockup"
+import { Header } from "@/components/header"
+import { Footer } from "@/components/footer"
 
 const PILOT_HREF = "/contact"
 const OVERVIEW_HREF = "/visitors/demo"
@@ -96,24 +97,11 @@ function PrimaryCta({ children }: { children: ReactNode }) {
 export default function PassPage() {
   return (
     <div className="min-h-screen overflow-x-hidden bg-background text-foreground">
-      <header className="border-b border-border">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-4 md:px-8">
-          <Link href="/pass" className="inline-flex items-center gap-2" aria-label="VisualCNS Pass">
-            <BrandLockup />
-            <span className="rounded-full border border-border px-2 py-0.5 text-xs font-medium">Pass</span>
-          </Link>
-          <Link
-            href={PILOT_HREF}
-            className="inline-flex h-9 items-center rounded-full bg-foreground px-4 text-sm font-medium text-background transition-opacity hover:opacity-90"
-          >
-            Request a pilot
-          </Link>
-        </div>
-      </header>
+      <Header />
 
       <main>
         {/* Hero */}
-        <section className="mx-auto grid max-w-6xl items-center gap-10 px-4 py-16 md:px-8 md:py-24 lg:grid-cols-[1.1fr_1fr]">
+        <section className="mx-auto grid max-w-6xl items-center gap-10 px-4 pb-16 pt-32 md:px-8 md:pb-24 md:pt-40 lg:grid-cols-[1.1fr_1fr]">
           <div>
             <p className="mb-4 text-sm font-medium text-muted-foreground">
               Enterprise Visitor Management &amp; Physical Access Security
@@ -271,16 +259,7 @@ export default function PassPage() {
         </section>
       </main>
 
-      <footer className="border-t border-border">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4 py-6 text-sm text-muted-foreground md:px-8">
-          <span>© {new Date().getFullYear()} VisualCNS</span>
-          <div className="flex gap-4">
-            <Link href="/privacy" className="hover:text-foreground">Privacy</Link>
-            <Link href="/terms" className="hover:text-foreground">Terms</Link>
-            <Link href="/contact" className="hover:text-foreground">Contact</Link>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   )
 }
