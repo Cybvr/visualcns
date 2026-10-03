@@ -20,7 +20,7 @@ function json(body: unknown, status = 200) {
 /** Signed-in admins of the company's agency, or the company's own client users. */
 async function resolveCaller(request: Request, companyId: string) {
   const authorization = request.headers.get("authorization") || ""
-  if (!authorization.startsWith("Bearer ")) return { error: json({ error: "Please sign in to use Business Health." }, 401) }
+  if (!authorization.startsWith("Bearer ")) return { error: json({ error: "Please sign in to use Pulse." }, 401) }
   if (!companyId) return { error: json({ error: "Missing company." }, 400) }
 
   const { auth, db } = adminServices()

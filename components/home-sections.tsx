@@ -182,7 +182,7 @@ export function HomeSections({
             <div className="aspect-[16/11] overflow-hidden rounded-[0.75rem] bg-muted/50 p-6">
               <AuditIllustration className="size-full" />
             </div>
-            <h3 className="mt-6 text-2xl tracking-[-0.02em] text-foreground md:text-3xl">Business Audit</h3>
+            <h3 className="mt-6 text-2xl tracking-[-0.02em] text-foreground md:text-3xl">Pulse</h3>
             <p className="mt-2 max-w-md text-muted-foreground">See how you show up online, and what to fix first.</p>
             <div className="mt-6 flex flex-wrap gap-3">
               <Button asChild className="rounded-full">

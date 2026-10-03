@@ -280,7 +280,7 @@ export function BusinessHealth({
 
   const call = useCallback(
     async (init?: { method: "POST"; body: Record<string, unknown> }) => {
-      if (!user) throw new Error("Please sign in to use Business Health.")
+      if (!user) throw new Error("Please sign in to use Pulse.")
       const token = await user.getIdToken()
       const response = await fetch(init ? "/api/business-health" : `/api/business-health?companyId=${encodeURIComponent(companyId)}`, {
         method: init?.method ?? "GET",
@@ -417,7 +417,7 @@ export function BusinessHealth({
     return (
       <p className="mt-10 flex items-center justify-center gap-2 text-sm text-muted-foreground">
         <Loader2 className="size-4 animate-spin" aria-hidden="true" />
-        Loading Business Health…
+        Loading Pulse…
       </p>
     )
   }
@@ -451,7 +451,7 @@ export function BusinessHealth({
       <div className="rounded-2xl border border-rose-100 bg-gradient-to-br from-rose-50 via-orange-50 to-emerald-50 p-4 sm:p-6 dark:border-border dark:from-rose-950/30 dark:via-orange-950/20 dark:to-emerald-950/30">
         <div className="flex items-start gap-4">
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Business health</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Pulse</p>
             <h2 data-weight="semibold" className="mt-1.5 text-xl font-semibold tracking-[-0.02em] text-foreground sm:text-3xl">
               AI intelligence for {companyName}
             </h2>

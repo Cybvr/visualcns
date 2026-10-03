@@ -36,7 +36,7 @@ export function PulseReportIllustration() {
   return (
     <svg viewBox="0 0 360 300" role="img" aria-label="A Pulse report showing a health score of 72 and four sections" className="h-auto w-full" style={FONT}>
       <rect x="0" y="0" width="360" height="300" rx="20" fill="white" />
-      <text x="24" y="38" fontSize="11" fontWeight="600" letterSpacing="1.5" fill="#71717a">BUSINESS HEALTH</text>
+      <text x="24" y="38" fontSize="11" fontWeight="600" letterSpacing="1.5" fill="#71717a">PULSE</text>
       <text x="24" y="62" fontSize="18" fontWeight="700" fill="#18181b">Acme Logistics</text>
       <circle cx="300" cy="52" r="30" fill="none" stroke="#e4e4e7" strokeWidth="7" />
       <circle

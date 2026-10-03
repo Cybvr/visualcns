@@ -35,8 +35,9 @@ const consultingNavItems = [
 const bookNowHref = "/contact"
 
 // Rendered after the Resources dropdown so the order reads:
-// Customers, Solutions, Resources, Pricing, More.
+// Customers, Solutions, Resources, Pulse, Pricing, More.
 const trailingNavItems = [
+  { name: "Pulse", href: "/pulse" },
   { name: "Pricing", href: "/pricing" },
 ]
 
@@ -78,14 +79,15 @@ const solutionsRows: MenuRow[] = [
 ]
 const resourcesRows: MenuRow[] = resourceNavItems.map((resource, i) => ({ number: num(i), title: resource.name, href: resource.href }))
 
-// On mobile there's no separate Customers/Solutions/Resources/Pricing button (they're
+// On mobile there's no separate Customers/Solutions/Resources/Pulse/Pricing button (they're
 // hidden below lg), so the "More" overlay folds them in alongside Software/Consulting/Careers.
 const mobileMoreRows: MenuRow[] = [
   { number: num(0), title: "Customers", items: customerNavItems },
   { number: num(1), title: "Solutions", items: solutionsRows.map(({ title, href }) => ({ name: title, href: href as string })) },
   { number: num(2), title: "Resources", items: resourceNavItems },
-  { number: num(3), title: "Pricing", href: "/pricing" },
-  ...MENU_ROWS.map((row, i) => ({ ...row, number: num(i + 4) }) as MenuRow),
+  { number: num(3), title: "Pulse", href: "/pulse" },
+  { number: num(4), title: "Pricing", href: "/pricing" },
+  ...MENU_ROWS.map((row, i) => ({ ...row, number: num(i + 5) }) as MenuRow),
 ]
 
 type MenuKind = "more" | "customers" | "solutions" | "resources"

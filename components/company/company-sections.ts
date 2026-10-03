@@ -8,7 +8,7 @@ export const COMPANY_SECTIONS = [
   { key: "team", label: "Team", icon: Users },
   { key: "activity", label: "Activity", icon: Activity },
   { key: "media", label: "Media", icon: ImageIcon },
-  { key: "brand-health", label: "Business Health", icon: HeartPulse },
+  { key: "brand-health", label: "Pulse", icon: HeartPulse },
   { key: "documents", label: "Documents", icon: FileText },
   { key: "visitors", label: "Visitors", icon: Eye },
 ] as const

@@ -133,7 +133,7 @@ export function BusinessHealthIntro({
       <div className="flex items-center gap-4 rounded-2xl border border-rose-100 bg-gradient-to-br from-rose-50 via-violet-50 to-sky-50 p-4 sm:gap-6 sm:p-7 dark:border-border dark:from-rose-950/30 dark:via-violet-950/20 dark:to-sky-950/30">
         <Logo name={details.name} logoUrl={details.logoUrl} className="size-16 sm:size-28" />
         <div className="min-w-0">
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Business health</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Pulse</p>
           <h2 data-weight="bold" className="mt-1 text-xl font-bold tracking-[-0.02em] text-foreground sm:text-3xl">
             Let&apos;s understand {details.name}
           </h2>
