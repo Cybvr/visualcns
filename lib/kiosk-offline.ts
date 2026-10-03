@@ -8,12 +8,16 @@
 export type KioskInfo = {
   company: { name: string; logoUrl: string }
   hosts: { id: string; name: string }[]
-  /** Who is in now. `at` is when they signed in, in milliseconds. */
+  /** Who is in now. `at` is when they signed in, in milliseconds. Empty on a visitor's phone. */
   onSite: { id: string; name: string; at?: number }[]
+  /** "phone" when opened from the reception QR code on the visitor's own phone. */
+  mode?: "tablet" | "phone"
+  /** An NDA or terms the visitor must agree to before signing in. */
+  agreement?: { title: string; text: string } | null
 }
 
 export type QueuedAction =
-  | { action: "sign_in"; clientId: string; at: number; name: string; visitorCompany: string; phone: string; reason: string; hostId: string; hostName: string }
+  | { action: "sign_in"; clientId: string; at: number; name: string; visitorCompany: string; phone: string; reason: string; hostId: string; hostName: string; agreed?: boolean }
   | { action: "sign_out"; visitorId: string; at: number }
 
 /** Thrown when the request never reached the server, so it's worth trying again later. */
@@ -38,6 +42,20 @@ function write(key: string, value: unknown) {
     // Storage full or blocked: the tablet still works while it stays online.
   }
 }
+
+const PHONE_VISIT_KEY = "visitor-phone-visit"
+/** How long a phone remembers its own sign-in, so the visitor can sign out from it later. */
+const PHONE_VISIT_MS = 24 * 60 * 60 * 1000
+
+/** The visit made on this phone, kept so the visitor can sign themselves out. */
+export type PhoneVisit = { id: string; name: string; at: number }
+
+export function savedPhoneVisit(slug: string): PhoneVisit | null {
+  const visit = read<PhoneVisit | null>(`${PHONE_VISIT_KEY}:${slug}`, null)
+  return visit && Date.now() - visit.at < PHONE_VISIT_MS ? visit : null
+}
+
+export const savePhoneVisit = (slug: string, visit: PhoneVisit | null) => write(`${PHONE_VISIT_KEY}:${slug}`, visit)
 
 export const savedInfo = (slug: string) => read<KioskInfo | null>(`${INFO_KEY}:${slug}`, null)
 export const saveInfo = (slug: string, info: KioskInfo) => write(`${INFO_KEY}:${slug}`, info)

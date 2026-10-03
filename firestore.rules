@@ -119,6 +119,11 @@ service cloud.firestore {
       allow read: if signedIn() && (resource == null || agencyAdmin(resource.data) || owns(resource.data));
       allow write: if false;
     }
+    // Phone QR key, visitor agreement and Slack/Teams/webhook addresses.
+    // Read and written only by /api/visitors/settings.
+    match /visitorSettings/{companyId} {
+      allow read, write: if false;
+    }
     match /tasks/{id} {
       allow read: if agencyAdmin(resource.data)
         || resource.data.get('isPublic', false) == true

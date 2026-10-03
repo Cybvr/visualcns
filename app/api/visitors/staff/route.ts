@@ -2,8 +2,8 @@ import { NextResponse, type NextRequest } from "next/server"
 import { createHash, randomBytes } from "node:crypto"
 import { FieldValue, Timestamp } from "firebase-admin/firestore"
 
-import { adminServices } from "@/lib/firebase-admin"
 import { getAgencySecret } from "@/lib/server/agency-secrets"
+import { authorizeVisitorManager as authorize, VisitorRefused } from "@/lib/server/visitor-auth"
 import { brandedEmail, escapeHtml, normalizeEmailAddress, SITE_ORIGIN } from "@/lib/server/email-branding"
 import { visitorStaff } from "@/lib/server/visitor-staff"
 import { isVisitorPlan, planForStaff, staffLimit, VISITOR_PLANS } from "@/lib/visitor-billing"
@@ -22,25 +22,6 @@ export const dynamic = "force-dynamic"
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
-class Refused extends Error {}
-
-async function authorize(request: NextRequest, companyId: string) {
-  const token = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "")
-  if (!token || !companyId) throw new Refused("Please sign in again.")
-  const { auth, db } = adminServices()
-  const decoded = await auth.verifyIdToken(token).catch(() => null)
-  if (!decoded) throw new Refused("Please sign in again.")
-  const user = (await db.collection("users").doc(decoded.uid).get()).data() ?? {}
-  const org = (await db.collection("organizations").doc(companyId).get()).data()
-  if (!org) throw new Refused("We couldn't find that company.")
-  const agencyId = String(org.agencyId || "")
-  const allowed = user.role === "superadmin"
-    || (user.role === "admin" && user.agencyId === agencyId)
-    || (user.agencyId === agencyId && user.companyId === companyId)
-  if (!agencyId || !allowed) throw new Refused("You can't manage staff for this company.")
-  return { db, uid: decoded.uid, agencyId, org, inviterName: String(user.displayName || decoded.name || decoded.email || "") }
-}
-
 async function seatInfo(db: FirebaseFirestore.Firestore, agencyId: string, companyId: string) {
   const [people, billing] = await Promise.all([
     visitorStaff(db, agencyId, companyId),
@@ -56,7 +37,7 @@ function json(body: Record<string, unknown>, status = 200) {
 }
 
 function failure(error: unknown) {
-  if (error instanceof Refused) return json({ error: error.message }, 403)
+  if (error instanceof VisitorRefused) return json({ error: error.message }, 403)
   console.error("Visitor staff failed", error)
   return json({ error: "Something went wrong. Please try again." }, 500)
 }

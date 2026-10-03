@@ -2,13 +2,13 @@
 
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react"
 import { useParams, useSearchParams } from "next/navigation"
-import { Building2, Check, CloudOff, FileText, Loader2, Phone, Printer, User, Users } from "lucide-react"
+import { Building2, Check, CloudOff, FileText, Loader2, LogOut, Phone, Printer, User, Users } from "lucide-react"
 
 import { KioskField, KioskHero, KioskNameList, KioskSubmit, KioskTabs } from "@/components/visitors/kiosk-parts"
 import { PoweredBy } from "@/components/visitors/powered-by"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { enqueue, newClientId, OfflineError, queued, savedInfo, saveInfo, saveQueue, withQueued, type KioskInfo, type QueuedAction } from "@/lib/kiosk-offline"
+import { enqueue, newClientId, OfflineError, queued, savedInfo, saveInfo, savedPhoneVisit, savePhoneVisit, saveQueue, withQueued, type KioskInfo, type PhoneVisit, type QueuedAction } from "@/lib/kiosk-offline"
 
 type Badge = { name: string; hostName: string; company: string; logoUrl: string; signedInAt: number }
 type Screen = "sign-in" | "signed-in" | "sign-out" | "signed-out"
@@ -28,6 +28,10 @@ const RETRY_EVERY_MS = 30000
  * The front-desk tablet. Opened once from the link on the company's Visitors
  * tab; the key in that link is remembered so a reload keeps working.
  * Keeps signing people in and out when the internet drops (see kiosk-offline).
+ *
+ * Opened from the reception QR code, it runs on the visitor's own phone
+ * instead: sign-in only, no list of who else is in, and the phone remembers
+ * its own visit so the visitor can sign out from it when they leave.
  */
 export default function VisitorSignInPage() {
   const { clientSlug = "" } = useParams<{ clientSlug: string }>()
@@ -51,6 +55,8 @@ export default function VisitorSignInPage() {
   const [hostId, setHostId] = useState("")
   const [hostName, setHostName] = useState("")
   const [reason, setReason] = useState("")
+  const [agreed, setAgreed] = useState(false)
+  const [phoneVisit, setPhoneVisit] = useState<PhoneVisit | null>(null)
   const resetTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
@@ -153,6 +159,18 @@ export default function VisitorSignInPage() {
     }
   }, [key, clientSlug, load, flush])
 
+  const onPhone = info?.mode === "phone"
+  const agreement = info?.agreement ?? null
+
+  useEffect(() => {
+    if (onPhone) setPhoneVisit(savedPhoneVisit(clientSlug))
+  }, [onPhone, clientSlug])
+
+  function rememberPhoneVisit(visit: PhoneVisit | null) {
+    savePhoneVisit(clientSlug, visit)
+    setPhoneVisit(visit)
+  }
+
   function goHome() {
     if (resetTimer.current) clearTimeout(resetTimer.current)
     setScreen("sign-in")
@@ -163,12 +181,15 @@ export default function VisitorSignInPage() {
     setHostId("")
     setHostName("")
     setReason("")
+    setAgreed(false)
     setBadge(null)
     setSignedOutName("")
     void load().then(flush)
   }
 
   function resetSoon() {
+    // A phone belongs to one visitor; only the shared tablet clears itself for the next person.
+    if (onPhone) return
     if (resetTimer.current) clearTimeout(resetTimer.current)
     resetTimer.current = setTimeout(goHome, RESET_AFTER_MS)
   }
@@ -181,6 +202,7 @@ export default function VisitorSignInPage() {
     event.preventDefault()
     if (busy) return
     if (name.trim().length < 2) return setError("Please enter your name.")
+    if (agreement && !agreed) return setError(`Please read and agree to the ${agreement.title}.`)
     setBusy(true)
     setError("")
     const visit: QueuedAction = {
@@ -193,9 +215,11 @@ export default function VisitorSignInPage() {
       reason,
       hostId: hostId && hostId !== SOMEONE_ELSE ? hostId : "",
       hostName: hostId === SOMEONE_ELSE ? hostName : "",
+      agreed: Boolean(agreement && agreed),
     }
     try {
       const body = await send(visit)
+      if (onPhone) rememberPhoneVisit({ id: String(body.id || visit.clientId), name: visit.name, at: visit.at })
       setBadge(body.badge as Badge)
       setHostNotified(Boolean(body.hostNotified))
       setOffline(false)
@@ -210,6 +234,7 @@ export default function VisitorSignInPage() {
         enqueue(clientSlug, visit)
         setPending(queued(clientSlug))
         setOffline(true)
+        if (onPhone) rememberPhoneVisit({ id: visit.clientId, name: visit.name, at: visit.at })
         const host = info.hosts.find((person) => person.id === visit.hostId)
         setBadge({ name: visit.name, hostName: host?.name || visit.hostName.trim(), company: info.company.name, logoUrl: info.company.logoUrl, signedInAt: visit.at })
         setHostNotified(false)
@@ -230,6 +255,7 @@ export default function VisitorSignInPage() {
     const visit: QueuedAction = { action: "sign_out", visitorId, at: Date.now() }
     try {
       const body = await send(visit)
+      if (onPhone) rememberPhoneVisit(null)
       setSignedOutName(String(body.name || ""))
       setOffline(false)
       setScreen("signed-out")
@@ -243,7 +269,8 @@ export default function VisitorSignInPage() {
         enqueue(clientSlug, visit)
         setPending(queued(clientSlug))
         setOffline(true)
-        setSignedOutName(onSiteNow.find((visitor) => visitor.id === visitorId)?.name || "")
+        setSignedOutName(onSiteNow.find((visitor) => visitor.id === visitorId)?.name || phoneVisit?.name || "")
+        if (onPhone) rememberPhoneVisit(null)
         setScreen("signed-out")
         resetSoon()
         return
@@ -281,9 +308,23 @@ export default function VisitorSignInPage() {
                 <KioskHero companyName={info.company.name} logoUrl={info.company.logoUrl} />
               </div>
               <div className="kiosk-panel">
-                <KioskTabs value={screen} onChange={(tab) => { setError(""); setScreen(tab) }} count={onSiteNow.length} />
+                {!onPhone && <KioskTabs value={screen} onChange={(tab) => { setError(""); setScreen(tab) }} count={onSiteNow.length} />}
 
-                {screen === "sign-in" && (
+                {screen === "sign-in" && onPhone && phoneVisit && (
+                  <div className="pb-4 pt-6">
+                    <p className="kiosk-title">You&apos;re signed in</p>
+                    <p className="mt-2 text-muted-foreground">
+                      {phoneVisit.name.split(" ")[0]}, you&apos;ve been in since {new Date(phoneVisit.at).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}. Tap below when you leave.
+                    </p>
+                    {error && <p className="mt-3 text-destructive">{error}</p>}
+                    <button type="button" onClick={() => void signOut(phoneVisit.id)} disabled={busy} className="kiosk-submit">
+                      <span>Sign Out</span>
+                      {busy ? <Loader2 className="kiosk-submit-arrow animate-spin" aria-hidden="true" /> : <LogOut className="kiosk-submit-arrow" aria-hidden="true" />}
+                    </button>
+                  </div>
+                )}
+
+                {screen === "sign-in" && !(onPhone && phoneVisit) && (
                   <form onSubmit={signIn} className="flex flex-col pb-2">
                     <div className="mt-4 space-y-2.5 sm:mt-5 sm:space-y-3.5">
                       <KioskField icon={<User />} label="Full Name" htmlFor="visitor-name">
@@ -315,6 +356,16 @@ export default function VisitorSignInPage() {
                           </SelectContent>
                         </Select>
                       </KioskField>
+                      {agreement && (
+                        <div className="kiosk-agreement">
+                          <p className="kiosk-agreement-title">{agreement.title}</p>
+                          <div className="kiosk-agreement-text" tabIndex={0} aria-label={agreement.title}>{agreement.text}</div>
+                          <label className="kiosk-agree">
+                            <input type="checkbox" checked={agreed} onChange={(event) => setAgreed(event.target.checked)} />
+                            <span>I have read and agree to the {agreement.title}{name.trim() ? `, signed as ${name.trim()}` : ""}.</span>
+                          </label>
+                        </div>
+                      )}
                     </div>
                     {error && <p className="mt-3 text-destructive">{error}</p>}
                     <KioskSubmit busy={busy} />
@@ -340,10 +391,12 @@ export default function VisitorSignInPage() {
               <p className="mt-2 text-muted-foreground">
                 {badge.hostName ? (hostNotified ? `We've told ${badge.hostName} you're here.` : `Please let reception know you're here for ${badge.hostName}.`) : "Please take a seat. Someone will be with you shortly."}
               </p>
-              <div className="mt-8 grid gap-3 sm:grid-cols-2">
-                <Button type="button" variant="outline" onClick={() => window.print()} className="kiosk-big h-14 rounded-2xl">
-                  <Printer className="mr-2 size-5" aria-hidden="true" /> Print badge
-                </Button>
+              <div className={`mt-8 grid gap-3 ${onPhone ? "" : "sm:grid-cols-2"}`}>
+                {!onPhone && (
+                  <Button type="button" variant="outline" onClick={() => window.print()} className="kiosk-big h-14 rounded-2xl">
+                    <Printer className="mr-2 size-5" aria-hidden="true" /> Print badge
+                  </Button>
+                )}
                 <Button type="button" onClick={goHome} className="kiosk-big h-14 rounded-2xl bg-primary text-primary-foreground hover:bg-primary/90">Done</Button>
               </div>
             </div>

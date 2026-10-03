@@ -1,9 +1,11 @@
 import { timingSafeEqual } from "node:crypto"
+import { after } from "next/server"
 import { FieldValue, Timestamp } from "firebase-admin/firestore"
 
 import { adminServices } from "@/lib/firebase-admin"
 import { getAgencySecret } from "@/lib/server/agency-secrets"
 import { ensureVisitorBilling } from "@/lib/server/paystack"
+import { activeAgreement, announceArrival, announceDeparture, getVisitorSettings } from "@/lib/server/visitor-connections"
 import { visitorAccess } from "@/lib/visitor-billing"
 
 export const runtime = "nodejs"
@@ -13,6 +15,10 @@ export const dynamic = "force-dynamic"
  * The front-desk tablet. It has no login, so every call carries the company's
  * slug and kiosk key, and the key is checked here before anything is read or
  * written. Visitors are only ever created through this route.
+ *
+ * The same page also opens on a visitor's own phone, from the QR code at
+ * reception. That link has its own key (visitorSettings.qrKey) and only signs
+ * people in: it never sees who else is in the building.
  */
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -20,6 +26,8 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const CLIENT_ID_PATTERN = /^[A-Za-z0-9-]{8,64}$/
 /** How old a saved offline sign-in or sign-out can be and still keep its own time. */
 const OFFLINE_WINDOW_MS = 7 * 24 * 60 * 60 * 1000
+/** A sign-in older than this was saved offline, maybe before the agreement was switched on. */
+const LIVE_WINDOW_MS = 2 * 60 * 1000
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json", "cache-control": "no-store" } })
@@ -62,9 +70,14 @@ async function resolveKiosk(slug: string, key: string) {
   const candidates = byId?.exists ? [byId] : orgs.docs
   for (const org of candidates) {
     const kiosk = (await db.collection("visitorKiosks").doc(org.id).get()).data()
-    if (kiosk?.enabled && typeof kiosk.key === "string" && sameKey(kiosk.key, key)) {
+    if (!kiosk?.enabled) continue
+    const settings = await getVisitorSettings(db, org.id)
+    const mode = typeof kiosk.key === "string" && sameKey(kiosk.key, key) ? "tablet"
+      : typeof settings.qrKey === "string" && settings.qrKey && sameKey(settings.qrKey, key) ? "phone"
+      : null
+    if (mode) {
       const data = org.data() ?? {}
-      return { db, orgId: org.id, org: data, agencyId: String(kiosk.agencyId || data.agencyId || "") }
+      return { db, orgId: org.id, org: data, agencyId: String(kiosk.agencyId || data.agencyId || ""), settings, mode: mode as "tablet" | "phone" }
     }
   }
   return null
@@ -128,11 +141,14 @@ export async function GET(request: Request) {
   const kiosk = await resolveKiosk(params.get("slug") || "", params.get("key") || "")
   if (!kiosk) return json({ error: "This sign-in link isn't active. Ask the office for a new one." }, 404)
   if (await paused(kiosk)) return json({ error: PAUSED, paused: true }, 402)
-  const [hosts, visitors] = await Promise.all([hostsFor(kiosk.db, kiosk.agencyId, kiosk.orgId), onSite(kiosk.db, kiosk.agencyId, kiosk.orgId)])
+  const phone = kiosk.mode === "phone"
+  const [hosts, visitors] = await Promise.all([hostsFor(kiosk.db, kiosk.agencyId, kiosk.orgId), phone ? [] : onSite(kiosk.db, kiosk.agencyId, kiosk.orgId)])
   return json({
     company: { name: kiosk.org.name || "", logoUrl: kiosk.org.logoUrl || "" },
     hosts: hosts.map(({ id, name }) => ({ id, name })),
     onSite: visitors.map(({ id, name, at }) => ({ id, name, at })),
+    mode: kiosk.mode,
+    agreement: activeAgreement(kiosk.settings),
   })
 }
 
@@ -150,6 +166,7 @@ type Body = {
   visitorId?: string
   clientId?: string
   at?: number
+  agreed?: boolean
 }
 
 export async function POST(request: Request) {
@@ -162,7 +179,7 @@ export async function POST(request: Request) {
   const kiosk = await resolveKiosk(text(body.slug, 200), text(body.key, 200))
   if (!kiosk) return json({ error: "This sign-in link isn't active. Ask the office for a new one." }, 404)
   if (await paused(kiosk)) return json({ error: PAUSED, paused: true }, 402)
-  const { db, orgId, org, agencyId } = kiosk
+  const { db, orgId, org, agencyId, settings, mode } = kiosk
 
   if (body.action === "sign_in") {
     const name = text(body.name, 80)
@@ -172,6 +189,10 @@ export async function POST(request: Request) {
     const phone = text(body.phone, 40)
     const reason = text(body.reason, 160)
     const visitorCompany = text(body.visitorCompany, 120)
+    const agreement = activeAgreement(settings)
+    const agreed = Boolean(agreement && body.agreed === true)
+    const live = typeof body.at !== "number" || Date.now() - body.at < LIVE_WINDOW_MS
+    if (agreement && !agreed && live) return json({ error: `Please read and agree to the ${agreement.title} first.` }, 400)
 
     const hosts = await hostsFor(db, agencyId, orgId)
     const host = hosts.find((person) => person.id === body.hostId)
@@ -205,15 +226,25 @@ export async function POST(request: Request) {
       signedInAt,
       signedOutAt: null,
       hostNotified: false,
+      via: mode,
+      // The exact words they agreed to, kept with the visit for audits.
+      agreement: agreement && agreed ? { title: agreement.title, text: agreement.text, signedName: name, agreedAt: signedInAt } : null,
       createdAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),
     })
 
+    const signedInMs = signedInAt instanceof Timestamp ? signedInAt.toMillis() : Date.now()
+    const minutesAgo = Math.floor((Date.now() - signedInMs) / 60000)
     let hostNotified = false
     if (host?.email) {
-      hostNotified = await emailHost(agencyId, host.email, String(org.name || "your"), { name, visitorCompany, reason, phone, email, minutesAgo: signedInAt instanceof Timestamp ? Math.floor((Date.now() - signedInAt.toMillis()) / 60000) : 0 })
+      hostNotified = await emailHost(agencyId, host.email, String(org.name || "your"), { name, visitorCompany, reason, phone, email, minutesAgo })
       if (hostNotified) await ref.set({ hostNotified: true }, { merge: true })
     }
+    // Slack, Teams and the webhook go out after the tablet has its answer.
+    after(() => announceArrival(settings, orgId, {
+      id: ref.id, companyName: String(org.name || ""), name, visitorCompany, email, phone, hostName, reason,
+      signedInAt: signedInMs, via: mode, agreement: agreement && agreed ? agreement.title : null, minutesAgo,
+    }))
 
     return json({
       id: ref.id,
@@ -229,7 +260,11 @@ export async function POST(request: Request) {
     const visitor = (await ref.get()).data()
     if (!visitor || visitor.companyId !== orgId) return json({ error: "We couldn't find that visit." }, 404)
     if (visitor.status !== "on_site") return json({ ok: true })
-    await ref.set({ status: "signed_out", signedOutAt: happenedAt(body.at), updatedAt: FieldValue.serverTimestamp() }, { merge: true })
+    const signedOutAt = happenedAt(body.at)
+    await ref.set({ status: "signed_out", signedOutAt, updatedAt: FieldValue.serverTimestamp() }, { merge: true })
+    after(() => announceDeparture(settings, orgId, String(org.name || ""), {
+      id, name: String(visitor.name || ""), signedOutAt: signedOutAt instanceof Timestamp ? signedOutAt.toMillis() : Date.now(),
+    }))
     return json({ ok: true, name: shortName(String(visitor.name || "")) })
   }
 

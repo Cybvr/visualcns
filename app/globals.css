@@ -554,6 +554,25 @@
   }
   .kiosk .kiosk-mini-quiet { background: transparent; color: var(--muted-foreground); min-width: 0; padding: 0 0.75rem; }
   .kiosk .kiosk-mini:focus-visible { box-shadow: 0 0 0 3px color-mix(in oklch, var(--primary) 25%, transparent); }
+  /* The NDA or terms a visitor agrees to before signing in. */
+  .kiosk .kiosk-agreement {
+    padding: 0.875rem 1rem;
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    background: var(--background);
+  }
+  .kiosk .kiosk-agreement-title { font-size: 1rem; font-weight: 600; line-height: 1.4; }
+  .kiosk .kiosk-agreement-text {
+    max-height: 9rem;
+    margin-top: 0.5rem;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    font-size: 0.875rem;
+    line-height: 1.45;
+    color: var(--muted-foreground);
+  }
+  .kiosk .kiosk-agree { display: flex; align-items: flex-start; gap: 0.75rem; margin-top: 0.75rem; font-size: 0.9375rem; line-height: 1.4; cursor: pointer; }
+  .kiosk .kiosk-agree input { flex-shrink: 0; width: 1.375rem; height: 1.375rem; margin-top: 0.0625rem; accent-color: var(--primary); }
   /* A full-height split keeps the welcome and form on their own surfaces. */
   @media (min-width: 640px) {
     .kiosk-page { position: relative; padding: 0; }

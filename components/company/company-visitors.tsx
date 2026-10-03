@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { daysLeft, isVisitorPlan, VISITOR_GRACE_DAYS, VISITOR_PLAN_KEYS, VISITOR_PLANS, VISITOR_PRICE_NAIRA, VISITOR_TRIAL_DAYS, visitorAccess, type VisitorBilling, type VisitorPlanKey } from "@/lib/visitor-billing"
+import { VisitorExtras } from "@/components/company/visitor-extras"
 import { getAllVisitors, kioskUrl, resetKioskKey, visitorsCsv, visitDay as day, visitTime as time, setKioskEnabled, signOutVisitor, watchKiosk, watchVisitorBilling, watchVisitors, type Visitor, type VisitorKiosk } from "@/lib/visitors"
 
 const naira = (amount: number) => `₦${amount.toLocaleString("en-NG")}`
@@ -214,6 +215,7 @@ export function CompanyVisitors({ agencyId, companyId, slug }: { agencyId: strin
             </details>
           </div>
         )}
+        {link && <VisitorExtras companyId={companyId} slug={slug} />}
         <BillingStatus billing={billing} seats={staffInfo?.seats ?? null} busy={billingBusy} onSubscribe={(plan) => void openPaystack("subscribe", plan)} onManage={() => void openPaystack("manage")} />
       </section>
 
@@ -245,7 +247,7 @@ export function CompanyVisitors({ agencyId, companyId, slug }: { agencyId: strin
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-medium text-foreground">{visitor.name}</p>
                       <p className="truncate text-xs text-muted-foreground">
-                        {[visitor.visitorCompany, visitor.hostName && `Visiting ${visitor.hostName}`, visitor.reason, `In at ${time(visitor.signedInAt)}`].filter(Boolean).join(" · ")}
+                        {[visitor.visitorCompany, visitor.hostName && `Visiting ${visitor.hostName}`, visitor.reason, visitor.agreement && `Agreed to ${visitor.agreement.title}`, `In at ${time(visitor.signedInAt)}`].filter(Boolean).join(" · ")}
                       </p>
                     </div>
                     <Button type="button" variant="outline" size="sm" onClick={() => void signOut(visitor)} disabled={busyId === visitor.id}>
@@ -269,7 +271,7 @@ export function CompanyVisitors({ agencyId, companyId, slug }: { agencyId: strin
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-medium text-foreground">{visitor.name}</p>
                       <p className="truncate text-xs text-muted-foreground">
-                        {[visitor.visitorCompany, visitor.hostName && `Visited ${visitor.hostName}`, visitor.reason, visitor.phone || visitor.email].filter(Boolean).join(" · ") || "—"}
+                        {[visitor.visitorCompany, visitor.hostName && `Visited ${visitor.hostName}`, visitor.reason, visitor.agreement && `Agreed to ${visitor.agreement.title}`, visitor.phone || visitor.email].filter(Boolean).join(" · ") || "—"}
                       </p>
                     </div>
                     <p className="shrink-0 text-right text-xs text-muted-foreground">

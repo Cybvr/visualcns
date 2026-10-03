@@ -28,6 +28,10 @@ export interface Visitor {
   signedOutAt?: Timestamp | null
   /** Whether the host was emailed that their visitor arrived. */
   hostNotified?: boolean
+  /** Signed in at the front-desk tablet or on their own phone from the QR code. */
+  via?: "tablet" | "phone"
+  /** The NDA or terms they agreed to, with the exact text, if the company asks for one. */
+  agreement?: { title: string; text: string; signedName: string; agreedAt: Timestamp } | null
 }
 
 /** The front-desk tablet link for one company. The key keeps strangers from signing people in. */
@@ -70,7 +74,7 @@ function csvCell(value: string) {
 
 /** Visits as a CSV that opens cleanly in Excel and Google Sheets. */
 export function visitorsCsv(visitors: Visitor[]): string {
-  const header = ["Name", "Company", "Phone", "Email", "Visiting", "Purpose", "Signed in", "Signed out"]
+  const header = ["Name", "Company", "Phone", "Email", "Visiting", "Purpose", "Signed in", "Signed out", "Signed in on", "Agreed to", "Agreed at"]
   const rows = visitors.map((visitor) => [
     visitor.name,
     visitor.visitorCompany ?? "",
@@ -80,6 +84,9 @@ export function visitorsCsv(visitors: Visitor[]): string {
     visitor.reason ?? "",
     csvDate(visitor.signedInAt),
     csvDate(visitor.signedOutAt),
+    visitor.via === "phone" ? "Phone" : "Tablet",
+    visitor.agreement?.title ?? "",
+    csvDate(visitor.agreement?.agreedAt),
   ])
   // The byte-order mark makes Excel read names with accents correctly.
   return "\ufeff" + [header, ...rows].map((row) => row.map((cell) => csvCell(String(cell ?? ""))).join(",")).join("\r\n")
