@@ -8,8 +8,11 @@ import { Footer } from "@/components/footer"
 import {
   AccessIllustration,
   AlertsIllustration,
+  AuditReadyIllustration,
   CheckInIllustration,
+  ConnectStackIllustration,
   DirectorySyncIllustration,
+  UnboxKioskIllustration,
 } from "@/components/pass-illustrations"
 
 const PILOT_HREF = "/contact"
@@ -73,9 +76,9 @@ const VERTICALS = [
 ]
 
 const STEPS = [
-  { title: "Connect stack", body: "Sync Okta & Slack in 3 clicks." },
-  { title: "Unbox kiosk", body: "Plug in the pre-configured VisualCNS iPad enclosure." },
-  { title: "Go audit-ready", body: "Automate compliance from day one." },
+  { title: "Connect stack", body: "Sync Okta & Slack in 3 clicks.", illustration: ConnectStackIllustration },
+  { title: "Unbox kiosk", body: "Plug in the pre-configured VisualCNS iPad enclosure.", illustration: UnboxKioskIllustration },
+  { title: "Go audit-ready", body: "Automate compliance from day one.", illustration: AuditReadyIllustration },
 ]
 
 const DEPLOY_POINTS = [
@@ -214,6 +217,9 @@ export default function PassPage() {
             <ol className="mt-10 grid gap-4 md:grid-cols-3">
               {STEPS.map((step, index) => (
                 <li key={step.title} className="relative rounded-2xl border border-border bg-background p-6">
+                  <div className="mb-5">
+                    <step.illustration />
+                  </div>
                   <span className="flex size-8 items-center justify-center rounded-full bg-foreground text-sm font-medium text-background">
                     {index + 1}
                   </span>

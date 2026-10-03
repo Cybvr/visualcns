@@ -1,11 +1,21 @@
-// Theme-aware SVG illustrations for the Pass page feature cards.
+// Theme-aware SVG illustrations for the Pass page feature and deploy cards.
 
 const FONT = { fontFamily: "inherit" } as const
 
-function Frame({ label, children }: { label: string; children: React.ReactNode }) {
+function Frame({
+  label,
+  children,
+  width = 400,
+  height = 220,
+}: {
+  label: string
+  children: React.ReactNode
+  width?: number
+  height?: number
+}) {
   return (
-    <svg viewBox="0 0 400 220" role="img" aria-label={label} className="h-auto w-full" style={FONT}>
-      <rect width="400" height="220" rx="14" className="fill-muted/50" />
+    <svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label={label} className="h-auto w-full" style={FONT}>
+      <rect width={width} height={height} rx="14" className="fill-muted/50" />
       {children}
     </svg>
   )
@@ -220,6 +230,84 @@ export function AlertsIllustration() {
         )
       })}
       <text x="228" y="182" fontSize="9" className="fill-muted-foreground">2 still unaccounted for</text>
+    </Frame>
+  )
+}
+
+/* Deploy step 1 — connect Okta and Slack */
+export function ConnectStackIllustration() {
+  const apps = ["Okta", "Slack", "Teams"]
+  return (
+    <Frame label="Okta and Slack switched on in the Pass settings" width={260} height={150}>
+      <rect x="40" y="18" width="180" height="114" rx="10" className="fill-background stroke-border" strokeWidth="2" />
+      <text x="54" y="38" fontSize="10" fontWeight="700" className="fill-foreground">Integrations</text>
+      {apps.map((a, i) => {
+        const on = i < 2
+        const y = 50 + i * 26
+        return (
+          <g key={a}>
+            <rect x="54" y={y} width="16" height="16" rx="4" className={on ? "fill-primary/15" : "fill-muted"} />
+            <text x="78" y={y + 12} fontSize="10" fontWeight="600" className={on ? "fill-foreground" : "fill-muted-foreground"}>
+              {a}
+            </text>
+            <rect x="176" y={y + 1} width="28" height="14" rx="7" className={on ? "fill-primary" : "fill-muted"} />
+            <circle cx={on ? 197 : 183} cy={y + 8} r="5" className="fill-background" />
+          </g>
+        )
+      })}
+    </Frame>
+  )
+}
+
+/* Deploy step 2 — kiosk arrives ready to plug in */
+export function UnboxKioskIllustration() {
+  return (
+    <Frame label="A pre-set kiosk tablet coming out of its box, ready to plug in" width={260} height={150}>
+      {/* Box */}
+      <path d="M58 82 h96 v50 h-96 z" className="fill-muted-foreground/25 stroke-muted-foreground/40" strokeWidth="2" />
+      <path d="M58 82 l-14 -16 h96 l14 16" className="fill-muted-foreground/15 stroke-muted-foreground/40" strokeWidth="2" />
+      <path d="M154 82 l18 -18" className="stroke-muted-foreground/40" strokeWidth="2" />
+      {/* Kiosk */}
+      <rect x="78" y="14" width="56" height="78" rx="8" className="fill-foreground" />
+      <rect x="83" y="20" width="46" height="62" rx="4" className="fill-background" />
+      <text x="106" y="40" textAnchor="middle" fontSize="7.5" fontWeight="700" className="fill-foreground">Welcome</text>
+      <rect x="91" y="48" width="30" height="5" rx="2.5" className="fill-muted" />
+      <rect x="93" y="62" width="26" height="11" rx="5.5" className="fill-primary" />
+      {/* Box front with fill to hide kiosk bottom */}
+      <rect x="58" y="92" width="96" height="40" className="fill-muted-foreground/25" />
+      <rect x="58" y="92" width="96" height="40" className="fill-background/40" />
+      {/* Plug */}
+      <path d="M154 112 C186 112 186 70 206 70" fill="none" className="stroke-foreground/60" strokeWidth="2" />
+      <rect x="204" y="62" width="16" height="16" rx="3" className="fill-foreground/70" />
+      <path d="M220 66 h6 M220 74 h6" className="stroke-foreground/70" strokeWidth="2" />
+      {/* Wi-Fi */}
+      <g fill="none" className="stroke-primary" strokeWidth="2" strokeLinecap="round">
+        <path d="M196 34 a16 16 0 0 1 22 0" />
+        <path d="M201 40 a9 9 0 0 1 12 0" />
+      </g>
+      <circle cx="207" cy="45" r="2" className="fill-primary" />
+    </Frame>
+  )
+}
+
+/* Deploy step 3 — audit report ready */
+export function AuditReadyIllustration() {
+  return (
+    <Frame label="An audit report with every visitor logged and ready to export" width={260} height={150}>
+      <rect x="60" y="16" width="120" height="118" rx="10" className="fill-background stroke-border" strokeWidth="2" />
+      <text x="74" y="36" fontSize="10" fontWeight="700" className="fill-foreground">Audit log</text>
+      {[0, 1, 2, 3].map((i) => (
+        <g key={i}>
+          <circle cx="80" cy={52 + i * 16} r="5" className="fill-primary/15" />
+          <path d={`M77.5 ${52 + i * 16} l2 2 3.5 -4`} fill="none" className="stroke-primary" strokeWidth="1.5" strokeLinecap="round" />
+          <rect x="92" y={49 + i * 16} width={70 - (i % 2) * 18} height="6" rx="3" className="fill-muted" />
+        </g>
+      ))}
+      <rect x="74" y="114" width="54" height="12" rx="6" className="fill-primary" />
+      <text x="101" y="123" textAnchor="middle" fontSize="7.5" fontWeight="600" className="fill-primary-foreground">Export</text>
+      {/* Shield */}
+      <path d="M190 52 l18 -7 18 7 v14 c0 14 -8 22 -18 26 c-10 -4 -18 -12 -18 -26 z" className="fill-primary" />
+      <path d="M200 68 l6 6 11 -12" fill="none" className="stroke-primary-foreground" strokeWidth="2.5" strokeLinecap="round" />
     </Frame>
   )
 }
