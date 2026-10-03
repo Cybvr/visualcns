@@ -184,9 +184,12 @@ export function HomeSections({
             </div>
             <h3 className="mt-6 text-2xl tracking-[-0.02em] text-foreground md:text-3xl">Business Audit</h3>
             <p className="mt-2 max-w-md text-muted-foreground">See how you show up online, and what to fix first.</p>
-            <div className="mt-6">
+            <div className="mt-6 flex flex-wrap gap-3">
               <Button asChild className="rounded-full">
                 <Link href="/signup">Get your audit</Link>
+              </Button>
+              <Button asChild variant="ghost" className="rounded-full">
+                <Link href="/pulse">Learn more</Link>
               </Button>
             </div>
           </div>
