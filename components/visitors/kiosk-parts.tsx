@@ -33,9 +33,9 @@ export function KioskField({ icon, label, htmlFor, children }: { icon: ReactNode
   )
 }
 
-export function KioskSubmit({ busy = false }: { busy?: boolean }) {
+export function KioskSubmit({ busy = false, disabled = false }: { busy?: boolean; disabled?: boolean }) {
   return (
-    <button type="submit" disabled={busy} className="kiosk-submit">
+    <button type="submit" disabled={busy || disabled} className="kiosk-submit">
       <span>Sign In</span>
       {busy ? <Loader2 className="kiosk-submit-arrow animate-spin" aria-hidden="true" /> : <ArrowRight className="kiosk-submit-arrow" aria-hidden="true" />}
     </button>

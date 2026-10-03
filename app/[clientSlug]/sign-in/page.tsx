@@ -203,7 +203,7 @@ export default function VisitorSignInPage() {
     event.preventDefault()
     if (busy) return
     if (name.trim().length < 2) return setError("Please enter your name.")
-    if (agreement && !agreed) return setError("Please agree to the terms.")
+    if (agreement && !agreed) return
     setBusy(true)
     setError("")
     const visit: QueuedAction = {
@@ -372,7 +372,7 @@ export default function VisitorSignInPage() {
                       )}
                     </div>
                     {error && <p className="mt-3 text-destructive">{error}</p>}
-                    <KioskSubmit busy={busy} />
+                    <KioskSubmit busy={busy} disabled={Boolean(agreement && !agreed)} />
                   </form>
                 )}
 
