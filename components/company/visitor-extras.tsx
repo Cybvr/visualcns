@@ -22,6 +22,30 @@ type Settings = {
 }
 type Kind = "slack" | "teams" | "webhook"
 
+/** A starting point when a company switches terms on. They can edit it before saving. */
+const DEFAULT_TERMS = {
+  title: "Visitor terms",
+  text: `By signing in, you agree to the following for the length of your visit.
+
+1. Confidentiality
+Anything you see, hear or are given during your visit that isn't public is confidential. This includes information about our business, clients, staff, products, plans and systems. You won't share it with anyone or use it for any purpose other than your visit, during or after your visit.
+
+2. Photos and recordings
+You won't take photos, videos or audio recordings on our premises without permission from your host.
+
+3. Access
+You'll stay with your host or in the areas you've been given access to, and wear your visitor badge where it can be seen.
+
+4. Safety
+You'll follow staff instructions and safety signs. In an emergency, follow your host or the nearest staff member to the exit and assembly point.
+
+5. Your information
+We collect your name, the details you enter and your sign-in and sign-out times to manage visitors, keep the building safe and meet our legal duties. We keep it only as long as we need to and handle it in line with the Nigeria Data Protection Act 2023. You can ask to see or correct your information by contacting us.
+
+6. Leaving
+Please sign out when you leave.`,
+}
+
 const CONNECTIONS: { kind: Kind; field: "slackUrl" | "teamsUrl" | "webhookUrl"; label: string; placeholder: string; help: string }[] = [
   { kind: "slack", field: "slackUrl", label: "Slack", placeholder: "https://hooks.slack.com/services/…", help: "Slack: add Incoming Webhooks to a channel, paste the URL." },
   { kind: "teams", field: "teamsUrl", label: "Microsoft Teams", placeholder: "https://…logic.azure.com/workflows/…", help: "Teams: Workflows > \"Post to a channel when a webhook request is received\", paste the URL." },
@@ -149,7 +173,9 @@ export function VisitorExtras({ companyId, slug }: { companyId: string; slug: st
             <p className="text-sm text-muted-foreground">Visitors tick &quot;I agree to the terms&quot; to sign in.</p>
             <Switch
               checked={agreement.enabled}
-              onCheckedChange={(enabled) => (enabled ? setAgreement((current) => ({ ...current, enabled })) : void saveAgreement({ ...agreement, enabled }))}
+              onCheckedChange={(enabled) => (enabled
+                ? setAgreement((current) => ({ enabled, title: current.title || DEFAULT_TERMS.title, text: current.text || DEFAULT_TERMS.text }))
+                : void saveAgreement({ ...agreement, enabled }))}
               disabled={busy === "agreement"}
               aria-label="Visitor agreement"
             />
