@@ -114,7 +114,8 @@ export function parseLeadsMarkdown(input: string, existingEmails: Iterable<strin
     const cells = line.replace(/^\|/, "").replace(/\|$/, "").split(/(?<!\\)\|/).map((cell) => cell.replace(/\\\|/g, "|").trim())
     rows.push({ cells, line: index + 1 })
   }
-  if (rows.length === 0) throw new Error("No table found. Put the leads in a Markdown table with a header row.")
+  // No table: a .md file holding plain CSV text, which happens with exports.
+  if (rows.length === 0) return parseLeadsCsv(input, existingEmails)
   return parseLeadRows(rows, existingEmails)
 }
 
@@ -140,14 +141,17 @@ function parseLeadRows(rows: CsvRow[], existingEmails: Iterable<string>): LeadCs
     phone: column(headers, "phone", "phonenumber", "mobile", "mobilephone", "telephone", "phone1value"),
     address: column(headers, "address", "fulladdress", "streetaddress", "location"),
     category: column(headers, "category", "categories", "type", "businesstype", "industry"),
-    reviews: column(headers, "reviews", "review", "rating", "reviewcount", "reviewscount", "totalreviews"),
+    // Google Maps style exports split reviews into a rating and a count.
+    rating: column(headers, "rating", "stars", "averagerating"),
+    reviews: column(headers, "reviews", "review", "reviewcount", "reviewscount", "totalreviews", "numberofreviews"),
     source: column(headers, "source", "leadsource"),
     value: column(headers, "value", "dealvalue", "amount", "estimatedvalue"),
     notes: column(headers, "notes", "note", "description"),
     stage: column(headers, "stage", "status", "leadstage", "leadstatus"),
   }
-  if (indexes.name < 0 && indexes.first < 0) {
-    throw new Error("Add a Name or First Name column to your file.")
+  // Business lists often have only a company, which then names the lead.
+  if (indexes.name < 0 && indexes.first < 0 && indexes.company < 0) {
+    throw new Error("Add a Name or Company column to your file.")
   }
   if (rows.length - 1 > MAX_LEADS_PER_IMPORT) {
     throw new Error(`This file has more than ${MAX_LEADS_PER_IMPORT} leads. Split it into smaller files.`)
@@ -158,7 +162,9 @@ function parseLeadRows(rows: CsvRow[], existingEmails: Iterable<string>): LeadCs
   const skipped: SkippedLeadRow[] = []
 
   for (const row of rows.slice(1)) {
-    const name = (field(row.cells, indexes.name) || [field(row.cells, indexes.first), field(row.cells, indexes.last)].filter(Boolean).join(" ")).trim()
+    const name = (field(row.cells, indexes.name) || [field(row.cells, indexes.first), field(row.cells, indexes.last)].filter(Boolean).join(" ") || field(row.cells, indexes.company)).trim()
+    const rating = field(row.cells, indexes.rating)
+    const reviewCount = field(row.cells, indexes.reviews)
     const email = field(row.cells, indexes.email)
     const emailKey = email.toLowerCase()
     const rawValue = field(row.cells, indexes.value)
@@ -184,7 +190,8 @@ function parseLeadRows(rows: CsvRow[], existingEmails: Iterable<string>): LeadCs
         phone: field(row.cells, indexes.phone),
         address: field(row.cells, indexes.address),
         category: field(row.cells, indexes.category),
-        reviews: field(row.cells, indexes.reviews),
+        // "4.9 (37)" from a rating and a count, or whichever one the file has.
+        reviews: rating && reviewCount ? `${rating} (${reviewCount})` : rating || reviewCount,
         source: field(row.cells, indexes.source),
         value,
         notes: field(row.cells, indexes.notes),

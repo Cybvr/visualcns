@@ -55,6 +55,6 @@ test("skips missing names, invalid stages, and duplicate emails", () => {
 })
 
 test("rejects a file without a name column or with an unfinished quote", () => {
-  assert.throws(() => parseLeadsCsv("Email\na@example.com"), /Name or First Name/)
+  assert.throws(() => parseLeadsCsv("Email\na@example.com"), /Name or Company/)
   assert.throws(() => parseLeadsCsv('Name,Notes\nA,"unfinished'), /not closed/)
 })

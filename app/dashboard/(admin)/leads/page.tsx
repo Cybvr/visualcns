@@ -24,7 +24,7 @@ import { ImportLeadsDialog } from "@/components/dashboard/import-leads-dialog"
 import { useViewMode, type ViewMode } from "@/components/dashboard/view-toggle"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -181,7 +181,7 @@ export default function LeadsPage() {
         </p>
       )}
 
-      <LeadDialog
+      <LeadSheet
         lead={editing}
         onClose={() => setEditing(null)}
         onDelete={(lead) => setConfirmDelete(lead)}
@@ -352,7 +352,7 @@ function LeadCard({ lead, dragging = false, onOpen }: { lead: Lead; dragging?: b
   )
 }
 
-function LeadDialog({ lead, onClose, onSave, onDelete }: { lead: Lead | "new" | null; onClose: () => void; onSave: (fields: LeadFields) => Promise<void>; onDelete: (lead: Lead) => void }) {
+function LeadSheet({ lead, onClose, onSave, onDelete }: { lead: Lead | "new" | null; onClose: () => void; onSave: (fields: LeadFields) => Promise<void>; onDelete: (lead: Lead) => void }) {
   const [form, setForm] = useState<LeadFields>(EMPTY_FORM)
   const [saving, setSaving] = useState(false)
 
@@ -381,13 +381,13 @@ function LeadDialog({ lead, onClose, onSave, onDelete }: { lead: Lead | "new" | 
   }
 
   return (
-    <Dialog open={lead !== null} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-h-[90svh] overflow-y-auto sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle>{lead === "new" ? "New lead" : "Edit lead"}</DialogTitle>
-          <DialogDescription className="sr-only">Lead details</DialogDescription>
-        </DialogHeader>
-        <form onSubmit={submit} className="grid gap-4">
+    <Sheet open={lead !== null} onOpenChange={(open) => !open && onClose()}>
+      <SheetContent side="right" className="w-full gap-0 overflow-y-auto sm:max-w-md">
+        <SheetHeader className="border-b border-border">
+          <SheetTitle>{lead === "new" ? "New lead" : "Edit lead"}</SheetTitle>
+          <SheetDescription className="sr-only">Lead details</SheetDescription>
+        </SheetHeader>
+        <form onSubmit={submit} className="grid gap-4 p-5">
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="grid gap-1.5">
               <Label htmlFor="lead-name">Name</Label>
@@ -444,7 +444,7 @@ function LeadDialog({ lead, onClose, onSave, onDelete }: { lead: Lead | "new" | 
               Won? <Link href="/dashboard/clients" className="text-foreground underline-offset-4 hover:underline">Add them as a client</Link> to start work.
             </p>
           )}
-          <DialogFooter className={cn("gap-2", lead !== "new" && "sm:justify-between")}>
+          <div className={cn("flex flex-col-reverse gap-2 sm:flex-row sm:justify-end", lead !== "new" && "sm:justify-between")}>
             {lead && lead !== "new" && (
               <Button type="button" variant="ghost" className="text-destructive hover:text-destructive" onClick={() => onDelete(lead)}>Delete</Button>
             )}
@@ -452,9 +452,9 @@ function LeadDialog({ lead, onClose, onSave, onDelete }: { lead: Lead | "new" | 
               <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
               <Button type="submit" disabled={saving || !form.name.trim()}>{saving ? "Saving…" : "Save"}</Button>
             </div>
-          </DialogFooter>
+          </div>
         </form>
-      </DialogContent>
-    </Dialog>
+      </SheetContent>
+    </Sheet>
   )
 }

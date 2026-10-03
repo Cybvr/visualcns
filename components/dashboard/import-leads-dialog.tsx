@@ -90,7 +90,7 @@ export function ImportLeadsDialog({
       <DialogContent className="max-h-[90svh] overflow-y-auto sm:max-w-xl">
         <DialogHeader>
           <DialogTitle>Import leads</DialogTitle>
-          <DialogDescription>Add people to your pipeline from a CSV, Excel or Markdown file.</DialogDescription>
+          <DialogDescription>CSV, Excel or Markdown.</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-5 py-1">
@@ -104,9 +104,6 @@ export function ImportLeadsDialog({
               disabled={importing}
               className="cursor-pointer file:cursor-pointer"
             />
-            <p className="text-xs text-muted-foreground">
-              Include a Name or First Name column. Company, Email, Phone, Address, Category, Reviews, Source, Value, Notes, and Stage are optional. Excel reads the first sheet; Markdown reads the first table.
-            </p>
             <Button asChild variant="link" size="sm" className="h-auto px-0">
               <a href="/leads-sample.csv" download="leads-sample.csv">
                 <Download className="size-4" aria-hidden="true" />
