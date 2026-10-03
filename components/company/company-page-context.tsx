@@ -78,6 +78,8 @@ export interface CompanyPageData {
   documents?: CompanyDocument[]
   admin?: CompanyPageAdmin
   emptyProjectsLabel?: string
+  /** Query values every section link keeps, e.g. the open client when the page sits inside the clients list. */
+  keepParams?: Record<string, string>
 }
 
 /**
@@ -157,7 +159,7 @@ export function CompanyPageProvider({
     : mode === "tabs" && searchParams.get("task") && !isAdmin ? "tasks" : mode === "routes" ? "about" : "projects"
 
   function sectionHref(key: CompanySectionKey, query: Record<string, string> = {}) {
-    const params = new URLSearchParams(query)
+    const params = new URLSearchParams({ ...data.keepParams, ...query })
     let path = basePath
     if (mode === "routes") {
       if (key !== "about") path = `${basePath}/${key === "activity" ? "notifications" : key}`

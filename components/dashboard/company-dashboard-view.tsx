@@ -1,0 +1,133 @@
+"use client"
+
+import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
+
+import { useAuth } from "@/components/auth-provider"
+import { CompanyPage } from "@/components/company/company-page"
+import { useCompany } from "@/components/dashboard/company-context"
+import { updateOrganization } from "@/lib/organizations"
+import { addUserToCompany, getUsers, type AppUser } from "@/lib/users"
+
+/** The client page with all its tabs, as its own route or inside the clients split pane. */
+export function CompanyDashboardView({ embedded, editHref, keepParams }: { embedded?: boolean; editHref?: string; keepParams?: Record<string, string> } = {}) {
+  const router = useRouter()
+  const { viewAsUser, isAdmin } = useAuth()
+  const [allContacts, setAllContacts] = useState<AppUser[]>([])
+
+  useEffect(() => {
+    if (!isAdmin) return
+    getUsers()
+      .then(setAllContacts)
+      .catch(() => setAllContacts([]))
+  }, [isAdmin])
+  const {
+    client,
+    workspaceId,
+    name,
+    categoryLabel,
+    organization,
+    people,
+    projects,
+    invoices,
+    contracts,
+    estimates,
+    documents,
+    reload,
+  } = useCompany()
+
+  return (
+    <CompanyPage
+      company={{
+        id: workspaceId,
+        agencyId: organization?.agencyId,
+        name,
+        slug: organization?.slug || workspaceId,
+        logoUrl: organization?.logoUrl || client.photoURL,
+        categoryLabel,
+        industry: organization?.industry,
+        location: organization?.location,
+        address: organization?.address,
+        website: organization?.website,
+        description: organization?.description,
+        targetCustomers: organization?.targetCustomers,
+        companySize: organization?.companySize,
+        source: organization?.source,
+        linkedIn: organization?.linkedIn,
+        tags: organization?.tags,
+        primaryContactId: organization?.primaryContactId,
+        media: organization?.media,
+        links: organization?.links,
+        publicTeam: organization?.publicTeam,
+      }}
+      people={people.map((person) => ({
+        id: person.uid,
+        name: person.displayName || person.email || "Unnamed person",
+        subtitle: person.email || "No email address",
+        email: person.email,
+        phone: person.phone,
+        role: person.role || "client",
+        photoUrl: person.photoURL,
+        adminUser: person,
+      }))}
+      allContacts={allContacts.map((person) => ({
+        id: person.uid,
+        name: person.displayName || person.company || person.email || person.phone || "Unnamed person",
+        subtitle: [person.email, person.phone, person.company].filter(Boolean).join(" · ") || "No contact details",
+        email: person.email,
+        phone: person.phone,
+        role: person.role || "client",
+        photoUrl: person.photoURL,
+        adminUser: person,
+      }))}
+      projects={projects}
+      invoices={invoices}
+      contracts={contracts}
+      estimates={estimates}
+      documents={documents}
+      admin={
+        isAdmin
+          ? {
+              sharePath: `/${encodeURIComponent(organization?.slug || workspaceId)}`,
+              onViewWorkspace: (person) => {
+                const canViewClient = person.role === "client" && Boolean(person.companyId)
+                const canViewAdmin = (person.role === "admin" || person.role === "superadmin") && Boolean(person.agencyId)
+                if (!canViewClient && !canViewAdmin) return
+                viewAsUser(person)
+                const clientWorkspace = organization?.slug || person.companyId
+                router.push(canViewClient ? `/${encodeURIComponent(clientWorkspace as string)}` : "/dashboard/overview")
+              },
+              onMediaChange: async (media) => {
+                await updateOrganization(workspaceId, { media })
+                await reload()
+              },
+              onUpdateCompany: async (patch) => {
+                await updateOrganization(workspaceId, patch)
+                await reload()
+              },
+              onSelectPrimaryContact: async (contactId) => {
+                const contact = allContacts.find((person) => person.uid === contactId)
+                // Add the contact to this company without changing their own workspace.
+                if (contact && contact.companyId !== workspaceId && !contact.companyIds?.includes(workspaceId)) {
+                  await addUserToCompany(contactId, workspaceId)
+                }
+                await updateOrganization(workspaceId, { primaryContactId: contactId })
+                await reload()
+              },
+              onAddExistingContact: async (contactId) => {
+                const contact = allContacts.find((person) => person.uid === contactId)
+                if (!contact || contact.companyId === workspaceId || contact.companyIds?.includes(workspaceId)) return
+                await addUserToCompany(contactId, workspaceId)
+                setAllContacts((current) => current.map((person) => person.uid === contactId ? { ...person, companyIds: [...(person.companyIds ?? []), workspaceId] } : person))
+                await reload()
+              },
+              reload,
+            }
+          : undefined
+      }
+      embedded={embedded}
+      editHref={editHref}
+      keepParams={keepParams}
+    />
+  )
+}

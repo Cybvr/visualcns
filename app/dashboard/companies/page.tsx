@@ -250,7 +250,7 @@ export default function CompaniesPage() {
           visibleItems={loading ? [] : visibleCompanies}
           loading={loading}
           selectedId={selected ? companyRefOf(selected) : null}
-          onClearSelection={() => setSelectedRef(null)}
+          onClearSelection={() => setSelectedRef(null, { clear: ["tab"] })}
           sectionLabel="Clients"
           filter={clientFilter}
           emptySearchLabel="No clients match your search."
@@ -279,10 +279,10 @@ export default function CompaniesPage() {
               subtitle={`${row.label || (row.projectCount ? `${row.projectCount} project${row.projectCount === 1 ? "" : "s"}` : "No projects yet")} · ${formatTimestamp(row.updatedAt ?? row.createdAt)}`}
               mobileSubtitle={row.label || formatTimestamp(row.updatedAt ?? row.createdAt)}
               active={active}
-              onClick={() => setSelectedRef(companyRefOf(row))}
+              onClick={() => setSelectedRef(companyRefOf(row), { clear: ["tab"] })}
               menuLabel={`Options for ${row.name}`}
               menu={<>
-                <DropdownMenuItem onSelect={() => setSelectedRef(companyRefOf(row))}>Open client</DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => setSelectedRef(companyRefOf(row), { clear: ["tab"] })}>Open client</DropdownMenuItem>
                 <DropdownMenuItem onSelect={() => router.push(companyHref(row))}>Open full page</DropdownMenuItem>
                 {row.user && <DropdownMenuItem onSelect={() => handleViewWorkspace(row)}>View workspace</DropdownMenuItem>}
                 <DropdownMenuItem onSelect={() => router.push(`${companyHref(row)}/edit`)}>Edit client</DropdownMenuItem>

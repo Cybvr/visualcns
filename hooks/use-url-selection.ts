@@ -7,7 +7,13 @@ import { useCallback, useEffect, useState } from "react"
  * survives a refresh, can be shared or bookmarked, and the back button closes it.
  * Uses the history API, which Next keeps in sync, so pages don't need a Suspense boundary.
  */
-export function useUrlSelection(param: string): [string | null, (id: string | null, options?: { replace?: boolean }) => void] {
+type SelectOptions = {
+  replace?: boolean
+  /** Other query values that belong to the previous item, such as its open ?tab=. */
+  clear?: string[]
+}
+
+export function useUrlSelection(param: string): [string | null, (id: string | null, options?: SelectOptions) => void] {
   const [selected, setSelected] = useState<string | null>(null)
 
   useEffect(() => {
@@ -17,9 +23,10 @@ export function useUrlSelection(param: string): [string | null, (id: string | nu
     return () => window.removeEventListener("popstate", read)
   }, [param])
 
-  const select = useCallback((id: string | null, options?: { replace?: boolean }) => {
+  const select = useCallback((id: string | null, options?: SelectOptions) => {
     const url = new URL(window.location.href)
     const wasOpen = url.searchParams.has(param)
+    if (id !== url.searchParams.get(param)) options?.clear?.forEach((key) => url.searchParams.delete(key))
     if (id) url.searchParams.set(param, id)
     else url.searchParams.delete(param)
     const next = `${url.pathname}${url.search}${url.hash}`

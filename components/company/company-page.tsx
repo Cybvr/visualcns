@@ -24,7 +24,7 @@ import { buildEmailComposeHref } from "@/lib/email-composer"
 
 export type { CompanyPageAdmin, CompanyPageCompany, CompanyPagePerson } from "@/components/company/company-page-context"
 
-function DashboardCompanyView() {
+function DashboardCompanyView({ embedded = false, editHref }: { embedded?: boolean; editHref?: string }) {
   const { company, people, admin, sections, section, sectionHref, goToSection, absoluteUrl } = useCompanyPage()
   const { user, signOut } = useAuth()
   const router = useRouter()
@@ -78,7 +78,7 @@ function DashboardCompanyView() {
   usePageHeaderActions(headerActions)
 
   return (
-    <main className="mx-auto min-h-screen w-full max-w-7xl max-md:bg-page px-4 pb-[calc(7rem+env(safe-area-inset-bottom))] pt-4 sm:px-6 sm:pb-16 sm:pt-6">
+    <main className={embedded ? "w-full min-w-0" : "mx-auto min-h-screen w-full max-w-7xl max-md:bg-page px-4 pb-[calc(7rem+env(safe-area-inset-bottom))] pt-4 sm:px-6 sm:pb-16 sm:pt-6"}>
       <CompanyProfileHeader
         name={company.name}
         handle={company.slug || admin?.sharePath.split("/").filter(Boolean).pop()}
@@ -93,7 +93,7 @@ function DashboardCompanyView() {
         publicPath={admin?.sharePath}
         admin={Boolean(admin)}
         onShare={admin ? () => setShareOpen(true) : undefined}
-        onEdit={admin ? () => router.push(`${pathname}/edit`) : undefined}
+        onEdit={admin ? () => router.push(editHref ?? `${pathname}/edit`) : undefined}
         onChangeLogo={admin ? () => setLogoEditOpen(true) : undefined}
         onChangeCover={admin ? () => goToSection("media") : undefined}
         accountAction={!admin && user ? (
@@ -149,7 +149,7 @@ function DashboardCompanyView() {
           </Dialog>
         </>
       )}
-      {admin && <div className="h-[calc(4.5rem+env(safe-area-inset-bottom))] md:hidden" aria-hidden="true" />}
+      {admin && !embedded && <div className="h-[calc(4.5rem+env(safe-area-inset-bottom))] md:hidden" aria-hidden="true" />}
     </main>
   )
 }
@@ -159,10 +159,10 @@ function DashboardCompanyView() {
  * Supplying `admin` reveals private actions; omitting it keeps the page
  * read-only. The public page uses the same sections in CompanyProfileShell.
  */
-export function CompanyPage(props: CompanyPageData) {
+export function CompanyPage({ embedded, editHref, ...props }: CompanyPageData & { embedded?: boolean; editHref?: string }) {
   return (
     <CompanyPageProvider mode="tabs" {...props}>
-      <DashboardCompanyView />
+      <DashboardCompanyView embedded={embedded} editHref={editHref} />
     </CompanyPageProvider>
   )
 }
