@@ -11,7 +11,14 @@ import { LINES } from "./lines.mjs"
 
 const here = path.dirname(fileURLToPath(import.meta.url))
 const vo = path.join(here, "vo.wav")
-const words = LINES.map((l) => l.split(/\s+/).length)
+// Rough syllable count per line: spoken length tracks syllables better than words.
+// Letters spoken one by one (CNS, QR) and digits count one each.
+const syllables = (w) => {
+  const spelled = (w.match(/[A-Z]{2,}|\d/g) || []).join("").length
+  const rest = w.replace(/[A-Z]{2,}|\d/g, "").toLowerCase().replace(/[^a-z]/g, "")
+  return spelled + (rest ? Math.max(1, (rest.match(/[aeiouy]+/g) || []).length) : 0)
+}
+const words = LINES.map((l) => l.split(/\s+/).reduce((n, w) => n + syllables(w), 0))
 const total = words.reduce((a, b) => a + b, 0)
 const TAIL = 2.2
 
@@ -21,27 +28,42 @@ if (existsSync(vo)) {
   const dur = +out.match(/Duration: (\d+):(\d+):([\d.]+)/).slice(1).reduce((a, v, i) => a + v * [3600, 60, 1][i], 0)
   const sil = []
   for (const m of out.matchAll(/silence_start: ([\d.]+)[\s\S]*?silence_end: ([\d.]+)/g)) sil.push([+m[1], +m[2]])
+  // A click or breath between two pauses splits one pause in two; join them back up.
+  for (let i = sil.length - 1; i > 0; i--) if (sil[i][0] - sil[i - 1][1] < 0.1) sil.splice(i - 1, 2, [sil[i - 1][0], sil[i][1]])
   const s0 = sil[0] && sil[0][0] < 0.05 ? sil[0][1] : 0
   const last = sil.at(-1)
   const s1 = last && last[1] > dur - 0.05 ? last[0] : dur
-  const gaps = sil.filter(([a, b]) => a > s0 + 0.05 && b < s1 - 0.05)
-  starts = [s0]
-  let cum = 0, from = 0
-  for (let i = 1; i < LINES.length; i++) {
-    cum += words[i - 1]
-    const guess = s0 + (s1 - s0) * (cum / total)
-    // The pause nearest the guess, weighted towards longer pauses, after the last one used.
-    let best = -1, score = Infinity
-    for (let g = from; g < gaps.length; g++) {
-      const [a, b] = gaps[g]
-      if (b <= starts.at(-1) + 0.3) continue
-      const sc = Math.abs((a + b) / 2 - guess) - (b - a) * 1.5
-      if (sc < score) { score = sc; best = g }
-    }
-    if (best < 0) { starts.push(guess); continue }
-    starts.push(gaps[best][1] - 0.04)
-    from = best + 1
+  // The stretches of speech between pauses, ignoring stray clicks.
+  const segs = []
+  let from = s0
+  for (const [a, b] of sil) {
+    if (a <= s0 || b >= s1) continue
+    if (a - from > 0.1) segs.push([from, a])
+    from = b
   }
+  segs.push([from, s1])
+  // Split the stretches into LINES.length runs so each run's speaking time best matches its
+  // line's syllable count (least squares, by dynamic programming over where each line starts).
+  const speech = segs.reduce((n, [a, b]) => n + b - a, 0)
+  const rate = speech / total
+  const n = LINES.length, m = segs.length
+  const cost = Array.from({ length: n + 1 }, () => new Array(m + 1).fill(Infinity))
+  const back = Array.from({ length: n + 1 }, () => new Array(m + 1).fill(0))
+  cost[0][0] = 0
+  for (let i = 1; i <= n; i++) {
+    const want = words[i - 1] * rate
+    for (let j = i; j <= m; j++) {
+      let spoken = 0
+      for (let k = j - 1; k >= i - 1; k--) {
+        spoken += segs[k][1] - segs[k][0]
+        const c = cost[i - 1][k] + (spoken - want) ** 2 / want
+        if (c < cost[i][j]) { cost[i][j] = c; back[i][j] = k }
+      }
+    }
+  }
+  const first = []
+  for (let i = n, j = m; i > 0; i--) { j = back[i][j]; first.unshift(j) }
+  starts = first.map((k, i) => (i === 0 ? s0 : segs[k][0] - 0.04))
   end = s1
 } else {
   const RATE = 2.55, GAP = 0.38
