@@ -15,11 +15,12 @@ import {
   type DragEndEvent,
   type DragStartEvent,
 } from "@dnd-kit/core"
-import { Plus } from "lucide-react"
+import { FileUp, Plus } from "lucide-react"
 import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
 import { FilterBar, useFilterBar } from "@/components/dashboard/filter-bar"
+import { ImportLeadsDialog } from "@/components/dashboard/import-leads-dialog"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -52,6 +53,7 @@ export default function LeadsPage() {
   // Stage changes show straight away, before Firestore confirms them.
   const [pendingStages, setPendingStages] = useState<Record<string, LeadStage>>({})
   const [editing, setEditing] = useState<Lead | "new" | null>(null)
+  const [importOpen, setImportOpen] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState<Lead | null>(null)
 
   useEffect(() => {
@@ -129,10 +131,16 @@ export default function LeadsPage() {
           className="mb-0 h-16 border-b border-border"
           placeholder="Search leads"
           actions={
-            <Button variant="ghost" className="bg-transparent text-foreground hover:bg-transparent" onClick={() => setEditing("new")}>
-              <Plus className="size-4" aria-hidden="true" />
-              New
-            </Button>
+            <>
+              <Button variant="ghost" className="bg-transparent text-foreground hover:bg-transparent" onClick={() => setImportOpen(true)} disabled={leads === null || error}>
+                <FileUp className="size-4" aria-hidden="true" />
+                Import CSV
+              </Button>
+              <Button variant="ghost" className="bg-transparent text-foreground hover:bg-transparent" onClick={() => setEditing("new")}>
+                <Plus className="size-4" aria-hidden="true" />
+                New
+              </Button>
+            </>
           }
         />
       </div>
@@ -172,6 +180,13 @@ export default function LeadsPage() {
           if (editing === "new") await createLead(uid, fields)
           else if (editing) await updateLead(editing.id, fields)
         }}
+      />
+
+      <ImportLeadsDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        uid={uid}
+        existingEmails={(leads ?? []).map((lead) => lead.email)}
       />
 
       <AlertDialog open={confirmDelete !== null} onOpenChange={(open) => !open && setConfirmDelete(null)}>

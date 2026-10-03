@@ -1,4 +1,4 @@
-import { collection, deleteDoc, doc, onSnapshot, query, setDoc, updateDoc, where } from "firebase/firestore"
+import { collection, deleteDoc, doc, onSnapshot, query, setDoc, updateDoc, where, writeBatch } from "firebase/firestore"
 
 import { db } from "./firebase"
 import { getCurrentAgencyId } from "./agency-scope"
@@ -83,6 +83,24 @@ export async function createLead(uid: string, fields: LeadFields): Promise<strin
   const now = new Date().toISOString()
   await setDoc(ref, { ...fields, agencyId: await getCurrentAgencyId(), createdBy: uid, createdAt: now, updatedAt: now })
   return ref.id
+}
+
+/** Adds one reviewed CSV file as a single all-or-nothing import. */
+export async function importLeads(uid: string, rows: LeadFields[]): Promise<void> {
+  if (rows.length === 0 || rows.length > 400) throw new Error("Invalid import size")
+  const agencyId = await getCurrentAgencyId()
+  const now = new Date().toISOString()
+  const batch = writeBatch(db)
+  for (const fields of rows) {
+    batch.set(doc(collection(db, COLLECTION_NAME)), {
+      ...fields,
+      agencyId,
+      createdBy: uid,
+      createdAt: now,
+      updatedAt: now,
+    })
+  }
+  await batch.commit()
 }
 
 export async function updateLead(id: string, changes: Partial<LeadFields>): Promise<void> {
