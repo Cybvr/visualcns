@@ -34,8 +34,14 @@ function DashboardCompanyView({ embedded = false, editHref }: { embedded?: boole
 
   const primaryContact = people.find((person) => person.adminUser?.uid === company.primaryContactId)
     || people.find((person) => person.adminUser?.email)
+  // `admin` and the people are rebuilt on every render, so the header actions
+  // depend on these plain values instead. Depending on the objects made a new
+  // header each render, which re-rendered the page, in a loop.
+  const sharePath = admin?.sharePath
+  const recipientEmail = primaryContact?.adminUser?.email
+  const recipientName = primaryContact?.adminUser?.displayName || primaryContact?.name
 
-  const headerActions = useMemo(() => admin ? (
+  const headerActions = useMemo(() => sharePath ? (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <button
@@ -52,10 +58,10 @@ function DashboardCompanyView({ embedded = false, editHref }: { embedded?: boole
           <Link href={buildEmailComposeHref({
             companyId: company.id,
             companyName: company.name,
-            recipientEmail: primaryContact?.adminUser?.email,
-            recipientName: primaryContact?.adminUser?.displayName || primaryContact?.name,
+            recipientEmail,
+            recipientName,
             ctaText: "Open your company page",
-            ctaUrl: admin.sharePath,
+            ctaUrl: sharePath,
           })}>
             <Mail className="size-4" aria-hidden="true" />
             Email
@@ -66,14 +72,14 @@ function DashboardCompanyView({ embedded = false, editHref }: { embedded?: boole
           Share
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
-          <Link href={admin.sharePath} target="_blank" rel="noreferrer">
+          <Link href={sharePath} target="_blank" rel="noreferrer">
             <ExternalLink className="size-4" aria-hidden="true" />
             Open page
           </Link>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
-  ) : null, [admin, company.id, company.name, primaryContact])
+  ) : null, [sharePath, company.id, company.name, recipientEmail, recipientName])
 
   usePageHeaderActions(headerActions)
 
