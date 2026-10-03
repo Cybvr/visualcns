@@ -111,30 +111,23 @@ export default function PassPage() {
             sizes="100vw"
             className="-z-10 object-cover"
           />
-          <div className="absolute inset-0 -z-10 bg-gradient-to-r from-black/80 via-black/55 to-black/20" aria-hidden />
+          <div className="absolute inset-0 -z-10 bg-gradient-to-r from-black/70 via-black/30 to-transparent" aria-hidden />
           <div className="mx-auto flex min-h-[36rem] max-w-6xl flex-col justify-end px-4 pb-16 pt-36 text-white md:min-h-[42rem] md:px-8 md:pb-24 md:pt-44">
-            <p className="mb-4 text-sm font-medium text-white/80">
-              Enterprise Visitor Management &amp; Physical Access Security
-            </p>
-            <h1 className="max-w-3xl text-4xl font-semibold leading-tight tracking-tight md:text-6xl">
-              Turn your front desk into an audit-ready, automated security checkpoint.
+            <h1 className="max-w-2xl text-5xl font-semibold leading-[1.05] tracking-tight md:text-7xl">
+              Know who&apos;s in your building.
             </h1>
-            <p className="mt-6 max-w-xl text-lg text-white/85">
-              VisualCNS Pass replaces insecure paper logbooks with instant digital check-ins, automated badge
-              provisioning, and zero-trust visitor compliance across all your global offices.
+            <p className="mt-6 max-w-md text-lg text-white/85">
+              Digital visitor sign-in, badges and audit-ready records for every office.
             </p>
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+            <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-4">
               <Link
                 href={PILOT_HREF}
                 className="inline-flex h-12 items-center justify-center gap-2 whitespace-nowrap rounded-full bg-white px-6 font-medium text-black outline-none transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-white"
               >
-                Request a 30-day hardware pilot <ArrowRight className="size-4" aria-hidden />
+                Try it free for 30 days <ArrowRight className="size-4" aria-hidden />
               </Link>
-              <Link
-                href={OVERVIEW_HREF}
-                className="inline-flex h-12 items-center justify-center whitespace-nowrap rounded-full border border-white/40 px-6 font-medium text-white transition-colors hover:bg-white/10"
-              >
-                Watch the 1-minute overview
+              <Link href={OVERVIEW_HREF} className="font-medium text-white/85 underline-offset-4 hover:text-white hover:underline">
+                Watch the 1-minute video
               </Link>
             </div>
           </div>
