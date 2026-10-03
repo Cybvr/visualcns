@@ -5,6 +5,12 @@ import { ArrowRight, Bell, FileSignature, KeyRound, ShieldAlert, Users } from "l
 
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
+import {
+  AccessIllustration,
+  AlertsIllustration,
+  CheckInIllustration,
+  DirectorySyncIllustration,
+} from "@/components/pass-illustrations"
 
 const PILOT_HREF = "/contact"
 const OVERVIEW_HREF = "/visitors/demo"
@@ -27,21 +33,25 @@ const RISKS = [
 const FEATURES = [
   {
     icon: FileSignature,
+    illustration: CheckInIllustration,
     title: "Instant digital check-in & automated NDAs",
     body: "Guests check in via touchscreen or touchless QR code on their mobile device. Custom NDAs, safety waivers, and health questionnaires are signed digitally before entry and stored instantly in your secure cloud vault.",
   },
   {
     icon: KeyRound,
+    illustration: AccessIllustration,
     title: "Native access control & badge provisioning",
     body: "Automatically issue temporary RFID badges or mobile wallet passes. VisualCNS Pass syncs natively with enterprise physical access systems, including Brivo, Lenel S2, Genea, and Kisi, restricting visitor access exclusively to authorized zones.",
   },
   {
     icon: Users,
+    illustration: DirectorySyncIllustration,
     title: "Single sign-on & directory sync",
     body: "Manage employee hosts effortlessly. Sync directly with Okta, Microsoft Azure AD, and Google Workspace to instantly route visitor notifications, auto-fill host directories, and revoke access permissions in real time.",
   },
   {
     icon: Bell,
+    illustration: AlertsIllustration,
     title: "Real-time emergency roll calls & instant alerts",
     body: "When a visitor checks in, host employees receive automated notifications on Slack, Microsoft Teams, or SMS. In an emergency, safety marshals trigger a 1-click live evacuation roll call across all locations directly from any mobile device.",
   },
@@ -169,6 +179,9 @@ export default function PassPage() {
             <div className="mt-10 grid gap-4 md:grid-cols-2">
               {FEATURES.map((feature, index) => (
                 <div key={feature.title} className="rounded-2xl border border-border bg-background p-6">
+                  <div className="mb-6">
+                    <feature.illustration />
+                  </div>
                   <div className="mb-4 flex items-center gap-3">
                     <feature.icon className="size-5" aria-hidden />
                     <span className="text-sm text-muted-foreground">0{index + 1}</span>
