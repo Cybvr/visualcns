@@ -95,6 +95,12 @@ export function UserForm({ user, fixedRole, subjectNoun = "user", workspaceId, w
     setError(null)
   }, [user, fixedRole])
 
+  // Companies a contact was added to from a client page, besides their own workspace.
+  const linkedCompanies = (user?.companyIds ?? [])
+    .filter((id) => id && id !== form.companyId)
+    .map((id) => organizations.find((org) => org.id === id)?.name)
+    .filter((name): name is string => Boolean(name))
+
   function set<K extends keyof FormState>(field: K, value: FormState[K]) {
     setForm((prev) => ({ ...prev, [field]: value }))
   }
@@ -260,6 +266,8 @@ export function UserForm({ user, fixedRole, subjectNoun = "user", workspaceId, w
                     <SelectValue placeholder="Select a role" />
                   </SelectTrigger>
                   <SelectContent>
+                    {/* Only offered when the person already is one, so the role shows instead of a blank box. */}
+                    {form.role === "superadmin" && <SelectItem value="superadmin">Super admin</SelectItem>}
                     <SelectItem value="admin">Admin</SelectItem>
                     <SelectItem value="client">Client</SelectItem>
                   </SelectContent>
@@ -288,9 +296,18 @@ export function UserForm({ user, fixedRole, subjectNoun = "user", workspaceId, w
                     {[...organizations].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" })).map((org) => (
                       <SelectItem key={org.id} value={org.id}>{org.name}</SelectItem>
                     ))}
+                    {/* A workspace that isn't in the company list (an older record) still shows rather than a blank box. */}
+                    {form.companyId && form.companyId !== NEW_COMPANY && !organizations.some((org) => org.id === form.companyId) && (
+                      <SelectItem value={form.companyId}>{user?.company || "Current workspace"}</SelectItem>
+                    )}
                     <SelectItem value={NEW_COMPANY}>+ Add new company</SelectItem>
                   </SelectContent>
                 </Select>
+                {linkedCompanies.length > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    {form.companyId ? "Also on" : "Added to"} {linkedCompanies.join(", ")}
+                  </p>
+                )}
                 {form.companyId === NEW_COMPANY && (
                   <Input
                     autoFocus

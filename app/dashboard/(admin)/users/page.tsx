@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -14,35 +13,22 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
-import { EllipsisVertical, Plus, Loader2, UserPlus } from "lucide-react"
-import { FaUser } from "react-icons/fa"
+import { Loader2, Mail, Plus, Trash2, User as UserIcon, UserPlus } from "lucide-react"
 import { getUsers, deleteUser, type AppUser } from "@/lib/users"
 import { getOrganizations } from "@/lib/organizations"
-import { CompactListRow, CompactListSkeleton } from "@/components/dashboard/compact-list-row"
-import { GridCardsSkeleton, TableRowsSkeleton } from "@/components/dashboard/collection-skeletons"
-import { ReactIcon } from "@/components/react-icon"
-import { UserEditorSheet } from "@/components/dashboard/user-editor-sheet"
-import { GridCard, GridCardList } from "@/components/dashboard/grid-card"
-import { ViewToggle, useViewMode } from "@/components/dashboard/view-toggle"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { CompactListRow } from "@/components/dashboard/compact-list-row"
+import { DocumentSplitPane } from "@/components/dashboard/document-split-pane"
+import { FirstRunState } from "@/components/dashboard/empty-state"
+import { UserForm } from "@/components/dashboard/user-form"
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { useAuth } from "@/components/auth-provider"
 import { useRecordTitle } from "@/components/dashboard/page-title-context"
 import { useUrlSelection } from "@/hooks/use-url-selection"
 import { FilterBar, useFilterBar, type SortOption } from "@/components/dashboard/filter-bar"
-import { TableBulkBar } from "@/components/dashboard/table-bulk-bar"
-import { Checkbox } from "@/components/ui/checkbox"
-import { useRowSelection } from "@/hooks/use-row-selection"
 import { formatTimestamp, tsToMillis } from "@/lib/tasks"
 import { buildEmailComposeHref } from "@/lib/email-composer"
 
+/** Contacts as a list on the left and the open contact's details on the right, like clients, tasks and notes. */
 export default function UsersAdminPage() {
   const router = useRouter()
   const { user, viewAsUser } = useAuth()
@@ -52,9 +38,7 @@ export default function UsersAdminPage() {
   const [error, setError] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
   const [pendingDelete, setPendingDelete] = useState<AppUser | null>(null)
-  const [bulkDeleting, setBulkDeleting] = useState(false)
   const [selectedId, setSelectedId] = useUrlSelection("contact")
-  const [view, setView] = useViewMode("contacts")
   const [inviting, setInviting] = useState(false)
 
   // A contact's company lives on the linked organization, keyed by companyId;
@@ -124,9 +108,10 @@ export default function UsersAdminPage() {
     }
   }
 
-  async function handleSaved() {
+  // Saving keeps the contact open, so a new contact becomes the one in the right pane.
+  async function handleSaved(uid: string) {
     await fetchUsers()
-    setSelectedId(null)
+    setSelectedId(uid, { replace: true })
   }
 
   async function handleInvite() {
@@ -143,36 +128,23 @@ export default function UsersAdminPage() {
     finally { setInviting(false) }
   }
 
-  function handleViewAs(u: AppUser) {
-    const canViewClient = u.role === "client" && Boolean(u.companyId)
-    const canViewAdmin = (u.role === "admin" || u.role === "superadmin") && Boolean(u.agencyId)
-    if (!canViewClient && !canViewAdmin) return
-    viewAsUser(u)
-    router.push(canViewClient ? `/${encodeURIComponent(u.companyId as string)}` : "/dashboard/overview")
+  function canViewAs(u: AppUser) {
+    return (u.role === "client" && Boolean(u.companyId)) || ((u.role === "admin" || u.role === "superadmin") && Boolean(u.agencyId))
   }
 
-  function handleEmail(u: AppUser) {
-    const recipientEmail = u.email?.trim()
-    if (!recipientEmail) return
+  function handleViewAs(u: AppUser) {
+    if (!canViewAs(u)) return
+    viewAsUser(u)
+    router.push(u.role === "client" ? `/${encodeURIComponent(u.companyId as string)}` : "/dashboard/overview")
+  }
+
+  function emailHref(u: AppUser) {
     const recipientName = u.displayName?.trim() || undefined
-    router.push(buildEmailComposeHref({
-      recipientEmail,
+    return buildEmailComposeHref({
+      recipientEmail: u.email?.trim(),
       recipientName,
       body: `Hi ${recipientName?.split(/\s+/)[0] || "there"},\n\n`,
-    }))
-  }
-
-  function contactActions(u: AppUser) {
-    return (
-      <>
-        <DropdownMenuItem disabled={!u.email?.trim()} onSelect={() => handleEmail(u)}>Email</DropdownMenuItem>
-        <DropdownMenuItem onSelect={() => setSelectedId(u.uid)}>Edit</DropdownMenuItem>
-        {((u.role === "client" && u.companyId) || ((u.role === "admin" || u.role === "superadmin") && u.agencyId)) && (
-          <DropdownMenuItem onSelect={() => handleViewAs(u)}>View as</DropdownMenuItem>
-        )}
-        <DropdownMenuItem variant="destructive" onSelect={() => setPendingDelete(u)}>Delete</DropdownMenuItem>
-      </>
-    )
+    })
   }
 
   const { results: visibleUsers, bar } = useFilterBar({
@@ -183,179 +155,104 @@ export default function UsersAdminPage() {
     defaultDirection: "desc",
   })
 
-  const selection = useRowSelection(visibleUsers, (u) => u.uid)
+  const isNew = selectedId === "new"
+  const selectedUser = selectedId && !isNew ? users.find((u) => u.uid === selectedId) ?? null : null
+  useRecordTitle(isNew ? "New contact" : selectedUser?.displayName || selectedUser?.email || null)
 
-  async function handleBulkDelete() {
-    const ids = selection.selectedIds
-    if (ids.length === 0 || bulkDeleting) return
-    setBulkDeleting(true)
-    try {
-      await Promise.all(ids.map((uid) => deleteUser(uid)))
-      const removed = new Set(ids)
-      setUsers((prev) => prev.filter((u) => !removed.has(u.uid)))
-      if (selectedId && removed.has(selectedId)) setSelectedId(null)
-      selection.clear()
-    } catch (err) {
-      console.error("Error deleting contacts:", err)
-    } finally {
-      setBulkDeleting(false)
-    }
-  }
-
-  const selectedUser =
-    typeof selectedId === "string" && selectedId !== "new" ? users.find((u) => u.uid === selectedId) ?? null : null
-  useRecordTitle(selectedId === "new" ? "New contact" : selectedUser?.displayName || selectedUser?.email || null)
-
-  const mobileRows = visibleUsers.map((u) => (
-    <CompactListRow
-      key={u.uid}
-      onClick={() => setSelectedId(u.uid)}
-      ariaLabel={`Open ${u.displayName || u.email || "contact"}`}
-      title={u.displayName || u.email || "—"}
-      subtitle={`${u.email || companyNameOf(u) || "—"} · ${formatTimestamp(u.updatedAt ?? u.createdAt)}`}
-      menuLabel={`Options for ${u.displayName || u.email || "contact"}`}
-      menu={contactActions(u)}
+  const contactFilter = (
+    <FilterBar
+      {...bar}
+      className="mb-0 h-16 border-b border-border"
+      placeholder="Search contacts"
+      actions={
+        <>
+          <Button variant="ghost" size="icon" className="bg-transparent text-foreground hover:bg-transparent" disabled={inviting} onClick={() => void handleInvite()} aria-label="Invite contact" title="Invite contact">
+            {inviting ? <Loader2 className="size-4 animate-spin" /> : <UserPlus className="size-4" aria-hidden="true" />}
+          </Button>
+          <Button variant="ghost" className="bg-transparent text-foreground hover:bg-transparent" onClick={() => setSelectedId("new")}>
+            <Plus className="size-4" aria-hidden="true" />
+            New
+          </Button>
+        </>
+      }
     />
-  ))
+  )
 
   return (
     <main className="mx-auto w-full max-w-6xl px-4 pt-4 pb-12 sm:px-6">
-      <FilterBar
-        {...bar}
-        mobileVariant="drawer"
-        headerOnMobile
-        placeholder="Search contacts"
-        controls={<div className="hidden sm:block"><ViewToggle view={view} onChange={setView} /></div>}
-        actions={
-          <div className="flex gap-2">
-            <Button variant="outline" size="icon" disabled={inviting} onClick={() => void handleInvite()} aria-label="Invite contact" title="Invite contact">
-              {inviting ? <Loader2 className="size-4 animate-spin" /> : <UserPlus className="size-4" aria-hidden="true" />}
-            </Button>
-            <Button variant="ghost" size="icon" className="bg-transparent text-foreground hover:bg-transparent" onClick={() => setSelectedId("new")} aria-label="Add contact" title="Add contact">
-              <Plus className="size-4" aria-hidden="true" />
-            </Button>
-          </div>
-        }
-      />
+      {error && <p role="alert" className="mb-4 text-sm text-destructive">{error}</p>}
 
-      {loading ? (
+      {!loading && users.length === 0 && !isNew ? (
         <>
-          <div className="sm:hidden"><CompactListSkeleton /></div>
-          <div className="hidden sm:block">{view === "grid" ? <GridCardsSkeleton /> : <TableRowsSkeleton headers={["", "Contact", "Company", "Updated", ""]} />}</div>
+          <div className="lg:max-w-[30rem]">{contactFilter}</div>
+          <FirstRunState
+            label="Contact"
+            title="Let's add your first contact"
+            description="Keep the people you work with here, and give them access to their company's page."
+            action={<Button onClick={() => setSelectedId("new")}>New contact</Button>}
+          />
         </>
-      ) : error ? (
-        <Card>
-          <CardContent className="py-10 text-center text-sm text-destructive">{error}</CardContent>
-        </Card>
-      ) : users.length === 0 ? (
-        <Card>
-          <CardContent className="py-16 text-center">
-            <p className="mb-4 text-muted-foreground">No contacts yet.</p>
-            <Button onClick={() => setSelectedId("new")}>
-              <Plus className="mr-2 h-4 w-4" />
-              Add the first contact
-            </Button>
-          </CardContent>
-        </Card>
       ) : (
-        <>
-          {visibleUsers.length === 0 ? (
-            <Card>
-              <CardContent className="py-16 text-center text-sm text-muted-foreground">
-                No contacts match your search.
-              </CardContent>
-            </Card>
-          ) : view === "grid" ? (
+        <DocumentSplitPane
+          visibleItems={loading ? [] : visibleUsers}
+          loading={loading}
+          selectedId={isNew || selectedUser ? selectedId : null}
+          onClearSelection={() => setSelectedId(null)}
+          sectionLabel="Contacts"
+          filter={contactFilter}
+          emptySearchLabel="No contacts match your search."
+          getKey={(u) => u.uid}
+          selectedTitle={isNew ? "New contact" : selectedUser?.displayName || selectedUser?.email || "Contact"}
+          headerActions={selectedUser && (
             <>
-              <div className="sm:hidden">{mobileRows}</div>
-              <div className="hidden sm:block">
-                <GridCardList>
-                  {visibleUsers.map((u) => (
-                    <GridCard
-                      key={u.uid}
-                      onClick={() => setSelectedId(u.uid)}
-                      ariaLabel={`Open ${u.displayName || u.email || "contact"}`}
-                      title={u.displayName || u.email || "—"}
-                      icon={<ReactIcon icon={FaUser} className="size-4 text-violet-600 dark:text-violet-400" aria-hidden="true" />}
-                      placeholder={<ReactIcon icon={FaUser} className="size-12 text-muted-foreground/40" aria-hidden="true" />}
-                      menuLabel={`Options for ${u.displayName || u.email || "contact"}`}
-                      menu={contactActions(u)}
-                    />
-                  ))}
-                </GridCardList>
-              </div>
-            </>
-          ) : (
-            <>
-              <div className="sm:hidden">{mobileRows}</div>
-
-              <div className="hidden min-w-0 sm:block">
-              <TableBulkBar
-                count={selection.selectedCount}
-                noun="contact"
-                deleting={bulkDeleting}
-                onClear={selection.clear}
-                onDelete={handleBulkDelete}
-              />
-              <Table className="w-full table-fixed">
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-10">
-                      <Checkbox
-                        aria-label="Select all contacts"
-                        checked={selection.allSelected}
-                        indeterminate={selection.someSelected}
-                        onChange={selection.toggleAll}
-                      />
-                    </TableHead>
-                    <TableHead>Contact</TableHead>
-                    <TableHead>Company</TableHead>
-                    <TableHead className="w-28">Updated</TableHead>
-                    <TableHead className="w-12 text-right"><span className="sr-only">Actions</span></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {visibleUsers.map((u) => (
-                    <TableRow
-                      key={u.uid}
-                      className="cursor-pointer"
-                      onClick={() => setSelectedId(u.uid)}
-                    >
-                      <TableCell onClick={(e) => e.stopPropagation()}>
-                        <Checkbox
-                          aria-label={`Select ${u.displayName || u.email || "contact"}`}
-                          checked={selection.isSelected(u.uid)}
-                          onChange={() => selection.toggle(u.uid)}
-                        />
-                      </TableCell>
-                      <TableCell className="max-w-0">
-                        <span className="block min-w-0">
-                          <span className="block truncate font-medium">{u.displayName || u.email || "—"}</span>
-                          <span className="block truncate text-muted-foreground">{u.email || "—"}</span>
-                        </span>
-                      </TableCell>
-                      <TableCell className="max-w-0 text-muted-foreground"><span className="block truncate">{companyNameOf(u) || "—"}</span></TableCell>
-                      <TableCell className="text-muted-foreground">{formatTimestamp(u.updatedAt ?? u.createdAt)}</TableCell>
-                      <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="size-8 text-muted-foreground hover:text-foreground" aria-label={`Actions for ${u.displayName || u.email || "contact"}`}>
-                              <EllipsisVertical className="size-4" aria-hidden="true" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            {contactActions(u)}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-              </div>
+              {selectedUser.email?.trim() && (
+                <Button variant="ghost" size="icon" className="size-8 text-muted-foreground hover:text-foreground" onClick={() => router.push(emailHref(selectedUser))} aria-label="Email contact" title="Email contact">
+                  <Mail className="size-4" aria-hidden="true" />
+                </Button>
+              )}
+              {canViewAs(selectedUser) && (
+                <Button variant="ghost" size="icon" className="size-8 text-muted-foreground hover:text-foreground" onClick={() => handleViewAs(selectedUser)} aria-label="View as this contact" title="View as">
+                  <UserIcon className="size-4" aria-hidden="true" />
+                </Button>
+              )}
+              <Button variant="ghost" size="icon" className="size-8 text-muted-foreground hover:text-destructive" onClick={() => setPendingDelete(selectedUser)} aria-label="Delete contact" title="Delete contact">
+                <Trash2 className="size-4" aria-hidden="true" />
+              </Button>
             </>
           )}
-        </>
+          content={(isNew || selectedUser) && (
+            <UserForm
+              key={selectedUser?.uid ?? "new"}
+              user={selectedUser}
+              subjectNoun="contact"
+              onSaved={handleSaved}
+              onCancel={() => setSelectedId(null)}
+            />
+          )}
+          renderItem={(u, active) => (
+            <CompactListRow
+              leading={u.photoURL ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={u.photoURL} alt="" referrerPolicy="no-referrer" className="size-8 rounded-full object-cover" />
+              ) : (
+                <span className="flex size-8 items-center justify-center rounded-full bg-muted"><UserIcon className="size-4 text-muted-foreground" aria-hidden="true" /></span>
+              )}
+              title={u.displayName || u.email || "—"}
+              subtitle={`${[u.email, companyNameOf(u)].filter(Boolean).join(" · ") || "—"} · ${formatTimestamp(u.updatedAt ?? u.createdAt)}`}
+              mobileSubtitle={u.email || companyNameOf(u) || formatTimestamp(u.updatedAt ?? u.createdAt)}
+              active={active}
+              onClick={() => setSelectedId(u.uid)}
+              ariaLabel={`Open ${u.displayName || u.email || "contact"}`}
+              menuLabel={`Options for ${u.displayName || u.email || "contact"}`}
+              menu={<>
+                <DropdownMenuItem onSelect={() => setSelectedId(u.uid)}>Open contact</DropdownMenuItem>
+                <DropdownMenuItem disabled={!u.email?.trim()} onSelect={() => router.push(emailHref(u))}>Email</DropdownMenuItem>
+                {canViewAs(u) && <DropdownMenuItem onSelect={() => handleViewAs(u)}>View as</DropdownMenuItem>}
+                <DropdownMenuItem variant="destructive" onSelect={() => setPendingDelete(u)}>Delete</DropdownMenuItem>
+              </>}
+            />
+          )}
+        />
       )}
 
       <AlertDialog open={pendingDelete !== null} onOpenChange={(open) => !open && !deleting && setPendingDelete(null)}>
@@ -381,15 +278,6 @@ export default function UsersAdminPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      <UserEditorSheet
-        subjectNoun="contact"
-        open={selectedId !== null}
-        user={selectedId === "new" ? null : selectedUser}
-        isNew={selectedId === "new"}
-        onClose={() => setSelectedId(null)}
-        onSaved={handleSaved}
-      />
     </main>
   )
 }
