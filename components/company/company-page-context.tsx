@@ -153,7 +153,8 @@ export function CompanyPageProvider({
 
   const basePath = mode === "routes" ? `/${pathname.split("/")[1] ?? ""}` : pathname
   const requested = mode === "routes" ? pathname.split("/")[2] : searchParams.get("tab")
-  const requestedSection = mode === "routes" && requested === "notifications" ? "activity" : requested
+  // "brand-health" is Pulse's old key; keep links that still use it working.
+  const requestedSection = requested === "brand-health" ? "pulse" : mode === "routes" && requested === "notifications" ? "activity" : requested
   const section: CompanySectionKey = sections.some((s) => s.key === requestedSection)
     ? (requestedSection as CompanySectionKey)
     : mode === "tabs" && searchParams.get("task") && !isAdmin ? "tasks" : mode === "routes" ? "about" : "projects"

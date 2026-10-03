@@ -5,6 +5,7 @@ import { isCompanySection } from "@/components/company/company-sections"
 
 export default async function CompanySectionPage({ params }: { params: Promise<{ clientSlug: string; section: string }> }) {
   const { clientSlug, section } = await params
+  if (section === "brand-health") redirect(`/${encodeURIComponent(clientSlug)}/pulse`)
   if (section === "activity") redirect(`/${encodeURIComponent(clientSlug)}/notifications`)
   if (section === "notifications") return <CompanySection section="activity" />
   if (!isCompanySection(section) || section === "about") redirect(`/${encodeURIComponent(clientSlug)}`)

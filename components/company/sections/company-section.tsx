@@ -2,7 +2,7 @@
 
 import type { ComponentType } from "react"
 
-import { BusinessHealth } from "@/components/company/business-health"
+import { Pulse } from "@/components/company/pulse"
 import { CompanyMedia } from "@/components/company/company-media"
 import { useCompanyPage, type CompanySectionKey } from "@/components/company/company-page-context"
 import { CompanyVisitors } from "@/components/company/company-visitors"
@@ -32,10 +32,10 @@ function VisitorsSection() {
   return <CompanyVisitors agencyId={visitorAgencyId} companyId={company.id} slug={company.slug || company.id} />
 }
 
-function BusinessHealthSection() {
+function PulseSection() {
   const { company, admin } = useCompanyPage()
   return (
-    <BusinessHealth
+    <Pulse
       companyId={company.id}
       details={{
         name: company.name,
@@ -58,7 +58,7 @@ const SECTION_COMPONENTS: Record<CompanySectionKey, ComponentType> = {
   team: TeamSection,
   activity: ActivitySection,
   media: MediaSection,
-  "brand-health": BusinessHealthSection,
+  pulse: PulseSection,
   documents: DocumentsSection,
   visitors: VisitorsSection,
 }

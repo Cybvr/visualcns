@@ -1,16 +1,17 @@
 import { FieldValue } from "firebase-admin/firestore"
 
-import type { BHReport, BHState } from "@/lib/business-health"
+import type { PulseReport, PulseState } from "@/lib/pulse"
 import { adminServices } from "@/lib/firebase-admin"
 import { requireAgencyId } from "@/lib/require-agency-id"
 import { getAgencySecret, recordAgencyUsage } from "@/lib/server/agency-secrets"
-import { answerQuestion, runScan, type CompanyFacts } from "@/lib/server/business-health"
+import { answerQuestion, runScan, type CompanyFacts } from "@/lib/server/pulse"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 // A scan crawls several pages and runs eight searches before the model writes the report.
 export const maxDuration = 300
 
+// Stored names below predate the Pulse rename. Kept so saved reports and usage counts carry over.
 const COLLECTION = "businessHealth"
 
 function json(body: unknown, status = 200) {
@@ -69,9 +70,9 @@ async function keysFor(agencyId: string) {
   return { firecrawl, openai }
 }
 
-type Stored = { report?: BHReport | null; links?: string[]; done?: string[]; dismissed?: string[] }
+type Stored = { report?: PulseReport | null; links?: string[]; done?: string[]; dismissed?: string[] }
 
-function stateOf(data: Stored | undefined): BHState {
+function stateOf(data: Stored | undefined): PulseState {
   return { report: data?.report ?? null, done: data?.done ?? [], dismissed: data?.dismissed ?? [] }
 }
 
@@ -123,7 +124,7 @@ export async function POST(request: Request) {
       void recordAgencyUsage(agencyId, "businessHealthQuestions").catch(() => undefined)
       return json({ answer })
     } catch (error) {
-      console.error("Business Health question failed", error)
+      console.error("Pulse question failed", error)
       return json({ error: "Couldn't research that right now. Please try again." }, 502)
     }
   }
@@ -140,7 +141,7 @@ export async function POST(request: Request) {
       void recordAgencyUsage(agencyId, "businessHealthScans").catch(() => undefined)
       return json(stateOf({ report, done: [], dismissed: [] }))
     } catch (error) {
-      console.error("Business Health scan failed", error)
+      console.error("Pulse scan failed", error)
       return json({ error: "The scan didn't finish. Please try again." }, 502)
     }
   }

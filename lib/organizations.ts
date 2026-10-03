@@ -27,7 +27,7 @@ export interface Organization {
   tags?: string[]
   /** What the company does, shown in the sidebar's Details panel. */
   description?: string
-  /** Who the company sells to, used by Business Health. */
+  /** Who the company sells to, used by Pulse. */
   targetCustomers?: string
   /** e.g. "11-50" - see COMPANY_SIZES. */
   companySize?: string

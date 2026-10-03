@@ -2,7 +2,7 @@ import Firecrawl from "firecrawl"
 import type { Document, SearchResultNews, SearchResultWeb } from "firecrawl"
 import OpenAI from "openai"
 
-import type { BHAction, BHAnswer, BHBadgeTone, BHHue, BHIcon, BHItem, BHLevel, BHReport } from "@/lib/business-health"
+import type { PulseAction, PulseAnswer, PulseBadgeTone, PulseHue, PulseIcon, PulseItem, PulseLevel, PulseReport } from "@/lib/pulse"
 
 const MODEL = process.env.OPENAI_MODEL || "gpt-5.6-luna"
 
@@ -222,7 +222,7 @@ const REPORT_SCHEMA = {
   required: ["score", "summary", "attention", "opportunities", "market", "online", "changes", "actions"],
 } as const
 
-const SYSTEM = `You are the business intelligence engine behind Business Health in VisualCNS.
+const SYSTEM = `You are the business intelligence engine behind Pulse in VisualCNS.
 You receive facts about one company, a crawl of its website and web search results about its market.
 Turn them into a clear, honest report the business owner can act on.
 
@@ -234,7 +234,7 @@ Rules:
 - Put a URL from the evidence in "source" whenever an item comes from one.
 - Plain words, no jargon, no marketing speak. Short sentences.`
 
-function describe(company: CompanyFacts, evidence: Evidence, previous: BHReport | null, newPages: string[], gonePages: string[]) {
+function describe(company: CompanyFacts, evidence: Evidence, previous: PulseReport | null, newPages: string[], gonePages: string[]) {
   let out = "COMPANY\n"
   for (const [label, value] of Object.entries({
     Name: company.name,
@@ -276,7 +276,7 @@ function describe(company: CompanyFacts, evidence: Evidence, previous: BHReport 
   return out
 }
 
-const ICONS: Record<string, { icon: BHIcon; tone: BHHue }> = {
+const ICONS: Record<string, { icon: PulseIcon; tone: PulseHue }> = {
   positioning: { icon: "positioning", tone: "red" },
   seo: { icon: "seo", tone: "red" },
   technical: { icon: "technical", tone: "red" },
@@ -297,17 +297,17 @@ const ICONS: Record<string, { icon: BHIcon; tone: BHHue }> = {
   offer: { icon: "offer", tone: "blue" },
 }
 
-const LEVEL_BADGE: Record<BHLevel, { label: string; tone: BHBadgeTone }> = {
+const LEVEL_BADGE: Record<PulseLevel, { label: string; tone: PulseBadgeTone }> = {
   high: { label: "High", tone: "bad" },
   medium: { label: "Medium", tone: "warn" },
   low: { label: "Low", tone: "plain" },
 }
-const FIT_BADGE: Record<BHLevel, { label: string; tone: BHBadgeTone }> = {
+const FIT_BADGE: Record<PulseLevel, { label: string; tone: PulseBadgeTone }> = {
   high: { label: "Strong fit", tone: "good" },
   medium: { label: "Good fit", tone: "warn" },
   low: { label: "Possible", tone: "plain" },
 }
-const STATUS_BADGE: Record<string, { label: string; tone: BHBadgeTone }> = {
+const STATUS_BADGE: Record<string, { label: string; tone: PulseBadgeTone }> = {
   good: { label: "Good", tone: "good" },
   fair: { label: "Needs work", tone: "warn" },
   weak: { label: "Weak", tone: "bad" },
@@ -315,16 +315,16 @@ const STATUS_BADGE: Record<string, { label: string; tone: BHBadgeTone }> = {
 
 type Raw = Record<string, unknown>
 const str = (value: unknown) => (typeof value === "string" ? value.trim() : "")
-const level = (value: unknown): BHLevel => (value === "high" || value === "low" ? value : "medium")
+const level = (value: unknown): PulseLevel => (value === "high" || value === "low" ? value : "medium")
 const rows = (value: unknown) => (Array.isArray(value) ? (value as Raw[]) : [])
 
-function item(prefix: string, index: number, fields: Omit<BHItem, "id">): BHItem {
-  const clean: BHItem = { id: `${prefix}${index + 1}`, ...fields }
+function item(prefix: string, index: number, fields: Omit<PulseItem, "id">): PulseItem {
+  const clean: PulseItem = { id: `${prefix}${index + 1}`, ...fields }
   for (const key of ["meta", "more", "source"] as const) if (!clean[key]) delete clean[key]
   return clean
 }
 
-function shape(raw: Raw, evidence: Evidence, newPages: string[], previous: BHReport | null): Omit<BHReport, "scannedAt"> {
+function shape(raw: Raw, evidence: Evidence, newPages: string[], previous: PulseReport | null): Omit<PulseReport, "scannedAt"> {
   const icon = (key: string, fallback: string) => ICONS[key] ?? ICONS[fallback]
 
   const attention = rows(raw.attention).filter((row) => str(row.title)).map((row, index) =>
@@ -340,7 +340,7 @@ function shape(raw: Raw, evidence: Evidence, newPages: string[], previous: BHRep
     item("p", index, { ...icon(str(row.area), "website"), title: str(row.title), detail: str(row.detail), badge: STATUS_BADGE[str(row.status)] ?? STATUS_BADGE.fair, more: str(row.more) }),
   )
 
-  const changes: BHItem[] = []
+  const changes: PulseItem[] = []
   if (previous && newPages.length) {
     changes.push(item("c", 0, { icon: "page", tone: "green", title: `${newPages.length} new page${newPages.length === 1 ? "" : "s"} found on your website`, detail: newPages.slice(0, 3).map((url) => pathOf(url) || url).join(", "), meta: "Since last scan" }))
   }
@@ -349,7 +349,7 @@ function shape(raw: Raw, evidence: Evidence, newPages: string[], previous: BHRep
     changes.push(item("c", changes.length, { icon: isMarket ? "market" : "change", tone: isMarket ? "blue" : "purple", title: str(row.title), detail: str(row.detail), meta: "Since last scan" }))
   }
 
-  const actions: BHAction[] = rows(raw.actions).filter((row) => str(row.title)).map((row, index) => ({
+  const actions: PulseAction[] = rows(raw.actions).filter((row) => str(row.title)).map((row, index) => ({
     id: `a${index + 1}`,
     priority: level(row.priority),
     title: str(row.title),
@@ -364,7 +364,7 @@ function shape(raw: Raw, evidence: Evidence, newPages: string[], previous: BHRep
   return { score, pages: evidence.pages, sources, summary: str(raw.summary), attention, opportunities, market, online, changes, actions }
 }
 
-export async function runScan(keys: Keys, company: CompanyFacts, previous: { report: BHReport | null; links: string[] }) {
+export async function runScan(keys: Keys, company: CompanyFacts, previous: { report: PulseReport | null; links: string[] }) {
   const firecrawl = new Firecrawl({ apiKey: keys.firecrawl, apiUrl: process.env.FIRECRAWL_API_URL || undefined })
   const evidence = await gather(firecrawl, company)
 
@@ -378,7 +378,7 @@ export async function runScan(keys: Keys, company: CompanyFacts, previous: { rep
     model: MODEL,
     instructions: SYSTEM,
     input: [{ role: "user", content: describe(company, evidence, previous.report, newPages, gonePages) }] as any,
-    text: { format: { type: "json_schema", name: "business_health", strict: true, schema: REPORT_SCHEMA as any } },
+    text: { format: { type: "json_schema", name: "pulse_report", strict: true, schema: REPORT_SCHEMA as any } },
   })
 
   let raw: Raw = {}
@@ -388,7 +388,7 @@ export async function runScan(keys: Keys, company: CompanyFacts, previous: { rep
     raw = {}
   }
 
-  const report: BHReport = { scannedAt: new Date().toISOString(), ...shape(raw, evidence, newPages, previous.report) }
+  const report: PulseReport = { scannedAt: new Date().toISOString(), ...shape(raw, evidence, newPages, previous.report) }
   return { report, links: evidence.links.slice(0, 1000) }
 }
 
@@ -403,7 +403,7 @@ const ANSWER_SCHEMA = {
 } as const
 
 /** Researches a free-form question about the company with a fresh web search. */
-export async function answerQuestion(keys: Keys, company: CompanyFacts, report: BHReport | null, question: string): Promise<BHAnswer> {
+export async function answerQuestion(keys: Keys, company: CompanyFacts, report: PulseReport | null, question: string): Promise<PulseAnswer> {
   const firecrawl = new Firecrawl({ apiKey: keys.firecrawl, apiUrl: process.env.FIRECRAWL_API_URL || undefined })
   const context = [company.industry, company.location].filter((value) => value?.trim()).join(" ")
   let results: ReturnType<typeof searchRows> = []

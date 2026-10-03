@@ -29,14 +29,14 @@ import type { LucideIcon } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import { ANALYSE_AREAS, BusinessHealthIntro, type BusinessDetails } from "@/components/company/business-health-intro"
+import { ANALYSE_AREAS, PulseIntro, type BusinessDetails } from "@/components/company/pulse-intro"
 import { useAuth } from "@/components/auth-provider"
-import type { BHAction, BHAnswer, BHIcon, BHItem, BHLevel, BHReport, BHState } from "@/lib/business-health"
+import type { PulseAction, PulseAnswer, PulseIcon, PulseItem, PulseLevel, PulseReport, PulseState } from "@/lib/pulse"
 
-type Level = BHLevel
-type Item = Omit<BHItem, "icon"> & { icon: LucideIcon }
-type Action = BHAction
-type Answer = BHAnswer
+type Level = PulseLevel
+type Item = Omit<PulseItem, "icon"> & { icon: LucideIcon }
+type Action = PulseAction
+type Answer = PulseAnswer
 
 const LEVEL_BADGE: Record<Level, Item["badge"]> = {
   high: { label: "High", tone: "bad" },
@@ -44,7 +44,7 @@ const LEVEL_BADGE: Record<Level, Item["badge"]> = {
   low: { label: "Low", tone: "plain" },
 }
 
-const ICON: Record<BHIcon, LucideIcon> = {
+const ICON: Record<PulseIcon, LucideIcon> = {
   positioning: FileText,
   seo: Search,
   technical: Link2,
@@ -66,7 +66,7 @@ const ICON: Record<BHIcon, LucideIcon> = {
   change: PenLine,
 }
 
-const toItem = (item: BHItem): Item => ({ ...item, icon: ICON[item.icon] ?? FileText })
+const toItem = (item: PulseItem): Item => ({ ...item, icon: ICON[item.icon] ?? FileText })
 
 const ASK_SUGGESTIONS = ["Analyse my competitors", "Find relevant grants", "Show upcoming events", "Check my SEO"]
 
@@ -98,7 +98,7 @@ function Source({ source }: { source: string }) {
 
 type Hue = "red" | "green" | "blue" | "purple" | "amber"
 
-// Soft tints for icons and tiles, taken from the Business Health mock.
+// Soft tints for icons and tiles, taken from the Pulse mock.
 const HUE: Record<Hue, { box: string; icon: string; tile: string }> = {
   red: { box: "bg-red-100 dark:bg-red-950/50", icon: "text-red-500 dark:text-red-400", tile: "bg-red-50 border-red-100 dark:bg-red-950/30 dark:border-red-900/40" },
   green: { box: "bg-emerald-100 dark:bg-emerald-950/50", icon: "text-emerald-600 dark:text-emerald-400", tile: "bg-emerald-50 border-emerald-100 dark:bg-emerald-950/30 dark:border-emerald-900/40" },
@@ -249,7 +249,7 @@ function ErrorNote({ message }: { message: string }) {
   )
 }
 
-export function BusinessHealth({
+export function Pulse({
   companyId,
   details,
   onSave,
@@ -261,7 +261,7 @@ export function BusinessHealth({
   const companyName = details.name
   const { user } = useAuth()
 
-  const [report, setReport] = useState<BHReport | null>(null)
+  const [report, setReport] = useState<PulseReport | null>(null)
   const [loading, setLoading] = useState(true)
   const [scanning, setScanning] = useState(false)
   const [error, setError] = useState("")
@@ -282,7 +282,7 @@ export function BusinessHealth({
     async (init?: { method: "POST"; body: Record<string, unknown> }) => {
       if (!user) throw new Error("Please sign in to use Pulse.")
       const token = await user.getIdToken()
-      const response = await fetch(init ? "/api/business-health" : `/api/business-health?companyId=${encodeURIComponent(companyId)}`, {
+      const response = await fetch(init ? "/api/pulse" : `/api/pulse?companyId=${encodeURIComponent(companyId)}`, {
         method: init?.method ?? "GET",
         headers: { Authorization: `Bearer ${token}`, ...(init ? { "content-type": "application/json" } : {}) },
         ...(init ? { body: JSON.stringify({ companyId, ...init.body }) } : {}),
@@ -294,7 +294,7 @@ export function BusinessHealth({
     [companyId, user],
   )
 
-  function applyState(state: BHState) {
+  function applyState(state: PulseState) {
     setReport(state.report)
     setDone(new Set(state.done))
     setDismissed(new Set(state.dismissed))
@@ -305,7 +305,7 @@ export function BusinessHealth({
     let active = true
     setLoading(true)
     call()
-      .then((state: BHState) => active && applyState(state))
+      .then((state: PulseState) => active && applyState(state))
       .catch((reason: Error) => active && setError(reason.message))
       .finally(() => active && setLoading(false))
     return () => {
@@ -325,7 +325,7 @@ export function BusinessHealth({
     // The scan is one request; tick through the areas so people can see it working.
     progress.current = setInterval(() => setStep((current) => Math.min(current + 1, ANALYSE_AREAS.length - 1)), 9000)
     try {
-      const state = (await call({ method: "POST", body: { action: "scan" } })) as BHState
+      const state = (await call({ method: "POST", body: { action: "scan" } })) as PulseState
       setStep(ANALYSE_AREAS.length)
       applyState(state)
       setExpanded(new Set())
@@ -426,7 +426,7 @@ export function BusinessHealth({
     return (
       <div>
         {error && <ErrorNote message={error} />}
-        <BusinessHealthIntro
+        <PulseIntro
           details={details}
           onSave={onSave}
           onAnalyse={() => void scan()}

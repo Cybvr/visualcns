@@ -1,7 +1,7 @@
 // Renders a video folder's index.html to MP4, frame by frame, in headless Chrome.
 //
-//   node render.mjs business-health ../../public/marketing/business-health-9x16.mp4
-//   node render.mjs business-health --stills 1.5 4.3 9.8
+//   node render.mjs pulse ../../public/marketing/pulse-9x16.mp4
+//   node render.mjs pulse --stills 1.5 4.3 9.8
 //
 // A page exposes window.render(t) that lays out every element for time t in seconds.
 // If the folder has a music.mjs, it is run first and its music.wav is mixed in.

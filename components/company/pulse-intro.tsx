@@ -74,8 +74,8 @@ export function Logo({ name, logoUrl, className }: { name: string; logoUrl?: str
   )
 }
 
-/** First step of Business Health: confirm the details the scan will use, then start it. */
-export function BusinessHealthIntro({
+/** First step of Pulse: confirm the details the scan will use, then start it. */
+export function PulseIntro({
   details,
   onSave,
   onAnalyse,
