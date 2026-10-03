@@ -15,7 +15,7 @@ import {
 } from "@/components/pass-illustrations"
 
 const PILOT_HREF = "/contact"
-const OVERVIEW_HREF = "/visitors/demo"
+const OVERVIEW_HREF = "#overview"
 
 const RISKS = [
   {
@@ -134,10 +134,33 @@ export default function PassPage() {
                 href={OVERVIEW_HREF}
                 className="inline-flex h-12 items-center justify-center whitespace-nowrap rounded-full border border-white/40 px-6 font-medium text-white transition-colors hover:bg-white/10"
               >
-                Watch 2-minute security overview
+                Watch the 1-minute overview
               </Link>
             </div>
           </div>
+        </section>
+
+        {/* Overview film */}
+        <section id="overview" className="mx-auto grid max-w-6xl scroll-mt-24 items-center gap-10 px-4 py-16 md:grid-cols-[1fr_auto] md:px-8 md:py-24">
+          <div>
+            <p className="mb-4 text-sm font-medium text-muted-foreground">See it in under a minute</p>
+            <h2 className="max-w-xl text-3xl font-semibold tracking-tight md:text-4xl">
+              From paper visitor book to audit-ready in 48 seconds
+            </h2>
+            <p className="mt-4 max-w-xl text-muted-foreground">
+              How visitors sign in, how hosts get told, who gets through which doors, and how every visit is kept on
+              record.
+            </p>
+          </div>
+          <video
+            className="mx-auto aspect-[9/16] w-full max-w-[20rem] rounded-2xl border border-border bg-foreground"
+            src="/marketing/visualcns-pass-9x16.mp4"
+            poster="/marketing/visualcns-pass-9x16-poster.jpg"
+            controls
+            playsInline
+            preload="metadata"
+            aria-label="VisualCNS Pass overview video"
+          />
         </section>
 
         {/* Problem */}
