@@ -1,7 +1,16 @@
 import assert from "node:assert/strict"
+import { readFile } from "node:fs/promises"
 import test from "node:test"
 
 import { parseLeadsCsv } from "../lib/leads-csv.ts"
+
+test("the downloadable sample contains importable example leads", async () => {
+  const csv = await readFile(new URL("../public/leads-sample.csv", import.meta.url), "utf8")
+  const result = parseLeadsCsv(csv)
+  assert.equal(result.leads.length, 2)
+  assert.deepEqual(result.skipped, [])
+  assert.equal(result.leads[0].name, "Ada Okafor")
+})
 
 test("imports quoted commas, line breaks, BOM, and common column names", () => {
   const csv = '\ufeffFull Name,Company,Email Address,Value,Notes,Status\r\n"Ada Lovelace","Analytical, Ltd",ada@example.com,"₦1,250.50","Asked for\nproposal",Qualified\r\n'
@@ -13,6 +22,9 @@ test("imports quoted commas, line breaks, BOM, and common column names", () => {
     company: "Analytical, Ltd",
     email: "ada@example.com",
     phone: "",
+    address: "",
+    category: "",
+    reviews: "",
     source: "",
     value: 1250.5,
     notes: "Asked for\nproposal",

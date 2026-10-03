@@ -15,12 +15,13 @@ import {
   type DragEndEvent,
   type DragStartEvent,
 } from "@dnd-kit/core"
-import { FileUp, Plus } from "lucide-react"
+import { FileUp, Kanban, Plus, Rows3 } from "lucide-react"
 import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
 import { FilterBar, useFilterBar } from "@/components/dashboard/filter-bar"
 import { ImportLeadsDialog } from "@/components/dashboard/import-leads-dialog"
+import { useViewMode, type ViewMode } from "@/components/dashboard/view-toggle"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -28,15 +29,18 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Textarea } from "@/components/ui/textarea"
 import { getCurrentAgencyId } from "@/lib/agency-scope"
 import { createLead, deleteLead, LEAD_STAGES, updateLead, watchLeads, type Lead, type LeadFields, type LeadStage } from "@/lib/leads"
 import { cn } from "@/lib/utils"
 
-const EMPTY_FORM: LeadFields = { name: "", company: "", email: "", phone: "", source: "", value: 0, notes: "", stage: "new" }
+const EMPTY_FORM: LeadFields = { name: "", company: "", email: "", phone: "", address: "", category: "", reviews: "", source: "", value: 0, notes: "", stage: "new" }
+
+const STAGE_LABELS = new Map<string, string>(LEAD_STAGES.map((stage) => [stage.value, stage.label]))
 
 function searchLead(lead: Lead) {
-  return [lead.name, lead.company, lead.email, lead.phone, lead.source, lead.notes]
+  return [lead.name, lead.company, lead.email, lead.phone, lead.address, lead.category, lead.reviews, lead.source, lead.notes]
 }
 
 function formatValue(value: number) {
@@ -55,6 +59,8 @@ export default function LeadsPage() {
   const [editing, setEditing] = useState<Lead | "new" | null>(null)
   const [importOpen, setImportOpen] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState<Lead | null>(null)
+  // "grid" is the board and "list" the table. The board comes first, and the choice is remembered.
+  const [view, setView] = useViewMode("leads", "grid")
 
   useEffect(() => {
     if (!uid) return
@@ -132,6 +138,7 @@ export default function LeadsPage() {
           placeholder="Search leads"
           actions={
             <>
+              <LeadsViewToggle view={view} onChange={setView} />
               <Button variant="ghost" className="bg-transparent text-foreground hover:bg-transparent" onClick={() => setImportOpen(true)} disabled={leads === null || error}>
                 <FileUp className="size-4" aria-hidden="true" />
                 Import CSV
@@ -147,9 +154,11 @@ export default function LeadsPage() {
 
       {error ? (
         <p role="alert" className="mt-10 text-sm text-destructive">Leads unavailable. Refresh to try again.</p>
+      ) : view === "list" ? (
+        <LeadsTable leads={visibleLeads} loading={leads === null} onOpen={setEditing} />
       ) : (
         <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd} onDragCancel={() => setActiveId(null)}>
-          <div className="-mx-4 mt-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-4 sm:-mx-6 sm:px-6">
+          <div className="scrollbar-none -mx-4 mt-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-4 sm:-mx-6 sm:px-6">
             {LEAD_STAGES.map((stage) => {
               const stageLeads = visibleLeads.filter((lead) => lead.stage === stage.value)
               const total = stageLeads.reduce((sum, lead) => sum + lead.value, 0)
@@ -205,6 +214,88 @@ export default function LeadsPage() {
   )
 }
 
+/** Board first, then table, as a pill switch like the one on Drive. */
+function LeadsViewToggle({ view, onChange }: { view: ViewMode; onChange: (view: ViewMode) => void }) {
+  const options = [
+    { value: "grid" as const, label: "Board", Icon: Kanban },
+    { value: "list" as const, label: "Table", Icon: Rows3 },
+  ]
+  return (
+    <div role="group" aria-label="View" className="flex shrink-0 items-center rounded-full bg-muted p-0.5">
+      {options.map(({ value, label, Icon }) => (
+        <button
+          key={value}
+          type="button"
+          onClick={() => onChange(value)}
+          aria-label={label}
+          aria-pressed={view === value}
+          title={label}
+          className={cn(
+            "flex h-8 w-10 items-center justify-center rounded-full outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring",
+            view === value ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
+          )}
+        >
+          <Icon className="size-4" aria-hidden="true" />
+        </button>
+      ))}
+    </div>
+  )
+}
+
+function LeadsTable({ leads, loading, onOpen }: { leads: Lead[]; loading: boolean; onOpen: (lead: Lead) => void }) {
+  if (loading) {
+    return (
+      <div className="mt-4 space-y-2">
+        <Skeleton className="h-10 w-full" />
+        <Skeleton className="h-10 w-full" />
+        <Skeleton className="h-10 w-full" />
+      </div>
+    )
+  }
+  return (
+    <div className="mt-4 rounded-lg border border-border">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Name</TableHead>
+            <TableHead>Company</TableHead>
+            <TableHead>Category</TableHead>
+            <TableHead>Address</TableHead>
+            <TableHead>Reviews</TableHead>
+            <TableHead>Phone</TableHead>
+            <TableHead>Email</TableHead>
+            <TableHead>Stage</TableHead>
+            <TableHead className="text-right">Value</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {leads.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={9} className="py-8 text-center text-muted-foreground">No leads.</TableCell>
+            </TableRow>
+          ) : leads.map((lead) => (
+            <TableRow key={lead.id} className="cursor-pointer" onClick={() => onOpen(lead)}>
+              <TableCell className="font-medium">
+                <button type="button" onClick={(event) => { event.stopPropagation(); onOpen(lead) }} className="rounded-sm text-left outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring">
+                  {lead.name || "Unnamed lead"}
+                </button>
+              </TableCell>
+              <TableCell>{lead.company}</TableCell>
+              <TableCell>{lead.category}</TableCell>
+              <TableCell className="max-w-64 truncate" title={lead.address}>{lead.address}</TableCell>
+              <TableCell>{lead.reviews}</TableCell>
+              <TableCell>{lead.phone}</TableCell>
+              <TableCell>{lead.email}</TableCell>
+              <TableCell>{STAGE_LABELS.get(lead.stage) ?? lead.stage}</TableCell>
+              <TableCell className="text-right">{formatValue(lead.value)}</TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
+  )
+}
+
 function StageColumn({ stage, label, count, total, loading, children }: { stage: LeadStage; label: string; count: number; total: number; loading: boolean; children: ReactNode }) {
   const { setNodeRef, isOver } = useDroppable({ id: stage })
   return (
@@ -244,7 +335,7 @@ function DraggableLead({ lead, hidden, onOpen }: { lead: Lead; hidden: boolean; 
 }
 
 function LeadCard({ lead, dragging = false, onOpen }: { lead: Lead; dragging?: boolean; onOpen?: () => void }) {
-  const details = [lead.company, lead.source].filter(Boolean).join(" · ")
+  const details = [lead.company, lead.category].filter(Boolean).join(" · ")
   return (
     <button
       type="button"
@@ -268,7 +359,7 @@ function LeadDialog({ lead, onClose, onSave, onDelete }: { lead: Lead | "new" | 
   useEffect(() => {
     if (!lead) return
     if (lead === "new") setForm(EMPTY_FORM)
-    else setForm({ name: lead.name, company: lead.company, email: lead.email, phone: lead.phone, source: lead.source, value: lead.value, notes: lead.notes, stage: lead.stage })
+    else setForm({ name: lead.name, company: lead.company, email: lead.email, phone: lead.phone, address: lead.address, category: lead.category, reviews: lead.reviews, source: lead.source, value: lead.value, notes: lead.notes, stage: lead.stage })
   }, [lead])
 
   function set<K extends keyof LeadFields>(key: K, value: LeadFields[K]) {
@@ -280,7 +371,7 @@ function LeadDialog({ lead, onClose, onSave, onDelete }: { lead: Lead | "new" | 
     if (!form.name.trim()) return
     setSaving(true)
     try {
-      await onSave({ ...form, name: form.name.trim(), company: form.company.trim(), email: form.email.trim(), phone: form.phone.trim(), source: form.source.trim() })
+      await onSave({ ...form, name: form.name.trim(), company: form.company.trim(), email: form.email.trim(), phone: form.phone.trim(), address: form.address.trim(), category: form.category.trim(), reviews: form.reviews.trim(), source: form.source.trim() })
       onClose()
     } catch {
       toast.error("Couldn't save this lead.")
@@ -313,6 +404,18 @@ function LeadDialog({ lead, onClose, onSave, onDelete }: { lead: Lead | "new" | 
             <div className="grid gap-1.5">
               <Label htmlFor="lead-phone">Phone</Label>
               <Input id="lead-phone" type="tel" value={form.phone} onChange={(event) => set("phone", event.target.value)} />
+            </div>
+            <div className="grid gap-1.5 sm:col-span-2">
+              <Label htmlFor="lead-address">Address</Label>
+              <Input id="lead-address" value={form.address} onChange={(event) => set("address", event.target.value)} />
+            </div>
+            <div className="grid gap-1.5">
+              <Label htmlFor="lead-category">Category</Label>
+              <Input id="lead-category" value={form.category} onChange={(event) => set("category", event.target.value)} placeholder="Restaurant, clinic, school…" />
+            </div>
+            <div className="grid gap-1.5">
+              <Label htmlFor="lead-reviews">Reviews</Label>
+              <Input id="lead-reviews" value={form.reviews} onChange={(event) => set("reviews", event.target.value)} placeholder="4.6 (128)" />
             </div>
             <div className="grid gap-1.5">
               <Label htmlFor="lead-source">Source</Label>

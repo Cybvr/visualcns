@@ -30,6 +30,12 @@ export type Lead = {
   company: string
   email: string
   phone: string
+  /** Street address, e.g. from a Google Maps export. */
+  address: string
+  /** The kind of business, e.g. "Restaurant". */
+  category: string
+  /** Reviews as the source gives them, e.g. "4.6 (128)". Free text because sources write it differently. */
+  reviews: string
   source: string
   value: number
   notes: string
@@ -38,7 +44,7 @@ export type Lead = {
   updatedAt: string
 }
 
-export type LeadFields = Pick<Lead, "name" | "company" | "email" | "phone" | "source" | "value" | "notes" | "stage">
+export type LeadFields = Pick<Lead, "name" | "company" | "email" | "phone" | "address" | "category" | "reviews" | "source" | "value" | "notes" | "stage">
 
 function text(value: unknown) {
   return typeof value === "string" ? value : ""
@@ -64,6 +70,9 @@ export function watchLeads(agencyId: string, onChange: (leads: Lead[]) => void, 
             company: text(data.company),
             email: text(data.email),
             phone: text(data.phone),
+            address: text(data.address),
+            category: text(data.category),
+            reviews: text(data.reviews),
             source: text(data.source),
             value: typeof data.value === "number" && Number.isFinite(data.value) ? data.value : 0,
             notes: text(data.notes),

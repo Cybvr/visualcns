@@ -92,7 +92,42 @@ const STAGES: Record<string, LeadStage> = {
 }
 
 export function parseLeadsCsv(input: string, existingEmails: Iterable<string> = []): LeadCsvPreview {
-  const rows = parseCsvRows(input)
+  return parseLeadRows(parseCsvRows(input), existingEmails)
+}
+
+/**
+ * Leads from the first Markdown table in the text: a header row, the
+ * |---|---| line under it, then one lead per row.
+ */
+export function parseLeadsMarkdown(input: string, existingEmails: Iterable<string> = []): LeadCsvPreview {
+  const rows: CsvRow[] = []
+  const lines = input.replace(/^﻿/, "").replace(/\r\n?/g, "\n").split("\n")
+  for (let index = 0; index < lines.length; index++) {
+    const line = lines[index].trim()
+    if (!line.startsWith("|")) {
+      // The table ended; stop at the first one.
+      if (rows.length) break
+      continue
+    }
+    // The |---|:---:| line under the header.
+    if (/^\|?\s*:?-{2,}:?\s*(\|\s*:?-{2,}:?\s*)*\|?$/.test(line)) continue
+    const cells = line.replace(/^\|/, "").replace(/\|$/, "").split(/(?<!\\)\|/).map((cell) => cell.replace(/\\\|/g, "|").trim())
+    rows.push({ cells, line: index + 1 })
+  }
+  if (rows.length === 0) throw new Error("No table found. Put the leads in a Markdown table with a header row.")
+  return parseLeadRows(rows, existingEmails)
+}
+
+/** Leads from a spreadsheet's rows, e.g. an Excel sheet, the first row being the headers. */
+export function parseLeadsSheet(sheet: string[][], existingEmails: Iterable<string> = []): LeadCsvPreview {
+  const rows = sheet
+    .map((cells, index) => ({ cells, line: index + 1 }))
+    .filter((row) => row.cells.some((value) => value.trim()))
+  return parseLeadRows(rows, existingEmails)
+}
+
+/** Shared by every format: headers in the first row, then checks each lead. */
+function parseLeadRows(rows: CsvRow[], existingEmails: Iterable<string>): LeadCsvPreview {
   if (rows.length === 0) throw new Error("This file is empty.")
 
   const headers = rows[0].cells.map(key)
@@ -103,13 +138,16 @@ export function parseLeadsCsv(input: string, existingEmails: Iterable<string> = 
     company: column(headers, "company", "companyname", "business", "organization", "organisation", "organization1name"),
     email: column(headers, "email", "emailaddress", "eaddress", "email1value"),
     phone: column(headers, "phone", "phonenumber", "mobile", "mobilephone", "telephone", "phone1value"),
+    address: column(headers, "address", "fulladdress", "streetaddress", "location"),
+    category: column(headers, "category", "categories", "type", "businesstype", "industry"),
+    reviews: column(headers, "reviews", "review", "rating", "reviewcount", "reviewscount", "totalreviews"),
     source: column(headers, "source", "leadsource"),
     value: column(headers, "value", "dealvalue", "amount", "estimatedvalue"),
     notes: column(headers, "notes", "note", "description"),
     stage: column(headers, "stage", "status", "leadstage", "leadstatus"),
   }
   if (indexes.name < 0 && indexes.first < 0) {
-    throw new Error("Add a Name or First Name column to your CSV file.")
+    throw new Error("Add a Name or First Name column to your file.")
   }
   if (rows.length - 1 > MAX_LEADS_PER_IMPORT) {
     throw new Error(`This file has more than ${MAX_LEADS_PER_IMPORT} leads. Split it into smaller files.`)
@@ -144,6 +182,9 @@ export function parseLeadsCsv(input: string, existingEmails: Iterable<string> = 
         company: field(row.cells, indexes.company),
         email,
         phone: field(row.cells, indexes.phone),
+        address: field(row.cells, indexes.address),
+        category: field(row.cells, indexes.category),
+        reviews: field(row.cells, indexes.reviews),
         source: field(row.cells, indexes.source),
         value,
         notes: field(row.cells, indexes.notes),

@@ -9,7 +9,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { importLeads } from "@/lib/leads"
-import { parseLeadsCsv, type LeadCsvPreview } from "@/lib/leads-csv"
+import { parseLeadsCsv, parseLeadsMarkdown, parseLeadsSheet, type LeadCsvPreview } from "@/lib/leads-csv"
+import { readXlsxRows } from "@/lib/xlsx-rows"
 
 const MAX_FILE_BYTES = 2 * 1024 * 1024
 
@@ -44,34 +45,29 @@ export function ImportLeadsDialog({
     setError("")
     setFileName(file?.name ?? "")
     if (!file) return
-    if (!file.name.toLowerCase().endsWith(".csv")) {
-      setError("Choose a CSV file.")
+    const name = file.name.toLowerCase()
+    if (name.endsWith(".xls")) {
+      setError("Old .xls files can't be read. In Excel, save it as .xlsx or CSV and try again.")
+      return
+    }
+    if (!/\.(csv|md|markdown|xlsx)$/.test(name)) {
+      setError("Choose a CSV, Excel (.xlsx) or Markdown (.md) file.")
       return
     }
     if (file.size > MAX_FILE_BYTES) {
-      setError("This file is too large. Choose a CSV under 2 MB.")
+      setError("This file is too large. Choose a file under 2 MB.")
       return
     }
     setReading(true)
     try {
-      setPreview(parseLeadsCsv(await file.text(), existingEmails))
+      if (name.endsWith(".xlsx")) setPreview(parseLeadsSheet(await readXlsxRows(file), existingEmails))
+      else if (/\.(md|markdown)$/.test(name)) setPreview(parseLeadsMarkdown(await file.text(), existingEmails))
+      else setPreview(parseLeadsCsv(await file.text(), existingEmails))
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Couldn't read this file. Check it and try again.")
     } finally {
       setReading(false)
     }
-  }
-
-  function downloadTemplate() {
-    const csv = "\ufeffName,Company,Email,Phone,Source,Value,Notes,Stage\r\n"
-    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }))
-    const link = document.createElement("a")
-    link.href = url
-    link.download = "leads-template.csv"
-    document.body.append(link)
-    link.click()
-    link.remove()
-    URL.revokeObjectURL(url)
   }
 
   async function submit() {
@@ -94,19 +90,28 @@ export function ImportLeadsDialog({
       <DialogContent className="max-h-[90svh] overflow-y-auto sm:max-w-xl">
         <DialogHeader>
           <DialogTitle>Import leads</DialogTitle>
-          <DialogDescription>Add people to your pipeline from a CSV file.</DialogDescription>
+          <DialogDescription>Add people to your pipeline from a CSV, Excel or Markdown file.</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-5 py-1">
           <div className="space-y-2">
-            <Label htmlFor="leads-csv-file">CSV file</Label>
-            <Input id="leads-csv-file" type="file" accept=".csv,text/csv" onChange={chooseFile} disabled={importing} className="cursor-pointer file:cursor-pointer" />
+            <Label htmlFor="leads-csv-file">File</Label>
+            <Input
+              id="leads-csv-file"
+              type="file"
+              accept=".csv,text/csv,.xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,.md,.markdown,text/markdown"
+              onChange={chooseFile}
+              disabled={importing}
+              className="cursor-pointer file:cursor-pointer"
+            />
             <p className="text-xs text-muted-foreground">
-              Include a Name or First Name column. Company, Email, Phone, Source, Value, Notes, and Stage are optional.
+              Include a Name or First Name column. Company, Email, Phone, Address, Category, Reviews, Source, Value, Notes, and Stage are optional. Excel reads the first sheet; Markdown reads the first table.
             </p>
-            <Button type="button" variant="link" size="sm" className="h-auto px-0" onClick={downloadTemplate}>
-              <Download className="size-4" aria-hidden="true" />
-              Download template
+            <Button asChild variant="link" size="sm" className="h-auto px-0">
+              <a href="/leads-sample.csv" download="leads-sample.csv">
+                <Download className="size-4" aria-hidden="true" />
+                Download sample CSV
+              </a>
             </Button>
           </div>
 
