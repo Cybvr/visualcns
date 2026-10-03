@@ -107,7 +107,7 @@ const bed = path.join(here, "bed.wav"), vo = path.join(here, "vo.wav"), out = pa
 writeFileSync(bed, buf)
 if (existsSync(vo)) {
   execFileSync(ffmpeg, ["-y", "-loglevel", "error", "-i", bed, "-i", vo, "-filter_complex",
-    "[1:a]aresample=44100,pan=stereo|c0=c0|c1=c0,volume=1.0[v];[v]asplit[v1][v2];[0:a]volume=0.32[b];[b][v1]sidechaincompress=threshold=0.05:ratio=4:attack=20:release=300[d];[d][v2]amix=inputs=2:duration=first:normalize=0,alimiter=limit=0.95",
+    "[1:a]aresample=44100,pan=stereo|c0=c0|c1=c0,volume=1.0,apad[v];[v]asplit[v1][v2];[0:a]volume=0.32[b];[b][v1]sidechaincompress=threshold=0.05:ratio=4:attack=20:release=300[d];[d][v2]amix=inputs=2:duration=first:normalize=0,alimiter=limit=0.95",
     "-ar", "44100", out])
 } else {
   execFileSync(ffmpeg, ["-y", "-loglevel", "error", "-i", bed, "-af", "volume=0.55", out])
