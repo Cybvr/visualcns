@@ -9,13 +9,9 @@ const footerGroups = [
     links: [
       { name: "Pass", href: "/pass" },
       { name: "Pulse", href: "/pulse" },
-      { name: "VisualHQ", href: "/brands/visualhq" },
       { name: "Pasive", href: "/brands/pasive" },
       { name: "Juju", href: "/brands/juju" },
       { name: "Waddi", href: "/brands/waddi" },
-      { name: "Finance", href: "/finance" },
-      { name: "Templates", href: "/templates" },
-      { name: "Pricing", href: "/pricing" },
     ],
   },
   {
@@ -27,6 +23,7 @@ const footerGroups = [
       { name: "FAQ", href: "/faq" },
       { name: "Careers", href: "https://pasive.co/jobs" },
       { name: "Contact", href: "/contact" },
+      { name: "Pricing", href: "/pricing" },
     ],
   },
   {
@@ -34,6 +31,7 @@ const footerGroups = [
     title: "Resources",
     links: [
       { name: "Blog", href: "/blog" },
+      { name: "Templates", href: "/templates" },
       { name: "Capabilities", href: "/capabilities" },
       { name: "Industries", href: "/industries" },
     ],

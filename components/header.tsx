@@ -39,7 +39,7 @@ const consultingNavItems = [
 const bookNowHref = "/contact"
 
 // Rendered after the Resources dropdown so the order reads:
-// Customers, Solutions, Resources, Pricing, More.
+// Customers, Products, Solutions, Resources, Pricing, More.
 const trailingNavItems = [
   { name: "Pricing", href: "/pricing" },
 ]
@@ -51,7 +51,7 @@ const serviceNavItems = capabilities.map((service) => ({
 }))
 
 const resourceNavItems = [
-  { name: "About", href: "/about", description: "Our story, values, and team." },
+  { name: "Company", href: "/about", description: "Our story, values, and team." },
   { name: "Templates", href: "/templates", description: "Ready-to-use starting points." },
   { name: "News", href: "/blog", description: "Updates, guides, and announcements." },
 ]
@@ -62,38 +62,45 @@ type MenuRow =
 
 /** Secondary destinations, reorganised as a single numbered menu. */
 const MENU_ROWS: MenuRow[] = [
-  { number: "01", title: "Products", items: productNavItems },
-  { number: "02", title: "Consulting", items: consultingNavItems },
-  { number: "03", title: "Careers", href: "https://pasive.co/jobs" },
+  { number: "01", title: "Consulting", items: consultingNavItems },
+  { number: "02", title: "Careers", href: "https://pasive.co/jobs" },
 ]
 
 const num = (i: number) => String(i + 1).padStart(2, "0")
 
-// Customers, Solutions, and Resources open the same full-width overlay as More,
+// Customers, Products, Solutions, and Resources open the same full-width overlay as More,
 // with their items rendered as the same big numbered rows.
 const customerRows: MenuRow[] = customerNavItems.map((customer, i) => ({
   number: num(i),
   title: customer.name,
   href: customer.href,
 }))
+const productRows: MenuRow[] = productNavItems.map((product, i) => ({ number: num(i), title: product.name, href: product.href }))
 const solutionsRows: MenuRow[] = [
   { number: "01", title: "All Solutions", href: "/capabilities" },
   ...serviceNavItems.map((service, i) => ({ number: num(i + 1), title: service.name, href: service.href })),
 ]
 const resourcesRows: MenuRow[] = resourceNavItems.map((resource, i) => ({ number: num(i), title: resource.name, href: resource.href }))
 
-// On mobile there's no separate Customers/Solutions/Resources/Pricing button (they're
-// hidden below lg), so the "More" overlay folds them in alongside Software/Consulting/Careers.
+// On mobile there's no separate Customers/Products/Solutions/Resources/Pricing button (they're
+// hidden below lg), so the "More" overlay folds them in alongside Consulting/Careers.
 const mobileMoreRows: MenuRow[] = [
   { number: num(0), title: "Customers", items: customerNavItems },
-  { number: num(1), title: "Solutions", items: solutionsRows.map(({ title, href }) => ({ name: title, href: href as string })) },
-  { number: num(2), title: "Resources", items: resourceNavItems },
-  { number: num(3), title: "Pricing", href: "/pricing" },
-  ...MENU_ROWS.map((row, i) => ({ ...row, number: num(i + 4) }) as MenuRow),
+  { number: num(1), title: "Products", items: productNavItems },
+  { number: num(2), title: "Solutions", items: solutionsRows.map(({ title, href }) => ({ name: title, href: href as string })) },
+  { number: num(3), title: "Resources", items: resourceNavItems },
+  { number: num(4), title: "Pricing", href: "/pricing" },
+  ...MENU_ROWS.map((row, i) => ({ ...row, number: num(i + 5) }) as MenuRow),
 ]
 
-type MenuKind = "more" | "customers" | "solutions" | "resources"
-const MENU_TITLES: Record<MenuKind, string> = { more: "More", customers: "Customers", solutions: "Solutions", resources: "Resources" }
+type MenuKind = "more" | "customers" | "products" | "solutions" | "resources"
+const MENU_TITLES: Record<MenuKind, string> = {
+  more: "More",
+  customers: "Customers",
+  products: "Products",
+  solutions: "Solutions",
+  resources: "Resources",
+}
 
 const MONO_LABEL = "font-mono text-[0.6875rem] uppercase tracking-[0.24em]"
 // Top-nav links use the body (sans) font, not the mono label style.
@@ -253,7 +260,20 @@ export function Header() {
                 <ChevronDown className={`size-3.5 transition-transform ${activeMenu === "customers" ? "rotate-180" : ""}`} aria-hidden="true" />
               </button>
 
-              {/* Solutions and Resources open the same full-width overlay as More. */}
+              <button
+                type="button"
+                onClick={() => toggleMenu("products")}
+                aria-expanded={activeMenu === "products"}
+                aria-controls="site-menu"
+                className={`inline-flex items-center gap-1 outline-none transition-colors hover:text-accent focus-visible:text-accent ${NAV_LABEL} ${
+                  activeMenu === "products" || productNavItems.some((item) => isCurrent(item.href)) ? "text-accent" : ""
+                }`}
+              >
+                Products
+                <ChevronDown className={`size-3.5 transition-transform ${activeMenu === "products" ? "rotate-180" : ""}`} aria-hidden="true" />
+              </button>
+
+              {/* Products, Solutions and Resources open the same full-width overlay as More. */}
               <button
                 type="button"
                 onClick={() => toggleMenu("solutions")}
@@ -354,13 +374,21 @@ export function Header() {
           <div className="mx-auto max-w-7xl px-4 pb-20 pt-6 sm:px-8 md:px-20 md:pt-10">
             {activeMenu === "more" ? (
               <>
-                {/* Mobile: Customers/Solutions/Resources/Pricing have no other entry point, so fold them in here. */}
+                {/* Mobile: Customers/Products/Solutions/Resources/Pricing have no other entry point, so fold them in here. */}
                 <ul className="lg:hidden">{renderRows(mobileMoreRows)}</ul>
                 <ul className="hidden lg:block">{renderRows(MENU_ROWS)}</ul>
               </>
             ) : (
               <ul>
-                {renderRows(activeMenu === "customers" ? customerRows : activeMenu === "solutions" ? solutionsRows : resourcesRows)}
+                {renderRows(
+                  activeMenu === "customers"
+                    ? customerRows
+                    : activeMenu === "products"
+                      ? productRows
+                      : activeMenu === "solutions"
+                        ? solutionsRows
+                        : resourcesRows,
+                )}
               </ul>
             )}
 
