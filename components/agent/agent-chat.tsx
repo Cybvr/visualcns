@@ -378,6 +378,8 @@ export function AgentChat({
   compact = false,
   className,
   startingOptions = DEFAULT_STARTING_OPTIONS,
+  allowAttachments = true,
+  welcome,
 }: {
   messages: AgentMessage[]
   conversations: AgentConversation[]
@@ -391,6 +393,10 @@ export function AgentChat({
   className?: string
   /** The suggestion buttons on a new chat. */
   startingOptions?: string[]
+  /** Off for signed-out visitors, who can't upload files. */
+  allowAttachments?: boolean
+  /** Heading on a new chat. Defaults to welcoming the signed-in person by name. */
+  welcome?: string
 }) {
   const recentChats = conversations.filter((conversation) => conversation.messages.length > 0).slice(0, 3)
   const [input, setInput] = useState("")
@@ -570,10 +576,10 @@ export function AgentChat({
   return (
     <div
       className={cn("dashboard-body agent-chat-root relative flex h-full min-h-0 flex-col md:overflow-hidden font-sans [&_*]:font-sans", compact ? "bg-background" : "agent-surface", className)}
-      onDragEnter={handleDragEnter}
-      onDragOver={handleDragOver}
-      onDragLeave={handleDragLeave}
-      onDrop={handleDrop}
+      onDragEnter={allowAttachments ? handleDragEnter : undefined}
+      onDragOver={allowAttachments ? handleDragOver : undefined}
+      onDragLeave={allowAttachments ? handleDragLeave : undefined}
+      onDrop={allowAttachments ? handleDrop : undefined}
     >
       {dragging && (
         <div className="pointer-events-none absolute inset-0 z-50 flex items-center justify-center bg-background/85 p-4 backdrop-blur-sm">
@@ -589,7 +595,7 @@ export function AgentChat({
           <div className="m-auto flex w-full min-w-0 max-w-lg flex-col items-center">
             <Image src="/ngai-logo.png" alt="Ngai" width={compact ? 36 : 48} height={compact ? 36 : 48} className={compact ? undefined : "size-10 sm:size-12"} priority />
             <h1 className={cn("mt-4 font-sans tracking-[-0.02em] sm:mt-6", compact ? "text-xl" : "text-2xl sm:text-3xl")}>
-              Welcome to Ngai, {firstName}
+              {welcome ?? `Welcome to Ngai, ${firstName}`}
             </h1>
             <div className={cn("mt-5 flex flex-wrap justify-center gap-2 sm:mt-6", compact ? "max-w-[20rem]" : "max-w-xl")}>
               {startingOptions.map((option) => (
@@ -770,24 +776,26 @@ export function AgentChat({
               value={input}
               onChange={(event) => setInput(event.target.value)}
               onKeyDown={handleKeyDown}
-              onPaste={handlePaste}
+              onPaste={allowAttachments ? handlePaste : undefined}
               rows={1}
               placeholder="Ask Ngai"
               aria-label="Message Ngai"
               className="min-h-0 w-full resize-none overflow-y-auto rounded-lg border-0 bg-transparent! px-2 py-2 shadow-none [field-sizing:fixed] focus-visible:border-transparent focus-visible:ring-0"
             />
             <div className="flex items-center justify-between">
-            <Button
-              type="button"
-              size="icon"
-              variant="ghost"
-              aria-label="Attach file"
-              disabled={uploading || streaming}
-              onClick={() => fileInput.current?.click()}
-              className="size-10 shrink-0 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
-            >
-              <Plus className="size-5" aria-hidden="true" />
-            </Button>
+            {allowAttachments ? (
+              <Button
+                type="button"
+                size="icon"
+                variant="ghost"
+                aria-label="Attach file"
+                disabled={uploading || streaming}
+                onClick={() => fileInput.current?.click()}
+                className="size-10 shrink-0 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
+              >
+                <Plus className="size-5" aria-hidden="true" />
+              </Button>
+            ) : <span aria-hidden="true" />}
             <div className="flex items-center gap-1">
             {voiceSupported && (
               <Button

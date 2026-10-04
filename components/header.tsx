@@ -39,9 +39,10 @@ const consultingNavItems = [
 const bookNowHref = "/contact"
 
 // Rendered after the Resources dropdown so the order reads:
-// Customers, Products, Solutions, Resources, Pricing, More.
+// Customers, Products, Solutions, Resources, Pricing, Help, More.
 const trailingNavItems = [
   { name: "Pricing", href: "/pricing" },
+  { name: "Help", href: "/help" },
 ]
 
 const serviceNavItems = capabilities.map((service) => ({
@@ -90,7 +91,8 @@ const mobileMoreRows: MenuRow[] = [
   { number: num(2), title: "Solutions", items: solutionsRows.map(({ title, href }) => ({ name: title, href: href as string })) },
   { number: num(3), title: "Resources", items: resourceNavItems },
   { number: num(4), title: "Pricing", href: "/pricing" },
-  ...MENU_ROWS.map((row, i) => ({ ...row, number: num(i + 5) }) as MenuRow),
+  { number: num(5), title: "Help", href: "/help" },
+  ...MENU_ROWS.map((row, i) => ({ ...row, number: num(i + 6) }) as MenuRow),
 ]
 
 type MenuKind = "more" | "customers" | "products" | "solutions" | "resources"
