@@ -51,6 +51,7 @@ import { contextualEmailBody, parseEmailList, plainTextToEditorHtml, readEmailCo
 import { getBusinessProfile, type BusinessProfile } from "@/lib/business-profile"
 import { MAX_EMAIL_ATTACHMENTS, MAX_EMAIL_ATTACHMENT_BYTES, readEmailAttachment } from "@/lib/email-attachments"
 import { deleteEmailTemplate, getEmailTemplates, saveEmailTemplate } from "@/lib/email-templates-store"
+import { SIGNUP_WELCOME_TEMPLATE_ID } from "@/lib/email-templates"
 import { markdownToHtml } from "@/lib/markdown"
 import { createUser, getUsers } from "@/lib/users"
 import { VISITOR_TRIAL_DAYS } from "@/lib/visitor-billing"
@@ -1586,21 +1587,20 @@ export default function EmailPage() {
     }
   }
 
-  async function addVisitorWelcomeTemplate() {
+  async function addSignupWelcomeTemplate() {
     if (!user?.uid) {
       setTemplateNotice({ tone: "error", text: "Sign in before adding a template." })
       return
     }
+    // Sent automatically by /api/signup, which fills in [Name] and [Company] and adds the company page button.
     const welcomeTemplate: EmailTemplate = {
-      id: "visitor-signup-welcome",
-      name: "Visitor Sign-in welcome",
-      subject: "Welcome to Visitor Sign-in",
+      id: SIGNUP_WELCOME_TEMPLATE_ID,
+      name: "Signup welcome",
+      subject: "Welcome to VisualCNS, [Company]",
       body:
-        "<p>Hi there,</p>" +
-        `<p>Welcome to VisualCNS. Your Visitor Sign-in account is ready, and your ${VISITOR_TRIAL_DAYS}-day free trial has started.</p>` +
-        "<p>To get started, sign in to your company page and open Visitors. You can find your visitor sign-in link there and set up the people your visitors can choose to meet.</p>" +
-        "<p><a href=\"https://www.visualcns.com/login\">Sign in to VisualCNS</a></p>" +
-        "<p>If you need help setting things up, reply to this email and we’ll be happy to help.</p>" +
+        "<p>Hi [Name],</p>" +
+        "<p>Your [Company] account is ready. Open your company page to get started.</p>" +
+        "<p>If you need help, reply to this email and we’ll be happy to help.</p>" +
         "<p>Best,<br />The VisualCNS team</p>",
       updatedAt: new Date().toISOString(),
     }
@@ -1616,7 +1616,7 @@ export default function EmailPage() {
       setTemplates((current) => [storedTemplate, ...current.filter((template) => template.id !== storedTemplate.id)])
       editTemplate(storedTemplate)
       setMobileTemplateView("editor")
-      setTemplateNotice({ tone: "success", text: "Visitor welcome email added. Review it, then use the template to send." })
+      setTemplateNotice({ tone: "success", text: "Signup welcome email added. New users get it when they sign up." })
     } catch {
       setTemplateNotice({ tone: "error", text: "The template could not be added. Try again." })
     }
@@ -2003,7 +2003,7 @@ export default function EmailPage() {
             mobileTemplateView={mobileTemplateView}
             businessProfile={businessProfile}
             isAdmin={isAdmin}
-            addVisitorWelcomeTemplate={addVisitorWelcomeTemplate}
+            addSignupWelcomeTemplate={addSignupWelcomeTemplate}
             addVisitorSalesTemplate={addVisitorSalesTemplate}
             resetTemplateEditor={resetTemplateEditor}
             deleteTemplate={(id) => setPendingDelete({ kind: "template", ids: [id] })}

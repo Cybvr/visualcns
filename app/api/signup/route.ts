@@ -5,6 +5,7 @@ import { adminServices } from "@/lib/firebase-admin"
 import { getSiteAgencyId } from "@/lib/require-agency-id"
 import { getAgencySecret } from "@/lib/server/agency-secrets"
 import { brandedEmail, escapeHtml, normalizeEmailAddress, SITE_ORIGIN } from "@/lib/server/email-branding"
+import { SIGNUP_WELCOME_TEMPLATE_ID } from "@/lib/email-templates"
 import { sendMetaLead } from "@/lib/server/meta-conversions"
 import { RESERVED_SLUGS, slugify } from "@/lib/slugs"
 
@@ -81,16 +82,33 @@ async function notifyAdmins(db: FirebaseFirestore.Firestore, agencyId: string, c
   if (!response.ok) throw new Error("Signup notification was not accepted")
 }
 
+/** The admin-edited welcome template from the Email page, if one was added. */
+async function signupWelcomeTemplate(db: FirebaseFirestore.Firestore, agencyId: string) {
+  const snapshot = await db.collection("emailTemplates").where("agencyId", "==", agencyId).where("id", "==", SIGNUP_WELCOME_TEMPLATE_ID).limit(1).get()
+  const data = snapshot.docs[0]?.data()
+  return data?.subject && data.body ? { subject: String(data.subject), body: String(data.body) } : null
+}
+
 /** Sends the new user a confirmation without blocking account creation. */
-async function sendWelcomeEmail(agencyId: string, company: { name: string; slug: string }, person: { name: string; email: string }) {
+async function sendWelcomeEmail(db: FirebaseFirestore.Firestore, agencyId: string, company: { name: string; slug: string }, person: { name: string; email: string }) {
   const apiKey = await getAgencySecret(agencyId, "RESEND_API_KEY", process.env.RESEND_API_KEY || "")
   const from = normalizeEmailAddress(await getAgencySecret(agencyId, "EMAIL_FROM", process.env.EMAIL_FROM || `VisualCNS <${INBOX_EMAIL}>`))
   if (!apiKey || !from || !person.email) return false
 
-  const subject = `Welcome to VisualCNS, ${company.name}`
   const url = `${SITE_ORIGIN}/${encodeURIComponent(company.slug)}`
-  const text = `Hi ${person.name || "there"},\n\nYour ${company.name} account is ready. Open your company page to get started.\n\nYour company page: ${url}`
-  const html = brandedEmail(`<p>${escapeHtml(text).replace(/\n\n/g, "</p><p>")}</p>`, subject, { name: "VisualCNS", email: from }, from, { text: "Open your company page", url })
+  const name = person.name || "there"
+  const template = await signupWelcomeTemplate(db, agencyId).catch(() => null)
+  let subject = `Welcome to VisualCNS, ${company.name}`
+  const text = `Hi ${name},\n\nYour ${company.name} account is ready. Open your company page to get started.\n\nYour company page: ${url}`
+  let html = brandedEmail(`<p>${escapeHtml(text).replace(/\n\n/g, "</p><p>")}</p>`, subject, { name: "VisualCNS", email: from }, from, { text: "Open your company page", url })
+  if (template) {
+    const fill = (value: string, escape: (field: string) => string) => value
+      .replaceAll("[Name]", escape(name))
+      .replaceAll("[Company]", escape(company.name))
+    subject = fill(template.subject, (field) => field)
+    // Resend builds the plain text from the HTML.
+    html = brandedEmail(fill(template.body, escapeHtml), subject, { name: "VisualCNS", email: from }, from, { text: "Open your company page", url })
+  }
   const response = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: {
@@ -98,7 +116,7 @@ async function sendWelcomeEmail(agencyId: string, company: { name: string; slug:
       "Content-Type": "application/json",
       "Idempotency-Key": `signup-welcome-${company.slug}`,
     },
-    body: JSON.stringify({ from, to: [person.email], subject, text: `${text}\n\nOpen your company page: ${url}`, html }),
+    body: JSON.stringify({ from, to: [person.email], subject, html, ...(template ? {} : { text: `${text}\n\nOpen your company page: ${url}` }) }),
     cache: "no-store",
   })
   return response.ok
@@ -199,7 +217,7 @@ export async function POST(request: NextRequest) {
   const person = { name: personName, email }
   const [adminEmailResult, welcomeEmailResult] = await Promise.allSettled([
     notifyAdmins(db, agencyId, company, person),
-    sendWelcomeEmail(agencyId, company, person),
+    sendWelcomeEmail(db, agencyId, company, person),
   ])
   if (welcomeEmailResult.status === "fulfilled" && welcomeEmailResult.value) {
     await userRef.set({ welcomeEmailPending: false, welcomeEmailSentAt: new Date().toISOString() }, { merge: true }).catch(() => undefined)

@@ -7,3 +7,6 @@ export type EmailTemplateSeed = {
   imageUrl?: string
   imageAlt?: string
 }
+
+/** The welcome email /api/signup sends to new users, when an admin has added it. */
+export const SIGNUP_WELCOME_TEMPLATE_ID = "signup-welcome"

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
 import type { BusinessProfile } from "@/lib/business-profile"
+import { SIGNUP_WELCOME_TEMPLATE_ID } from "@/lib/email-templates"
 import { EmailListHeader, EmailListRow } from "./email-list-row"
 import type { EmailTemplate } from "./types"
 
@@ -33,7 +34,7 @@ export type EmailTemplatesProps = {
   mobileTemplateView: "list" | "editor"
   businessProfile: BusinessProfile | null
   isAdmin: boolean
-  addVisitorWelcomeTemplate: () => void
+  addSignupWelcomeTemplate: () => void
   addVisitorSalesTemplate: () => void
   resetTemplateEditor: () => void
   deleteTemplate: (id: string) => void
@@ -65,7 +66,7 @@ export function EmailTemplates({
   mobileTemplateView,
   businessProfile,
   isAdmin,
-  addVisitorWelcomeTemplate,
+  addSignupWelcomeTemplate,
   addVisitorSalesTemplate,
   resetTemplateEditor,
   deleteTemplate,
@@ -73,7 +74,7 @@ export function EmailTemplates({
   contactAvatarTone,
   formatListDate,
 }: EmailTemplatesProps) {
-  const hasVisitorWelcomeTemplate = templates.some((template) => (template.templateId || template.id) === "visitor-signup-welcome")
+  const hasSignupWelcomeTemplate = templates.some((template) => (template.templateId || template.id) === SIGNUP_WELCOME_TEMPLATE_ID)
   const hasVisitorSalesTemplate = templates.some((template) => (template.templateId || template.id) === "visitor-signin-introduction")
 
   return (
@@ -112,10 +113,10 @@ export function EmailTemplates({
         </div>
       </form>
       <div className={cn("min-h-0 w-full min-w-0 max-w-full max-lg:shrink-0 lg:flex-1 lg:overflow-y-auto", mobileTemplateView === "list" ? "block" : "hidden")}>
-        {isAdmin && (!hasVisitorSalesTemplate || !hasVisitorWelcomeTemplate) && (
+        {isAdmin && (!hasVisitorSalesTemplate || !hasSignupWelcomeTemplate) && (
           <div className="flex flex-wrap items-center justify-end gap-2 border-b border-border p-2">
             {!hasVisitorSalesTemplate && <Button type="button" variant="outline" size="sm" onClick={addVisitorSalesTemplate}>Add Visitor introduction email</Button>}
-            {!hasVisitorWelcomeTemplate && <Button type="button" variant="outline" size="sm" onClick={addVisitorWelcomeTemplate}>Add Visitor welcome email</Button>}
+            {!hasSignupWelcomeTemplate && <Button type="button" variant="outline" size="sm" onClick={addSignupWelcomeTemplate}>Add signup welcome email</Button>}
           </div>
         )}
         {templates.length === 0 ? <div className="mt-3 rounded-[12px] border border-dashed border-border px-4 py-8 text-center"><FileText className="mx-auto size-5 text-muted-foreground" aria-hidden="true" /><p className="mt-3 text-sm font-medium">No templates yet</p><p className="mt-1 text-xs leading-5 text-muted-foreground">Save the first one using the editor.</p></div> : visibleTemplates.length === 0 ? <div className="mt-3 rounded-[12px] border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground">No templates match your search.</div> : (
