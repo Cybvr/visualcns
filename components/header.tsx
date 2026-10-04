@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useEffect, useRef, useState, type CSSProperties } from "react"
-import { ArrowUpRight, ChevronDown, LogIn, Menu, X } from "lucide-react"
+import { ArrowUpRight, ChevronDown, LogIn, Menu, Phone, X } from "lucide-react"
 import { onAuthStateChanged, type User } from "firebase/auth"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -239,10 +239,10 @@ export function Header() {
       >
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-8 md:px-20 md:py-5">
           <div className="flex items-center gap-3 md:gap-5">
-            <Link href="/" aria-label="VisualCNS home">
+            <Link href="/" aria-label="VisualCNS home" className="order-2 lg:order-none">
               <span
-                className="poppins-wordmark leading-none text-foreground"
-                style={{ fontSize: "26px", lineHeight: "0.82", fontWeight: 400 }}
+                className="poppins-wordmark text-[20px] leading-none text-foreground lg:text-[26px]"
+                style={{ lineHeight: "0.82", fontWeight: 400 }}
               >
                 VisualCNS
               </span>
@@ -323,7 +323,7 @@ export function Header() {
               aria-expanded={activeMenu === "more"}
               aria-controls="site-menu"
               aria-label={activeMenu === "more" ? "Close menu" : "Open more navigation"}
-              className={`inline-flex items-center outline-none transition-colors hover:text-accent focus-visible:text-accent ${NAV_LABEL} ${activeMenu === "more" ? "text-accent" : "text-foreground"}`}
+              className={`order-1 inline-flex items-center outline-none transition-colors lg:order-none hover:text-accent focus-visible:text-accent ${NAV_LABEL} ${activeMenu === "more" ? "text-accent" : "text-foreground"}`}
             >
               {activeMenu === "more" ? (
                 <X className="size-5 lg:hidden" aria-hidden="true" />
@@ -358,7 +358,12 @@ export function Header() {
                 </Button>
               </>
             )}
-            <Button asChild size="lg" className="px-3">
+            <Button asChild size="icon-lg" className="lg:hidden">
+              <Link href="/contact" aria-label="Talk to sales">
+                <Phone aria-hidden="true" />
+              </Link>
+            </Button>
+            <Button asChild size="lg" className="hidden px-3 lg:inline-flex">
               <Link href="/contact">Talk to sales</Link>
             </Button>
           </div>
