@@ -115,7 +115,7 @@ const FAQS = [
   },
   {
     question: "How does it work?",
-    answer: "Sign up, then open the Visitors tab on your company page and switch on the front desk. Open the sign-in link on a tablet at reception. A visitor enters their name, picks who they're visiting and why, and taps sign in. When they leave, they tap Sign out and pick their name.",
+    answer: "A visitor signs in on the tablet at reception, or on their own phone. They pick who they're here to see, and that person gets an email straight away. You always know who's in the building, and they sign out when they leave.",
   },
   {
     question: "What else can it do?",
@@ -134,12 +134,8 @@ const FAQS = [
     answer: "Staff are the people visitors can choose to visit. They get an email when their visitor arrives.",
   },
   {
-    question: "What happens if my plan runs out?",
-    answer: "If a payment fails or you cancel, sign-in keeps working for 3 more days after your paid period. After that it pauses. Your past visits are kept, and it switches back on when you pay.",
-  },
-  {
-    question: "What if someone gets hold of our sign-in link?",
-    answer: "Make a new sign-in link or QR code from the Visitors tab. The old one stops working straight away.",
+    question: "What if our sign-in link gets shared?",
+    answer: "You can swap it for a new link or QR code in seconds, and the old one stops working straight away.",
   },
   {
     question: "Can I try it first?",
