@@ -9,7 +9,8 @@ import { useRecordTitle } from "@/components/dashboard/page-title-context"
 import { useUrlSelection } from "@/hooks/use-url-selection"
 import { CompactListRow, CompactListSkeleton } from "@/components/dashboard/compact-list-row"
 import { EmptySearchState, FirstRunState } from "@/components/dashboard/empty-state"
-import { FilterBar, useFilterBar } from "@/components/dashboard/filter-bar"
+import { TableFilterBar } from "@/components/dashboard/table-filter-bar"
+import { useFilterBar } from "@/components/dashboard/filter-bar"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
@@ -226,16 +227,10 @@ export default function NotesPage() {
   })
 
   const noteFilter = (
-    <FilterBar
+    <TableFilterBar
       {...bar}
-      className="mb-0 h-16 border-b border-border"
       placeholder="Search notes"
-      actions={
-        <Button variant="ghost" className="bg-transparent text-foreground hover:bg-transparent" onClick={() => void add()}>
-          <Plus className="h-4 w-4" aria-hidden="true" />
-          New
-        </Button>
-      }
+      createAction={{ label: "New note", onClick: () => void add() }}
     />
   )
 

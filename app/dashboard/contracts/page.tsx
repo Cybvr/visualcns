@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { Copy, Download, Eye, Loader2, Pencil, Plus, Trash2 } from "lucide-react"
+import { Copy, Download, Eye, Loader2, Pencil, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
@@ -41,7 +41,8 @@ import {
   getContractsByCompanyId,
   type Contract,
 } from "@/lib/billing"
-import { FilterBar, useFilterBar, type SortOption } from "@/components/dashboard/filter-bar"
+import { TableFilterBar } from "@/components/dashboard/table-filter-bar"
+import { useFilterBar, type SortOption } from "@/components/dashboard/filter-bar"
 import { TableBulkBar } from "@/components/dashboard/table-bulk-bar"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useRowSelection } from "@/hooks/use-row-selection"
@@ -183,12 +184,10 @@ export default function ContractsPage() {
 
   return (
     <main className="mx-auto w-full max-w-5xl px-4 pt-4 pb-12 sm:px-6">
-      <FilterBar
+      <TableFilterBar
         {...bar}
         placeholder="Search contracts"
-        actions={
-          adminView && <Button asChild variant="ghost" className="bg-transparent text-foreground hover:bg-transparent"><Link href="/dashboard/contracts/new"><Plus className="size-4" aria-hidden="true" />New</Link></Button>
-        }
+        createAction={adminView ? { label: "New contract", href: "/dashboard/contracts/new" } : undefined}
       />
 
       {loading ? (

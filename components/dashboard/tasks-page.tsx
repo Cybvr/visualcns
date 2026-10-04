@@ -22,7 +22,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet"
-import { Mail, Maximize2, Plus, Trash2, Loader2 } from "lucide-react"
+import { Mail, Maximize2, Trash2, Loader2 } from "lucide-react"
 import {
   duplicateTask,
   getTasks,
@@ -38,13 +38,21 @@ import { useRecordTitle } from "@/components/dashboard/page-title-context"
 import { useUrlSelection } from "@/hooks/use-url-selection"
 import { TaskForm } from "@/components/dashboard/task-form"
 import { EmptySearchState, FirstRunState } from "@/components/dashboard/empty-state"
-import { FilterBar, useFilterBar } from "@/components/dashboard/filter-bar"
+import { TableFilterBar } from "@/components/dashboard/table-filter-bar"
+import { useFilterBar, type SortOption } from "@/components/dashboard/filter-bar"
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { useTaskEmail } from "@/components/dashboard/use-task-email"
 
 function searchTask(t: Task) {
   return [t.name, t.client, t.companyId, t.project, taskStatusMeta[t.status]?.label, taskPriorityMeta[t.priority]?.label]
 }
+
+const taskSorts: SortOption<Task>[] = [
+  { value: "updatedAt", label: "Last modified", get: (task) => Math.max(tsToMillis(task.updatedAt), tsToMillis(task.createdAt)), ascLabel: "Oldest", descLabel: "Newest" },
+  { value: "name", label: "Name", get: (task) => task.name, ascLabel: "A–Z", descLabel: "Z–A" },
+  { value: "client", label: "Client", get: (task) => task.client || task.companyId, ascLabel: "A–Z", descLabel: "Z–A" },
+  { value: "status", label: "Status", get: (task) => taskStatusMeta[task.status]?.label, ascLabel: "A–Z", descLabel: "Z–A" },
+]
 
 function TaskContentPane({
   selectedId,
@@ -198,7 +206,9 @@ export default function TasksAdminPage() {
   const { results: visibleTasks, bar } = useFilterBar({
     items: tasks,
     search: searchTask,
-    sorts: [],
+    sorts: taskSorts,
+    defaultSort: "updatedAt",
+    defaultDirection: "desc",
   })
 
   const selectedTask =
@@ -206,13 +216,10 @@ export default function TasksAdminPage() {
   useRecordTitle(selectedId === "new" ? "New task" : selectedTask?.name || null)
 
   const taskFilter = (
-    <FilterBar
+    <TableFilterBar
       {...bar}
-      className="mb-0 h-16 border-b border-border"
       placeholder="Search tasks"
-      actions={
-        <Button variant="ghost" className="bg-transparent text-foreground hover:bg-transparent" onClick={() => setSelectedId("new")}><Plus className="h-4 w-4" />New</Button>
-      }
+      createAction={{ label: "New task", onClick: () => setSelectedId("new") }}
     />
   )
 

@@ -221,7 +221,7 @@ export function FilterBar({
         onChange={(event) => onQueryChange(event.target.value)}
         placeholder={placeholder}
         aria-label={placeholder}
-        className="pl-9 [&::-webkit-search-cancel-button]:hidden"
+        className="pl-9 pr-9 [&::-webkit-search-cancel-button]:hidden"
       />
       {query && (
         <button
@@ -250,6 +250,7 @@ export function FilterBar({
   const mobileBody = (
     <div className="space-y-4">
       {searchField}
+      {sortMenu}
       {filterBody}
     </div>
   )

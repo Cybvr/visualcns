@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { Building2, Maximize2, Pencil, Plus } from "lucide-react"
+import { Building2, Maximize2, Pencil } from "lucide-react"
 import type { Timestamp } from "firebase/firestore"
 
 import { useAuth } from "@/components/auth-provider"
@@ -25,7 +25,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
-import { FilterBar, useFilterBar, type SortOption } from "@/components/dashboard/filter-bar"
+import { TableFilterBar } from "@/components/dashboard/table-filter-bar"
+import { useFilterBar, type SortOption } from "@/components/dashboard/filter-bar"
 import { useUrlSelection } from "@/hooks/use-url-selection"
 import { deleteOrganization, getOrganizations, type Organization } from "@/lib/organizations"
 import { formatTimestamp, tsToMillis } from "@/lib/tasks"
@@ -211,16 +212,10 @@ export default function CompaniesPage() {
   }
 
   const clientFilter = (
-    <FilterBar
+    <TableFilterBar
       {...bar}
-      className="mb-0 h-16 border-b border-border"
       placeholder="Search clients"
-      actions={
-        <Button variant="ghost" className="bg-transparent text-foreground hover:bg-transparent" onClick={() => setCreating(true)}>
-          <Plus className="size-4" aria-hidden="true" />
-          New
-        </Button>
-      }
+      createAction={{ label: "New client", onClick: () => setCreating(true) }}
     />
   )
 

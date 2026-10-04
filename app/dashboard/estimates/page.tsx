@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { ExternalLink, Mail, MoreHorizontal, Plus } from "lucide-react"
+import { ExternalLink, Mail, MoreHorizontal } from "lucide-react"
 import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
@@ -15,7 +15,8 @@ import { DuplicateDocumentDialog, type DuplicateSelection } from "@/components/d
 import { EstimateDocument } from "@/components/dashboard/estimate-document"
 import { EstimateBuilder } from "@/components/dashboard/estimate-builder"
 import { FirstRunState } from "@/components/dashboard/empty-state"
-import { FilterBar, useFilterBar } from "@/components/dashboard/filter-bar"
+import { TableFilterBar } from "@/components/dashboard/table-filter-bar"
+import { useFilterBar } from "@/components/dashboard/filter-bar"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
@@ -108,11 +109,10 @@ export default function EstimatesPage() {
   if (!user) return null
 
   const estimateFilter = (
-    <FilterBar
+    <TableFilterBar
       {...bar}
-      className="mb-0 h-16 border-b border-border"
       placeholder="Search estimates"
-      actions={adminView && <Button asChild variant="ghost" className="bg-transparent text-foreground hover:bg-transparent"><Link href="/dashboard/estimates/new"><Plus className="size-4" aria-hidden="true" />New</Link></Button>}
+      createAction={adminView ? { label: "New estimate", href: "/dashboard/estimates/new" } : undefined}
     />
   )
 

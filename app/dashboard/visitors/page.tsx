@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
-import { EllipsisVertical, Loader2, LogOut, Search } from "lucide-react"
+import { EllipsisVertical, Loader2, LogOut } from "lucide-react"
 import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
@@ -10,7 +10,8 @@ import { TableRowsSkeleton } from "@/components/dashboard/collection-skeletons"
 import { CompactListSkeleton } from "@/components/dashboard/compact-list-row"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Input } from "@/components/ui/input"
+import { TableFilterBar } from "@/components/dashboard/table-filter-bar"
+import { useFilterBar } from "@/components/dashboard/filter-bar"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { getOrganizations } from "@/lib/organizations"
 import { signOutVisitor, visitDay, visitTime, watchAgencyVisitors, watchVisitors, type Visitor } from "@/lib/visitors"
@@ -31,7 +32,6 @@ export default function VisitorsPage() {
   const [retryCount, setRetryCount] = useState(0)
   const [companyNames, setCompanyNames] = useState<Record<string, { name: string; slug?: string }>>({})
   const [filter, setFilter] = useState<"all" | "on_site">("all")
-  const [search, setSearch] = useState("")
   const [busyId, setBusyId] = useState("")
 
   useEffect(() => {
@@ -53,15 +53,17 @@ export default function VisitorsPage() {
   }, [agencyView])
 
   const onSiteCount = useMemo(() => (visitors ?? []).filter((visitor) => visitor.status === "on_site").length, [visitors])
-  const rows = useMemo(() => {
-    const words = search.trim().toLowerCase()
-    return (visitors ?? []).filter((visitor) => {
-      if (filter === "on_site" && visitor.status !== "on_site") return false
-      if (!words) return true
-      const company = visitor.companyName || companyNames[visitor.companyId]?.name || ""
-      return [visitor.name, visitor.visitorCompany, visitor.hostName, visitor.reason, company, visitor.phone, visitor.email].join(" ").toLowerCase().includes(words)
-    })
-  }, [companyNames, filter, search, visitors])
+  const filteredVisitors = useMemo(
+    () => (visitors ?? []).filter((visitor) => filter === "all" || visitor.status === "on_site"),
+    [filter, visitors],
+  )
+  const { results: rows, bar } = useFilterBar({
+    items: filteredVisitors,
+    search: (visitor) => [
+      [visitor.name, visitor.visitorCompany, visitor.hostName, visitor.reason,
+        visitor.companyName || companyNames[visitor.companyId]?.name || "", visitor.phone, visitor.email].join(" "),
+    ],
+  })
 
   async function signOut(visitor: Visitor) {
     setBusyId(visitor.id)
@@ -76,7 +78,7 @@ export default function VisitorsPage() {
 
   return (
     <main className="mx-auto w-full max-w-5xl px-4 pt-4 pb-12 sm:px-6">
-      <div className="flex flex-wrap items-center gap-3">
+      <TableFilterBar {...bar} placeholder="Search visitors" controls={
         <div className="inline-flex rounded-full bg-card p-1">
           {([
             { value: "all", label: "All" },
@@ -96,11 +98,7 @@ export default function VisitorsPage() {
             </button>
           ))}
         </div>
-        <label className="relative ml-auto w-full sm:w-64">
-          <Search className="pointer-events-none absolute left-0 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
-          <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search visitors" aria-label="Search visitors" className="pl-6" />
-        </label>
-      </div>
+      } />
 
       {error ? (
         <div role="alert" className="mt-10 flex flex-wrap items-center gap-3 text-sm">

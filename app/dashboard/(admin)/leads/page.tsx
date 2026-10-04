@@ -15,11 +15,12 @@ import {
   type DragEndEvent,
   type DragStartEvent,
 } from "@dnd-kit/core"
-import { FileUp, Kanban, Plus, Rows3 } from "lucide-react"
+import { FileUp, Kanban, Rows3 } from "lucide-react"
 import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
-import { FilterBar, useFilterBar } from "@/components/dashboard/filter-bar"
+import { TableFilterBar } from "@/components/dashboard/table-filter-bar"
+import { useFilterBar } from "@/components/dashboard/filter-bar"
 import { ImportLeadsDialog } from "@/components/dashboard/import-leads-dialog"
 import { TableBulkBar } from "@/components/dashboard/table-bulk-bar"
 import { useViewMode, type ViewMode } from "@/components/dashboard/view-toggle"
@@ -172,20 +173,16 @@ export default function LeadsPage() {
   return (
     <main className="mx-auto w-full max-w-6xl px-4 pt-4 pb-12 sm:px-6">
       <div className="lg:max-w-[30rem]">
-        <FilterBar
+        <TableFilterBar
           {...bar}
-          className="mb-0 h-16 border-b border-border"
           placeholder="Search leads"
+          createAction={{ label: "New lead", onClick: () => setEditing("new") }}
           actions={
             <>
               <LeadsViewToggle view={view} onChange={setView} />
               <Button variant="ghost" className="bg-transparent text-foreground hover:bg-transparent" onClick={() => setImportOpen(true)} disabled={leads === null || error}>
                 <FileUp className="size-4" aria-hidden="true" />
                 Import CSV
-              </Button>
-              <Button variant="ghost" className="bg-transparent text-foreground hover:bg-transparent" onClick={() => setEditing("new")}>
-                <Plus className="size-4" aria-hidden="true" />
-                New
               </Button>
             </>
           }

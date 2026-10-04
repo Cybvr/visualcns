@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { ExternalLink, FileUp, Mail, Pencil, Plus } from "lucide-react"
+import { ExternalLink, FileUp, Mail, Pencil } from "lucide-react"
 import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
@@ -15,7 +15,8 @@ import { DuplicateDocumentDialog, type DuplicateSelection } from "@/components/d
 import { FirstRunState } from "@/components/dashboard/empty-state"
 import { ImportWordDocumentDialog } from "@/components/dashboard/import-word-document-dialog"
 import { NewDocumentDialog } from "@/components/dashboard/new-document-dialog"
-import { FilterBar, useFilterBar } from "@/components/dashboard/filter-bar"
+import { TableFilterBar } from "@/components/dashboard/table-filter-bar"
+import { useFilterBar } from "@/components/dashboard/filter-bar"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
@@ -141,14 +142,13 @@ export default function DocumentsPage() {
   if (!user) return null
 
   const documentFilter = (
-    <FilterBar
+    <TableFilterBar
       {...bar}
-      className="mb-0 h-16 border-b border-border"
       placeholder="Search documents"
+      createAction={adminView ? { label: "New document", onClick: () => setCreating(true) } : undefined}
       actions={adminView && (
         <>
           <Button variant="ghost" size="icon" className="bg-transparent text-foreground hover:bg-transparent" onClick={() => setImporting(true)} aria-label="Import document" title="Import document"><FileUp className="size-4" aria-hidden="true" /></Button>
-          <Button variant="ghost" className="bg-transparent text-foreground hover:bg-transparent" onClick={() => setCreating(true)}><Plus className="size-4" aria-hidden="true" />New</Button>
         </>
       )}
     />

@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/table"
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Eye, Loader2, Plus, Trash2 } from "lucide-react"
+import { Eye, Loader2, Trash2 } from "lucide-react"
 import { FaFolderOpen } from "react-icons/fa"
 import { getProjects, deleteProject, projectSlug, projectStatusMeta, type Project } from "@/lib/projects"
 import { NewProjectDialog } from "@/components/dashboard/new-project-dialog"
@@ -35,7 +35,8 @@ import { ProjectCover } from "@/components/project-card"
 import { GridCard, GridCardList } from "@/components/dashboard/grid-card"
 import { ViewToggle, useViewMode } from "@/components/dashboard/view-toggle"
 import { EmptySearchState, FirstRunState } from "@/components/dashboard/empty-state"
-import { FilterBar, useFilterBar, type SortOption } from "@/components/dashboard/filter-bar"
+import { TableFilterBar } from "@/components/dashboard/table-filter-bar"
+import { useFilterBar, type SortOption } from "@/components/dashboard/filter-bar"
 import { TableBulkBar } from "@/components/dashboard/table-bulk-bar"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useRowSelection } from "@/hooks/use-row-selection"
@@ -136,17 +137,13 @@ export default function ProjectsAdminPage() {
 
   return (
     <main className="mx-auto w-full max-w-6xl px-4 pt-4 pb-12 sm:px-6">
-      <FilterBar
+      <TableFilterBar
         {...bar}
         mobileVariant="drawer"
         headerOnMobile
         placeholder="Search projects"
         controls={<ViewToggle view={view} onChange={setView} />}
-        actions={
-          <Button variant="ghost" size="icon" className="bg-transparent text-foreground hover:bg-transparent" onClick={() => setCreating(true)} aria-label="Add Project">
-            <Plus className="h-4 w-4" />
-          </Button>
-        }
+        createAction={{ label: "New project", onClick: () => setCreating(true) }}
       >
         {companyOptions.length > 0 && (
           <Select value={companyFilter} onValueChange={setCompanyFilter}>
@@ -163,7 +160,7 @@ export default function ProjectsAdminPage() {
             </SelectContent>
           </Select>
         )}
-      </FilterBar>
+      </TableFilterBar>
 
       {loading ? (
         view === "grid" ? <GridCardsSkeleton /> : <>

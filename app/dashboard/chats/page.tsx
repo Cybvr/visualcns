@@ -3,14 +3,15 @@
 import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { MessageSquare, Plus } from "lucide-react"
+import { MessageSquare } from "lucide-react"
 
 import { useAgent, type AgentConversation } from "@/components/agent/agent-context"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { GridCardsSkeleton, TableRowsSkeleton } from "@/components/dashboard/collection-skeletons"
 import { EmptySearchState, FirstRunState } from "@/components/dashboard/empty-state"
-import { FilterBar, useFilterBar, type SortOption } from "@/components/dashboard/filter-bar"
+import { TableFilterBar } from "@/components/dashboard/table-filter-bar"
+import { useFilterBar, type SortOption } from "@/components/dashboard/filter-bar"
 import { GridCard, GridCardList } from "@/components/dashboard/grid-card"
 import { TableBulkBar } from "@/components/dashboard/table-bulk-bar"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -76,10 +77,10 @@ export default function AllChatsPage() {
 
   return (
     <main className="mx-auto w-full max-w-6xl px-4 pt-4 pb-12 sm:px-6">
-      <FilterBar
+      <TableFilterBar
         {...bar}
         placeholder="Search chats"
-        actions={<Button variant="ghost" className="bg-transparent text-foreground hover:bg-transparent" onClick={startChat}><Plus className="h-4 w-4" />New Chat</Button>}
+        createAction={{ label: "New chat", onClick: startChat }}
       />
       {deleteError && <p role="alert" className="mb-3 text-sm text-destructive">{deleteError}</p>}
 

@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { ExternalLink, Mail, MoreHorizontal, Plus } from "lucide-react"
+import { ExternalLink, Mail, MoreHorizontal } from "lucide-react"
 import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
@@ -13,7 +13,8 @@ import { CompactListRow } from "@/components/dashboard/compact-list-row"
 import { DocumentSplitPane } from "@/components/dashboard/document-split-pane"
 import { DuplicateDocumentDialog, type DuplicateSelection } from "@/components/dashboard/duplicate-document-dialog"
 import { FirstRunState } from "@/components/dashboard/empty-state"
-import { FilterBar, useFilterBar } from "@/components/dashboard/filter-bar"
+import { TableFilterBar } from "@/components/dashboard/table-filter-bar"
+import { useFilterBar, type SortOption } from "@/components/dashboard/filter-bar"
 import { InvoiceBuilder } from "@/components/dashboard/invoice-builder"
 import { InvoiceDocument } from "@/components/dashboard/invoice-document"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
@@ -24,7 +25,7 @@ import { invoiceEmailContext } from "@/lib/document-emails"
 import { buildEmailComposeHref } from "@/lib/email-composer"
 import { getExchangeRate } from "@/lib/currency"
 import { getOrganizations, organizationRef, type Organization } from "@/lib/organizations"
-import { formatTimestamp } from "@/lib/tasks"
+import { formatTimestamp, tsToMillis } from "@/lib/tasks"
 
 function OutstandingSummary({ invoices }: { invoices: Invoice[] }) {
   const unpaid = invoices.filter((invoice) => invoice.status === "sent" || invoice.status === "overdue")
@@ -60,6 +61,13 @@ function OutstandingSummary({ invoices }: { invoices: Invoice[] }) {
 function searchInvoice(invoice: Invoice) {
   return [invoice.invoiceNumber, invoice.title, invoice.client, invoice.companyId, invoice.project, invoice.poReference, invoiceStatusMeta[invoice.status]?.label]
 }
+
+const invoiceSorts: SortOption<Invoice>[] = [
+  { value: "updatedAt", label: "Last modified", get: (invoice) => Math.max(tsToMillis(invoice.updatedAt), tsToMillis(invoice.createdAt)), ascLabel: "Oldest", descLabel: "Newest" },
+  { value: "number", label: "Invoice number", get: (invoice) => invoice.invoiceNumber, ascLabel: "A–Z", descLabel: "Z–A" },
+  { value: "client", label: "Client", get: (invoice) => invoice.client || invoice.companyId, ascLabel: "A–Z", descLabel: "Z–A" },
+  { value: "status", label: "Status", get: (invoice) => invoiceStatusMeta[invoice.status]?.label, ascLabel: "A–Z", descLabel: "Z–A" },
+]
 
 export default function InvoicesPage() {
   const router = useRouter()
@@ -99,7 +107,7 @@ export default function InvoicesPage() {
 
   const organizationRefById = useMemo(() => new Map(organizations.map((organization) => [organization.id, organizationRef(organization)])), [organizations])
   const companyRefFor = (id: string) => organizationRefById.get(id) ?? id
-  const { results: visibleInvoices, bar } = useFilterBar({ items: invoices, search: searchInvoice, sorts: [] })
+  const { results: visibleInvoices, bar } = useFilterBar({ items: invoices, search: searchInvoice, sorts: invoiceSorts, defaultSort: "updatedAt", defaultDirection: "desc" })
   const selectedInvoice = selectedId ? invoices.find((invoice) => invoice.id === selectedId) ?? null : null
   useRecordTitle(selectedInvoice ? selectedInvoice.title || (selectedInvoice.invoiceNumber ? `Invoice ${selectedInvoice.invoiceNumber}` : "Invoice") : null)
 
@@ -140,11 +148,10 @@ export default function InvoicesPage() {
   if (!user) return null
 
   const invoiceFilter = (
-    <FilterBar
+    <TableFilterBar
       {...bar}
-      className="mb-0 h-16 border-b border-border"
       placeholder="Search invoices"
-      actions={adminView && <Button asChild variant="ghost" className="bg-transparent text-foreground hover:bg-transparent"><Link href="/dashboard/invoices/new" aria-label="New invoice"><Plus className="size-4" aria-hidden="true" />New</Link></Button>}
+      createAction={adminView ? { label: "New invoice", href: "/dashboard/invoices/new" } : undefined}
     />
   )
 

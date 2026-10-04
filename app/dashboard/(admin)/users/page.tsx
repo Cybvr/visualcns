@@ -24,7 +24,8 @@ import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { useAuth } from "@/components/auth-provider"
 import { useRecordTitle } from "@/components/dashboard/page-title-context"
 import { useUrlSelection } from "@/hooks/use-url-selection"
-import { FilterBar, useFilterBar, type SortOption } from "@/components/dashboard/filter-bar"
+import { TableFilterBar } from "@/components/dashboard/table-filter-bar"
+import { useFilterBar, type SortOption } from "@/components/dashboard/filter-bar"
 import { formatTimestamp, tsToMillis } from "@/lib/tasks"
 import { buildEmailComposeHref } from "@/lib/email-composer"
 
@@ -160,18 +161,14 @@ export default function UsersAdminPage() {
   useRecordTitle(isNew ? "New contact" : selectedUser?.displayName || selectedUser?.email || null)
 
   const contactFilter = (
-    <FilterBar
+    <TableFilterBar
       {...bar}
-      className="mb-0 h-16 border-b border-border"
       placeholder="Search contacts"
+      createAction={{ label: "New contact", onClick: () => setSelectedId("new") }}
       actions={
         <>
           <Button variant="ghost" size="icon" className="bg-transparent text-foreground hover:bg-transparent" disabled={inviting} onClick={() => void handleInvite()} aria-label="Invite contact" title="Invite contact">
             {inviting ? <Loader2 className="size-4 animate-spin" /> : <UserPlus className="size-4" aria-hidden="true" />}
-          </Button>
-          <Button variant="ghost" className="bg-transparent text-foreground hover:bg-transparent" onClick={() => setSelectedId("new")}>
-            <Plus className="size-4" aria-hidden="true" />
-            New
           </Button>
         </>
       }
