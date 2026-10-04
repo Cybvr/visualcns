@@ -9,6 +9,7 @@ const footerGroups = [
     links: [
       { name: "Pass", href: "/pass" },
       { name: "Pulse", href: "/pulse" },
+      { name: "Ngai", href: "/help" },
       { name: "Pasive", href: "/brands/pasive" },
       { name: "Juju", href: "/brands/juju" },
       { name: "Waddi", href: "/brands/waddi" },
