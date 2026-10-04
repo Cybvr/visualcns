@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import type { ComponentType } from "react"
-import { ArrowLeft, Bell, BookOpen, ChevronRight, CreditCard, Database, Link2, LogOut, Palette, Server, Sparkles, UserRound, Users } from "lucide-react"
+import { ArrowLeft, Bell, BookOpen, ChevronRight, Database, Link2, LogOut, Palette, Server, Sparkles, UserRound, Users } from "lucide-react"
 
 import { useAuth } from "@/components/auth-provider"
 
@@ -14,7 +14,6 @@ const LINKS: { label: string; href: string; icon: ComponentType<{ className?: st
   { label: "Integrations", href: "/dashboard/account/integrations", icon: Link2, adminOnly: true },
   { label: "Agency Management", href: "/dashboard/admin/agencies", icon: Server, superAdminOnly: true },
   { label: "Team", href: "/dashboard/account/team", icon: Users, adminOnly: true },
-  { label: "Billing", href: "/dashboard/account/billing", icon: CreditCard, adminOnly: true },
   { label: "App Settings", href: "/dashboard/account/customization", icon: Palette },
   { label: "Notifications", href: "/dashboard/account/notifications", icon: Bell, adminOnly: true },
   { label: "Data", href: "/dashboard/account/data", icon: Database, adminOnly: true },

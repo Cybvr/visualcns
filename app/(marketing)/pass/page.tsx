@@ -1,99 +1,126 @@
 import Link from "next/link"
 import Image from "next/image"
-import { ArrowRight, Bell, FileSignature, KeyRound, ShieldAlert, Users } from "lucide-react"
+import { ArrowRight, Bell, FileSignature, IdCard, ShieldAlert, Users } from "lucide-react"
 
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import {
-  AccessIllustration,
   AlertsIllustration,
   AuditReadyIllustration,
+  BadgeIllustration,
   CheckInIllustration,
   ConnectStackIllustration,
   DirectorySyncIllustration,
   UnboxKioskIllustration,
 } from "@/components/pass-illustrations"
 
-const PILOT_HREF = "/contact"
-const OVERVIEW_HREF = "#overview"
+const DEMO_HREF = "/visitors/demo"
 
-const RISKS = [
+type Item = { title: string; body: string; soon?: string[] }
+
+const RISKS: Item[] = [
   {
-    title: "Compliance violations",
-    body: "Exposed guest names and phone numbers violate GDPR, CCPA, and enterprise privacy mandates.",
+    title: "Private details on show",
+    body: "Every guest can read the names and phone numbers of the people who signed in before them.",
   },
   {
-    title: "Security blind spots",
-    body: "No automated cross-referencing with internal watchlists or pre-approved guest lists.",
+    title: "No clear view of who is on site",
+    body: "A paper book can't tell you who is still in the building or who they came to see.",
   },
   {
-    title: "Audit prep friction",
-    body: "Security teams spend weeks manually piecing together physical visitor records for annual SOC 2 or ITAR audits.",
+    title: "Slow audits",
+    body: "Your team spends days going through old pages to find one visit.",
   },
 ]
 
-const FEATURES = [
+const FEATURES: (Item & { icon: typeof FileSignature; illustration: () => React.JSX.Element })[] = [
   {
     icon: FileSignature,
     illustration: CheckInIllustration,
-    title: "Instant digital check-in & automated NDAs",
-    body: "Guests check in via touchscreen or touchless QR code on their mobile device. Custom NDAs, safety waivers, and health questionnaires are signed digitally before entry and stored instantly in your secure cloud vault.",
+    title: "Quick sign-in and signed agreements",
+    body: "Visitors sign in on a tablet at the front desk or scan a QR code with their phone. They sign your visitor agreement on screen, and the record is saved straight away.",
   },
   {
-    icon: KeyRound,
-    illustration: AccessIllustration,
-    title: "Native access control & badge provisioning",
-    body: "Automatically issue temporary RFID badges or mobile wallet passes. VisualCNS Pass syncs natively with enterprise physical access systems, including Brivo, Lenel S2, Genea, and Kisi, restricting visitor access exclusively to authorized zones.",
+    icon: IdCard,
+    illustration: BadgeIllustration,
+    title: "Visitor badges",
+    body: "Print a visitor badge with the guest's name, who they are visiting and your logo.",
+    soon: ["RFID or mobile wallet badges"],
   },
   {
     icon: Users,
     illustration: DirectorySyncIllustration,
-    title: "Single sign-on & directory sync",
-    body: "Manage employee hosts effortlessly. Sync directly with Okta, Microsoft Azure AD, and Google Workspace to instantly route visitor notifications, auto-fill host directories, and revoke access permissions in real time.",
+    title: "Your staff list",
+    body: "Add the people visitors can pick as their host. Each host gets told when their guest arrives.",
+    soon: ["Okta, Azure AD and Google Workspace directory sync"],
   },
   {
     icon: Bell,
     illustration: AlertsIllustration,
-    title: "Real-time emergency roll calls & instant alerts",
-    body: "When a visitor checks in, host employees receive automated notifications on Slack, Microsoft Teams, or SMS. In an emergency, safety marshals trigger a 1-click live evacuation roll call across all locations directly from any mobile device.",
+    title: "Instant alerts",
+    body: "Hosts get an email when their visitor arrives. You can also send alerts to Slack, Microsoft Teams or any webhook.",
+    soon: ["SMS alerts", "One-click evacuation roll call"],
   },
 ]
 
-const VERTICALS = [
+const VERTICALS: Item[] = [
   {
-    title: "Corporate HQs",
-    body: "Deliver a VIP guest experience while keeping front-desk queues moving seamlessly.",
+    title: "Head offices",
+    body: "Give guests a quick, friendly welcome and keep the front desk line short.",
   },
   {
-    title: "Data centers & tech infrastructure",
-    body: "Enforce strict ID scanning, facial matching, watchlist screening, and automated escort mandates.",
+    title: "Data centres and tech sites",
+    body: "Know who is on site, who they came to see and when they left.",
+    soon: ["ID scanning, face matching and watchlists"],
   },
   {
-    title: "Manufacturing & defense",
-    body: "Stay fully compliant with ITAR, EAR, and CMMC physical security controls with automated audit logs.",
+    title: "Factories and secure sites",
+    body: "Keep a full record of every visit, ready when an auditor asks.",
+    soon: ["ITAR, CMMC and SOC 2 compliance"],
   },
 ]
 
-const STEPS = [
-  { title: "Connect stack", body: "Sync Okta & Slack in 3 clicks.", illustration: ConnectStackIllustration },
-  { title: "Unbox kiosk", body: "Plug in the pre-configured VisualCNS iPad enclosure.", illustration: UnboxKioskIllustration },
-  { title: "Go audit-ready", body: "Automate compliance from day one.", illustration: AuditReadyIllustration },
+const STEPS: Item[] = [
+  { title: "Add your staff", body: "Add your hosts and turn on Slack or Teams alerts if you use them." },
+  {
+    title: "Open it on a tablet",
+    body: "Open your sign-in page on a tablet at the front desk.",
+    soon: ["Pre-configured iPad kiosks shipped to you"],
+  },
+  { title: "Keep every record", body: "Every visit is saved, so you can find any visitor in seconds." },
 ]
+const STEP_ILLUSTRATIONS = [ConnectStackIllustration, UnboxKioskIllustration, AuditReadyIllustration]
 
 const DEPLOY_POINTS = [
   {
-    title: "Zero IT overhead",
-    body: "We ship pre-configured, tamper-proof hardware enclosures directly to your facility.",
+    title: "No special hardware",
+    body: "It runs in the browser on a tablet you already have.",
   },
   {
-    title: "Turnkey setup",
-    body: "Plug in power, connect to Wi-Fi, and your security policies deploy automatically.",
+    title: "Simple setup",
+    body: "Add your staff, open the sign-in page and you're ready.",
   },
   {
-    title: "Land and expand",
-    body: "Test at one high-traffic entrance before expanding across your entire global footprint.",
+    title: "Start small",
+    body: "Try it at one front desk, then add your other offices.",
   },
 ]
+
+function ComingSoon({ items, className = "" }: { items?: string[]; className?: string }) {
+  if (!items?.length) return null
+  return (
+    <ul className={`mt-3 flex flex-col gap-2 ${className}`}>
+      {items.map((item) => (
+        <li key={item} className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+          <span>{item}</span>
+          <span className="rounded-full border border-border px-2 py-0.5 text-xs font-medium text-foreground">
+            Coming soon
+          </span>
+        </li>
+      ))}
+    </ul>
+  )
+}
 
 export default function PassPage() {
   return (
@@ -105,7 +132,7 @@ export default function PassPage() {
         <section className="relative isolate overflow-hidden bg-foreground">
           <Image
             src="/images/visualcns-visitor-reception-nigeria.png"
-            alt="A visitor checking in at a VisualCNS Pass kiosk"
+            alt="A visitor signing in at a VisualCNS Pass tablet"
             fill
             priority
             sizes="100vw"
@@ -117,53 +144,26 @@ export default function PassPage() {
               Know who&apos;s in your building.
             </h1>
             <p className="mt-6 max-w-md text-lg text-white/85">
-              Digital visitor sign-in, badges and audit-ready records for every office.
+              Pass is VisualCNS Visitor Sign-in: digital sign-in, visitor badges and a record of every visit.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-4">
               <Link
-                href={PILOT_HREF}
+                href={DEMO_HREF}
                 className="inline-flex h-12 items-center justify-center gap-2 whitespace-nowrap rounded-full bg-white px-6 font-medium text-black outline-none transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-white"
               >
-                Try it free for 30 days <ArrowRight className="size-4" aria-hidden />
-              </Link>
-              <Link href={OVERVIEW_HREF} className="font-medium text-white/85 underline-offset-4 hover:text-white hover:underline">
-                Watch the 1-minute video
+                Try the demo <ArrowRight className="size-4" aria-hidden />
               </Link>
             </div>
           </div>
         </section>
 
-        {/* Overview film */}
-        <section id="overview" className="mx-auto grid max-w-6xl scroll-mt-24 items-center gap-10 px-4 py-16 md:grid-cols-[1fr_auto] md:px-8 md:py-24">
-          <div>
-            <p className="mb-4 text-sm font-medium text-muted-foreground">See it in under a minute</p>
-            <h2 className="max-w-xl text-3xl font-semibold tracking-tight md:text-4xl">
-              From paper visitor book to audit-ready in 48 seconds
-            </h2>
-            <p className="mt-4 max-w-xl text-muted-foreground">
-              How visitors sign in, how hosts get told, who gets through which doors, and how every visit is kept on
-              record.
-            </p>
-          </div>
-          <video
-            className="mx-auto aspect-[9/16] w-full max-w-[20rem] rounded-2xl border border-border bg-foreground"
-            src="/marketing/visualcns-pass-9x16.mp4"
-            poster="/marketing/visualcns-pass-9x16-poster.jpg"
-            controls
-            playsInline
-            preload="metadata"
-            aria-label="VisualCNS Pass overview video"
-          />
-        </section>
-
         {/* Problem */}
         <section className="mx-auto max-w-6xl px-4 py-16 md:px-8 md:py-24">
           <h2 className="max-w-2xl text-3xl font-semibold tracking-tight md:text-4xl">
-            Paper visitor logs are your biggest audit risk
+            A paper visitor book causes more problems than it solves
           </h2>
           <p className="mt-4 max-w-2xl text-muted-foreground">
-            Paper guest books leave personal data visible to every visitor, fail compliance audits, and slow down your
-            front desk. Legacy software creates isolated data silos that your IT and security teams can&apos;t control.
+            It shows personal details to every guest, slows down your front desk and is hard to check when you need it.
           </p>
           <div className="mt-10 grid gap-4 md:grid-cols-3">
             {RISKS.map((risk) => (
@@ -180,11 +180,10 @@ export default function PassPage() {
         <section className="bg-muted/40">
           <div className="mx-auto max-w-6xl px-4 py-16 md:px-8 md:py-24">
             <h2 className="max-w-2xl text-3xl font-semibold tracking-tight md:text-4xl">
-              Modern physical security built for the enterprise stack
+              Everything your front desk needs
             </h2>
             <p className="mt-4 max-w-2xl text-muted-foreground">
-              VisualCNS Pass connects physical visitor check-ins directly to your existing identity, access control,
-              and communication software.
+              Pass handles sign-in, tells hosts their guest is here and keeps a record of every visit.
             </p>
             <div className="mt-10 grid gap-4 md:grid-cols-2">
               {FEATURES.map((feature, index) => (
@@ -198,6 +197,7 @@ export default function PassPage() {
                   </div>
                   <h3 className="text-lg font-semibold">{feature.title}</h3>
                   <p className="mt-2 text-sm text-muted-foreground">{feature.body}</p>
+                  <ComingSoon items={feature.soon} />
                 </div>
               ))}
             </div>
@@ -206,40 +206,45 @@ export default function PassPage() {
 
         {/* Verticals */}
         <section className="mx-auto max-w-6xl px-4 py-16 md:px-8 md:py-24">
-          <h2 className="text-3xl font-semibold tracking-tight md:text-4xl">Tailored for high-compliance verticals</h2>
+          <h2 className="text-3xl font-semibold tracking-tight md:text-4xl">Made for busy and secure sites</h2>
           <div className="mt-10 grid gap-4 md:grid-cols-3">
             {VERTICALS.map((vertical) => (
               <div key={vertical.title} className="border-t border-foreground pt-4">
                 <h3 className="font-semibold">{vertical.title}</h3>
                 <p className="mt-2 text-sm text-muted-foreground">{vertical.body}</p>
+                <ComingSoon items={vertical.soon} />
               </div>
             ))}
           </div>
         </section>
 
-        {/* Deploy */}
+        {/* Setup */}
         <section className="bg-muted/40">
           <div className="mx-auto max-w-6xl px-4 py-16 md:px-8 md:py-24">
-            <h2 className="text-3xl font-semibold tracking-tight md:text-4xl">Deploy to your first site in under 15 minutes</h2>
+            <h2 className="text-3xl font-semibold tracking-tight md:text-4xl">Getting started is simple</h2>
             <ol className="mt-10 grid gap-4 md:grid-cols-3">
-              {STEPS.map((step, index) => (
-                <li key={step.title} className="relative rounded-2xl border border-border bg-background p-6">
-                  <div className="mb-5">
-                    <step.illustration />
-                  </div>
-                  <span className="flex size-8 items-center justify-center rounded-full bg-foreground text-sm font-medium text-background">
-                    {index + 1}
-                  </span>
-                  <h3 className="mt-4 font-semibold">{step.title}</h3>
-                  <p className="mt-1 text-sm text-muted-foreground">{step.body}</p>
-                  {index < STEPS.length - 1 && (
-                    <ArrowRight
-                      className="absolute -right-3.5 top-1/2 hidden size-5 -translate-y-1/2 text-muted-foreground md:block"
-                      aria-hidden
-                    />
-                  )}
-                </li>
-              ))}
+              {STEPS.map((step, index) => {
+                const Illustration = STEP_ILLUSTRATIONS[index]
+                return (
+                  <li key={step.title} className="relative rounded-2xl border border-border bg-background p-6">
+                    <div className="mb-5">
+                      <Illustration />
+                    </div>
+                    <span className="flex size-8 items-center justify-center rounded-full bg-foreground text-sm font-medium text-background">
+                      {index + 1}
+                    </span>
+                    <h3 className="mt-4 font-semibold">{step.title}</h3>
+                    <p className="mt-1 text-sm text-muted-foreground">{step.body}</p>
+                    <ComingSoon items={step.soon} />
+                    {index < STEPS.length - 1 && (
+                      <ArrowRight
+                        className="absolute -right-3.5 top-1/2 hidden size-5 -translate-y-1/2 text-muted-foreground md:block"
+                        aria-hidden
+                      />
+                    )}
+                  </li>
+                )
+              })}
             </ol>
             <div className="mt-10 grid gap-6 md:grid-cols-3">
               {DEPLOY_POINTS.map((point) => (
@@ -252,35 +257,19 @@ export default function PassPage() {
           </div>
         </section>
 
-        {/* Proof */}
-        <section className="mx-auto max-w-4xl px-4 py-16 md:px-8 md:py-24">
-          <p className="mb-6 text-sm font-medium text-muted-foreground">Proven results</p>
-          <blockquote>
-            <p className="text-2xl font-medium leading-snug tracking-tight md:text-3xl">
-              &ldquo;VisualCNS Pass cut our security audit preparation time from two weeks to under ten minutes, while
-              completely eliminating front-desk check-in bottlenecks across our four regional offices.&rdquo;
-            </p>
-            <footer className="mt-6 text-sm text-muted-foreground">
-              Director of Global Workplace Security, Enterprise SaaS Client
-            </footer>
-          </blockquote>
-        </section>
-
         {/* Final CTA */}
-        <section className="px-4 pb-16 md:px-8 md:pb-24">
+        <section className="px-4 py-16 md:px-8 md:py-24">
           <div className="mx-auto max-w-6xl rounded-3xl bg-foreground px-6 py-14 text-center text-background md:px-12">
-            <h2 className="text-3xl font-semibold tracking-tight md:text-4xl">Ready to secure your front desk?</h2>
+            <h2 className="text-3xl font-semibold tracking-tight md:text-4xl">Ready to replace your paper visitor book?</h2>
             <p className="mx-auto mt-4 max-w-xl opacity-80">
-              Eliminate compliance risks and automate your physical access workflow today. Get a pre-configured kiosk
-              shipped to your office for a 30-day risk-free trial.
+              Try the demo to see how your visitors will sign in.
             </p>
             <Link
-              href={PILOT_HREF}
+              href={DEMO_HREF}
               className="mt-8 inline-flex h-12 items-center justify-center gap-2 rounded-full bg-background px-6 font-medium text-foreground transition-opacity hover:opacity-90"
             >
-              Start your enterprise pilot <ArrowRight className="size-4" aria-hidden />
+              Try the demo <ArrowRight className="size-4" aria-hidden />
             </Link>
-            <p className="mt-4 text-sm opacity-70">No credit card required. Includes dedicated implementation support.</p>
           </div>
         </section>
       </main>

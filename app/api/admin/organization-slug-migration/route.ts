@@ -8,7 +8,7 @@ export const runtime = "nodejs"
 
 const BATCH_LIMIT = 400
 const RESERVED_SLUGS = new Set([
-  "about", "blog", "brands", "capabilities", "case-studies", "contact", "faq", "finance", "industries",
+  "about", "blog", "brands", "capabilities", "case-studies", "contact", "faq", "industries",
   "login", "portfolio", "pricing", "privacy", "ratecard", "signup", "templates", "terms", "visualhq", "share",
   "quotes", "estimates", "auth", "api", "dashboard", "portal", "offline", "manifest",
 ])

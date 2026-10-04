@@ -4,6 +4,7 @@ import type { ComponentType } from "react"
 
 import { Pulse } from "@/components/company/pulse"
 import { CompanyMedia } from "@/components/company/company-media"
+import { CompanyPlan, useSubscription } from "@/components/company/company-plan"
 import { useCompanyPage, type CompanySectionKey } from "@/components/company/company-page-context"
 import { CompanyVisitors } from "@/components/company/company-visitors"
 import { AboutSection } from "@/components/company/sections/about-section"
@@ -32,22 +33,32 @@ function VisitorsSection() {
   return <CompanyVisitors agencyId={visitorAgencyId} companyId={company.id} slug={company.slug || company.id} />
 }
 
+/** Shown to the company's own people and the agency, so they can see and change their plan. */
+function PlanPanel() {
+  const { company } = useCompanyPage()
+  const billing = useSubscription(company.id)
+  return <CompanyPlan companyId={company.id} billing={billing} className="mt-5" />
+}
+
 function PulseSection() {
-  const { company, admin } = useCompanyPage()
+  const { company, admin, canManageTeam } = useCompanyPage()
   return (
-    <Pulse
-      companyId={company.id}
-      details={{
-        name: company.name,
-        logoUrl: company.logoUrl,
-        website: company.website,
-        industry: company.industry,
-        description: company.description,
-        targetCustomers: company.targetCustomers,
-        location: company.location,
-      }}
-      onSave={admin?.onUpdateCompany}
-    />
+    <>
+      {canManageTeam && <PlanPanel />}
+      <Pulse
+        companyId={company.id}
+        details={{
+          name: company.name,
+          logoUrl: company.logoUrl,
+          website: company.website,
+          industry: company.industry,
+          description: company.description,
+          targetCustomers: company.targetCustomers,
+          location: company.location,
+        }}
+        onSave={admin?.onUpdateCompany}
+      />
+    </>
   )
 }
 

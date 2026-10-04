@@ -54,14 +54,8 @@ export interface Project {
   tools?: string[]
   /** Icon key shared with the pricing cards, e.g. "orbit" or "pulse". */
   icon?: string
-  /** Template price in NGN. A template with no price reads as free. */
-  price?: number
-  /** Prefix on the displayed price, e.g. "From ". */
-  pricePrefix?: string
-  /** Billing cadence shown beside the price, e.g. "Setup + monthly". */
+  /** Cadence shown on the template, e.g. "Setup + monthly". */
   timeline?: string
-  /** Paystack link the template's buy button opens. */
-  paymentHref?: string
   /** Marks a client project as eligible for the public case-study experience. */
   isCaseStudy?: boolean
   /** Original portfolio document id. Used to make the temporary migration idempotent. */
@@ -140,25 +134,6 @@ export async function getProject(id: string): Promise<Project | null> {
 }
 
 export { slugify }
-
-/**
- * Every template purchase stays on Paystack. Seeded workflows use their
- * canonical vcns links; custom templates follow the same vcns{title} pattern.
- */
-export function templatePaymentHref(project: Pick<Project, "title" | "paymentHref">): string {
-  const slug = slugify(project.title).replace(/-/g, "")
-  const canonical: Record<string, string> = {
-    marketing: "vcnsmarketing",
-    orbit: "vcnsorbit",
-    studio: "vcnsstudio",
-    launch: "vcnslaunch",
-    pulse: "vcnspulse",
-    signal: "vcnssignal",
-    atlas: "vcnsatlas",
-  }
-  const path = canonical[slug] || project.paymentHref?.trim().split("/").pop() || `vcns${slug}`
-  return `https://paystack.shop/pay/${path}`
-}
 
 /**
  * The URL segment for a project. Existing docs have no stored slug, so this
@@ -286,9 +261,7 @@ export async function getTemplateSteps(templateId: string): Promise<string[]> {
 /** The template listing fields a publisher fills in. */
 export interface TemplateDetails {
   summary: string
-  price: number
   timeline: string
-  paymentHref: string
 }
 
 /**

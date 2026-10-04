@@ -75,7 +75,7 @@ export function TeamSection() {
       <div className="flex items-center justify-between gap-4">
         <h2 className="sr-only">Team</h2>
         <span className="sidebar-nav-label text-muted-foreground">
-          Team members{teamSeats.info ? ` · ${teamSeats.info.seats} of ${teamSeats.info.limit} seats` : ""}
+          Team members{teamSeats.info ? (teamSeats.info.limit === null ? ` · ${teamSeats.info.seats} seats` : ` · ${teamSeats.info.seats} of ${teamSeats.info.limit} seats`) : ""}
         </span>
         {admin && <SectionAddButton label="Add team members" onClick={openDialog} />}
       </div>

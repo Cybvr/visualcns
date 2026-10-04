@@ -5,6 +5,8 @@ import { adminServices } from "@/lib/firebase-admin"
 import { requireAgencyId } from "@/lib/require-agency-id"
 import { getAgencySecret, recordAgencyUsage } from "@/lib/server/agency-secrets"
 import { answerQuestion, runScan, type CompanyFacts } from "@/lib/server/pulse"
+import { ensureSubscription } from "@/lib/server/paystack"
+import { currentPlan, PLANS, planAccess } from "@/lib/subscription"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -57,7 +59,7 @@ async function resolveCaller(request: Request, companyId: string) {
     targetCustomers: typeof org.targetCustomers === "string" ? org.targetCustomers : undefined,
     location: typeof org.location === "string" ? org.location : undefined,
   }
-  return { db, agencyId, companyId, company }
+  return { db, agencyId, companyId, company, isAdmin }
 }
 
 async function keysFor(agencyId: string) {
@@ -70,7 +72,9 @@ async function keysFor(agencyId: string) {
   return { firecrawl, openai }
 }
 
-type Stored = { report?: PulseReport | null; links?: string[]; done?: string[]; dismissed?: string[] }
+type Stored = { report?: PulseReport | null; links?: string[]; done?: string[]; dismissed?: string[]; scanMonth?: string; scansThisMonth?: number }
+
+const thisMonth = () => new Date().toISOString().slice(0, 7)
 
 function stateOf(data: Stored | undefined): PulseState {
   return { report: data?.report ?? null, done: data?.done ?? [], dismissed: data?.dismissed ?? [] }
@@ -99,7 +103,7 @@ export async function POST(request: Request) {
   }
   const caller = await resolveCaller(request, String(body.companyId || ""))
   if ("error" in caller) return caller.error
-  const { db, agencyId, companyId, company } = caller
+  const { db, agencyId, companyId, company, isAdmin } = caller
   const ref = db.collection(COLLECTION).doc(companyId)
 
   if (body.action === "update") {
@@ -110,6 +114,12 @@ export async function POST(request: Request) {
     if (dismissed) patch.dismissed = dismissed
     await ref.set({ agencyId, companyId, ...patch }, { merge: true })
     return json({ ok: true })
+  }
+
+  // Pulse is part of the company's plan. The agency's own admins aren't limited.
+  const billing = isAdmin ? null : await ensureSubscription(db, agencyId, companyId)
+  if (billing && !planAccess(billing as Parameters<typeof planAccess>[0]).allowed) {
+    return json({ error: "Your plan is paused. Choose a plan to use Pulse again." }, 402)
   }
 
   const keys = await keysFor(agencyId)
@@ -131,11 +141,18 @@ export async function POST(request: Request) {
 
   if (body.action === "scan") {
     if (!company.name) return json({ error: "Add a business name first." }, 400)
+    const scansSoFar = stored?.scanMonth === thisMonth() ? stored.scansThisMonth ?? 0 : 0
+    if (billing) {
+      const plan = PLANS[currentPlan(billing as Parameters<typeof currentPlan>[0])]
+      if (scansSoFar >= plan.pulseScans) {
+        return json({ error: `Your ${plan.name} plan includes ${plan.pulseScans} ${plan.pulseScans === 1 ? "scan" : "scans"} a month. Upgrade your plan for more.` }, 402)
+      }
+    }
     try {
       const { report, links } = await runScan(keys, company, { report: stored?.report ?? null, links: stored?.links ?? [] })
       // A new scan brings new item ids, so earlier done and dismissed marks no longer apply.
       await ref.set(
-        { agencyId, companyId, report, links, done: [], dismissed: [], previousScannedAt: stored?.report?.scannedAt ?? null, updatedAt: FieldValue.serverTimestamp() },
+        { agencyId, companyId, report, links, done: [], dismissed: [], previousScannedAt: stored?.report?.scannedAt ?? null, scanMonth: thisMonth(), scansThisMonth: scansSoFar + 1, updatedAt: FieldValue.serverTimestamp() },
         { merge: true },
       )
       void recordAgencyUsage(agencyId, "businessHealthScans").catch(() => undefined)

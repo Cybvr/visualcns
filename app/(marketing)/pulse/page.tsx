@@ -110,7 +110,7 @@ export default function PulsePage() {
                   href={START_HREF}
                   className="inline-flex h-12 items-center justify-center gap-2 whitespace-nowrap rounded-full bg-background px-6 font-medium text-foreground outline-none transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-background"
                 >
-                  Get your free scan <ArrowRight className="size-4" aria-hidden />
+                  Start free trial <ArrowRight className="size-4" aria-hidden />
                 </Link>
                 <Link href="#how" className="font-medium opacity-85 underline-offset-4 hover:opacity-100 hover:underline">
                   See how it works
@@ -223,15 +223,15 @@ export default function PulsePage() {
           <div className="mx-auto max-w-6xl rounded-3xl bg-foreground px-6 py-14 text-center text-background md:px-12">
             <h2 className="text-3xl font-semibold tracking-tight md:text-4xl">See your score today</h2>
             <p className="mx-auto mt-4 max-w-xl opacity-80">
-              Add your website and run your first scan. Running more than one business or brand? Talk to us about a team
-              plan.
+              Add your website and run your first scan. Pulse is part of every VisualCNS plan, free for the first 30
+              days.
             </p>
             <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
               <Link
                 href={START_HREF}
                 className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-background px-6 font-medium text-foreground transition-opacity hover:opacity-90"
               >
-                Get your free scan <ArrowRight className="size-4" aria-hidden />
+                Start free trial <ArrowRight className="size-4" aria-hidden />
               </Link>
               <Link
                 href={SALES_HREF}

@@ -7,7 +7,7 @@ import { toast } from "sonner"
 import { useAuth } from "@/components/auth-provider"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import type { VisitorPlanKey } from "@/lib/visitor-billing"
+import type { PlanKey } from "@/lib/subscription"
 
 /**
  * A company's team seats: its people plus pending invites, capped by the
@@ -19,8 +19,9 @@ export type TeamSeatInfo = {
   staff: { id: string; name: string; email: string }[]
   pending: { id: string; email: string }[]
   seats: number
-  limit: number
-  plan: VisitorPlanKey | null
+  /** null means no limit. */
+  limit: number | null
+  plan: PlanKey | null
 }
 
 export function useTeamSeats(companyId: string, enabled = true) {
@@ -68,7 +69,7 @@ export function TeamInvitePanel({ info, call, onChange }: {
   const [email, setEmail] = useState("")
   const [busy, setBusy] = useState("")
   const [error, setError] = useState("")
-  const full = info.seats >= info.limit
+  const full = info.limit !== null && info.seats >= info.limit
 
   async function invite() {
     setBusy("invite")
@@ -111,7 +112,7 @@ export function TeamInvitePanel({ info, call, onChange }: {
           Invite
         </Button>
       </form>
-      {full && !error && <p className="text-xs text-muted-foreground">You&apos;ve used all {info.limit} seats. Upgrade your plan in the Visitors tab to add more people.</p>}
+      {full && !error && <p className="text-xs text-muted-foreground">You&apos;ve used all {info.limit} seats. Upgrade your plan to add more people.</p>}
       {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
       {info.pending.length > 0 && (
         <ul className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-background">

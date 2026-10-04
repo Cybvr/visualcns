@@ -1,18 +1,20 @@
 import { createHmac, timingSafeEqual } from "node:crypto"
 import { FieldValue, Timestamp, type Firestore } from "firebase-admin/firestore"
 
-import { isVisitorPlan, VISITOR_PLAN_KEYS, VISITOR_PLANS, VISITOR_TRIAL_DAYS, type VisitorPlanKey } from "@/lib/visitor-billing"
+import { isPlanInterval, isPlanKey, PLAN_INTERVALS, PLAN_KEYS, PLANS, planPrice, TRIAL_DAYS, type PlanInterval, type PlanKey } from "@/lib/subscription"
 
 /**
- * Paystack for visitor sign-in: one monthly Paystack plan per tier (Starter,
- * Business), one subscription per site. Needs PAYSTACK_SECRET_KEY. Plans are
- * made on first use and their codes kept in billingConfig/paystack (server
- * only). PAYSTACK_VISITORS_PLAN_CODE, if set, is used for Business.
+ * Paystack for the VisualCNS subscription: one Paystack plan per tier and
+ * interval (monthly or yearly), one subscription per company. Needs
+ * PAYSTACK_SECRET_KEY. Plans are made on first use and their codes kept in
+ * billingConfig/paystack (server only).
  */
 
 const API = "https://api.paystack.co"
 const DAY_MS = 24 * 60 * 60 * 1000
-const PLAN_NAME = "VisualCNS Visitor Sign-in"
+const PLAN_NAME = "VisualCNS"
+/** Marks our checkouts in Paystack metadata. */
+export const CHARGE_KIND = "subscription"
 
 export class PaystackError extends Error {}
 
@@ -45,33 +47,31 @@ export function validPaystackSignature(rawBody: string, signature: string) {
 
 type Plan = { id: number; plan_code: string; name: string; amount: number; interval: string; currency: string }
 
-/** A tier's monthly Paystack plan, made once and remembered. */
-export async function visitorPlan(db: Firestore, key: VisitorPlanKey = "business"): Promise<{ code: string; id?: number }> {
-  const fromEnv = process.env.PAYSTACK_VISITORS_PLAN_CODE?.trim()
-  if (fromEnv && key === "business") return { code: fromEnv }
+/** A tier's Paystack plan for one interval, made once and remembered. */
+export async function paystackPlan(db: Firestore, key: PlanKey, interval: PlanInterval): Promise<{ code: string; id?: number }> {
   const settings = db.collection("billingConfig").doc("paystack")
   const saved = (await settings.get()).data() ?? {}
-  const amount = VISITOR_PLANS[key].priceNaira * 100
-  const field = `visitorsPlan_${key}`
+  const amount = planPrice(key, interval) * 100
+  const field = `plan_${key}_${interval}`
   if (saved[`${field}_code`] && saved[`${field}_amount`] === amount) return { code: String(saved[`${field}_code`]), id: Number(saved[`${field}_id`]) || undefined }
-  // Business keeps the single ₦50,000 plan made before tiers, so existing subscribers still match.
-  if (key === "business" && saved.visitorsPlanCode && saved.visitorsPlanAmount === amount) return { code: String(saved.visitorsPlanCode), id: Number(saved.visitorsPlanId) || undefined }
-  const plan = await paystack<Plan>("/plan", { method: "POST", body: { name: `${PLAN_NAME} ${VISITOR_PLANS[key].name}`, interval: "monthly", amount, currency: "NGN" } })
+  const plan = await paystack<Plan>("/plan", { method: "POST", body: { name: `${PLAN_NAME} ${PLANS[key].name} (${interval})`, interval: interval === "yearly" ? "annually" : "monthly", amount, currency: "NGN" } })
   await settings.set({ [`${field}_code`]: plan.plan_code, [`${field}_id`]: plan.id, [`${field}_amount`]: amount, updatedAt: FieldValue.serverTimestamp() }, { merge: true })
   return { code: plan.plan_code, id: plan.id }
 }
 
-/** Which tier a Paystack plan code belongs to, or null if it isn't a visitor plan. */
-export async function visitorPlanKeyForCode(db: Firestore, code: string): Promise<VisitorPlanKey | null> {
+/** Which tier and interval a Paystack plan code belongs to, or null if it isn't ours. */
+export async function planForCode(db: Firestore, code: string): Promise<{ key: PlanKey; interval: PlanInterval } | null> {
   if (!code) return null
-  for (const key of VISITOR_PLAN_KEYS) {
-    if ((await visitorPlan(db, key)).code === code) return key
+  for (const key of PLAN_KEYS) {
+    for (const interval of PLAN_INTERVALS) {
+      if ((await paystackPlan(db, key, interval)).code === code) return { key, interval }
+    }
   }
   return null
 }
 
-/** Starts the free trial the first time a site's billing is looked at. */
-export async function ensureVisitorBilling(db: Firestore, agencyId: string, companyId: string) {
+/** Starts the free trial the first time a company's subscription is looked at. */
+export async function ensureSubscription(db: Firestore, agencyId: string, companyId: string) {
   const ref = db.collection("visitorBilling").doc(companyId)
   const current = (await ref.get()).data()
   if (current) return current
@@ -79,7 +79,7 @@ export async function ensureVisitorBilling(db: Firestore, agencyId: string, comp
     agencyId,
     companyId,
     status: "trialing",
-    trialEndsAt: Timestamp.fromMillis(Date.now() + VISITOR_TRIAL_DAYS * DAY_MS),
+    trialEndsAt: Timestamp.fromMillis(Date.now() + TRIAL_DAYS * DAY_MS),
     paidUntil: null,
     createdAt: FieldValue.serverTimestamp(),
     updatedAt: FieldValue.serverTimestamp(),
@@ -117,28 +117,29 @@ type Charge = {
 }
 
 /**
- * Records a successful payment for a site: paid a month ahead, plus the
+ * Records a successful payment for a company: paid a month or year ahead, plus the
  * Paystack customer so later subscription events can be matched to it.
  * Returns the company id it applied to, if any.
  */
 export async function applyCharge(db: Firestore, charge: Charge) {
   const meta = metadataOf(charge.metadata)
-  if (meta.kind !== "visitor_signin" || charge.status !== "success") return ""
+  if (meta.kind !== CHARGE_KIND || charge.status !== "success") return ""
   const companyId = String(meta.companyId || "")
   const agencyId = String(meta.agencyId || "")
   if (!companyId || !agencyId) return ""
   const ref = db.collection("visitorBilling").doc(companyId)
   const current = (await ref.get()).data() ?? {}
   if (current.lastReference === charge.reference) return companyId
-  const plan: VisitorPlanKey = isVisitorPlan(meta.plan) ? meta.plan : "business"
-  const currentPlan: VisitorPlanKey = isVisitorPlan(current.plan) ? current.plan : "business"
-  // Changing plan: the new payment starts a new subscription, so stop the old one.
-  const oldSubscription = current.subscriptionCode && plan !== currentPlan
+  if (!isPlanKey(meta.plan) || !isPlanInterval(meta.interval)) return ""
+  const plan: PlanKey = meta.plan
+  const interval: PlanInterval = meta.interval
+  // Changing plan or interval: the new payment starts a new subscription, so stop the old one.
+  const oldSubscription = current.subscriptionCode && (plan !== current.plan || interval !== current.interval)
     ? { code: String(current.subscriptionCode), token: String(current.emailToken || "") }
     : null
   const paidAt = stamp(charge.paid_at)?.toMillis() ?? Date.now()
-  const monthAhead = paidAt + 31 * DAY_MS
-  const paidUntil = Math.max(current.paidUntil?.toMillis?.() ?? 0, current.nextPaymentAt?.toMillis?.() ?? 0, monthAhead)
+  const periodAhead = paidAt + (interval === "yearly" ? 366 : 31) * DAY_MS
+  const paidUntil = Math.max(current.paidUntil?.toMillis?.() ?? 0, current.nextPaymentAt?.toMillis?.() ?? 0, periodAhead)
   await ref.set({
     agencyId,
     companyId,
@@ -149,11 +150,12 @@ export async function applyCharge(db: Firestore, charge: Charge) {
     email: charge.customer?.email || current.email || "",
     lastReference: charge.reference,
     plan,
+    interval,
     ...(oldSubscription ? { subscriptionCode: "", emailToken: "" } : {}),
     updatedAt: FieldValue.serverTimestamp(),
   }, { merge: true })
   if (oldSubscription?.token) {
-    // Cleared above first, so the "disabled" webhook for it no longer matches this site.
+    // Cleared above first, so the "disabled" webhook for it no longer matches this company.
     await paystack("/subscription/disable", { method: "POST", body: oldSubscription }).catch(() => undefined)
   }
   if (!current.subscriptionCode || oldSubscription) await linkSubscription(db, companyId)
@@ -162,12 +164,13 @@ export async function applyCharge(db: Firestore, charge: Charge) {
 
 type Subscription = { subscription_code: string; email_token?: string; status: string; next_payment_date?: string; createdAt?: string; plan?: { plan_code?: string } }
 
-/** Finds this site's Paystack subscription by customer, when a webhook hasn't linked it yet. */
+/** Finds this company's Paystack subscription by customer, when a webhook hasn't linked it yet. */
 export async function linkSubscription(db: Firestore, companyId: string) {
   const ref = db.collection("visitorBilling").doc(companyId)
   const billing = (await ref.get()).data()
   if (!billing?.customerId || billing.subscriptionCode) return
-  const plan = await visitorPlan(db, isVisitorPlan(billing.plan) ? billing.plan : "business")
+  if (!isPlanKey(billing.plan) || !isPlanInterval(billing.interval)) return
+  const plan = await paystackPlan(db, billing.plan, billing.interval)
   const list = await paystack<Subscription[]>(`/subscription?customer=${encodeURIComponent(String(billing.customerId))}&perPage=50`).catch(() => [])
   const taken = new Set((await db.collection("visitorBilling").where("customerCode", "==", billing.customerCode || "").get()).docs.map((row) => String(row.data().subscriptionCode || "")).filter(Boolean))
   const match = list

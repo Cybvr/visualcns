@@ -156,15 +156,6 @@
       ]
     },
     {
-      "collectionGroup": "portalComments",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "agencyId", "order": "ASCENDING" },
-        { "fieldPath": "companyId", "order": "ASCENDING" },
-        { "fieldPath": "taskId", "order": "ASCENDING" }
-      ]
-    },
-    {
       "collectionGroup": "invoices",
       "queryScope": "COLLECTION",
       "fields": [
@@ -279,22 +270,6 @@
       "fields": [
         { "fieldPath": "companyId", "order": "ASCENDING" },
         { "fieldPath": "status", "order": "ASCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "portalComments",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "clientId", "order": "ASCENDING" },
-        { "fieldPath": "taskId", "order": "ASCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "portalComments",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "companyId", "order": "ASCENDING" },
-        { "fieldPath": "taskId", "order": "ASCENDING" }
       ]
     },
     {

@@ -84,7 +84,7 @@ export interface Invoice {
   serviceCompletedOn?: string
   notes?: string
   paymentInstructions?: string
-  /** Where the client downloads or pays it */
+  /** Link to the original invoice, when it lives elsewhere */
   url?: string
   /** Readable without an account at /share/invoices/{id} once turned on. */
   shareEnabled?: boolean
@@ -196,7 +196,7 @@ export { formatMoney } from "./money"
 /** Who the invoice is from. Printed at the top of every invoice. */
 export const INVOICE_ISSUER: InvoiceParty = {
   name: "VisualCNS",
-  email: "info@visualcns.com",
+  email: "hello@visualcns.com",
   address: "Lagos, Nigeria",
   website: "visualcns.com",
 }

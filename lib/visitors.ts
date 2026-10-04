@@ -1,7 +1,7 @@
 import { collection, doc, getDocs, limit, onSnapshot, orderBy, query, setDoc, Timestamp, updateDoc, where } from "firebase/firestore"
 
 import { db } from "./firebase"
-import type { VisitorBilling } from "./visitor-billing"
+import type { Subscription } from "./subscription"
 
 /**
  * A person who signed in at a client's front desk. Created only by the
@@ -175,10 +175,10 @@ export function kioskUrl(slug: string, key: string) {
 }
 
 /** The site's trial and subscription, written only by the server. */
-export function watchVisitorBilling(companyId: string, onChange: (billing: VisitorBilling | null) => void, onError: (error: Error) => void) {
+export function watchSubscription(companyId: string, onChange: (billing: Subscription | null) => void, onError: (error: Error) => void) {
   return onSnapshot(
     doc(db, "visitorBilling", companyId),
-    (snapshot) => onChange(snapshot.exists() ? (snapshot.data() as VisitorBilling) : null),
+    (snapshot) => onChange(snapshot.exists() ? (snapshot.data() as Subscription) : null),
     onError,
   )
 }

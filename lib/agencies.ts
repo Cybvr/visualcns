@@ -15,8 +15,6 @@ export interface Agency {
   accentColor?: string
   subdomain?: string
   senderEmail?: string
-  stripeCustomerId?: string
-  stripeSubscriptionId?: string
   deletedAt?: Timestamp
   createdAt?: Timestamp
   updatedAt?: Timestamp

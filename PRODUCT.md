@@ -26,7 +26,7 @@ The existing application contains projects, tasks, companies, invoices, estimate
 - Preserve the usefulness of previously shared company links during the migration, including document destinations.
 - Keep existing company and document identities; the portal is a new experience over existing records.
 - Portal work is currently in planning, not implementation.
-- Detailed client task, approval, upload, and messaging permissions are proposed in docs/client-portal-plan.md and await review.
+- Removed on 2026-10-04 because they did not work: client contract e-signing, online invoice payment, approvals, and portal messaging. Clients can still view and download invoices and contracts, and accept estimates online.
 
 ## Evidence on Hand
 

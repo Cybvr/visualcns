@@ -4,9 +4,9 @@ import { FieldValue, Timestamp } from "firebase-admin/firestore"
 
 import { adminServices } from "@/lib/firebase-admin"
 import { getAgencySecret } from "@/lib/server/agency-secrets"
-import { ensureVisitorBilling } from "@/lib/server/paystack"
+import { ensureSubscription } from "@/lib/server/paystack"
 import { activeAgreement, announceArrival, announceDeparture, getVisitorSettings } from "@/lib/server/visitor-connections"
-import { visitorAccess } from "@/lib/visitor-billing"
+import { planAccess } from "@/lib/subscription"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -87,8 +87,8 @@ const PAUSED = "Visitor sign-in is paused for this office. Please sign in at rec
 
 /** The trial has ended and the site isn't paid up (beyond the grace days). */
 async function paused(kiosk: NonNullable<Awaited<ReturnType<typeof resolveKiosk>>>) {
-  const billing = await ensureVisitorBilling(kiosk.db, kiosk.agencyId, kiosk.orgId)
-  return !visitorAccess(billing).allowed
+  const billing = await ensureSubscription(kiosk.db, kiosk.agencyId, kiosk.orgId)
+  return !planAccess(billing).allowed
 }
 
 async function hostsFor(db: ReturnType<typeof adminServices>["db"], agencyId: string, companyId: string) {

@@ -61,7 +61,7 @@ export function brandedEmail(content: string, subject: string, input: unknown, s
   const source = input && typeof input === "object" ? input as Record<string, unknown> : {}
   const brand: EmailBrand = {
     name: safeBrandValue(source.name, "VisualCNS") || "VisualCNS",
-    email: extractEmailAddress(senderAddress || safeBrandValue(source.email, "info@visualcns.com")),
+    email: extractEmailAddress(senderAddress || safeBrandValue(source.email, "hello@visualcns.com")),
     phone: safeBrandValue(source.phone),
     address: safeBrandValue(source.address, "Lagos, Nigeria"),
     website: safeBrandValue(source.website, "visualcns.com"),

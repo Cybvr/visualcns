@@ -38,9 +38,7 @@ export function ProjectShareButton({
 }) {
   const [internalOpen, setInternalOpen] = useState(false)
   const [summary, setSummary] = useState(project.summary ?? "")
-  const [price, setPrice] = useState(project.price ? String(project.price) : "")
   const [timeline, setTimeline] = useState(project.timeline ?? "")
-  const [paymentHref, setPaymentHref] = useState(project.paymentHref ?? "")
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -50,9 +48,7 @@ export function ProjectShareButton({
     try {
       await publishTemplate(project.id, {
         summary: summary.trim(),
-        price: price.trim() ? Number(price) : 0,
         timeline: timeline.trim(),
-        paymentHref: paymentHref.trim(),
       })
       await onChanged()
       if (onOpenChange) onOpenChange(false)
@@ -113,40 +109,15 @@ export function ProjectShareButton({
               placeholder="For businesses who need help..."
             />
           </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="template-price">Price (NGN)</Label>
-              <Input
-                id="template-price"
-                type="number"
-                min={0}
-                value={price}
-                onChange={(event) => setPrice(event.target.value)}
-                placeholder="480000"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="template-timeline">Cadence</Label>
-              <Input
-                id="template-timeline"
-                value={timeline}
-                onChange={(event) => setTimeline(event.target.value)}
-                maxLength={60}
-                placeholder="Setup + monthly"
-              />
-            </div>
-          </div>
           <div className="space-y-2">
-            <Label htmlFor="template-payment">Paystack link</Label>
+            <Label htmlFor="template-timeline">Cadence</Label>
             <Input
-              id="template-payment"
-              value={paymentHref}
-              onChange={(event) => setPaymentHref(event.target.value)}
-              placeholder="https://paystack.shop/pay/..."
+              id="template-timeline"
+              value={timeline}
+              onChange={(event) => setTimeline(event.target.value)}
+              maxLength={60}
+              placeholder="Setup + monthly"
             />
-            <p className="text-xs text-muted-foreground">
-              Where the buy button sends people. Without one the card points at the contact page.
-            </p>
           </div>
 
           {error && (

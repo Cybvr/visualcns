@@ -10,9 +10,7 @@ import { createTask, deleteTask, getTasksByProjectId } from "./tasks"
 /**
  * The seven growth workflows, published as templates. A template is just a
  * project with isPublic true, so publishing one writes a project and one task
- * per step. This mirrors workflowPlanRows in lib/plans.ts, which still feeds
- * the rate card, and stays separate so the published copy can drift from the
- * printed price list without breaking either.
+ * per step. They come with the Pro plan, so they carry no price of their own.
  *
  * Writing projects is admin-only under firestore.rules, so this runs from the
  * admin dashboard where the browser is already signed in as one, rather than
@@ -23,11 +21,7 @@ export interface TemplateSeed {
   icon: string
   summary: string
   tools: string[]
-  price: number
-  pricePrefix: string
   timeline: string
-  /** Paystack payment page for this template. */
-  paymentHref: string
   steps: string[]
 }
 
@@ -42,10 +36,7 @@ export const TEMPLATE_SEEDS: TemplateSeed[] = [
     summary:
       "For businesses who need help running monthly marketing campaigns that create attention and follow-up.",
     tools: ["AI agents", "Meta Business Suite", "SendPulse", "Notion", "WhatsApp", "Google Sheets"],
-    price: 200000,
-    pricePrefix: "",
     timeline: "Monthly",
-    paymentHref: "https://paystack.shop/pay/vcnsmarketing",
     steps: [
       "Digital strategy",
       "Ad management",
@@ -59,10 +50,7 @@ export const TEMPLATE_SEEDS: TemplateSeed[] = [
     icon: "orbit",
     summary: "For businesses who need help capturing leads, replying faster, and booking more calls.",
     tools: ["AI agents", "Website forms", "WhatsApp", "Instagram DMs", "Gmail", "CRM / Sheets", "Cal.com"],
-    price: 680000,
-    pricePrefix: "From ",
     timeline: "Setup + monthly",
-    paymentHref: "https://paystack.shop/pay/vcnsorbit",
     steps: ["Lead routing", "Qualification rules", "Reminders", "Booking handoff", "Pipeline visibility"],
   },
   {
@@ -70,10 +58,7 @@ export const TEMPLATE_SEEDS: TemplateSeed[] = [
     icon: "image",
     summary: "For businesses who need help planning, approving, and publishing content consistently.",
     tools: ["AI agents", "Notion", "Airtable", "Google Drive", "Canva", "Buffer", "Meta Business Suite"],
-    price: 560000,
-    pricePrefix: "From ",
     timeline: "Setup + monthly",
-    paymentHref: "https://paystack.shop/pay/vcnsstudio",
     steps: ["Campaign board", "Content calendar", "Approval flow", "Asset library", "Publishing checklist"],
   },
   {
@@ -81,10 +66,7 @@ export const TEMPLATE_SEEDS: TemplateSeed[] = [
     icon: "rocket",
     summary: "For businesses who need help turning ad traffic into leads and sales follow-up.",
     tools: ["AI agents", "Meta Ads", "Google Analytics", "Landing pages", "Forms", "CRM", "Email / WhatsApp"],
-    price: 850000,
-    pricePrefix: "From ",
     timeline: "Setup + monthly",
-    paymentHref: "https://paystack.shop/pay/vcnslaunch",
     steps: [
       "Campaign funnel map",
       "Landing-page handoff",
@@ -98,10 +80,7 @@ export const TEMPLATE_SEEDS: TemplateSeed[] = [
     icon: "pulse",
     summary: "For businesses who need help following up with customers who showed interest but did not buy.",
     tools: ["AI agents", "Shopify / WooCommerce", "Paystack", "Email", "WhatsApp", "CRM", "Sheets"],
-    price: 520000,
-    pricePrefix: "From ",
     timeline: "Setup + monthly",
-    paymentHref: "https://paystack.shop/pay/vcnspulse",
     steps: [
       "Drop-off triggers",
       "Reminder sequences",
@@ -115,10 +94,7 @@ export const TEMPLATE_SEEDS: TemplateSeed[] = [
     icon: "chart",
     summary: "For businesses who need help understanding what is bringing leads, sales, and customer interest.",
     tools: ["AI agents", "Google Analytics", "Meta Ads", "Search Console", "CRM", "Sheets", "Looker Studio"],
-    price: 480000,
-    pricePrefix: "From ",
     timeline: "Setup + monthly",
-    paymentHref: "https://paystack.shop/pay/vcnssignal",
     steps: [
       "Data source map",
       "Reporting dashboard",
@@ -132,10 +108,7 @@ export const TEMPLATE_SEEDS: TemplateSeed[] = [
     icon: "map",
     summary: "For businesses who need help onboarding clients, organizing files, and managing delivery.",
     tools: ["AI agents", "Paystack", "Notion", "Google Drive", "Slack / WhatsApp", "Forms", "Email"],
-    price: 620000,
-    pricePrefix: "From ",
     timeline: "Setup + monthly",
-    paymentHref: "https://paystack.shop/pay/vcnsatlas",
     steps: ["Onboarding form", "Project workspace", "Folder automation", "Approval checkpoints", "Status update flow"],
   },
 ]
@@ -166,10 +139,7 @@ export async function publishTemplateSeed(seed: TemplateSeed): Promise<{ created
     summary: seed.summary,
     tools: seed.tools,
     icon: seed.icon,
-    price: seed.price,
-    pricePrefix: seed.pricePrefix,
     timeline: seed.timeline,
-    paymentHref: seed.paymentHref,
   }
 
   const existing = await getProjectBySlug(slug)

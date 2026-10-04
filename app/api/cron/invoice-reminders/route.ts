@@ -91,7 +91,7 @@ export async function GET(request: Request) {
     const cc = parseEmailList(invoice.reminderCc ?? []).valid.filter((email) => email !== to)
     const subject = reminderSubject(invoice, today)
     const text = reminderBody(invoice, today)
-    const cta = { text: "View and pay", url: `${SITE_ORIGIN}${companyDocumentPath(await companyRefFor(invoice.companyId), "invoice", invoice.id)}` }
+    const cta = { text: "View invoice", url: `${SITE_ORIGIN}${companyDocumentPath(await companyRefFor(invoice.companyId), "invoice", invoice.id)}` }
     const html = brandedEmail(markdownToHtml(text), subject, sender.brand, sender.from, cta)
     const footer = [sender.brand.name || "VisualCNS", extractEmailAddress(sender.from)].filter(Boolean).join(" · ")
     const plain = `${text}\n\n${cta.text}: ${cta.url}\n\n---\n${footer}\nX: ${X_URL}\nLinkedIn: ${LINKEDIN_URL}`

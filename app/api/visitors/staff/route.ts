@@ -6,7 +6,7 @@ import { getAgencySecret } from "@/lib/server/agency-secrets"
 import { authorizeVisitorManager as authorize, VisitorRefused } from "@/lib/server/visitor-auth"
 import { brandedEmail, escapeHtml, normalizeEmailAddress, SITE_ORIGIN } from "@/lib/server/email-branding"
 import { visitorStaff } from "@/lib/server/visitor-staff"
-import { isVisitorPlan, planForStaff, staffLimit, VISITOR_PLANS } from "@/lib/visitor-billing"
+import { isPlanKey, planForStaff, PLANS, staffLimit } from "@/lib/subscription"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -27,9 +27,10 @@ async function seatInfo(db: FirebaseFirestore.Firestore, agencyId: string, compa
     visitorStaff(db, agencyId, companyId),
     db.collection("visitorBilling").doc(companyId).get().then((snapshot) => snapshot.data()),
   ])
-  const limit = staffLimit(billing as Parameters<typeof staffLimit>[0])
-  const plan = isVisitorPlan(billing?.plan) ? billing.plan : null
-  return { ...people, limit, plan }
+  const allowed = staffLimit(billing as Parameters<typeof staffLimit>[0])
+  const plan = isPlanKey(billing?.plan) ? billing.plan : null
+  // null means no limit (Pro); Infinity doesn't survive JSON.
+  return { ...people, limit: Number.isFinite(allowed) ? allowed : null, plan }
 }
 
 function json(body: Record<string, unknown>, status = 200) {
@@ -79,12 +80,10 @@ export async function POST(request: NextRequest) {
     const info = await seatInfo(db, agencyId, companyId)
     if (info.staff.some((person) => person.email.toLowerCase() === email)) return json({ error: "That person is already on your staff." }, 409)
     if (info.pending.some((invite) => invite.email.toLowerCase() === email)) return json({ error: "That person already has an invite." }, 409)
-    if (info.seats >= info.limit) {
+    if (info.limit !== null && info.seats >= info.limit) {
       const next = planForStaff(info.seats + 1)
       return json({
-        error: next
-          ? `Your ${info.plan ? VISITOR_PLANS[info.plan].name : "current"} plan covers ${info.limit} staff. Upgrade to ${VISITOR_PLANS[next].name} to add more.`
-          : `You've reached ${info.limit} staff. Contact us for an Enterprise plan.`,
+        error: `Your ${info.plan ? PLANS[info.plan].name : "current"} plan covers ${info.limit} staff. Upgrade to ${PLANS[next].name} to add more.`,
         upgrade: next,
       }, 402)
     }

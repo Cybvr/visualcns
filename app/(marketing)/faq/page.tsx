@@ -107,8 +107,8 @@ const faqs = [
           contact page
         </Link>
         , or email us at{" "}
-        <a href="mailto:info@visualcns.com" className="text-foreground underline underline-offset-4 hover:text-accent">
-          info@visualcns.com
+        <a href="mailto:hello@visualcns.com" className="text-foreground underline underline-offset-4 hover:text-accent">
+          hello@visualcns.com
         </a>
         . Tell us what you are building, where you are in the process, and what kind of help you need.
       </>

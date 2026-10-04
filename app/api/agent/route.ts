@@ -134,7 +134,7 @@ call remember_style with a short note in their words, then confirm in one line.`
 const PORTAL_PROMPT = `You are Ngai, the VisualCNS client portal assistant for customers working with an agency.
 Help customers understand their work with the agency and how to use the portal: their projects,
 shared tasks, files and links, billing documents, and contacting their agency.
-They can also ask about the agency itself and its products, such as VisualCNS Pass and Visitor Sign-in.
+They can also ask about the agency itself and its products, such as VisualCNS Pass (also called Visitor Sign-in).
 Answer those from what the agency has told you about itself, below.
 Be concise, warm, and practical.
 
@@ -145,12 +145,13 @@ status. Never say you cannot see the data without calling the tool first. Never 
 When they ask for a summary or overview, call workspace_summary once and give a short briefing that
 leads with anything waiting on them.
 
-You can also take three actions on the customer's behalf, and only these:
+You can also take two actions on the customer's behalf, and only these:
 - complete_task: mark one of their assigned tasks done (or reopen it) when they say it's finished.
 - accept_estimate: accept an estimate the agency shared, when they say to go ahead.
-- submit_task_feedback: post a comment or question from them onto one of their tasks.
 Find the id with query_workspace first, never ask the customer for it. Confirm briefly what you did
 in one short line. You cannot change anything else - for other changes, tell them to ask their agency.
+The portal cannot sign contracts, take invoice payments, record approvals or send messages; for those,
+point them to the payment instructions on the invoice or tell them to contact their agency directly.
 
 You can also search the live web with the web_search tool for public information - facts, news, or
 research the portal does not hold. Use query_workspace for their own account data and web_search for
@@ -565,24 +566,10 @@ const AGENT_TOOLS = [
       additionalProperties: false,
     },
   },
-  {
-    type: "function",
-    name: "submit_task_feedback",
-    description: "Post a feedback comment or question from the client on one of their shared tasks. The agency sees it against that task.",
-    parameters: {
-      type: "object",
-      properties: {
-        taskId: { type: "string", description: "Document id of the task, from query_workspace." },
-        message: { type: "string", description: "The client's feedback or question." },
-      },
-      required: ["taskId", "message"],
-      additionalProperties: false,
-    },
-  },
 ] as const
 
 /** Read-only lookups plus the few writes a client is allowed to make in the portal. */
-const CLIENT_ACTION_TOOLS = ["complete_task", "accept_estimate", "submit_task_feedback"]
+const CLIENT_ACTION_TOOLS = ["complete_task", "accept_estimate"]
 const PORTAL_TOOLS = AGENT_TOOLS.filter(
   (tool) => tool.name === "query_workspace" || tool.name === "workspace_summary" || CLIENT_ACTION_TOOLS.includes(tool.name),
 )
@@ -1028,26 +1015,6 @@ async function runAgentTool(name: string, rawArgs: string, uid: string) {
     if (estimate.status === "draft") throw new Error("That estimate isn't available to accept yet.")
     await ref.set({ status: "accepted", acceptedAt: FieldValue.serverTimestamp(), updatedAt: FieldValue.serverTimestamp() }, { merge: true })
     return { type: "estimate_accepted", id }
-  }
-
-  if (name === "submit_task_feedback") {
-    const actionArgs = JSON.parse(rawArgs) as Record<string, unknown>
-    const id = requireText(actionArgs, "taskId")
-    const message = requireText(actionArgs, "message")
-    const portalSnap = await db.collection("portalTasks").doc(id).get()
-    if (!portalSnap.exists) throw new Error("That task isn't shared with you.")
-    const portal = portalSnap.data() as FirebaseFirestore.DocumentData
-    if (!isSuperAdmin && (portal.agencyId !== agencyId || (!isAdmin && portal.companyId !== callerCompanyId))) throw new Error("You can only comment on your own tasks.")
-    await db.collection("portalComments").add({
-      agencyId,
-      companyId: portal.companyId ?? callerCompanyId,
-      taskId: id,
-      authorUid: uid,
-      authorName: userData?.displayName || "Client",
-      body: message,
-      createdAt: FieldValue.serverTimestamp(),
-    })
-    return { type: "feedback_sent", taskId: id }
   }
 
   if (!isAdmin) {

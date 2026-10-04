@@ -176,8 +176,9 @@ const sections: LegalSection[] = [
     content: (
       <p>
         Questions about these terms can be sent to{" "}
-        <a href="mailto:info@visualcns.com">info@visualcns.com</a> or by post to 5 Ado Ibrahim Street, Sabo, Yaba,
-        Lagos, Nigeria.
+        <a href="mailto:hello@visualcns.com">hello@visualcns.com</a> or by post to Plot 1 Block, Marwa Bus Stop, 128 Remi
+        Olowude St, Lekki Phase I, Lekki 105102, Lagos, Nigeria, or to our US office at 30 N Gould St Ste R,
+        Sheridan, WY 82801, USA.
       </p>
     ),
   },

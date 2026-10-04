@@ -4,8 +4,7 @@ import { useState } from "react"
 import Link from "next/link"
 import { Check, Loader2 } from "lucide-react"
 
-import { formatPrice, type Currency } from "@/lib/plans"
-import { templatePaymentHref, type Project } from "@/lib/projects"
+import type { Project } from "@/lib/projects"
 import { ToolChip } from "@/components/offer-card"
 import { ProjectCard, ProjectCover } from "@/components/project-card"
 import { Button } from "@/components/ui/button"
@@ -18,25 +17,19 @@ export type TemplateCard = {
   steps: string[]
 }
 
-function templatePrice(project: Project, currency: Currency) {
-  return formatPrice(project.price ? { amount: project.price, prefix: project.pricePrefix ?? "" } : "free", currency)
-}
-
 /**
  * The template grid and its detail dialog, shared by the public templates page
  * and the workspace. Cards are the same ProjectCard the dashboard grid uses.
  * `onUse` is what turns the dialog into something a signed-in client can act
- * on: without it the dialog only offers the buy button.
+ * on: without it the dialog points to the plans. Workflows come with the Pro plan.
  */
 export function TemplateGallery({
   templates,
-  currency,
   onUse,
   applyingId = null,
   projectHref,
 }: {
   templates: TemplateCard[]
-  currency: Currency
   onUse?: (project: Project) => Promise<void>
   applyingId?: string | null
   /** Admin dashboard: open the source project instead of the customer template dialog. */
@@ -44,7 +37,6 @@ export function TemplateGallery({
 }) {
   const [openCard, setOpenCard] = useState<TemplateCard | null>(null)
   const project = openCard?.project
-  const ctaLabel = project?.price ? "Get template" : "Use template"
 
   return (
     <>
@@ -58,7 +50,7 @@ export function TemplateGallery({
             onClick={projectHref ? undefined : () => setOpenCard(card)}
             footer={
               <div className="flex items-baseline justify-between gap-2">
-                <span className="text-sm font-semibold">{templatePrice(card.project, currency)}</span>
+                <span className="text-sm font-semibold">Included in Pro</span>
                 <span className="shrink-0 text-[11px] text-muted-foreground">
                   {card.steps.length} {card.steps.length === 1 ? "step" : "steps"}
                 </span>
@@ -85,9 +77,7 @@ export function TemplateGallery({
                   </DropdownMenuItem>
                 )}
                 <DropdownMenuItem asChild>
-                  <a href={templatePaymentHref(card.project)} target="_blank" rel="noopener noreferrer">
-                    {card.project.price ? "Get template" : "Use template"}
-                  </a>
+                  <Link href="/pricing">See plans</Link>
                 </DropdownMenuItem>
               </>
             }
@@ -109,7 +99,7 @@ export function TemplateGallery({
                 {project.summary && <p className="mt-2 text-sm leading-5 text-muted-foreground">{project.summary}</p>}
 
                 <div className="mt-3 flex items-baseline gap-2">
-                  <span className="text-2xl font-bold">{templatePrice(project, currency)}</span>
+                  <span className="text-2xl font-bold">Included in Pro</span>
                   <span className="text-sm text-muted-foreground">{project.timeline || "One-off"}</span>
                 </div>
 
@@ -137,9 +127,7 @@ export function TemplateGallery({
 
                 <div className="mt-5 space-y-2">
                   <Button asChild className="w-full">
-                    <a href={templatePaymentHref(project)} target="_blank" rel="noopener noreferrer">
-                      {ctaLabel}
-                    </a>
+                    <Link href="/pricing">See plans</Link>
                   </Button>
 
                   {onUse && (

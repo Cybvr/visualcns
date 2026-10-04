@@ -69,5 +69,5 @@ export function reminderBody(invoice: Invoice, today = todayIso()): string {
       : days === 0
         ? " is due today"
         : ` is due on ${readableDate(invoice.dueOn)}`
-  return `Hi ${name},\n\nThis is a friendly reminder that invoice ${number} for ${owed}${when}. You can view and pay it using the button below.\n\nIf you've already paid, thank you, and please ignore this email.\n\nBest regards`
+  return `Hi ${name},\n\nThis is a friendly reminder that invoice ${number} for ${owed}${when}. You can view it using the button below.\n\nIf you've already paid, thank you, and please ignore this email.\n\nBest regards`
 }

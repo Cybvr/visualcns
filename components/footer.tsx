@@ -116,11 +116,11 @@ export function Footer() {
               Send a note when you are ready to build, price, or ship the next system.
             </p>
             <a
-              href="mailto:info@visualcns.com?subject=VisualCNS%20project%20inquiry"
+              href="mailto:hello@visualcns.com?subject=VisualCNS%20project%20inquiry"
               className="group flex items-center justify-between border-b border-border pb-3 text-foreground transition-colors hover:border-primary hover:text-primary"
             >
               <span className="text-sm text-foreground/70 transition-colors group-hover:text-primary">
-                info@visualcns.com
+                hello@visualcns.com
               </span>
               <span className="text-sm uppercase tracking-[0.18em]">Join -&gt;</span>
             </a>
@@ -142,6 +142,15 @@ export function Footer() {
               </p>
             </address>
           ))}
+          <div>
+            <h3 className="mb-3 flex items-baseline gap-2 text-xs uppercase tracking-[0.18em] text-foreground">
+              <span>Office hours</span>
+            </h3>
+            <p className="text-sm leading-6 text-foreground/65">
+              <span className="block">Monday to Friday</span>
+              <span className="block">9am to 5pm</span>
+            </p>
+          </div>
         </div>
 
         <div className="mt-10 flex flex-col gap-4 border-t border-border pt-6 text-xs text-foreground/55 md:flex-row md:items-center md:justify-between">

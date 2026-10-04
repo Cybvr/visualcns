@@ -98,7 +98,6 @@ export function TemplatesView({
       <div className="mt-4">
         <TemplateGallery
           templates={templates}
-          currency="NGN"
           onUse={adminView ? undefined : handleUse}
           applyingId={applying}
           projectHref={adminView ? (project) => `/dashboard/projects/${projectSlug(project)}` : undefined}

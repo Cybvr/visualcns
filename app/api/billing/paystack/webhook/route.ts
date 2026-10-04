@@ -2,13 +2,13 @@ import { NextResponse } from "next/server"
 import { FieldValue, Timestamp } from "firebase-admin/firestore"
 
 import { adminServices } from "@/lib/firebase-admin"
-import { applyCharge, saveSubscription, validPaystackSignature, visitorPlanKeyForCode } from "@/lib/server/paystack"
+import { applyCharge, planForCode, saveSubscription, validPaystackSignature } from "@/lib/server/paystack"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
 /**
- * Paystack events for visitor sign-in subscriptions. Set this URL as the
+ * Paystack events for VisualCNS subscriptions. Set this URL as the
  * webhook in Paystack (Settings, API Keys & Webhooks):
  * https://<your site>/api/billing/paystack/webhook
  */
@@ -43,9 +43,9 @@ export async function POST(request: Request) {
         break
       }
       case "subscription.create": {
-        if (data.plan?.plan_code && !(await visitorPlanKeyForCode(db, String(data.plan.plan_code)))) break
+        if (data.plan?.plan_code && !(await planForCode(db, String(data.plan.plan_code)))) break
         if (await billingBySubscription(db, String(data.subscription_code || ""))) break
-        // Match the new subscription to the site this customer just paid for.
+        // Match the new subscription to the company this customer just paid for.
         const rows = await db.collection("visitorBilling").where("customerCode", "==", String(data.customer?.customer_code || "")).get()
         const site = rows.docs
           .filter((row) => !row.data().subscriptionCode)
@@ -70,7 +70,7 @@ export async function POST(request: Request) {
       case "subscription.not_renew":
       case "subscription.disable": {
         const site = await billingBySubscription(db, String(data.subscription_code || ""))
-        // Paid time already bought still counts; the tablet stops after it (plus the grace days).
+        // Paid time already bought still counts; the plan stops after it (plus the grace days).
         if (site) {
           const next = data.next_payment_date ? new Date(data.next_payment_date).getTime() : NaN
           await site.ref.set({

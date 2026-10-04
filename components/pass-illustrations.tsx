@@ -82,65 +82,32 @@ export function CheckInIllustration() {
   )
 }
 
-/* 02 — badge tapped on reader, access limited to approved zones */
-export function AccessIllustration() {
-  const zones = [
-    { x: 196, y: 30, label: "Lobby", ok: true },
-    { x: 290, y: 30, label: "Meeting 2B", ok: true },
-    { x: 196, y: 118, label: "Server room", ok: false },
-    { x: 290, y: 118, label: "R&D lab", ok: false },
-  ]
+/* 02 — printed visitor badge with name, host and logo */
+export function BadgeIllustration() {
   return (
-    <Frame label="A visitor badge opens only the lobby and booked meeting room; other zones stay locked">
+    <Frame label="A printed visitor badge showing the guest's name, who they are visiting and the company logo">
+      {/* Printer */}
+      <rect x="40" y="96" width="120" height="70" rx="12" className="fill-background stroke-border" strokeWidth="2" />
+      <rect x="56" y="88" width="88" height="14" rx="4" className="fill-muted-foreground/30" />
+      <rect x="62" y="140" width="76" height="6" rx="3" className="fill-muted" />
+      <circle cx="140" cy="116" r="4" className="fill-primary" />
+
+      {/* Arrow */}
+      <path d="M172 130 h28" className="stroke-muted-foreground" strokeWidth="2" strokeDasharray="4 4" />
+      <path d="M198 124 l8 6 -8 6" fill="none" className="stroke-muted-foreground" strokeWidth="2" />
+
       {/* Badge */}
-      <rect x="32" y="40" width="96" height="136" rx="10" className="fill-background stroke-border" strokeWidth="2" />
-      <rect x="66" y="32" width="28" height="12" rx="4" className="fill-muted-foreground/40" />
-      <rect x="32" y="40" width="96" height="26" rx="10" className="fill-primary" />
-      <rect x="32" y="56" width="96" height="10" className="fill-primary" />
-      <text x="80" y="57" textAnchor="middle" fontSize="10" fontWeight="700" className="fill-primary-foreground">VISITOR</text>
-      <circle cx="80" cy="94" r="16" className="fill-muted" />
-      <circle cx="80" cy="89" r="6" className="fill-muted-foreground/60" />
-      <path d="M69 104 a11 9 0 0 1 22 0" className="fill-muted-foreground/60" />
-      <rect x="54" y="120" width="52" height="6" rx="3" className="fill-foreground/70" />
-      <rect x="60" y="132" width="40" height="5" rx="2.5" className="fill-muted" />
-      <text x="80" y="160" textAnchor="middle" fontSize="9" className="fill-muted-foreground">Expires 6:00 PM</text>
-
-      {/* RFID waves */}
-      <g fill="none" className="stroke-primary" strokeWidth="2" strokeLinecap="round">
-        <path d="M144 96 a14 14 0 0 1 0 28" />
-        <path d="M152 88 a24 24 0 0 1 0 44" opacity="0.6" />
-        <path d="M160 80 a34 34 0 0 1 0 60" opacity="0.3" />
-      </g>
-
-      {/* Zones */}
-      {zones.map((z) => (
-        <g key={z.label}>
-          <rect
-            x={z.x}
-            y={z.y}
-            width="86"
-            height="72"
-            rx="10"
-            className={z.ok ? "fill-background stroke-primary" : "fill-background stroke-border"}
-            strokeWidth="2"
-            strokeDasharray={z.ok ? undefined : "5 4"}
-          />
-          <text x={z.x + 43} y={z.y + 56} textAnchor="middle" fontSize="10" fontWeight="600" className={z.ok ? "fill-foreground" : "fill-muted-foreground"}>
-            {z.label}
-          </text>
-          {z.ok ? (
-            <g>
-              <circle cx={z.x + 43} cy={z.y + 28} r="12" className="fill-primary" />
-              <path d={`M${z.x + 37} ${z.y + 28} l4 4 8 -8`} fill="none" className="stroke-primary-foreground" strokeWidth="2.2" strokeLinecap="round" />
-            </g>
-          ) : (
-            <g>
-              <rect x={z.x + 35} y={z.y + 26} width="16" height="12" rx="2" className="fill-muted-foreground/60" />
-              <path d={`M${z.x + 38} ${z.y + 26} v-4 a5 5 0 0 1 10 0 v4`} fill="none" className="stroke-muted-foreground/60" strokeWidth="2" />
-            </g>
-          )}
-        </g>
-      ))}
+      <rect x="222" y="34" width="140" height="160" rx="12" className="fill-background stroke-border" strokeWidth="2" />
+      <rect x="222" y="34" width="140" height="30" rx="12" className="fill-primary" />
+      <rect x="222" y="52" width="140" height="12" className="fill-primary" />
+      <text x="292" y="54" textAnchor="middle" fontSize="11" fontWeight="700" className="fill-primary-foreground">VISITOR</text>
+      <circle cx="292" cy="94" r="18" className="fill-muted" />
+      <circle cx="292" cy="89" r="7" className="fill-muted-foreground/60" />
+      <path d="M279 106 a13 10 0 0 1 26 0" className="fill-muted-foreground/60" />
+      <text x="292" y="134" textAnchor="middle" fontSize="11" fontWeight="700" className="fill-foreground">Kemi Ade</text>
+      <text x="292" y="150" textAnchor="middle" fontSize="9" className="fill-muted-foreground">Visiting Tunde Bello</text>
+      <rect x="270" y="164" width="44" height="14" rx="4" className="fill-muted" />
+      <text x="292" y="174" textAnchor="middle" fontSize="7.5" fontWeight="600" className="fill-muted-foreground">Your logo</text>
     </Frame>
   )
 }
@@ -154,14 +121,15 @@ export function DirectorySyncIllustration() {
     { name: "Grace Mensah", team: "Legal" },
   ]
   return (
-    <Frame label="Employee lists from Okta, Azure AD and Google sync into Pass so hosts are filled in automatically">
+    <Frame label="Your staff list in Pass, with syncing from Okta, Azure AD and Google coming soon">
+      <text x="28" y="28" fontSize="8.5" fontWeight="600" className="fill-muted-foreground">Sync: coming soon</text>
       {/* Sources */}
       {sources.map((s, i) => (
         <g key={s}>
-          <rect x="28" y={38 + i * 54} width="96" height="36" rx="18" className="fill-background stroke-border" strokeWidth="2" />
+          <rect x="28" y={38 + i * 54} width="96" height="36" rx="18" className="fill-background stroke-border" strokeWidth="2" strokeDasharray="5 4" />
           <circle cx="48" cy={56 + i * 54} r="7" className="fill-muted-foreground/40" />
-          <text x="62" y={60 + i * 54} fontSize="11" fontWeight="600" className="fill-foreground">{s}</text>
-          <path d={`M124 ${56 + i * 54} C150 ${56 + i * 54} 150 110 172 110`} fill="none" className="stroke-primary/60" strokeWidth="2" />
+          <text x="62" y={60 + i * 54} fontSize="11" fontWeight="600" className="fill-muted-foreground">{s}</text>
+          <path d={`M124 ${56 + i * 54} C150 ${56 + i * 54} 150 110 172 110`} fill="none" className="stroke-primary/60" strokeWidth="2" strokeDasharray="4 4" />
         </g>
       ))}
 
@@ -192,7 +160,7 @@ export function DirectorySyncIllustration() {
 export function AlertsIllustration() {
   const people = [true, true, true, true, true, true, true, false, true, true, false, true]
   return (
-    <Frame label="A host gets an arrival message, and a safety marshal tracks who is safe during an evacuation">
+    <Frame label="A host gets an arrival message. Evacuation roll call is coming soon">
       {/* Notification */}
       <rect x="24" y="40" width="168" height="62" rx="12" className="fill-background stroke-border" strokeWidth="2" />
       <rect x="36" y="52" width="22" height="22" rx="6" className="fill-primary" />
@@ -229,18 +197,18 @@ export function AlertsIllustration() {
           </g>
         )
       })}
-      <text x="228" y="182" fontSize="9" className="fill-muted-foreground">2 still unaccounted for</text>
+      <text x="228" y="182" fontSize="9" fontWeight="600" className="fill-primary">Coming soon</text>
     </Frame>
   )
 }
 
-/* Deploy step 1 — connect Okta and Slack */
+/* Setup step 1 — turn on Slack and Teams alerts */
 export function ConnectStackIllustration() {
-  const apps = ["Okta", "Slack", "Teams"]
+  const apps = ["Email", "Slack", "Teams"]
   return (
-    <Frame label="Okta and Slack switched on in the Pass settings" width={260} height={150}>
+    <Frame label="Email and Slack alerts switched on in the Pass settings" width={260} height={150}>
       <rect x="40" y="18" width="180" height="114" rx="10" className="fill-background stroke-border" strokeWidth="2" />
-      <text x="54" y="38" fontSize="10" fontWeight="700" className="fill-foreground">Integrations</text>
+      <text x="54" y="38" fontSize="10" fontWeight="700" className="fill-foreground">Alerts</text>
       {apps.map((a, i) => {
         const on = i < 2
         const y = 50 + i * 26
@@ -259,43 +227,32 @@ export function ConnectStackIllustration() {
   )
 }
 
-/* Deploy step 2 — kiosk arrives ready to plug in */
+/* Setup step 2 — sign-in page open on a tablet at the front desk */
 export function UnboxKioskIllustration() {
   return (
-    <Frame label="A pre-set kiosk tablet coming out of its box, ready to plug in" width={260} height={150}>
-      {/* Box */}
-      <path d="M58 82 h96 v50 h-96 z" className="fill-muted-foreground/25 stroke-muted-foreground/40" strokeWidth="2" />
-      <path d="M58 82 l-14 -16 h96 l14 16" className="fill-muted-foreground/15 stroke-muted-foreground/40" strokeWidth="2" />
-      <path d="M154 82 l18 -18" className="stroke-muted-foreground/40" strokeWidth="2" />
-      {/* Kiosk */}
-      <rect x="78" y="14" width="56" height="78" rx="8" className="fill-foreground" />
-      <rect x="83" y="20" width="46" height="62" rx="4" className="fill-background" />
-      <text x="106" y="40" textAnchor="middle" fontSize="7.5" fontWeight="700" className="fill-foreground">Welcome</text>
-      <rect x="91" y="48" width="30" height="5" rx="2.5" className="fill-muted" />
-      <rect x="93" y="62" width="26" height="11" rx="5.5" className="fill-primary" />
-      {/* Box front with fill to hide kiosk bottom */}
-      <rect x="58" y="92" width="96" height="40" className="fill-muted-foreground/25" />
-      <rect x="58" y="92" width="96" height="40" className="fill-background/40" />
-      {/* Plug */}
-      <path d="M154 112 C186 112 186 70 206 70" fill="none" className="stroke-foreground/60" strokeWidth="2" />
-      <rect x="204" y="62" width="16" height="16" rx="3" className="fill-foreground/70" />
-      <path d="M220 66 h6 M220 74 h6" className="stroke-foreground/70" strokeWidth="2" />
-      {/* Wi-Fi */}
-      <g fill="none" className="stroke-primary" strokeWidth="2" strokeLinecap="round">
-        <path d="M196 34 a16 16 0 0 1 22 0" />
-        <path d="M201 40 a9 9 0 0 1 12 0" />
-      </g>
-      <circle cx="207" cy="45" r="2" className="fill-primary" />
+    <Frame label="The Pass sign-in page open on a tablet at the front desk" width={260} height={150}>
+      {/* Desk */}
+      <rect x="40" y="122" width="180" height="10" rx="3" className="fill-muted-foreground/25" />
+      {/* Stand */}
+      <path d="M122 104 l-10 18 h36 l-10 -18 z" className="fill-foreground/70" />
+      {/* Tablet */}
+      <rect x="82" y="16" width="96" height="90" rx="8" className="fill-foreground" />
+      <rect x="88" y="22" width="84" height="78" rx="4" className="fill-background" />
+      <text x="130" y="42" textAnchor="middle" fontSize="8" fontWeight="700" className="fill-foreground">Welcome</text>
+      <rect x="104" y="50" width="52" height="5" rx="2.5" className="fill-muted" />
+      <rect x="100" y="64" width="60" height="12" rx="6" className="fill-primary" />
+      <text x="130" y="72.5" textAnchor="middle" fontSize="6.5" fontWeight="600" className="fill-primary-foreground">Sign in</text>
+      <rect x="100" y="82" width="60" height="12" rx="6" className="fill-muted" />
     </Frame>
   )
 }
 
-/* Deploy step 3 — audit report ready */
+/* Setup step 3 — every visit saved */
 export function AuditReadyIllustration() {
   return (
-    <Frame label="An audit report with every visitor logged and ready to export" width={260} height={150}>
+    <Frame label="A log with every visit saved and easy to search" width={260} height={150}>
       <rect x="60" y="16" width="120" height="118" rx="10" className="fill-background stroke-border" strokeWidth="2" />
-      <text x="74" y="36" fontSize="10" fontWeight="700" className="fill-foreground">Audit log</text>
+      <text x="74" y="36" fontSize="10" fontWeight="700" className="fill-foreground">Visit log</text>
       {[0, 1, 2, 3].map((i) => (
         <g key={i}>
           <circle cx="80" cy={52 + i * 16} r="5" className="fill-primary/15" />
@@ -304,7 +261,7 @@ export function AuditReadyIllustration() {
         </g>
       ))}
       <rect x="74" y="114" width="54" height="12" rx="6" className="fill-primary" />
-      <text x="101" y="123" textAnchor="middle" fontSize="7.5" fontWeight="600" className="fill-primary-foreground">Export</text>
+      <text x="101" y="123" textAnchor="middle" fontSize="7.5" fontWeight="600" className="fill-primary-foreground">Search</text>
       {/* Shield */}
       <path d="M190 52 l18 -7 18 7 v14 c0 14 -8 22 -18 26 c-10 -4 -18 -12 -18 -26 z" className="fill-primary" />
       <path d="M200 68 l6 6 11 -12" fill="none" className="stroke-primary-foreground" strokeWidth="2.5" strokeLinecap="round" />

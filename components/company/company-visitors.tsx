@@ -1,22 +1,19 @@
 "use client"
 
-import { useEffect, useMemo, useRef, useState } from "react"
-import { usePathname, useRouter, useSearchParams } from "next/navigation"
-import { Copy, CreditCard, Download, ExternalLink, Loader2, LogOut, RefreshCw } from "lucide-react"
+import { useEffect, useMemo, useState } from "react"
+import { Copy, Download, ExternalLink, Loader2, LogOut, RefreshCw } from "lucide-react"
 import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
-import { daysLeft, isVisitorPlan, VISITOR_GRACE_DAYS, VISITOR_PLAN_KEYS, VISITOR_PLANS, VISITOR_PRICE_NAIRA, VISITOR_TRIAL_DAYS, visitorAccess, type VisitorBilling, type VisitorPlanKey } from "@/lib/visitor-billing"
+import { CompanyPlan, usePlanBilling, useSubscription } from "@/components/company/company-plan"
+import type { PlanKey } from "@/lib/subscription"
 import { VisitorExtras } from "@/components/company/visitor-extras"
-import { getAllVisitors, kioskUrl, resetKioskKey, visitorsCsv, visitDay as day, visitTime as time, setKioskEnabled, signOutVisitor, watchKiosk, watchVisitorBilling, watchVisitors, type Visitor, type VisitorKiosk } from "@/lib/visitors"
+import { getAllVisitors, kioskUrl, resetKioskKey, visitorsCsv, visitDay as day, visitTime as time, setKioskEnabled, signOutVisitor, watchKiosk, watchVisitors, type Visitor, type VisitorKiosk } from "@/lib/visitors"
 
-const naira = (amount: number) => `₦${amount.toLocaleString("en-NG")}`
-const FROM_PRICE = naira(VISITOR_PRICE_NAIRA)
-
-type StaffInfo = { staff: { id: string; name: string; email: string }[]; pending: { id: string; email: string }[]; seats: number; limit: number; plan: VisitorPlanKey | null }
+type StaffInfo = { staff: { id: string; name: string; email: string }[]; pending: { id: string; email: string }[]; seats: number; limit: number | null; plan: PlanKey | null }
 
 /** The company's Visitors tab: who is in now, past visits, and the front-desk tablet link. */
 export function CompanyVisitors({ agencyId, companyId, slug }: { agencyId: string; companyId: string; slug: string }) {
@@ -26,14 +23,10 @@ export function CompanyVisitors({ agencyId, companyId, slug }: { agencyId: strin
   const [retryCount, setRetryCount] = useState(0)
   const [busyId, setBusyId] = useState("")
   const [kioskBusy, setKioskBusy] = useState(false)
-  const [billing, setBilling] = useState<VisitorBilling | null | undefined>(undefined)
-  const [billingBusy, setBillingBusy] = useState(false)
+  const billing = useSubscription(companyId)
+  const billingCall = usePlanBilling(companyId)
   const [staffInfo, setStaffInfo] = useState<StaffInfo | null>(null)
   const { user } = useAuth()
-  const searchParams = useSearchParams()
-  const router = useRouter()
-  const pathname = usePathname()
-  const verified = useRef(false)
 
   useEffect(() => {
     if (!agencyId || !companyId) return
@@ -44,11 +37,9 @@ export function CompanyVisitors({ agencyId, companyId, slug }: { agencyId: strin
       (reason) => { console.error("Visitor list subscription failed", reason); setError("Visitor list unavailable.") },
     )
     const stopKiosk = watchKiosk(companyId, setKiosk, () => undefined)
-    const stopBilling = watchVisitorBilling(companyId, setBilling, () => setBilling(null))
     return () => {
       stopVisitors()
       stopKiosk()
-      stopBilling()
     }
   }, [agencyId, companyId, retryCount])
 
@@ -101,52 +92,11 @@ export function CompanyVisitors({ agencyId, companyId, slug }: { agencyId: strin
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, companyId, billing?.plan, billing?.paidUntil?.toMillis?.()])
 
-  async function billingCall(action: "start" | "subscribe" | "verify" | "manage", extra: Record<string, string> = {}) {
-    if (!user) throw new Error("Please sign in again.")
-    const response = await fetch("/api/billing/visitors", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${await user.getIdToken()}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ action, companyId, ...extra }),
-    })
-    const body = await response.json().catch(() => ({}))
-    if (!response.ok) throw new Error(body.error || "Something went wrong. Please try again.")
-    return body as { url?: string }
-  }
-
-  /** Subscribe goes to Paystack's checkout; Manage goes to Paystack's page to change card or cancel. */
-  async function openPaystack(action: "subscribe" | "manage", plan?: VisitorPlanKey) {
-    setBillingBusy(true)
-    try {
-      const { url } = await billingCall(action, plan ? { plan } : {})
-      if (url) window.location.assign(url)
-    } catch (reason) {
-      toast.error(reason instanceof Error ? reason.message : "Something went wrong. Please try again.")
-      setBillingBusy(false)
-    }
-  }
-
   // A tablet switched on before billing existed starts its trial now.
   useEffect(() => {
     if (kiosk?.enabled && billing === null && user) void billingCall("start").catch(() => undefined)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [kiosk?.enabled, billing === null, user])
-
-  // Back from Paystack: confirm the payment, then tidy the address bar.
-  useEffect(() => {
-    const reference = searchParams.get("reference") || searchParams.get("trxref")
-    if (!user || !reference || verified.current) return
-    verified.current = true
-    setBillingBusy(true)
-    billingCall("verify", { reference })
-      .then(() => toast.success("Payment received. Visitor sign-in is on."))
-      .catch((reason) => toast.error(reason instanceof Error ? reason.message : "We couldn't confirm the payment."))
-      .finally(() => {
-        setBillingBusy(false)
-        // The public page has its own /visitors URL; the dashboard keeps ?tab=.
-        router.replace(pathname.endsWith("/visitors") ? pathname : `${pathname}?tab=visitors`)
-      })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, searchParams])
 
   async function signOut(visitor: Visitor) {
     setBusyId(visitor.id)
@@ -216,7 +166,7 @@ export function CompanyVisitors({ agencyId, companyId, slug }: { agencyId: strin
           </div>
         )}
         {link && <VisitorExtras companyId={companyId} slug={slug} />}
-        <BillingStatus billing={billing} seats={staffInfo?.seats ?? null} busy={billingBusy} onSubscribe={(plan) => void openPaystack("subscribe", plan)} onManage={() => void openPaystack("manage")} />
+        <CompanyPlan companyId={companyId} billing={billing} seats={staffInfo?.seats ?? null} className="mt-4" />
       </section>
 
       {error ? (
@@ -287,98 +237,6 @@ export function CompanyVisitors({ agencyId, companyId, slug }: { agencyId: strin
             )}
           </section>
         </>
-      )}
-    </div>
-  )
-}
-
-function shortDate(ms: number) {
-  return new Date(ms).toLocaleDateString(undefined, { day: "numeric", month: "short" })
-}
-
-/** Trial, paid or paused, with the plan buttons that fit. */
-function BillingStatus({ billing, seats, busy, onSubscribe, onManage }: { billing: VisitorBilling | null | undefined; seats: number | null; busy: boolean; onSubscribe: (plan: VisitorPlanKey) => void; onManage: () => void }) {
-  const [plansOpen, setPlansOpen] = useState(false)
-  if (billing === undefined) return null
-  const access = billing ? visitorAccess(billing) : null
-  const subscribed = Boolean(billing?.subscriptionCode)
-  const cancelled = billing?.status === "cancelled"
-  const plan: VisitorPlanKey = isVisitorPlan(billing?.plan) ? billing.plan : "business"
-  const planLabel = `${VISITOR_PLANS[plan].name} · ${naira(VISITOR_PLANS[plan].priceNaira)} a month`
-
-  let title = `${VISITOR_TRIAL_DAYS}-day free trial, then from ${FROM_PRICE} a month`
-  let detail = "No card needed. The trial starts when you switch the tablet on."
-  let tone = "text-muted-foreground"
-  if (access?.state === "trial") {
-    const left = daysLeft(access.endsAt)
-    title = `Free trial · ${left} ${left === 1 ? "day" : "days"} left`
-    detail = `Choose a plan to keep the tablet working after ${shortDate(access.endsAt)}.`
-  } else if (access?.state === "active") {
-    title = cancelled ? `Cancelled · works until ${shortDate(access.endsAt)}` : `Paid · ${planLabel}`
-    detail = cancelled ? "Choose a plan to keep it going." : `Up to ${VISITOR_PLANS[plan].staff} staff. Next payment ${shortDate(billing?.nextPaymentAt?.toMillis?.() ?? access.endsAt)}.`
-    tone = cancelled ? "text-amber-600" : "text-emerald-600"
-  } else if (access?.state === "grace") {
-    const left = daysLeft(access.endsAt)
-    title = billing?.status === "past_due" ? "Payment didn't go through" : "Subscription ended"
-    detail = `The tablet stops in ${left} ${left === 1 ? "day" : "days"} (${VISITOR_GRACE_DAYS}-day grace). Update your card or choose a plan.`
-    tone = "text-amber-600"
-  } else if (access?.state === "paused") {
-    title = "Paused · the tablet is off"
-    detail = "Choose a plan to switch it back on. Past visits are kept."
-    tone = "text-destructive"
-  }
-
-  const choosePlan = !access || access.state === "trial" || access.state === "paused" || cancelled || (access.state === "grace" && !subscribed)
-  const canUpgrade = !choosePlan && access?.state === "active" && plan === "starter"
-  const showManage = subscribed && !(cancelled && access?.state === "paused")
-  const plansToShow: VisitorPlanKey[] = choosePlan ? VISITOR_PLAN_KEYS : canUpgrade ? ["business"] : []
-
-  return (
-    <div className="mt-4 border-t border-border pt-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="min-w-0">
-          <p className={`text-sm font-semibold ${tone}`}>{title}</p>
-          {(plansOpen || access?.state !== "trial") && <p className="mt-0.5 text-sm text-muted-foreground">{detail}</p>}
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          {access && plansToShow.length > 0 && (
-            <Button type="button" variant="ghost" size="sm" onClick={() => setPlansOpen((open) => !open)} aria-expanded={plansOpen}>
-              {plansOpen ? "Hide plans" : canUpgrade ? "Upgrade plan" : "View plans"}
-            </Button>
-          )}
-          {showManage && (
-            <Button type="button" variant="outline" size="sm" onClick={onManage} disabled={busy}>Manage billing</Button>
-          )}
-        </div>
-      </div>
-      {access && plansOpen && plansToShow.length > 0 && (
-        <div className="mt-3 grid gap-2 sm:grid-cols-2">
-          {plansToShow.map((key) => {
-            const option = VISITOR_PLANS[key]
-            const tooSmall = seats !== null && seats > option.staff
-            return (
-              <button
-                key={key}
-                type="button"
-                onClick={() => onSubscribe(key)}
-                disabled={busy || tooSmall}
-                className="flex items-center justify-between gap-3 rounded-xl border border-border px-3 py-2.5 text-left outline-none transition-colors hover:border-foreground/40 focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                <span className="min-w-0">
-                  <span className="block text-sm font-semibold text-foreground">{canUpgrade ? `Upgrade to ${option.name}` : option.name}</span>
-                  <span className="block text-xs text-muted-foreground">{tooSmall ? `You have ${seats} staff` : `Up to ${option.staff} staff`}</span>
-                </span>
-                <span className="flex shrink-0 items-center gap-1.5 text-sm font-medium text-foreground">
-                  {busy ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <CreditCard className="size-4" aria-hidden="true" />}
-                  {naira(option.priceNaira)}/mo
-                </span>
-              </button>
-            )
-          })}
-        </div>
-      )}
-      {access && plansOpen && choosePlan && (
-        <p className="mt-2 text-xs text-muted-foreground">More than {VISITOR_PLANS.business.staff} staff or more than one site? Contact us for Enterprise.</p>
       )}
     </div>
   )

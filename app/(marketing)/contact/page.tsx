@@ -2,7 +2,7 @@
 import { useEffect } from "react";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
-import { Mail, MapPin } from "lucide-react";
+import { Clock, Mail, MapPin } from "lucide-react";
 import Cal, { getCalApi } from "@calcom/embed-react";
 
 export default function ContactPage() {
@@ -43,16 +43,39 @@ export default function ContactPage() {
             <div>
               <div className="bg-secondary p-8 rounded-lg mb-8">
                 <h3 className="font-semibold text-lg mb-4">Prefer email?</h3>
-                <a href="mailto:info@visualcns.com" className="flex items-center gap-3 text-foreground hover:underline">
+                <a href="mailto:hello@visualcns.com" className="flex items-center gap-3 text-foreground hover:underline">
                   <Mail className="w-5 h-5" />
-                  info@visualcns.com
+                  hello@visualcns.com
                 </a>
               </div>
               <div className="bg-secondary p-8 rounded-lg mb-8">
                 <h3 className="font-semibold text-lg mb-4">Location</h3>
+                <div className="space-y-4 text-muted-foreground">
+                  <div className="flex items-start gap-3">
+                    <MapPin className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                    <address className="not-italic">
+                      <span className="block font-medium text-foreground">Nigeria</span>
+                      <span className="block">Plot 1 Block, Marwa Bus Stop</span>
+                      <span className="block">128 Remi Olowude St, Lekki Phase I</span>
+                      <span className="block">Lekki 105102, Lagos, Nigeria</span>
+                    </address>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <MapPin className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                    <address className="not-italic">
+                      <span className="block font-medium text-foreground">United States</span>
+                      <span className="block">30 N Gould St Ste R</span>
+                      <span className="block">Sheridan, WY 82801</span>
+                      <span className="block">USA</span>
+                    </address>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-secondary p-8 rounded-lg mb-8">
+                <h3 className="font-semibold text-lg mb-4">Office hours</h3>
                 <div className="flex items-start gap-3 text-muted-foreground">
-                  <MapPin className="w-5 h-5 flex-shrink-0 mt-0.5" />
-                  <span>5 Ado Ibrahim Street, Sabo, Yaba</span>
+                  <Clock className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                  <span>Monday to Friday, 9am to 5pm</span>
                 </div>
               </div>
               <div className="p-8 border border-border rounded-lg">

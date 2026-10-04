@@ -31,7 +31,7 @@ const sections: LegalSection[] = [
             and login information.
           </li>
           <li>
-            <strong>Client and project information:</strong> project details, tasks, messages, approvals, files, and
+            <strong>Client and project information:</strong> project details, tasks, files, and
             other content you or your organisation provides through the dashboard or during an engagement.
           </li>
           <li>
@@ -183,7 +183,7 @@ const sections: LegalSection[] = [
           and to withdraw consent. Withdrawing consent does not affect processing already carried out lawfully.
         </p>
         <p>
-          To make a request, email <a href="mailto:info@visualcns.com">info@visualcns.com</a>. We may need to verify
+          To make a request, email <a href="mailto:hello@visualcns.com">hello@visualcns.com</a>. We may need to verify
           your identity before completing a request. You may also lodge a complaint with the{" "}
           <a href="https://ndpc.gov.ng" target="_blank" rel="noreferrer">
             Nigeria Data Protection Commission
@@ -231,8 +231,9 @@ const sections: LegalSection[] = [
     content: (
       <p>
         Privacy questions and requests can be sent to{" "}
-        <a href="mailto:info@visualcns.com">info@visualcns.com</a> or by post to 5 Ado Ibrahim Street, Sabo, Yaba,
-        Lagos, Nigeria.
+        <a href="mailto:hello@visualcns.com">hello@visualcns.com</a> or by post to Plot 1 Block, Marwa Bus Stop, 128 Remi
+        Olowude St, Lekki Phase I, Lekki 105102, Lagos, Nigeria, or to our US office at 30 N Gould St Ste R,
+        Sheridan, WY 82801, USA.
       </p>
     ),
   },

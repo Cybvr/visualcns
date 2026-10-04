@@ -86,7 +86,7 @@ const sections: LegalSection[] = [
     content: (
       <p>
         Questions about cookies or similar technologies can be sent to{" "}
-        <a href="mailto:info@visualcns.com">info@visualcns.com</a>.
+        <a href="mailto:hello@visualcns.com">hello@visualcns.com</a>.
       </p>
     ),
   },

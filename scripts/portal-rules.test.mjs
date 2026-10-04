@@ -61,13 +61,9 @@ test('assigned client can complete both task records atomically, with no other e
   await assertFails(setDoc(doc(a,'projects/new'),{companyId:'company-a'}))
   await assertFails(updateDoc(doc(b,'portalTasks/t-a'),{status:'todo',updatedAt:serverTimestamp()}))
 })
-test('feedback is company and parent scoped, with author and field validation',async()=>{
-  await assertSucceeds(getDocs(query(collection(a,'portalComments'),where('companyId','==','company-a'),where('taskId','==','t-a'))))
-  const feedback={companyId:'company-a',taskId:'t-a',authorUid:'client-a',authorName:'Client',body:'Looks good',createdAt:serverTimestamp()}
-  await assertSucceeds(setDoc(doc(a,'portalComments/new'),feedback))
-  await assertFails(setDoc(doc(b,'portalComments/attack'),{...feedback,authorUid:'client-b'}))
-  await assertFails(setDoc(doc(a,'portalComments/forged'),{...feedback,authorUid:'admin'}))
-  await assertFails(setDoc(doc(a,'portalComments/missing'),{...feedback,taskId:'missing'}))
+test('portal messaging is closed to clients',async()=>{
+  await assertFails(getDocs(query(collection(a,'portalComments'),where('companyId','==','company-a'),where('taskId','==','t-a'))))
+  await assertFails(setDoc(doc(a,'portalComments/new'),{companyId:'company-a',taskId:'t-a',authorUid:'client-a',authorName:'Client',body:'Looks good',createdAt:serverTimestamp()}))
 })
 test('finance lists are company-scoped while old issued document links remain public',async()=>{
   await assertSucceeds(getDocs(query(collection(a,'invoices'),where('companyId','==','company-a'),where('status','!=','draft'))))
@@ -99,8 +95,7 @@ test('admins can check a portal copy exists before creating a task, clients cann
   await assertFails(getDoc(doc(a,'portalTasks/new-task')))
   await assertFails(getDoc(doc(anon,'portalProjects/new-project')))
 })
-test('unsharing a project revokes its task and feedback access',async()=>{
+test('unsharing a project revokes its task access',async()=>{
   await assertSucceeds(deleteDoc(doc(admin,'portalProjects/p-a')))
   await assertFails(getDoc(doc(a,'portalTasks/t-a')))
-  await assertFails(getDoc(doc(a,'portalComments/feedback')))
 })

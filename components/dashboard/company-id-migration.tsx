@@ -18,11 +18,9 @@ const COLLECTIONS = [
   "estimates",
   "companyDocuments",
   "documents",
-  "approvals",
   "comments",
   "portalProjects",
   "portalTasks",
-  "portalComments",
 ] as const
 
 const BATCH_LIMIT = 400
