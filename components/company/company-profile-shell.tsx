@@ -7,6 +7,7 @@ import { LogIn, LogOut, Menu, User as UserIcon } from "lucide-react"
 
 import { useAuth } from "@/components/auth-provider"
 import { useCompanyPage } from "@/components/company/company-page-context"
+import { NgaiWidget } from "@/components/company/ngai-widget"
 import { SectionRail } from "@/components/company/section-nav"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet"
@@ -137,6 +138,8 @@ export function CompanyProfileShell({ children }: { children: ReactNode }) {
           {children}
         </main>
       </div>
+
+      <NgaiWidget />
 
       <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>
         <SheetContent side="left" className="flex w-[280px] flex-col p-4 pt-6 md:hidden">
