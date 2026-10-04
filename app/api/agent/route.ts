@@ -1437,21 +1437,26 @@ export async function POST(request: Request) {
     let uid = ""
     let agencyId = getSiteAgencyId()
     let role = ""
-    if (authorization.startsWith("Bearer ")) {
-      try {
-        const services = adminServices()
-        const decoded = await services.auth.verifyIdToken(authorization.slice(7))
-        uid = decoded.uid
-        const user = (await services.db.collection("users").doc(uid).get()).data() || {}
-        agencyId = requireAgencyId(user)
-        role = String(user.role || "")
-      } catch (error) {
-        console.error("Agent token verification failed", error)
-        return new Response(JSON.stringify({ error: "Ngai could not verify your signed-in account." }), {
-          status: 401,
-          headers: { "content-type": "application/json" },
-        })
-      }
+    // Signed-in people only, so strangers can't spend the agency's OpenAI credit.
+    if (!authorization.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Sign in to use Ngai." }), {
+        status: 401,
+        headers: { "content-type": "application/json" },
+      })
+    }
+    try {
+      const services = adminServices()
+      const decoded = await services.auth.verifyIdToken(authorization.slice(7))
+      uid = decoded.uid
+      const user = (await services.db.collection("users").doc(uid).get()).data() || {}
+      agencyId = requireAgencyId(user)
+      role = String(user.role || "")
+    } catch (error) {
+      console.error("Agent token verification failed", error)
+      return new Response(JSON.stringify({ error: "Ngai could not verify your signed-in account." }), {
+        status: 401,
+        headers: { "content-type": "application/json" },
+      })
     }
 
     // Only agency admins get the dashboard Ngai. Everyone else gets the client one,
