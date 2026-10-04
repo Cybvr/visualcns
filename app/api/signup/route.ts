@@ -231,7 +231,7 @@ export async function POST(request: NextRequest) {
     uid: decoded.uid,
     email,
     name: personName,
-    sourceUrl: request.headers.get("referer") || `${SITE_ORIGIN}/onboarding`,
+    sourceUrl: request.headers.get("referer") || `${SITE_ORIGIN}/signup`,
   }).catch((error) => console.error("Meta Lead failed:", error))
   return json({ slug, leadEventId })
 }

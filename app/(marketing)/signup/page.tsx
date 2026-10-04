@@ -3,7 +3,7 @@
 import { useEffect, useState, type FormEvent } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { ArrowRight, ClipboardList, FolderKanban, Loader2, Users } from "lucide-react"
+import { ArrowRight, Building2, ClipboardList, FolderKanban, Loader2, Users } from "lucide-react"
 
 import { useAuth } from "@/components/auth-provider"
 import { authErrorMessage, GoogleIcon } from "@/components/auth-ui"
@@ -11,6 +11,7 @@ import { BrandLockup } from "@/components/brand-lockup"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { trackMetaLead } from "@/components/meta-pixel"
 import { safeReturnTo } from "@/lib/navigation"
 
 type SignupAction = "email" | "google" | null
@@ -21,6 +22,15 @@ const onboardingFeatures = [
   { icon: ClipboardList, label: "Set up visitor sign-in when you need it" },
 ]
 
+/** Where to go once the company exists. /onboarding is skipped now that the company is made here. */
+function destinationAfterSignup(returnTo: string | null, slug: string) {
+  const companyPage = `/${encodeURIComponent(slug)}`
+  if (!returnTo || returnTo === "/dashboard/visitors") return companyPage
+  const url = new URL(returnTo, "https://visualhq.invalid")
+  if (url.pathname === "/onboarding") return safeReturnTo(url.searchParams.get("next")) || companyPage
+  return returnTo
+}
+
 function signupErrorMessage(error: unknown) {
   const message = error instanceof Error ? error.message : ""
   return message && !message.startsWith("Firebase") ? message : authErrorMessage(error)
@@ -28,10 +38,11 @@ function signupErrorMessage(error: unknown) {
 
 export default function SignupPage() {
   const router = useRouter()
-  const { user, loading, signUpWithEmail, signInWithGoogle } = useAuth()
+  const { user, loading, signUpWithEmail, signInWithGoogle, createCompany } = useAuth()
   const [inviteToken, setInviteToken] = useState("")
   const [returnTo, setReturnTo] = useState<string | null>(null)
   const [queryReady, setQueryReady] = useState(false)
+  const [companyName, setCompanyName] = useState("")
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
@@ -53,22 +64,46 @@ export default function SignupPage() {
     router.replace(`/invite/${inviteToken}`)
   }, [queryReady, loading, action, user, router, inviteToken])
 
-  function continueAfterSignup() {
+  // Invites join an existing company, so only a new signup needs a company name.
+  function companyNameMissing() {
+    if (inviteToken || companyName.trim()) return false
+    setError("Enter your company name to continue.")
+    return true
+  }
+
+  /** Creates the company (which sends the signup notice), then leaves the page. */
+  async function continueAfterSignup() {
     if (inviteToken) {
       router.replace(`/invite/${inviteToken}`)
       return
     }
-    const destination = returnTo === "/dashboard/visitors" ? "/onboarding" : returnTo || "/onboarding"
-    router.replace(destination)
+    const { slug, existing, leadEventId } = await createCompany(companyName.trim())
+    if (!existing) trackMetaLead(leadEventId)
+    router.replace(destinationAfterSignup(returnTo, slug))
   }
 
-  async function handleEmailSignup(event: FormEvent<HTMLFormElement>) {
+  // Already signed in: members of a company are sent to it, so the server asks for a name only when needed.
+  async function handleContinue(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setAction("email")
     setError(null)
     try {
+      await continueAfterSignup()
+    } catch (err) {
+      setError(signupErrorMessage(err))
+    } finally {
+      setAction(null)
+    }
+  }
+
+  async function handleEmailSignup(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (companyNameMissing()) return
+    setAction("email")
+    setError(null)
+    try {
       await signUpWithEmail(name.trim(), email.trim(), password)
-      continueAfterSignup()
+      await continueAfterSignup()
     } catch (err) {
       setError(signupErrorMessage(err))
     } finally {
@@ -77,11 +112,12 @@ export default function SignupPage() {
   }
 
   async function handleGoogleSignup() {
+    if (companyNameMissing()) return
     setAction("google")
     setError(null)
     try {
       await signInWithGoogle()
-      continueAfterSignup()
+      await continueAfterSignup()
     } catch (err) {
       const message = err instanceof Error ? err.message : ""
       if (!message.includes("popup-closed-by-user") && !message.includes("cancelled-popup-request")) {
@@ -129,11 +165,23 @@ export default function SignupPage() {
             {inviteToken && <p className="mt-3 text-sm leading-6 text-muted-foreground">Create an account to join your team.</p>}
           </div>
 
-          {user && !inviteToken ? (
-            <div className="space-y-3">
-              <p className="text-sm text-muted-foreground">Signed in as <span className="font-medium text-foreground">{user.email}</span>.</p>
-              <Button type="button" size="lg" className="h-11 w-full" onClick={continueAfterSignup}>Continue <ArrowRight className="size-4" aria-hidden="true" /></Button>
+          {!inviteToken && (
+            <div className="mb-5 space-y-2">
+              <Label htmlFor="company-name">Company name</Label>
+              <div className="relative">
+                <Building2 className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+                <Input id="company-name" name="company" type="text" autoComplete="organization" value={companyName} onChange={(event) => { setCompanyName(event.target.value); setError(null) }} placeholder="Your company" className="h-11 pl-10" disabled={busy} maxLength={120} required />
+              </div>
             </div>
+          )}
+
+          {user && !inviteToken ? (
+            <form className="space-y-3" onSubmit={handleContinue}>
+              <p className="text-sm text-muted-foreground">Signed in as <span className="font-medium text-foreground">{user.email}</span>.</p>
+              <Button type="submit" size="lg" className="h-11 w-full" disabled={busy} aria-busy={action !== null}>
+                {action !== null ? <><Loader2 className="size-4 animate-spin" aria-hidden="true" /> Creating your company…</> : <>Continue <ArrowRight className="size-4" aria-hidden="true" /></>}
+              </Button>
+            </form>
           ) : (
             <>
               <Button type="button" size="lg" className="h-11 w-full gap-3" onClick={handleGoogleSignup} disabled={busy} aria-busy={action === "google"}>
