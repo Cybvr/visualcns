@@ -39,10 +39,9 @@ const consultingNavItems = [
 const bookNowHref = "/contact"
 
 // Rendered after the Resources dropdown so the order reads:
-// Customers, Products, Solutions, Resources, Pricing, Help, More.
+// Customers, Products, Solutions, Resources, Pricing.
 const trailingNavItems = [
   { name: "Pricing", href: "/pricing" },
-  { name: "Help", href: "/help" },
 ]
 
 const serviceNavItems = capabilities.map((service) => ({
@@ -55,6 +54,10 @@ const resourceNavItems = [
   { name: "Company", href: "/about", description: "Our story, values, and team." },
   { name: "Templates", href: "/templates", description: "Ready-to-use starting points." },
   { name: "News", href: "/blog", description: "Updates, guides, and announcements." },
+  { name: "VisualHQ", href: "/visualhq", description: "Who we are and what we do." },
+  { name: "Industries", href: "/industries", description: "See the markets VisualHQ builds for." },
+  { name: "Help", href: "/help", description: "Ask Ngai, or read the FAQs." },
+  { name: "Careers", href: "https://pasive.co/jobs", description: "Open roles across the team." },
 ]
 
 type MenuRow =
@@ -64,7 +67,6 @@ type MenuRow =
 /** Secondary destinations, reorganised as a single numbered menu. */
 const MENU_ROWS: MenuRow[] = [
   { number: "01", title: "Consulting", items: consultingNavItems },
-  { number: "02", title: "Careers", href: "https://pasive.co/jobs" },
 ]
 
 const num = (i: number) => String(i + 1).padStart(2, "0")
@@ -84,15 +86,14 @@ const solutionsRows: MenuRow[] = [
 const resourcesRows: MenuRow[] = resourceNavItems.map((resource, i) => ({ number: num(i), title: resource.name, href: resource.href }))
 
 // On mobile there's no separate Customers/Products/Solutions/Resources/Pricing button (they're
-// hidden below lg), so the "More" overlay folds them in alongside Consulting/Careers.
+// hidden below lg), so the "More" overlay folds them in alongside Consulting.
 const mobileMoreRows: MenuRow[] = [
   { number: num(0), title: "Customers", items: customerNavItems },
   { number: num(1), title: "Products", items: productNavItems },
   { number: num(2), title: "Solutions", items: solutionsRows.map(({ title, href }) => ({ name: title, href: href as string })) },
   { number: num(3), title: "Resources", items: resourceNavItems },
   { number: num(4), title: "Pricing", href: "/pricing" },
-  { number: num(5), title: "Help", href: "/help" },
-  ...MENU_ROWS.map((row, i) => ({ ...row, number: num(i + 6) }) as MenuRow),
+  ...MENU_ROWS.map((row, i) => ({ ...row, number: num(i + 5) }) as MenuRow),
 ]
 
 type MenuKind = "more" | "customers" | "products" | "solutions" | "resources"
@@ -316,14 +317,14 @@ export function Header() {
               ))}
             </nav>
 
-            {/* Menu toggle — hamburger icon on mobile, text on desktop. */}
+            {/* Phone menu button. Desktop has no More menu; everything sits in the top-level menus. */}
             <button
               type="button"
               onClick={() => toggleMenu("more")}
               aria-expanded={activeMenu === "more"}
               aria-controls="site-menu"
               aria-label={activeMenu === "more" ? "Close menu" : "Open more navigation"}
-              className={`order-1 inline-flex items-center outline-none transition-colors lg:order-none hover:text-accent focus-visible:text-accent ${NAV_LABEL} ${activeMenu === "more" ? "text-accent" : "text-foreground"}`}
+              className={`order-1 inline-flex items-center outline-none transition-colors lg:order-none lg:hidden hover:text-accent focus-visible:text-accent ${NAV_LABEL} ${activeMenu === "more" ? "text-accent" : "text-foreground"}`}
             >
               {activeMenu === "more" ? (
                 <X className="size-5 lg:hidden" aria-hidden="true" />
