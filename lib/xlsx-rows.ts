@@ -45,7 +45,8 @@ async function readEntryText(view: DataView, entry: ZipEntry): Promise<string> {
   const bytes = new Uint8Array(view.buffer, view.byteOffset + start, entry.compressedSize)
   if (entry.method === 0) return new TextDecoder().decode(bytes)
   if (entry.method !== 8) throw new Error("This Excel file uses a format that can't be read here.")
-  const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream("deflate-raw"))
+  // slice() copies into a plain ArrayBuffer, which Blob accepts.
+  const stream = new Blob([bytes.slice()]).stream().pipeThrough(new DecompressionStream("deflate-raw"))
   return new Response(stream).text()
 }
 
