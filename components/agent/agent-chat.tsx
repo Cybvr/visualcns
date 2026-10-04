@@ -355,6 +355,13 @@ const QUICK_ACTIONS: { label: string; prompt: string }[] = [
   { label: "Make contract", prompt: "Turn this into a draft contract for the client." },
 ]
 
+const DEFAULT_STARTING_OPTIONS = [
+  "Give me a summary",
+  "Create an invoice",
+  "Draft a document",
+  "Add a task",
+]
+
 /**
  * The agent conversation surface, shared by the full-page route and the
  * dashboard dock. `compact` tightens spacing for the narrow docked panel.
@@ -370,6 +377,7 @@ export function AgentChat({
   onNewChat,
   compact = false,
   className,
+  startingOptions = DEFAULT_STARTING_OPTIONS,
 }: {
   messages: AgentMessage[]
   conversations: AgentConversation[]
@@ -381,13 +389,9 @@ export function AgentChat({
   onNewChat: () => void
   compact?: boolean
   className?: string
+  /** The suggestion buttons on a new chat. */
+  startingOptions?: string[]
 }) {
-  const startingOptions = [
-    "Give me a summary",
-    "Create an invoice",
-    "Draft a document",
-    "Add a task",
-  ]
   const recentChats = conversations.filter((conversation) => conversation.messages.length > 0).slice(0, 3)
   const [input, setInput] = useState("")
   const [attachments, setAttachments] = useState<ComposerAttachment[]>([])

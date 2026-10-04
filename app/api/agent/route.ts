@@ -1,4 +1,5 @@
 import { getSiteAgencyId, requireAgencyId } from "@/lib/require-agency-id"
+import { knowledgeDocId, knowledgeText, toKnowledge } from "@/lib/ngai-knowledge"
 import OpenAI from "openai"
 import mammoth from "mammoth"
 import { cert, getApps, initializeApp } from "firebase-admin/app"
@@ -765,6 +766,22 @@ async function agencyStyle(agencyId: string): Promise<string> {
   }
 }
 
+const KNOWLEDGE_RULES = `What the agency has told you about itself follows. It is the source of truth for questions about
+the agency: its services, pricing, process, policies and contacts. Answer from it, and never contradict it.
+If it doesn't cover a question about the agency, say you're not sure and suggest asking the agency directly.
+Don't guess or use web_search for facts about the agency.`
+
+/** The agency's knowledge from Settings > Ngai Knowledge, for Ngai's instructions. */
+async function agencyKnowledge(agencyId: string): Promise<string> {
+  try {
+    const { db } = adminServices()
+    const snapshot = await db.collection("settings").doc(knowledgeDocId(agencyId)).get()
+    return knowledgeText(toKnowledge(snapshot.data()))
+  } catch {
+    return ""
+  }
+}
+
 /** A short, human line shown in the chat while a tool runs. */
 function stepLabel(name: string, rawArgs: string): string {
   let args: Record<string, unknown> = {}
@@ -1415,15 +1432,11 @@ export async function POST(request: Request) {
     })
   }
 
-  const basePrompt = body.surface === "client_portal" ? PORTAL_PROMPT : DASHBOARD_PROMPT
-  const systemInstruction = body.firstName
-    ? `${basePrompt}\n\nThe person you are speaking with is called ${body.firstName}.`
-    : basePrompt
-
   try {
     const authorization = request.headers.get("authorization") || ""
     let uid = ""
     let agencyId = getSiteAgencyId()
+    let role = ""
     if (authorization.startsWith("Bearer ")) {
       try {
         const services = adminServices()
@@ -1431,6 +1444,7 @@ export async function POST(request: Request) {
         uid = decoded.uid
         const user = (await services.db.collection("users").doc(uid).get()).data() || {}
         agencyId = requireAgencyId(user)
+        role = String(user.role || "")
       } catch (error) {
         console.error("Agent token verification failed", error)
         return new Response(JSON.stringify({ error: "Ngai could not verify your signed-in account." }), {
@@ -1439,6 +1453,14 @@ export async function POST(request: Request) {
         })
       }
     }
+
+    // Only agency admins get the dashboard Ngai. Everyone else gets the client one,
+    // whatever surface the browser asked for.
+    const portal = body.surface === "client_portal" || (role !== "admin" && role !== "superadmin")
+    const basePrompt = portal ? PORTAL_PROMPT : DASHBOARD_PROMPT
+    const systemInstruction = body.firstName
+      ? `${basePrompt}\n\nThe person you are speaking with is called ${body.firstName}.`
+      : basePrompt
 
     const apiKey = await getAgencySecret(agencyId, "OPENAI_API_KEY", process.env.OPENAI_API_KEY || "")
     if (!apiKey) return new Response(JSON.stringify({ error: "The assistant is not configured yet." }), { status: 503, headers: { "content-type": "application/json" } })
@@ -1475,10 +1497,10 @@ export async function POST(request: Request) {
     })
     // web_search is a hosted tool: OpenAI runs it and returns the results as a
     // web_search_call output item, so it never enters the function_call loop below.
-    const baseTools = body.surface === "client_portal" ? PORTAL_TOOLS : AGENT_TOOLS
+    const baseTools = portal ? PORTAL_TOOLS : AGENT_TOOLS
     const tools = [...baseTools, { type: "web_search" }] as any
-    const style = body.surface === "client_portal" ? "" : await agencyStyle(agencyId)
-    const instructions = `${systemInstruction}\n\nToday is ${today()}.${style ? `\n\nThis agency's writing notes. Follow them in everything you write:\n${style}` : ""}`
+    const [style, knowledge] = await Promise.all([portal ? "" : agencyStyle(agencyId), agencyKnowledge(agencyId)])
+    const instructions = `${systemInstruction}\n\nToday is ${today()}.${style ? `\n\nThis agency's writing notes. Follow them in everything you write:\n${style}` : ""}${knowledge ? `\n\n${KNOWLEDGE_RULES}\n\n${knowledge}` : ""}`
 
     // The reply streams as progress lines while tools run, then the answer.
     // The client shows each step as it lands, so a long job never looks stuck.

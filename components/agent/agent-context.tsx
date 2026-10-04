@@ -117,7 +117,8 @@ function messageId(nextId: MutableRefObject<number>): string {
   return `${Date.now()}-${nextId.current++}`
 }
 
-export function AgentProvider({ children }: { children: ReactNode }) {
+/** `surface` picks which Ngai the server runs: the full dashboard one, or the client one on company pages. */
+export function AgentProvider({ children, surface = "agency_dashboard" }: { children: ReactNode; surface?: "agency_dashboard" | "client_portal" }) {
   const { appUser, user } = useAuth()
   const [open, setOpen] = useState(false)
   const [messages, setMessages] = useState<AgentMessage[]>([])
@@ -258,7 +259,6 @@ export function AgentProvider({ children }: { children: ReactNode }) {
 
       void (async () => {
         try {
-          const surface = "agency_dashboard"
           const response = await fetch("/api/agent", {
             method: "POST",
             headers: { "content-type": "application/json", Authorization: `Bearer ${await currentUser.getIdToken()}` },
@@ -305,7 +305,7 @@ export function AgentProvider({ children }: { children: ReactNode }) {
         }
       })()
     },
-    [messages, sending, firstName, activeConversationId, conversations, rememberConversation, user],
+    [messages, sending, firstName, activeConversationId, conversations, rememberConversation, user, surface],
   )
 
   const reset = useCallback(() => {
