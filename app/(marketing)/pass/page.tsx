@@ -4,6 +4,8 @@ import { ArrowRight, Bell, FileSignature, IdCard, ShieldAlert, Users } from "luc
 
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
+import { naira, PLANS, TRIAL_DAYS } from "@/lib/subscription"
 import {
   AlertsIllustration,
   AuditReadyIllustration,
@@ -103,6 +105,45 @@ const DEPLOY_POINTS = [
   {
     title: "Start small",
     body: "Try it at one front desk, then add your other offices.",
+  },
+]
+
+const FAQS = [
+  {
+    question: "What is Pass?",
+    answer: "Pass is VisualCNS Visitor Sign-in, a digital visitor book for your front desk. Visitors sign in on a tablet at reception, or on their own phone by scanning a QR code. The person they're visiting gets an email, and every visit is kept on record.",
+  },
+  {
+    question: "How does it work?",
+    answer: "Sign up, then open the Visitors tab on your company page and switch on the front desk. Open the sign-in link on a tablet at reception. A visitor enters their name, picks who they're visiting and why, and taps sign in. When they leave, they tap Sign out and pick their name.",
+  },
+  {
+    question: "What else can it do?",
+    answer: "Visitors can sign in and out on their own phone with a QR code. You can add your visitor terms, NDA or safety rules for visitors to agree to. Visitors can print a badge. Sign-in alerts can go to Slack, Microsoft Teams or a webhook. You can see who's in now, look back at past visits and download them as a spreadsheet. If the internet drops, the tablet saves sign-ins and sends them when it's back.",
+  },
+  {
+    question: "How much does it cost?",
+    answer: `Pass is part of every VisualCNS plan. Starter is ${naira(PLANS.starter.monthlyNaira)} a month for up to ${PLANS.starter.staff} staff, Business is ${naira(PLANS.business.monthlyNaira)} a month for up to ${PLANS.business.staff} staff, and Pro is ${naira(PLANS.pro.monthlyNaira)} a month for unlimited staff. Pay yearly and get 2 months free. Every plan also includes Pulse and Ngai.`,
+  },
+  {
+    question: "Is there a free trial?",
+    answer: `Yes. ${TRIAL_DAYS} days, no card needed.`,
+  },
+  {
+    question: "What does \"staff\" mean?",
+    answer: "Staff are the people visitors can choose to visit. They get an email when their visitor arrives.",
+  },
+  {
+    question: "What happens if my plan runs out?",
+    answer: "If a payment fails or you cancel, sign-in keeps working for 3 more days after your paid period. After that it pauses. Your past visits are kept, and it switches back on when you pay.",
+  },
+  {
+    question: "What if someone gets hold of our sign-in link?",
+    answer: "Make a new sign-in link or QR code from the Visitors tab. The old one stops working straight away.",
+  },
+  {
+    question: "Can I try it first?",
+    answer: "Yes. The demo shows exactly what visitors see. It doesn't save anything.",
   },
 ]
 
@@ -255,6 +296,19 @@ export default function PassPage() {
               ))}
             </div>
           </div>
+        </section>
+
+        {/* FAQs */}
+        <section className="mx-auto max-w-6xl px-4 py-16 md:px-8 md:py-24">
+          <h2 className="text-3xl font-semibold tracking-tight md:text-4xl">Questions</h2>
+          <Accordion type="multiple" className="mt-8 max-w-4xl">
+            {FAQS.map((faq, index) => (
+              <AccordionItem key={faq.question} value={`pass-faq-${index}`}>
+                <AccordionTrigger className="gap-6 py-5 text-left text-lg hover:no-underline">{faq.question}</AccordionTrigger>
+                <AccordionContent className="max-w-3xl pb-6 text-base leading-7 text-muted-foreground">{faq.answer}</AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
         </section>
 
         {/* Final CTA */}
