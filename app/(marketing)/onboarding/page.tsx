@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { trackMetaLead } from "@/components/meta-pixel"
+import { safeReturnTo } from "@/lib/navigation"
 
 function onboardingError(error: unknown) {
   const message = error instanceof Error ? error.message : ""
@@ -37,9 +38,15 @@ export default function OnboardingPage() {
   const [step, setStep] = useState<1 | 2>(1)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState("")
+  // Where to go when done, e.g. back to the visitor demo they signed up from.
+  const [returnTo, setReturnTo] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!loading && !user) router.replace(`/signup?next=${encodeURIComponent("/onboarding")}`)
+    setReturnTo(safeReturnTo(new URLSearchParams(window.location.search).get("next")))
+  }, [])
+
+  useEffect(() => {
+    if (!loading && !user) router.replace(`/signup?next=${encodeURIComponent(`${window.location.pathname}${window.location.search}`)}`)
   }, [loading, user, router])
 
   function nextStep(event: FormEvent<HTMLFormElement>) {
@@ -64,7 +71,7 @@ export default function OnboardingPage() {
     try {
       const { slug, existing, leadEventId } = await createCompany(companyName.trim(), { website: normalizedWebsite })
       if (!existing) trackMetaLead(leadEventId)
-      router.replace(`/${encodeURIComponent(slug)}`)
+      router.replace(returnTo || `/${encodeURIComponent(slug)}`)
     } catch (err) {
       setError(onboardingError(err))
       setSaving(false)
