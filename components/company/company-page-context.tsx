@@ -141,19 +141,20 @@ export function CompanyPageProvider({
     || appUser?.role === "superadmin"
     || (appUser?.role === "admin" && Boolean(appUser.agencyId) && appUser.agencyId === company.agencyId)
     || (Boolean(appUser?.companyId) && appUser?.companyId === company.id)
-  // Ngai answers the company's own signed-in members. Admins have it in the dashboard.
-  const canUseNgai = appUser?.role === "client" && Boolean(appUser.companyId) && appUser.companyId === company.id
+  // Ngai is on the public page for the company's members; anyone else is asked to sign in
+  // or told it's members only. Admins have it in the dashboard instead.
+  const showNgai = mode === "routes" && appUser?.role !== "admin" && appUser?.role !== "superadmin"
   const sections = useMemo(() => {
     const visible = COMPANY_SECTIONS
       .filter((item) => item.key !== "visitors" || canSeeVisitors)
-      .filter((item) => item.key !== "ngai" || canUseNgai)
+      .filter((item) => item.key !== "ngai" || showNgai)
     if (mode !== "routes") return [...visible]
     const about = visible.find((item) => item.key === "about")!
     return [
       { ...about, label: "Home", icon: House },
       ...visible.filter((item) => item.key !== "about").map((item) => item.key === "activity" ? { ...item, label: "Notifications", icon: Bell } : item),
     ]
-  }, [canSeeVisitors, canUseNgai, mode])
+  }, [canSeeVisitors, showNgai, mode])
 
   const basePath = mode === "routes" ? `/${pathname.split("/")[1] ?? ""}` : pathname
   const requested = mode === "routes" ? pathname.split("/")[2] : searchParams.get("tab")
