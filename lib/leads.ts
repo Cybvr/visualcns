@@ -27,15 +27,42 @@ export type Lead = {
   agencyId: string
   createdBy: string
   name: string
-  company: string
+  /** Job title. The fields from here to doNotCall match Apollo's contact export. */
+  title: string
+  seniority: string
+  departments: string
   email: string
+  emailStatus: string
+  /** Work phone. */
   phone: string
+  mobilePhone: string
+  linkedin: string
   /** Street address, e.g. from a Google Maps export. */
   address: string
-  /** The kind of business, e.g. "Restaurant". */
+  city: string
+  state: string
+  country: string
+  company: string
+  /** The kind of business, e.g. "Restaurant". Apollo calls it Industry. */
   category: string
+  website: string
+  companyLinkedin: string
+  companyPhone: string
+  employees: string
+  keywords: string
+  technologies: string
+  annualRevenue: string
+  totalFunding: string
+  companyAddress: string
+  companyCity: string
+  companyState: string
+  companyCountry: string
   /** Reviews as the source gives them, e.g. "4.6 (128)". Free text because sources write it differently. */
   reviews: string
+  owner: string
+  lists: string
+  lastContacted: string
+  doNotCall: boolean
   source: string
   value: number
   notes: string
@@ -44,7 +71,7 @@ export type Lead = {
   updatedAt: string
 }
 
-export type LeadFields = Pick<Lead, "name" | "company" | "email" | "phone" | "address" | "category" | "reviews" | "source" | "value" | "notes" | "stage">
+export type LeadFields = Omit<Lead, "id" | "agencyId" | "createdBy" | "createdAt" | "updatedAt">
 
 function text(value: unknown) {
   return typeof value === "string" ? value : ""
@@ -67,12 +94,37 @@ export function watchLeads(agencyId: string, onChange: (leads: Lead[]) => void, 
             agencyId: text(data.agencyId),
             createdBy: text(data.createdBy),
             name: text(data.name),
-            company: text(data.company),
+            title: text(data.title),
+            seniority: text(data.seniority),
+            departments: text(data.departments),
             email: text(data.email),
+            emailStatus: text(data.emailStatus),
             phone: text(data.phone),
+            mobilePhone: text(data.mobilePhone),
+            linkedin: text(data.linkedin),
             address: text(data.address),
+            city: text(data.city),
+            state: text(data.state),
+            country: text(data.country),
+            company: text(data.company),
             category: text(data.category),
+            website: text(data.website),
+            companyLinkedin: text(data.companyLinkedin),
+            companyPhone: text(data.companyPhone),
+            employees: text(data.employees),
+            keywords: text(data.keywords),
+            technologies: text(data.technologies),
+            annualRevenue: text(data.annualRevenue),
+            totalFunding: text(data.totalFunding),
+            companyAddress: text(data.companyAddress),
+            companyCity: text(data.companyCity),
+            companyState: text(data.companyState),
+            companyCountry: text(data.companyCountry),
             reviews: text(data.reviews),
+            owner: text(data.owner),
+            lists: text(data.lists),
+            lastContacted: text(data.lastContacted),
+            doNotCall: data.doNotCall === true,
             source: text(data.source),
             value: typeof data.value === "number" && Number.isFinite(data.value) ? data.value : 0,
             notes: text(data.notes),
@@ -95,11 +147,22 @@ export async function createLead(uid: string, fields: LeadFields): Promise<strin
 }
 
 /** Adds one reviewed CSV file as a single all-or-nothing import. */
-export async function importLeads(uid: string, rows: LeadFields[]): Promise<void> {
-  if (rows.length === 0 || rows.length > 400) throw new Error("Invalid import size")
+export async function importLeads(uid: string, rows: LeadFields[], updates: Array<{ id: string; fields: LeadFields }> = []): Promise<void> {
+  const total = rows.length + updates.length
+  if (total === 0 || total > 400) throw new Error("Invalid import size")
   const agencyId = await getCurrentAgencyId()
   const now = new Date().toISOString()
   const batch = writeBatch(db)
+  // Leads already saved get the file's values for any field the file fills in.
+  // Stage and value stay as they are in the app, since those are your own pipeline.
+  for (const { id, fields } of updates) {
+    const changes: Record<string, unknown> = {}
+    for (const [key, value] of Object.entries(fields)) {
+      if (key === "stage" || key === "value") continue
+      if ((typeof value === "string" && value) || value === true) changes[key] = value
+    }
+    batch.update(doc(db, COLLECTION_NAME, id), { ...changes, updatedAt: now })
+  }
   for (const fields of rows) {
     batch.set(doc(collection(db, COLLECTION_NAME)), {
       ...fields,

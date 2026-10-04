@@ -3,7 +3,8 @@ import type { LeadFields, LeadStage } from "./leads"
 export const MAX_LEADS_PER_IMPORT = 400
 
 export type SkippedLeadRow = { row: number; reason: string }
-export type LeadCsvPreview = { leads: LeadFields[]; skipped: SkippedLeadRow[] }
+/** `leads` are new; `updates` match a lead already saved, by email, and fill in its fields. */
+export type LeadCsvPreview = { leads: LeadFields[]; updates: LeadFields[]; skipped: SkippedLeadRow[] }
 
 type CsvRow = { cells: string[]; line: number }
 
@@ -67,7 +68,8 @@ function column(headers: string[], ...names: string[]) {
 }
 
 function field(cells: string[], index: number) {
-  return index < 0 ? "" : (cells[index] ?? "").trim()
+  // Spreadsheet exports (Apollo's included) put ' before phone numbers to keep them as text.
+  return index < 0 ? "" : (cells[index] ?? "").trim().replace(/^'(?=[+\d])/, "")
 }
 
 function parseValue(raw: string) {
@@ -89,6 +91,16 @@ const STAGES: Record<string, LeadStage> = {
   closedwon: "won",
   lost: "lost",
   closedlost: "lost",
+  // Apollo's contact stages.
+  cold: "new",
+  approaching: "contacted",
+  replied: "contacted",
+  unresponsive: "contacted",
+  interested: "qualified",
+  notinterested: "lost",
+  donotcontact: "lost",
+  baddata: "lost",
+  changedjob: "lost",
 }
 
 export function parseLeadsCsv(input: string, existingEmails: Iterable<string> = []): LeadCsvPreview {
@@ -138,9 +150,35 @@ function parseLeadRows(rows: CsvRow[], existingEmails: Iterable<string>): LeadCs
     last: column(headers, "lastname", "surname", "familyname"),
     company: column(headers, "company", "companyname", "business", "organization", "organisation", "organization1name"),
     email: column(headers, "email", "emailaddress", "eaddress", "email1value"),
-    phone: column(headers, "phone", "phonenumber", "mobile", "mobilephone", "telephone", "phone1value"),
+    // Apollo has several phone columns; the first one with a number wins.
+    phones: ["phone", "phonenumber", "workdirectphone", "workphone", "telephone", "corporatephone", "otherphone", "homephone", "phone1value"].map((name) => column(headers, name)),
+    mobilePhone: column(headers, "mobilephone", "mobile", "cellphone"),
     address: column(headers, "address", "fulladdress", "streetaddress", "location"),
     category: column(headers, "category", "categories", "type", "businesstype", "industry"),
+    title: column(headers, "title", "jobtitle", "position"),
+    seniority: column(headers, "seniority"),
+    departments: column(headers, "departments", "department"),
+    emailStatus: column(headers, "emailstatus"),
+    linkedin: column(headers, "personlinkedinurl", "linkedin", "linkedinurl"),
+    city: column(headers, "city"),
+    state: column(headers, "state", "region", "province"),
+    country: column(headers, "country"),
+    website: column(headers, "website", "websiteurl", "url"),
+    companyLinkedin: column(headers, "companylinkedinurl", "companylinkedin"),
+    companyPhone: column(headers, "companyphone"),
+    employees: column(headers, "employees", "numberofemployees", "companysize", "headcount"),
+    keywords: column(headers, "keywords"),
+    technologies: column(headers, "technologies"),
+    annualRevenue: column(headers, "annualrevenue", "revenue"),
+    totalFunding: column(headers, "totalfunding"),
+    companyAddress: column(headers, "companyaddress"),
+    companyCity: column(headers, "companycity"),
+    companyState: column(headers, "companystate"),
+    companyCountry: column(headers, "companycountry"),
+    owner: column(headers, "contactowner", "owner", "leadowner"),
+    lists: column(headers, "lists", "list"),
+    lastContacted: column(headers, "lastcontacted"),
+    doNotCall: column(headers, "donotcall"),
     // Google Maps style exports split reviews into a rating and a count.
     rating: column(headers, "rating", "stars", "averagerating"),
     reviews: column(headers, "reviews", "review", "reviewcount", "reviewscount", "totalreviews", "numberofreviews"),
@@ -157,8 +195,10 @@ function parseLeadRows(rows: CsvRow[], existingEmails: Iterable<string>): LeadCs
     throw new Error(`This file has more than ${MAX_LEADS_PER_IMPORT} leads. Split it into smaller files.`)
   }
 
-  const knownEmails = new Set(Array.from(existingEmails, (email) => email.trim().toLowerCase()).filter(Boolean))
+  const existing = new Set(Array.from(existingEmails, (email) => email.trim().toLowerCase()).filter(Boolean))
+  const seenInFile = new Set<string>()
   const leads: LeadFields[] = []
+  const updates: LeadFields[] = []
   const skipped: SkippedLeadRow[] = []
 
   for (const row of rows.slice(1)) {
@@ -180,16 +220,44 @@ function parseLeadRows(rows: CsvRow[], existingEmails: Iterable<string>): LeadCs
       skipped.push({ row: row.line, reason: "Value is not a valid amount" })
     } else if (!stage) {
       skipped.push({ row: row.line, reason: "Stage is not recognised" })
-    } else if (emailKey && knownEmails.has(emailKey)) {
-      skipped.push({ row: row.line, reason: "Email is already in leads or repeated in this file" })
+    } else if (emailKey && seenInFile.has(emailKey)) {
+      skipped.push({ row: row.line, reason: "Email is repeated in this file" })
     } else {
-      leads.push({
+      const cell = (index: number) => field(row.cells, index)
+      // A lead already in your leads gets updated from the file instead of added twice.
+      const target = emailKey && existing.has(emailKey) ? updates : leads
+      target.push({
         name,
-        company: field(row.cells, indexes.company),
+        title: cell(indexes.title),
+        seniority: cell(indexes.seniority),
+        departments: cell(indexes.departments),
+        company: cell(indexes.company),
         email,
-        phone: field(row.cells, indexes.phone),
-        address: field(row.cells, indexes.address),
-        category: field(row.cells, indexes.category),
+        emailStatus: cell(indexes.emailStatus),
+        phone: indexes.phones.map(cell).find(Boolean) ?? "",
+        mobilePhone: cell(indexes.mobilePhone),
+        linkedin: cell(indexes.linkedin),
+        address: cell(indexes.address),
+        city: cell(indexes.city),
+        state: cell(indexes.state),
+        country: cell(indexes.country),
+        category: cell(indexes.category),
+        website: cell(indexes.website),
+        companyLinkedin: cell(indexes.companyLinkedin),
+        companyPhone: cell(indexes.companyPhone),
+        employees: cell(indexes.employees),
+        keywords: cell(indexes.keywords),
+        technologies: cell(indexes.technologies),
+        annualRevenue: cell(indexes.annualRevenue),
+        totalFunding: cell(indexes.totalFunding),
+        companyAddress: cell(indexes.companyAddress),
+        companyCity: cell(indexes.companyCity),
+        companyState: cell(indexes.companyState),
+        companyCountry: cell(indexes.companyCountry),
+        owner: cell(indexes.owner),
+        lists: cell(indexes.lists),
+        lastContacted: cell(indexes.lastContacted),
+        doNotCall: /^(true|yes|1)$/i.test(cell(indexes.doNotCall)),
         // "4.9 (37)" from a rating and a count, or whichever one the file has.
         reviews: rating && reviewCount ? `${rating} (${reviewCount})` : rating || reviewCount,
         source: field(row.cells, indexes.source),
@@ -197,9 +265,9 @@ function parseLeadRows(rows: CsvRow[], existingEmails: Iterable<string>): LeadCs
         notes: field(row.cells, indexes.notes),
         stage,
       })
-      if (emailKey) knownEmails.add(emailKey)
+      if (emailKey) seenInFile.add(emailKey)
     }
   }
 
-  return { leads, skipped }
+  return { leads, updates, skipped }
 }

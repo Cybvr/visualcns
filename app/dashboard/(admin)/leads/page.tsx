@@ -21,9 +21,11 @@ import { toast } from "sonner"
 import { useAuth } from "@/components/auth-provider"
 import { FilterBar, useFilterBar } from "@/components/dashboard/filter-bar"
 import { ImportLeadsDialog } from "@/components/dashboard/import-leads-dialog"
+import { TableBulkBar } from "@/components/dashboard/table-bulk-bar"
 import { useViewMode, type ViewMode } from "@/components/dashboard/view-toggle"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -34,13 +36,51 @@ import { Textarea } from "@/components/ui/textarea"
 import { getCurrentAgencyId } from "@/lib/agency-scope"
 import { createLead, deleteLead, LEAD_STAGES, updateLead, watchLeads, type Lead, type LeadFields, type LeadStage } from "@/lib/leads"
 import { cn } from "@/lib/utils"
+import { useRowSelection } from "@/hooks/use-row-selection"
 
-const EMPTY_FORM: LeadFields = { name: "", company: "", email: "", phone: "", address: "", category: "", reviews: "", source: "", value: 0, notes: "", stage: "new" }
+const EMPTY_FORM: LeadFields = {
+  name: "", title: "", seniority: "", departments: "", email: "", emailStatus: "", phone: "", mobilePhone: "", linkedin: "",
+  address: "", city: "", state: "", country: "", company: "", category: "", website: "", companyLinkedin: "", companyPhone: "",
+  employees: "", keywords: "", technologies: "", annualRevenue: "", totalFunding: "", companyAddress: "", companyCity: "",
+  companyState: "", companyCountry: "", reviews: "", owner: "", lists: "", lastContacted: "", doNotCall: false, source: "",
+  value: 0, notes: "", stage: "new",
+}
+
+/** The Apollo fields, shown in the lead sheet after the main ones. */
+const APOLLO_FIELDS: Array<{ key: keyof LeadFields; label: string }> = [
+  { key: "title", label: "Job title" },
+  { key: "seniority", label: "Seniority" },
+  { key: "departments", label: "Departments" },
+  { key: "emailStatus", label: "Email status" },
+  { key: "mobilePhone", label: "Mobile phone" },
+  { key: "linkedin", label: "LinkedIn" },
+  { key: "city", label: "City" },
+  { key: "state", label: "State" },
+  { key: "country", label: "Country" },
+  { key: "website", label: "Website" },
+  { key: "companyLinkedin", label: "Company LinkedIn" },
+  { key: "companyPhone", label: "Company phone" },
+  { key: "employees", label: "Employees" },
+  { key: "keywords", label: "Keywords" },
+  { key: "technologies", label: "Technologies" },
+  { key: "annualRevenue", label: "Annual revenue" },
+  { key: "totalFunding", label: "Total funding" },
+  { key: "companyAddress", label: "Company address" },
+  { key: "companyCity", label: "Company city" },
+  { key: "companyState", label: "Company state" },
+  { key: "companyCountry", label: "Company country" },
+  { key: "owner", label: "Owner" },
+  { key: "lists", label: "Lists" },
+  { key: "lastContacted", label: "Last contacted" },
+]
+
+/** Stable id getter for row selection, defined once so the hook doesn't recompute each render. */
+const leadId = (lead: Lead) => lead.id
 
 const STAGE_LABELS = new Map<string, string>(LEAD_STAGES.map((stage) => [stage.value, stage.label]))
 
 function searchLead(lead: Lead) {
-  return [lead.name, lead.company, lead.email, lead.phone, lead.address, lead.category, lead.reviews, lead.source, lead.notes]
+  return [lead.name, lead.title, lead.company, lead.email, lead.phone, lead.mobilePhone, lead.address, lead.city, lead.country, lead.category, lead.website, lead.keywords, lead.reviews, lead.source, lead.lists, lead.notes]
 }
 
 function formatValue(value: number) {
@@ -195,7 +235,7 @@ export default function LeadsPage() {
         open={importOpen}
         onOpenChange={setImportOpen}
         uid={uid}
-        existingEmails={(leads ?? []).map((lead) => lead.email)}
+        existingLeads={(leads ?? []).map((lead) => ({ id: lead.id, email: lead.email }))}
       />
 
       <AlertDialog open={confirmDelete !== null} onOpenChange={(open) => !open && setConfirmDelete(null)}>
@@ -243,6 +283,37 @@ function LeadsViewToggle({ view, onChange }: { view: ViewMode; onChange: (view: 
 }
 
 function LeadsTable({ leads, loading, onOpen }: { leads: Lead[]; loading: boolean; onOpen: (lead: Lead) => void }) {
+  const selection = useRowSelection(leads, leadId)
+  const [bulkBusy, setBulkBusy] = useState(false)
+
+  async function deleteSelected() {
+    const ids = selection.selectedIds
+    setBulkBusy(true)
+    try {
+      await Promise.all(ids.map((id) => deleteLead(id)))
+      selection.clear()
+      toast.success(`${ids.length} ${ids.length === 1 ? "lead" : "leads"} deleted.`)
+    } catch {
+      toast.error("Some leads couldn't be deleted. Try again.")
+    } finally {
+      setBulkBusy(false)
+    }
+  }
+
+  async function moveSelected(stage: LeadStage) {
+    const ids = selection.selectedIds
+    setBulkBusy(true)
+    try {
+      await Promise.all(ids.map((id) => updateLead(id, { stage })))
+      selection.clear()
+      toast.success(`${ids.length} ${ids.length === 1 ? "lead" : "leads"} moved to ${STAGE_LABELS.get(stage)}.`)
+    } catch {
+      toast.error("Some leads couldn't be moved. Try again.")
+    } finally {
+      setBulkBusy(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="mt-4 space-y-2">
@@ -253,45 +324,69 @@ function LeadsTable({ leads, loading, onOpen }: { leads: Lead[]; loading: boolea
     )
   }
   return (
-    <div className="mt-4 rounded-lg border border-border">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Name</TableHead>
-            <TableHead>Company</TableHead>
-            <TableHead>Category</TableHead>
-            <TableHead>Address</TableHead>
-            <TableHead>Reviews</TableHead>
-            <TableHead>Phone</TableHead>
-            <TableHead>Email</TableHead>
-            <TableHead>Stage</TableHead>
-            <TableHead className="text-right">Value</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {leads.length === 0 ? (
+    <div className="mt-4">
+      <TableBulkBar count={selection.selectedCount} noun="lead" deleting={bulkBusy} onClear={selection.clear} onDelete={() => void deleteSelected()}>
+        <Select onValueChange={(stage) => void moveSelected(stage as LeadStage)} disabled={bulkBusy}>
+          <SelectTrigger size="sm" className="h-8 w-40 bg-background"><SelectValue placeholder="Move to stage" /></SelectTrigger>
+          <SelectContent>
+            {LEAD_STAGES.map((stage) => <SelectItem key={stage.value} value={stage.value}>{stage.label}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      </TableBulkBar>
+      <div className="rounded-lg border border-border">
+        {/* Fixed column widths: long values are cut with … and the table scrolls sideways on small screens. */}
+        <Table className="min-w-[1340px] table-fixed">
+          <TableHeader>
             <TableRow>
-              <TableCell colSpan={9} className="py-8 text-center text-muted-foreground">No leads.</TableCell>
+              <TableHead className="w-10 px-3">
+                <Checkbox aria-label="Select all leads" checked={selection.allSelected} indeterminate={selection.someSelected} onChange={selection.toggleAll} />
+              </TableHead>
+              <TableHead className="w-[170px]">Name</TableHead>
+              <TableHead className="w-[160px]">Job title</TableHead>
+              <TableHead className="w-[160px]">Company</TableHead>
+              <TableHead className="w-[140px]">Category</TableHead>
+              <TableHead className="w-[220px]">Address</TableHead>
+              <TableHead className="w-[90px]">Reviews</TableHead>
+              <TableHead className="w-[130px]">Phone</TableHead>
+              <TableHead className="w-[180px]">Email</TableHead>
+              <TableHead className="w-[100px]">Stage</TableHead>
+              <TableHead className="w-[90px] text-right">Value</TableHead>
             </TableRow>
-          ) : leads.map((lead) => (
-            <TableRow key={lead.id} className="cursor-pointer" onClick={() => onOpen(lead)}>
-              <TableCell className="font-medium">
-                <button type="button" onClick={(event) => { event.stopPropagation(); onOpen(lead) }} className="rounded-sm text-left outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring">
-                  {lead.name || "Unnamed lead"}
-                </button>
-              </TableCell>
-              <TableCell>{lead.company}</TableCell>
-              <TableCell>{lead.category}</TableCell>
-              <TableCell className="max-w-64 truncate" title={lead.address}>{lead.address}</TableCell>
-              <TableCell>{lead.reviews}</TableCell>
-              <TableCell>{lead.phone}</TableCell>
-              <TableCell>{lead.email}</TableCell>
-              <TableCell>{STAGE_LABELS.get(lead.stage) ?? lead.stage}</TableCell>
-              <TableCell className="text-right">{formatValue(lead.value)}</TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHeader>
+          <TableBody>
+            {leads.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={11} className="py-8 text-center text-muted-foreground">No leads.</TableCell>
+              </TableRow>
+            ) : leads.map((lead) => (
+              <TableRow key={lead.id} className="cursor-pointer" data-state={selection.isSelected(lead.id) ? "selected" : undefined} onClick={() => onOpen(lead)}>
+                <TableCell className="px-3" onClick={(event) => event.stopPropagation()}>
+                  <Checkbox
+                    aria-label={`Select ${lead.name || "lead"}`}
+                    checked={selection.isSelected(lead.id)}
+                    // Shift-click selects every lead between this one and the last one picked.
+                    onChange={(event) => selection.toggle(lead.id, (event.nativeEvent as MouseEvent).shiftKey)}
+                  />
+                </TableCell>
+                <TableCell className="truncate font-medium" title={lead.name}>
+                  <button type="button" onClick={(event) => { event.stopPropagation(); onOpen(lead) }} className="block max-w-full truncate rounded-sm text-left outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring">
+                    {lead.name || "Unnamed lead"}
+                  </button>
+                </TableCell>
+                <TableCell className="truncate" title={lead.title}>{lead.title}</TableCell>
+                <TableCell className="truncate" title={lead.company}>{lead.company}</TableCell>
+                <TableCell className="truncate" title={lead.category}>{lead.category}</TableCell>
+                <TableCell className="truncate" title={lead.address}>{lead.address}</TableCell>
+                <TableCell className="truncate" title={lead.reviews}>{lead.reviews}</TableCell>
+                <TableCell className="truncate" title={lead.phone}>{lead.phone}</TableCell>
+                <TableCell className="truncate" title={lead.email}>{lead.email}</TableCell>
+                <TableCell className="truncate">{STAGE_LABELS.get(lead.stage) ?? lead.stage}</TableCell>
+                <TableCell className="truncate text-right">{formatValue(lead.value)}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
     </div>
   )
 }
@@ -359,7 +454,10 @@ function LeadSheet({ lead, onClose, onSave, onDelete }: { lead: Lead | "new" | n
   useEffect(() => {
     if (!lead) return
     if (lead === "new") setForm(EMPTY_FORM)
-    else setForm({ name: lead.name, company: lead.company, email: lead.email, phone: lead.phone, address: lead.address, category: lead.category, reviews: lead.reviews, source: lead.source, value: lead.value, notes: lead.notes, stage: lead.stage })
+    else {
+      const { id: _id, agencyId: _agencyId, createdBy: _createdBy, createdAt: _createdAt, updatedAt: _updatedAt, ...fields } = lead
+      setForm(fields)
+    }
   }, [lead])
 
   function set<K extends keyof LeadFields>(key: K, value: LeadFields[K]) {
@@ -371,7 +469,9 @@ function LeadSheet({ lead, onClose, onSave, onDelete }: { lead: Lead | "new" | n
     if (!form.name.trim()) return
     setSaving(true)
     try {
-      await onSave({ ...form, name: form.name.trim(), company: form.company.trim(), email: form.email.trim(), phone: form.phone.trim(), address: form.address.trim(), category: form.category.trim(), reviews: form.reviews.trim(), source: form.source.trim() })
+      // Trim every text field; notes keep their inner line breaks.
+      const trimmed = Object.fromEntries(Object.entries(form).map(([key, value]) => [key, typeof value === "string" ? value.trim() : value])) as LeadFields
+      await onSave(trimmed)
       onClose()
     } catch {
       toast.error("Couldn't save this lead.")
@@ -438,6 +538,16 @@ function LeadSheet({ lead, onClose, onSave, onDelete }: { lead: Lead | "new" | n
               <Label htmlFor="lead-notes">Notes</Label>
               <Textarea id="lead-notes" rows={4} value={form.notes} onChange={(event) => set("notes", event.target.value)} />
             </div>
+            {APOLLO_FIELDS.map(({ key, label }) => (
+              <div key={key} className="grid gap-1.5">
+                <Label htmlFor={`lead-${key}`}>{label}</Label>
+                <Input id={`lead-${key}`} value={String(form[key] ?? "")} onChange={(event) => set(key, event.target.value as never)} />
+              </div>
+            ))}
+            <label className="flex items-center gap-2 text-sm sm:col-span-2">
+              <Checkbox checked={form.doNotCall} onChange={(event) => set("doNotCall", event.currentTarget.checked)} />
+              Do not call
+            </label>
           </div>
           {form.stage === "won" && (
             <p className="text-sm text-muted-foreground">

@@ -1,5 +1,6 @@
 "use client"
 
+import type { ReactNode } from "react"
 import { Loader2, Trash2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -26,6 +27,7 @@ export function TableBulkBar({
   deleting = false,
   onClear,
   onDelete,
+  children,
 }: {
   count: number
   /** Singular label, e.g. "contact". */
@@ -35,6 +37,8 @@ export function TableBulkBar({
   deleting?: boolean
   onClear: () => void
   onDelete: () => void
+  /** Extra bulk actions shown before Delete, e.g. moving leads to a stage. */
+  children?: ReactNode
 }) {
   if (count === 0) return null
   const plural = nounPlural ?? `${noun}s`
@@ -44,6 +48,7 @@ export function TableBulkBar({
       <span className="text-sm font-medium">{count} selected</span>
       <div className="flex items-center gap-2">
         <Button variant="ghost" size="sm" onClick={onClear}>Clear</Button>
+        {children}
         <AlertDialog>
           <AlertDialogTrigger asChild>
             <Button variant="destructive" size="sm" disabled={deleting}>

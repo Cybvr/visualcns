@@ -18,13 +18,16 @@ export function ImportLeadsDialog({
   open,
   onOpenChange,
   uid,
-  existingEmails,
+  existingLeads,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   uid: string
-  existingEmails: string[]
+  /** Saved leads, so rows with the same email update them instead of adding twice. */
+  existingLeads: Array<{ id: string; email: string }>
 }) {
+  const existingEmails = existingLeads.map((lead) => lead.email)
+
   const [fileName, setFileName] = useState("")
   const [preview, setPreview] = useState<LeadCsvPreview | null>(null)
   const [error, setError] = useState("")
@@ -71,12 +74,21 @@ export function ImportLeadsDialog({
   }
 
   async function submit() {
-    if (!preview?.leads.length || importing) return
+    const count = (preview?.leads.length ?? 0) + (preview?.updates.length ?? 0)
+    if (!preview || !count || importing) return
     setImporting(true)
     setError("")
     try {
-      await importLeads(uid, preview.leads)
-      toast.success(`${preview.leads.length} ${preview.leads.length === 1 ? "lead" : "leads"} imported.`)
+      const idByEmail = new Map(existingLeads.filter((lead) => lead.email).map((lead) => [lead.email.trim().toLowerCase(), lead.id]))
+      const updates = preview.updates.flatMap((fields) => {
+        const id = idByEmail.get(fields.email.trim().toLowerCase())
+        return id ? [{ id, fields }] : []
+      })
+      await importLeads(uid, preview.leads, updates)
+      toast.success([
+        preview.leads.length ? `${preview.leads.length} added` : "",
+        updates.length ? `${updates.length} updated` : "",
+      ].filter(Boolean).join(", ") + ".")
       onOpenChange(false)
     } catch {
       setError("Couldn't import these leads. Nothing was added. Try again.")
@@ -118,7 +130,8 @@ export function ImportLeadsDialog({
           {preview && (
             <div className="space-y-4 border-t border-border pt-4">
               <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 text-sm">
-                <p className="font-medium text-foreground">{preview.leads.length} ready to import</p>
+                <p className="font-medium text-foreground">{preview.leads.length} new</p>
+                {preview.updates.length > 0 && <p className="text-muted-foreground">{preview.updates.length} already in leads, will be updated</p>}
                 {preview.skipped.length > 0 && <p className="text-muted-foreground">{preview.skipped.length} skipped</p>}
               </div>
 
@@ -155,9 +168,9 @@ export function ImportLeadsDialog({
 
         <DialogFooter className="gap-2">
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={importing}>Cancel</Button>
-          <Button type="button" onClick={() => void submit()} disabled={!preview?.leads.length || reading || importing}>
+          <Button type="button" onClick={() => void submit()} disabled={!(preview?.leads.length || preview?.updates.length) || reading || importing}>
             {importing ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <FileUp className="size-4" aria-hidden="true" />}
-            {importing ? "Importing…" : preview?.leads.length ? `Import ${preview.leads.length} ${preview.leads.length === 1 ? "lead" : "leads"}` : "Import leads"}
+            {importing ? "Importing…" : "Import"}
           </Button>
         </DialogFooter>
         {fileName && <p className="sr-only">Selected file: {fileName}</p>}

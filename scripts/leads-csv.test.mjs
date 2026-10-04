@@ -17,14 +17,12 @@ test("imports quoted commas, line breaks, BOM, and common column names", () => {
   const result = parseLeadsCsv(csv)
   assert.equal(result.leads.length, 1)
   assert.deepEqual(result.skipped, [])
-  assert.deepEqual(result.leads[0], {
+  const { name, company, email, phone, source, value, notes, stage } = result.leads[0]
+  assert.deepEqual({ name, company, email, phone, source, value, notes, stage }, {
     name: "Ada Lovelace",
     company: "Analytical, Ltd",
     email: "ada@example.com",
     phone: "",
-    address: "",
-    category: "",
-    reviews: "",
     source: "",
     value: 1250.5,
     notes: "Asked for\nproposal",
@@ -51,7 +49,9 @@ test("skips missing names, invalid stages, and duplicate emails", () => {
   const csv = "Name,Email,Stage\n,blank@example.com,New\nA,a@example.com,Maybe\nB,existing@example.com,New\nC,c@example.com,New\nD,c@example.com,New"
   const result = parseLeadsCsv(csv, ["EXISTING@example.com"])
   assert.deepEqual(result.leads.map((lead) => lead.name), ["C"])
-  assert.deepEqual(result.skipped.map((row) => row.row), [2, 3, 4, 6])
+  // B is already saved, so it becomes an update rather than a skip.
+  assert.deepEqual(result.updates.map((lead) => lead.name), ["B"])
+  assert.deepEqual(result.skipped.map((row) => row.row), [2, 3, 6])
 })
 
 test("rejects a file without a name column or with an unfinished quote", () => {
