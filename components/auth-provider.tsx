@@ -72,7 +72,7 @@ type AuthContextValue = {
   signUpWithEmail: (name: string, email: string, password: string, agencyName?: string, createWorkspace?: boolean, keepSignedIn?: boolean) => Promise<void>
   signInWithEmail: (email: string, password: string, keepSignedIn?: boolean) => Promise<void>
   signInWithGoogle: (agencyName?: string, createWorkspace?: boolean, workspaceId?: string, keepSignedIn?: boolean) => Promise<void>
-  joinVisitorCompany: (companyName: string, details?: { website?: string }) => Promise<{ slug: string; existing: boolean; leadEventId?: string }>
+  createCompany: (companyName: string, details?: { website?: string }) => Promise<{ slug: string; existing: boolean; leadEventId?: string }>
   signOut: () => Promise<void>
 }
 
@@ -244,10 +244,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (createWorkspace) setAgencyStatus("trial")
   }
 
-  async function joinVisitorCompany(companyName: string, details?: { website?: string }) {
+  async function createCompany(companyName: string, details?: { website?: string }) {
     const current = auth.currentUser
     if (!current) throw new Error("Please sign in again.")
-    const response = await fetch("/api/visitors/signup", {
+    const response = await fetch("/api/signup", {
       method: "POST",
       headers: { Authorization: `Bearer ${await current.getIdToken()}`, "Content-Type": "application/json" },
       body: JSON.stringify({ companyName, ...details }),
@@ -299,7 +299,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signUpWithEmail,
         signInWithEmail,
         signInWithGoogle,
-        joinVisitorCompany,
+        createCompany,
         signOut,
       }}
     >

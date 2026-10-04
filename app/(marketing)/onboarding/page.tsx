@@ -31,7 +31,7 @@ function normalizeWebsite(value: string) {
 
 export default function OnboardingPage() {
   const router = useRouter()
-  const { user, loading, joinVisitorCompany } = useAuth()
+  const { user, loading, createCompany } = useAuth()
   const [companyName, setCompanyName] = useState("")
   const [website, setWebsite] = useState("")
   const [step, setStep] = useState<1 | 2>(1)
@@ -62,9 +62,9 @@ export default function OnboardingPage() {
     setSaving(true)
     setError("")
     try {
-      const { slug, existing, leadEventId } = await joinVisitorCompany(companyName.trim(), { website: normalizedWebsite })
+      const { slug, existing, leadEventId } = await createCompany(companyName.trim(), { website: normalizedWebsite })
       if (!existing) trackMetaLead(leadEventId)
-      router.replace(`/${encodeURIComponent(slug)}/visitors`)
+      router.replace(`/${encodeURIComponent(slug)}`)
     } catch (err) {
       setError(onboardingError(err))
       setSaving(false)

@@ -1,5 +1,4 @@
 import { NextResponse, type NextRequest } from "next/server"
-import { randomBytes } from "node:crypto"
 import { FieldValue, Timestamp } from "firebase-admin/firestore"
 
 import { adminServices } from "@/lib/firebase-admin"
@@ -7,24 +6,22 @@ import { getSiteAgencyId } from "@/lib/require-agency-id"
 import { getAgencySecret } from "@/lib/server/agency-secrets"
 import { brandedEmail, escapeHtml, normalizeEmailAddress, SITE_ORIGIN } from "@/lib/server/email-branding"
 import { sendMetaLead } from "@/lib/server/meta-conversions"
-import { ensureVisitorBilling } from "@/lib/server/paystack"
 import { RESERVED_SLUGS, slugify } from "@/lib/slugs"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
 /**
- * Self sign-up for Visitor Sign-in. A new account becomes a VisualCNS client;
+ * Self sign-up to the app. A new account becomes a VisualCNS client;
  * an existing VisualCNS admin can also create a company while keeping their
- * current role. The front desk is switched on and the free trial starts.
- * Returns the company slug so the browser can open /{slug}/visitors.
+ * current role. Returns the company slug so the browser can open /{slug}.
  *
  * Someone whose account already belongs to a company is sent to it instead.
  * A company name that's already taken is refused: typing a name must never
  * let a stranger into another company's data.
  */
 
-const SOURCE = "Visitor sign-up"
+const SOURCE = "App sign-up"
 const INBOX_EMAIL = "info@visualcns.com"
 
 function json(body: Record<string, unknown>, status = 200) {
@@ -47,9 +44,9 @@ async function uniqueSlug(db: FirebaseFirestore.Firestore, name: string, orgId: 
 }
 
 function signupNotice(company: { name: string; slug: string }, person: { name: string; email: string }) {
-  const subject = `New Visitor Sign-in sign-up: ${company.name}`
-  const text = `${person.name || person.email} (${person.email}) just signed up ${company.name} for Visitor Sign-in. Their front desk is on and the free trial has started.\n\nIt's tagged "${SOURCE}" on the company page. If it looks like junk, delete the company.`
-  const url = `${SITE_ORIGIN}/${encodeURIComponent(company.slug)}/visitors`
+  const subject = `New sign-up: ${company.name}`
+  const text = `${person.name || person.email} (${person.email}) just signed up ${company.name} to VisualCNS.\n\nIt's tagged "${SOURCE}" on the company page. If it looks like junk, delete the company.`
+  const url = `${SITE_ORIGIN}/${encodeURIComponent(company.slug)}`
   return { subject, text, url }
 }
 
@@ -75,7 +72,7 @@ async function notifyAdmins(db: FirebaseFirestore.Firestore, agencyId: string, c
     headers: {
       Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",
-      "Idempotency-Key": `visitor-notice-${company.slug}`,
+      "Idempotency-Key": `signup-notice-${company.slug}`,
     },
     body: JSON.stringify({ from, to, subject, text: `${text}\n\nOpen the company: ${url}`, html }),
     cache: "no-store",
@@ -91,14 +88,14 @@ async function sendWelcomeEmail(agencyId: string, company: { name: string; slug:
 
   const subject = `Welcome to VisualCNS, ${company.name}`
   const url = `${SITE_ORIGIN}/${encodeURIComponent(company.slug)}`
-  const text = `Hi ${person.name || "there"},\n\nYour ${company.name} Visitor Sign-in account is ready. You can open your company page, manage your front-desk link, and continue setting up your workspace.\n\nYour company page: ${url}`
+  const text = `Hi ${person.name || "there"},\n\nYour ${company.name} account is ready. Open your company page to get started.\n\nYour company page: ${url}`
   const html = brandedEmail(`<p>${escapeHtml(text).replace(/\n\n/g, "</p><p>")}</p>`, subject, { name: "VisualCNS", email: from }, from, { text: "Open your company page", url })
   const response = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: {
       Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",
-      "Idempotency-Key": `visitor-welcome-${company.slug}`,
+      "Idempotency-Key": `signup-welcome-${company.slug}`,
     },
     body: JSON.stringify({ from, to: [person.email], subject, text: `${text}\n\nOpen your company page: ${url}`, html }),
     cache: "no-store",
@@ -185,26 +182,17 @@ export async function POST(request: NextRequest) {
     }, { merge: true })
   }
   const notice = signupNotice({ name: companyName, slug }, { name: personName, email })
-  batch.set(db.collection("agencies").doc(agencyId).collection("emailInboxEvents").doc(`visitor_${orgRef.id}`), {
+  batch.set(db.collection("agencies").doc(agencyId).collection("emailInboxEvents").doc(`signup_${orgRef.id}`), {
     agencyId,
     companyId: orgRef.id,
-    kind: "visitor-signup",
+    kind: "app-signup",
     from: email,
     to: [INBOX_EMAIL],
     subject: notice.subject,
     text: `${notice.text}\n\nOpen the company: ${notice.url}`,
     createdAt: now,
   })
-  // Front desk on from the start, so the sign-in link is ready when they land.
-  batch.set(db.collection("visitorKiosks").doc(orgRef.id), {
-    agencyId,
-    companyId: orgRef.id,
-    enabled: true,
-    key: randomBytes(18).toString("hex"),
-    updatedAt: now,
-  })
   await batch.commit()
-  await ensureVisitorBilling(db, agencyId, orgRef.id)
 
   const company = { name: companyName, slug }
   const person = { name: personName, email }
