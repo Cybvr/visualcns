@@ -23,6 +23,45 @@ Answer only from what VisualCNS has told you about itself, below. Be short, warm
 You can't see anyone's account, projects or invoices here. For those, they should sign in to their company page.
 If you don't know, say so and suggest emailing hello@visualcns.com.`
 
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+/** One lead per email, so coming back doesn't add a duplicate. */
+function leadId(email: string) {
+  return `help_${createHash("sha256").update(email).digest("hex").slice(0, 32)}`
+}
+
+/**
+ * Saves the visitor as a lead (Leads in the dashboard) the first time they give
+ * their name and email, and drops a note in the inbox. It isn't an account.
+ */
+async function startChat(name: string, email: string) {
+  const agencyId = getSiteAgencyId()
+  const { db } = adminServices()
+  const ref = db.collection("leads").doc(leadId(email))
+  const now = new Date().toISOString()
+  const isNew = !(await ref.get()).exists
+  await ref.set({
+    agencyId,
+    createdBy: "help-chat",
+    name,
+    email,
+    source: "Help chat",
+    updatedAt: now,
+    ...(isNew ? { company: "", phone: "", address: "", category: "", reviews: "", value: 0, notes: "Started a chat with Ngai on the Help page.", stage: "new", createdAt: now } : {}),
+  }, { merge: true })
+  if (isNew) {
+    await db.collection("agencies").doc(agencyId).collection("emailInboxEvents").doc(ref.id).set({
+      agencyId,
+      kind: "help-chat",
+      from: email,
+      to: ["info@visualcns.com"],
+      subject: `New Help chat: ${name}`,
+      text: `${name} (${email}) started a chat with Ngai on the Help page. They're in Leads.`,
+      createdAt: FieldValue.serverTimestamp(),
+    })
+  }
+}
+
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json", "cache-control": "no-store" } })
 }
@@ -44,7 +83,25 @@ async function withinLimit(request: Request) {
 
 /** Public Ngai for the Help page: answers from the agency knowledge only, no account access. */
 export async function POST(request: Request) {
-  const body = (await request.json().catch(() => ({}))) as { messages?: { role?: string; content?: unknown }[] }
+  const body = (await request.json().catch(() => ({}))) as { action?: string; name?: unknown; email?: unknown; messages?: { role?: string; content?: unknown }[] }
+  const name = typeof body.name === "string" ? body.name.replace(/\s+/g, " ").trim().slice(0, 100) : ""
+  const email = typeof body.email === "string" ? body.email.trim().toLowerCase().slice(0, 200) : ""
+  if (!name || !EMAIL_PATTERN.test(email)) return json({ error: "Enter your name and a valid email to chat." }, 400)
+
+  if (body.action === "start") {
+    try {
+      await startChat(name, email)
+      return json({ ok: true })
+    } catch (error) {
+      console.error("Help chat start failed", error)
+      return json({ error: "Something went wrong. Please try again." }, 500)
+    }
+  }
+
+  // Chat only after they've given their details.
+  const { db } = adminServices()
+  if (!(await db.collection("leads").doc(leadId(email)).get()).exists) return json({ error: "Enter your name and email to chat." }, 403)
+
   const messages = (body.messages ?? [])
     .filter((message) => (message.role === "user" || message.role === "assistant") && typeof message.content === "string" && message.content.trim())
     .slice(-MAX_MESSAGES)
@@ -64,7 +121,7 @@ export async function POST(request: Request) {
     const client = new OpenAI({ apiKey })
     const response = await client.responses.create({
       model: MODEL,
-      instructions: `${PROMPT}\n\nToday is ${new Date().toDateString()}.${knowledge ? `\n\n${KNOWLEDGE_RULES}\n\n${knowledge}` : ""}`,
+      instructions: `${PROMPT}\n\nThe person you are speaking with is called ${name.split(" ")[0]}.\n\nToday is ${new Date().toDateString()}.${knowledge ? `\n\n${KNOWLEDGE_RULES}\n\n${knowledge}` : ""}`,
       input: messages,
       max_output_tokens: 800,
     })
