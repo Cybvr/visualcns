@@ -23,6 +23,7 @@ export const dynamic = "force-dynamic"
 
 const SOURCE = "App sign-up"
 const INBOX_EMAIL = "info@visualcns.com"
+const NOTICE_EMAILS = [INBOX_EMAIL, "hello@mail.visualcns.com"]
 
 function json(body: Record<string, unknown>, status = 200) {
   return NextResponse.json(body, { status })
@@ -60,7 +61,7 @@ async function notifyAdmins(db: FirebaseFirestore.Firestore, agencyId: string, c
     db.collection("users").where("agencyId", "==", agencyId).where("role", "==", "superadmin").limit(20).get(),
   ])
   const to = [...new Set([
-    INBOX_EMAIL,
+    ...NOTICE_EMAILS,
     ...admins.docs.map((item) => String(item.data().email || "").trim().toLowerCase()),
     ...superadmins.docs.map((item) => String(item.data().email || "").trim().toLowerCase()),
   ].filter(Boolean))]
@@ -187,7 +188,7 @@ export async function POST(request: NextRequest) {
     companyId: orgRef.id,
     kind: "app-signup",
     from: email,
-    to: [INBOX_EMAIL],
+    to: NOTICE_EMAILS,
     subject: notice.subject,
     text: `${notice.text}\n\nOpen the company: ${notice.url}`,
     createdAt: now,
