@@ -1,5 +1,5 @@
 import { getSiteAgencyId, requireAgencyId } from "@/lib/require-agency-id"
-import { knowledgeDocId, knowledgeText, toKnowledge } from "@/lib/ngai-knowledge"
+import { knowledgeDocId, knowledgeText } from "@/lib/ngai-knowledge"
 import OpenAI from "openai"
 import mammoth from "mammoth"
 import { cert, getApps, initializeApp } from "firebase-admin/app"
@@ -778,7 +778,7 @@ async function agencyKnowledge(agencyId: string): Promise<string> {
   try {
     const { db } = adminServices()
     const snapshot = await db.collection("settings").doc(knowledgeDocId(agencyId)).get()
-    return knowledgeText(toKnowledge(snapshot.data()))
+    return knowledgeText(snapshot.data()).trim()
   } catch {
     return ""
   }

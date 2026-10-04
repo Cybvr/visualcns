@@ -7,15 +7,14 @@ import { useAuth } from "@/components/auth-provider"
 import { AccountNav } from "@/components/account/account-nav"
 import { DashboardPageSkeleton } from "@/components/dashboard/dashboard-page-skeleton"
 import { Button } from "@/components/ui/button"
-import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { emptyKnowledge, KNOWLEDGE_FIELDS, MAX_KNOWLEDGE_FIELD_LENGTH, type KnowledgeKey } from "@/lib/ngai-knowledge"
+import { MAX_KNOWLEDGE_LENGTH } from "@/lib/ngai-knowledge"
 import { getNgaiKnowledge, saveNgaiKnowledge } from "@/lib/ngai-knowledge-store"
 
 /** What Ngai knows about the agency. Clients' answers come from here. */
 export default function NgaiKnowledgePage() {
   const { isAdmin, loading: authLoading } = useAuth()
-  const [form, setForm] = useState(emptyKnowledge)
+  const [content, setContent] = useState("")
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState("")
@@ -24,7 +23,7 @@ export default function NgaiKnowledgePage() {
     if (authLoading || !isAdmin) return
     let active = true
     getNgaiKnowledge()
-      .then((knowledge) => { if (active) setForm(knowledge) })
+      .then((knowledge) => { if (active) setContent(knowledge) })
       .catch((error) => {
         console.error("Could not load Ngai knowledge:", error)
         if (active) setMessage("Could not load the knowledge.")
@@ -33,17 +32,13 @@ export default function NgaiKnowledgePage() {
     return () => { active = false }
   }, [authLoading, isAdmin])
 
-  function set(field: KnowledgeKey, value: string) {
-    setForm((current) => ({ ...current, [field]: value }))
-    setMessage("")
-  }
 
   async function save() {
     if (saving) return
     setSaving(true)
     setMessage("")
     try {
-      await saveNgaiKnowledge(form)
+      await saveNgaiKnowledge(content)
       setMessage("Knowledge saved.")
     } catch (error) {
       console.error("Could not save Ngai knowledge:", error)
@@ -64,13 +59,7 @@ export default function NgaiKnowledgePage() {
       </header>
       {loading ? <DashboardPageSkeleton variant="form" rows={6} /> : (
         <div className="mt-6 space-y-6">
-          {KNOWLEDGE_FIELDS.map(({ key, label, hint }) => (
-            <div key={key} className="space-y-1.5">
-              <Label htmlFor={`knowledge-${key}`}>{label}</Label>
-              <Textarea id={`knowledge-${key}`} rows={key === "faqs" ? 8 : 4} maxLength={MAX_KNOWLEDGE_FIELD_LENGTH} value={form[key]} onChange={(event) => set(key, event.target.value)} />
-              <p className="text-xs text-muted-foreground">{hint}</p>
-            </div>
-          ))}
+          <Textarea aria-label="Ngai knowledge" rows={24} maxLength={MAX_KNOWLEDGE_LENGTH} value={content} onChange={(event) => { setContent(event.target.value); setMessage("") }} placeholder="Paste everything clients may ask about: services, pricing, how you work, policies, contact details, FAQs." />
           <div className="flex items-center gap-3"><Button onClick={() => void save()} disabled={saving}>{saving && <Loader2 className="mr-2 size-4 animate-spin" />}Save</Button>{message && <span className="text-sm text-muted-foreground" role="status">{message}</span>}</div>
         </div>
       )}
