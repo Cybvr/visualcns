@@ -1,5 +1,6 @@
 import { getAgencySecret } from "@/lib/server/agency-secrets"
 import type { EmailAttachment } from "@/lib/email-attachments"
+import { cidReferences, inlineCidImages, normalizeCid } from "@/lib/server/inline-email-images"
 
 export const GOOGLE_GMAIL_SEND_SCOPE = "https://www.googleapis.com/auth/gmail.send"
 export const GOOGLE_GMAIL_MODIFY_SCOPE = "https://www.googleapis.com/auth/gmail.modify"
@@ -202,16 +203,28 @@ function findBody(part: GmailPart | undefined, mimeType: string): string {
   return ""
 }
 
-function findAttachments(part: GmailPart | undefined): Array<{ id: string; filename: string; contentType: string; size: number }> {
+function partContentId(part: GmailPart) {
+  const value = headerMap(part.headers)["content-id"]
+  return value ? normalizeCid(value) : ""
+}
+
+function findInlineParts(part: GmailPart | undefined, cids: Set<string>): GmailPart[] {
   if (!part) return []
-  const own = part.filename && part.body?.attachmentId
+  const own = cids.has(partContentId(part)) && (part.body?.attachmentId || part.body?.data) ? [part] : []
+  return [...own, ...(part.parts || []).flatMap((child) => findInlineParts(child, cids))]
+}
+
+function findAttachments(part: GmailPart | undefined, cids = new Set<string>()): Array<{ id: string; filename: string; contentType: string; size: number }> {
+  if (!part) return []
+  const own = part.filename && part.body?.attachmentId && !cids.has(partContentId(part))
     ? [{ id: part.body.attachmentId, filename: part.filename, contentType: part.mimeType || "application/octet-stream", size: part.body.size || 0 }]
     : []
-  return [...own, ...(part.parts || []).flatMap(findAttachments)]
+  return [...own, ...(part.parts || []).flatMap((child) => findAttachments(child, cids))]
 }
 
 function gmailMessagePayload(message: GmailMessage) {
   const headers = headerMap(message.payload?.headers)
+  const html = findBody(message.payload, "text/html") || null
   return {
     id: message.id ? `gmail:${message.id}` : "",
     threadId: message.threadId || null,
@@ -222,10 +235,10 @@ function gmailMessagePayload(message: GmailMessage) {
     subject: headers.subject || "(No subject)",
     createdAt: message.internalDate ? new Date(Number(message.internalDate)).toISOString() : null,
     messageId: headers["message-id"] || null,
-    html: findBody(message.payload, "text/html") || null,
+    html,
     text: findBody(message.payload, "text/plain") || null,
     headers: headers as Record<string, string>,
-    attachments: findAttachments(message.payload),
+    attachments: findAttachments(message.payload, cidReferences(html)),
   }
 }
 
@@ -241,7 +254,15 @@ export async function getGmailMessage(agencyId: string, id: string) {
   const token = await googleAccessTokenForAgency(agencyId)
   if (!token) return null
   const message = await gmailFetch<GmailMessage>(token, `/messages/${encodeURIComponent(id)}?format=full`)
-  return gmailMessagePayload(message)
+  const payload = gmailMessagePayload(message)
+  const cids = cidReferences(payload.html)
+  if (!payload.html || !cids.size) return payload
+  const images = new Map<string, { contentType: string; data: Buffer }>()
+  await Promise.all(findInlineParts(message.payload, cids).map(async (part) => {
+    const encoded = part.body?.data || (await gmailFetch<{ data?: string }>(token, `/messages/${encodeURIComponent(id)}/attachments/${encodeURIComponent(part.body?.attachmentId || "")}`).catch(() => null))?.data
+    if (encoded) images.set(partContentId(part), { contentType: part.mimeType || "image/png", data: Buffer.from(encoded, "base64url") })
+  }))
+  return { ...payload, html: inlineCidImages(payload.html, images) }
 }
 
 export async function getGmailAttachment(agencyId: string, messageId: string, attachmentId: string) {

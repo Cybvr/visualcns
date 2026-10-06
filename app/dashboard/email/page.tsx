@@ -336,6 +336,7 @@ export default function EmailPage() {
   const [loadingMessageId, setLoadingMessageId] = useState<string | null>(null)
   const [messageViewError, setMessageViewError] = useState("")
   const hydratingRef = useRef<Set<string>>(new Set())
+  const inlinedReceivedRef = useRef<Set<string>>(new Set())
   const reconciledRef = useRef<Set<string>>(new Set())
 
   const [preview, setPreview] = useState<string | null>(null)
@@ -631,8 +632,15 @@ export default function EmailPage() {
     }
   }
 
+  function needsReceivedHydration(message: ReceivedMessage) {
+    if (!message.html && !message.text) return true
+    // Inline images arrive as cid: links; the single-message fetch swaps them for the image data.
+    return Boolean(message.html?.includes("cid:")) && !inlinedReceivedRef.current.has(message.id)
+  }
+
   async function hydrateReceivedMessage(message: ReceivedMessage) {
-    if (message.html || message.text || !user) return
+    if (!needsReceivedHydration(message) || !user) return
+    inlinedReceivedRef.current.add(message.id)
     setLoadingReceivedId(message.id)
     setReceivedError("")
     try {
@@ -674,7 +682,7 @@ export default function EmailPage() {
   }
 
   useEffect(() => {
-    if (!selectedReceived || selectedReceived.html || selectedReceived.text) return
+    if (!selectedReceived || !needsReceivedHydration(selectedReceived)) return
     void hydrateReceivedMessage(selectedReceived)
   }, [selectedReceivedId, receivedMessages])
 

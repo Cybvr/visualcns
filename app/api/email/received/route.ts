@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { adminServices } from "@/lib/firebase-admin"
+import { cidReferences, inlineCidImages, normalizeCid } from "@/lib/server/inline-email-images"
 import { getGmailAttachment, getGmailMessage, hasGmailConnection, listGmailInbox } from "@/lib/server/google-gmail"
 
 type ReceivedEmail = {
@@ -26,7 +27,7 @@ type ResendListResponse = {
 
 function resendAttachments(attachments: ReceivedEmail["attachments"] = []) {
   return attachments
-    .filter((file) => typeof file.id === "string" && file.content_disposition !== "inline")
+    .filter((file) => typeof file.id === "string" && !(file.content_disposition === "inline" && file.content_id))
     .map((file) => ({
       id: String(file.id),
       filename: String(file.filename || "attachment"),
@@ -194,5 +195,19 @@ export async function GET(request: Request) {
 
   const email = result as ReceivedEmail
   if (!email.id) return NextResponse.json({ error: "The received email could not be loaded." }, { status: 502 })
+  const cids = cidReferences(email.html)
+  if (email.html && cids.size) {
+    const inline = (email.attachments || []).filter((file) => typeof file.id === "string" && typeof file.content_id === "string" && cids.has(normalizeCid(file.content_id)))
+    const images = new Map<string, { contentType: string; data: Buffer }>()
+    await Promise.all(inline.map(async (file) => {
+      const { response: fileResponse, result: fileResult } = await resendRequest(`/emails/receiving/${encodeURIComponent(email.id as string)}/attachments/${encodeURIComponent(String(file.id))}`)
+      const downloadUrl = (fileResult as { download_url?: string } | null)?.download_url
+      if (!fileResponse?.ok || !downloadUrl) return
+      const download = await fetch(downloadUrl, { cache: "no-store" }).catch(() => null)
+      if (download?.ok) images.set(normalizeCid(String(file.content_id)), { contentType: String(file.content_type || "image/png"), data: Buffer.from(await download.arrayBuffer()) })
+    }))
+    const payload = receivedEmailPayload(email)
+    return NextResponse.json({ ...payload, html: inlineCidImages(email.html, images), attachments: resendAttachments((email.attachments || []).filter((file) => !(typeof file.content_id === "string" && cids.has(normalizeCid(file.content_id))))) })
+  }
   return NextResponse.json(receivedEmailPayload(email))
 }
