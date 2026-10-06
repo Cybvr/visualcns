@@ -14,6 +14,10 @@
   font-size: 0.9375rem !important;
   line-height: 1.5rem !important;
 }
+.dashboard-body.agent-chat-root .agent-composer-input {
+  font-size: 1.25rem !important;
+  line-height: 1.875rem !important;
+}
 .agent-chat-root .agent-recent-label {
   font-size: 0.8125rem !important;
   line-height: 1.125rem !important;

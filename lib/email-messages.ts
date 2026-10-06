@@ -27,6 +27,9 @@ export type EmailMessageRecord = {
   createdAt: string
   from?: string
   replyTo?: string
+  threadId?: string
+  inReplyTo?: string
+  references?: string[]
   bodyHtml?: string
   bodyText?: string
   attachments?: EmailAttachmentInfo[]

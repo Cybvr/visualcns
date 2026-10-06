@@ -19,8 +19,8 @@ async function showNewEmailNotifications(messages: InboxMessage[]) {
       for (const message of messages) {
         await registration.showNotification(message.from || "New email", {
           body: message.subject || "(No subject)",
-          icon: "/icon-192.png",
-          badge: "/icon-192.png",
+          icon: "/visualhqlogo.svg",
+          badge: "/visualhqlogo.svg",
           tag: `visualcns-email:${message.id}`,
           data: { url: "/dashboard/email" },
         })
@@ -29,7 +29,7 @@ async function showNewEmailNotifications(messages: InboxMessage[]) {
       for (const message of messages) {
         const notification = new Notification(message.from || "New email", {
           body: message.subject || "(No subject)",
-          icon: "/icon-192.png",
+          icon: "/visualhqlogo.svg",
           tag: `visualcns-email:${message.id}`,
         })
         notification.onclick = () => {

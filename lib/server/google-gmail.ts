@@ -140,13 +140,15 @@ function encodedSubject(subject: string) {
   return `=?UTF-8?B?${Buffer.from(subject, "utf8").toString("base64")}?=`
 }
 
-export function buildRawGmailMessage(input: { from: string; to: string[]; cc?: string[]; replyTo?: string; subject: string; text: string; html?: string; attachments?: EmailAttachment[] }) {
+export function buildRawGmailMessage(input: { from: string; to: string[]; cc?: string[]; replyTo?: string; inReplyTo?: string; references?: string[]; subject: string; text: string; html?: string; attachments?: EmailAttachment[] }) {
   const hasAttachments = Boolean(input.attachments?.length)
   const headers = [
     mimeHeader("From", input.from),
     mimeHeader("To", input.to.join(", ")),
     ...(input.cc?.length ? [mimeHeader("Cc", input.cc.join(", "))] : []),
     ...(input.replyTo ? [mimeHeader("Reply-To", input.replyTo)] : []),
+    ...(input.inReplyTo ? [mimeHeader("In-Reply-To", input.inReplyTo)] : []),
+    ...(input.references?.length ? [mimeHeader("References", input.references.join(" "))] : []),
     mimeHeader("Subject", encodedSubject(input.subject)),
     "MIME-Version: 1.0",
     hasAttachments ? "Content-Type: multipart/mixed; boundary=visualhq_mixed" : "Content-Type: multipart/alternative; boundary=visualhq_boundary",
@@ -179,13 +181,13 @@ export function buildRawGmailMessage(input: { from: string; to: string[]; cc?: s
   return base64UrlEncode(body)
 }
 
-export async function sendGmailMessage(agencyId: string, input: Parameters<typeof buildRawGmailMessage>[0]) {
+export async function sendGmailMessage(agencyId: string, input: Parameters<typeof buildRawGmailMessage>[0] & { threadId?: string }) {
   const token = await googleAccessTokenForAgency(agencyId)
   if (!token) throw new Error("Google mailbox is not connected.")
   return gmailFetch<{ id?: string; threadId?: string }>(token, "/messages/send", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ raw: buildRawGmailMessage(input) }),
+    body: JSON.stringify({ raw: buildRawGmailMessage(input), ...(input.threadId ? { threadId: input.threadId } : {}) }),
   })
 }
 

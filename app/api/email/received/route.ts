@@ -5,6 +5,7 @@ import { getGmailAttachment, getGmailMessage, hasGmailConnection, listGmailInbox
 
 type ReceivedEmail = {
   id?: string
+  thread_id?: string | null
   from?: string
   to?: string[]
   cc?: string[]
@@ -50,6 +51,7 @@ function attachmentResponse(body: ArrayBuffer | Uint8Array, filename: string, co
 function receivedEmailPayload(email: ReceivedEmail) {
   return {
     id: email.id || "",
+    threadId: email.thread_id || null,
     from: email.from || "",
     to: email.to || [],
     cc: email.cc || [],
@@ -67,6 +69,7 @@ function receivedEmailPayload(email: ReceivedEmail) {
 function localInboxPayload(id: string, data: FirebaseFirestore.DocumentData) {
   return {
     id: `local:${id}`,
+    threadId: null,
     from: String(data.from || ""),
     to: Array.isArray(data.to) ? data.to : [],
     cc: [],

@@ -1,4 +1,4 @@
-import { Archive, ArrowLeft, CheckCircle2, Clock, FileText, Inbox, Mail, MailOpen, Paperclip, Trash2, X } from "lucide-react"
+import { Archive, ArrowLeft, CheckCircle2, Clock, FileText, Forward, Inbox, Mail, MailOpen, Paperclip, Reply, Trash2, X } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -24,6 +24,8 @@ export type EmailMessageSurfacesProps = {
   onDeleteReceived: (message: ReceivedMessage) => void
   onDownloadReceivedAttachment: (message: ReceivedMessage, file: ReceivedAttachment) => void
   downloadingAttachmentId: string | null
+  onReplyReceived: (message: ReceivedMessage) => void
+  onForwardReceived: (message: ReceivedMessage) => void
   selectedReceivedIds: string[]
   readReceivedIds: string[]
   onToggleAllReceived: (checked: boolean) => void
@@ -79,6 +81,8 @@ export function EmailMessageSurfaces({
   onOpenReceived,
   onClearReceived,
   onDeleteReceived,
+  onReplyReceived,
+  onForwardReceived,
   selectedReceivedIds,
   onDownloadReceivedAttachment,
   downloadingAttachmentId,
@@ -188,6 +192,10 @@ export function EmailMessageSurfaces({
             <div className="shrink-0 border-b border-border px-4 py-4 sm:px-5">
               <div className="mb-2 flex items-center gap-2"><Button type="button" variant="ghost" size="icon" className="-ml-2 size-8" onClick={onClearReceived} aria-label="Back to inbox"><ArrowLeft aria-hidden="true" /></Button></div>
               <div className="flex items-start justify-between gap-4"><div className="min-w-0"><h2 className="truncate text-base font-semibold">{selectedReceived.subject}</h2><p className="mt-1 truncate text-sm text-muted-foreground">From {selectedReceived.from}</p><p className="truncate text-xs text-muted-foreground">To {selectedReceived.to.join(", ") || "hello@mail.visualcns.com"}</p></div>{selectedReceived.createdAt && <time dateTime={selectedReceived.createdAt} className="shrink-0 text-right text-xs text-muted-foreground">{formatMessageDate(selectedReceived.createdAt)}</time>}</div>
+              <div className="mt-4 flex flex-wrap items-center gap-2">
+                <Button type="button" variant="outline" size="sm" onClick={() => onReplyReceived(selectedReceived)}><Reply className="size-4" aria-hidden="true" /> Reply</Button>
+                <Button type="button" variant="outline" size="sm" onClick={() => onForwardReceived(selectedReceived)}><Forward className="size-4" aria-hidden="true" /> Forward</Button>
+              </div>
             </div>
             {Boolean(selectedReceived.attachments?.length) && <div className="flex shrink-0 flex-wrap gap-2 border-b border-border px-4 py-2 sm:px-5">{selectedReceived.attachments?.map((file) => <button key={file.id} type="button" onClick={() => onDownloadReceivedAttachment(selectedReceived, file)} disabled={downloadingAttachmentId === file.id} className="inline-flex max-w-full items-center gap-1 rounded-md bg-muted px-2 py-1 text-xs hover:bg-muted/70 disabled:opacity-60" title={`Download ${file.filename}`}><Paperclip className="size-3 shrink-0" aria-hidden="true" /><span className="truncate">{file.filename}</span>{file.size > 0 && <span className="shrink-0 text-muted-foreground">{file.size < 1024 * 1024 ? `${Math.max(1, Math.round(file.size / 1024))} KB` : `${(file.size / 1024 / 1024).toFixed(1)} MB`}</span>}</button>)}</div>}
             <div className="min-h-0 flex-1 overflow-hidden bg-white">{loadingReceivedId === selectedReceived.id ? <div className="space-y-4 p-6" role="status" aria-label="Loading message"><Skeleton className="h-6 w-2/3" /><Skeleton className="h-4 w-1/3" /><Skeleton className="h-32 w-full" /><Skeleton className="h-4 w-4/5" /><Skeleton className="h-4 w-3/5" /></div> : <iframe title={`Received email: ${selectedReceived.subject}`} srcDoc={receivedMessagePreview(selectedReceived)} sandbox="" className="h-full min-h-[24rem] w-full border-0" />}</div>

@@ -235,7 +235,7 @@ export default function NotesPage() {
   )
 
   return (
-    <main className="mx-auto w-full max-w-6xl px-4 pt-4 pb-12 sm:px-6">
+    <main className="notes-page mx-auto w-full max-w-6xl px-4 pt-4 pb-12 sm:px-6">
       {error ? (
         <p role="alert" className="mt-10 text-sm text-destructive">Notes unavailable. Refresh to try again.</p>
       ) : notes === null ? (
@@ -363,7 +363,7 @@ export default function NotesPage() {
                     placeholder="Start writing"
                     aria-label="Note"
                     autoFocus
-                    className="min-h-0 flex-1 resize-none py-5 text-base leading-relaxed text-foreground outline-none placeholder:text-muted-foreground"
+                    className="note-body min-h-0 flex-1 resize-none py-5 text-foreground outline-none placeholder:text-muted-foreground"
                   />
                 )}
               </div>

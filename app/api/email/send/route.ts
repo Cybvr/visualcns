@@ -52,6 +52,7 @@ type FirebaseLookupResponse = {
 
 type ResendResponse = {
   id?: string
+  threadId?: string
   message?: string
   error?: { message?: string }
   to?: string[]
@@ -82,6 +83,15 @@ type EmailHistoryInput = {
   companyName?: unknown
   projectName?: unknown
   documentTitle?: unknown
+  threadId?: unknown
+  inReplyTo?: unknown
+  references?: unknown
+}
+
+type EmailThreading = {
+  threadId?: string
+  inReplyTo?: string
+  references?: string[]
 }
 
 type WelcomeClaim = {
@@ -178,7 +188,7 @@ async function saveEmailHistory(
   agencyId: string,
   id: string,
   input: EmailHistoryInput,
-  details: { to: string[]; cc: string[]; subject: string; from: string; replyTo: string; html: string; text: string; scheduledAt: string; messageKind: EmailMessageKind; context: EmailContext; attachments: EmailAttachmentInfo[] },
+  details: { to: string[]; cc: string[]; subject: string; from: string; replyTo: string; html: string; text: string; scheduledAt: string; messageKind: EmailMessageKind; context: EmailContext; attachments: EmailAttachmentInfo[]; threading?: EmailThreading },
 ) {
   const recipients = Array.isArray(input.recipients)
     ? input.recipients.filter((value): value is Record<string, unknown> => Boolean(value) && typeof value === "object").map((recipient) => ({
@@ -212,6 +222,9 @@ async function saveEmailHistory(
     status: details.scheduledAt ? "scheduled" : "sent",
     scheduledAt: details.scheduledAt || undefined,
     attachments: details.attachments.length ? details.attachments : undefined,
+    threadId: details.threading?.threadId,
+    inReplyTo: details.threading?.inReplyTo,
+    references: details.threading?.references?.length ? details.threading.references : undefined,
   }).filter(([, value]) => value !== undefined))
   await caller.db.collection("emailMessages").doc(id).set(record, { merge: true })
 }
@@ -326,7 +339,7 @@ export async function POST(request: Request) {
   let from = normalizeEmailAddress(process.env.EMAIL_FROM || "")
   let replyTo = normalizeEmailAddress(process.env.EMAIL_REPLY_TO || "") || from
 
-  let payload: { to?: unknown; cc?: unknown; from?: unknown; intent?: unknown; subject?: unknown; text?: unknown; html?: unknown; imageUrl?: unknown; brand?: unknown; cta?: unknown; branded?: unknown; type?: unknown; welcome?: unknown; templateId?: unknown; companyId?: unknown; projectId?: unknown; documentType?: unknown; documentId?: unknown; scheduledAt?: unknown; history?: EmailHistoryInput; attachments?: unknown }
+  let payload: { to?: unknown; cc?: unknown; from?: unknown; intent?: unknown; subject?: unknown; text?: unknown; html?: unknown; imageUrl?: unknown; brand?: unknown; cta?: unknown; branded?: unknown; type?: unknown; welcome?: unknown; templateId?: unknown; companyId?: unknown; projectId?: unknown; documentType?: unknown; documentId?: unknown; scheduledAt?: unknown; history?: EmailHistoryInput; attachments?: unknown; threading?: unknown }
   try {
     payload = (await request.json()) as typeof payload
   } catch {
@@ -374,6 +387,15 @@ export async function POST(request: Request) {
     documentType: typeof payload.documentType === "string" ? payload.documentType.trim() : undefined,
     documentId: typeof payload.documentId === "string" ? payload.documentId.trim() : undefined,
     intent: payload.intent === "reminder" ? "reminder" : undefined,
+  }
+  const threadingInput = payload.threading && typeof payload.threading === "object" ? payload.threading as Record<string, unknown> : {}
+  const cleanHeader = (value: unknown, max = 998) => typeof value === "string" ? value.replace(/[\r\n]/g, " ").trim().slice(0, max) : ""
+  const threading: EmailThreading = {
+    threadId: cleanHeader(threadingInput.threadId, 256) || undefined,
+    inReplyTo: cleanHeader(threadingInput.inReplyTo) || undefined,
+    references: Array.isArray(threadingInput.references)
+      ? Array.from(new Set(threadingInput.references.map((value) => cleanHeader(value)).filter(Boolean))).slice(-20)
+      : undefined,
   }
 
   let scheduledAtIso = ""
@@ -542,8 +564,8 @@ export async function POST(request: Request) {
       ? `${text}\n\n${ctaText}: ${ctaUrl}\n\n---\n${footerText}\nX: ${X_URL}\nLinkedIn: ${LINKEDIN_URL}${unsubscribeLink ? `\nUnsubscribe: ${unsubscribeLink}` : ""}`
       : `${text}${unsubscribeLink ? `\n\nUnsubscribe: ${unsubscribeLink}` : ""}`
     if (useGmail) {
-      const result = await sendGmailMessage(agencyId, { from, to, cc: copy, replyTo, subject, text: brandedText, html, attachments })
-      return { response: { ok: Boolean(result.id), status: result.id ? 200 : 502 }, result: { id: result.id ? `gmail:${result.id}` : undefined } as ResendResponse, html, brandedText }
+      const result = await sendGmailMessage(agencyId, { from, to, cc: copy, replyTo, subject, text: brandedText, html, attachments, ...threading })
+      return { response: { ok: Boolean(result.id), status: result.id ? 200 : 502 }, result: { id: result.id ? `gmail:${result.id}` : undefined, threadId: result.threadId } as ResendResponse, html, brandedText }
     }
     const response = await fetch("https://api.resend.com/emails", {
       method: "POST",
@@ -563,8 +585,12 @@ export async function POST(request: Request) {
         ...(attachments.length ? { attachments: attachments.map(({ filename, content }) => ({ filename, content })) } : {}),
         reply_to: replyTo,
         ...(scheduledAtIso ? { scheduled_at: scheduledAtIso } : {}),
-        ...(unsubscribeLink
-          ? { headers: { "List-Unsubscribe": `<${unsubscribeLink}>`, "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" } }
+        ...((unsubscribeLink || threading.inReplyTo || threading.references?.length)
+          ? { headers: {
+            ...(unsubscribeLink ? { "List-Unsubscribe": `<${unsubscribeLink}>`, "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" } : {}),
+            ...(threading.inReplyTo ? { "In-Reply-To": threading.inReplyTo } : {}),
+            ...(threading.references?.length ? { References: threading.references.join(" ") } : {}),
+          } }
           : {}),
       }),
       cache: "no-store",
@@ -606,6 +632,7 @@ export async function POST(request: Request) {
         messageKind,
         context,
         attachments: attachmentInfo,
+        threading,
       })
     } catch {
       historySaved = false
@@ -617,6 +644,7 @@ export async function POST(request: Request) {
       html: sent[0].html,
       text: sent[0].text,
       replyTo: replyTo || null,
+      threadId: threading.threadId || null,
       suppressedCount: suppressedRecipients.length,
       scheduledAt: scheduledAtIso || null,
       historySaved,
@@ -656,6 +684,7 @@ export async function POST(request: Request) {
       messageKind,
       context,
       attachments: attachmentInfo,
+      threading: { ...threading, threadId: attempt.result.threadId || threading.threadId },
     })
   } catch {
     historySaved = false
@@ -664,5 +693,5 @@ export async function POST(request: Request) {
     try { await completeWelcomeEmail(welcomeClaim) } catch { /* The claim expires and can be retried if persistence is temporarily unavailable. */ }
   }
   void recordAgencyUsage(agencyId, "emailsSent", recipients.length + cc.length).catch(() => undefined)
-  return NextResponse.json({ id: attempt.result.id, html: attempt.html, text: attempt.brandedText, replyTo: replyTo || null, scheduledAt: scheduledAtIso || null, cc, context, historySaved })
+  return NextResponse.json({ id: attempt.result.id, html: attempt.html, text: attempt.brandedText, replyTo: replyTo || null, threadId: attempt.result.threadId || threading.threadId || null, scheduledAt: scheduledAtIso || null, cc, context, historySaved })
 }

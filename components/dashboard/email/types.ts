@@ -11,6 +11,7 @@ export type ContactList = Omit<EmailContactList, "companyId" | "createdBy"> & Pa
 
 export type ReceivedMessage = {
   id: string
+  threadId?: string | null
   from: string
   to: string[]
   cc?: string[]

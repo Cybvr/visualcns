@@ -13,11 +13,13 @@ import {
   ChevronRight,
   Eye,
   FileText,
+  Forward,
   Inbox,
   List,
   Linkedin,
   Mail,
   Plus,
+  Reply,
   Send,
   Trash2,
   Twitter,
@@ -89,8 +91,17 @@ type Notice = {
 } | null
 
 type DraftStatus = "idle" | "saving" | "saved" | "error"
+type EmailThreading = {
+  threadId?: string
+  inReplyTo?: string
+  references?: string[]
+}
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+function messageIds(value: string | undefined) {
+  return value?.match(/<[^>\s]+>/g) || []
+}
 
 const MESSAGE_SORTS: SortOption<SentMessage>[] = [
   { value: "createdAt", label: "Last sent", get: (message) => message.createdAt, ascLabel: "Oldest", descLabel: "Newest" },
@@ -321,6 +332,7 @@ export default function EmailPage() {
   const [messageKind, setMessageKind] = useState<EmailMessageKind>("transactional")
   const [brandedEmail, setBrandedEmail] = useState(true)
   const [composeContext, setComposeContext] = useState<EmailComposeContext | null>(null)
+  const [composeThreading, setComposeThreading] = useState<EmailThreading | null>(null)
   const [selectedTemplateId, setSelectedTemplateId] = useState("")
   const [scheduleEnabled, setScheduleEnabled] = useState(false)
   const [scheduleAt, setScheduleAt] = useState("")
@@ -851,6 +863,7 @@ export default function EmailPage() {
     if (!nextContext) return
     // A message we write for them carries the link in its text, so it gets no button as well.
     setComposeContext(nextContext.body ? nextContext : { ...nextContext, ctaText: undefined, ctaUrl: undefined })
+    setComposeThreading(null)
     setComposeFullPage(false)
     setComposeOpen(true)
     setComposeMinimized(false)
@@ -986,6 +999,7 @@ export default function EmailPage() {
     setAttachments([])
     setMessageKind("transactional")
     setComposeContext(null)
+    setComposeThreading(null)
     setSelectedTemplateId("")
     setScheduleEnabled(false)
     setScheduleAt("")
@@ -1001,6 +1015,24 @@ export default function EmailPage() {
     setComposeFullPage(false)
     setComposeOpen(true)
     setComposeMinimized(false)
+  }
+
+  function composeReceivedMessage(message: ReceivedMessage, mode: "reply" | "forward") {
+    const originalBody = (message.text || htmlToText(message.html || "")).trim()
+    const quotedBody = originalBody
+      ? `\n\n--- Original message ---\n${originalBody}`
+      : ""
+    clearComposer()
+    setTo(mode === "reply" ? recipientEmail(message.from) : "")
+    setSubject(`${mode === "reply" ? "Re" : "Fwd"}: ${message.subject.replace(/^(re|fwd):\s*/i, "")}`)
+    setBody(plainTextToEditorHtml(quotedBody))
+    setMessageKind("transactional")
+    setComposeThreading(mode === "reply" && message.messageId ? {
+      threadId: message.threadId || undefined,
+      inReplyTo: message.messageId,
+      references: Array.from(new Set([...messageIds(message.headers?.references), message.messageId])),
+    } : null)
+    openCompose()
   }
 
   function closeCompose() {
@@ -1070,6 +1102,7 @@ export default function EmailPage() {
     setMessageKind(draft.messageKind === "marketing" ? "marketing" : "transactional")
     setBrandedEmail(draft.brandedEmail !== false)
     setComposeContext((draft.context as EmailComposeContext | null) ?? (draft.companyId !== workspaceId ? { companyId: draft.companyId } : null))
+    setComposeThreading(null)
     setSelectedTemplateId("")
     setScheduleEnabled(false)
     setScheduleAt("")
@@ -1457,6 +1490,7 @@ export default function EmailPage() {
           documentId: composeContext?.documentId,
           scheduledAt: scheduledAtIso || undefined,
           attachments: encodedAttachments,
+          threading: composeThreading || undefined,
           history: {
             companyId: savedCompanyId,
             to: selectedList ? `${selectedList.name} (${selectedList.contactEmails.length})` : to.trim(),
@@ -1465,10 +1499,13 @@ export default function EmailPage() {
             companyName: composeContext?.companyName,
             projectName: composeContext?.projectName,
             documentTitle: composeContext?.documentTitle,
+            threadId: composeThreading?.threadId,
+            inReplyTo: composeThreading?.inReplyTo,
+            references: composeThreading?.references,
           },
         }),
       })
-      const result = (await response.json()) as { id?: string; html?: string; text?: string; replyTo?: string | null; suppressedCount?: number; scheduledAt?: string | null; cc?: string[]; historySaved?: boolean; error?: string }
+      const result = (await response.json()) as { id?: string; html?: string; text?: string; replyTo?: string | null; threadId?: string | null; suppressedCount?: number; scheduledAt?: string | null; cc?: string[]; historySaved?: boolean; error?: string }
 
       if (!response.ok || !result.id) {
         throw new Error(result.error || "The message could not be sent.")
@@ -1483,6 +1520,9 @@ export default function EmailPage() {
         createdAt: new Date().toISOString(),
         from: senderAddress || undefined,
         replyTo: result.replyTo || replyToAddress || senderAddress || undefined,
+        threadId: result.threadId || composeThreading?.threadId,
+        inReplyTo: composeThreading?.inReplyTo,
+        references: composeThreading?.references,
         bodyHtml: result.html || bodyHtml,
         bodyText: result.text || textBody,
         recipients: recipientRecords,
@@ -1921,6 +1961,8 @@ export default function EmailPage() {
             onDeleteReceived={(message) => void deleteReceivedMessage(message)}
             onDownloadReceivedAttachment={(message, file) => void downloadReceivedAttachment(message, file)}
             downloadingAttachmentId={downloadingAttachmentId}
+            onReplyReceived={(message) => composeReceivedMessage(message, "reply")}
+            onForwardReceived={(message) => composeReceivedMessage(message, "forward")}
             selectedReceivedIds={[...selectedReceivedIds]}
             readReceivedIds={[...readReceivedIds]}
             onToggleAllReceived={toggleAllReceivedSelection}
