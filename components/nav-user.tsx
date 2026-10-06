@@ -59,9 +59,9 @@ export function NavUser() {
                 {photoURL && <AvatarImage src={photoURL} alt={name} referrerPolicy="no-referrer" />}
                 <AvatarFallback className="rounded-lg">{initials}</AvatarFallback>
               </Avatar>
-              <div className="grid flex-1 text-left text-[13px] font-medium leading-tight text-muted-foreground">
+              <div className="grid flex-1 text-left text-[14px] font-medium leading-5 text-muted-foreground">
                 <span className="truncate font-medium">{name}</span>
-                <span className="truncate text-xs">{role}</span>
+                <span className="truncate text-[13px] leading-4">{role}</span>
               </div>
               <ChevronsUpDown className="ml-auto size-4" />
             </SidebarMenuButton>

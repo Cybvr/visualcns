@@ -33,9 +33,9 @@ import {
 // On mobile the sidebar is a slide-over sheet, so nav rows need finger-sized
 // hit areas. max-md: keeps the desktop rail untouched.
 const mobileNavButton =
-  "surface-nav h-6 max-md:h-12 max-md:min-h-12 max-md:gap-3 max-md:px-3 [&>svg]:max-md:size-5 max-md:[&>.sidebar-nav-label]:!text-[15px] max-md:[&>.sidebar-nav-label]:!leading-6"
+  "surface-nav h-9 gap-2 px-2 max-md:h-12 max-md:min-h-12 max-md:gap-3 max-md:px-3 [&>svg]:size-[18px] [&>svg]:max-md:size-5 max-md:[&>.sidebar-nav-label]:!text-[15px] max-md:[&>.sidebar-nav-label]:!leading-6"
 const mobileNavSubButton =
-  "surface-nav h-6 max-md:h-11 max-md:min-h-11 max-md:gap-3 max-md:px-3 [&>svg]:max-md:size-5 max-md:[&>.sidebar-nav-label]:!text-[14px] max-md:[&>.sidebar-nav-label]:!leading-5"
+  "surface-nav h-9 gap-2 px-2 max-md:h-11 max-md:min-h-11 max-md:gap-3 max-md:px-3 [&>svg]:size-[18px] [&>svg]:max-md:size-5 max-md:[&>.sidebar-nav-label]:!text-[14px] max-md:[&>.sidebar-nav-label]:!leading-5"
 
 export type NavLink = {
   label: string
@@ -95,7 +95,7 @@ export function AppSidebar({
     <Sidebar
       collapsible="icon"
       className={cn(
-        "bg-background text-muted-foreground group-data-[side=left]:border-r group-data-[side=left]:border-border [&_[data-slot=sidebar-inner]]:bg-background",
+        "dashboard-sidebar bg-card text-muted-foreground group-data-[side=left]:!border-r-0 [&_[data-slot=sidebar-inner]]:bg-card",
         className,
       )}
       {...props}
@@ -117,12 +117,12 @@ export function AppSidebar({
         </SidebarHeader>
         <SidebarContent>
           <SidebarGroup className="group-data-[collapsible=icon]:p-1">
-            <SidebarMenu className="gap-1 max-md:gap-1.5">
+              <SidebarMenu className="gap-1 max-md:gap-1.5">
               {navLinks.map((link) => (
                 <React.Fragment key={link.href}>
                   {link.sectionLabel && (
                     <SidebarMenuItem className="group-data-[collapsible=icon]:hidden">
-                      <p className="surface-section-label px-2 pb-0.5 pt-2.5">{link.sectionLabel}</p>
+                      <p className="surface-section-label px-2 pb-0.5 pt-3">{link.sectionLabel}</p>
                     </SidebarMenuItem>
                   )}
                 {link.items ? (

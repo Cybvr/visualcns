@@ -721,7 +721,7 @@ export function AgentChat({
             "mx-auto flex w-full flex-col gap-2",
             compact
               ? "rounded-[16px] border border-border bg-background p-2 shadow-[0_8px_24px_rgba(15,23,42,0.08)]"
-              : "max-w-3xl rounded-[16px] border border-border bg-background p-2.5 focus-within:border-ring",
+              : "max-w-3xl rounded-[16px] border border-border bg-background p-2.5",
           )}
         >
           {(attachments.length > 0 || uploading) && (
@@ -780,7 +780,7 @@ export function AgentChat({
               rows={1}
               placeholder="Ask Ngai"
               aria-label="Message Ngai"
-              className="agent-composer-input min-h-0 w-full resize-none overflow-y-auto rounded-lg border-0 bg-transparent! px-2 py-2 text-lg md:text-lg shadow-none [field-sizing:fixed] focus-visible:border-transparent focus-visible:ring-0"
+              className="agent-composer-input min-h-0 w-full resize-none overflow-y-auto rounded-lg border-0 bg-transparent! px-2 py-2 text-3xl shadow-none outline-none [field-sizing:fixed] focus:border-transparent focus-visible:border-transparent focus:ring-0 focus-visible:ring-0"
             />
             <div className="flex items-center justify-between">
             {allowAttachments ? (
