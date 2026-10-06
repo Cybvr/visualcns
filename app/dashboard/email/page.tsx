@@ -72,6 +72,7 @@ import type {
   EmailMessageKind,
   EmailTab,
   EmailTemplate,
+  ReceivedAttachment,
   ReceivedMessage,
   SentMessage,
 } from "@/components/dashboard/email/types"
@@ -300,6 +301,7 @@ export default function EmailPage() {
   const [receivedError, setReceivedError] = useState("")
   const [selectedReceivedId, setSelectedReceivedId] = useState<string | null>(null)
   const [loadingReceivedId, setLoadingReceivedId] = useState<string | null>(null)
+  const [downloadingAttachmentId, setDownloadingAttachmentId] = useState<string | null>(null)
   const [senderConfigured, setSenderConfigured] = useState<boolean | null>(null)
   const [senderAddress, setSenderAddress] = useState<string | null>(null)
   const [senderOptions, setSenderOptions] = useState<string[]>([])
@@ -598,6 +600,34 @@ export default function EmailPage() {
       setReceivedError(error instanceof Error ? error.message : "Received messages could not be loaded.")
     } finally {
       setReceivedLoading(false)
+    }
+  }
+
+  async function downloadReceivedAttachment(message: ReceivedMessage, file: ReceivedAttachment) {
+    if (!user) return
+    setDownloadingAttachmentId(file.id)
+    setReceivedError("")
+    try {
+      const idToken = await user.getIdToken()
+      const params = new URLSearchParams({ id: message.id, attachment: file.id, filename: file.filename, type: file.contentType })
+      const response = await fetch(`/api/email/received?${params}`, {
+        headers: { Authorization: `Bearer ${idToken}` },
+        cache: "no-store",
+      })
+      if (!response.ok) {
+        const result = (await response.json().catch(() => ({}))) as { error?: string }
+        throw new Error(result.error || "The attachment could not be downloaded.")
+      }
+      const url = URL.createObjectURL(await response.blob())
+      const link = document.createElement("a")
+      link.href = url
+      link.download = file.filename
+      link.click()
+      setTimeout(() => URL.revokeObjectURL(url), 1000)
+    } catch (error) {
+      setReceivedError(error instanceof Error ? error.message : "The attachment could not be downloaded.")
+    } finally {
+      setDownloadingAttachmentId(null)
     }
   }
 
@@ -1881,6 +1911,8 @@ export default function EmailPage() {
             onOpenReceived={previewReceivedMessageById}
             onClearReceived={() => { setSelectedReceivedId(null); setMobileMessageView("list") }}
             onDeleteReceived={(message) => void deleteReceivedMessage(message)}
+            onDownloadReceivedAttachment={(message, file) => void downloadReceivedAttachment(message, file)}
+            downloadingAttachmentId={downloadingAttachmentId}
             selectedReceivedIds={[...selectedReceivedIds]}
             readReceivedIds={[...readReceivedIds]}
             onToggleAllReceived={toggleAllReceivedSelection}

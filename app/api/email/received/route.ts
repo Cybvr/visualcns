@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { adminServices } from "@/lib/firebase-admin"
-import { getGmailMessage, hasGmailConnection, listGmailInbox } from "@/lib/server/google-gmail"
+import { getGmailAttachment, getGmailMessage, hasGmailConnection, listGmailInbox } from "@/lib/server/google-gmail"
 
 type ReceivedEmail = {
   id?: string
@@ -24,6 +24,28 @@ type ResendListResponse = {
   error?: { message?: string }
 }
 
+function resendAttachments(attachments: ReceivedEmail["attachments"] = []) {
+  return attachments
+    .filter((file) => typeof file.id === "string" && file.content_disposition !== "inline")
+    .map((file) => ({
+      id: String(file.id),
+      filename: String(file.filename || "attachment"),
+      contentType: String(file.content_type || "application/octet-stream"),
+      size: Number(file.size) || 0,
+    }))
+}
+
+function attachmentResponse(body: ArrayBuffer | Uint8Array, filename: string, contentType: string) {
+  const safeName = filename.replace(/[^\x20-\x7e]|["\\]/g, "_")
+  return new NextResponse(body as BodyInit, {
+    headers: {
+      "Content-Type": contentType || "application/octet-stream",
+      "Content-Disposition": `attachment; filename="${safeName}"; filename*=UTF-8''${encodeURIComponent(filename)}`,
+      "Cache-Control": "no-store",
+    },
+  })
+}
+
 function receivedEmailPayload(email: ReceivedEmail) {
   return {
     id: email.id || "",
@@ -37,7 +59,7 @@ function receivedEmailPayload(email: ReceivedEmail) {
     html: email.html || null,
     text: email.text || null,
     headers: email.headers || null,
-    attachments: email.attachments || [],
+    attachments: resendAttachments(email.attachments),
   }
 }
 
@@ -94,7 +116,25 @@ export async function GET(request: Request) {
   const inboxEvents = db.collection("agencies").doc(agencyId).collection("emailInboxEvents")
   const gmailConnected = await hasGmailConnection(agencyId)
 
-  const emailId = new URL(request.url).searchParams.get("id")?.trim()
+  const params = new URL(request.url).searchParams
+  const emailId = params.get("id")?.trim()
+  const attachmentId = params.get("attachment")?.trim()
+  if (emailId && attachmentId) {
+    const filename = params.get("filename")?.trim() || "attachment"
+    const contentType = params.get("type")?.trim() || "application/octet-stream"
+    if (emailId.startsWith("gmail:")) {
+      if (!gmailConnected) return NextResponse.json({ error: "Google mailbox is not connected." }, { status: 503 })
+      const data = await getGmailAttachment(agencyId, emailId.slice(6), attachmentId).catch(() => null)
+      return data ? attachmentResponse(data, filename, contentType) : NextResponse.json({ error: "Attachment not found." }, { status: 404 })
+    }
+    if (emailId.startsWith("local:") || !process.env.RESEND_API_KEY) return NextResponse.json({ error: "Attachment not found." }, { status: 404 })
+    const { response, result } = await resendRequest(`/emails/receiving/${encodeURIComponent(emailId)}/attachments/${encodeURIComponent(attachmentId)}`)
+    const file = result as { download_url?: string; filename?: string; content_type?: string } | null
+    if (!response?.ok || !file?.download_url) return NextResponse.json({ error: "Attachment not found." }, { status: 404 })
+    const download = await fetch(file.download_url, { cache: "no-store" }).catch(() => null)
+    if (!download?.ok) return NextResponse.json({ error: "Attachment could not be downloaded." }, { status: 502 })
+    return attachmentResponse(await download.arrayBuffer(), file.filename || filename, file.content_type || contentType)
+  }
   if (emailId?.startsWith("local:")) {
     const localId = emailId.slice(6)
     if (!/^[a-zA-Z0-9_-]{1,128}$/.test(localId)) return NextResponse.json({ error: "Message not found." }, { status: 404 })

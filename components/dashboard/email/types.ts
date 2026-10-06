@@ -21,8 +21,10 @@ export type ReceivedMessage = {
   html?: string | null
   text?: string | null
   headers?: Record<string, string> | null
-  attachments?: Array<Record<string, unknown>>
+  attachments?: ReceivedAttachment[]
 }
+
+export type ReceivedAttachment = { id: string; filename: string; contentType: string; size: number }
 
 export type EmailContact = {
   email: string

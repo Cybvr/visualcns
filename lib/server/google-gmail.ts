@@ -202,6 +202,14 @@ function findBody(part: GmailPart | undefined, mimeType: string): string {
   return ""
 }
 
+function findAttachments(part: GmailPart | undefined): Array<{ id: string; filename: string; contentType: string; size: number }> {
+  if (!part) return []
+  const own = part.filename && part.body?.attachmentId
+    ? [{ id: part.body.attachmentId, filename: part.filename, contentType: part.mimeType || "application/octet-stream", size: part.body.size || 0 }]
+    : []
+  return [...own, ...(part.parts || []).flatMap(findAttachments)]
+}
+
 function gmailMessagePayload(message: GmailMessage) {
   const headers = headerMap(message.payload?.headers)
   return {
@@ -217,7 +225,7 @@ function gmailMessagePayload(message: GmailMessage) {
     html: findBody(message.payload, "text/html") || null,
     text: findBody(message.payload, "text/plain") || null,
     headers: headers as Record<string, string>,
-    attachments: [],
+    attachments: findAttachments(message.payload),
   }
 }
 
@@ -234,4 +242,11 @@ export async function getGmailMessage(agencyId: string, id: string) {
   if (!token) return null
   const message = await gmailFetch<GmailMessage>(token, `/messages/${encodeURIComponent(id)}?format=full`)
   return gmailMessagePayload(message)
+}
+
+export async function getGmailAttachment(agencyId: string, messageId: string, attachmentId: string) {
+  const token = await googleAccessTokenForAgency(agencyId)
+  if (!token) return null
+  const result = await gmailFetch<{ data?: string }>(token, `/messages/${encodeURIComponent(messageId)}/attachments/${encodeURIComponent(attachmentId)}`)
+  return result.data ? Buffer.from(result.data, "base64url") : null
 }
