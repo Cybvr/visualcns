@@ -7,8 +7,8 @@
   --radius: 0.5rem;
   --surface-title-size: 0.8125rem;
   --surface-title-line-height: 1.25rem;
-  --surface-body-size: 0.75rem;
-  --surface-body-line-height: 1.25rem;
+  --surface-body-size: 0.875rem;
+  --surface-body-line-height: 1.5rem;
   --surface-nav-size: 0.8125rem;
   --surface-nav-line-height: 1.25rem;
   --surface-section-label-size: 0.75rem;
@@ -169,15 +169,21 @@
     font-size: inherit !important;
     line-height: inherit !important;
   }
+  .dashboard-body:not([data-slot="dialog-content"]) textarea {
+    font-size: 0.875rem !important;
+    line-height: 1.5rem !important;
+  }
   .dashboard-body[data-slot="dialog-content"] :where(p, a, button, label, input, textarea, select, option, th, td) {
     font-family: inherit;
     font-size: inherit;
     line-height: inherit;
   }
-  /* Give the note writing field its own readable size above the dashboard scale. */
-  .notes-page .note-body {
-    font-size: 1.25rem !important;
-    line-height: 1.875rem !important;
+  .dashboard-body.agent-chat-root .agent-composer-input {
+    color: var(--foreground) !important;
+  }
+  .dashboard-body.agent-chat-root .agent-composer-input::placeholder {
+    color: var(--foreground) !important;
+    opacity: 1;
   }
   /* Invoice and estimate editors: white cards on a grey page, boxed fields. */
   .billing-editor {
@@ -782,28 +788,17 @@
     font-weight: 500 !important;
   }
 
-  .sidebar-nav-label {
-    font-size: 0.8125rem !important;
-    line-height: 1.25rem !important;
-  }
-
-  /* Dashboard navigation follows a relaxed, readable sidebar rhythm. Keep
-     this scoped so compact record rows elsewhere retain their own scale. */
-  .dashboard-sidebar .sidebar-nav-label {
-    color: var(--sidebar-foreground) !important;
-    font-size: 0.875rem !important;
-    line-height: 1.25rem !important;
-  }
-
-  .dashboard-sidebar [data-active="true"] .sidebar-nav-label {
-    color: var(--sidebar-accent-foreground) !important;
-    font-weight: 600 !important;
-  }
-
   .dashboard-sidebar .surface-section-label {
     color: var(--sidebar-foreground) !important;
     font-size: 0.8125rem !important;
     line-height: 1.25rem !important;
+  }
+
+  /* Keep dashboard nav labels identical to Ngai chat message copy. */
+  .dashboard-sidebar .sidebar-nav-label {
+    font-size: 0.875rem !important;
+    line-height: 1.5rem !important;
+    font-weight: 500 !important;
   }
 
   .dashboard-sidebar [data-slot="sidebar-menu-button"]:is(:hover, [data-active="true"], [data-state="open"]),
@@ -818,11 +813,6 @@
   }
 
   @media (max-width: 767px) {
-    .sidebar-nav-label {
-      font-size: 0.875rem !important;
-      line-height: 1.5rem !important;
-    }
-
     .sidebar-recent-label {
       font-size: 0.875rem !important;
       line-height: 1.5rem !important;

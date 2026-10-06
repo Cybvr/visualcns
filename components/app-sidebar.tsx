@@ -33,9 +33,9 @@ import {
 // On mobile the sidebar is a slide-over sheet, so nav rows need finger-sized
 // hit areas. max-md: keeps the desktop rail untouched.
 const mobileNavButton =
-  "surface-nav h-9 gap-2 px-2 max-md:h-12 max-md:min-h-12 max-md:gap-3 max-md:px-3 [&>svg]:size-[18px] [&>svg]:max-md:size-5 max-md:[&>.sidebar-nav-label]:!text-[15px] max-md:[&>.sidebar-nav-label]:!leading-6"
+  "h-9 gap-2 px-2 max-md:h-12 max-md:min-h-12 max-md:gap-3 max-md:px-3 [&>svg]:size-[18px] [&>svg]:max-md:size-5"
 const mobileNavSubButton =
-  "surface-nav h-9 gap-2 px-2 max-md:h-11 max-md:min-h-11 max-md:gap-3 max-md:px-3 [&>svg]:size-[18px] [&>svg]:max-md:size-5 max-md:[&>.sidebar-nav-label]:!text-[14px] max-md:[&>.sidebar-nav-label]:!leading-5"
+  "h-9 gap-2 px-2 max-md:h-11 max-md:min-h-11 max-md:gap-3 max-md:px-3 [&>svg]:size-[18px] [&>svg]:max-md:size-5"
 
 export type NavLink = {
   label: string
@@ -117,7 +117,7 @@ export function AppSidebar({
         </SidebarHeader>
         <SidebarContent>
           <SidebarGroup className="group-data-[collapsible=icon]:p-1">
-              <SidebarMenu className="gap-1 max-md:gap-1.5">
+              <SidebarMenu className="gap-0.5 max-md:gap-1.5">
               {navLinks.map((link) => (
                 <React.Fragment key={link.href}>
                   {link.sectionLabel && (
@@ -141,7 +141,7 @@ export function AppSidebar({
                         </SidebarMenuButton>
                       </CollapsibleTrigger>
                       <CollapsibleContent>
-                        <SidebarMenuSub>
+                        <SidebarMenuSub className="gap-0.5">
                           {link.items.map((item) => (
                             <SidebarMenuSubItem key={item.href}>
                               <SidebarMenuSubButton asChild isActive={isActive(pathname, item.href, rootHref)} className={mobileNavSubButton}>

@@ -416,17 +416,6 @@ export function AgentChat({
     transcriptEnd.current?.scrollIntoView({ behavior: "smooth", block: "end" })
   }, [messages, sending])
 
-  // Grow the composer with its content, from one line up to four, then scroll.
-  useEffect(() => {
-    const el = textInput.current
-    if (!el) return
-    const style = getComputedStyle(el)
-    const lineHeight = parseFloat(style.lineHeight) || 20
-    const maxHeight = lineHeight * 4 + parseFloat(style.paddingTop) + parseFloat(style.paddingBottom)
-    el.style.height = "auto"
-    el.style.height = `${Math.min(el.scrollHeight, maxHeight)}px`
-  }, [input])
-
   const [listening, setListening] = useState(false)
   const [voiceSupported, setVoiceSupported] = useState(false)
   const recognition = useRef<SpeechRecognitionLike | null>(null)
@@ -714,14 +703,14 @@ export function AgentChat({
         </div>
       )}
 
-      <div className={cn("shrink-0", compact ? "bg-transparent px-4 pb-4 pt-2" : "px-4 pb-3 pt-2 sm:px-6 sm:pb-7 sm:pt-3")}>
+      <div className={cn("shrink-0", compact ? "bg-transparent px-4 pb-2 pt-2" : "px-4 pb-2 pt-2 sm:px-6 sm:pb-3 sm:pt-3")}>
         <form
           onSubmit={submit}
           className={cn(
             "mx-auto flex w-full flex-col gap-2",
             compact
-              ? "rounded-[16px] border border-border bg-background p-2 shadow-[0_8px_24px_rgba(15,23,42,0.08)]"
-              : "max-w-3xl rounded-[16px] border border-border bg-background p-2.5",
+              ? "rounded-[16px] bg-sidebar-accent p-2 shadow-[0_8px_24px_rgba(15,23,42,0.08)]"
+              : "max-w-3xl rounded-[16px] bg-sidebar-accent p-2.5",
           )}
         >
           {(attachments.length > 0 || uploading) && (
@@ -780,7 +769,7 @@ export function AgentChat({
               rows={1}
               placeholder="Ask Ngai"
               aria-label="Message Ngai"
-              className="agent-composer-input min-h-0 w-full resize-none overflow-y-auto rounded-lg border-0 bg-transparent! px-2 py-2 text-3xl shadow-none outline-none [field-sizing:fixed] focus:border-transparent focus-visible:border-transparent focus:ring-0 focus-visible:ring-0"
+              className="agent-composer-input h-auto min-h-0 max-h-40 w-full resize-none overflow-y-auto rounded-lg border-0 bg-transparent! px-2 py-2 text-sm !text-foreground placeholder:!text-foreground font-medium shadow-none outline-none focus:border-transparent focus-visible:border-transparent focus:ring-0 focus-visible:ring-0"
             />
             <div className="flex items-center justify-between">
             {allowAttachments ? (
