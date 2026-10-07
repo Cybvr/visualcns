@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState, type KeyboardEvent } from "react"
 import { ArrowLeft, ListChecks, Plus, Trash2, X } from "lucide-react"
 import { toast } from "sonner"
 
@@ -79,6 +79,7 @@ export default function NotesPage() {
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
   // Which note the editor fields currently hold, so a note opened from the URL loads once.
   const loadedId = useRef("")
+  const itemInputs = useRef<Array<HTMLInputElement | null>>([])
 
   useRecordTitle(openId ? noteTitle({ title, body }) : null)
 
@@ -220,6 +221,19 @@ export default function NotesPage() {
     edit({ body: items.length > 0 ? serializeChecklist(items) : "" })
   }
 
+  // Backspace in an empty item removes it and moves the cursor to the end of the item above.
+  function onChecklistKeyDown(event: KeyboardEvent<HTMLInputElement>, index: number) {
+    if (event.key !== "Backspace" || event.currentTarget.value !== "" || index === 0) return
+    event.preventDefault()
+    removeChecklistItem(index)
+    requestAnimationFrame(() => {
+      const previous = itemInputs.current[index - 1]
+      if (!previous) return
+      previous.focus()
+      previous.setSelectionRange(previous.value.length, previous.value.length)
+    })
+  }
+
   const { results: visibleNotes, bar } = useFilterBar({
     items: notes ?? [],
     search: searchNote,
@@ -333,8 +347,12 @@ export default function NotesPage() {
                             aria-label={`Mark item ${index + 1} complete`}
                           />
                           <Input
+                            ref={(node) => {
+                              itemInputs.current[index] = node
+                            }}
                             value={item.text}
                             onChange={(event) => updateChecklist(index, { text: event.target.value })}
+                            onKeyDown={(event) => onChecklistKeyDown(event, index)}
                             placeholder="Checklist item"
                             aria-label={`Checklist item ${index + 1}`}
                             className={cn("h-9 flex-1 border-border/60 text-base", item.checked && "text-muted-foreground line-through")}
