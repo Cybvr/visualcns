@@ -75,23 +75,32 @@ function isRetryableGmailError(status: number, result: { error?: { errors?: Arra
 
 async function gmailFetch<T>(accessToken: string, path: string, init?: RequestInit): Promise<T> {
   // Gmail allows about 50 message reads per second per mailbox, so back off and retry when it pushes back.
-  for (let attempt = 0; ; attempt++) {
-    const response = await fetch(`${GMAIL_API_URL}${path}`, {
-      ...init,
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        ...(init?.headers || {}),
-      },
-      cache: "no-store",
-    })
+  const attempts = !init?.method || init.method.toUpperCase() === "GET" ? 4 : 1
+  for (let attempt = 0; attempt < attempts; attempt++) {
+    let response: Response
+    try {
+      response = await fetch(`${GMAIL_API_URL}${path}`, {
+        ...init,
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          ...(init?.headers || {}),
+        },
+        cache: "no-store",
+      })
+    } catch (error) {
+      if (attempt === attempts - 1) throw error
+      await new Promise((resolve) => setTimeout(resolve, 500 * 2 ** attempt + Math.random() * 250))
+      continue
+    }
     const result = await response.json().catch(() => ({})) as T & { error?: { message?: string; errors?: Array<{ reason?: string }> } }
     if (response.ok) return result
-    if (attempt < 3 && isRetryableGmailError(response.status, result)) {
+    if (attempt < attempts - 1 && isRetryableGmailError(response.status, result)) {
       await new Promise((resolve) => setTimeout(resolve, 500 * 2 ** attempt + Math.random() * 250))
       continue
     }
     throw new Error(result.error?.message || `Gmail API request failed (${response.status}).`)
   }
+  throw new Error("Gmail API request failed.")
 }
 
 async function mapInBatches<T, R>(items: T[], size: number, run: (item: T) => Promise<R>) {
@@ -123,6 +132,10 @@ export async function hasGmailConnection(agencyId: string) {
   } catch {
     return false
   }
+}
+
+export async function hasStoredGmailConnection(agencyId: string) {
+  return Boolean(await getAgencySecret(agencyId, "GMAIL_REFRESH_TOKEN", ""))
 }
 
 export async function gmailProfile(agencyId: string) {

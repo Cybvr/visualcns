@@ -6,6 +6,7 @@ import { CompactListSkeleton } from "@/components/dashboard/compact-list-row"
 import { cn } from "@/lib/utils"
 import type { EmailDraftRecord } from "@/lib/email-drafts"
 import { EmailListHeader, EmailListRow } from "./email-list-row"
+import { ReceivedAttachmentGallery } from "./received-attachment-gallery"
 import type { ReceivedAttachment, ReceivedMessage, SentMessage } from "./types"
 
 type MessageView = "list" | "reader"
@@ -230,8 +231,14 @@ export function EmailMessageSurfaces({
                 <Button type="button" variant="outline" size="sm" onClick={() => onForwardReceived(selectedReceived)}><Forward className="size-4" aria-hidden="true" /> Forward</Button>
               </div>
             </div>
-            {Boolean(selectedReceived.attachments?.length) && <div className="flex shrink-0 flex-wrap gap-2 border-b border-border px-4 py-2 max-sm:mb-3 max-sm:border-0 max-sm:px-1 sm:px-5">{selectedReceived.attachments?.map((file) => <button key={file.id} type="button" onClick={() => onDownloadReceivedAttachment(selectedReceived, file)} disabled={downloadingAttachmentId === file.id} className="inline-flex max-w-full items-center gap-1 rounded-md bg-muted px-2 py-1 text-xs hover:bg-muted/70 disabled:opacity-60" title={`Download ${file.filename}`}><Paperclip className="size-3 shrink-0" aria-hidden="true" /><span className="truncate">{file.filename}</span>{file.size > 0 && <span className="shrink-0 text-muted-foreground">{file.size < 1024 * 1024 ? `${Math.max(1, Math.round(file.size / 1024))} KB` : `${(file.size / 1024 / 1024).toFixed(1)} MB`}</span>}</button>)}</div>}
-            <div className="min-h-0 flex-1 overflow-hidden bg-white max-sm:min-h-[60svh] max-sm:flex-none max-sm:rounded-3xl max-sm:border max-sm:border-border">{loadingReceivedId === selectedReceived.id ? <div className="space-y-4 p-6" role="status" aria-label="Loading message"><Skeleton className="h-6 w-2/3" /><Skeleton className="h-4 w-1/3" /><Skeleton className="h-32 w-full" /><Skeleton className="h-4 w-4/5" /><Skeleton className="h-4 w-3/5" /></div> : <iframe title={`Received email: ${selectedReceived.subject}`} srcDoc={receivedMessagePreview(selectedReceived)} sandbox="" className="h-full min-h-[24rem] w-full border-0 max-sm:h-[60svh]" />}</div>
+            <div className="min-h-0 flex-1 overflow-y-auto bg-white max-sm:min-h-[60svh] max-sm:flex-none max-sm:rounded-3xl max-sm:border max-sm:border-border">
+              {loadingReceivedId === selectedReceived.id ? <div className="space-y-4 p-6" role="status" aria-label="Loading message"><Skeleton className="h-6 w-2/3" /><Skeleton className="h-4 w-1/3" /><Skeleton className="h-32 w-full" /><Skeleton className="h-4 w-4/5" /><Skeleton className="h-4 w-3/5" /></div> : (
+                <>
+                  <iframe title={`Received email: ${selectedReceived.subject}`} srcDoc={receivedMessagePreview(selectedReceived)} sandbox="" className={cn("block w-full border-0", selectedReceived.attachments?.length ? "h-[42vh] min-h-[20rem]" : "h-full min-h-[24rem] max-sm:h-[60svh]")} />
+                  <ReceivedAttachmentGallery key={selectedReceived.id} message={selectedReceived} onDownload={onDownloadReceivedAttachment} downloadingAttachmentId={downloadingAttachmentId} />
+                </>
+              )}
+            </div>
             {/* Mobile: reply and forward stay in reach at the bottom of the screen. */}
             <div className="fixed inset-x-3 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-30 flex items-center gap-2 rounded-full border border-border bg-card p-1.5 shadow-lg sm:hidden">
               <Button type="button" size="lg" className="h-12 flex-1 rounded-full text-base" onClick={() => onReplyReceived(selectedReceived)}><Reply className="size-5" aria-hidden="true" /> Reply</Button>

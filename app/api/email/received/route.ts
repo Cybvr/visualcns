@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import { adminServices } from "@/lib/firebase-admin"
 import { cidReferences, inlineCidImages, normalizeCid } from "@/lib/server/inline-email-images"
-import { getGmailAttachment, getGmailMessage, hasGmailConnection, listGmailInbox } from "@/lib/server/google-gmail"
+import { getGmailAttachment, getGmailMessage, hasStoredGmailConnection, listGmailInbox } from "@/lib/server/google-gmail"
 
 type ReceivedEmail = {
   id?: string
@@ -118,7 +118,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "You don't have access to this inbox." }, { status: 403 })
   }
   const inboxEvents = db.collection("agencies").doc(agencyId).collection("emailInboxEvents")
-  const gmailConnected = await hasGmailConnection(agencyId)
+  const gmailConnected = await hasStoredGmailConnection(agencyId)
 
   const params = new URL(request.url).searchParams
   const emailId = params.get("id")?.trim()
@@ -178,7 +178,7 @@ export async function GET(request: Request) {
     if (!response?.ok) {
       const error = result && "error" in result ? result.error?.message : result && "message" in result ? result.message : undefined
       if (!localMessages.length) return NextResponse.json({ error: error || "Received messages could not be loaded from Resend." }, { status: response?.status && response.status >= 400 ? response.status : 502 })
-      return NextResponse.json({ data: localMessages, hasMore: false, warning: error || "Received messages could not be loaded from Resend." })
+      return NextResponse.json({ data: localMessages, hasMore: false, partial: true, warning: error || "Received messages could not be loaded from Resend." })
     }
     const list = result as ResendListResponse
     const data = [...(list.data || []).filter((email) => email.id).map(receivedEmailPayload), ...localMessages]

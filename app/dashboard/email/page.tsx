@@ -313,6 +313,7 @@ export default function EmailPage() {
   const [confirmingDelete, setConfirmingDelete] = useState(false)
   const [receivedLoading, setReceivedLoading] = useState(false)
   const [receivedError, setReceivedError] = useState("")
+  const successfulInboxRefreshRef = useRef(0)
   const [selectedReceivedId, setSelectedReceivedId] = useState<string | null>(null)
   const [loadingReceivedId, setLoadingReceivedId] = useState<string | null>(null)
   const [downloadingAttachmentId, setDownloadingAttachmentId] = useState<string | null>(null)
@@ -393,6 +394,12 @@ export default function EmailPage() {
   const unreadReceivedCount = activeReceivedMessages.filter((message) => !readReceivedIds.has(message.id)).length
 
   useEffect(() => {
+    successfulInboxRefreshRef.current = 0
+    setReceivedMessages([])
+    setReceivedError("")
+  }, [workspaceId])
+
+  useEffect(() => {
     if (user?.uid && readStateHydrated) publishUnreadEmailCount(workspaceId, unreadReceivedCount)
   }, [user?.uid, readStateHydrated, workspaceId, unreadReceivedCount])
 
@@ -400,6 +407,8 @@ export default function EmailPage() {
     function onInboxRefresh(event: Event) {
       const detail = (event as CustomEvent<{ workspaceId: string; messages: ReceivedMessage[] }>).detail
       if (detail?.workspaceId !== workspaceId) return
+      successfulInboxRefreshRef.current += 1
+      setReceivedError("")
       setReceivedMessages((current) => {
         const existing = new Map(current.map((message) => [message.id, message]))
         return detail.messages.map((message) => ({
@@ -599,8 +608,8 @@ export default function EmailPage() {
 
   async function loadReceivedMessages() {
     if (!user) return
+    const successfulRefreshAtStart = successfulInboxRefreshRef.current
     setReceivedLoading(true)
-    setReceivedError("")
     try {
       const idToken = await user.getIdToken()
       const response = await fetch("/api/email/received", {
@@ -614,9 +623,15 @@ export default function EmailPage() {
       setReceivedMessages((current) => result.partial
         ? [...current.filter((message) => message.id.startsWith("gmail:")), ...data].sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""))
         : data)
-      if (!result.partial) setSelectedReceivedId((current) => current && data.some((message) => message.id === current) ? current : null)
+      if (!result.partial) {
+        successfulInboxRefreshRef.current += 1
+        setReceivedError("")
+        setSelectedReceivedId((current) => current && data.some((message) => message.id === current) ? current : null)
+      }
     } catch (error) {
-      setReceivedError(error instanceof Error ? error.message : "Received messages could not be loaded.")
+      if (successfulInboxRefreshRef.current === successfulRefreshAtStart) {
+        setReceivedError(error instanceof Error ? error.message : "Received messages could not be loaded.")
+      }
     } finally {
       setReceivedLoading(false)
     }
