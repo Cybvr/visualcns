@@ -3,6 +3,8 @@
 import { useEffect, useState, type ReactNode } from "react"
 import { X } from "lucide-react"
 
+import { useAuth } from "@/components/auth-provider"
+import { CompanyBookings } from "@/components/company/company-bookings"
 import { CompanyLinks } from "@/components/company/company-links"
 import { useCompanyPage } from "@/components/company/company-page-context"
 import { CompanyDetails, type CompanyDetailsPatch } from "@/components/company/company-sidebar"
@@ -112,6 +114,7 @@ function CompanyTagsCard({ tags = [], onSave }: { tags?: string[]; onSave?: (pat
 
 export function AboutSection({ singleColumn = false }: { singleColumn?: boolean } = {}) {
   const { company, admin } = useCompanyPage()
+  const { user } = useAuth()
 
   const profile = {
     id: company.id,
@@ -137,9 +140,10 @@ export function AboutSection({ singleColumn = false }: { singleColumn?: boolean 
   )
   const tags = <CompanyTagsCard tags={company.tags} onSave={admin?.onUpdateCompany} />
   const links = <CompanyLinks links={company.links} onSave={admin ? (next) => admin.onUpdateCompany({ links: next }) : undefined} />
+  const bookings = user ? <CompanyBookings companyId={company.id} canCancel={!admin} /> : null
 
   if (singleColumn) {
-    return <div className="mt-5 min-w-0 space-y-6">{about}{details}{tags}{links}</div>
+    return <div className="mt-5 min-w-0 space-y-6">{about}{details}{tags}{links}{bookings}</div>
   }
 
   return (
@@ -149,6 +153,7 @@ export function AboutSection({ singleColumn = false }: { singleColumn?: boolean 
         {details}
       </div>
       <div className="mt-6">{links}</div>
+      <div className="mt-6 empty:hidden">{bookings}</div>
     </div>
   )
 }

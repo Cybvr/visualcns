@@ -4,8 +4,6 @@ import { useState } from "react"
 import { ArrowLeft, Briefcase, FolderOpen } from "lucide-react"
 import { toast } from "sonner"
 
-import { useAuth } from "@/components/auth-provider"
-import { CompanyBookings } from "@/components/company/company-bookings"
 import { CompanyEmptyState } from "@/components/company/empty-state"
 import { useCompanyPage } from "@/components/company/company-page-context"
 import { SectionAddButton } from "@/components/company/section-add-button"
@@ -32,7 +30,6 @@ import { deleteProjectWithTasks, duplicateProject, renameProject, type Project }
 
 export function ProjectsSection() {
   const { company, projects, admin, emptyProjectsLabel } = useCompanyPage()
-  const { user } = useAuth()
   const [selectedProject, setSelectedProject] = useState<Project | null>(null)
   const [creatingProject, setCreatingProject] = useState(false)
   const [renamingProject, setRenamingProject] = useState<Project | null>(null)
@@ -131,7 +128,6 @@ export function ProjectsSection() {
         </div>
       ) : (
         <>
-          <CompanyBookings companyId={company.id} canCancel={!admin && Boolean(user)} />
           <div className="flex items-center justify-between gap-4">
             <h2 className="sr-only">Projects</h2>
             <span className="sidebar-nav-label text-muted-foreground">Projects</span>

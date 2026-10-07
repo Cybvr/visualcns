@@ -15,5 +15,5 @@ export function companyPath(company: string): string {
 }
 
 export function companyDocumentPath(company: string, kind: "invoice" | "estimate" | "contract" | "document", id: string): string {
-  return `${companyPath(company)}/documents?doc=${encodeURIComponent(`${kind}:${id}`)}`
+  return `${companyPath(company)}/drive?doc=${encodeURIComponent(`${kind}:${id}`)}`
 }

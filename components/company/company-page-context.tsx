@@ -145,10 +145,18 @@ export function CompanyPageProvider({
     const visible = COMPANY_SECTIONS.filter((item) => item.key !== "visitors" || canSeeVisitors)
     if (mode !== "routes") return [...visible]
     const about = visible.find((item) => item.key === "about")!
-    return [
+    const find = (key: CompanySectionKey) => visible.find((item) => item.key === key)
+    const activity = find("activity")
+    const order = [
       { ...about, label: "Home", icon: House },
-      ...visible.filter((item) => item.key !== "about").map((item) => item.key === "activity" ? { ...item, label: "Notifications", icon: Bell } : item),
+      find("projects"),
+      find("tasks"),
+      find("drive"),
+      find("pulse"),
+      find("visitors"),
+      activity && { ...activity, label: "Notifications", icon: Bell },
     ]
+    return order.filter((item): item is NonNullable<typeof item> => Boolean(item))
   }, [canSeeVisitors, mode])
 
   const basePath = mode === "routes" ? `/${pathname.split("/")[1] ?? ""}` : pathname

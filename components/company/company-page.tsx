@@ -101,7 +101,7 @@ function DashboardCompanyView({ embedded = false, editHref }: { embedded?: boole
         onShare={admin ? () => setShareOpen(true) : undefined}
         onEdit={admin ? () => router.push(editHref ?? `${pathname}/edit`) : undefined}
         onChangeLogo={admin ? () => setLogoEditOpen(true) : undefined}
-        onChangeCover={admin ? () => goToSection("media") : undefined}
+        onChangeCover={admin ? () => goToSection("drive") : undefined}
         accountAction={!admin && user ? (
           <Button
             type="button"

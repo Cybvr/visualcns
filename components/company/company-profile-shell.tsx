@@ -1,14 +1,18 @@
 "use client"
 
-import type { ReactNode } from "react"
+import { useState, type ReactNode } from "react"
 import Link from "next/link"
-import { LogIn } from "lucide-react"
+import { LogIn, Share2, UserPlus } from "lucide-react"
 
 import { useAuth } from "@/components/auth-provider"
 import { useCompanyPage } from "@/components/company/company-page-context"
 import { NgaiWidget } from "@/components/company/ngai-widget"
+import { TeamInvitePanel, useTeamSeats } from "@/components/company/team-seats"
+import { ShareLinkActions } from "@/components/dashboard/share-link-actions"
 import { NavUser } from "@/components/nav-user"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Separator } from "@/components/ui/separator"
 import {
   Sidebar,
@@ -44,6 +48,72 @@ function CompanyIdentity({ expanded = false }: { expanded?: boolean }) {
         <div data-weight="bold" className="truncate text-[19px] leading-tight tracking-[-0.02em] text-foreground">{company.name}</div>
         {company.slug && <div className="mt-0.5 truncate text-sm font-semibold text-foreground">@{company.slug}</div>}
       </div>
+    </div>
+  )
+}
+
+const MAX_AVATARS = 4
+
+/**
+ * Top right of the header: the team as a cluster of avatars, then Invite (for the
+ * people who manage the team) and Share. Replaces the separate Team page.
+ */
+function HeaderTeam() {
+  const { company, people, canManageTeam, absoluteUrl } = useCompanyPage()
+  const teamSeats = useTeamSeats(company.id, canManageTeam)
+  const [inviteOpen, setInviteOpen] = useState(false)
+  const [shareOpen, setShareOpen] = useState(false)
+  const shown = people.slice(0, MAX_AVATARS)
+  const extra = people.length - shown.length
+  const shareUrl = absoluteUrl(`/${encodeURIComponent(company.slug || company.id)}`)
+
+  return (
+    <div className="ml-auto flex shrink-0 items-center gap-2 print:hidden">
+      {people.length > 0 && (
+        <div className="mr-1 flex -space-x-2" aria-label={`${people.length} team member${people.length === 1 ? "" : "s"}`}>
+          {shown.map((person) => (
+            <Avatar key={person.id} className="size-8 border-2 border-card" title={person.name}>
+              {person.photoUrl && <AvatarImage src={person.photoUrl} alt={person.name} referrerPolicy="no-referrer" />}
+              <AvatarFallback className="text-xs">{person.name.trim().charAt(0).toUpperCase() || "?"}</AvatarFallback>
+            </Avatar>
+          ))}
+          {extra > 0 && (
+            <span className="grid size-8 place-items-center rounded-full border-2 border-card bg-muted text-xs font-medium text-muted-foreground">+{extra}</span>
+          )}
+        </div>
+      )}
+      {canManageTeam && teamSeats.info && (
+        <Button type="button" variant="outline" size="sm" onClick={() => setInviteOpen(true)}>
+          <UserPlus className="size-4" aria-hidden="true" />
+          <span className="max-sm:hidden">Invite</span>
+        </Button>
+      )}
+      <Button type="button" variant="outline" size="sm" onClick={() => setShareOpen(true)}>
+        <Share2 className="size-4" aria-hidden="true" />
+        <span className="max-sm:hidden">Share</span>
+      </Button>
+
+      <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Invite to {company.name}</DialogTitle>
+            <DialogDescription>
+              {teamSeats.info ? (teamSeats.info.limit === null ? `${teamSeats.info.seats} seats in use.` : `${teamSeats.info.seats} of ${teamSeats.info.limit} seats in use.`) : "Invite a colleague by email."}
+            </DialogDescription>
+          </DialogHeader>
+          {teamSeats.info && <TeamInvitePanel info={teamSeats.info} call={teamSeats.call} onChange={() => void teamSeats.reload()} />}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={shareOpen} onOpenChange={setShareOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Share company page</DialogTitle>
+            <DialogDescription>Copy this link to share {company.name}&apos;s page.</DialogDescription>
+          </DialogHeader>
+          <ShareLinkActions url={shareUrl} label="Company link" shareText={`See ${company.name}'s company page`} />
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
@@ -129,6 +199,7 @@ export function CompanyProfileShell({ children }: { children: ReactNode }) {
               <Separator orientation="vertical" className="data-[orientation=vertical]:h-4 max-md:data-[orientation=vertical]:h-6" />
             </div>
             <h1 className="surface-title min-w-0 truncate max-md:[--surface-title-size:17px]">{sectionLabel ?? company.name}</h1>
+            <HeaderTeam />
           </header>
           <main className="min-w-0 flex-1 bg-card px-4 pb-16 pt-4 sm:px-6 sm:pt-6 md:rounded-tl-2xl lg:px-8">
             {children}

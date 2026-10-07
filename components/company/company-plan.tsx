@@ -165,7 +165,7 @@ export function CompanyPlan({ companyId, billing, seats = null, className }: { c
                     {busy ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <CreditCard className="size-4 text-muted-foreground" aria-hidden="true" />}
                   </span>
                   <span className="text-sm font-medium text-foreground">{naira(planPrice(key, interval))}<span className="font-normal text-muted-foreground">/{interval === "yearly" ? "yr" : "mo"}</span></span>
-                  <span className="text-xs text-muted-foreground">{tooSmall ? `You have ${seats} staff` : staffLabel(option.staff)}</span>
+                  <span className="text-xs text-muted-foreground">{tooSmall ? `You have ${seats} staff` : `VisualCNS Pass for ${staffLabel(option.staff).toLowerCase()}`}</span>
                   <ul className="space-y-1 text-xs text-muted-foreground">
                     {option.features.slice(1).map((feature) => (
                       <li key={feature} className="flex gap-1.5"><Check className="mt-0.5 size-3 shrink-0" aria-hidden="true" />{feature}</li>

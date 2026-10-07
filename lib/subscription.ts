@@ -31,7 +31,7 @@ export const PLANS: Record<PlanKey, Plan> = {
     staff: 5,
     pulseScans: 1,
     summary: "For a small office getting set up.",
-    features: ["Pass visitor sign-in for up to 5 staff", "1 Pulse scan a month", "Ngai assistant", "Client portal for your team"],
+    features: ["VisualCNS Pass visitor sign-in for up to 5 staff", "VisualCNS Pulse: 1 scan a month", "Ngai assistant", "Client portal for your team"],
   },
   business: {
     name: "Business",
@@ -40,7 +40,7 @@ export const PLANS: Record<PlanKey, Plan> = {
     staff: 25,
     pulseScans: 4,
     summary: "For a growing team with a busy front desk.",
-    features: ["Pass visitor sign-in for up to 25 staff", "4 Pulse scans a month", "Ngai assistant", "Client portal for your team", "Slack, Teams and webhook alerts"],
+    features: ["VisualCNS Pass visitor sign-in for up to 25 staff", "VisualCNS Pulse: 4 scans a month", "Ngai assistant", "Client portal for your team", "Slack, Teams and webhook alerts"],
   },
   pro: {
     name: "Pro",
@@ -49,7 +49,7 @@ export const PLANS: Record<PlanKey, Plan> = {
     staff: Infinity,
     pulseScans: Infinity,
     summary: "For larger companies that want everything.",
-    features: ["Pass visitor sign-in for unlimited staff", "Unlimited Pulse scans", "Ngai assistant", "Client portal for your team", "Slack, Teams and webhook alerts", "Growth workflows: Marketing, Orbit, Studio, Launch, Signal and Atlas", "Priority support"],
+    features: ["VisualCNS Pass visitor sign-in for unlimited staff", "VisualCNS Pulse: unlimited scans", "Ngai assistant", "Client portal for your team", "Slack, Teams and webhook alerts", "Growth workflows: Marketing, Orbit, Studio, Launch, Signal and Atlas", "Priority support"],
   },
 }
 export const PLAN_KEYS: PlanKey[] = ["starter", "business", "pro"]

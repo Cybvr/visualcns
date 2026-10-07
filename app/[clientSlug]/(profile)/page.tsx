@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 
+import { useAuth } from "@/components/auth-provider"
 import { isCompanySection, useCompanyPage } from "@/components/company/company-page-context"
 import { CompanyProfileHeader } from "@/components/company/company-profile-header"
 import { AboutSection } from "@/components/company/sections/about-section"
@@ -10,13 +11,15 @@ import { ActivitySection } from "@/components/company/sections/activity-section"
 
 export default function CompanyHomePage() {
   const { company, people, sectionHref } = useCompanyPage()
+  const { user, appUser } = useAuth()
+  const firstName = (appUser?.displayName || user?.displayName || "").trim().split(/\s+/)[0]
   const searchParams = useSearchParams()
   const router = useRouter()
   const redirected = useRef(false)
 
   // Older links put the section in ?tab=, and shared task and document links were /{slug}?task= and ?doc=.
   const tab = searchParams.get("tab")
-  const legacySection = isCompanySection(tab) && tab !== "about" ? tab : searchParams.get("task") ? "tasks" : searchParams.get("doc") ? "documents" : null
+  const legacySection = tab === "media" || tab === "documents" ? "drive" : isCompanySection(tab) && tab !== "about" ? tab : searchParams.get("task") ? "tasks" : searchParams.get("doc") ? "drive" : null
 
   useEffect(() => {
     if (!legacySection || redirected.current) return
@@ -30,8 +33,9 @@ export default function CompanyHomePage() {
 
   return (
     <>
-      {/* The profile banner, logo and name, at every screen size, like a profile page on X. */}
+      {/* A welcome line in place of the banner and logo, with the handle, contacts, category and website under it. */}
       <CompanyProfileHeader
+        heading={firstName ? `Welcome back, ${firstName}` : `Welcome to ${company.name}`}
         name={company.name}
         handle={company.slug}
         description={company.description}

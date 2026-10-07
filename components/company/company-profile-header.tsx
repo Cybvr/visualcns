@@ -40,6 +40,7 @@ export function CompanyProfileHeader({
   onChangeCover,
   accountAction,
   tabs,
+  heading,
 }: {
   name: string
   handle?: string
@@ -59,6 +60,8 @@ export function CompanyProfileHeader({
   onChangeCover?: () => void
   accountAction?: ReactNode
   tabs?: ReactNode
+  /** Shows this as the title in place of the banner, logo, location and description. */
+  heading?: string
 }) {
   // Location and description stay folded away until someone taps "More".
   const [showMore, setShowMore] = useState(false)
@@ -69,8 +72,8 @@ export function CompanyProfileHeader({
   return (
     <>
       {/* Full-bleed white profile block on phones; sits in the page column on desktop. */}
-      <div className="-mx-4 -mt-4 border-b border-border bg-background sm:-mx-6 sm:-mt-6 md:mx-0 md:mt-0">
-        <div className="px-3 pt-3 md:px-0 md:pt-0">
+      <div className={heading ? "" : "-mx-4 -mt-4 border-b border-border bg-background sm:-mx-6 sm:-mt-6 md:mx-0 md:mt-0"}>
+        {!heading && <div className="px-3 pt-3 md:px-0 md:pt-0">
           <div className="relative h-[104px] overflow-hidden rounded-[14px] border border-border bg-[linear-gradient(120deg,#FBEFE2_0%,#FBE6E9_50%,#E6F3E8_100%)] dark:bg-[linear-gradient(120deg,#2a211c_0%,#2b1f24_50%,#1c2a20_100%)] md:h-44 md:rounded-2xl">
             {coverUrl && (
               // Uploaded media is user-controlled, so keep this as a plain image rather than requiring host allowlisting.
@@ -87,10 +90,10 @@ export function CompanyProfileHeader({
               </button>
             )}
           </div>
-        </div>
+        </div>}
 
-        <div className="px-4 pb-4 md:px-6 md:pb-5">
-          <div className="relative z-[1] -mt-9 flex items-end justify-between gap-3 md:-mt-12">
+        <div className={heading ? "px-0 pb-4 pt-2" : "px-4 pb-4 md:px-6 md:pb-5"}>
+          <div className={heading ? "hidden" : "relative z-[1] -mt-9 flex items-end justify-between gap-3 md:-mt-12"}>
             <div className="grid size-[76px] shrink-0 place-items-center overflow-hidden rounded-full border border-border bg-white shadow-[0_0_0_4px_var(--background)] md:size-24">
               {logoUrl ? (
                 // Company logos can be hosted outside the configured image domains.
@@ -129,8 +132,8 @@ export function CompanyProfileHeader({
             )}
           </div>
 
-          <h1 data-weight="bold" className="mt-3 mb-0.5 truncate text-[21px] tracking-[-0.02em] text-foreground md:text-[26px]">{name}</h1>
-          <div className="flex flex-wrap items-center gap-x-3.5 gap-y-1 text-sm text-muted-foreground">
+          <h1 data-weight="bold" className="mt-3 mb-0.5 truncate text-[21px] tracking-[-0.02em] text-foreground md:text-[26px]">{heading ?? name}</h1>
+          {!heading && <div className="flex flex-wrap items-center gap-x-3.5 gap-y-1 text-sm text-muted-foreground">
             {handle && (publicPath ? (
               <a
                 href={publicPath}
@@ -156,8 +159,8 @@ export function CompanyProfileHeader({
                 <span className="truncate underline-offset-4 hover:underline">{website.replace(/^https?:\/\//i, "").replace(/\/$/, "")}</span>
               </a>
             )}
-          </div>
-          {(location || description) && (showMore ? (
+          </div>}
+          {!heading && (location || description) && (showMore ? (
             <div className="mt-2 max-w-2xl space-y-1.5 text-sm leading-6 text-muted-foreground">
               {location && (
                 <div className="flex items-center gap-1.5">
@@ -178,7 +181,7 @@ export function CompanyProfileHeader({
             </div>
           ))}
 
-          {links.length > 0 && (
+          {!heading && links.length > 0 && (
             <div className="mt-3 flex flex-wrap gap-2 text-sm">
               {links.map(({ label, href, icon: Icon }) => (
                 <a

@@ -1,6 +1,7 @@
 "use client"
 
 import type { ComponentType } from "react"
+import { useSearchParams } from "next/navigation"
 
 import { Pulse } from "@/components/company/pulse"
 import { CompanyMedia } from "@/components/company/company-media"
@@ -25,6 +26,17 @@ function MediaSection() {
         onUploadedChange={admin?.onMediaChange ? (urls) => void admin.onMediaChange?.(urls) : undefined}
       />
     </div>
+  )
+}
+
+/** Documents and media together. An open document takes the whole page. */
+function DriveSection() {
+  const searchParams = useSearchParams()
+  return (
+    <>
+      <DocumentsSection />
+      {!searchParams.get("doc") && <MediaSection />}
+    </>
   )
 }
 
@@ -68,9 +80,8 @@ const SECTION_COMPONENTS: Record<CompanySectionKey, ComponentType> = {
   about: AboutSection,
   team: TeamSection,
   activity: ActivitySection,
-  media: MediaSection,
   pulse: PulseSection,
-  documents: DocumentsSection,
+  drive: DriveSection,
   visitors: VisitorsSection,
 }
 
