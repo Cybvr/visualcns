@@ -46,7 +46,7 @@ import { Label } from "@/components/ui/label"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { FilterBar, useFilterBar, type SortOption } from "@/components/dashboard/filter-bar"
+import { FilterBar, MOBILE_CREATE_BUTTON_CLASS, MobileSearchBar, useFilterBar, type SortOption } from "@/components/dashboard/filter-bar"
 import { deleteEmailList, getEmailLists, saveEmailList, type EmailContactList } from "@/lib/email-lists"
 import { deleteEmailDraft, getEmailDrafts, saveEmailDraft, setEmailDraftTrashed, type EmailDraftRecord } from "@/lib/email-drafts"
 import { deleteEmailMessage, getAllEmailMessages, getEmailMessages, saveEmailMessage, setEmailMessageTrashed, updateEmailMessageStatus, type EmailMessageRecord, type EmailRecipient } from "@/lib/email-messages"
@@ -1876,7 +1876,6 @@ export default function EmailPage() {
   }
 
   const mobileReaderOpen = mobileMessageView === "reader" && ((tab === "inbox" && Boolean(selectedReceived)) || (tab === "messages" && Boolean(selectedSent)))
-  const mobileSort = activeFilterBar.sorts.find((option) => option.value === activeFilterBar.sortKey)
 
   return (
     <main className="mx-auto flex min-h-0 w-full min-w-0 max-w-6xl flex-1 flex-col overflow-visible px-3 pt-3 pb-5 sm:px-6 sm:pt-4 sm:pb-6 lg:h-[calc(100svh-3.5rem)] lg:max-h-[calc(100svh-3.5rem)] lg:flex-none lg:flex-row lg:gap-6 lg:overflow-hidden">
@@ -1909,52 +1908,31 @@ export default function EmailPage() {
         {/* Mobile: search with a create button beside it, then pill folders, hidden while reading a message. */}
         {!mobileReaderOpen && (
           <div className="sm:hidden">
-            <div className="mb-4 mt-1 flex items-center gap-2">
-              <div className="flex min-w-0 flex-1 items-center gap-2 rounded-2xl border border-border bg-card py-1.5 pr-1.5 pl-4">
-                <Search className="size-5 shrink-0 text-muted-foreground" aria-hidden="true" />
-                <input
-                  type="search"
-                  value={activeFilterBar.query}
-                  onChange={(event) => activeFilterBar.onQueryChange(event.target.value)}
-                  placeholder={tab === "inbox" ? "Search emails" : tab === "drafts" ? "Search drafts" : tab === "messages" ? "Search sent" : tab === "bin" ? "Search bin" : tab === "templates" ? "Search templates" : "Search lists"}
-                  aria-label="Search"
-                  className="h-10 min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-muted-foreground [&::-webkit-search-cancel-button]:hidden"
-                />
-                {activeFilterBar.query && (
-                  <button type="button" onClick={() => activeFilterBar.onQueryChange("")} aria-label="Clear search" className="flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground">
-                    <X className="size-4" aria-hidden="true" />
-                  </button>
-                )}
-                {mobileSort && (
-                  <button
-                    type="button"
-                    onClick={() => activeFilterBar.onDirectionChange(activeFilterBar.direction === "asc" ? "desc" : "asc")}
-                    aria-label={`Sorted ${activeFilterBar.direction === "asc" ? mobileSort.ascLabel ?? "ascending" : mobileSort.descLabel ?? "descending"}. Tap to reverse.`}
-                    className="flex h-10 shrink-0 items-center gap-1.5 rounded-xl bg-muted px-3 text-sm font-semibold"
-                  >
-                    {activeFilterBar.direction === "asc" ? <ArrowUp className="size-4" aria-hidden="true" /> : <ArrowDown className="size-4" aria-hidden="true" />}
-                    {activeFilterBar.direction === "asc" ? mobileSort.ascLabel ?? "Oldest" : mobileSort.descLabel ?? "Newest"}
-                  </button>
-                )}
-              </div>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button type="button" variant="outline" size="icon" className="size-14 shrink-0 rounded-2xl bg-card" aria-label="Create" title="Create">
-                    <Plus className="size-5" aria-hidden="true" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onSelect={() => openCompose(true)}><Mail aria-hidden="true" />Compose email</DropdownMenuItem>
-                  <DropdownMenuItem onSelect={() => { setTab("templates"); resetTemplateEditor(); setMobileTemplateView("editor") }}><FileText aria-hidden="true" />New template</DropdownMenuItem>
-                  <DropdownMenuItem onSelect={() => { setTab("lists"); resetListEditor(); setListPickerOpen(true) }}><List aria-hidden="true" />New list</DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
+            <MobileSearchBar
+              {...activeFilterBar}
+              placeholder={tab === "inbox" ? "Search emails" : tab === "drafts" ? "Search drafts" : tab === "messages" ? "Search sent" : tab === "bin" ? "Search bin" : tab === "templates" ? "Search templates" : "Search lists"}
+              className="mt-1 mb-4"
+              create={
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button type="button" variant="outline" size="icon" className={MOBILE_CREATE_BUTTON_CLASS} aria-label="Create" title="Create">
+                      <Plus className="size-5" aria-hidden="true" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onSelect={() => openCompose(true)}><Mail aria-hidden="true" />Compose email</DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => { setTab("templates"); resetTemplateEditor(); setMobileTemplateView("editor") }}><FileText aria-hidden="true" />New template</DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => { setTab("lists"); resetListEditor(); setListPickerOpen(true) }}><List aria-hidden="true" />New list</DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              }
+            />
           </div>
         )}
         <FilterBar
           {...activeFilterBar}
           mobileVariant="drawer"
+          mobileSearch={false}
           className="mb-2 max-sm:hidden"
           placeholder={tab === "inbox" ? "Search inbox" : tab === "drafts" ? "Search drafts" : tab === "messages" ? "Search sent" : tab === "bin" ? "Search bin" : tab === "templates" ? "Search templates" : "Search lists"}
           searchClassName={tab === "messages" || tab === "inbox" || tab === "bin" ? "sm:max-w-[16rem]" : undefined}

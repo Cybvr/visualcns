@@ -2,7 +2,7 @@
 
 import { Check } from "lucide-react"
 
-import { CompactListRow } from "@/components/dashboard/compact-list-row"
+import { CompactListRow, MobileListRow } from "@/components/dashboard/compact-list-row"
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
 
@@ -91,38 +91,25 @@ export function EmailListRow({
 
   const canSelect = selectable && Boolean(onCheckedChange)
   const mobileRow = (
-    <div data-mobile-row className={cn("flex items-start gap-3 px-4 py-4 sm:hidden", (selected || checked) && "bg-muted/60")}>
-      <button
-        type="button"
-        onClick={() => canSelect && onCheckedChange?.(!checked)}
-        aria-label={canSelect ? `${checked ? "Deselect" : "Select"} ${subject || title}` : undefined}
-        aria-pressed={canSelect ? checked : undefined}
-        tabIndex={canSelect ? 0 : -1}
-        className={cn(
-          "flex size-12 shrink-0 items-center justify-center rounded-full text-lg font-semibold outline-none focus-visible:ring-2 focus-visible:ring-ring",
-          checked ? "bg-primary text-primary-foreground" : avatarTone,
-        )}
-      >
-        {checked ? <Check className="size-5" aria-hidden="true" /> : avatarInitials.slice(0, 1)}
-      </button>
-      <button
-        type="button"
-        onClick={() => selectionMode && onCheckedChange ? onCheckedChange(!checked) : onOpen()}
-        aria-label={unread ? `Unread. ${ariaLabel}` : ariaLabel}
-        className="min-w-0 flex-1 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring"
-      >
-        <span className="flex items-baseline gap-2">
-          <span className={cn("min-w-0 flex-1 truncate text-base", unread ? "font-bold text-foreground" : "text-foreground")}>{title}</span>
-          {date && (
-            <time dateTime={date} className={cn("shrink-0 text-xs tabular-nums", unread ? "font-semibold text-primary" : "text-muted-foreground")}>
-              {shortListDate(date)}
-            </time>
-          )}
-        </span>
-        <span className={cn("mt-0.5 block truncate text-sm", unread ? "font-semibold text-foreground" : "text-foreground/90")}>{subject || "(No subject)"}</span>
-        {preview && <span className="mt-0.5 block truncate text-sm text-muted-foreground">{preview}</span>}
-      </button>
-    </div>
+    <MobileListRow
+      avatar={checked ? (
+        <span className="flex size-12 items-center justify-center rounded-full bg-primary text-primary-foreground"><Check className="size-5" aria-hidden="true" /></span>
+      ) : (
+        <span className={cn("flex size-12 items-center justify-center rounded-full text-lg font-semibold", avatarTone)}>{avatarInitials.slice(0, 1)}</span>
+      )}
+      onAvatarClick={canSelect ? () => onCheckedChange?.(!checked) : undefined}
+      avatarPressed={canSelect ? checked : undefined}
+      avatarLabel={`${checked ? "Deselect" : "Select"} ${subject || title}`}
+      title={title}
+      titleClassName={unread ? "font-bold" : "font-normal"}
+      meta={date ? <time dateTime={date}>{shortListDate(date)}</time> : undefined}
+      metaClassName={unread ? "font-semibold text-primary" : undefined}
+      lines={[subject || "(No subject)", preview]}
+      lineClassNames={[unread ? "font-semibold text-foreground" : "text-foreground/90"]}
+      active={selected || checked}
+      onClick={() => selectionMode && onCheckedChange ? onCheckedChange(!checked) : onOpen()}
+      ariaLabel={unread ? `Unread. ${ariaLabel}` : ariaLabel}
+    />
   )
 
   return (
@@ -138,7 +125,8 @@ export function EmailListRow({
       ariaLabel={unread ? `Unread. ${ariaLabel}` : ariaLabel}
       menuLabel={`Options for ${subject || title}`}
       menu={onDelete ? <DropdownMenuItem variant="destructive" onSelect={onDelete}>{deleteText}</DropdownMenuItem> : undefined}
-      className="px-2 max-sm:hidden"
+      className="px-2"
+      mobile={false}
     />
     </>
   )

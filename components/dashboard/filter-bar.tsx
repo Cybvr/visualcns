@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, type ReactNode } from "react"
 import { createPortal } from "react-dom"
-import { ArrowDown, ArrowUp, Search, X } from "lucide-react"
+import { ArrowDown, ArrowUp, Search, SlidersHorizontal, X } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -83,9 +83,90 @@ export type FilterBarProps = {
   mobileVariant?: "dialog" | "drawer"
   /** Hide the text search field, e.g. when a page relies on global search instead. Defaults to true. */
   showSearch?: boolean
-  /** On phones, move the search trigger and actions into the blue page header, replacing its default search and create buttons. */
+  /** On phones, move the page actions into the blue page header, replacing its default search and create buttons. */
   headerOnMobile?: boolean
+  /** Phones: the button beside the search field, usually a + for creating. */
+  mobileCreate?: ReactNode
+  /** Set false when the page renders its own MobileSearchBar. */
+  mobileSearch?: boolean
+  /** Actions shown from sm up only, e.g. a create button that mobileCreate replaces on phones. */
+  desktopActions?: ReactNode
 }
+
+type MobileSearchBarProps = Pick<FilterBarProps, "query" | "onQueryChange" | "sorts" | "sortKey" | "onSortKeyChange" | "direction" | "onDirectionChange" | "placeholder"> & {
+  /** Opens the page's extra filters; shows a filter button when given. */
+  onOpenFilters?: () => void
+  /** Button beside the search field, usually a + for creating. */
+  create?: ReactNode
+  className?: string
+}
+
+/** Phone search row: a full search field with the sort chip inside it, and an optional button beside it. */
+export function MobileSearchBar({ query, onQueryChange, sorts, sortKey, onSortKeyChange, direction, onDirectionChange, placeholder = "Search", onOpenFilters, create, className }: MobileSearchBarProps) {
+  const active = sorts.find((option) => option.value === sortKey)
+  const directionLabel = direction === "asc" ? active?.ascLabel ?? "Ascending" : active?.descLabel ?? "Descending"
+  const chipClass = "flex h-10 shrink-0 items-center gap-1.5 rounded-xl bg-muted px-3 text-sm font-semibold outline-none focus-visible:ring-2 focus-visible:ring-ring"
+  const chipContent = (
+    <>
+      {direction === "asc" ? <ArrowUp className="size-4" aria-hidden="true" /> : <ArrowDown className="size-4" aria-hidden="true" />}
+      {directionLabel}
+    </>
+  )
+
+  return (
+    <div className={cn("flex items-center gap-2", className)}>
+      <div className="flex min-w-0 flex-1 items-center gap-2 rounded-2xl border border-border bg-card py-1.5 pr-1.5 pl-4">
+        <Search className="size-5 shrink-0 text-muted-foreground" aria-hidden="true" />
+        <input
+          type="search"
+          value={query}
+          onChange={(event) => onQueryChange(event.target.value)}
+          placeholder={placeholder}
+          aria-label={placeholder}
+          className="h-10 min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-muted-foreground [&::-webkit-search-cancel-button]:hidden"
+        />
+        {query && (
+          <button type="button" onClick={() => onQueryChange("")} aria-label="Clear search" className="flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground">
+            <X className="size-4" aria-hidden="true" />
+          </button>
+        )}
+        {onOpenFilters && (
+          <button type="button" onClick={onOpenFilters} aria-label="Filters" title="Filters" className="flex size-10 shrink-0 items-center justify-center rounded-xl text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring">
+            <SlidersHorizontal className="size-4" aria-hidden="true" />
+          </button>
+        )}
+        {sorts.length === 1 ? (
+          <button type="button" onClick={() => onDirectionChange(direction === "asc" ? "desc" : "asc")} aria-label={`Sorted ${directionLabel}. Tap to reverse.`} className={chipClass}>
+            {chipContent}
+          </button>
+        ) : sorts.length > 1 && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button type="button" aria-label={`Sort by ${active?.label ?? ""}, ${directionLabel}`} className={chipClass}>{chipContent}</button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuLabel>Sort by</DropdownMenuLabel>
+              <DropdownMenuRadioGroup value={sortKey} onValueChange={onSortKeyChange}>
+                {sorts.map((option) => (
+                  <DropdownMenuRadioItem key={option.value} value={option.value}>{option.label}</DropdownMenuRadioItem>
+                ))}
+              </DropdownMenuRadioGroup>
+              <DropdownMenuSeparator />
+              <DropdownMenuRadioGroup value={direction} onValueChange={(value) => onDirectionChange(value as SortDirection)}>
+                <DropdownMenuRadioItem value="asc">{active?.ascLabel ?? "Ascending"}</DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="desc">{active?.descLabel ?? "Descending"}</DropdownMenuRadioItem>
+              </DropdownMenuRadioGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
+      </div>
+      {create}
+    </div>
+  )
+}
+
+/** Square + beside the mobile search field. Pass a href, an onClick, or wrap it in a menu trigger. */
+export const MOBILE_CREATE_BUTTON_CLASS = "size-14 shrink-0 rounded-2xl bg-card"
 
 function compare(a: string | number | null | undefined, b: string | number | null | undefined) {
   const aEmpty = a === null || a === undefined || a === ""
@@ -165,13 +246,16 @@ export function FilterBar({
   mobileVariant = "dialog",
   showSearch = true,
   headerOnMobile = false,
+  mobileCreate,
+  desktopActions,
+  mobileSearch = true,
 }: FilterBarProps) {
   const [filterOpen, setFilterOpen] = useState(false)
   const active = sorts.find((option) => option.value === sortKey)
   const ascLabel = active?.ascLabel ?? "Ascending"
   const descLabel = active?.descLabel ?? "Descending"
   const directionLabel = direction === "asc" ? ascLabel : descLabel
-  const sheetTitle = mobileFilters || children ? "Search and filter" : "Search"
+  const sheetTitle = showSearch ? "Filters" : mobileFilters || children ? "Search and filter" : "Search"
 
   const filterBody = (
     <>
@@ -249,8 +333,8 @@ export function FilterBar({
   )
   const mobileBody = (
     <div className="space-y-4">
-      {searchField}
-      {sortMenu}
+      {!showSearch && searchField}
+      {!showSearch && sortMenu}
       {filterBody}
     </div>
   )
@@ -267,10 +351,6 @@ export function FilterBar({
     headerOnMobile && headerSlot
       ? createPortal(
           <div className="flex items-center gap-1 sm:hidden [&_a]:!text-current [&_button]:!text-current">
-            <Button type="button" variant="ghost" size="icon" aria-label={sheetTitle} onClick={() => setFilterOpen(true)} className="relative">
-              <Search className="size-4" aria-hidden="true" />
-              {query && <span className="absolute top-1.5 right-1.5 size-1.5 rounded-full bg-current" aria-hidden="true" />}
-            </Button>
             {actions}
           </div>,
           headerSlot,
@@ -280,15 +360,30 @@ export function FilterBar({
   return (
     <>
     {headerPortal}
-    <div className={cn("mb-6 flex flex-wrap items-center gap-3", headerOnMobile && !leading && !controls && sorts.length === 0 && "max-sm:hidden", className)}>
+    {showSearch && mobileSearch && (
+      <MobileSearchBar
+        query={query}
+        onQueryChange={onQueryChange}
+        sorts={sorts}
+        sortKey={sortKey}
+        onSortKeyChange={onSortKeyChange}
+        direction={direction}
+        onDirectionChange={onDirectionChange}
+        placeholder={placeholder}
+        onOpenFilters={mobileFilters || children ? () => setFilterOpen(true) : undefined}
+        create={mobileCreate}
+        className="mb-4 sm:hidden"
+      />
+    )}
+    <div className={cn("mb-6 flex flex-wrap items-center gap-3", showSearch && !leading && !controls && (!actions || headerOnMobile) && "max-sm:hidden", className)}>
       <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
       {leading}
-      {sortMenu}
+      {sortMenu && <span className={cn(showSearch && "max-sm:hidden")}>{sortMenu}</span>}
       {showSearch && <div className={cn("hidden min-w-0 flex-1 sm:block sm:max-w-xs", searchClassName)}>{searchField}</div>}
 
         {mobileVariant === "drawer" ? (
           <Sheet open={filterOpen} onOpenChange={setFilterOpen}>
-            {!headerOnMobile && <SheetTrigger asChild>{mobileTrigger}</SheetTrigger>}
+            {!showSearch && <SheetTrigger asChild>{mobileTrigger}</SheetTrigger>}
             <SheetContent side="bottom" className="max-h-[85vh] overflow-y-auto rounded-t-xl p-0">
               <SheetHeader className="px-5 pt-5 pb-2 text-left">
                 <SheetTitle>{sheetTitle}</SheetTitle>
@@ -299,7 +394,7 @@ export function FilterBar({
           </Sheet>
         ) : (
           <Dialog open={filterOpen} onOpenChange={setFilterOpen}>
-            {!headerOnMobile && <DialogTrigger asChild>{mobileTrigger}</DialogTrigger>}
+            {!showSearch && <DialogTrigger asChild>{mobileTrigger}</DialogTrigger>}
             <DialogContent className="max-h-[min(82vh,42rem)] overflow-y-auto p-0 sm:max-w-md">
               <DialogHeader className="px-5 pt-5 pb-2 text-left">
                 <DialogTitle>{sheetTitle}</DialogTitle>
@@ -310,11 +405,12 @@ export function FilterBar({
           </Dialog>
         )}
       </div>
-      {(children || controls || actions) && (
+      {(children || controls || actions || desktopActions) && (
         <div className="ml-auto flex shrink-0 flex-wrap items-center justify-end gap-2">
           {children && <div className="hidden flex-wrap items-center gap-2 sm:flex">{children}</div>}
           {controls}
           {actions && <div className={cn("flex flex-wrap items-center gap-2", headerOnMobile && "max-sm:hidden")}>{actions}</div>}
+          {desktopActions && <div className="flex flex-wrap items-center gap-2 max-sm:hidden">{desktopActions}</div>}
         </div>
       )}
     </div>

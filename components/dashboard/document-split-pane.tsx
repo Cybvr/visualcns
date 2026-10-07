@@ -4,7 +4,7 @@ import { ArrowLeft } from "lucide-react"
 import type { ReactNode } from "react"
 
 import { EmptySearchState } from "@/components/dashboard/empty-state"
-import { CompactListSkeleton } from "@/components/dashboard/compact-list-row"
+import { CompactListSkeleton, MOBILE_LIST_CARD } from "@/components/dashboard/compact-list-row"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
@@ -47,7 +47,7 @@ export function DocumentSplitPane<T>({
         ) : visibleItems.length === 0 ? (
           <EmptySearchState label={emptySearchLabel} />
         ) : (
-          <ul className="mt-1">
+          <ul className={cn("mt-1", MOBILE_LIST_CARD)}>
             {visibleItems.map((item) => (
               <li key={getKey(item)}>{renderItem(item, getKey(item) === selectedId)}</li>
             ))}

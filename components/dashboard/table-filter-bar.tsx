@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { Plus } from "lucide-react"
 
-import { FilterBar, type FilterBarProps } from "@/components/dashboard/filter-bar"
+import { FilterBar, MOBILE_CREATE_BUTTON_CLASS, type FilterBarProps } from "@/components/dashboard/filter-bar"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
@@ -39,11 +39,36 @@ export function TableFilterBar({ className, actions, createAction, ...props }: T
     )
   )
 
+  const mobileCreate = createAction && (
+    createAction.href ? (
+      <Button asChild variant="outline" size="icon" className={MOBILE_CREATE_BUTTON_CLASS}>
+        <Link href={createAction.href} aria-label={createAction.label} title={createAction.label}>
+          <Plus className="size-5" aria-hidden="true" />
+        </Link>
+      </Button>
+    ) : (
+      <Button
+        type="button"
+        variant="outline"
+        size="icon"
+        className={MOBILE_CREATE_BUTTON_CLASS}
+        aria-label={createAction.label}
+        title={createAction.label}
+        disabled={createAction.disabled}
+        onClick={createAction.onClick}
+      >
+        <Plus className="size-5" aria-hidden="true" />
+      </Button>
+    )
+  )
+
   return (
     <FilterBar
       {...props}
       className={cn("mb-0 min-h-16 border-b border-border", className)}
-      actions={actions || createButton ? <>{actions}{createButton}</> : undefined}
+      actions={actions}
+      desktopActions={createButton}
+      mobileCreate={props.mobileCreate ?? mobileCreate}
     />
   )
 }
