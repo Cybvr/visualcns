@@ -5,6 +5,7 @@ import Link from "next/link"
 import { LogIn, Share2, UserPlus } from "lucide-react"
 
 import { useAuth } from "@/components/auth-provider"
+import { BrandLockup } from "@/components/brand-lockup"
 import { useCompanyPage } from "@/components/company/company-page-context"
 import { NgaiWidget } from "@/components/company/ngai-widget"
 import { TeamInvitePanel, useTeamSeats } from "@/components/company/team-seats"
@@ -30,24 +31,26 @@ import {
 } from "@/components/ui/sidebar"
 import { cn } from "@/lib/utils"
 
-/** `expanded` shows the name and handle at every width, for the phone drawer. */
-function CompanyIdentity({ expanded = false }: { expanded?: boolean }) {
+function CompanyIdentity() {
   const { company } = useCompanyPage()
   return (
-    <div className={cn("mb-4 flex items-center gap-3", expanded ? "px-2" : "justify-center lg:justify-start lg:px-2")}>
-      <div className="grid size-11 shrink-0 place-items-center overflow-hidden rounded-full border border-border bg-white">
-        {company.logoUrl ? (
-          // Company logos can be hosted outside the configured image domains.
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={company.logoUrl} alt={`${company.name} logo`} className="size-8 object-contain" />
-        ) : (
-          <span className="text-lg font-semibold text-muted-foreground">{company.name.trim().charAt(0).toUpperCase() || "?"}</span>
-        )}
-      </div>
-      <div className={cn("min-w-0", !expanded && "hidden lg:block")}>
-        <div data-weight="bold" className="truncate text-[19px] leading-tight tracking-[-0.02em] text-foreground">{company.name}</div>
-        {company.slug && <div className="mt-0.5 truncate text-sm font-semibold text-foreground">@{company.slug}</div>}
-      </div>
+    <div className="flex h-12 min-w-0 flex-1 items-center overflow-hidden">
+      {company.logoUrl ? (
+        <BrandLockup
+          logoSize={20}
+          wordmarkScale={0.9}
+          gapClassName="gap-1"
+          className="min-w-0"
+          textClassName="truncate"
+          brandName={company.name}
+          logoUrl={company.logoUrl}
+        />
+      ) : (
+        <span className="inline-flex min-w-0 items-center gap-1 text-foreground">
+          <span className="grid size-5 shrink-0 place-items-center text-xs font-semibold">{company.name.trim().charAt(0).toUpperCase() || "?"}</span>
+          <span className="truncate text-lg">{company.name}</span>
+        </span>
+      )}
     </div>
   )
 }
@@ -153,7 +156,7 @@ export function CompanyProfileShell({ children }: { children: ReactNode }) {
             <SidebarHeader className="group-data-[collapsible=icon]:p-1">
               <div className="flex items-center gap-2 group-data-[collapsible=icon]:justify-center">
                 <div className="min-w-0 flex-1 group-data-[collapsible=icon]:hidden">
-                  <CompanyIdentity expanded />
+                  <CompanyIdentity />
                 </div>
                 <SidebarTrigger className="size-8 shrink-0" />
               </div>
