@@ -8,7 +8,7 @@ import type { Timestamp } from "firebase/firestore"
 
 import { useAuth } from "@/components/auth-provider"
 import { ClientPreview } from "@/components/dashboard/client-preview"
-import { CompactListRow } from "@/components/dashboard/compact-list-row"
+import { CompactListRow, InitialAvatar, shortListDate } from "@/components/dashboard/compact-list-row"
 import { CompanyCreateSheet } from "@/components/dashboard/company-create-sheet"
 import { DocumentSplitPane } from "@/components/dashboard/document-split-pane"
 import { FirstRunState } from "@/components/dashboard/empty-state"
@@ -70,6 +70,7 @@ function companyRefOf(row: CompanyRow): string {
 function companyHref(row: CompanyRow): string {
   return `/dashboard/clients/${companyRefOf(row)}`
 }
+
 
 /** Clients as a list on the left and the open client on the right, like tasks and notes. */
 export default function CompaniesPage() {
@@ -266,13 +267,17 @@ export default function CompaniesPage() {
             <CompactListRow
               leading={row.logoUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={row.logoUrl} alt="" referrerPolicy="no-referrer" className="size-8 rounded-full object-cover" />
+                <img src={row.logoUrl} alt="" referrerPolicy="no-referrer" className="size-8 rounded-full object-cover max-sm:size-12" />
               ) : (
-                <span className="flex size-8 items-center justify-center rounded-full bg-muted"><Building2 className="size-4 text-muted-foreground" aria-hidden="true" /></span>
+                <>
+                  <InitialAvatar text={row.name} className="sm:hidden" />
+                  <span className="flex size-8 items-center justify-center rounded-full bg-muted max-sm:hidden"><Building2 className="size-4 text-muted-foreground" aria-hidden="true" /></span>
+                </>
               )}
               title={row.name}
+              meta={shortListDate(Math.max(tsToMillis(row.updatedAt), tsToMillis(row.createdAt)))}
               subtitle={`${row.label || (row.projectCount ? `${row.projectCount} project${row.projectCount === 1 ? "" : "s"}` : "No projects yet")} · ${formatTimestamp(row.updatedAt ?? row.createdAt)}`}
-              mobileSubtitle={row.label || formatTimestamp(row.updatedAt ?? row.createdAt)}
+              mobileSubtitle={[row.label, row.projectCount ? `${row.projectCount} project${row.projectCount === 1 ? "" : "s"}` : "No projects yet"].filter(Boolean).join(" · ")}
               active={active}
               onClick={() => setSelectedRef(companyRefOf(row), { clear: ["tab"] })}
               menuLabel={`Options for ${row.name}`}

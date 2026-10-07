@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { EllipsisVertical } from "lucide-react"
+import { Check, EllipsisVertical } from "lucide-react"
 import type { ReactNode } from "react"
 
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
@@ -50,6 +50,33 @@ export function avatarTone(value: string) {
  * Rows render no border of their own on mobile, so the card's dividers do the separating.
  */
 export const MOBILE_LIST_CARD = "max-sm:overflow-hidden max-sm:rounded-2xl max-sm:border max-sm:border-border max-sm:bg-card max-sm:divide-y max-sm:divide-border"
+
+/**
+ * Short date for the right of a mobile row: the time today, the weekday this week,
+ * otherwise day and month (plus the year when it isn't this year).
+ */
+export function shortListDate(value: string | number | Date | null | undefined) {
+  if (value === null || value === undefined || value === "" || value === 0) return undefined
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return undefined
+  const now = new Date()
+  if (date.toDateString() === now.toDateString()) {
+    return new Intl.DateTimeFormat(undefined, { hour: "2-digit", minute: "2-digit" }).format(date)
+  }
+  if (date < now && now.getTime() - date.getTime() < 6 * 24 * 60 * 60 * 1000) {
+    return new Intl.DateTimeFormat(undefined, { weekday: "short" }).format(date)
+  }
+  return new Intl.DateTimeFormat(undefined, date.getFullYear() === now.getFullYear() ? { day: "numeric", month: "short" } : { day: "numeric", month: "short", year: "numeric" }).format(date)
+}
+
+/** Avatar shown in place of the usual one while a row is selected. */
+export function CheckAvatar() {
+  return (
+    <span className="flex size-12 items-center justify-center rounded-full bg-primary text-primary-foreground" aria-hidden="true">
+      <Check className="size-5" />
+    </span>
+  )
+}
 
 /** Round avatar showing the first letter of its text. */
 export function InitialAvatar({ text, className }: { text: string; className?: string }) {

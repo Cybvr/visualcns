@@ -2,7 +2,7 @@ import { useState } from "react"
 import { Copy, ListTodo, Loader2, Mail, Pencil, Plus, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 
-import { CompactListRow, CompactListSkeleton } from "@/components/dashboard/compact-list-row"
+import { CompactListRow, CompactListSkeleton, MOBILE_LIST_CARD } from "@/components/dashboard/compact-list-row"
 import { TableRowsSkeleton } from "@/components/dashboard/collection-skeletons"
 import { TaskEditorSheet } from "@/components/dashboard/task-editor-sheet"
 import { useTaskEmail } from "@/components/dashboard/use-task-email"
@@ -123,20 +123,23 @@ export function TasksView({ tasks, projects, companyId, clientName, canDuplicate
             <p className="mt-1 text-xs text-muted-foreground">Add a task to start tracking work.</p>
           </div>
         ) : (
-          <div>
+          <ul className={MOBILE_LIST_CARD}>
             {tasks.map((task) => {
               return (
-                <CompactListRow
-                  key={task.id}
-                  title={task.name}
-                  subtitle={formatTimestamp(task.updatedAt ?? task.createdAt)}
-                  onClick={() => openEdit(task.id)}
-                  menuLabel={`Options for ${task.name}`}
-                  menu={<><DropdownMenuItem disabled={emailingId !== null} onSelect={() => emailCompanyTask(task)}>Email task</DropdownMenuItem><DropdownMenuItem onSelect={() => openEdit(task.id)}>Edit task</DropdownMenuItem>{canDuplicate && <DropdownMenuItem disabled={duplicatingId !== null} onSelect={() => void handleDuplicate(task)}>Duplicate task</DropdownMenuItem>}<DropdownMenuItem variant="destructive" onSelect={() => setMobileDeleteTarget(task)}>Delete task</DropdownMenuItem></>}
-                />
+                <li key={task.id}>
+                  <CompactListRow
+                    title={task.name || "Untitled task"}
+                    meta={(taskStatusMeta[task.status] ?? taskStatusMeta.todo).label}
+                    subtitle={[task.project, task.dueDate ? `Due ${task.dueDate}` : formatTimestamp(task.updatedAt ?? task.createdAt)].filter(Boolean).join(" · ")}
+                    onClick={() => openEdit(task.id)}
+                    ariaLabel={`Open ${task.name || "task"}`}
+                    menuLabel={`Options for ${task.name}`}
+                    menu={<><DropdownMenuItem disabled={emailingId !== null} onSelect={() => emailCompanyTask(task)}>Email task</DropdownMenuItem><DropdownMenuItem onSelect={() => openEdit(task.id)}>Edit task</DropdownMenuItem>{canDuplicate && <DropdownMenuItem disabled={duplicatingId !== null} onSelect={() => void handleDuplicate(task)}>Duplicate task</DropdownMenuItem>}<DropdownMenuItem variant="destructive" onSelect={() => setMobileDeleteTarget(task)}>Delete task</DropdownMenuItem></>}
+                  />
+                </li>
               )
             })}
-          </div>
+          </ul>
         )}
       </div>
 

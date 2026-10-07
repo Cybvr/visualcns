@@ -146,7 +146,8 @@ export default function EstimatesPage() {
             return <CompactListRow
               title={estimate.title || "Untitled estimate"}
               subtitle={`${estimate.estimateNumber} · ${formatMoney(estimate.amount, estimate.currency)} · ${formatTimestamp(estimate.updatedAt ?? estimate.createdAt)}`}
-              mobileSubtitle={formatTimestamp(estimate.updatedAt ?? estimate.createdAt)}
+              meta={formatMoney(estimate.amount, estimate.currency)}
+              mobileSubtitle={[estimate.client || (estimate.companyId && companyRefFor(estimate.companyId)), estimateStatusMeta[estimate.status]?.label, formatTimestamp(estimate.updatedAt ?? estimate.createdAt)].filter(Boolean).join(" · ")}
               active={active}
               onClick={() => setSelectedId(estimate.id)}
               menuLabel={`Options for ${estimate.title || estimate.estimateNumber}`}

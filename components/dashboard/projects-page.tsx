@@ -28,8 +28,8 @@ import { Eye, Loader2, Trash2 } from "lucide-react"
 import { FaFolderOpen } from "react-icons/fa"
 import { getProjects, deleteProject, projectSlug, projectStatusMeta, type Project } from "@/lib/projects"
 import { NewProjectDialog } from "@/components/dashboard/new-project-dialog"
-import { MobileDataCard } from "@/components/dashboard/mobile-data-card"
-import { GridCardsSkeleton, MobileCardsSkeleton, TableRowsSkeleton } from "@/components/dashboard/collection-skeletons"
+import { CompactListSkeleton, InitialAvatar, MOBILE_LIST_CARD, MobileListRow, CheckAvatar } from "@/components/dashboard/compact-list-row"
+import { GridCardsSkeleton, TableRowsSkeleton } from "@/components/dashboard/collection-skeletons"
 import { ReactIcon } from "@/components/react-icon"
 import { ProjectCover } from "@/components/project-card"
 import { GridCard, GridCardList } from "@/components/dashboard/grid-card"
@@ -164,7 +164,7 @@ export default function ProjectsAdminPage() {
 
       {loading ? (
         view === "grid" ? <GridCardsSkeleton /> : <>
-          <div className="sm:hidden"><MobileCardsSkeleton /></div>
+          <div className="sm:hidden"><CompactListSkeleton /></div>
           <div className="hidden sm:block"><TableRowsSkeleton headers={["", "Project", "Client", "Status", "Updated", ""]} /></div>
         </>
       ) : error ? (
@@ -206,25 +206,56 @@ export default function ProjectsAdminPage() {
             </GridCardList>
           ) : (
             <>
-              <div className="space-y-2 sm:hidden">
-                {visibleProjects.map((p) => {
-                  return (
-                    <MobileDataCard
-                      key={p.id}
-                      href={`/dashboard/projects/${projectSlug(p)}`}
-                      title={p.title}
-                      subtitle={[p.client || p.companyId, p.service].filter(Boolean).join(" · ") || "No details"}
-                      icon={<ReactIcon icon={FaFolderOpen} className="size-5 text-amber-600 dark:text-amber-400" aria-hidden="true" />}
-                      menuLabel={`Options for ${p.title}`}
-                      menu={
-                        <>
-                          <DropdownMenuItem onSelect={() => router.push(`/dashboard/projects/${projectSlug(p)}`)}>Open project</DropdownMenuItem>
-                          <DropdownMenuItem variant="destructive" onSelect={() => setPendingDelete(p)}>Delete project</DropdownMenuItem>
-                        </>
-                      }
-                    />
-                  )
-                })}
+              <div className="sm:hidden">
+                <TableBulkBar
+                  count={selection.selectedCount}
+                  noun="project"
+                  deleting={bulkDeleting}
+                  onClear={selection.clear}
+                  onDelete={handleBulkDelete}
+                />
+                <ul className={MOBILE_LIST_CARD}>
+                  {visibleProjects.map((p) => {
+                    const meta = projectStatusMeta[p.status] ?? projectStatusMeta["in-progress"]
+                    const href = `/dashboard/projects/${projectSlug(p)}`
+                    const checked = selection.isSelected(p.id)
+                    const selecting = selection.selectedCount > 0
+                    return (
+                      <li key={p.id}>
+                        <MobileListRow
+                          href={selecting ? undefined : href}
+                          onClick={selecting ? () => selection.toggle(p.id) : undefined}
+                          ariaLabel={selecting ? `${checked ? "Deselect" : "Select"} ${p.title}` : `Open ${p.title}`}
+                          active={checked}
+                          avatar={checked ? (
+                            <CheckAvatar />
+                          ) : p.thumbnailUrl ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={p.thumbnailUrl} alt="" loading="lazy" className="size-12 rounded-full object-cover" />
+                          ) : (
+                            <InitialAvatar text={p.title} />
+                          )}
+                          onAvatarClick={selecting ? () => selection.toggle(p.id) : undefined}
+                          avatarPressed={selecting ? checked : undefined}
+                          avatarLabel={selecting ? `${checked ? "Deselect" : "Select"} ${p.title}` : `Options for ${p.title}`}
+                          avatarMenu={selecting ? undefined : (
+                            <>
+                              <DropdownMenuItem onSelect={() => router.push(href)}>Open project</DropdownMenuItem>
+                              <DropdownMenuItem onSelect={() => selection.toggle(p.id)}>Select</DropdownMenuItem>
+                              <DropdownMenuItem variant="destructive" onSelect={() => setPendingDelete(p)}>Delete project</DropdownMenuItem>
+                            </>
+                          )}
+                          title={p.title}
+                          meta={<span className={cn("rounded-full px-1.5 py-px text-[10px] font-medium", meta.className)}>{meta.label}</span>}
+                          lines={[
+                            [p.client || p.companyId, p.service].filter(Boolean).join(" · ") || "No details",
+                            [`${p.progress}% done`, p.dueDate && `Due ${p.dueDate}`].filter(Boolean).join(" · "),
+                          ]}
+                        />
+                      </li>
+                    )
+                  })}
+                </ul>
               </div>
 
               <div className="hidden rounded-lg border border-border sm:block">

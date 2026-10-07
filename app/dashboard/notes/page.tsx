@@ -7,7 +7,7 @@ import { toast } from "sonner"
 import { useAuth } from "@/components/auth-provider"
 import { useRecordTitle } from "@/components/dashboard/page-title-context"
 import { useUrlSelection } from "@/hooks/use-url-selection"
-import { CompactListRow, CompactListSkeleton } from "@/components/dashboard/compact-list-row"
+import { CompactListRow, CompactListSkeleton, MOBILE_LIST_CARD } from "@/components/dashboard/compact-list-row"
 import { EmptySearchState, FirstRunState } from "@/components/dashboard/empty-state"
 import { TableFilterBar } from "@/components/dashboard/table-filter-bar"
 import { useFilterBar } from "@/components/dashboard/filter-bar"
@@ -33,6 +33,18 @@ function editedAt(iso: string) {
   return date.toDateString() === new Date().toDateString()
     ? date.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })
     : date.toLocaleDateString(undefined, { day: "numeric", month: "short" })
+}
+
+/** Mobile second line: the body text the title does not already show. */
+function notePreview(note: Pick<Note, "title" | "body">) {
+  const body = typeof note.body === "string" ? note.body : ""
+  if (isChecklist(body)) {
+    const items = parseChecklist(body)
+    return `${items.filter((item) => item.checked).length} of ${items.length} done`
+  }
+  const lines = body.split("\n").map((line) => line.trim()).filter(Boolean)
+  const titled = typeof note.title === "string" && note.title.trim()
+  return (titled ? lines : lines.slice(1)).join(" ") || "No additional text"
 }
 
 function searchNote(note: Note) {
@@ -277,7 +289,7 @@ export default function NotesPage() {
             {visibleNotes.length === 0 ? (
               <EmptySearchState label="No notes match your search." />
             ) : (
-              <ul className="mt-1">
+              <ul className={cn("mt-1", MOBILE_LIST_CARD)}>
                 {visibleNotes.map((note) => {
                   const shown = note.id === openId ? { title, body } : note
                   const active = note.id === openId
@@ -286,6 +298,8 @@ export default function NotesPage() {
                       <CompactListRow
                         title={noteTitle(shown)}
                         subtitle={`${editedAt(note.updatedAt)}${typeof shown.title === "string" && typeof shown.body === "string" && shown.title.trim() && shown.body.trim() ? ` · ${shown.body.trim().split("\n")[0]}` : ""}`}
+                        meta={editedAt(note.updatedAt)}
+                        mobileSubtitle={notePreview(shown)}
                         active={active}
                         onClick={() => void open(note)}
                         menuLabel={`Options for ${noteTitle(shown)}`}

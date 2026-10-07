@@ -1,8 +1,6 @@
 "use client"
 
-import { Check } from "lucide-react"
-
-import { CompactListRow, MobileListRow } from "@/components/dashboard/compact-list-row"
+import { CheckAvatar, CompactListRow, MobileListRow, shortListDate } from "@/components/dashboard/compact-list-row"
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
 
@@ -29,19 +27,6 @@ export type EmailListRowProps = {
   preview?: string
 }
 
-/** Today shows the time, this week the weekday, older the day and month. */
-function shortListDate(value: string) {
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return ""
-  const now = new Date()
-  if (date.toDateString() === now.toDateString()) {
-    return new Intl.DateTimeFormat(undefined, { hour: "2-digit", minute: "2-digit" }).format(date)
-  }
-  if (now.getTime() - date.getTime() < 6 * 24 * 60 * 60 * 1000 && date < now) {
-    return new Intl.DateTimeFormat(undefined, { weekday: "short" }).format(date)
-  }
-  return new Intl.DateTimeFormat(undefined, { day: "numeric", month: "short" }).format(date)
-}
 
 export function EmailListHeader({ primaryLabel, dateLabel, selectable = false }: {
   primaryLabel: string
@@ -93,7 +78,7 @@ export function EmailListRow({
   const mobileRow = (
     <MobileListRow
       avatar={checked ? (
-        <span className="flex size-12 items-center justify-center rounded-full bg-primary text-primary-foreground"><Check className="size-5" aria-hidden="true" /></span>
+        <CheckAvatar />
       ) : (
         <span className={cn("flex size-12 items-center justify-center rounded-full text-lg font-semibold", avatarTone)}>{avatarInitials.slice(0, 1)}</span>
       )}

@@ -33,7 +33,7 @@ import {
   tsToMillis,
   type Task,
 } from "@/lib/tasks"
-import { CompactListRow, CompactListSkeleton } from "@/components/dashboard/compact-list-row"
+import { CompactListRow, CompactListSkeleton, MOBILE_LIST_CARD } from "@/components/dashboard/compact-list-row"
 import { useRecordTitle } from "@/components/dashboard/page-title-context"
 import { useUrlSelection } from "@/hooks/use-url-selection"
 import { TaskForm } from "@/components/dashboard/task-form"
@@ -256,13 +256,14 @@ export default function TasksAdminPage() {
               <div className="lg:grid lg:grid-cols-[minmax(18rem,0.7fr)_minmax(0,1.3fr)] lg:items-start lg:gap-6">
                 <div className="min-w-0">
                   {taskFilter}
-                  <ul>
+                  <ul className={MOBILE_LIST_CARD}>
                     {visibleTasks.map((t) => (
                       <li key={t.id}>
                         <CompactListRow
                           title={t.name || "Untitled task"}
+                          meta={taskStatusMeta[t.status]?.label}
                           subtitle={[t.reminder ? "Reminder" : null, t.project || t.client || t.companyId, taskStatusMeta[t.status]?.label, t.dueDate || formatTimestamp(t.updatedAt ?? t.createdAt)].filter(Boolean).join(" · ")}
-                          mobileSubtitle={formatTimestamp(t.updatedAt ?? t.createdAt)}
+                          mobileSubtitle={[t.reminder ? "Reminder" : null, t.project || t.client || t.companyId, t.dueDate ? `Due ${t.dueDate}` : formatTimestamp(t.updatedAt ?? t.createdAt)].filter(Boolean).join(" · ")}
                           onClick={() => setSelectedId(t.id)}
                           active={selectedId === t.id}
                           ariaLabel={`Open ${t.name || "task"}`}

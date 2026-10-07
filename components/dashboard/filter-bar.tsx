@@ -371,11 +371,11 @@ export function FilterBar({
         onDirectionChange={onDirectionChange}
         placeholder={placeholder}
         onOpenFilters={mobileFilters || children ? () => setFilterOpen(true) : undefined}
-        create={mobileCreate}
+        create={(actions && !headerOnMobile) || mobileCreate ? <>{!headerOnMobile && actions && <div className="flex shrink-0 items-center gap-1">{actions}</div>}{mobileCreate}</> : undefined}
         className="mb-4 sm:hidden"
       />
     )}
-    <div className={cn("mb-6 flex flex-wrap items-center gap-3", showSearch && !leading && !controls && (!actions || headerOnMobile) && "max-sm:hidden", className)}>
+    <div className={cn("mb-6 flex flex-wrap items-center gap-3", showSearch && mobileSearch && !leading && !controls && "max-sm:hidden", className)}>
       <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
       {leading}
       {sortMenu && <span className={cn(showSearch && "max-sm:hidden")}>{sortMenu}</span>}
@@ -409,7 +409,7 @@ export function FilterBar({
         <div className="ml-auto flex shrink-0 flex-wrap items-center justify-end gap-2">
           {children && <div className="hidden flex-wrap items-center gap-2 sm:flex">{children}</div>}
           {controls}
-          {actions && <div className={cn("flex flex-wrap items-center gap-2", headerOnMobile && "max-sm:hidden")}>{actions}</div>}
+          {actions && <div className={cn("flex flex-wrap items-center gap-2", (headerOnMobile || (showSearch && mobileSearch)) && "max-sm:hidden")}>{actions}</div>}
           {desktopActions && <div className="flex flex-wrap items-center gap-2 max-sm:hidden">{desktopActions}</div>}
         </div>
       )}

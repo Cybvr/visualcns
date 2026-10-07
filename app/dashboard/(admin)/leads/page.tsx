@@ -19,6 +19,7 @@ import { FileUp, Kanban, Rows3 } from "lucide-react"
 import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
+import { CompactListSkeleton, InitialAvatar, MOBILE_LIST_CARD, MobileListRow, CheckAvatar } from "@/components/dashboard/compact-list-row"
 import { TableFilterBar } from "@/components/dashboard/table-filter-bar"
 import { useFilterBar } from "@/components/dashboard/filter-bar"
 import { ImportLeadsDialog } from "@/components/dashboard/import-leads-dialog"
@@ -27,6 +28,7 @@ import { useViewMode, type ViewMode } from "@/components/dashboard/view-toggle"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
+import { DropdownMenuCheckboxItem, DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -192,7 +194,7 @@ export default function LeadsPage() {
       {error ? (
         <p role="alert" className="mt-10 text-sm text-destructive">Leads unavailable. Refresh to try again.</p>
       ) : view === "list" ? (
-        <LeadsTable leads={visibleLeads} loading={leads === null} onOpen={setEditing} />
+        <LeadsTable leads={visibleLeads} loading={leads === null} onOpen={setEditing} onDelete={setConfirmDelete} />
       ) : (
         <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd} onDragCancel={() => setActiveId(null)}>
           <div className="scrollbar-none -mx-4 mt-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-4 sm:-mx-6 sm:px-6">
@@ -279,7 +281,7 @@ function LeadsViewToggle({ view, onChange }: { view: ViewMode; onChange: (view: 
   )
 }
 
-function LeadsTable({ leads, loading, onOpen }: { leads: Lead[]; loading: boolean; onOpen: (lead: Lead) => void }) {
+function LeadsTable({ leads, loading, onOpen, onDelete }: { leads: Lead[]; loading: boolean; onOpen: (lead: Lead) => void; onDelete: (lead: Lead) => void }) {
   const selection = useRowSelection(leads, leadId)
   const [bulkBusy, setBulkBusy] = useState(false)
 
@@ -313,10 +315,13 @@ function LeadsTable({ leads, loading, onOpen }: { leads: Lead[]; loading: boolea
 
   if (loading) {
     return (
-      <div className="mt-4 space-y-2">
-        <Skeleton className="h-10 w-full" />
-        <Skeleton className="h-10 w-full" />
-        <Skeleton className="h-10 w-full" />
+      <div className="mt-4">
+        <div className="sm:hidden"><CompactListSkeleton /></div>
+        <div className="hidden space-y-2 sm:block">
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-10 w-full" />
+        </div>
       </div>
     )
   }
@@ -330,7 +335,44 @@ function LeadsTable({ leads, loading, onOpen }: { leads: Lead[]; loading: boolea
           </SelectContent>
         </Select>
       </TableBulkBar>
-      <div className="rounded-lg border border-border">
+      {leads.length === 0 ? (
+        <p className="py-8 text-center text-sm text-muted-foreground sm:hidden">No leads.</p>
+      ) : (
+        <ul className={cn(MOBILE_LIST_CARD, "sm:hidden")}>
+          {leads.map((lead) => {
+            const name = lead.name || "Unnamed lead"
+            const selected = selection.isSelected(lead.id)
+            return (
+              <li key={lead.id}>
+                <MobileListRow
+                  avatar={selected ? (
+                    <CheckAvatar />
+                  ) : <InitialAvatar text={name} />}
+                  avatarMenu={
+                    <>
+                      <DropdownMenuItem onSelect={() => onOpen(lead)}>Open lead</DropdownMenuItem>
+                      <DropdownMenuCheckboxItem checked={selected} onCheckedChange={() => selection.toggle(lead.id)}>Select lead</DropdownMenuCheckboxItem>
+                      <DropdownMenuItem variant="destructive" onSelect={() => onDelete(lead)}>Delete lead</DropdownMenuItem>
+                    </>
+                  }
+                  avatarLabel={`Options for ${name}`}
+                  title={name}
+                  meta={STAGE_LABELS.get(lead.stage) ?? lead.stage}
+                  lines={[
+                    [lead.title, lead.company].filter(Boolean).join(" · ") || lead.category,
+                    [formatValue(lead.value), lead.email || lead.phone].filter(Boolean).join(" · "),
+                  ]}
+                  lineClassNames={["text-foreground/90"]}
+                  active={selected}
+                  onClick={() => selection.selectedCount > 0 ? selection.toggle(lead.id) : onOpen(lead)}
+                  ariaLabel={selection.selectedCount > 0 ? `${selected ? "Deselect" : "Select"} ${name}` : `Open ${name}`}
+                />
+              </li>
+            )
+          })}
+        </ul>
+      )}
+      <div className="rounded-lg border border-border max-sm:hidden">
         {/* Fixed column widths: long values are cut with … and the table scrolls sideways on small screens. */}
         <Table className="min-w-[1340px] table-fixed">
           <TableHeader>

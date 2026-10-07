@@ -13,10 +13,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { Loader2, Mail, Plus, Trash2, User as UserIcon, UserPlus } from "lucide-react"
-import { getUsers, deleteUser, type AppUser } from "@/lib/users"
+import { Loader2, Mail, Trash2, User as UserIcon, UserPlus } from "lucide-react"
+import { getUsers, deleteUser, userRoleLabel, type AppUser } from "@/lib/users"
 import { getOrganizations } from "@/lib/organizations"
-import { CompactListRow } from "@/components/dashboard/compact-list-row"
+import { CompactListRow, InitialAvatar } from "@/components/dashboard/compact-list-row"
 import { DocumentSplitPane } from "@/components/dashboard/document-split-pane"
 import { FirstRunState } from "@/components/dashboard/empty-state"
 import { UserForm } from "@/components/dashboard/user-form"
@@ -230,13 +230,17 @@ export default function UsersAdminPage() {
             <CompactListRow
               leading={u.photoURL ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={u.photoURL} alt="" referrerPolicy="no-referrer" className="size-8 rounded-full object-cover" />
+                <img src={u.photoURL} alt="" referrerPolicy="no-referrer" className="size-8 rounded-full object-cover max-sm:size-12" />
               ) : (
-                <span className="flex size-8 items-center justify-center rounded-full bg-muted"><UserIcon className="size-4 text-muted-foreground" aria-hidden="true" /></span>
+                <>
+                  <InitialAvatar text={u.displayName || u.email || ""} className="sm:hidden" />
+                  <span className="flex size-8 items-center justify-center rounded-full bg-muted max-sm:hidden"><UserIcon className="size-4 text-muted-foreground" aria-hidden="true" /></span>
+                </>
               )}
               title={u.displayName || u.email || "—"}
+              meta={u.role ? userRoleLabel(u.role) : undefined}
               subtitle={`${[u.email, companyNameOf(u)].filter(Boolean).join(" · ") || "—"} · ${formatTimestamp(u.updatedAt ?? u.createdAt)}`}
-              mobileSubtitle={u.email || companyNameOf(u) || formatTimestamp(u.updatedAt ?? u.createdAt)}
+              mobileSubtitle={[companyNameOf(u), u.displayName ? u.email : undefined].filter(Boolean).join(" · ") || formatTimestamp(u.updatedAt ?? u.createdAt)}
               active={active}
               onClick={() => setSelectedId(u.uid)}
               ariaLabel={`Open ${u.displayName || u.email || "contact"}`}

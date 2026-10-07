@@ -7,7 +7,7 @@ import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
 import { TableRowsSkeleton } from "@/components/dashboard/collection-skeletons"
-import { CompactListSkeleton } from "@/components/dashboard/compact-list-row"
+import { CompactListSkeleton, InitialAvatar, MOBILE_LIST_CARD, MobileListRow } from "@/components/dashboard/compact-list-row"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { TableFilterBar } from "@/components/dashboard/table-filter-bar"
@@ -128,27 +128,36 @@ export default function VisitorsPage() {
         </div>
       ) : (
         <div className="mt-5 min-w-0">
-          <ul className="divide-y divide-border sm:hidden">
+          <ul className={cn(MOBILE_LIST_CARD, "sm:hidden")}>
             {rows.map((visitor) => {
               const companyName = visitor.companyName || companyNames[visitor.companyId]?.name || ""
               const onSite = visitor.status === "on_site"
+              const day = visitDay(visitor.signedInAt)
+              const busy = busyId === visitor.id
               return (
-                <li key={visitor.id} className="flex min-w-0 items-center gap-3 px-2 py-3">
-                  <span className={cn("size-2 shrink-0 rounded-full", onSite ? "bg-emerald-500" : "bg-border")} aria-label={onSite ? "In the building" : "Signed out"} />
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-foreground">{visitor.name}</p>
-                    <p className="truncate text-xs text-muted-foreground">
-                      {[agencyView && companyName, visitor.visitorCompany, visitor.hostName && `Visiting ${visitor.hostName}`, visitor.reason].filter(Boolean).join(" · ")}
-                    </p>
-                  </div>
-                  <p className="shrink-0 text-right text-xs text-muted-foreground">
-                    {visitDay(visitor.signedInAt)}<br />{visitTime(visitor.signedInAt)}{visitor.signedOutAt ? `–${visitTime(visitor.signedOutAt)}` : ""}
-                  </p>
-                  {onSite && (
-                    <Button type="button" variant="ghost" size="icon" className="size-8 shrink-0" onClick={() => void signOut(visitor)} disabled={busyId === visitor.id} aria-label={`Sign out ${visitor.name}`}>
-                      {busyId === visitor.id ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <LogOut className="size-4" aria-hidden="true" />}
-                    </Button>
-                  )}
+                <li key={visitor.id}>
+                  <MobileListRow
+                    avatar={
+                      <span className="relative block">
+                        <InitialAvatar text={visitor.name} />
+                        {onSite && <span className="absolute right-0 bottom-0 size-3.5 rounded-full border-2 border-card bg-emerald-500" aria-hidden="true" />}
+                      </span>
+                    }
+                    avatarMenu={onSite ? (
+                      <DropdownMenuItem onSelect={() => void signOut(visitor)} disabled={busy}>
+                        {busy ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <LogOut className="size-4" aria-hidden="true" />}
+                        Sign out
+                      </DropdownMenuItem>
+                    ) : undefined}
+                    avatarLabel={`Actions for ${visitor.name}`}
+                    title={visitor.name}
+                    meta={day === "Today" ? visitTime(visitor.signedInAt) : day}
+                    lines={[
+                      [agencyView && companyName, visitor.visitorCompany, visitor.hostName && `Visiting ${visitor.hostName}`, visitor.reason].filter(Boolean).join(" · "),
+                      onSite ? `In the building since ${visitTime(visitor.signedInAt)}` : `Signed out${visitor.signedOutAt ? ` · ${visitTime(visitor.signedInAt)}–${visitTime(visitor.signedOutAt)}` : ""}`,
+                    ]}
+                    lineClassNames={["text-foreground/90", onSite ? "text-emerald-700 dark:text-emerald-400" : ""]}
+                  />
                 </li>
               )
             })}

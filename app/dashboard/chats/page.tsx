@@ -3,16 +3,16 @@
 import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { MessageSquare } from "lucide-react"
 
 import { useAgent, type AgentConversation } from "@/components/agent/agent-context"
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { GridCardsSkeleton, TableRowsSkeleton } from "@/components/dashboard/collection-skeletons"
+import { TableRowsSkeleton } from "@/components/dashboard/collection-skeletons"
+import { CompactListSkeleton, InitialAvatar, MOBILE_LIST_CARD, MobileListRow, CheckAvatar } from "@/components/dashboard/compact-list-row"
 import { EmptySearchState, FirstRunState } from "@/components/dashboard/empty-state"
 import { TableFilterBar } from "@/components/dashboard/table-filter-bar"
 import { useFilterBar, type SortOption } from "@/components/dashboard/filter-bar"
-import { GridCard, GridCardList } from "@/components/dashboard/grid-card"
 import { TableBulkBar } from "@/components/dashboard/table-bulk-bar"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useRowSelection } from "@/hooks/use-row-selection"
@@ -37,10 +37,21 @@ function formatUpdatedAt(value?: number) {
   return new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(new Date(value))
 }
 
+/** Today shows the time, older chats the day and month. */
+function formatShortDate(value?: number) {
+  if (!value) return ""
+  const date = new Date(value)
+  if (date.toDateString() === new Date().toDateString()) {
+    return new Intl.DateTimeFormat(undefined, { hour: "2-digit", minute: "2-digit" }).format(date)
+  }
+  return new Intl.DateTimeFormat(undefined, { day: "numeric", month: "short" }).format(date)
+}
+
 export default function AllChatsPage() {
   const router = useRouter()
   const [bulkDeleting, setBulkDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState<string | null>(null)
+  const [pendingDelete, setPendingDelete] = useState<AgentConversation | null>(null)
   const { conversations, conversationsLoading, activeConversationId, selectConversation, reset, deleteConversations } = useAgent()
   const { results: visibleChats, bar } = useFilterBar({
     items: conversations,
@@ -65,6 +76,16 @@ export default function AllChatsPage() {
     }
   }
 
+  async function deleteChat(chat: AgentConversation) {
+    setPendingDelete(null)
+    setDeleteError(null)
+    try {
+      await deleteConversations([chat.id])
+    } catch (error) {
+      setDeleteError(error instanceof Error ? error.message : "Chat could not be deleted. Please try again.")
+    }
+  }
+
   function openChat(chat: AgentConversation) {
     selectConversation(chat.id)
     router.push(`/dashboard/agent/${encodeURIComponent(chat.id)}`)
@@ -86,7 +107,7 @@ export default function AllChatsPage() {
 
       {conversationsLoading ? (
         <>
-          <div className="sm:hidden"><GridCardsSkeleton /></div>
+          <div className="sm:hidden"><CompactListSkeleton /></div>
           <div className="hidden sm:block"><TableRowsSkeleton headers={["", "Chat", "Updated", ""]} /></div>
         </>
       ) : conversations.length === 0 ? (
@@ -108,42 +129,48 @@ export default function AllChatsPage() {
             onDelete={handleBulkDelete}
           />
           <div className="sm:hidden">
-            <label className="mb-3 flex items-center gap-2 text-sm text-muted-foreground">
-              <Checkbox
-                aria-label="Select all chats"
-                checked={selection.allSelected}
-                indeterminate={selection.someSelected}
-                onChange={selection.toggleAll}
-              />
-              Select all chats
-            </label>
-            <GridCardList>
-              {visibleChats.map((chat) => (
-                <GridCard
-                  key={chat.id}
-                  title={chat.title || "Untitled chat"}
-                  icon={<MessageSquare className={`size-4 ${chat.id === activeConversationId ? "text-primary" : "text-muted-foreground"}`} aria-hidden="true" />}
-                  preview={
-                    <div className="flex size-full min-w-0 flex-col justify-between gap-2 p-3 text-left">
-                      <p className="line-clamp-3 w-full break-words text-xs text-foreground">{lastMessage(chat)}</p>
-                      <span className="text-[11px] text-muted-foreground">Modified {formatUpdatedAt(chat.updatedAt)}</span>
-                    </div>
-                  }
-                  onClick={() => openChat(chat)}
-                  selected={selection.isSelected(chat.id)}
-                  ariaLabel={`Open ${chat.title || "chat"}`}
-                  menuLabel={`Options for ${chat.title || "chat"}`}
-                  menu={
-                    <>
-                      <DropdownMenuItem onSelect={() => openChat(chat)}>Open chat</DropdownMenuItem>
-                      <DropdownMenuCheckboxItem checked={selection.isSelected(chat.id)} onCheckedChange={() => selection.toggle(chat.id)}>
-                        Select chat
-                      </DropdownMenuCheckboxItem>
-                    </>
-                  }
+            {selection.selectedCount > 0 && (
+              <label className="mb-3 flex items-center gap-2 text-sm text-muted-foreground">
+                <Checkbox
+                  aria-label="Select all chats"
+                  checked={selection.allSelected}
+                  indeterminate={selection.someSelected}
+                  onChange={selection.toggleAll}
                 />
-              ))}
-            </GridCardList>
+                Select all chats
+              </label>
+            )}
+            <ul className={MOBILE_LIST_CARD}>
+              {visibleChats.map((chat) => {
+                const title = chat.title || "Untitled chat"
+                const selected = selection.isSelected(chat.id)
+                return (
+                  <li key={chat.id}>
+                    <MobileListRow
+                      avatar={selected ? (
+                        <CheckAvatar />
+                      ) : <InitialAvatar text={title} />}
+                      avatarMenu={
+                        <>
+                          <DropdownMenuItem onSelect={() => openChat(chat)}>Open chat</DropdownMenuItem>
+                          <DropdownMenuCheckboxItem checked={selected} onCheckedChange={() => selection.toggle(chat.id)}>
+                            Select chat
+                          </DropdownMenuCheckboxItem>
+                          <DropdownMenuItem variant="destructive" onSelect={() => setPendingDelete(chat)}>Delete chat</DropdownMenuItem>
+                        </>
+                      }
+                      avatarLabel={`Options for ${title}`}
+                      title={title}
+                      meta={formatShortDate(chat.updatedAt)}
+                      lines={[lastMessage(chat)]}
+                      active={chat.id === activeConversationId || selected}
+                      onClick={() => selection.selectedCount > 0 ? selection.toggle(chat.id) : openChat(chat)}
+                      ariaLabel={selection.selectedCount > 0 ? `${selected ? "Deselect" : "Select"} ${title}` : `Open ${title}`}
+                    />
+                  </li>
+                )
+              })}
+            </ul>
           </div>
 
           <div className="hidden overflow-x-hidden sm:block">
@@ -189,6 +216,19 @@ export default function AllChatsPage() {
           </div>
         </>
       )}
+
+      <AlertDialog open={pendingDelete !== null} onOpenChange={(open) => !open && setPendingDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this chat?</AlertDialogTitle>
+            <AlertDialogDescription>{pendingDelete?.title || "This chat"} will be removed for good.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => pendingDelete && void deleteChat(pendingDelete)}>Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </main>
   )
 }

@@ -8,9 +8,9 @@ import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
 import { DuplicateDocumentDialog, type DuplicateSelection } from "@/components/dashboard/duplicate-document-dialog"
-import { MobileCardsSkeleton, TableRowsSkeleton } from "@/components/dashboard/collection-skeletons"
+import { TableRowsSkeleton } from "@/components/dashboard/collection-skeletons"
 import { EmptySearchState, FirstRunState } from "@/components/dashboard/empty-state"
-import { MobileDataCard } from "@/components/dashboard/mobile-data-card"
+import { CompactListSkeleton, InitialAvatar, MOBILE_LIST_CARD, MobileListRow } from "@/components/dashboard/compact-list-row"
 import { UserEditorSheet } from "@/components/dashboard/user-editor-sheet"
 import {
   AlertDialog,
@@ -192,7 +192,7 @@ export default function ContractsPage() {
 
       {loading ? (
         <div className="mt-6">
-          <div className="sm:hidden"><MobileCardsSkeleton /></div>
+          <div className="sm:hidden"><CompactListSkeleton /></div>
           <div className="hidden sm:block"><TableRowsSkeleton headers={adminView ? ["", "Title", "Client", "Project", "Starts", "Ends", "Signed", "Status", ""] : ["Title", "Project", "Starts", "Ends", "Signed", "Status", ""]} /></div>
         </div>
       ) : error ? (
@@ -237,43 +237,43 @@ export default function ContractsPage() {
                     onDelete={handleBulkDelete}
                   />
                 )}
-                <div className="space-y-2 sm:hidden">
+                <ul className={cn(MOBILE_LIST_CARD, "sm:hidden")}>
                   {visibleContracts.map((contract) => {
                     const meta = contractStatusMeta[contract.status] ?? contractStatusMeta.draft
                     const href = adminView ? `/dashboard/contracts/${contract.id}/edit` : `/dashboard/contracts/${contract.id}`
                     return (
-                      <MobileDataCard
-                        key={contract.id}
-                        href={href}
-                        ariaLabel={`Open contract ${contract.title}`}
-                        title={
-                          <span className="flex items-center justify-between gap-2">
-                            <span className="truncate">{contract.title}</span>
-                            <span className={cn("shrink-0 rounded-full px-1.5 py-px text-[10px] font-medium", meta.className)}>{meta.label}</span>
-                          </span>
-                        }
-                        subtitle={<span className="flex flex-col gap-1"><span className="truncate">{[contract.client, contract.project, formatDate(contract.endsOn)].filter(Boolean).join(" · ") || "—"}</span><span>Modified {formatTimestamp(contract.updatedAt ?? contract.createdAt)}</span></span>}
-                        icon={<Eye className="size-5 text-blue-600 dark:text-blue-400" aria-hidden="true" />}
-                        menuLabel={`Options for ${contract.title}`}
-                        menu={
-                          <>
-                            <DropdownMenuItem onSelect={() => router.push(`/dashboard/contracts/${contract.id}`)}>View contract</DropdownMenuItem>
-                            {contract.url && (
-                              <DropdownMenuItem onSelect={() => window.open(contract.url, "_blank", "noopener,noreferrer")}>Open source link</DropdownMenuItem>
-                            )}
-                            {adminView && (
-                              <>
-                                <DropdownMenuItem onSelect={() => router.push(`/dashboard/contracts/${contract.id}/edit`)}>Edit contract</DropdownMenuItem>
-                                <DropdownMenuItem onSelect={() => setDuplicateTarget(contract)}>Duplicate</DropdownMenuItem>
-                                <DropdownMenuItem variant="destructive" onSelect={() => setConfirmDelete(contract)}>Delete contract</DropdownMenuItem>
-                              </>
-                            )}
-                          </>
-                        }
-                      />
+                      <li key={contract.id}>
+                        <MobileListRow
+                          href={href}
+                          ariaLabel={`Open contract ${contract.title}`}
+                          avatar={<InitialAvatar text={(adminView ? contract.client : "") || contract.title} />}
+                          avatarLabel={`Options for ${contract.title}`}
+                          title={contract.title}
+                          meta={<span className={cn("rounded-full px-1.5 py-px text-[10px] font-medium", meta.className)}>{meta.label}</span>}
+                          lines={[
+                            [adminView ? contract.client : "", contract.project].filter(Boolean).join(" · ") || undefined,
+                            contract.endsOn ? `Ends ${formatDate(contract.endsOn)}` : `Modified ${formatTimestamp(contract.updatedAt ?? contract.createdAt)}`,
+                          ]}
+                          avatarMenu={
+                            <>
+                              <DropdownMenuItem onSelect={() => router.push(`/dashboard/contracts/${contract.id}`)}>View contract</DropdownMenuItem>
+                              {contract.url && (
+                                <DropdownMenuItem onSelect={() => window.open(contract.url, "_blank", "noopener,noreferrer")}>Open source link</DropdownMenuItem>
+                              )}
+                              {adminView && (
+                                <>
+                                  <DropdownMenuItem onSelect={() => router.push(`/dashboard/contracts/${contract.id}/edit`)}>Edit contract</DropdownMenuItem>
+                                  <DropdownMenuItem onSelect={() => setDuplicateTarget(contract)}>Duplicate</DropdownMenuItem>
+                                  <DropdownMenuItem variant="destructive" onSelect={() => setConfirmDelete(contract)}>Delete contract</DropdownMenuItem>
+                                </>
+                              )}
+                            </>
+                          }
+                        />
+                      </li>
                     )
                   })}
-                </div>
+                </ul>
                 <div className="hidden overflow-x-hidden sm:block">
                 <Table className="w-full table-fixed">
                 <TableHeader>

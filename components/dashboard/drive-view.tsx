@@ -56,7 +56,8 @@ import {
   uploadFileToStorage,
   type SharedDocument,
 } from "@/lib/documents"
-import { FilterBar, useFilterBar, type SortOption } from "@/components/dashboard/filter-bar"
+import { FilterBar, MOBILE_CREATE_BUTTON_CLASS, useFilterBar, type SortOption } from "@/components/dashboard/filter-bar"
+import { CompactListSkeleton, MOBILE_LIST_CARD, MobileListRow } from "@/components/dashboard/compact-list-row"
 import { tsToMillis } from "@/lib/tasks"
 
 const DOCUMENT_SORTS: SortOption<SharedDocument>[] = [
@@ -182,6 +183,49 @@ function FileIcon({ doc }: { doc: SharedDocument }) {
       <Link2 className="h-10 w-10 text-muted-foreground" />
     </div>
   )
+}
+
+function isVideoDocument(doc: SharedDocument) {
+  return doc.type === "video" || /\.(mp4|webm|ogg|mov|m4v)(\?|$)/i.test(doc.url)
+}
+
+/** Short kind shown under the name in the mobile row, and the tone of its round icon. */
+function fileKind(doc: SharedDocument): { label: string; tone: string } {
+  const url = doc.url.toLowerCase()
+  if (doc.type === "image" || /\.(png|jpe?g|gif|webp)(\?|$)/.test(url)) return { label: "Image", tone: "bg-purple-100 text-purple-600 dark:bg-purple-950/40" }
+  if (isVideoDocument(doc)) return { label: "Video", tone: "bg-slate-900 text-white" }
+  if (url.includes("figma.com")) return { label: "Figma", tone: "bg-purple-100 text-purple-600 dark:bg-purple-950/40" }
+  if (url.includes("docs.google.com/spreadsheet") || url.includes("sheets.google.com")) return { label: "Google Sheet", tone: "bg-green-100 text-green-600 dark:bg-green-950/40" }
+  if (url.includes("docs.google.com/document") || url.includes("google.com/document")) return { label: "Google Doc", tone: "bg-blue-100 text-blue-600 dark:bg-blue-950/40" }
+  if (url.includes("drive.google.com")) return { label: "Google Drive", tone: "bg-blue-100 text-blue-500 dark:bg-blue-950/40" }
+  if (url.includes("notion.so") || url.includes("notion.com")) return { label: "Notion", tone: "bg-muted text-foreground" }
+  if (url.endsWith(".pdf") || url.includes(".pdf?")) return { label: "PDF", tone: "bg-red-100 text-red-600 dark:bg-red-950/40" }
+  if (url.endsWith(".doc") || url.endsWith(".docx")) return { label: "Word document", tone: "bg-blue-100 text-blue-600 dark:bg-blue-950/40" }
+  if (url.endsWith(".xls") || url.endsWith(".xlsx") || url.endsWith(".csv")) return { label: "Spreadsheet", tone: "bg-green-100 text-green-600 dark:bg-green-950/40" }
+  if (doc.type === "file") return { label: "File", tone: "bg-muted text-muted-foreground" }
+  return { label: "Link", tone: "bg-muted text-muted-foreground" }
+}
+
+/** Round mobile avatar: the image itself when there is one, otherwise an icon for the file type. */
+function MobileFileAvatar({ doc }: { doc: SharedDocument }) {
+  const image = doc.thumbnailUrl || (doc.type === "image" ? doc.url : "")
+  if (image) {
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img src={image} alt="" className="size-12 rounded-full bg-muted object-cover" />
+  }
+  const kind = fileKind(doc)
+  const Icon = isVideoDocument(doc) ? Play : doc.type === "link" && kind.label === "Link" ? Link2 : kind.label === "File" ? File : FileText
+  return (
+    <span className={cn("flex size-12 items-center justify-center rounded-full", kind.tone)} aria-hidden="true">
+      <Icon className="size-5" />
+    </span>
+  )
+}
+
+function formatFileDate(doc: SharedDocument) {
+  const millis = tsToMillis(doc.createdAt)
+  if (!millis) return undefined
+  return new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" }).format(new Date(millis))
 }
 
 const MAX_VIDEO_MB = 20
@@ -431,6 +475,36 @@ export function DriveView() {
     return () => window.removeEventListener("keydown", onKey)
   }, [previewIndex, visibleDocuments])
 
+  // The same actions behind the card's ⋮ on desktop and the row's avatar on mobile.
+  const documentMenuItems = (d: SharedDocument) => (
+    <>
+      <DropdownMenuItem className="h-11 rounded-lg px-3 text-sm" asChild>
+        <a href={d.url} target="_blank" rel="noopener noreferrer"><Share2 />Open</a>
+      </DropdownMenuItem>
+      <DropdownMenuItem className="h-11 rounded-lg px-3 text-sm" asChild>
+        <a href={d.url} download><Download />Download</a>
+      </DropdownMenuItem>
+      <DropdownMenuItem className="h-11 rounded-lg px-3 text-sm" onSelect={() => navigator.clipboard.writeText(d.url)}>
+        <Copy />Make a copy of link
+      </DropdownMenuItem>
+      {adminView && (
+        <>
+          <DropdownMenuSeparator className="my-2" />
+          <DropdownMenuItem className="h-11 rounded-lg px-3 text-sm" onSelect={() => openShareDialog(d)}>
+            <Share2 />Share
+          </DropdownMenuItem>
+          <DropdownMenuItem className="h-11 rounded-lg px-3 text-sm" onSelect={() => setSelectedId(d.id)}>
+            <Info />File information
+          </DropdownMenuItem>
+          <DropdownMenuSeparator className="my-2" />
+          <DropdownMenuItem variant="destructive" className="h-11 rounded-lg px-3 text-sm" onSelect={() => handleDelete(d.id)}>
+            <Trash2 />Remove
+          </DropdownMenuItem>
+        </>
+      )}
+    </>
+  )
+
   return (
     <div className="relative">
       {dragging && (
@@ -456,8 +530,15 @@ export function DriveView() {
       <FilterBar
         {...bar}
         placeholder="Search files"
-        actions={
+        desktopActions={
           adminView && <Button variant="ghost" className="bg-transparent text-foreground hover:bg-transparent" onClick={() => fileInputRef.current?.click()}><Plus className="h-4 w-4" />Add</Button>
+        }
+        mobileCreate={
+          adminView && (
+            <Button type="button" variant="outline" size="icon" className={MOBILE_CREATE_BUTTON_CLASS} onClick={() => fileInputRef.current?.click()} aria-label="Upload files" title="Upload files">
+              <Plus className="size-5" aria-hidden="true" />
+            </Button>
+          )
         }
       />
 
@@ -475,7 +556,10 @@ export function DriveView() {
       )}
 
       {loading ? (
-        <GridCardsSkeleton />
+        <>
+          <div className="sm:hidden"><CompactListSkeleton /></div>
+          <div className="max-sm:hidden"><GridCardsSkeleton /></div>
+        </>
       ) : error ? (
         <Card>
           <div className="py-10 text-center text-sm text-destructive">{error}</div>
@@ -502,7 +586,34 @@ export function DriveView() {
           {visibleDocuments.length === 0 && uploading.length === 0 && (
             <EmptySearchState className="py-16" label="No files match your search." />
           )}
-          <div className="grid grid-cols-2 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          {(visibleDocuments.length > 0 || uploading.length > 0) && <ul className={cn(MOBILE_LIST_CARD, "sm:hidden")}>
+            {uploading.map((u) => (
+              <li key={u.id}>
+                <MobileListRow
+                  avatar={<Skeleton className="size-12 rounded-full" />}
+                  title={u.name}
+                  meta={`${u.progress}%`}
+                  lines={["Uploading…"]}
+                />
+              </li>
+            ))}
+            {visibleDocuments.map((d) => (
+              <li key={d.id}>
+                <MobileListRow
+                  avatar={<MobileFileAvatar doc={d} />}
+                  avatarMenu={documentMenuItems(d)}
+                  avatarLabel={`Actions for ${d.title}`}
+                  title={d.title}
+                  meta={formatFileDate(d)}
+                  lines={[[fileKind(d).label, adminView ? d.sharedWith : undefined].filter(Boolean).join(" · ")]}
+                  active={selectedId === d.id}
+                  onClick={() => setPreviewDocument(d)}
+                  ariaLabel={`Preview ${d.title}`}
+                />
+              </li>
+            ))}
+          </ul>}
+          <div className="grid grid-cols-2 gap-5 max-sm:hidden sm:grid-cols-2 lg:grid-cols-4">
             {uploading.map((u) => (
               <div key={u.id} className="flex flex-col overflow-hidden rounded-2xl bg-[#edf2f8] p-3 dark:bg-muted">
                 <div className="mb-3 truncate px-1 text-sm font-medium">{u.name}</div>
@@ -553,30 +664,7 @@ export function DriveView() {
                       className="w-72 rounded-xl border-border/70 p-2 shadow-xl"
                       onClick={(event) => event.stopPropagation()}
                     >
-                      <DropdownMenuItem className="h-11 rounded-lg px-3 text-sm" asChild>
-                        <a href={d.url} target="_blank" rel="noopener noreferrer"><Share2 />Open</a>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem className="h-11 rounded-lg px-3 text-sm" asChild>
-                        <a href={d.url} download><Download />Download</a>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem className="h-11 rounded-lg px-3 text-sm" onSelect={() => navigator.clipboard.writeText(d.url)}>
-                        <Copy />Make a copy of link
-                      </DropdownMenuItem>
-                      {adminView && (
-                        <>
-                          <DropdownMenuSeparator className="my-2" />
-                          <DropdownMenuItem className="h-11 rounded-lg px-3 text-sm" onSelect={() => openShareDialog(d)}>
-                            <Share2 />Share
-                          </DropdownMenuItem>
-                          <DropdownMenuItem className="h-11 rounded-lg px-3 text-sm" onSelect={() => setSelectedId(d.id)}>
-                            <Info />File information
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator className="my-2" />
-                          <DropdownMenuItem variant="destructive" className="h-11 rounded-lg px-3 text-sm" onSelect={() => handleDelete(d.id)}>
-                            <Trash2 />Remove
-                          </DropdownMenuItem>
-                        </>
-                      )}
+                      {documentMenuItems(d)}
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>

@@ -187,7 +187,8 @@ export default function InvoicesPage() {
               return <CompactListRow
                 title={invoice.title || "Untitled invoice"}
                 subtitle={`${invoice.invoiceNumber} · ${formatMoney(invoice.amount, invoice.currency)} · ${formatTimestamp(invoice.updatedAt ?? invoice.createdAt)}`}
-                mobileSubtitle={formatTimestamp(invoice.updatedAt ?? invoice.createdAt)}
+                meta={formatMoney(invoice.amount, invoice.currency)}
+                mobileSubtitle={[invoice.client || (invoice.companyId && companyRefFor(invoice.companyId)), invoiceStatusMeta[invoice.status]?.label, formatTimestamp(invoice.updatedAt ?? invoice.createdAt)].filter(Boolean).join(" · ")}
                 active={active}
                 onClick={() => setSelectedId(invoice.id)}
                 menuLabel={`Options for ${invoice.title || invoice.invoiceNumber}`}
