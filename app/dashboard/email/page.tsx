@@ -3,7 +3,9 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import {
+  ArrowDown,
   ArrowLeft,
+  ArrowUp,
   Check,
   CheckCircle2,
   ChevronDown,
@@ -18,8 +20,10 @@ import {
   List,
   Linkedin,
   Mail,
+  Menu,
   Plus,
   Reply,
+  Search,
   Send,
   Trash2,
   Twitter,
@@ -1193,10 +1197,17 @@ export default function EmailPage() {
   }
 
   async function archiveSelectedReceived() {
-    if (!user || selectedReceivedIds.size === 0) return
-    const ids = [...selectedReceivedIds]
+    await archiveReceivedIds([...selectedReceivedIds])
+  }
+
+  async function archiveReceivedIds(ids: string[]) {
+    if (!user || ids.length === 0) return
     setHiddenReceivedIds((current) => new Set([...current, ...ids]))
-    setSelectedReceivedIds(new Set())
+    setSelectedReceivedIds((current) => {
+      const next = new Set(current)
+      ids.forEach((id) => next.delete(id))
+      return next
+    })
     if (selectedReceivedId && ids.includes(selectedReceivedId)) {
       setSelectedReceivedId(null)
       setMobileMessageView("list")
@@ -1865,6 +1876,9 @@ export default function EmailPage() {
     }
   }
 
+  const mobileReaderOpen = mobileMessageView === "reader" && ((tab === "inbox" && Boolean(selectedReceived)) || (tab === "messages" && Boolean(selectedSent)))
+  const mobileSort = activeFilterBar.sorts.find((option) => option.value === activeFilterBar.sortKey)
+
   return (
     <main className="mx-auto flex min-h-0 w-full min-w-0 max-w-6xl flex-1 flex-col overflow-visible px-3 pt-3 pb-5 sm:px-6 sm:pt-4 sm:pb-6 lg:h-[calc(100svh-3.5rem)] lg:max-h-[calc(100svh-3.5rem)] lg:flex-none lg:flex-row lg:gap-6 lg:overflow-hidden">
       {/* Gmail-style folder rail */}
@@ -1893,11 +1907,57 @@ export default function EmailPage() {
       </nav>
 
       <div className="flex h-full min-h-0 w-full min-w-0 flex-1 flex-col">
+        {/* Mobile: large title, a full search field and pill folders, hidden while reading a message. */}
+        {!mobileReaderOpen && (
+          <div className="sm:hidden">
+            <div className="mb-4 mt-1 flex items-center justify-between gap-3">
+              <h1 className="text-[2.25rem] leading-none tracking-tight">Emails</h1>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button type="button" variant="outline" size="icon" className="size-12 rounded-full bg-card" aria-label="Email menu" title="Email menu">
+                    <Menu className="size-5" aria-hidden="true" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onSelect={() => openCompose(true)}><Mail aria-hidden="true" />Compose email</DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => { setTab("templates"); resetTemplateEditor(); setMobileTemplateView("editor") }}><FileText aria-hidden="true" />New template</DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => { setTab("lists"); resetListEditor(); setListPickerOpen(true) }}><List aria-hidden="true" />New list</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+            <div className="mb-4 flex items-center gap-2 rounded-2xl border border-border bg-card py-1.5 pr-1.5 pl-4">
+              <Search className="size-5 shrink-0 text-muted-foreground" aria-hidden="true" />
+              <input
+                type="search"
+                value={activeFilterBar.query}
+                onChange={(event) => activeFilterBar.onQueryChange(event.target.value)}
+                placeholder={tab === "inbox" ? "Search emails" : tab === "drafts" ? "Search drafts" : tab === "messages" ? "Search sent" : tab === "bin" ? "Search bin" : tab === "templates" ? "Search templates" : "Search lists"}
+                aria-label="Search"
+                className="h-10 min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-muted-foreground [&::-webkit-search-cancel-button]:hidden"
+              />
+              {activeFilterBar.query && (
+                <button type="button" onClick={() => activeFilterBar.onQueryChange("")} aria-label="Clear search" className="flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground">
+                  <X className="size-4" aria-hidden="true" />
+                </button>
+              )}
+              {mobileSort && (
+                <button
+                  type="button"
+                  onClick={() => activeFilterBar.onDirectionChange(activeFilterBar.direction === "asc" ? "desc" : "asc")}
+                  aria-label={`Sorted ${activeFilterBar.direction === "asc" ? mobileSort.ascLabel ?? "ascending" : mobileSort.descLabel ?? "descending"}. Tap to reverse.`}
+                  className="flex h-10 shrink-0 items-center gap-1.5 rounded-xl bg-muted px-3 text-sm font-semibold"
+                >
+                  {activeFilterBar.direction === "asc" ? <ArrowUp className="size-4" aria-hidden="true" /> : <ArrowDown className="size-4" aria-hidden="true" />}
+                  {activeFilterBar.direction === "asc" ? mobileSort.ascLabel ?? "Oldest" : mobileSort.descLabel ?? "Newest"}
+                </button>
+              )}
+            </div>
+          </div>
+        )}
         <FilterBar
           {...activeFilterBar}
           mobileVariant="drawer"
-          headerOnMobile
-          className="mb-2"
+          className="mb-2 max-sm:hidden"
           placeholder={tab === "inbox" ? "Search inbox" : tab === "drafts" ? "Search drafts" : tab === "messages" ? "Search sent" : tab === "bin" ? "Search bin" : tab === "templates" ? "Search templates" : "Search lists"}
           searchClassName={tab === "messages" || tab === "inbox" || tab === "bin" ? "sm:max-w-[16rem]" : undefined}
           actions={
@@ -1925,7 +1985,7 @@ export default function EmailPage() {
             </>
           }
         />
-        <div className="scrollbar-none mb-2 flex w-full items-center gap-1 overflow-x-auto rounded-md bg-muted/50 p-0.5 lg:hidden" role="tablist" aria-label="Email">
+        <div className={cn("scrollbar-none mb-2 flex w-full items-center gap-1 overflow-x-auto rounded-md bg-muted/50 p-0.5 max-sm:-mx-3 max-sm:mb-4 max-sm:w-auto max-sm:gap-2 max-sm:rounded-none max-sm:bg-transparent max-sm:px-3 lg:hidden", mobileReaderOpen && "max-sm:hidden")} role="tablist" aria-label="Email">
           {EMAIL_FOLDERS.map((folder) => (
             <button
               key={folder.key}
@@ -1937,8 +1997,10 @@ export default function EmailPage() {
                 if (folder.key === "templates") setMobileTemplateView("list")
               }}
               className={cn(
-                "shrink-0 rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
-                tab === folder.key ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
+                "shrink-0 rounded-md px-3 py-1.5 text-xs font-medium transition-colors max-sm:rounded-full max-sm:px-5 max-sm:py-2.5 max-sm:text-base",
+                tab === folder.key
+                  ? "bg-background text-foreground shadow-sm max-sm:bg-foreground max-sm:text-background"
+                  : "text-muted-foreground hover:text-foreground max-sm:border max-sm:border-border max-sm:bg-card",
               )}
             >
               {folder.label}
@@ -1968,6 +2030,7 @@ export default function EmailPage() {
             onToggleAllReceived={toggleAllReceivedSelection}
             onToggleReceived={toggleReceivedSelection}
             onArchiveReceived={() => void archiveSelectedReceived()}
+            onArchiveReceivedMessage={(message) => void archiveReceivedIds([message.id])}
             onMarkReceivedRead={() => markSelectedReceived(true)}
             onMarkReceivedUnread={() => markSelectedReceived(false)}
             drafts={drafts}
@@ -2096,6 +2159,18 @@ export default function EmailPage() {
         )}
 
       </div>
+
+      {/* Mobile: compose stays one tap away above the bottom nav. */}
+      {!mobileReaderOpen && !composeOpen && (tab === "inbox" || tab === "drafts" || tab === "messages" || tab === "bin") && (
+        <Button
+          type="button"
+          size="lg"
+          onClick={() => openCompose(true)}
+          className="fixed right-4 bottom-[calc(5rem+env(safe-area-inset-bottom))] z-30 h-14 gap-2 rounded-full px-6 text-base shadow-lg sm:hidden"
+        >
+          <Plus className="size-5" aria-hidden="true" />Write
+        </Button>
+      )}
 
       {templatePreviewOpen && (
         <div className="fixed inset-0 z-50 flex flex-col bg-black/70 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label="Template preview" onClick={() => setTemplatePreviewOpen(false)} onKeyDown={(event) => { if (event.key === "Escape") setTemplatePreviewOpen(false) }}>

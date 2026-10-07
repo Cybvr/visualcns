@@ -10,6 +10,14 @@ import type { ReceivedAttachment, ReceivedMessage, SentMessage } from "./types"
 
 type MessageView = "list" | "reader"
 
+/** One-line body snippet for the mobile list. */
+function snippet(value?: string | null) {
+  return value ? value.replace(/\s+/g, " ").trim().slice(0, 160) : undefined
+}
+
+// Mobile: rows sit in one rounded card, like a grouped list.
+const MOBILE_LIST_CARD = "max-sm:overflow-hidden max-sm:rounded-2xl max-sm:border max-sm:border-border max-sm:bg-card max-sm:[&>[data-mobile-row]~[data-mobile-row]]:border-t max-sm:[&>[data-mobile-row]~[data-mobile-row]]:border-border"
+
 export type EmailMessageSurfacesProps = {
   tab: "inbox" | "drafts" | "messages"
   receivedMessages: ReceivedMessage[]
@@ -31,6 +39,7 @@ export type EmailMessageSurfacesProps = {
   onToggleAllReceived: (checked: boolean) => void
   onToggleReceived: (id: string, checked: boolean) => void
   onArchiveReceived: () => void
+  onArchiveReceivedMessage: (message: ReceivedMessage) => void
   onMarkReceivedRead: () => void
   onMarkReceivedUnread: () => void
   drafts: EmailDraftRecord[]
@@ -90,6 +99,7 @@ export function EmailMessageSurfaces({
   onToggleAllReceived,
   onToggleReceived,
   onArchiveReceived,
+  onArchiveReceivedMessage,
   onMarkReceivedRead,
   onMarkReceivedUnread,
   drafts,
@@ -138,7 +148,7 @@ export function EmailMessageSurfaces({
           mobileMessageView === "list" ? "block" : "hidden",
         )}>
           {receivedError && <div className="border-b border-destructive/30 bg-destructive/5 px-4 py-3 text-xs leading-5 text-destructive">{receivedError}</div>}
-          <div className="flex min-h-12 items-center gap-1 border-b border-border px-2 py-1.5">
+          <div className={cn("flex min-h-12 items-center gap-1 border-b border-border px-2 py-1.5", selectedReceivedIds.length === 0 && "max-sm:hidden")}>
             <input
               type="checkbox"
               checked={visibleReceivedMessages.length > 0 && visibleReceivedMessages.every((message) => selectedReceivedIds.includes(message.id))}
@@ -160,7 +170,7 @@ export function EmailMessageSurfaces({
           ) : visibleReceivedMessages.length === 0 ? (
             <div className="px-4 py-10 text-center text-sm text-muted-foreground">No messages match your search.</div>
           ) : (
-            <div>
+            <div className={MOBILE_LIST_CARD}>
               <EmailListHeader primaryLabel="From" dateLabel="Received" compact={Boolean(selectedReceived)} selectable />
               {visibleReceivedMessages.map((message) => (
                 <EmailListRow
@@ -179,6 +189,7 @@ export function EmailMessageSurfaces({
                   checked={selectedReceivedIds.includes(message.id)}
                   onCheckedChange={(checked) => onToggleReceived(message.id, checked)}
                   unread={!readReceivedIds.includes(message.id)}
+                  preview={snippet(message.text)}
                   deleteLabel={`Delete message from ${message.from}`}
                   ariaLabel={`Open received email: ${message.subject}`}
                   compact={Boolean(selectedReceived)}
@@ -188,17 +199,44 @@ export function EmailMessageSurfaces({
           )}
         </aside>
         {selectedReceived && (
-            <div className={cn("flex-1 flex-col overflow-hidden rounded-lg border border-border bg-card max-lg:min-h-[calc(100svh-8rem)] lg:min-h-0", mobileMessageView === "reader" ? "flex" : "hidden")}>
-            <div className="shrink-0 border-b border-border px-4 py-4 sm:px-5">
-              <div className="mb-2 flex items-center gap-2"><Button type="button" variant="ghost" size="icon" className="-ml-2 size-8" onClick={onClearReceived} aria-label="Back to inbox"><ArrowLeft aria-hidden="true" /></Button></div>
-              <div className="flex items-start justify-between gap-4"><div className="min-w-0"><h2 className="truncate text-base font-semibold">{selectedReceived.subject}</h2><p className="mt-1 truncate text-sm text-muted-foreground">From {selectedReceived.from}</p><p className="truncate text-xs text-muted-foreground">To {selectedReceived.to.join(", ") || "hello@mail.visualcns.com"}</p></div>{selectedReceived.createdAt && <time dateTime={selectedReceived.createdAt} className="shrink-0 text-right text-xs text-muted-foreground">{formatMessageDate(selectedReceived.createdAt)}</time>}</div>
-              <div className="mt-4 flex flex-wrap items-center gap-2">
+          <div className={cn("flex-1 flex-col overflow-hidden rounded-lg border border-border bg-card max-lg:min-h-[calc(100svh-8rem)] max-sm:overflow-visible max-sm:rounded-none max-sm:border-0 max-sm:bg-transparent max-sm:pb-28 lg:min-h-0", mobileMessageView === "reader" ? "flex" : "hidden")}>
+            <div className="shrink-0 border-b border-border px-4 py-4 max-sm:border-0 max-sm:px-1 max-sm:pt-1 sm:px-5">
+              <div className="mb-2 flex items-center gap-1 max-sm:mb-5">
+                <Button type="button" variant="ghost" size="icon" className="-ml-2 size-10" onClick={onClearReceived} aria-label="Back to inbox"><ArrowLeft className="size-5" aria-hidden="true" /></Button>
+                <span className="flex-1" />
+                <Button type="button" variant="ghost" size="icon" className="size-10" onClick={() => onArchiveReceivedMessage(selectedReceived)} aria-label="Archive" title="Archive"><Archive className="size-5" aria-hidden="true" /></Button>
+                <Button type="button" variant="ghost" size="icon" className="size-10" onClick={() => onDeleteReceived(selectedReceived)} aria-label="Delete" title="Delete"><Trash2 className="size-5" aria-hidden="true" /></Button>
+              </div>
+              <h2 className="text-[1.75rem] leading-tight tracking-tight sm:truncate sm:text-base sm:font-semibold sm:tracking-normal">{selectedReceived.subject || "(No subject)"}</h2>
+              <div className="mt-4 flex items-center gap-3 sm:mt-2">
+                <span className={cn("flex size-11 shrink-0 items-center justify-center rounded-full text-base font-semibold sm:hidden", contactAvatarTone(selectedReceived.from))} aria-hidden="true">
+                  {contactInitials(resolveName(selectedReceived.from), selectedReceived.from).slice(0, 1)}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-semibold sm:hidden">{resolveName(selectedReceived.from)}</p>
+                  <p className="truncate text-sm text-muted-foreground max-sm:hidden">From {selectedReceived.from}</p>
+                  {selectedReceived.createdAt && <time dateTime={selectedReceived.createdAt} className="block truncate text-sm text-muted-foreground sm:hidden">{formatMessageDate(selectedReceived.createdAt)}</time>}
+                  <p className="truncate text-xs text-muted-foreground max-sm:hidden">To {selectedReceived.to.join(", ") || "hello@mail.visualcns.com"}</p>
+                </div>
+                {selectedReceived.createdAt && <time dateTime={selectedReceived.createdAt} className="shrink-0 self-start text-right text-xs text-muted-foreground max-sm:hidden">{formatMessageDate(selectedReceived.createdAt)}</time>}
+              </div>
+              <details className="mt-3 text-sm text-muted-foreground sm:hidden">
+                <summary className="cursor-pointer list-none font-medium [&::-webkit-details-marker]:hidden">Details</summary>
+                <p className="mt-2 break-all">From {selectedReceived.from}</p>
+                <p className="break-all">To {selectedReceived.to.join(", ") || "hello@mail.visualcns.com"}</p>
+              </details>
+              <div className="mt-4 flex flex-wrap items-center gap-2 max-sm:hidden">
                 <Button type="button" variant="outline" size="sm" onClick={() => onReplyReceived(selectedReceived)}><Reply className="size-4" aria-hidden="true" /> Reply</Button>
                 <Button type="button" variant="outline" size="sm" onClick={() => onForwardReceived(selectedReceived)}><Forward className="size-4" aria-hidden="true" /> Forward</Button>
               </div>
             </div>
-            {Boolean(selectedReceived.attachments?.length) && <div className="flex shrink-0 flex-wrap gap-2 border-b border-border px-4 py-2 sm:px-5">{selectedReceived.attachments?.map((file) => <button key={file.id} type="button" onClick={() => onDownloadReceivedAttachment(selectedReceived, file)} disabled={downloadingAttachmentId === file.id} className="inline-flex max-w-full items-center gap-1 rounded-md bg-muted px-2 py-1 text-xs hover:bg-muted/70 disabled:opacity-60" title={`Download ${file.filename}`}><Paperclip className="size-3 shrink-0" aria-hidden="true" /><span className="truncate">{file.filename}</span>{file.size > 0 && <span className="shrink-0 text-muted-foreground">{file.size < 1024 * 1024 ? `${Math.max(1, Math.round(file.size / 1024))} KB` : `${(file.size / 1024 / 1024).toFixed(1)} MB`}</span>}</button>)}</div>}
-            <div className="min-h-0 flex-1 overflow-hidden bg-white">{loadingReceivedId === selectedReceived.id ? <div className="space-y-4 p-6" role="status" aria-label="Loading message"><Skeleton className="h-6 w-2/3" /><Skeleton className="h-4 w-1/3" /><Skeleton className="h-32 w-full" /><Skeleton className="h-4 w-4/5" /><Skeleton className="h-4 w-3/5" /></div> : <iframe title={`Received email: ${selectedReceived.subject}`} srcDoc={receivedMessagePreview(selectedReceived)} sandbox="" className="h-full min-h-[24rem] w-full border-0" />}</div>
+            {Boolean(selectedReceived.attachments?.length) && <div className="flex shrink-0 flex-wrap gap-2 border-b border-border px-4 py-2 max-sm:mb-3 max-sm:border-0 max-sm:px-1 sm:px-5">{selectedReceived.attachments?.map((file) => <button key={file.id} type="button" onClick={() => onDownloadReceivedAttachment(selectedReceived, file)} disabled={downloadingAttachmentId === file.id} className="inline-flex max-w-full items-center gap-1 rounded-md bg-muted px-2 py-1 text-xs hover:bg-muted/70 disabled:opacity-60" title={`Download ${file.filename}`}><Paperclip className="size-3 shrink-0" aria-hidden="true" /><span className="truncate">{file.filename}</span>{file.size > 0 && <span className="shrink-0 text-muted-foreground">{file.size < 1024 * 1024 ? `${Math.max(1, Math.round(file.size / 1024))} KB` : `${(file.size / 1024 / 1024).toFixed(1)} MB`}</span>}</button>)}</div>}
+            <div className="min-h-0 flex-1 overflow-hidden bg-white max-sm:min-h-[60svh] max-sm:flex-none max-sm:rounded-3xl max-sm:border max-sm:border-border">{loadingReceivedId === selectedReceived.id ? <div className="space-y-4 p-6" role="status" aria-label="Loading message"><Skeleton className="h-6 w-2/3" /><Skeleton className="h-4 w-1/3" /><Skeleton className="h-32 w-full" /><Skeleton className="h-4 w-4/5" /><Skeleton className="h-4 w-3/5" /></div> : <iframe title={`Received email: ${selectedReceived.subject}`} srcDoc={receivedMessagePreview(selectedReceived)} sandbox="" className="h-full min-h-[24rem] w-full border-0 max-sm:h-[60svh]" />}</div>
+            {/* Mobile: reply and forward stay in reach at the bottom of the screen. */}
+            <div className="fixed inset-x-3 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-30 flex items-center gap-2 rounded-full border border-border bg-card p-1.5 shadow-lg sm:hidden">
+              <Button type="button" size="lg" className="h-12 flex-1 rounded-full text-base" onClick={() => onReplyReceived(selectedReceived)}><Reply className="size-5" aria-hidden="true" /> Reply</Button>
+              <Button type="button" variant="secondary" size="icon" className="size-12 rounded-full" onClick={() => onForwardReceived(selectedReceived)} aria-label="Forward" title="Forward"><Forward className="size-5" aria-hidden="true" /></Button>
+            </div>
           </div>
         )}
       </section>
@@ -210,8 +248,8 @@ export function EmailMessageSurfaces({
       <section className="flex min-h-0 w-full min-w-0 max-w-full flex-1 flex-col gap-4 lg:gap-6 lg:overflow-hidden" role="tabpanel">
         <aside className="min-h-0 max-lg:shrink-0 lg:flex-1 lg:overflow-y-auto">
           {drafts.length === 0 ? <div className="px-4 py-10 text-center"><FileText className="mx-auto size-5 text-muted-foreground" aria-hidden="true" /><p className="mt-3 text-sm font-medium">No drafts</p><p className="mt-1 text-xs leading-5 text-muted-foreground">Saved drafts will appear here.</p></div> : visibleDrafts.length === 0 ? <div className="px-4 py-10 text-center text-sm text-muted-foreground">No drafts match your search.</div> : (
-            <div>
-              <div className="flex min-h-12 items-center gap-1 border-b border-border px-2 py-1.5"><input type="checkbox" checked={visibleDrafts.length > 0 && visibleDrafts.every((draft) => selectedDraftIds.includes(draft.id))} onChange={(event) => onToggleAllDrafts(event.target.checked)} aria-label="Select all visible drafts" className={cn("ml-1 size-4 shrink-0 accent-primary", selectedDraftIds.length === 0 && "max-sm:hidden")} /><span className="mr-auto px-2 text-xs text-muted-foreground">{selectedDraftIds.length ? `${selectedDraftIds.length} selected` : `${drafts.length} drafts`}</span><Button type="button" variant="ghost" size="icon" className="size-8" onClick={onDeleteSelectedDrafts} disabled={selectedDraftIds.length === 0} aria-label="Delete selected drafts" title="Delete selected drafts"><Trash2 className="size-4" aria-hidden="true" /></Button></div>
+            <div className={MOBILE_LIST_CARD}>
+              <div className={cn("flex min-h-12 items-center gap-1 border-b border-border px-2 py-1.5", selectedDraftIds.length === 0 && "max-sm:hidden")}><input type="checkbox" checked={visibleDrafts.length > 0 && visibleDrafts.every((draft) => selectedDraftIds.includes(draft.id))} onChange={(event) => onToggleAllDrafts(event.target.checked)} aria-label="Select all visible drafts" className={cn("ml-1 size-4 shrink-0 accent-primary", selectedDraftIds.length === 0 && "max-sm:hidden")} /><span className="mr-auto px-2 text-xs text-muted-foreground">{selectedDraftIds.length ? `${selectedDraftIds.length} selected` : `${drafts.length} drafts`}</span><Button type="button" variant="ghost" size="icon" className="size-8" onClick={onDeleteSelectedDrafts} disabled={selectedDraftIds.length === 0} aria-label="Delete selected drafts" title="Delete selected drafts"><Trash2 className="size-4" aria-hidden="true" /></Button></div>
               <EmailListHeader primaryLabel="To" dateLabel="Updated" selectable />{visibleDrafts.map((draft) => {
               const recipient = draft.to ? resolveName(draft.to) : (draft.listId ? "Contact list" : "No recipient selected")
               return (
@@ -245,8 +283,8 @@ export function EmailMessageSurfaces({
     <section className={cn("flex min-h-0 w-full min-w-0 max-w-full flex-1 flex-col gap-4 lg:gap-6", selectedSent && mobileMessageView === "list" ? "lg:grid lg:grid-cols-[18rem_minmax(0,1fr)] lg:grid-rows-[minmax(0,1fr)] lg:overflow-hidden" : "lg:overflow-y-auto")} role="tabpanel">
       <aside className={cn("min-h-0 shrink-0 overflow-hidden", mobileMessageView === "list" ? "block" : "hidden")}>
         {messages.length === 0 ? <div className="px-4 py-10 text-center"><Inbox className="mx-auto size-5 text-muted-foreground" aria-hidden="true" /><p className="mt-3 text-sm font-medium">No sent messages</p><p className="mt-1 text-xs leading-5 text-muted-foreground">Your sent emails will appear here.</p></div> : visibleMessages.length === 0 ? <div className="px-4 py-10 text-center text-sm text-muted-foreground">No messages match your search.</div> : (
-          <div>
-            <div className="flex min-h-12 items-center gap-1 border-b border-border px-2 py-1.5"><input type="checkbox" checked={visibleMessages.length > 0 && visibleMessages.every((message) => selectedMessageIds.includes(message.id))} onChange={(event) => onToggleAllMessages(event.target.checked)} aria-label="Select all visible sent messages" className={cn("ml-1 size-4 shrink-0 accent-primary", selectedMessageIds.length === 0 && "max-sm:hidden")} /><span className="mr-auto px-2 text-xs text-muted-foreground">{selectedMessageIds.length ? `${selectedMessageIds.length} selected` : `${messages.length} sent`}</span><Button type="button" variant="ghost" size="icon" className="size-8" onClick={onDeleteSelectedMessages} disabled={selectedMessageIds.length === 0} aria-label="Delete selected sent messages" title="Delete selected sent messages"><Trash2 className="size-4" aria-hidden="true" /></Button></div>
+          <div className={MOBILE_LIST_CARD}>
+            <div className={cn("flex min-h-12 items-center gap-1 border-b border-border px-2 py-1.5", selectedMessageIds.length === 0 && "max-sm:hidden")}><input type="checkbox" checked={visibleMessages.length > 0 && visibleMessages.every((message) => selectedMessageIds.includes(message.id))} onChange={(event) => onToggleAllMessages(event.target.checked)} aria-label="Select all visible sent messages" className={cn("ml-1 size-4 shrink-0 accent-primary", selectedMessageIds.length === 0 && "max-sm:hidden")} /><span className="mr-auto px-2 text-xs text-muted-foreground">{selectedMessageIds.length ? `${selectedMessageIds.length} selected` : `${messages.length} sent`}</span><Button type="button" variant="ghost" size="icon" className="size-8" onClick={onDeleteSelectedMessages} disabled={selectedMessageIds.length === 0} aria-label="Delete selected sent messages" title="Delete selected sent messages"><Trash2 className="size-4" aria-hidden="true" /></Button></div>
             <EmailListHeader primaryLabel="To" dateLabel="Sent" compact={Boolean(selectedSent)} selectable />{visibleMessages.map((message) => (
             <EmailListRow
               key={message.id}
@@ -265,13 +303,14 @@ export function EmailMessageSurfaces({
               onCheckedChange={(checked) => onToggleMessage(message.id, checked)}
               deleteLabel={`Delete message to ${message.to}`}
               ariaLabel={`Open sent email: ${message.subject}`}
+              preview={snippet(message.bodyText)}
               compact={Boolean(selectedSent)}
             />
           ))}</div>
         )}
       </aside>
       {selectedSent && <div className={cn("flex-1 flex-col overflow-hidden rounded-lg border border-border bg-card max-lg:min-h-[calc(100svh-8rem)] lg:min-h-0", mobileMessageView === "reader" ? "flex" : "hidden")}>
-        <div className="shrink-0 border-b border-border px-4 py-4 sm:px-5"><div className="mb-2 flex items-center gap-2"><Button type="button" variant="ghost" size="icon" className="-ml-2 size-8" onClick={onClearSent} aria-label="Back to sent"><ArrowLeft aria-hidden="true" /></Button></div><div className="flex items-start justify-between gap-4"><div className="min-w-0"><h2 className="truncate text-base font-semibold">{selectedSent.subject}</h2><p className="mt-1 truncate text-sm text-muted-foreground">To {selectedSent.to}</p>{selectedSent.from && <p className="truncate text-xs text-muted-foreground">From {cleanSenderDisplay(selectedSent.from)}</p>}</div><div className="flex shrink-0 flex-col items-end gap-1 text-right"><time dateTime={selectedSent.createdAt} className="text-xs text-muted-foreground">{formatMessageDate(selectedSent.createdAt)}</time>{selectedSent.status === "scheduled" && !isScheduledPastDue(selectedSent) ? <span className="inline-flex items-center gap-1 text-[11px] text-amber-700 dark:text-amber-300"><Clock className="size-3" aria-hidden="true" />{selectedSent.scheduledAt ? `Scheduled · ${formatMessageDate(selectedSent.scheduledAt)}` : "Scheduled"}</span> : selectedSent.status === "failed" ? <span className="inline-flex items-center gap-1 text-[11px] text-destructive"><X className="size-3" aria-hidden="true" />Failed</span> : <span className="inline-flex items-center gap-1 text-[11px] text-emerald-700 dark:text-emerald-300"><CheckCircle2 className="size-3" aria-hidden="true" />Sent</span>}</div></div></div>
+        <div className="shrink-0 border-b border-border px-4 py-4 sm:px-5"><div className="mb-2 flex items-center gap-2"><Button type="button" variant="ghost" size="icon" className="-ml-2 size-10" onClick={onClearSent} aria-label="Back to sent"><ArrowLeft className="size-5" aria-hidden="true" /></Button><span className="flex-1" /><Button type="button" variant="ghost" size="icon" className="size-10" onClick={() => onDeleteSent(selectedSent)} aria-label="Delete" title="Delete"><Trash2 className="size-5" aria-hidden="true" /></Button></div><div className="flex items-start justify-between gap-4"><div className="min-w-0"><h2 className="text-[1.75rem] leading-tight tracking-tight sm:truncate sm:text-base sm:font-semibold sm:tracking-normal">{selectedSent.subject}</h2><p className="mt-1 truncate text-sm text-muted-foreground">To {selectedSent.to}</p>{selectedSent.from && <p className="truncate text-xs text-muted-foreground">From {cleanSenderDisplay(selectedSent.from)}</p>}</div><div className="flex shrink-0 flex-col items-end gap-1 text-right"><time dateTime={selectedSent.createdAt} className="text-xs text-muted-foreground">{formatMessageDate(selectedSent.createdAt)}</time>{selectedSent.status === "scheduled" && !isScheduledPastDue(selectedSent) ? <span className="inline-flex items-center gap-1 text-[11px] text-amber-700 dark:text-amber-300"><Clock className="size-3" aria-hidden="true" />{selectedSent.scheduledAt ? `Scheduled · ${formatMessageDate(selectedSent.scheduledAt)}` : "Scheduled"}</span> : selectedSent.status === "failed" ? <span className="inline-flex items-center gap-1 text-[11px] text-destructive"><X className="size-3" aria-hidden="true" />Failed</span> : <span className="inline-flex items-center gap-1 text-[11px] text-emerald-700 dark:text-emerald-300"><CheckCircle2 className="size-3" aria-hidden="true" />Sent</span>}</div></div></div>
         {Boolean(selectedSent.attachments?.length) && <div className="flex shrink-0 flex-wrap gap-2 border-b border-border px-4 py-2 sm:px-5">{selectedSent.attachments?.map((file, index) => <span key={`${file.filename}-${index}`} className="inline-flex max-w-full items-center gap-1 rounded-md bg-muted px-2 py-1 text-xs" title={file.filename}><Paperclip className="size-3 shrink-0" aria-hidden="true" /><span className="truncate">{file.filename}</span></span>)}</div>}
         <div className="min-h-0 flex-1 overflow-hidden bg-white">{loadingMessageId === selectedSent.id ? <div className="space-y-4 p-6" role="status" aria-label="Loading message"><Skeleton className="h-6 w-2/3" /><Skeleton className="h-4 w-1/3" /><Skeleton className="h-32 w-full" /><Skeleton className="h-4 w-4/5" /><Skeleton className="h-4 w-3/5" /></div> : messageViewError ? <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center"><p className="text-sm font-medium text-destructive">Couldn’t load this email</p><p className="text-xs leading-5 text-muted-foreground">{messageViewError}</p><Button type="button" variant="outline" size="sm" onClick={() => onRetrySent(selectedSent)}>Try again</Button></div> : !selectedSent.bodyHtml && !selectedSent.bodyText ? <div className="flex h-full flex-col items-center justify-center gap-2 px-6 text-center text-muted-foreground"><Mail className="size-5" aria-hidden="true" /><p className="text-sm font-medium text-foreground">Message body unavailable</p><p className="text-xs leading-5">This email was sent before previews were saved.</p></div> : <iframe title={`Sent email: ${selectedSent.subject}`} srcDoc={sentMessagePreview(selectedSent)} sandbox="" className="h-full min-h-[24rem] w-full border-0" />}</div>
       </div>}
