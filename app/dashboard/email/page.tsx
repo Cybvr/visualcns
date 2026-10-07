@@ -1896,7 +1896,7 @@ export default function EmailPage() {
   const mobileReaderOpen = mobileMessageView === "reader" && ((tab === "inbox" && Boolean(selectedReceived)) || (tab === "messages" && Boolean(selectedSent)))
 
   return (
-    <main className="mx-auto flex min-h-0 w-full min-w-0 max-w-6xl flex-1 flex-col overflow-visible px-3 pt-3 pb-5 sm:px-6 sm:pt-4 sm:pb-6 lg:h-[calc(100svh-3.5rem)] lg:max-h-[calc(100svh-3.5rem)] lg:flex-none lg:flex-row lg:gap-6 lg:overflow-hidden">
+    <main className="mx-auto flex min-h-0 w-full min-w-0 max-w-6xl flex-1 flex-col overflow-visible px-3 pt-3 pb-5 sm:px-6 sm:pt-4 sm:pb-6 lg:flex-row lg:gap-6 lg:overflow-hidden">
       {/* Gmail-style folder rail */}
       <nav className="hidden shrink-0 lg:flex lg:w-52 lg:flex-col" aria-label="Email folders">
         <Button type="button" size="lg" className="mb-3 w-fit justify-start gap-2 rounded-sm px-4 shadow-sm" onClick={() => openCompose(true)}>
@@ -1951,7 +1951,7 @@ export default function EmailPage() {
           {...activeFilterBar}
           mobileVariant="drawer"
           mobileSearch={false}
-          className="mb-2 max-sm:hidden"
+          className={cn("mb-2 max-sm:hidden", tab === "inbox" && selectedReceived && "lg:hidden")}
           placeholder={tab === "inbox" ? "Search inbox" : tab === "drafts" ? "Search drafts" : tab === "messages" ? "Search sent" : tab === "bin" ? "Search bin" : tab === "templates" ? "Search templates" : "Search lists"}
           searchClassName={tab === "messages" || tab === "inbox" || tab === "bin" ? "sm:max-w-[16rem]" : undefined}
           actions={
@@ -2027,6 +2027,12 @@ export default function EmailPage() {
             onArchiveReceivedMessage={(message) => void archiveReceivedIds([message.id])}
             onMarkReceivedRead={() => markSelectedReceived(true)}
             onMarkReceivedUnread={() => markSelectedReceived(false)}
+            onToggleReceivedRead={(message) => setReadReceivedIds((current) => {
+              const next = new Set(current)
+              if (next.has(message.id)) next.delete(message.id)
+              else next.add(message.id)
+              return next
+            })}
             drafts={drafts}
             visibleDrafts={visibleDrafts}
             selectedDraftIds={[...selectedDraftIds]}

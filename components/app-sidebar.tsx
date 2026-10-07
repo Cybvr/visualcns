@@ -82,6 +82,7 @@ export function AppSidebar({
   const { isMobile, setOpenMobile } = useSidebar()
   const brandHref = isMobile ? "/dashboard/agent" : rootHref
   const displayedBrandName = brandName?.trim() || "VisualCNS"
+  const sidebarLogoUrl = displayedBrandName.toLowerCase() === "visualcns" ? undefined : brandLogoUrl
 
   // Tapping a destination on mobile should dismiss the slide-over sheet.
   function handleNavigate(adminOnly = false, opensAgent = false) {
@@ -95,24 +96,22 @@ export function AppSidebar({
     <Sidebar
       collapsible="icon"
       className={cn(
-        "dashboard-sidebar bg-card text-muted-foreground group-data-[side=left]:!border-r-0 [&_[data-slot=sidebar-inner]]:bg-card",
+        "dashboard-sidebar bg-sidebar text-foreground group-data-[side=left]:!border-r-0",
         className,
       )}
       {...props}
     >
-      <div className="group/sidebar flex min-h-0 flex-1 flex-col overflow-hidden text-muted-foreground">
+      <div className="group/sidebar flex min-h-0 flex-1 flex-col overflow-hidden text-foreground">
         <SidebarHeader className="group-data-[collapsible=icon]:p-1">
           <div className="flex h-12 items-center gap-2 group-data-[collapsible=icon]:justify-center">
-            <SidebarMenu className="min-w-0 flex-1 group-data-[collapsible=icon]:hidden">
-              <SidebarMenuItem>
-                <SidebarMenuButton size="lg" asChild>
-                  <Link href={brandHref} onClick={() => handleNavigate()}>
-                    <BrandLockup logoSize={20} wordmarkScale={0.9} gapClassName="gap-1" brandName={displayedBrandName} logoUrl={brandLogoUrl} />
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-            <SidebarTrigger className="size-8 shrink-0 opacity-0 transition-opacity group-hover/sidebar:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100" />
+            <Link
+              href={brandHref}
+              onClick={() => handleNavigate()}
+              className="flex min-w-0 flex-1 items-center overflow-hidden text-foreground outline-none focus-visible:rounded-sm focus-visible:ring-2 focus-visible:ring-ring group-data-[collapsible=icon]:hidden"
+            >
+              <BrandLockup logoSize={20} wordmarkScale={0.9} gapClassName="gap-1" brandName={displayedBrandName} logoUrl={sidebarLogoUrl} />
+            </Link>
+            <SidebarTrigger className="size-8 shrink-0" />
           </div>
         </SidebarHeader>
         <SidebarContent>

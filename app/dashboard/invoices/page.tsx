@@ -53,9 +53,10 @@ function OutstandingSummary({ invoices }: { invoices: Invoice[] }) {
   }, [invoices, targetCurrency, currencies.join(",")])
 
   if (!unpaid.length) return null
-  if (conversionError) return <p className="mb-4 rounded-[12px] bg-amber-500/10 px-4 py-3 text-sm leading-6 text-amber-900 dark:text-amber-200">{currencies.map((currency) => formatMoney(unpaid.filter((invoice) => (invoice.currency || "USD") === currency).reduce((total, invoice) => total + (invoice.amount ?? 0), 0), currency)).join(" · ")} outstanding across {unpaid.length} invoices.</p>
-  if (!summary) return <p className="mb-4 rounded-[12px] bg-amber-500/10 px-4 py-3 text-sm leading-6 text-amber-900 dark:text-amber-200">Calculating outstanding balance across {unpaid.length} invoices…</p>
-  return <p className="mb-4 rounded-[12px] bg-amber-500/10 px-4 py-3 text-sm leading-6 text-amber-900 dark:text-amber-200">{formatMoney(summary.amount, summary.currency)} outstanding across {unpaid.length} invoice{unpaid.length === 1 ? "" : "s"}{summary.converted ? ` (converted to ${summary.currency})` : ""}.</p>
+  const bannerClass = "mt-2 mb-4 rounded-sm bg-[#21190d] px-3 py-2 text-lg font-medium leading-7 text-[#ffd84d]"
+  if (conversionError) return <p className={bannerClass}>Outstanding {currencies.map((currency) => formatMoney(unpaid.filter((invoice) => (invoice.currency || "USD") === currency).reduce((total, invoice) => total + (invoice.amount ?? 0), 0), currency)).join(" · ")}</p>
+  if (!summary) return <p className={bannerClass}>Outstanding…</p>
+  return <p className={bannerClass}>Outstanding {formatMoney(summary.amount, summary.currency)}</p>
 }
 
 function searchInvoice(invoice: Invoice) {
@@ -164,7 +165,6 @@ export default function InvoicesPage() {
         </>
       ) : (
         <>
-          {!loading && <OutstandingSummary invoices={invoices} />}
           <DocumentSplitPane
             visibleItems={loading ? [] : visibleInvoices}
             loading={loading}
@@ -172,6 +172,7 @@ export default function InvoicesPage() {
             onClearSelection={() => setSelectedId(null)}
             sectionLabel="Invoices"
             filter={invoiceFilter}
+            listExtra={!loading && <OutstandingSummary invoices={invoices} />}
             emptySearchLabel="No invoices match your search."
             getKey={(invoice) => invoice.id}
             selectedTitle={selectedInvoice?.title || selectedInvoice?.invoiceNumber || "Invoice"}

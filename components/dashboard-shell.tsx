@@ -157,7 +157,7 @@ export function DashboardShell({
   return (
     // h-svh + overflow-hidden: the shell never grows taller than the viewport,
     // so the body never scrolls. Only SidebarInset (overflow-y-auto) scrolls.
-    <div className="dashboard-body flex h-svh flex-col overflow-hidden font-sans [&_*]:font-sans">
+    <div className="dashboard-body flex h-svh flex-col overflow-hidden bg-background font-sans [&_*]:font-sans">
       {banner && <div className="z-50 h-10 shrink-0">{banner}</div>}
       <SidebarProvider
         open={agentOpen ? false : sidebarOpen}
@@ -171,7 +171,7 @@ export function DashboardShell({
         {/* overflow-y-auto: this column is the scroll container, not the body */}
         <SidebarInset
           className={cn(
-            "min-h-0",
+            "min-h-0 bg-card md:m-3 md:rounded-2xl",
             isAgentRoute ? "overflow-y-auto md:overflow-hidden md:pb-0" : "overflow-y-auto md:pb-6",
             !hideMobileFooter && "max-md:pb-[calc(3.5rem+env(safe-area-inset-bottom))]",
             isEmailRoute && "lg:min-h-0 lg:overflow-hidden lg:pb-0",
@@ -180,7 +180,7 @@ export function DashboardShell({
         >
           <header
             className={cn(
-              "surface-nav sticky top-0 z-40 flex h-14 shrink-0 items-center gap-2 bg-background px-4 text-foreground max-md:border-b max-md:border-border",
+              "surface-nav sticky top-0 z-40 flex h-14 shrink-0 items-center gap-2 bg-card px-4 text-foreground max-md:border-b max-md:border-border md:rounded-t-2xl",
               hideHeader && "md:hidden",
             )}
           >

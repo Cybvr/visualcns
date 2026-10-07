@@ -2,7 +2,6 @@
 
 import * as React from "react"
 import { cva, type VariantProps } from "class-variance-authority"
-import { Menu, X } from "lucide-react"
 import { Slot } from "radix-ui"
 
 import { useIsMobile } from "@/hooks/use-mobile"
@@ -261,8 +260,7 @@ function SidebarTrigger({
   onClick,
   ...props
 }: React.ComponentProps<typeof Button>) {
-  const { isMobile, state, openMobile, toggleSidebar } = useSidebar()
-  const isOpen = isMobile ? openMobile : state === "expanded"
+  const { toggleSidebar } = useSidebar()
 
   return (
     <Button
@@ -277,7 +275,9 @@ function SidebarTrigger({
       }}
       {...props}
     >
-      {isOpen ? <X /> : <Menu />}
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="size-5" aria-hidden="true">
+        <path d="M5 6h14M5 12h14M5 18h14" />
+      </svg>
       <span className="sr-only">Toggle Sidebar</span>
     </Button>
   )

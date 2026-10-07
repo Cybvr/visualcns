@@ -38,8 +38,8 @@ export function DocumentSplitPane<T>({
   content: ReactNode
 }) {
   return (
-    <div className="lg:grid lg:grid-cols-[minmax(18rem,0.7fr)_minmax(0,1.3fr)] lg:items-start lg:gap-6">
-      <div className={cn("min-w-0", selectedId && "hidden sm:block")}>
+    <div className="flex flex-col lg:grid lg:grid-cols-[minmax(18rem,0.7fr)_minmax(0,1.3fr)] lg:items-start lg:gap-6">
+      <div className="min-w-0">
         {filter}
         {listExtra}
         {loading ? (
@@ -56,7 +56,7 @@ export function DocumentSplitPane<T>({
       </div>
 
       <section className={cn(
-        "min-w-0 lg:sticky lg:top-16 lg:flex lg:h-[calc(100svh-5rem)] lg:min-h-0 lg:flex-col lg:overflow-hidden",
+        "order-2 min-w-0 lg:sticky lg:top-16 lg:flex lg:h-[calc(100svh-5rem)] lg:min-h-0 lg:flex-col lg:overflow-hidden",
         !selectedId && "hidden sm:block",
       )}>
         {selectedId ? (

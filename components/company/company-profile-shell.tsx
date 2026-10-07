@@ -1,16 +1,29 @@
 "use client"
 
-import { useState, type ReactNode } from "react"
+import type { ReactNode } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { LogIn, LogOut, Menu, User as UserIcon } from "lucide-react"
+import { LogIn } from "lucide-react"
 
 import { useAuth } from "@/components/auth-provider"
 import { useCompanyPage } from "@/components/company/company-page-context"
 import { NgaiWidget } from "@/components/company/ngai-widget"
-import { SectionRail } from "@/components/company/section-nav"
+import { NavUser } from "@/components/nav-user"
 import { Button } from "@/components/ui/button"
-import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet"
+import { Separator } from "@/components/ui/separator"
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarHeader,
+  SidebarInset,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarProvider,
+  SidebarRail,
+  SidebarTrigger,
+} from "@/components/ui/sidebar"
 import { cn } from "@/lib/utils"
 
 /** `expanded` shows the name and handle at every width, for the phone drawer. */
@@ -35,119 +48,99 @@ function CompanyIdentity({ expanded = false }: { expanded?: boolean }) {
   )
 }
 
-function SidebarAccount({ expanded = false }: { expanded?: boolean }) {
+/** The dashboard's account menu when signed in, a sign-in button for visitors. */
+function SidebarAccount() {
   const { company } = useCompanyPage()
-  const { user, appUser, signOut } = useAuth()
-  const router = useRouter()
+  const { user } = useAuth()
 
-  if (!user) {
-    if (!company.slug) return null
-    return (
-      <Button asChild size="icon-lg" className={expanded ? "w-full px-4" : "lg:w-full lg:px-4"}>
-        <Link href={`/${encodeURIComponent(company.slug)}/sign-in`} aria-label="Sign in">
-          <LogIn className={cn("size-5", expanded ? "hidden" : "lg:hidden")} aria-hidden="true" />
-          <span className={expanded ? undefined : "hidden lg:inline"}>Sign in</span>
-        </Link>
-      </Button>
-    )
-  }
-
-  const name = appUser?.displayName || user.displayName
-  const email = appUser?.email || user.email
-  const photo = appUser?.photoURL || user.photoURL
-
+  if (user) return <NavUser />
+  if (!company.slug) return null
   return (
-    <div className={cn("flex items-center gap-3 rounded-full", expanded ? "p-2" : "lg:p-2")}>
-      <div className={cn("size-10 shrink-0 place-items-center overflow-hidden rounded-full bg-muted", expanded ? "grid" : "hidden lg:grid")}>
-        {photo ? (
-          // Profile photos can be hosted outside the configured image domains.
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={photo} alt="" className="size-full object-cover" />
-        ) : (
-          <UserIcon className="size-5 text-muted-foreground" aria-hidden="true" />
-        )}
-      </div>
-      <div className={cn("min-w-0 flex-1 text-sm leading-tight", !expanded && "hidden lg:block")}>
-        <div className="truncate font-semibold text-foreground">{name || email}</div>
-        {appUser?.slug ? (
-          <div className="truncate text-muted-foreground">@{appUser.slug}</div>
-        ) : name && email ? (
-          <div className="truncate text-muted-foreground">{email}</div>
-        ) : null}
-      </div>
-      <button
-        type="button"
-        aria-label="Log out"
-        title="Log out"
-        onClick={() => { void signOut().then(() => router.replace("/login")) }}
-        className="grid size-10 shrink-0 place-items-center rounded-full text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring lg:size-9"
-      >
-        <LogOut className="size-[18px]" aria-hidden="true" />
-      </button>
-    </div>
+    <Button asChild className="w-full group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:p-0">
+      <Link href={`/${encodeURIComponent(company.slug)}/sign-in`} aria-label="Sign in">
+        <LogIn className="hidden size-4 group-data-[collapsible=icon]:block" aria-hidden="true" />
+        <span className="group-data-[collapsible=icon]:hidden">Sign in</span>
+      </Link>
+    </Button>
   )
 }
 
-/** The sidebar's contents, shared by the fixed sidebar and the phone drawer. */
-function SidebarBody({ expanded = false, onNavigate }: { expanded?: boolean; onNavigate?: () => void }) {
-  const { sections, section, sectionHref } = useCompanyPage()
-  return (
-    <>
-      <CompanyIdentity expanded={expanded} />
-      <SectionRail sections={sections} active={section} href={sectionHref} expanded={expanded} onNavigate={onNavigate} />
-      <div className={cn("mt-auto pt-4", expanded ? "" : "px-1 lg:px-2")}>
-        <SidebarAccount expanded={expanded} />
-      </div>
-    </>
-  )
-}
 
 /**
- * The public company page frame: a sidebar with the company, its sections and
- * the signed-in account, beside a content area for the current section page.
- * Phones get a top bar instead, and its menu button opens the sidebar as a drawer.
+ * The public company page frame, built from the same pieces as the dashboard
+ * shell: SidebarProvider + Sidebar + SidebarInset, with the content in the white
+ * card on the tinted background and the page header inside the card.
  */
 export function CompanyProfileShell({ children }: { children: ReactNode }) {
-  const { company, sections, section } = useCompanyPage()
-  const [drawerOpen, setDrawerOpen] = useState(false)
+  const { company, sections, section, sectionHref } = useCompanyPage()
   const sectionLabel = sections.find((item) => item.key === section)?.label
 
   return (
-    <div className="mx-auto flex min-h-svh w-full max-w-[1600px] md:gap-6 md:px-6 lg:gap-8">
-      <aside className="sticky top-0 hidden h-svh w-[52px] shrink-0 flex-col border-r border-border px-1 py-6 print:hidden md:flex lg:w-[232px] lg:px-3">
-        <SidebarBody />
-      </aside>
-
-      <div className="min-w-0 flex-1 md:border-r md:border-border">
-        <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-border bg-background/95 px-2 backdrop-blur print:hidden md:hidden">
-          <button
-            type="button"
-            onClick={() => setDrawerOpen(true)}
-            aria-label="Open menu"
-            className="grid size-10 shrink-0 place-items-center rounded-full text-foreground outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <Menu className="size-5" aria-hidden="true" />
-          </button>
-          <div className="min-w-0 leading-tight">
-            <div data-weight="bold" className="truncate text-[16px] text-foreground">{company.name}</div>
-            {sectionLabel && <div className="truncate text-xs text-muted-foreground">{sectionLabel}</div>}
+    <div className="dashboard-body flex h-svh flex-col overflow-hidden bg-background font-sans [&_*]:font-sans">
+      <SidebarProvider className="!min-h-0 flex-1">
+        <Sidebar collapsible="icon" className="dashboard-sidebar bg-sidebar text-foreground group-data-[side=left]:!border-r-0 print:hidden">
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden text-foreground">
+            <SidebarHeader className="group-data-[collapsible=icon]:p-1">
+              <div className="flex items-center gap-2 group-data-[collapsible=icon]:justify-center">
+                <div className="min-w-0 flex-1 group-data-[collapsible=icon]:hidden">
+                  <CompanyIdentity expanded />
+                </div>
+                <SidebarTrigger className="size-8 shrink-0" />
+              </div>
+            </SidebarHeader>
+            <SidebarContent>
+              <SidebarGroup className="group-data-[collapsible=icon]:p-1">
+                <SidebarMenu className="gap-0.5 max-md:gap-1.5">
+                  {sections.map((item) => {
+                    const Icon = item.icon
+                    return (
+                      <SidebarMenuItem key={item.key}>
+                        <SidebarMenuButton
+                          asChild
+                          isActive={section === item.key}
+                          tooltip={item.label}
+                          className="h-9 gap-2 px-2 max-md:h-12 max-md:min-h-12 max-md:gap-3 max-md:px-3 [&>svg]:size-[18px] [&>svg]:max-md:size-5"
+                        >
+                          <Link href={sectionHref(item.key)}>
+                            {Icon && <Icon className="h-4 w-4" aria-hidden="true" />}
+                            <span className="sidebar-nav-label">{item.label}</span>
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    )
+                  })}
+                </SidebarMenu>
+              </SidebarGroup>
+            </SidebarContent>
+            <SidebarFooter className="group-data-[collapsible=icon]:p-1">
+              <SidebarAccount />
+            </SidebarFooter>
           </div>
-        </header>
+          <SidebarRail />
+        </Sidebar>
 
-        <main className="min-w-0 px-4 pb-16 pt-4 sm:px-6 sm:pt-6 md:pl-0 md:pr-5 lg:pr-8">
-          {children}
-        </main>
-      </div>
+        {/* The inset itself is the full-height scroller, flush to the window's right edge,
+            so its scrollbar is the window's. The header sits on the tinted background and
+            sticky strips in that colour hide content passing the card's edges. */}
+        <SidebarInset className="min-h-0 overflow-y-auto bg-card md:bg-sidebar">
+          <header className="surface-nav sticky top-0 z-40 flex h-14 shrink-0 items-center gap-2 bg-card px-4 text-foreground max-md:border-b max-md:border-border md:bg-sidebar print:hidden md:after:pointer-events-none md:after:absolute md:after:left-0 md:after:top-full md:after:size-4 md:after:bg-[radial-gradient(circle_at_100%_100%,transparent_15.5px,var(--sidebar)_16px)]">
+            <div className="flex shrink-0 items-center gap-2 md:hidden">
+              <SidebarTrigger className="-ml-1" />
+              <Separator orientation="vertical" className="data-[orientation=vertical]:h-4 max-md:data-[orientation=vertical]:h-6" />
+            </div>
+            <h1 className="surface-title min-w-0 truncate max-md:[--surface-title-size:17px]">{sectionLabel ?? company.name}</h1>
+          </header>
+          <main className="min-w-0 flex-1 bg-card px-4 pb-16 pt-4 sm:px-6 sm:pt-6 md:rounded-tl-2xl lg:px-8">
+            {children}
+          </main>
+          <div
+            aria-hidden="true"
+            className="pointer-events-none sticky bottom-0 z-40 hidden h-3 shrink-0 bg-sidebar after:absolute after:bottom-full after:left-0 after:size-4 after:bg-[radial-gradient(circle_at_100%_0%,transparent_15.5px,var(--sidebar)_16px)] print:hidden md:block"
+          />
+        </SidebarInset>
 
-      <NgaiWidget />
-
-      <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>
-        <SheetContent side="left" className="flex w-[280px] flex-col p-4 pt-6 md:hidden">
-          <SheetTitle className="sr-only">{company.name} menu</SheetTitle>
-          <SheetDescription className="sr-only">Sections of the company page and your account.</SheetDescription>
-          <SidebarBody expanded onNavigate={() => setDrawerOpen(false)} />
-        </SheetContent>
-      </Sheet>
+        <NgaiWidget />
+      </SidebarProvider>
     </div>
   )
 }
