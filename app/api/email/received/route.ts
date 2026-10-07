@@ -165,9 +165,10 @@ export async function GET(request: Request) {
         const gmail = await listGmailInbox(agencyId)
         const data = [...gmail.data, ...localMessages].sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""))
         return NextResponse.json({ data, hasMore: gmail.hasMore })
-      } catch {
-        if (!localMessages.length) return NextResponse.json({ error: "Received messages could not be loaded from Google." }, { status: 502 })
-        return NextResponse.json({ data: localMessages, hasMore: false, warning: "Google inbox could not be loaded." })
+      } catch (error) {
+        // Show what we have; the next refresh picks up Gmail once it responds.
+        console.error("Gmail inbox load failed", error)
+        return NextResponse.json({ data: localMessages, hasMore: false, partial: true })
       }
     }
     if (!process.env.RESEND_API_KEY) {

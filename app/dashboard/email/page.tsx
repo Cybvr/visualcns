@@ -607,11 +607,14 @@ export default function EmailPage() {
         headers: { Authorization: `Bearer ${idToken}` },
         cache: "no-store",
       })
-      const result = (await response.json()) as { data?: ReceivedMessage[]; error?: string; warning?: string }
+      const result = (await response.json()) as { data?: ReceivedMessage[]; error?: string; partial?: boolean }
       if (!response.ok) throw new Error(result.error || "Received messages could not be loaded.")
-      setReceivedMessages(Array.isArray(result.data) ? result.data : [])
-      if (result.warning) setReceivedError(result.warning)
-      setSelectedReceivedId((current) => current && result.data?.some((message) => message.id === current) ? current : null)
+      const data = Array.isArray(result.data) ? result.data : []
+      // Gmail didn't answer this time: keep the Gmail messages already on screen.
+      setReceivedMessages((current) => result.partial
+        ? [...current.filter((message) => message.id.startsWith("gmail:")), ...data].sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""))
+        : data)
+      if (!result.partial) setSelectedReceivedId((current) => current && data.some((message) => message.id === current) ? current : null)
     } catch (error) {
       setReceivedError(error instanceof Error ? error.message : "Received messages could not be loaded.")
     } finally {

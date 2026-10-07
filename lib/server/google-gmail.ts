@@ -68,18 +68,38 @@ function base64UrlDecode(value: string) {
   return Buffer.from(normalized + "=".repeat((4 - normalized.length % 4) % 4), "base64").toString("utf8")
 }
 
+function isRetryableGmailError(status: number, result: { error?: { errors?: Array<{ reason?: string }> } }) {
+  if (status === 429 || status >= 500) return true
+  return status === 403 && Boolean(result.error?.errors?.some((item) => /rateLimit/i.test(item.reason || "")))
+}
+
 async function gmailFetch<T>(accessToken: string, path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`${GMAIL_API_URL}${path}`, {
-    ...init,
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      ...(init?.headers || {}),
-    },
-    cache: "no-store",
-  })
-  const result = await response.json().catch(() => ({})) as T & { error?: { message?: string } }
-  if (!response.ok) throw new Error(result.error?.message || `Gmail API request failed (${response.status}).`)
-  return result
+  // Gmail allows about 50 message reads per second per mailbox, so back off and retry when it pushes back.
+  for (let attempt = 0; ; attempt++) {
+    const response = await fetch(`${GMAIL_API_URL}${path}`, {
+      ...init,
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        ...(init?.headers || {}),
+      },
+      cache: "no-store",
+    })
+    const result = await response.json().catch(() => ({})) as T & { error?: { message?: string; errors?: Array<{ reason?: string }> } }
+    if (response.ok) return result
+    if (attempt < 3 && isRetryableGmailError(response.status, result)) {
+      await new Promise((resolve) => setTimeout(resolve, 500 * 2 ** attempt + Math.random() * 250))
+      continue
+    }
+    throw new Error(result.error?.message || `Gmail API request failed (${response.status}).`)
+  }
+}
+
+async function mapInBatches<T, R>(items: T[], size: number, run: (item: T) => Promise<R>) {
+  const results: R[] = []
+  for (let index = 0; index < items.length; index += size) {
+    results.push(...await Promise.all(items.slice(index, index + size).map(run)))
+  }
+  return results
 }
 
 export async function googleAccessTokenForAgency(agencyId: string) {
@@ -244,12 +264,26 @@ function gmailMessagePayload(message: GmailMessage) {
   }
 }
 
-export async function listGmailInbox(agencyId: string) {
+type GmailInbox = { data: ReturnType<typeof gmailMessagePayload>[]; hasMore: boolean }
+const inboxRequests = new Map<string, { promise: Promise<GmailInbox>; expiresAt: number }>()
+
+async function fetchGmailInbox(agencyId: string): Promise<GmailInbox> {
   const token = await googleAccessTokenForAgency(agencyId)
   if (!token) return { data: [], hasMore: false }
   const list = await gmailFetch<GmailListResponse>(token, "/messages?labelIds=INBOX&maxResults=100")
-  const messages = await Promise.all((list.messages || []).filter((item) => item.id).map((item) => gmailFetch<GmailMessage>(token, `/messages/${encodeURIComponent(item.id as string)}?format=full`)))
+  const ids = (list.messages || []).map((item) => item.id).filter((id): id is string => Boolean(id))
+  const messages = await mapInBatches(ids, 10, (id) => gmailFetch<GmailMessage>(token, `/messages/${encodeURIComponent(id)}?format=full`))
   return { data: messages.map(gmailMessagePayload), hasMore: Boolean(list.nextPageToken) }
+}
+
+// The inbox page and the unread badge often ask at the same moment; share one Gmail load between them.
+export function listGmailInbox(agencyId: string) {
+  const cached = inboxRequests.get(agencyId)
+  if (cached && cached.expiresAt > Date.now()) return cached.promise
+  const promise = fetchGmailInbox(agencyId)
+  inboxRequests.set(agencyId, { promise, expiresAt: Date.now() + 10_000 })
+  promise.catch(() => { if (inboxRequests.get(agencyId)?.promise === promise) inboxRequests.delete(agencyId) })
+  return promise
 }
 
 export async function getGmailMessage(agencyId: string, id: string) {

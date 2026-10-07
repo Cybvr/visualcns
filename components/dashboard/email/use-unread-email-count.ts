@@ -77,7 +77,8 @@ export function useUnreadEmailCount() {
           getHiddenReceivedIds(workspaceId).catch(() => [] as string[]),
         ])
         if (!response.ok) return
-        const result = (await response.json()) as { data?: InboxMessage[] }
+        const result = (await response.json()) as { data?: InboxMessage[]; partial?: boolean }
+        if (result.partial) return
         const messages = Array.isArray(result.data) ? result.data : []
         let readIds: string[] = []
         try {
