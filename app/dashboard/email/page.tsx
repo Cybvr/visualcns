@@ -20,7 +20,6 @@ import {
   List,
   Linkedin,
   Mail,
-  Menu,
   Plus,
   Reply,
   Search,
@@ -1907,15 +1906,41 @@ export default function EmailPage() {
       </nav>
 
       <div className="flex h-full min-h-0 w-full min-w-0 flex-1 flex-col">
-        {/* Mobile: large title, a full search field and pill folders, hidden while reading a message. */}
+        {/* Mobile: search with a create button beside it, then pill folders, hidden while reading a message. */}
         {!mobileReaderOpen && (
           <div className="sm:hidden">
-            <div className="mb-4 mt-1 flex items-center justify-between gap-3">
-              <h1 className="text-[2.25rem] leading-none tracking-tight">Emails</h1>
+            <div className="mb-4 mt-1 flex items-center gap-2">
+              <div className="flex min-w-0 flex-1 items-center gap-2 rounded-2xl border border-border bg-card py-1.5 pr-1.5 pl-4">
+                <Search className="size-5 shrink-0 text-muted-foreground" aria-hidden="true" />
+                <input
+                  type="search"
+                  value={activeFilterBar.query}
+                  onChange={(event) => activeFilterBar.onQueryChange(event.target.value)}
+                  placeholder={tab === "inbox" ? "Search emails" : tab === "drafts" ? "Search drafts" : tab === "messages" ? "Search sent" : tab === "bin" ? "Search bin" : tab === "templates" ? "Search templates" : "Search lists"}
+                  aria-label="Search"
+                  className="h-10 min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-muted-foreground [&::-webkit-search-cancel-button]:hidden"
+                />
+                {activeFilterBar.query && (
+                  <button type="button" onClick={() => activeFilterBar.onQueryChange("")} aria-label="Clear search" className="flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground">
+                    <X className="size-4" aria-hidden="true" />
+                  </button>
+                )}
+                {mobileSort && (
+                  <button
+                    type="button"
+                    onClick={() => activeFilterBar.onDirectionChange(activeFilterBar.direction === "asc" ? "desc" : "asc")}
+                    aria-label={`Sorted ${activeFilterBar.direction === "asc" ? mobileSort.ascLabel ?? "ascending" : mobileSort.descLabel ?? "descending"}. Tap to reverse.`}
+                    className="flex h-10 shrink-0 items-center gap-1.5 rounded-xl bg-muted px-3 text-sm font-semibold"
+                  >
+                    {activeFilterBar.direction === "asc" ? <ArrowUp className="size-4" aria-hidden="true" /> : <ArrowDown className="size-4" aria-hidden="true" />}
+                    {activeFilterBar.direction === "asc" ? mobileSort.ascLabel ?? "Oldest" : mobileSort.descLabel ?? "Newest"}
+                  </button>
+                )}
+              </div>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button type="button" variant="outline" size="icon" className="size-12 rounded-full bg-card" aria-label="Email menu" title="Email menu">
-                    <Menu className="size-5" aria-hidden="true" />
+                  <Button type="button" variant="outline" size="icon" className="size-14 shrink-0 rounded-2xl bg-card" aria-label="Create" title="Create">
+                    <Plus className="size-5" aria-hidden="true" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
@@ -1924,33 +1949,6 @@ export default function EmailPage() {
                   <DropdownMenuItem onSelect={() => { setTab("lists"); resetListEditor(); setListPickerOpen(true) }}><List aria-hidden="true" />New list</DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-            </div>
-            <div className="mb-4 flex items-center gap-2 rounded-2xl border border-border bg-card py-1.5 pr-1.5 pl-4">
-              <Search className="size-5 shrink-0 text-muted-foreground" aria-hidden="true" />
-              <input
-                type="search"
-                value={activeFilterBar.query}
-                onChange={(event) => activeFilterBar.onQueryChange(event.target.value)}
-                placeholder={tab === "inbox" ? "Search emails" : tab === "drafts" ? "Search drafts" : tab === "messages" ? "Search sent" : tab === "bin" ? "Search bin" : tab === "templates" ? "Search templates" : "Search lists"}
-                aria-label="Search"
-                className="h-10 min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-muted-foreground [&::-webkit-search-cancel-button]:hidden"
-              />
-              {activeFilterBar.query && (
-                <button type="button" onClick={() => activeFilterBar.onQueryChange("")} aria-label="Clear search" className="flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground">
-                  <X className="size-4" aria-hidden="true" />
-                </button>
-              )}
-              {mobileSort && (
-                <button
-                  type="button"
-                  onClick={() => activeFilterBar.onDirectionChange(activeFilterBar.direction === "asc" ? "desc" : "asc")}
-                  aria-label={`Sorted ${activeFilterBar.direction === "asc" ? mobileSort.ascLabel ?? "ascending" : mobileSort.descLabel ?? "descending"}. Tap to reverse.`}
-                  className="flex h-10 shrink-0 items-center gap-1.5 rounded-xl bg-muted px-3 text-sm font-semibold"
-                >
-                  {activeFilterBar.direction === "asc" ? <ArrowUp className="size-4" aria-hidden="true" /> : <ArrowDown className="size-4" aria-hidden="true" />}
-                  {activeFilterBar.direction === "asc" ? mobileSort.ascLabel ?? "Oldest" : mobileSort.descLabel ?? "Newest"}
-                </button>
-              )}
             </div>
           </div>
         )}
