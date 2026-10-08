@@ -220,7 +220,7 @@ export function EmailMessageSurfaces({
           )}
         </aside>
         {selectedReceived && (
-          <div className={cn("flex-1 flex-col overflow-hidden rounded-lg border border-border bg-card max-lg:min-h-[calc(100svh-8rem)] max-sm:overflow-visible max-sm:rounded-none max-sm:border-0 max-sm:bg-transparent max-sm:pb-28 lg:min-h-0", mobileMessageView === "reader" ? "flex" : "hidden")}>
+          <div className={cn("flex-1 flex-col overflow-hidden rounded-lg border border-border bg-card max-lg:min-h-[calc(100svh-8rem)] max-sm:overflow-visible max-sm:rounded-none max-sm:border-0 max-sm:bg-transparent max-sm:pb-40 lg:min-h-0", mobileMessageView === "reader" ? "flex" : "hidden")}>
             <div className="hidden shrink-0 lg:block">
               <div className="flex min-h-14 items-center gap-1 border-b border-border px-4">
                 <Button type="button" variant="ghost" size="icon" className="size-9" onClick={onClearReceived} aria-label="Back to inbox" title="Back to inbox"><ArrowLeft className="size-5" aria-hidden="true" /></Button>
