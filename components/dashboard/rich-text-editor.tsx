@@ -5,6 +5,7 @@ import { EditorContent, useEditor, type Editor } from "@tiptap/react"
 import { NodeSelection } from "@tiptap/pm/state"
 import { Image } from "@tiptap/extension-image"
 import StarterKit from "@tiptap/starter-kit"
+import { TaskItem, TaskList } from "@tiptap/extension-list"
 import { TableKit } from "@tiptap/extension-table"
 
 import { looksLikeMarkdown, markdownToHtml } from "@/lib/markdown"
@@ -19,6 +20,7 @@ import {
   ImagePlus,
   Link2,
   List,
+  ListChecks,
   ListOrdered,
   Quote,
   Redo2,
@@ -83,6 +85,12 @@ const BUTTONS: ToolbarButton[][] = [
       icon: List,
       isActive: (editor) => editor.isActive("bulletList"),
       run: (editor) => editor.chain().focus().toggleBulletList().run(),
+    },
+    {
+      label: "Checklist",
+      icon: ListChecks,
+      isActive: (editor) => editor.isActive("taskList"),
+      run: (editor) => editor.chain().focus().toggleTaskList().run(),
     },
     {
       label: "Numbered list",
@@ -173,7 +181,7 @@ export function RichTextEditor({
   const [htmlMode, setHtmlMode] = useState(false)
 
   const editor = useEditor({
-    extensions: [StarterKit.configure({ link: { openOnClick: false, autolink: true, linkOnPaste: true } }), Image, TableKit.configure({ table: { resizable: true } })],
+    extensions: [StarterKit.configure({ link: { openOnClick: false, autolink: true, linkOnPaste: true } }), Image, TaskList, TaskItem.configure({ nested: true }), TableKit.configure({ table: { resizable: true } })],
     content: value,
     // Next renders this on the server first, and tiptap needs the DOM.
     immediatelyRender: false,
@@ -192,13 +200,13 @@ export function RichTextEditor({
         class: documentLayout ? cn(
           "doc-editor-content min-h-[50vh] break-words px-5 pb-8 pt-2 text-[1.0625rem] leading-8 text-foreground/80 outline-none cursor-text sm:px-8",
           "[&_h1]:mb-3 [&_h1]:mt-6 [&_h1]:text-[1.75rem] [&_h1]:leading-9 [&_h2]:mb-2 [&_h2]:mt-8 [&_h2]:text-xl [&_h2]:leading-8 [&_h3]:mb-1 [&_h3]:mt-6 [&_h3]:text-lg [&_p]:my-3 [&_ul]:my-3 [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:my-3 [&_ol]:list-decimal [&_ol]:pl-6 [&_li]:my-1 [&_strong]:font-semibold [&_strong]:text-foreground [&_blockquote]:my-4 [&_blockquote]:border-l-2 [&_blockquote]:border-border [&_blockquote]:pl-4 [&_blockquote]:italic",
-          "[&_a]:break-all [&_a]:text-primary [&_a]:underline [&_a]:underline-offset-2 [&_img]:max-w-full [&_table]:my-4 [&_table]:w-full [&_table]:table-fixed [&_table]:border-collapse [&_td]:border [&_td]:border-border [&_td]:p-2 [&_td]:align-top [&_th]:border [&_th]:border-border [&_th]:bg-muted [&_th]:p-2 [&_th]:text-left [&_th]:font-semibold [&_.selectedCell]:bg-muted/60 [&_.ProseMirror-selectednode]:outline [&_.ProseMirror-selectednode]:outline-2 [&_.ProseMirror-selectednode]:outline-ring",
+          "[&_ul[data-type=taskList]]:list-none [&_ul[data-type=taskList]]:pl-0 [&_ul[data-type=taskList]_li]:flex [&_ul[data-type=taskList]_li]:items-start [&_ul[data-type=taskList]_li]:gap-2 [&_ul[data-type=taskList]_li>label]:mt-[0.4em] [&_ul[data-type=taskList]_li>label]:shrink-0 [&_ul[data-type=taskList]_li>div]:min-w-0 [&_ul[data-type=taskList]_li>div]:flex-1 [&_ul[data-type=taskList]_li[data-checked=true]>div]:text-muted-foreground [&_ul[data-type=taskList]_li[data-checked=true]>div]:line-through [&_ul[data-type=taskList]_li>div>p]:my-0 [&_input[type=checkbox]]:size-4 [&_input[type=checkbox]]:cursor-pointer [&_input[type=checkbox]]:accent-primary [&_a]:break-all [&_a]:text-primary [&_a]:underline [&_a]:underline-offset-2 [&_img]:max-w-full [&_table]:my-4 [&_table]:w-full [&_table]:table-fixed [&_table]:border-collapse [&_td]:border [&_td]:border-border [&_td]:p-2 [&_td]:align-top [&_th]:border [&_th]:border-border [&_th]:bg-muted [&_th]:p-2 [&_th]:text-left [&_th]:font-semibold [&_.selectedCell]:bg-muted/60 [&_.ProseMirror-selectednode]:outline [&_.ProseMirror-selectednode]:outline-2 [&_.ProseMirror-selectednode]:outline-ring",
         ) : cn(
           compact ? "min-h-48 sm:min-h-64" : "min-h-64",
           "break-words px-4 py-3 text-sm outline-none",
           "cursor-text",
           "[&_h2]:mt-5 [&_h2]:text-lg [&_h2]:font-semibold [&_h3]:mt-4 [&_h3]:text-base [&_h3]:font-semibold [&_p]:my-2 [&_p]:leading-7 [&_ul]:my-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:my-2 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:my-1 [&_strong]:font-semibold [&_blockquote]:my-3 [&_blockquote]:border-l-2 [&_blockquote]:pl-3 [&_blockquote]:italic [&_blockquote]:border-border",
-          "[&_a]:break-all [&_a]:text-primary [&_a]:underline [&_a]:underline-offset-2 [&_img]:max-w-full [&_table]:my-3 [&_table]:w-full [&_table]:table-fixed [&_table]:border-collapse [&_td]:border [&_td]:border-border [&_td]:p-2 [&_td]:align-top [&_th]:border [&_th]:border-border [&_th]:bg-muted [&_th]:p-2 [&_th]:text-left [&_th]:font-semibold [&_.selectedCell]:bg-muted/60 [&_.ProseMirror-selectednode]:outline [&_.ProseMirror-selectednode]:outline-2 [&_.ProseMirror-selectednode]:outline-ring",
+          "[&_ul[data-type=taskList]]:list-none [&_ul[data-type=taskList]]:pl-0 [&_ul[data-type=taskList]_li]:flex [&_ul[data-type=taskList]_li]:items-start [&_ul[data-type=taskList]_li]:gap-2 [&_ul[data-type=taskList]_li>label]:mt-[0.4em] [&_ul[data-type=taskList]_li>label]:shrink-0 [&_ul[data-type=taskList]_li>div]:min-w-0 [&_ul[data-type=taskList]_li>div]:flex-1 [&_ul[data-type=taskList]_li[data-checked=true]>div]:text-muted-foreground [&_ul[data-type=taskList]_li[data-checked=true]>div]:line-through [&_ul[data-type=taskList]_li>div>p]:my-0 [&_input[type=checkbox]]:size-4 [&_input[type=checkbox]]:cursor-pointer [&_input[type=checkbox]]:accent-primary [&_a]:break-all [&_a]:text-primary [&_a]:underline [&_a]:underline-offset-2 [&_img]:max-w-full [&_table]:my-3 [&_table]:w-full [&_table]:table-fixed [&_table]:border-collapse [&_td]:border [&_td]:border-border [&_td]:p-2 [&_td]:align-top [&_th]:border [&_th]:border-border [&_th]:bg-muted [&_th]:p-2 [&_th]:text-left [&_th]:font-semibold [&_.selectedCell]:bg-muted/60 [&_.ProseMirror-selectednode]:outline [&_.ProseMirror-selectednode]:outline-2 [&_.ProseMirror-selectednode]:outline-ring",
         ),
         "aria-label": placeholder || "Message",
         ...(placeholder ? { "data-placeholder": placeholder } : {}),
