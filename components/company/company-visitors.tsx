@@ -5,7 +5,10 @@ import { Copy, Download, ExternalLink, Loader2, LogOut, RefreshCw } from "lucide
 import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
+import { InitialAvatar } from "@/components/dashboard/compact-list-row"
+import { MobileDataCard } from "@/components/dashboard/mobile-data-card"
 import { Button } from "@/components/ui/button"
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { CompanyPlan, usePlanBilling, useSubscription } from "@/components/company/company-plan"
@@ -191,22 +194,24 @@ export function CompanyVisitors({ agencyId, companyId, slug }: { agencyId: strin
           <section>
             <h2 className="text-sm font-semibold text-foreground">On site · {onSite.length}</h2>
             {onSite.length ? (
-              <ul className="mt-3 divide-y divide-border overflow-hidden rounded-2xl border border-border bg-background">
+              <div className="mt-3 space-y-2">
                 {onSite.map((visitor) => (
-                  <li key={visitor.id} className="flex items-center gap-3 px-4 py-3">
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium text-foreground">{visitor.name}</p>
-                      <p className="truncate text-xs text-muted-foreground">
-                        {[visitor.visitorCompany, visitor.hostName && `Visiting ${visitor.hostName}`, visitor.reason, visitor.agreement && `Agreed to ${visitor.agreement.title}`, `In at ${time(visitor.signedInAt)}`].filter(Boolean).join(" · ")}
-                      </p>
-                    </div>
-                    <Button type="button" variant="outline" size="sm" onClick={() => void signOut(visitor)} disabled={busyId === visitor.id}>
+                  <MobileDataCard
+                    key={visitor.id}
+                    surface="muted"
+                    iconShape="circle"
+                    icon={<InitialAvatar text={visitor.name} className="size-11" />}
+                    title={visitor.name}
+                    subtitle={[visitor.visitorCompany, visitor.hostName && `Visiting ${visitor.hostName}`, visitor.reason, visitor.agreement && `Agreed to ${visitor.agreement.title}`].filter(Boolean).join(" · ")}
+                    trailing={`In at ${time(visitor.signedInAt)}`}
+                    menuLabel={`Actions for ${visitor.name}`}
+                    menu={<DropdownMenuItem onSelect={() => void signOut(visitor)} disabled={busyId === visitor.id}>
                       {busyId === visitor.id ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <LogOut className="size-4" aria-hidden="true" />}
                       Sign out
-                    </Button>
-                  </li>
+                    </DropdownMenuItem>}
+                  />
                 ))}
-              </ul>
+              </div>
             ) : (
               <p className="mt-2 text-sm text-muted-foreground">No visitors right now.</p>
             )}
@@ -215,23 +220,19 @@ export function CompanyVisitors({ agencyId, companyId, slug }: { agencyId: strin
           <section>
             <h2 className="text-sm font-semibold text-foreground">Past visits</h2>
             {past.length ? (
-              <ul className="mt-3 divide-y divide-border overflow-hidden rounded-2xl border border-border bg-background">
+              <div className="mt-3 space-y-2">
                 {past.map((visitor) => (
-                  <li key={visitor.id} className="flex items-center gap-3 px-4 py-3">
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium text-foreground">{visitor.name}</p>
-                      <p className="truncate text-xs text-muted-foreground">
-                        {[visitor.visitorCompany, visitor.hostName && `Visited ${visitor.hostName}`, visitor.reason, visitor.agreement && `Agreed to ${visitor.agreement.title}`, visitor.phone || visitor.email].filter(Boolean).join(" · ") || "—"}
-                      </p>
-                    </div>
-                    <p className="shrink-0 text-right text-xs text-muted-foreground">
-                      {day(visitor.signedInAt)}
-                      <br />
-                      {time(visitor.signedInAt)}{visitor.signedOutAt ? `–${time(visitor.signedOutAt)}` : ""}
-                    </p>
-                  </li>
+                  <MobileDataCard
+                    key={visitor.id}
+                    surface="muted"
+                    iconShape="circle"
+                    icon={<InitialAvatar text={visitor.name} className="size-11" />}
+                    title={visitor.name}
+                    subtitle={[visitor.visitorCompany, visitor.hostName && `Visited ${visitor.hostName}`, visitor.reason, visitor.agreement && `Agreed to ${visitor.agreement.title}`, visitor.phone || visitor.email].filter(Boolean).join(" · ") || "—"}
+                    trailing={<>{day(visitor.signedInAt)}<br />{time(visitor.signedInAt)}{visitor.signedOutAt ? `–${time(visitor.signedOutAt)}` : ""}</>}
+                  />
                 ))}
-              </ul>
+              </div>
             ) : (
               <p className="mt-3 text-sm text-muted-foreground">No visits yet.</p>
             )}

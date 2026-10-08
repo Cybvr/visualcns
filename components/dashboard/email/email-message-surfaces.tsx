@@ -1,11 +1,12 @@
 import { Archive, ArrowLeft, CheckCircle2, ChevronLeft, ChevronRight, Clock, FileText, Forward, Inbox, Mail, MailOpen, Paperclip, Reply, Trash2, X } from "lucide-react"
+import type { ReactNode } from "react"
 
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { CompactListSkeleton } from "@/components/dashboard/compact-list-row"
 import { cn } from "@/lib/utils"
 import type { EmailDraftRecord } from "@/lib/email-drafts"
-import { EmailListHeader, EmailListRow } from "./email-list-row"
+import { EmailListRow } from "./email-list-row"
 import { ReceivedAttachmentGallery } from "./received-attachment-gallery"
 import type { ReceivedAttachment, ReceivedMessage, SentMessage } from "./types"
 
@@ -24,11 +25,12 @@ function senderAddress(value: string) {
 const MOBILE_LIST_CARD = "max-sm:overflow-hidden max-sm:rounded-2xl max-sm:border max-sm:border-border max-sm:bg-card max-sm:[&>[data-mobile-row]~[data-mobile-row]]:border-t max-sm:[&>[data-mobile-row]~[data-mobile-row]]:border-border"
 
 export type EmailMessageSurfacesProps = {
-  tab: "inbox" | "drafts" | "messages"
+  tab: "inbox" | "updates" | "drafts" | "messages"
   receivedMessages: ReceivedMessage[]
   visibleReceivedMessages: ReceivedMessage[]
   receivedLoading: boolean
   receivedError: string
+  onRetryReceived: () => void
   selectedReceived: ReceivedMessage | null
   selectedReceivedId: string | null
   loadingReceivedId: string | null
@@ -48,6 +50,7 @@ export type EmailMessageSurfacesProps = {
   onMarkReceivedRead: () => void
   onMarkReceivedUnread: () => void
   onToggleReceivedRead: (message: ReceivedMessage) => void
+  receivedSortControl?: ReactNode
   drafts: EmailDraftRecord[]
   visibleDrafts: EmailDraftRecord[]
   selectedDraftIds: string[]
@@ -90,6 +93,7 @@ export function EmailMessageSurfaces({
   visibleReceivedMessages,
   receivedLoading,
   receivedError,
+  onRetryReceived,
   selectedReceived,
   selectedReceivedId,
   loadingReceivedId,
@@ -109,6 +113,7 @@ export function EmailMessageSurfaces({
   onMarkReceivedRead,
   onMarkReceivedUnread,
   onToggleReceivedRead,
+  receivedSortControl,
   drafts,
   visibleDrafts,
   selectedDraftIds,
@@ -144,7 +149,7 @@ export function EmailMessageSurfaces({
   cleanSenderDisplay,
   isScheduledPastDue,
 }: EmailMessageSurfacesProps) {
-  if (tab === "inbox") {
+  if (tab === "inbox" || tab === "updates") {
     const selectedReceivedIndex = selectedReceived ? visibleReceivedMessages.findIndex((message) => message.id === selectedReceived.id) : -1
     const selectedReceivedIsRead = selectedReceived ? readReceivedIds.includes(selectedReceived.id) : false
     return (
@@ -152,11 +157,16 @@ export function EmailMessageSurfaces({
         "flex min-h-0 w-full min-w-0 max-w-full flex-1 flex-col gap-4 lg:gap-6",
         selectedReceived ? "lg:overflow-hidden" : "lg:overflow-y-auto",
       )} role="tabpanel">
+        {receivedError && (
+          <div role="alert" className="flex items-center justify-between gap-3 border-b border-destructive/30 bg-destructive/5 px-4 py-3 text-xs leading-5 text-destructive">
+            <span>{receivedError}</span>
+            <Button type="button" variant="outline" size="sm" onClick={onRetryReceived} disabled={receivedLoading}>Try again</Button>
+          </div>
+        )}
         <aside className={cn(
           "min-h-0 shrink-0 overflow-hidden",
           mobileMessageView === "list" ? "block" : "hidden",
         )}>
-          {receivedError && <div className="border-b border-destructive/30 bg-destructive/5 px-4 py-3 text-xs leading-5 text-destructive">{receivedError}</div>}
           <div className={cn("flex min-h-12 items-center gap-1 border-b border-border px-2 py-1.5", selectedReceivedIds.length === 0 && "max-sm:hidden")}>
             <input
               type="checkbox"
@@ -168,6 +178,7 @@ export function EmailMessageSurfaces({
             <span className="mr-auto px-2 text-xs text-muted-foreground">
               {selectedReceivedIds.length > 0 ? `${selectedReceivedIds.length} selected` : `${receivedMessages.filter((message) => !readReceivedIds.includes(message.id)).length} unread`}
             </span>
+            {receivedSortControl}
             <Button type="button" variant="ghost" size="icon" className="size-8" onClick={onArchiveReceived} disabled={selectedReceivedIds.length === 0} aria-label="Archive selected messages" title="Archive selected messages"><Archive className="size-4" aria-hidden="true" /></Button>
             <Button type="button" variant="ghost" size="icon" className="size-8" onClick={onMarkReceivedRead} disabled={selectedReceivedIds.length === 0} aria-label="Mark selected messages as read" title="Mark as read"><MailOpen className="size-4" aria-hidden="true" /></Button>
             <Button type="button" variant="ghost" size="icon" className="size-8" onClick={onMarkReceivedUnread} disabled={selectedReceivedIds.length === 0} aria-label="Mark selected messages as unread" title="Mark as unread"><Mail className="size-4" aria-hidden="true" /></Button>
@@ -175,12 +186,11 @@ export function EmailMessageSurfaces({
           {receivedLoading && receivedMessages.length === 0 ? (
             <CompactListSkeleton rows={5} />
           ) : receivedMessages.length === 0 ? (
-            <div className="px-4 py-10 text-center"><Inbox className="mx-auto size-5 text-muted-foreground" aria-hidden="true" /><p className="mt-3 text-sm font-medium">No received messages</p><p className="mt-1 text-xs leading-5 text-muted-foreground">Visitor sign-ups and messages sent to your Resend receiving address will appear here.</p></div>
+            <div className="px-4 py-10 text-center"><Inbox className="mx-auto size-5 text-muted-foreground" aria-hidden="true" /><p className="mt-3 text-sm font-medium">{tab === "updates" ? "No updates" : "No received messages"}</p><p className="mt-1 text-xs leading-5 text-muted-foreground">{tab === "updates" ? "Visitor sign-ups and help requests appear here." : "Email sent to your connected inbox appears here."}</p></div>
           ) : visibleReceivedMessages.length === 0 ? (
             <div className="px-4 py-10 text-center text-sm text-muted-foreground">No messages match your search.</div>
           ) : (
             <div className={MOBILE_LIST_CARD}>
-              <EmailListHeader primaryLabel="From" dateLabel="Received" compact={Boolean(selectedReceived)} selectable />
               {visibleReceivedMessages.map((message) => (
                 <EmailListRow
                   key={message.id}
@@ -198,6 +208,7 @@ export function EmailMessageSurfaces({
                   checked={selectedReceivedIds.includes(message.id)}
                   onCheckedChange={(checked) => onToggleReceived(message.id, checked)}
                   unread={!readReceivedIds.includes(message.id)}
+                  read={readReceivedIds.includes(message.id)}
                   preview={snippet(message.text)}
                   deleteLabel={`Delete message from ${message.from}`}
                   ariaLabel={`Open received email: ${message.subject}`}
@@ -225,7 +236,7 @@ export function EmailMessageSurfaces({
               <div className="px-8 pb-6 pt-7">
                 <div className="flex items-center gap-3">
                   <h2 className="min-w-0 text-2xl font-normal leading-tight tracking-tight">{selectedReceived.subject || "(No subject)"}</h2>
-                  <span className="shrink-0 rounded bg-muted px-2 py-0.5 text-xs text-muted-foreground">Inbox</span>
+                  <span className="shrink-0 rounded bg-muted px-2 py-0.5 text-xs text-muted-foreground">{tab === "updates" ? "Updates" : "Inbox"}</span>
                 </div>
                 <div className="mt-7 flex items-start gap-3">
                   <span className={cn("flex size-10 shrink-0 items-center justify-center rounded-full text-sm font-semibold", contactAvatarTone(selectedReceived.from))} aria-hidden="true">{contactInitials(resolveName(selectedReceived.from), selectedReceived.from).slice(0, 1)}</span>
@@ -295,7 +306,7 @@ export function EmailMessageSurfaces({
           {drafts.length === 0 ? <div className="px-4 py-10 text-center"><FileText className="mx-auto size-5 text-muted-foreground" aria-hidden="true" /><p className="mt-3 text-sm font-medium">No drafts</p><p className="mt-1 text-xs leading-5 text-muted-foreground">Saved drafts will appear here.</p></div> : visibleDrafts.length === 0 ? <div className="px-4 py-10 text-center text-sm text-muted-foreground">No drafts match your search.</div> : (
             <div className={MOBILE_LIST_CARD}>
               <div className={cn("flex min-h-12 items-center gap-1 border-b border-border px-2 py-1.5", selectedDraftIds.length === 0 && "max-sm:hidden")}><input type="checkbox" checked={visibleDrafts.length > 0 && visibleDrafts.every((draft) => selectedDraftIds.includes(draft.id))} onChange={(event) => onToggleAllDrafts(event.target.checked)} aria-label="Select all visible drafts" className={cn("ml-1 size-4 shrink-0 accent-primary", selectedDraftIds.length === 0 && "max-sm:hidden")} /><span className="mr-auto px-2 text-xs text-muted-foreground">{selectedDraftIds.length ? `${selectedDraftIds.length} selected` : `${drafts.length} drafts`}</span><Button type="button" variant="ghost" size="icon" className="size-8" onClick={onDeleteSelectedDrafts} disabled={selectedDraftIds.length === 0} aria-label="Delete selected drafts" title="Delete selected drafts"><Trash2 className="size-4" aria-hidden="true" /></Button></div>
-              <EmailListHeader primaryLabel="To" dateLabel="Updated" selectable />{visibleDrafts.map((draft) => {
+              {visibleDrafts.map((draft) => {
               const recipient = draft.to ? resolveName(draft.to) : (draft.listId ? "Contact list" : "No recipient selected")
               return (
                 <EmailListRow
@@ -330,7 +341,7 @@ export function EmailMessageSurfaces({
         {messages.length === 0 ? <div className="px-4 py-10 text-center"><Inbox className="mx-auto size-5 text-muted-foreground" aria-hidden="true" /><p className="mt-3 text-sm font-medium">No sent messages</p><p className="mt-1 text-xs leading-5 text-muted-foreground">Your sent emails will appear here.</p></div> : visibleMessages.length === 0 ? <div className="px-4 py-10 text-center text-sm text-muted-foreground">No messages match your search.</div> : (
           <div className={MOBILE_LIST_CARD}>
             <div className={cn("flex min-h-12 items-center gap-1 border-b border-border px-2 py-1.5", selectedMessageIds.length === 0 && "max-sm:hidden")}><input type="checkbox" checked={visibleMessages.length > 0 && visibleMessages.every((message) => selectedMessageIds.includes(message.id))} onChange={(event) => onToggleAllMessages(event.target.checked)} aria-label="Select all visible sent messages" className={cn("ml-1 size-4 shrink-0 accent-primary", selectedMessageIds.length === 0 && "max-sm:hidden")} /><span className="mr-auto px-2 text-xs text-muted-foreground">{selectedMessageIds.length ? `${selectedMessageIds.length} selected` : `${messages.length} sent`}</span><Button type="button" variant="ghost" size="icon" className="size-8" onClick={onDeleteSelectedMessages} disabled={selectedMessageIds.length === 0} aria-label="Delete selected sent messages" title="Delete selected sent messages"><Trash2 className="size-4" aria-hidden="true" /></Button></div>
-            <EmailListHeader primaryLabel="To" dateLabel="Sent" compact={Boolean(selectedSent)} selectable />{visibleMessages.map((message) => (
+            {visibleMessages.map((message) => (
             <EmailListRow
               key={message.id}
               title={resolveName(message.to, message.recipients?.[0]?.name)}

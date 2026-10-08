@@ -2,7 +2,7 @@ import type { EmailTemplateRecord } from "@/lib/email-templates-store"
 import type { EmailContactList } from "@/lib/email-lists"
 import type { EmailMessageRecord, EmailRecipient } from "@/lib/email-messages"
 
-export type EmailTab = "inbox" | "drafts" | "templates" | "messages" | "bin" | "lists"
+export type EmailTab = "inbox" | "updates" | "drafts" | "templates" | "messages" | "bin" | "lists"
 export type EmailMessageKind = "transactional" | "marketing"
 
 export type EmailTemplate = Omit<EmailTemplateRecord, "companyId" | "createdBy"> & Partial<Pick<EmailTemplateRecord, "companyId" | "createdBy">>
@@ -11,6 +11,7 @@ export type ContactList = Omit<EmailContactList, "companyId" | "createdBy"> & Pa
 
 export type ReceivedMessage = {
   id: string
+  unread?: boolean
   threadId?: string | null
   from: string
   to: string[]

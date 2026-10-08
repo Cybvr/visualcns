@@ -5,7 +5,9 @@ import { Loader2, UserPlus, X } from "lucide-react"
 import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
+import { MobileDataCard } from "@/components/dashboard/mobile-data-card"
 import { Button } from "@/components/ui/button"
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import type { PlanKey } from "@/lib/subscription"
 
@@ -115,19 +117,22 @@ export function TeamInvitePanel({ info, call, onChange }: {
       {full && !error && <p className="text-xs text-muted-foreground">You&apos;ve used all {info.limit} seats. Upgrade your plan to add more people.</p>}
       {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
       {info.pending.length > 0 && (
-        <ul className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-background">
+        <div className="space-y-2">
           {info.pending.map((pending) => (
-            <li key={pending.id} className="flex items-center gap-3 px-4 py-2.5">
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm text-foreground">{pending.email}</p>
-                <p className="text-xs text-muted-foreground">Invited · waiting to accept</p>
-              </div>
-              <Button type="button" variant="ghost" size="sm" onClick={() => void cancel(pending.id)} disabled={busy === pending.id} aria-label={`Cancel invite for ${pending.email}`}>
+            <MobileDataCard
+              key={pending.id}
+              surface="muted"
+              icon={<UserPlus className="size-5 text-muted-foreground" aria-hidden="true" />}
+              title={pending.email}
+              subtitle="Invited · waiting to accept"
+              menuLabel={`Actions for ${pending.email}`}
+              menu={<DropdownMenuItem disabled={busy === pending.id} onSelect={() => void cancel(pending.id)}>
                 {busy === pending.id ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <X className="size-4" aria-hidden="true" />}
-              </Button>
-            </li>
+                Cancel invite
+              </DropdownMenuItem>}
+            />
           ))}
-        </ul>
+        </div>
       )}
     </div>
   )

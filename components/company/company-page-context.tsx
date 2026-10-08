@@ -142,7 +142,7 @@ export function CompanyPageProvider({
     || (appUser?.role === "admin" && Boolean(appUser.agencyId) && appUser.agencyId === company.agencyId)
     || (Boolean(appUser?.companyId) && appUser?.companyId === company.id)
   const sections = useMemo(() => {
-    const visible = COMPANY_SECTIONS.filter((item) => item.key !== "visitors" || canSeeVisitors)
+    const visible = COMPANY_SECTIONS.filter((item) => (item.key !== "visitors" && item.key !== "messages") || canSeeVisitors)
     if (mode !== "routes") return [...visible]
     const about = visible.find((item) => item.key === "about")!
     const find = (key: CompanySectionKey) => visible.find((item) => item.key === key)
@@ -151,7 +151,9 @@ export function CompanyPageProvider({
       { ...about, label: "Home", icon: House },
       find("projects"),
       find("tasks"),
+      find("messages"),
       find("drive"),
+      find("finance"),
       find("pulse"),
       find("visitors"),
       activity && { ...activity, label: "Notifications", icon: Bell },
@@ -274,7 +276,7 @@ export function CompanyPageProvider({
   const value: CompanyPageValue = {
     ...data,
     documents: data.documents ?? [],
-    emptyProjectsLabel: data.emptyProjectsLabel ?? "No projects yet.",
+    emptyProjectsLabel: data.emptyProjectsLabel ?? "No jobs yet.",
     isAdmin,
     canSeeVisitors,
     // The company's own staff and agency admins manage the team; each person is a seat.

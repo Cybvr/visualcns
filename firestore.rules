@@ -162,6 +162,18 @@ service cloud.firestore {
       allow update: if agencyAdmin(resource.data) && sameAgency(request.resource.data);
       allow delete: if agencyAdmin(resource.data);
     }
+    // The shared conversation between a company's people and the agency.
+    match /companyMessages/{id} {
+      allow read: if agencyAdmin(resource.data) || owns(resource.data);
+      allow create: if (agencyAdmin(request.resource.data) || owns(request.resource.data))
+        && request.resource.data.authorUid == request.auth.uid
+        && request.resource.data.body is string
+        && request.resource.data.body.size() > 0
+        && request.resource.data.body.size() <= 2000
+        && request.resource.data.side in ['agency', 'company'];
+      allow update: if false;
+      allow delete: if agencyAdmin(resource.data);
+    }
     match /documents/{id} {
       allow read: if agencyAdmin(resource.data) || owns(resource.data)
         || (signedIn() && request.auth.uid in resource.data.get('sharedWithUserIds', []));

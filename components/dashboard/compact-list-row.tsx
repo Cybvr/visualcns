@@ -1,11 +1,12 @@
 "use client"
 
 import Link from "next/link"
-import { Check, EllipsisVertical } from "lucide-react"
+import { Check } from "lucide-react"
 import type { ReactNode } from "react"
 
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Skeleton } from "@/components/ui/skeleton"
+import { MobileDataCard } from "@/components/dashboard/mobile-data-card"
 import { cn } from "@/lib/utils"
 
 type CompactListRowProps = {
@@ -88,6 +89,7 @@ export function InitialAvatar({ text, className }: { text: string; className?: s
 }
 
 type MobileListRowProps = {
+  className?: string
   avatar: ReactNode
   /** Menu opened by tapping the avatar. */
   avatarMenu?: ReactNode
@@ -110,7 +112,7 @@ type MobileListRowProps = {
 }
 
 /** Mobile list row: avatar, title with meta on the right, then a line or two. Only shows below sm. */
-export function MobileListRow({ avatar, avatarMenu, onAvatarClick, avatarPressed, avatarLabel = "More options", title, titleClassName, meta, metaClassName, lines = [], lineClassNames = [], trailing, active, href, onClick, ariaLabel }: MobileListRowProps) {
+export function MobileListRow({ className, avatar, avatarMenu, onAvatarClick, avatarPressed, avatarLabel = "More options", title, titleClassName, meta, metaClassName, lines = [], lineClassNames = [], trailing, active, href, onClick, ariaLabel }: MobileListRowProps) {
   const body = (
     <>
       <span className="flex items-baseline gap-2">
@@ -126,7 +128,7 @@ export function MobileListRow({ avatar, avatarMenu, onAvatarClick, avatarPressed
   const avatarButtonClass = "shrink-0 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring"
 
   return (
-    <div data-mobile-row className={cn("flex items-center gap-3 px-4 py-3.5 sm:hidden", active && "bg-muted/60")}>
+    <div data-mobile-row className={cn("flex items-center gap-3 px-4 py-3.5 sm:hidden", className, active && "bg-muted/60")}>
       {avatarMenu ? (
         <DropdownMenu modal={false}>
           <DropdownMenuTrigger asChild>
@@ -151,23 +153,8 @@ export function MobileListRow({ avatar, avatarMenu, onAvatarClick, avatarPressed
   )
 }
 
-/**
- * One list row. Desktop: the quiet two-line row. Mobile: avatar, title with meta on the right and
- * a second line, like the email inbox. On mobile the avatar opens the row's menu.
- */
+/** One list item: the shared data card on desktop, and the compact row on mobile. */
 export function CompactListRow({ title, avatarText, meta, subtitle, mobileSubtitle, leading, trailing, menu, menuLabel = "More options", active, href, onClick, ariaLabel, className, mobile = true }: CompactListRowProps) {
-  const content = (
-    <>
-      <span className={cn("sidebar-nav-label block truncate font-medium text-sidebar-foreground/70", active && "text-sidebar-accent-foreground")}>{title}</span>
-      {mobileSubtitle !== undefined ? (
-        <>
-          <span className="block truncate text-[11px] font-normal leading-tight text-muted-foreground sm:hidden">{mobileSubtitle}</span>
-          {subtitle !== undefined && <span className="hidden truncate text-[11px] font-normal leading-tight text-muted-foreground sm:block">{subtitle}</span>}
-        </>
-      ) : subtitle !== undefined && <span className="block truncate text-[11px] font-normal leading-tight text-muted-foreground">{subtitle}</span>}
-    </>
-  )
-
   const avatarSource = avatarText ?? (typeof title === "string" ? title : "")
   const mobileRow = mobile && (
     <MobileListRow
@@ -188,24 +175,21 @@ export function CompactListRow({ title, avatarText, meta, subtitle, mobileSubtit
   return (
     <>
     {mobileRow}
-    <div className={cn("flex min-h-12 items-center gap-2 border-b border-border/60 px-1 py-2 transition-colors hover:bg-muted/50 max-sm:hidden", active && "bg-muted/50", className)}>
-      {leading && <div className="shrink-0">{leading}</div>}
-      {href ? (
-        <Link href={href} aria-label={ariaLabel} aria-current={active ? "true" : undefined} className="flex min-h-11 min-w-0 flex-1 flex-col justify-center rounded-md text-left outline-none focus-visible:ring-2 focus-visible:ring-ring">{content}</Link>
-      ) : onClick ? (
-        <button type="button" onClick={onClick} aria-label={ariaLabel} aria-current={active ? "true" : undefined} className="flex min-h-11 min-w-0 flex-1 flex-col justify-center rounded-md text-left outline-none focus-visible:ring-2 focus-visible:ring-ring">{content}</button>
-      ) : (
-        <div className="min-w-0 flex-1">{content}</div>
-      )}
-      {trailing && <div className="shrink-0">{trailing}</div>}
-      {menu && <DropdownMenu modal={false}>
-        <DropdownMenuTrigger asChild>
-          <button type="button" aria-label={menuLabel} title={menuLabel} className="flex size-11 shrink-0 items-center justify-center rounded-md text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring">
-            <EllipsisVertical className="size-4" aria-hidden="true" />
-          </button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">{menu}</DropdownMenuContent>
-      </DropdownMenu>}
+    <div className={cn("hidden sm:mb-2 sm:block", className)}>
+      <MobileDataCard
+        surface="muted"
+        iconShape="circle"
+        icon={leading ?? <InitialAvatar text={avatarSource} className="size-11" />}
+        title={title}
+        subtitle={subtitle}
+        trailing={trailing ?? meta}
+        menu={menu}
+        menuLabel={menuLabel}
+        selected={active}
+        href={href}
+        onClick={onClick}
+        ariaLabel={ariaLabel}
+      />
     </div>
     </>
   )
@@ -214,15 +198,15 @@ export function CompactListRow({ title, avatarText, meta, subtitle, mobileSubtit
 /** Data-only placeholder with the same spacing as CompactListRow. */
 export function CompactListSkeleton({ rows = 6 }: { rows?: number }) {
   return (
-    <div role="status" aria-label="Loading list" aria-busy="true">
+    <div role="status" aria-label="Loading list" aria-busy="true" className="sm:space-y-2">
       {Array.from({ length: rows }, (_, index) => (
-        <div key={index} className="flex min-h-[60px] items-center gap-2 border-b border-border/60 px-1 py-2 max-sm:gap-3 max-sm:border-0 max-sm:px-0 max-sm:py-3">
-          <Skeleton className="size-12 shrink-0 rounded-full sm:hidden" />
+        <div key={index} className="flex min-h-[60px] items-center gap-2 border-b border-border/60 px-1 py-2 max-sm:gap-3 max-sm:border-0 max-sm:px-0 max-sm:py-3 sm:min-h-[68px] sm:gap-3 sm:rounded-xl sm:border-0 sm:bg-muted/50 sm:p-3">
+          <Skeleton className="size-12 shrink-0 rounded-full sm:size-11" />
           <div className="min-w-0 flex-1 space-y-1.5">
             <Skeleton className="h-4 w-[min(70%,15rem)]" />
             <Skeleton className="h-3 w-[min(40%,7rem)]" />
           </div>
-          <Skeleton className="size-11 shrink-0 rounded-md max-sm:hidden" />
+          <Skeleton className="size-8 shrink-0 rounded-full max-sm:hidden" />
         </div>
       ))}
     </div>

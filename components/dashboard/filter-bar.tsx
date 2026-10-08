@@ -267,15 +267,12 @@ export function FilterBar({
     </>
   )
 
-  // Drive-style sort button: shows the active field and direction, opens a menu for both.
+  // Shared icon-only sort button; its accessible name still reports the active order.
   const sortMenu = sorts.length > 0 && (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="shrink-0 gap-2 px-2" aria-label={`Sort by ${active?.label ?? ""}, ${directionLabel}`}>
-          {active?.label ?? "Sort"}
-          <span className="flex size-7 items-center justify-center rounded-full bg-muted">
-            {direction === "asc" ? <ArrowUp className="size-4" /> : <ArrowDown className="size-4" />}
-          </span>
+        <Button type="button" variant="ghost" size="icon" className="size-9 shrink-0 rounded-full bg-muted hover:bg-muted/80" aria-label={`Sort by ${active?.label ?? ""}, ${directionLabel}`} title={`Sort by ${active?.label ?? ""}, ${directionLabel}`}>
+          {direction === "asc" ? <ArrowUp className="size-4" aria-hidden="true" /> : <ArrowDown className="size-4" aria-hidden="true" />}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-56">
@@ -305,7 +302,7 @@ export function FilterBar({
         onChange={(event) => onQueryChange(event.target.value)}
         placeholder={placeholder}
         aria-label={placeholder}
-        className="pl-9 pr-9 [&::-webkit-search-cancel-button]:hidden"
+        className="border-b-0 pl-9 pr-9 [&::-webkit-search-cancel-button]:hidden"
       />
       {query && (
         <button

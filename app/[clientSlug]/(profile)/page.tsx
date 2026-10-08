@@ -19,7 +19,7 @@ export default function CompanyHomePage() {
 
   // Older links put the section in ?tab=, and shared task and document links were /{slug}?task= and ?doc=.
   const tab = searchParams.get("tab")
-  const legacySection = tab === "media" || tab === "documents" ? "drive" : isCompanySection(tab) && tab !== "about" ? tab : searchParams.get("task") ? "tasks" : searchParams.get("doc") ? "drive" : null
+  const legacySection = tab === "media" || tab === "documents" ? (searchParams.get("doc") && !searchParams.get("doc")?.startsWith("document:") ? "finance" : "drive") : isCompanySection(tab) && tab !== "about" ? tab : searchParams.get("task") ? "tasks" : searchParams.get("doc") ? (searchParams.get("doc")?.startsWith("document:") ? "drive" : "finance") : null
 
   useEffect(() => {
     if (!legacySection || redirected.current) return

@@ -1,9 +1,11 @@
 "use client"
 
-import { ExternalLink, Link2, Plus, X } from "lucide-react"
+import { Link2, Plus } from "lucide-react"
 import { useState, type FormEvent } from "react"
 
 import { Button } from "@/components/ui/button"
+import { MobileDataCard } from "@/components/dashboard/mobile-data-card"
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import type { CompanyLink } from "@/lib/organizations"
 
@@ -64,30 +66,17 @@ export function CompanyLinks({
       {links.length > 0 ? (
         <div className="mt-5 space-y-2">
           {links.map((link) => (
-            <div key={link.id} className="flex min-w-0 items-center gap-3 py-1">
-              <Link2 className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-              <a
-                href={externalHref(link.url)}
-                target="_blank"
-                rel="noreferrer"
-                className="min-w-0 flex-1 truncate text-sm font-medium text-foreground underline-offset-4 hover:underline"
-              >
-                <span>{link.label}</span>
-                <span className="ml-2 font-normal text-muted-foreground">{link.url}</span>
-              </a>
-              {onSave && (
-                <button
-                  type="button"
-                  onClick={() => void removeLink(link.id)}
-                  disabled={saving}
-                  aria-label={`Remove ${link.label}`}
-                  className="shrink-0 text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
-                >
-                  <X className="size-4" aria-hidden="true" />
-                </button>
-              )}
-              <ExternalLink className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-            </div>
+            <MobileDataCard
+              key={link.id}
+              surface="muted"
+              icon={<Link2 className="size-5 text-muted-foreground" aria-hidden="true" />}
+              title={link.label}
+              subtitle={link.url}
+              onClick={() => window.open(externalHref(link.url), "_blank", "noopener,noreferrer")}
+              ariaLabel={`Open ${link.label}`}
+              menuLabel={`Options for ${link.label}`}
+              menu={onSave ? <DropdownMenuItem variant="destructive" disabled={saving} onSelect={() => void removeLink(link.id)}>Remove link</DropdownMenuItem> : undefined}
+            />
           ))}
         </div>
       ) : !adding ? (

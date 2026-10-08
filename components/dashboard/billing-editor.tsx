@@ -99,7 +99,7 @@ export function EditorCard({
   className?: string
 }) {
   return (
-    <section className={cn("rounded-2xl border border-border bg-background p-4", className)}>
+    <section className={cn("rounded-2xl bg-muted/50 p-4", className)}>
       {(title || action) && (
         <div className="mb-3 flex items-center justify-between gap-3">
           {title && <h2 className="billing-editor-section">{title}</h2>}
@@ -246,9 +246,9 @@ export function EditorDeleteCard({
         onClick={() => setOpen(true)}
         aria-label={`Delete ${label}`}
         title={`Delete ${label}`}
-        className="billing-editor-delete grid size-11 shrink-0 place-items-center rounded-xl text-destructive outline-none transition-colors hover:bg-destructive/10 focus-visible:ring-2 focus-visible:ring-ring"
+        className="billing-editor-delete grid size-8 shrink-0 place-items-center rounded-md text-destructive outline-none transition-colors hover:bg-destructive/10 focus-visible:ring-2 focus-visible:ring-ring"
       >
-        <Trash2 className="size-5" aria-hidden="true" />
+        <Trash2 className="size-4" aria-hidden="true" />
       </button>
       <AlertDialog open={open} onOpenChange={(next) => !deleting && setOpen(next)}>
         <AlertDialogContent>
@@ -297,19 +297,19 @@ export function EditorActionBar({
   deleteAction?: ReactNode
 }) {
   return (
-    <div className="sticky bottom-0 z-20 -mx-4 mt-2 flex items-center gap-2 border-t border-border bg-background px-4 py-3 sm:rounded-b-2xl md:-bottom-6">
+    <div className="sticky bottom-0 z-20 -mx-4 mt-2 flex items-center gap-2 border-t border-border bg-card px-4 py-2 sm:rounded-b-2xl md:-bottom-6">
       {deleteAction}
-      <Button type="button" onClick={onPreview} aria-label="Preview" className="billing-editor-action ml-auto h-11 shrink-0 rounded-xl bg-primary/10 px-3 text-primary shadow-none hover:bg-primary/15">
+      <Button type="button" variant="secondary" size="sm" onClick={onPreview} aria-label="Preview" className="billing-editor-action ml-auto shrink-0 rounded-md shadow-none">
         <Eye className="size-4" aria-hidden="true" />
         <span className="max-sm:sr-only">Preview</span>
       </Button>
       {onSend && (
-        <Button type="button" onClick={onSend} disabled={saving} aria-label="Send" title="Save and open email draft" className="billing-editor-action h-11 shrink-0 rounded-xl bg-primary/10 px-3 text-primary shadow-none hover:bg-primary/15">
+        <Button type="button" variant="secondary" size="sm" onClick={onSend} disabled={saving} aria-label="Send" title="Save and open email draft" className="billing-editor-action shrink-0 rounded-md shadow-none">
           <Mail className="size-4" aria-hidden="true" />
           <span className="max-sm:sr-only">Send</span>
         </Button>
       )}
-      <Button type="submit" disabled={saving} className="billing-editor-action h-11 shrink-0 rounded-xl bg-primary px-5 text-primary-foreground hover:bg-primary/90">
+      <Button type="submit" size="sm" disabled={saving} className="billing-editor-action shrink-0 rounded-md">
         {saving && <Loader2 className="mr-2 size-4 animate-spin" aria-hidden="true" />}
         {saveLabel}
       </Button>

@@ -13,7 +13,7 @@
   --surface-nav-line-height: 1.25rem;
   --surface-section-label-size: 0.75rem;
   --surface-section-label-line-height: 1rem;
-  --background: #e9eef6;
+  --background: #f9fafe;
   --foreground: oklch(0.145 0 0);
   --muted: oklch(0.97 0 0);
   --muted-foreground: oklch(0.556 0 0);
@@ -25,6 +25,8 @@
   --input: oklch(0.922 0 0);
   --primary: oklch(0.567 0.237 267.896);
   --primary-foreground: oklch(0.985 0 0);
+  --button: #d3e3fd;
+  --button-foreground: #1f2937;
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
   --accent: oklch(0.97 0 0);
@@ -43,7 +45,7 @@
   --sidebar-foreground: var(--foreground);
   --sidebar-primary: var(--primary);
   --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent: #d3e3fd;
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: var(--primary);
@@ -80,6 +82,8 @@
   --input: oklch(1 0 0 / 15%);
   --primary: oklch(0.567 0.237 267.896);
   --primary-foreground: oklch(0.985 0 0);
+  --button: #d3e3fd;
+  --button-foreground: #1f2937;
   --secondary: oklch(0.269 0 0);
   --secondary-foreground: oklch(0.985 0 0);
   --accent: oklch(0.269 0 0);
@@ -116,6 +120,8 @@
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  --color-button: var(--button);
+  --color-button-foreground: var(--button-foreground);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
@@ -209,7 +215,7 @@
     width: 100% !important;
     border: 1px solid var(--border) !important;
     border-radius: 0.75rem !important;
-    background: var(--background) !important;
+    background: var(--card) !important;
     padding: 0 0.875rem !important;
     color: var(--foreground);
   }
@@ -243,6 +249,10 @@
   }
   .billing-editor :is(.billing-editor-row-label, .billing-editor-delete, .billing-editor-action) {
     font-weight: 600 !important;
+  }
+  .billing-editor .billing-editor-action {
+    font-size: 0.8125rem !important;
+    line-height: 1.125rem !important;
   }
   .billing-editor .billing-editor-total-label {
     font-size: 0.9375rem !important;
@@ -798,11 +808,25 @@
   .dashboard-sidebar .sidebar-nav-label {
     font-size: 0.875rem !important;
     line-height: 1.5rem !important;
-    font-weight: 500 !important;
+    font-weight: 400 !important;
   }
 
-  .dashboard-sidebar [data-slot="sidebar-menu-button"]:is(:hover, [data-active="true"], [data-state="open"]),
-  .dashboard-sidebar [data-slot="sidebar-menu-sub-button"]:is(:hover, [data-active="true"]) {
+  .dashboard-sidebar :is([data-slot="sidebar-menu-button"], [data-slot="sidebar-menu-sub-button"])[data-active="true"] .sidebar-nav-label {
+    font-weight: 600 !important;
+  }
+
+  .dashboard-sidebar :is([data-slot="sidebar-menu-button"], [data-slot="sidebar-menu-sub-button"]) {
+    border-radius: 9999px;
+  }
+
+  .dashboard-sidebar [data-slot="sidebar-menu-button"]:hover,
+  .dashboard-sidebar [data-slot="sidebar-menu-sub-button"]:hover {
+    background-color: var(--muted) !important;
+    color: var(--sidebar-accent-foreground) !important;
+  }
+
+  .dashboard-sidebar [data-slot="sidebar-menu-button"]:is([data-active="true"], [data-state="open"]),
+  .dashboard-sidebar [data-slot="sidebar-menu-sub-button"][data-active="true"] {
     background-color: var(--sidebar-accent) !important;
     color: var(--sidebar-accent-foreground) !important;
   }

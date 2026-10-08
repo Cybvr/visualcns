@@ -9,7 +9,7 @@ export default async function CompanySectionPage({ params, searchParams }: { par
   if (section === "brand-health") redirect(`/${encodeURIComponent(clientSlug)}/pulse`)
   if (section === "activity") redirect(`/${encodeURIComponent(clientSlug)}/notifications`)
   if (section === "team") redirect(`/${encodeURIComponent(clientSlug)}`)
-  if (section === "media" || section === "documents") redirect(`/${encodeURIComponent(clientSlug)}/drive${doc ? `?doc=${encodeURIComponent(doc)}` : ""}`)
+  if (section === "media" || section === "documents") redirect(`/${encodeURIComponent(clientSlug)}/${doc && !doc.startsWith("document:") ? "finance" : "drive"}${doc ? `?doc=${encodeURIComponent(doc)}` : ""}`)
   if (section === "notifications") return <CompanySection section="activity" />
   if (!isCompanySection(section) || section === "about") redirect(`/${encodeURIComponent(clientSlug)}`)
   return <CompanySection section={section} />

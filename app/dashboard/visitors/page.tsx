@@ -2,17 +2,17 @@
 
 import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
-import { EllipsisVertical, Loader2, LogOut } from "lucide-react"
+import { Loader2, LogOut } from "lucide-react"
 import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
-import { TableRowsSkeleton } from "@/components/dashboard/collection-skeletons"
+import { MobileCardsSkeleton } from "@/components/dashboard/collection-skeletons"
 import { CompactListSkeleton, InitialAvatar, MOBILE_LIST_CARD, MobileListRow } from "@/components/dashboard/compact-list-row"
+import { MobileDataCard } from "@/components/dashboard/mobile-data-card"
 import { Button } from "@/components/ui/button"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { TableFilterBar } from "@/components/dashboard/table-filter-bar"
 import { useFilterBar } from "@/components/dashboard/filter-bar"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { getOrganizations } from "@/lib/organizations"
 import { signOutVisitor, visitDay, visitTime, watchAgencyVisitors, watchVisitors, type Visitor } from "@/lib/visitors"
 import { cn } from "@/lib/utils"
@@ -110,7 +110,7 @@ export default function VisitorsPage() {
       ) : visitors === null ? (
         <div className="mt-5 min-w-0">
           <div className="sm:hidden"><CompactListSkeleton /></div>
-          <div className="hidden sm:block"><TableRowsSkeleton headers={["Visitor", "Host", "Visit", ""]} /></div>
+          <div className="hidden sm:block"><MobileCardsSkeleton /></div>
         </div>
       ) : rows.length === 0 ? (
         <div className="mt-16 text-center">
@@ -162,63 +162,32 @@ export default function VisitorsPage() {
               )
             })}
           </ul>
-          <div className="hidden min-w-0 sm:block">
-            <Table className="w-full table-fixed">
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Visitor</TableHead>
-                  <TableHead>Host</TableHead>
-                  <TableHead className="w-32">Visit</TableHead>
-                  <TableHead className="w-12 text-right"><span className="sr-only">Actions</span></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {rows.map((visitor) => {
-                  const company = companyNames[visitor.companyId]
-                  const companyName = visitor.companyName || company?.name || ""
-                  const onSite = visitor.status === "on_site"
-                  return (
-                    <TableRow key={visitor.id}>
-                      <TableCell className="max-w-0">
-                        <div className="flex min-w-0 items-center gap-3">
-                          <span className={cn("size-2 shrink-0 rounded-full", onSite ? "bg-emerald-500" : "bg-border")} aria-label={onSite ? "In the building" : "Signed out"} />
-                          <span className="min-w-0">
-                            <span className="block truncate font-medium">{visitor.name}</span>
-                            <span className="block truncate text-muted-foreground">
-                              {agencyView && companyName ? (
-                                <><Link href={`/dashboard/clients/${encodeURIComponent(company?.slug || visitor.companyId)}?tab=visitors`} className="hover:text-foreground hover:underline">{companyName}</Link>{visitor.visitorCompany && ` · ${visitor.visitorCompany}`}</>
-                              ) : visitor.visitorCompany || (onSite ? "In the building" : "Signed out")}
-                            </span>
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="max-w-0">
-                        <span className="block truncate">{visitor.hostName || "—"}</span>
-                        <span className="block truncate text-muted-foreground">{visitor.reason || "—"}</span>
-                      </TableCell>
-                      <TableCell className="max-w-0 text-muted-foreground">
-                        <span className="block">{visitDay(visitor.signedInAt)}</span>
-                        <span className="block truncate" title={`${visitTime(visitor.signedInAt)}${visitor.signedOutAt ? `–${visitTime(visitor.signedOutAt)}` : ""}`}>{visitTime(visitor.signedInAt)}{visitor.signedOutAt ? `–${visitTime(visitor.signedOutAt)}` : ""}</span>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {onSite && (
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button type="button" variant="ghost" size="icon" className="size-8 text-muted-foreground hover:text-foreground" disabled={busyId === visitor.id} aria-label={`Actions for ${visitor.name}`}>
-                                {busyId === visitor.id ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <EllipsisVertical className="size-4" aria-hidden="true" />}
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onSelect={() => void signOut(visitor)}>Sign out</DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  )
-                })}
-              </TableBody>
-            </Table>
+          <div className="hidden space-y-2 sm:block">
+            {rows.map((visitor) => {
+              const company = companyNames[visitor.companyId]
+              const companyName = visitor.companyName || company?.name || ""
+              const onSite = visitor.status === "on_site"
+              return (
+                <MobileDataCard
+                  key={visitor.id}
+                  surface="muted"
+                  iconShape="circle"
+                  icon={<InitialAvatar text={visitor.name} className="size-11" />}
+                  title={visitor.name}
+                  subtitle={[agencyView && companyName, visitor.visitorCompany, visitor.hostName && `Visiting ${visitor.hostName}`].filter(Boolean).join(" · ") || (onSite ? "In the building" : "Signed out")}
+                  description={[
+                    visitor.reason,
+                    onSite ? "In the building" : `Signed out${visitor.signedOutAt ? ` at ${visitTime(visitor.signedOutAt)}` : ""}`,
+                  ].filter(Boolean).join(" · ")}
+                  trailing={`${visitDay(visitor.signedInAt)} · ${visitTime(visitor.signedInAt)}`}
+                  menuLabel={`Actions for ${visitor.name}`}
+                  menu={onSite || (agencyView && companyName) ? <>
+                    {agencyView && companyName && <DropdownMenuItem asChild><Link href={`/dashboard/clients/${encodeURIComponent(company?.slug || visitor.companyId)}?tab=visitors`}>View client</Link></DropdownMenuItem>}
+                    {onSite && <DropdownMenuItem onSelect={() => void signOut(visitor)} disabled={busyId === visitor.id}>Sign out</DropdownMenuItem>}
+                  </> : undefined}
+                />
+              )
+            })}
           </div>
         </div>
       )}

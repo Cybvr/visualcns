@@ -3,7 +3,9 @@
 import { useEffect, useState } from "react"
 import { useAuth } from "@/components/auth-provider"
 import { AccountNav } from "@/components/account/account-nav"
-import { DashboardPageSkeleton } from "@/components/dashboard/dashboard-page-skeleton"
+import { MobileCardsSkeleton } from "@/components/dashboard/collection-skeletons"
+import { MobileDataCard } from "@/components/dashboard/mobile-data-card"
+import { InitialAvatar } from "@/components/dashboard/compact-list-row"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -14,7 +16,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { Button } from "@/components/ui/button"
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 
 type AgencyRow = { id: string; name?: string; status?: string; plan?: string; updatedAt?: unknown }
 
@@ -68,25 +70,29 @@ export default function AgencyOperationsPage() {
     finally { setDeleting(false) }
   }
 
-  if (loading || busy) return <main className="mx-auto w-full max-w-4xl px-4 py-10 sm:px-6"><AccountNav /><h1 className="mt-7 text-xl font-semibold">Agency management</h1><div className="mt-6 border border-border"><DashboardPageSkeleton rows={5} /></div></main>
+  if (loading || busy) return <main className="mx-auto w-full max-w-4xl px-4 py-10 sm:px-6"><AccountNav /><h1 className="mt-7 text-xl font-semibold">Agency management</h1><div className="mt-6"><MobileCardsSkeleton rows={5} /></div></main>
   if (role !== "superadmin") return <main className="mx-auto w-full max-w-4xl px-4 py-10 sm:px-6"><AccountNav /><p className="mt-6 text-sm text-muted-foreground">This area is restricted to platform operations.</p></main>
 
   return <main className="mx-auto w-full max-w-4xl px-4 py-10 sm:px-6">
     <AccountNav />
     <h1 className="mt-7 text-xl font-semibold">Agency management</h1>
     {error && <p className="mt-4 text-sm text-destructive">{error}</p>}
-    <div className="mt-6 divide-y divide-border border border-border">
-      {agencies.map((agency) => <div key={agency.id} className="flex flex-wrap items-center justify-between gap-4 p-4">
-        <div><p className="font-medium">{agency.name || agency.id}</p><p className="text-xs text-muted-foreground">{agency.id} · {agency.plan || "trial"}</p></div>
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-muted-foreground">{agency.id === ownAgencyId ? "current agency" : agency.status || "unknown"}</span>
-          {agency.id !== ownAgencyId && <>
-            <Button size="sm" variant="outline" onClick={() => void setStatus(agency.id, agency.status === "suspended" ? "active" : "suspended")}>{agency.status === "suspended" ? "Reactivate" : "Suspend"}</Button>
-            <Button size="sm" variant="destructive" onClick={() => setDeleteTarget(agency)}>Delete</Button>
-          </>}
-        </div>
-      </div>)}
-      {!agencies.length && <p className="p-4 text-sm text-muted-foreground">No agencies have been provisioned yet.</p>}
+    <div className="mt-6 space-y-2">
+      {agencies.map((agency) => <MobileDataCard
+        key={agency.id}
+        surface="muted"
+        iconShape="circle"
+        icon={<InitialAvatar text={agency.name || agency.id} className="size-11" />}
+        title={agency.name || agency.id}
+        subtitle={`${agency.id} · ${agency.plan || "trial"}`}
+        trailing={agency.id === ownAgencyId ? "Current agency" : agency.status || "Unknown"}
+        menuLabel={`Options for ${agency.name || agency.id}`}
+        menu={agency.id !== ownAgencyId ? <>
+          <DropdownMenuItem onSelect={() => void setStatus(agency.id, agency.status === "suspended" ? "active" : "suspended")}>{agency.status === "suspended" ? "Reactivate" : "Suspend"}</DropdownMenuItem>
+          <DropdownMenuItem variant="destructive" onSelect={() => setDeleteTarget(agency)}>Delete agency</DropdownMenuItem>
+        </> : undefined}
+      />)}
+      {!agencies.length && <p className="py-4 text-sm text-muted-foreground">No agencies have been provisioned yet.</p>}
     </div>
     <AlertDialog open={Boolean(deleteTarget)} onOpenChange={(open) => { if (!open && !deleting) setDeleteTarget(null) }}>
       <AlertDialogContent>

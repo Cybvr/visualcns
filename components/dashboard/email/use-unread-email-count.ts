@@ -9,7 +9,7 @@ export const UNREAD_EMAIL_COUNT_EVENT = "visualcns-email-unread-count"
 export const EMAIL_NOTIFICATION_PREFERENCE_EVENT = "visualcns-email-notification-preference"
 export const EMAIL_INBOX_REFRESH_EVENT = "visualcns-email-inbox-refresh"
 
-type InboxMessage = { id: string; from: string; subject: string }
+type InboxMessage = { id: string; from: string; subject: string; unread?: boolean }
 
 async function showNewEmailNotifications(messages: InboxMessage[]) {
   if (!("Notification" in window) || Notification.permission !== "granted") return
@@ -77,7 +77,7 @@ export function useUnreadEmailCount() {
           getHiddenReceivedIds(workspaceId).catch(() => [] as string[]),
         ])
         if (!response.ok) return
-        const result = (await response.json()) as { data?: InboxMessage[]; partial?: boolean }
+        const result = (await response.json()) as { data?: InboxMessage[]; partial?: boolean; source?: string }
         if (result.partial) return
         const messages = Array.isArray(result.data) ? result.data : []
         let readIds: string[] = []
@@ -87,15 +87,17 @@ export function useUnreadEmailCount() {
         } catch { /* Treat an invalid saved value as no messages read. */ }
         const read = new Set(readIds)
         const hidden = new Set(hiddenIds)
+        const inboxMessages = result.source === "gmail" ? messages.filter((message) => message.id.startsWith("gmail:")) : messages
+        const isUnread = (message: InboxMessage) => result.source === "gmail" ? Boolean(message.unread) : !hidden.has(message.id) && !read.has(message.id)
         if (active && currentRequest === requestId) {
-          setCount(messages.filter((message) => !hidden.has(message.id) && !read.has(message.id)).length)
-          window.dispatchEvent(new CustomEvent(EMAIL_INBOX_REFRESH_EVENT, { detail: { workspaceId, messages } }))
+          setCount(inboxMessages.filter(isUnread).length)
+          window.dispatchEvent(new CustomEvent(EMAIL_INBOX_REFRESH_EVENT, { detail: { workspaceId, messages, source: result.source } }))
           try {
             const stored = localStorage.getItem(seenStorageKey)
             const parsed = stored ? JSON.parse(stored) : []
             const seen = new Set<string>(Array.isArray(parsed) ? parsed.filter((id): id is string => typeof id === "string") : [])
             const newlyReceived = stored !== null && !suppressNotifications && localStorage.getItem(preferenceStorageKey) === "enabled"
-              ? messages.filter((message) => !seen.has(message.id) && !hidden.has(message.id) && !read.has(message.id))
+              ? inboxMessages.filter((message) => !seen.has(message.id) && isUnread(message))
               : []
             localStorage.setItem(seenStorageKey, JSON.stringify([...new Set([...messages.map((message) => message.id), ...seen])].slice(0, 300)))
             if (newlyReceived.length > 0) {

@@ -189,7 +189,7 @@ export function AppSidebar({
                           <link.icon className="h-4 w-4" />
                           <span className={cn("sidebar-nav-label", link.href === "/dashboard/email" && unreadEmailCount > 0 && "font-semibold")}>{link.label}</span>
                           {link.href === "/dashboard/email" && unreadEmailCount > 0 && (
-                            <span className="ml-auto rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-bold leading-none tabular-nums text-primary-foreground group-data-[collapsible=icon]:absolute group-data-[collapsible=icon]:-right-1 group-data-[collapsible=icon]:-top-1" aria-hidden="true">
+                            <span className="ml-auto rounded-full bg-button px-1.5 py-0.5 text-[10px] font-bold leading-none tabular-nums text-button-foreground group-data-[collapsible=icon]:absolute group-data-[collapsible=icon]:-right-1 group-data-[collapsible=icon]:-top-1" aria-hidden="true">
                               {unreadEmailCount > 99 ? "99+" : unreadEmailCount}
                             </span>
                           )}

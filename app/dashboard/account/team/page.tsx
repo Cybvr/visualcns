@@ -7,7 +7,9 @@ import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
 import { AccountHeader, AccountNav } from "@/components/account/account-nav"
-import { Skeleton } from "@/components/ui/skeleton"
+import { InitialAvatar } from "@/components/dashboard/compact-list-row"
+import { MobileCardsSkeleton } from "@/components/dashboard/collection-skeletons"
+import { MobileDataCard } from "@/components/dashboard/mobile-data-card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -24,10 +26,6 @@ type Invite = {
 function inviteExpiry(invite: Invite): number {
   const seconds = invite.expiresAt?._seconds ?? invite.expiresAt?.seconds
   return seconds ? seconds * 1000 : 0
-}
-
-function initial(value: string) {
-  return value.trim().charAt(0).toUpperCase() || "?"
 }
 
 /**
@@ -166,59 +164,45 @@ export default function AccountTeamPage() {
       {loading ? (
         <section className="mt-8" role="status" aria-label="Loading members">
           <h2 className="text-sm font-medium">Members</h2>
-          <ul className="mt-2 divide-y divide-border rounded-xl border border-border">
-            {Array.from({ length: 4 }, (_, index) => <li key={index} className="flex items-center gap-3 p-3">
-              <Skeleton className="size-9 shrink-0 rounded-full" />
-              <div className="min-w-0 flex-1 space-y-2"><Skeleton className="h-4 w-40 max-w-full" /><Skeleton className="h-3 w-56 max-w-full" /></div>
-              <Skeleton className="h-3 w-16 shrink-0" />
-            </li>)}
-          </ul>
+          <div className="mt-2"><MobileCardsSkeleton rows={4} /></div>
         </section>
       ) : (
         <>
           <section className="mt-8">
             <h2 className="text-sm font-medium">Members</h2>
-            <ul className="mt-2 divide-y divide-border rounded-xl border border-border">
-              {members.length === 0 && <li className="p-3 text-sm text-muted-foreground">No team members yet.</li>}
+            <div className="mt-2 space-y-2">
+              {members.length === 0 && <p className="py-3 text-sm text-muted-foreground">No team members yet.</p>}
               {members.map((member) => (
-                <li key={member.uid} className="flex items-center gap-3 p-3">
-                  {member.photoURL ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={member.photoURL} alt="" referrerPolicy="no-referrer" className="size-9 shrink-0 rounded-full object-cover" />
-                  ) : (
-                    <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-medium text-muted-foreground">
-                      {initial(member.displayName || member.email || "")}
-                    </span>
-                  )}
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium">
-                      {member.displayName || member.email}
-                      {member.uid === user?.uid && <span className="ml-1.5 text-xs font-normal text-muted-foreground">(you)</span>}
-                    </p>
-                    <p className="truncate text-xs text-muted-foreground">{member.email}</p>
-                  </div>
-                  <span className="shrink-0 text-xs text-muted-foreground">{userRoleLabel(member.role)}</span>
-                </li>
+                <MobileDataCard
+                  key={member.uid}
+                  surface="muted"
+                  iconShape="circle"
+                  imageUrl={member.photoURL || undefined}
+                  icon={!member.photoURL ? <InitialAvatar text={member.displayName || member.email || ""} className="size-11" /> : undefined}
+                  title={<>{member.displayName || member.email}{member.uid === user?.uid && <span className="ml-1.5 text-xs font-normal text-muted-foreground">(you)</span>}</>}
+                  subtitle={member.email}
+                  trailing={userRoleLabel(member.role)}
+                />
               ))}
-            </ul>
+            </div>
           </section>
 
           {invites.length > 0 && (
             <section className="mt-8">
               <h2 className="text-sm font-medium">Pending invites</h2>
-              <ul className="mt-2 divide-y divide-border rounded-xl border border-border">
+              <div className="mt-2 space-y-2">
                 {invites.map((invite) => (
-                  <li key={invite.id} className="flex items-center gap-3 p-3">
-                    <span className="flex size-9 shrink-0 items-center justify-center rounded-full border border-dashed border-border text-sm text-muted-foreground">
-                      {initial(invite.email)}
-                    </span>
-                    <p className="min-w-0 flex-1 truncate text-sm">{invite.email}</p>
-                    <span className="shrink-0 text-xs text-muted-foreground">
-                      Expires {new Date(inviteExpiry(invite)).toLocaleDateString()}
-                    </span>
-                  </li>
+                  <MobileDataCard
+                    key={invite.id}
+                    surface="muted"
+                    iconShape="circle"
+                    icon={<InitialAvatar text={invite.email} className="size-11" />}
+                    title={invite.email}
+                    subtitle="Pending invite"
+                    trailing={`Expires ${new Date(inviteExpiry(invite)).toLocaleDateString()}`}
+                  />
                 ))}
-              </ul>
+              </div>
             </section>
           )}
         </>

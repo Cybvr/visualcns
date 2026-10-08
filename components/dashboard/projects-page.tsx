@@ -14,22 +14,15 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Eye, Loader2, Trash2 } from "lucide-react"
+import { Loader2 } from "lucide-react"
 import { FaFolderOpen } from "react-icons/fa"
 import { getProjects, deleteProject, projectSlug, projectStatusMeta, type Project } from "@/lib/projects"
 import { NewProjectDialog } from "@/components/dashboard/new-project-dialog"
 import { CompactListSkeleton, InitialAvatar, MOBILE_LIST_CARD, MobileListRow, CheckAvatar } from "@/components/dashboard/compact-list-row"
-import { GridCardsSkeleton, TableRowsSkeleton } from "@/components/dashboard/collection-skeletons"
+import { GridCardsSkeleton, MobileCardsSkeleton } from "@/components/dashboard/collection-skeletons"
+import { MobileDataCard } from "@/components/dashboard/mobile-data-card"
 import { ReactIcon } from "@/components/react-icon"
 import { ProjectCover } from "@/components/project-card"
 import { GridCard, GridCardList } from "@/components/dashboard/grid-card"
@@ -165,7 +158,7 @@ export default function ProjectsAdminPage() {
       {loading ? (
         view === "grid" ? <GridCardsSkeleton /> : <>
           <div className="sm:hidden"><CompactListSkeleton /></div>
-          <div className="hidden sm:block"><TableRowsSkeleton headers={["", "Project", "Client", "Status", "Updated", ""]} /></div>
+          <div className="hidden sm:block"><MobileCardsSkeleton /></div>
         </>
       ) : error ? (
         <Card>
@@ -258,96 +251,37 @@ export default function ProjectsAdminPage() {
                 </ul>
               </div>
 
-              <div className="hidden rounded-lg border border-border sm:block">
-              <TableBulkBar
-                count={selection.selectedCount}
-                noun="project"
-                deleting={bulkDeleting}
-                onClear={selection.clear}
-                onDelete={handleBulkDelete}
-              />
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-10">
-                      <Checkbox
-                        aria-label="Select all projects"
-                        checked={selection.allSelected}
-                        indeterminate={selection.someSelected}
-                        onChange={selection.toggleAll}
-                      />
-                    </TableHead>
-                    <TableHead>Project</TableHead>
-                    <TableHead>Client</TableHead>
-                    <TableHead>Service</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Progress</TableHead>
-                    <TableHead>Due</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {visibleProjects.map((p) => {
-                    const meta = projectStatusMeta[p.status] ?? projectStatusMeta["in-progress"]
-                    return (
-                      <TableRow
-                        key={p.id}
-                        className="cursor-pointer"
-                        onClick={() => router.push(`/dashboard/projects/${projectSlug(p)}`)}
-                      >
-                        <TableCell onClick={(e) => e.stopPropagation()}>
-                          <Checkbox
-                            aria-label={`Select ${p.title}`}
-                            checked={selection.isSelected(p.id)}
-                            onChange={() => selection.toggle(p.id)}
-                          />
-                        </TableCell>
-                        <TableCell className="font-medium">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span>{p.title}</span>
-                            {p.isCaseStudy && (
-                              <span className="rounded-full bg-violet-100 px-2 py-0.5 text-xs font-medium text-violet-700 dark:bg-violet-950 dark:text-violet-200">
-                                Case study
-                              </span>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">{p.client || p.companyId}</TableCell>
-                        <TableCell className="text-muted-foreground">{p.service || "—"}</TableCell>
-                        <TableCell>
-                          <span className={cn("rounded-full px-2 py-0.5 text-xs font-medium", meta.className)}>
-                            {meta.label}
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">{p.progress}%</TableCell>
-                        <TableCell className="text-muted-foreground">{p.dueDate || "—"}</TableCell>
-                        <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                          <div className="flex justify-end gap-1">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                              onClick={() => router.push(`/dashboard/projects/${projectSlug(p)}`)}
-                              aria-label={`Open ${p.title}`}
-                            >
-                              <Eye className="h-3.5 w-3.5" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                              aria-label="Delete project"
-                              onClick={() => setPendingDelete(p)}
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    )
-                  })}
-                </TableBody>
-              </Table>
+              <div className="hidden space-y-2 sm:block">
+                <TableBulkBar count={selection.selectedCount} noun="project" deleting={bulkDeleting} onClear={selection.clear} onDelete={handleBulkDelete} />
+                <label className="flex items-center gap-2 py-1 text-sm text-muted-foreground">
+                  <Checkbox aria-label="Select all projects" checked={selection.allSelected} indeterminate={selection.someSelected} onChange={selection.toggleAll} />
+                  Select all projects
+                </label>
+                {visibleProjects.map((p) => {
+                  const meta = projectStatusMeta[p.status] ?? projectStatusMeta["in-progress"]
+                  const href = `/dashboard/projects/${projectSlug(p)}`
+                  const selected = selection.isSelected(p.id)
+                  return <MobileDataCard
+                    key={p.id}
+                    surface="muted"
+                    iconShape="circle"
+                    imageUrl={p.thumbnailUrl || undefined}
+                    icon={!p.thumbnailUrl ? <InitialAvatar text={p.title} className="size-11" /> : undefined}
+                    title={<>{p.title}{p.isCaseStudy && <span className="ml-2 text-xs text-violet-700 dark:text-violet-200">Case study</span>}</>}
+                    subtitle={[p.client || p.companyId, p.service].filter(Boolean).join(" · ") || "No details"}
+                    description={`${meta.label} · ${p.progress}% done${p.dueDate ? ` · Due ${p.dueDate}` : ""}`}
+                    selected={selected}
+                    pressed={selected}
+                    onClick={(event) => selection.selectedCount > 0 ? selection.toggle(p.id, event.shiftKey) : router.push(href)}
+                    ariaLabel={`Open ${p.title}`}
+                    menuLabel={`Options for ${p.title}`}
+                    menu={<>
+                      <DropdownMenuItem onSelect={() => router.push(href)}>Open project</DropdownMenuItem>
+                      <DropdownMenuItem onSelect={() => selection.toggle(p.id)}>{selected ? "Deselect" : "Select"}</DropdownMenuItem>
+                      <DropdownMenuItem variant="destructive" onSelect={() => setPendingDelete(p)}>Delete project</DropdownMenuItem>
+                    </>}
+                  />
+                })}
               </div>
             </>
           )}

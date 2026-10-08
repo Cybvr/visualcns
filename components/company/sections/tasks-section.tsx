@@ -1,15 +1,17 @@
 "use client"
 
-import Link from "next/link"
-import { ChevronRight, ListTodo } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { ListTodo } from "lucide-react"
 
 import { CompanyEmptyState } from "@/components/company/empty-state"
 import { useCompanyPage } from "@/components/company/company-page-context"
 import { TaskDetailSheet } from "@/components/company/task-detail-sheet"
 import { TasksView } from "@/components/dashboard/tasks-view"
+import { MobileDataCard } from "@/components/dashboard/mobile-data-card"
 import { taskStatusMeta } from "@/lib/tasks"
 
 export function TasksSection() {
+  const router = useRouter()
   const { company, projects, admin, tasks, tasksLoading, deletingTaskId, patchTask, removeTask, refreshTasks, sectionHref } = useCompanyPage()
 
   function taskHref(id: string) {
@@ -37,31 +39,20 @@ export function TasksSection() {
       {tasks.length === 0 ? (
         <CompanyEmptyState icon={ListTodo} title="No shared tasks yet" />
       ) : (
-        <ul className="mt-4 divide-y divide-border rounded-lg border border-border">
+        <div className="mt-4 space-y-2">
           {tasks.map((task) => (
-            <li key={task.id}>
-              <Link
-                href={taskHref(task.id)}
-                scroll={false}
-                className="flex w-full flex-wrap items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
-                aria-label={`View task: ${task.name}`}
-              >
-                <div className="min-w-0">
-                  <p className="font-medium text-foreground">{task.name}</p>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    {[task.project, task.dueDate ? `Due ${task.dueDate}` : null].filter(Boolean).join(" · ")}
-                  </p>
-                </div>
-                <span className="flex items-center gap-2">
-                  <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-foreground">
-                    {(taskStatusMeta[task.status] ?? taskStatusMeta.todo).label}
-                  </span>
-                  <ChevronRight className="size-4 text-muted-foreground" aria-hidden="true" />
-                </span>
-              </Link>
-            </li>
+            <MobileDataCard
+              key={task.id}
+              surface="muted"
+              icon={<ListTodo className="size-5 text-muted-foreground" aria-hidden="true" />}
+              title={task.name}
+              subtitle={[task.project, task.dueDate ? `Due ${task.dueDate}` : null].filter(Boolean).join(" · ")}
+              trailing={(taskStatusMeta[task.status] ?? taskStatusMeta.todo).label}
+              onClick={() => router.push(taskHref(task.id), { scroll: false })}
+              ariaLabel={`View task: ${task.name}`}
+            />
           ))}
-        </ul>
+        </div>
       )}
       <TaskDetailSheet />
     </section>

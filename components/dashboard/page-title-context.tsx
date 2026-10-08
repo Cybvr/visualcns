@@ -8,11 +8,19 @@ export interface PageHeaderOverride {
   homeHref?: string
 }
 
+export interface PageHeaderSearch {
+  query: string
+  onQueryChange: (value: string) => void
+  placeholder: string
+}
+
 interface PageTitleContextValue {
   override: PageHeaderOverride | null
   setOverride: Dispatch<SetStateAction<PageHeaderOverride | null>>
   titleNode: ReactNode | null
   setTitleNode: Dispatch<SetStateAction<ReactNode | null>>
+  headerSearch: PageHeaderSearch | null
+  setHeaderSearch: Dispatch<SetStateAction<PageHeaderSearch | null>>
   actions: ReactNode
   setActions: Dispatch<SetStateAction<ReactNode>>
   /** When set, the page's actions stand in for the header's default search and create buttons on phones. */
@@ -37,6 +45,7 @@ const PageTitleContext = createContext<PageTitleContextValue | null>(null)
 export function PageTitleProvider({ children }: { children: ReactNode }) {
   const [override, setOverride] = useState<PageHeaderOverride | null>(null)
   const [titleNode, setTitleNode] = useState<ReactNode | null>(null)
+  const [headerSearch, setHeaderSearch] = useState<PageHeaderSearch | null>(null)
   const [actions, setActions] = useState<ReactNode>(null)
   const [replacesMobileDefaults, setReplacesMobileDefaults] = useState(false)
   const [headerSlot, setHeaderSlot] = useState<HTMLElement | null>(null)
@@ -44,8 +53,8 @@ export function PageTitleProvider({ children }: { children: ReactNode }) {
   const [recordTitle, setRecordTitle] = useState<string | null>(null)
   const [backAction, setBackAction] = useState<{ label: string; onClick: () => void } | null>(null)
   const value = useMemo(
-    () => ({ override, setOverride, titleNode, setTitleNode, actions, setActions, replacesMobileDefaults, setReplacesMobileDefaults, headerSlot, setHeaderSlot, hideMobileFooter, setHideMobileFooter, recordTitle, setRecordTitle, backAction, setBackAction }),
-    [override, titleNode, actions, replacesMobileDefaults, headerSlot, hideMobileFooter, recordTitle, backAction],
+    () => ({ override, setOverride, titleNode, setTitleNode, headerSearch, setHeaderSearch, actions, setActions, replacesMobileDefaults, setReplacesMobileDefaults, headerSlot, setHeaderSlot, hideMobileFooter, setHideMobileFooter, recordTitle, setRecordTitle, backAction, setBackAction }),
+    [override, titleNode, headerSearch, actions, replacesMobileDefaults, headerSlot, hideMobileFooter, recordTitle, backAction],
   )
   return <PageTitleContext.Provider value={value}>{children}</PageTitleContext.Provider>
 }
@@ -112,6 +121,16 @@ export function usePageHeaderBack(action: { label: string; onClick: () => void }
     setBackAction(action)
     return () => setBackAction(null)
   }, [action, setBackAction])
+}
+
+/** Lets a page use the shared header search field for its own list filter. */
+export function usePageHeaderSearch(search: PageHeaderSearch | null) {
+  const { setHeaderSearch } = usePageHeaderOverride()
+
+  useEffect(() => {
+    setHeaderSearch(search)
+    return () => setHeaderSearch(null)
+  }, [search, setHeaderSearch])
 }
 
 /** Hides the mobile footer nav while `hidden` is true and the caller is mounted. */

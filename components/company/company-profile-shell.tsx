@@ -2,7 +2,7 @@
 
 import { useState, type ReactNode } from "react"
 import Link from "next/link"
-import { LogIn, Share2, UserPlus } from "lucide-react"
+import { Building2, ChevronRight, LogIn, Share2, UserPlus } from "lucide-react"
 
 import { useAuth } from "@/components/auth-provider"
 import { BrandLockup } from "@/components/brand-lockup"
@@ -13,6 +13,7 @@ import { ShareLinkActions } from "@/components/dashboard/share-link-actions"
 import { NavUser } from "@/components/nav-user"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Separator } from "@/components/ui/separator"
 import {
@@ -25,6 +26,9 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
   SidebarProvider,
   SidebarRail,
   SidebarTrigger,
@@ -54,6 +58,8 @@ function CompanyIdentity() {
     </div>
   )
 }
+
+const AGENCY_GROUP = { label: "Agency", keys: ["projects", "tasks", "messages"] as string[] }
 
 const MAX_AVATARS = 4
 
@@ -148,6 +154,37 @@ export function CompanyProfileShell({ children }: { children: ReactNode }) {
   const { company, sections, section, sectionHref } = useCompanyPage()
   const sectionLabel = sections.find((item) => item.key === section)?.label
 
+  // Jobs, Tasks and Messages sit together under one Agency dropdown, where the first of them falls.
+  type SectionItem = (typeof sections)[number]
+  const entries: Array<{ type: "item"; item: SectionItem } | { type: "group"; items: SectionItem[] }> = []
+  for (const item of sections) {
+    if (!AGENCY_GROUP.keys.includes(item.key)) entries.push({ type: "item", item })
+    else {
+      const group = entries.find((entry) => entry.type === "group")
+      if (group && group.type === "group") group.items.push(item)
+      else entries.push({ type: "group", items: [item] })
+    }
+  }
+
+  function renderItem(item: SectionItem) {
+    const Icon = item.icon
+    return (
+      <SidebarMenuItem key={item.key}>
+        <SidebarMenuButton
+          asChild
+          isActive={section === item.key}
+          tooltip={item.label}
+          className="h-9 gap-2 px-2 max-md:h-12 max-md:min-h-12 max-md:gap-3 max-md:px-3 [&>svg]:size-[18px] [&>svg]:max-md:size-5"
+        >
+          <Link href={sectionHref(item.key)}>
+            {Icon && <Icon className="h-4 w-4" aria-hidden="true" />}
+            <span className="sidebar-nav-label">{item.label}</span>
+          </Link>
+        </SidebarMenuButton>
+      </SidebarMenuItem>
+    )
+  }
+
   return (
     <div className="dashboard-body flex h-svh flex-col overflow-hidden bg-background font-sans [&_*]:font-sans">
       <SidebarProvider className="!min-h-0 flex-1">
@@ -164,22 +201,38 @@ export function CompanyProfileShell({ children }: { children: ReactNode }) {
             <SidebarContent>
               <SidebarGroup className="group-data-[collapsible=icon]:p-1">
                 <SidebarMenu className="gap-0.5 max-md:gap-1.5">
-                  {sections.map((item) => {
-                    const Icon = item.icon
+                  {entries.map((entry) => {
+                    if (entry.type === "item") return renderItem(entry.item)
+                    const open = entry.items.some((item) => item.key === section)
                     return (
-                      <SidebarMenuItem key={item.key}>
-                        <SidebarMenuButton
-                          asChild
-                          isActive={section === item.key}
-                          tooltip={item.label}
-                          className="h-9 gap-2 px-2 max-md:h-12 max-md:min-h-12 max-md:gap-3 max-md:px-3 [&>svg]:size-[18px] [&>svg]:max-md:size-5"
-                        >
-                          <Link href={sectionHref(item.key)}>
-                            {Icon && <Icon className="h-4 w-4" aria-hidden="true" />}
-                            <span className="sidebar-nav-label">{item.label}</span>
-                          </Link>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
+                      <Collapsible key="agency-group" asChild defaultOpen={open} className="group/collapsible">
+                        <SidebarMenuItem>
+                          <CollapsibleTrigger asChild>
+                            <SidebarMenuButton tooltip={AGENCY_GROUP.label} className="h-9 gap-2 px-2 max-md:h-12 max-md:min-h-12 max-md:gap-3 max-md:px-3 [&>svg]:size-[18px] [&>svg]:max-md:size-5">
+                              <Building2 className="h-4 w-4" aria-hidden="true" />
+                              <span className="sidebar-nav-label">{AGENCY_GROUP.label}</span>
+                              <ChevronRight className="ml-auto h-4 w-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" aria-hidden="true" />
+                            </SidebarMenuButton>
+                          </CollapsibleTrigger>
+                          <CollapsibleContent>
+                            <SidebarMenuSub className="gap-0.5">
+                              {entry.items.map((item) => {
+                                const Icon = item.icon
+                                return (
+                                  <SidebarMenuSubItem key={item.key}>
+                                    <SidebarMenuSubButton asChild isActive={section === item.key} className="h-9 gap-2 px-2 max-md:h-11 max-md:min-h-11 max-md:gap-3 max-md:px-3">
+                                      <Link href={sectionHref(item.key)}>
+                                        {Icon && <Icon className="h-4 w-4" aria-hidden="true" />}
+                                        <span className="sidebar-nav-label">{item.label}</span>
+                                      </Link>
+                                    </SidebarMenuSubButton>
+                                  </SidebarMenuSubItem>
+                                )
+                              })}
+                            </SidebarMenuSub>
+                          </CollapsibleContent>
+                        </SidebarMenuItem>
+                      </Collapsible>
                     )
                   })}
                 </SidebarMenu>

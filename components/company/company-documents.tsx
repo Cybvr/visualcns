@@ -26,6 +26,9 @@ export function CompanyDocuments({
   onEdit,
   canAdd = false,
   onAdd,
+  heading = "Documents",
+  addKinds = ["document", "invoice", "contract", "estimate"],
+  emptyDescription = "Proposals, invoices and contracts will appear here.",
 }: {
   invoices: Invoice[]
   contracts: Contract[]
@@ -35,24 +38,28 @@ export function CompanyDocuments({
   onEdit?: (kind: CompanyDocumentKind, id: string) => void
   canAdd?: boolean
   onAdd?: (kind: CompanyDocumentKind) => void
+  heading?: string
+  /** Which kinds the add menu offers. */
+  addKinds?: CompanyDocumentKind[]
+  emptyDescription?: string
 }) {
   const count = invoices.length + contracts.length + estimates.length + documents.length
 
   return (
     <section className="mt-4" aria-labelledby="company-documents-heading">
       <div className="flex items-center justify-between gap-3">
-        <h2 id="company-documents-heading" className="sr-only">Documents</h2>
-        <span className="sidebar-nav-label text-muted-foreground">Documents</span>
+        <h2 id="company-documents-heading" className="sr-only">{heading}</h2>
+        <span className="sidebar-nav-label text-muted-foreground">{heading}</span>
         {canAdd && onAdd && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <SectionAddButton label="Add document" />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onSelect={() => onAdd("document")}>Document</DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => onAdd("invoice")}>Invoice</DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => onAdd("contract")}>Contract</DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => onAdd("estimate")}>Estimate / quote</DropdownMenuItem>
+              {addKinds.includes("document") && <DropdownMenuItem onSelect={() => onAdd("document")}>Document</DropdownMenuItem>}
+              {addKinds.includes("invoice") && <DropdownMenuItem onSelect={() => onAdd("invoice")}>Invoice</DropdownMenuItem>}
+              {addKinds.includes("contract") && <DropdownMenuItem onSelect={() => onAdd("contract")}>Contract</DropdownMenuItem>}
+              {addKinds.includes("estimate") && <DropdownMenuItem onSelect={() => onAdd("estimate")}>Estimate / quote</DropdownMenuItem>}
             </DropdownMenuContent>
           </DropdownMenu>
         )}
@@ -61,8 +68,8 @@ export function CompanyDocuments({
       {count === 0 ? (
         <CompanyEmptyState
           icon={FileText}
-          title="No documents yet"
-          description="Proposals, invoices and contracts will appear here."
+          title={`No ${heading.toLowerCase()} yet`}
+          description={emptyDescription}
         />
       ) : (
         <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3 lg:grid-cols-4">

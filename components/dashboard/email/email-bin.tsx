@@ -7,7 +7,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
-import { EmailListHeader, EmailListRow } from "./email-list-row"
+import { EmailListRow } from "./email-list-row"
 
 export type EmailBinItem = {
   key: string
@@ -93,7 +93,6 @@ export function EmailBin({
             <div className="px-4 py-10 text-center text-sm text-muted-foreground">No emails match your search.</div>
           ) : (
             <div>
-              <EmailListHeader primaryLabel="From / To" dateLabel="Deleted" compact={Boolean(selected)} />
               {visibleItems.map((item) => (
                 <EmailListRow
                   key={item.key}

@@ -107,7 +107,7 @@ export function ProjectsSection() {
             className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
           >
             <ArrowLeft className="size-4" aria-hidden="true" />
-            Back to Projects
+            Back to Jobs
           </button>
           <h2 className="mt-4 text-xl font-semibold tracking-[-0.02em]">{selectedProject.title}</h2>
           <div className="mt-4">
@@ -129,15 +129,15 @@ export function ProjectsSection() {
       ) : (
         <>
           <div className="flex items-center justify-between gap-4">
-            <h2 className="sr-only">Projects</h2>
-            <span className="sidebar-nav-label text-muted-foreground">Projects</span>
+            <h2 className="sr-only">Jobs</h2>
+            <span className="sidebar-nav-label text-muted-foreground">Jobs</span>
             {admin && <SectionAddButton onClick={() => setCreatingProject(true)} label="New project" />}
           </div>
 
           {projects.length === 0 ? (
             <CompanyEmptyState
               icon={Briefcase}
-              title={admin ? "No projects yet" : emptyProjectsLabel}
+              title={admin ? "No jobs yet" : emptyProjectsLabel}
               action={admin ? <SectionAddButton onClick={() => setCreatingProject(true)} label="New project" /> : undefined}
             />
           ) : (

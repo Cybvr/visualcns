@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import { adminServices } from "@/lib/firebase-admin"
 import { cidReferences, inlineCidImages, normalizeCid } from "@/lib/server/inline-email-images"
-import { getGmailAttachment, getGmailMessage, hasStoredGmailConnection, listGmailInbox } from "@/lib/server/google-gmail"
+import { changeGmailMessage, getGmailAttachment, getGmailMessage, hasStoredGmailConnection, listGmailInbox } from "@/lib/server/google-gmail"
 
 type ReceivedEmail = {
   id?: string
@@ -164,11 +164,11 @@ export async function GET(request: Request) {
       try {
         const gmail = await listGmailInbox(agencyId)
         const data = [...gmail.data, ...localMessages].sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""))
-        return NextResponse.json({ data, hasMore: gmail.hasMore })
+        return NextResponse.json({ data, source: "gmail", hasMore: gmail.hasMore, partial: gmail.partial, warning: gmail.partial ? "Some Google messages could not be loaded. Try again to load the rest." : undefined })
       } catch (error) {
         // Show what we have; the next refresh picks up Gmail once it responds.
         console.error("Gmail inbox load failed", error)
-        return NextResponse.json({ data: localMessages, hasMore: false, partial: true })
+        return NextResponse.json({ data: localMessages, source: "gmail", hasMore: false, partial: true, warning: "Google inbox could not be loaded. Try again in a moment." })
       }
     }
     if (!process.env.RESEND_API_KEY) {
@@ -214,4 +214,28 @@ export async function GET(request: Request) {
     return NextResponse.json({ ...payload, html: inlineCidImages(email.html, images), attachments: resendAttachments((email.attachments || []).filter((file) => !(typeof file.content_id === "string" && cids.has(normalizeCid(file.content_id))))) })
   }
   return NextResponse.json(receivedEmailPayload(email))
+}
+
+export async function PATCH(request: Request) {
+  const authorization = request.headers.get("authorization")
+  const idToken = authorization?.startsWith("Bearer ") ? authorization.slice(7) : ""
+  if (!idToken) return NextResponse.json({ error: "Your session has expired. Sign in again and retry." }, { status: 401 })
+  const { auth, db } = adminServices()
+  const decoded = await auth.verifyIdToken(idToken).catch(() => null)
+  if (!decoded) return NextResponse.json({ error: "Your session has expired. Sign in again and retry." }, { status: 401 })
+  const account = (await db.collection("users").doc(decoded.uid).get()).data()
+  const agencyId = typeof account?.agencyId === "string" ? account.agencyId.trim() : ""
+  if (!agencyId || (account?.role !== "admin" && account?.role !== "superadmin")) {
+    return NextResponse.json({ error: "You don't have access to this inbox." }, { status: 403 })
+  }
+  const payload = await request.json().catch(() => ({})) as { id?: string; action?: string }
+  if (!payload.id?.startsWith("gmail:") || !/^gmail:[a-zA-Z0-9]+$/.test(payload.id) || !["read", "unread", "archive", "trash", "restore"].includes(payload.action || "")) {
+    return NextResponse.json({ error: "Invalid Gmail message action." }, { status: 400 })
+  }
+  try {
+    await changeGmailMessage(agencyId, payload.id.slice(6), payload.action as "read" | "unread" | "archive" | "trash" | "restore")
+    return NextResponse.json({ ok: true })
+  } catch (error) {
+    return NextResponse.json({ error: error instanceof Error ? error.message : "Google message could not be updated." }, { status: 502 })
+  }
 }

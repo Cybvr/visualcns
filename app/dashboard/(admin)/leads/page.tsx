@@ -20,6 +20,7 @@ import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
 import { CompactListSkeleton, InitialAvatar, MOBILE_LIST_CARD, MobileListRow, CheckAvatar } from "@/components/dashboard/compact-list-row"
+import { MobileDataCard } from "@/components/dashboard/mobile-data-card"
 import { TableFilterBar } from "@/components/dashboard/table-filter-bar"
 import { useFilterBar } from "@/components/dashboard/filter-bar"
 import { ImportLeadsDialog } from "@/components/dashboard/import-leads-dialog"
@@ -34,7 +35,6 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Textarea } from "@/components/ui/textarea"
 import { getCurrentAgencyId } from "@/lib/agency-scope"
 import { createLead, deleteLead, LEAD_STAGES, updateLead, watchLeads, type Lead, type LeadFields, type LeadStage } from "@/lib/leads"
@@ -257,7 +257,7 @@ export default function LeadsPage() {
 function LeadsViewToggle({ view, onChange }: { view: ViewMode; onChange: (view: ViewMode) => void }) {
   const options = [
     { value: "grid" as const, label: "Board", Icon: Kanban },
-    { value: "list" as const, label: "Table", Icon: Rows3 },
+    { value: "list" as const, label: "Cards", Icon: Rows3 },
   ]
   return (
     <div role="group" aria-label="View" className="flex shrink-0 items-center rounded-full bg-muted p-0.5">
@@ -372,59 +372,37 @@ function LeadsTable({ leads, loading, onOpen, onDelete }: { leads: Lead[]; loadi
           })}
         </ul>
       )}
-      <div className="rounded-lg border border-border max-sm:hidden">
-        {/* Fixed column widths: long values are cut with … and the table scrolls sideways on small screens. */}
-        <Table className="min-w-[1340px] table-fixed">
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-10 px-3">
-                <Checkbox aria-label="Select all leads" checked={selection.allSelected} indeterminate={selection.someSelected} onChange={selection.toggleAll} />
-              </TableHead>
-              <TableHead className="w-[170px]">Name</TableHead>
-              <TableHead className="w-[160px]">Job title</TableHead>
-              <TableHead className="w-[160px]">Company</TableHead>
-              <TableHead className="w-[140px]">Category</TableHead>
-              <TableHead className="w-[220px]">Address</TableHead>
-              <TableHead className="w-[90px]">Reviews</TableHead>
-              <TableHead className="w-[130px]">Phone</TableHead>
-              <TableHead className="w-[180px]">Email</TableHead>
-              <TableHead className="w-[100px]">Stage</TableHead>
-              <TableHead className="w-[90px] text-right">Value</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {leads.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={11} className="py-8 text-center text-muted-foreground">No leads.</TableCell>
-              </TableRow>
-            ) : leads.map((lead) => (
-              <TableRow key={lead.id} className="cursor-pointer" data-state={selection.isSelected(lead.id) ? "selected" : undefined} onClick={() => onOpen(lead)}>
-                <TableCell className="px-3" onClick={(event) => event.stopPropagation()}>
-                  <Checkbox
-                    aria-label={`Select ${lead.name || "lead"}`}
-                    checked={selection.isSelected(lead.id)}
-                    // Shift-click selects every lead between this one and the last one picked.
-                    onChange={(event) => selection.toggle(lead.id, (event.nativeEvent as MouseEvent).shiftKey)}
-                  />
-                </TableCell>
-                <TableCell className="truncate font-medium" title={lead.name}>
-                  <button type="button" onClick={(event) => { event.stopPropagation(); onOpen(lead) }} className="block max-w-full truncate rounded-sm text-left outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring">
-                    {lead.name || "Unnamed lead"}
-                  </button>
-                </TableCell>
-                <TableCell className="truncate" title={lead.title}>{lead.title}</TableCell>
-                <TableCell className="truncate" title={lead.company}>{lead.company}</TableCell>
-                <TableCell className="truncate" title={lead.category}>{lead.category}</TableCell>
-                <TableCell className="truncate" title={lead.address}>{lead.address}</TableCell>
-                <TableCell className="truncate" title={lead.reviews}>{lead.reviews}</TableCell>
-                <TableCell className="truncate" title={lead.phone}>{lead.phone}</TableCell>
-                <TableCell className="truncate" title={lead.email}>{lead.email}</TableCell>
-                <TableCell className="truncate">{STAGE_LABELS.get(lead.stage) ?? lead.stage}</TableCell>
-                <TableCell className="truncate text-right">{formatValue(lead.value)}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+      <div className="hidden space-y-2 sm:block">
+        {leads.length === 0 ? <p className="py-8 text-center text-sm text-muted-foreground">No leads.</p> : <>
+          <label className="flex items-center gap-2 py-1 text-sm text-muted-foreground">
+            <Checkbox aria-label="Select all leads" checked={selection.allSelected} indeterminate={selection.someSelected} onChange={selection.toggleAll} />
+            Select all leads
+          </label>
+          {leads.map((lead) => {
+            const name = lead.name || "Unnamed lead"
+            const selected = selection.isSelected(lead.id)
+            return <MobileDataCard
+              key={lead.id}
+              surface="muted"
+              iconShape="circle"
+              icon={<InitialAvatar text={name} className="size-11" />}
+              title={name}
+              subtitle={[lead.title, lead.company, lead.category].filter(Boolean).join(" · ") || "No details"}
+              description={[lead.address, lead.email || lead.phone, lead.reviews && `${lead.reviews} reviews`].filter(Boolean).join(" · ")}
+              trailing={<><span className="block">{STAGE_LABELS.get(lead.stage) ?? lead.stage}</span><span className="block">{formatValue(lead.value)}</span></>}
+              selected={selected}
+              pressed={selected}
+              onClick={(event) => selection.selectedCount > 0 ? selection.toggle(lead.id, event.shiftKey) : onOpen(lead)}
+              ariaLabel={`Open ${name}`}
+              menuLabel={`Options for ${name}`}
+              menu={<>
+                <DropdownMenuItem onSelect={() => onOpen(lead)}>Open lead</DropdownMenuItem>
+                <DropdownMenuCheckboxItem checked={selected} onCheckedChange={() => selection.toggle(lead.id)}>Select lead</DropdownMenuCheckboxItem>
+                <DropdownMenuItem variant="destructive" onSelect={() => onDelete(lead)}>Delete lead</DropdownMenuItem>
+              </>}
+            />
+          })}
+        </>}
       </div>
     </div>
   )

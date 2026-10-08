@@ -103,10 +103,10 @@ async function gmailFetch<T>(accessToken: string, path: string, init?: RequestIn
   throw new Error("Gmail API request failed.")
 }
 
-async function mapInBatches<T, R>(items: T[], size: number, run: (item: T) => Promise<R>) {
-  const results: R[] = []
+async function settleInBatches<T, R>(items: T[], size: number, run: (item: T) => Promise<R>) {
+  const results: PromiseSettledResult<R>[] = []
   for (let index = 0; index < items.length; index += size) {
-    results.push(...await Promise.all(items.slice(index, index + size).map(run)))
+    results.push(...await Promise.allSettled(items.slice(index, index + size).map(run)))
   }
   return results
 }
@@ -262,6 +262,7 @@ function gmailMessagePayload(message: GmailMessage) {
   const html = findBody(message.payload, "text/html") || null
   return {
     id: message.id ? `gmail:${message.id}` : "",
+    unread: Boolean(message.labelIds?.includes("UNREAD")),
     threadId: message.threadId || null,
     from: headers.from || "",
     to: headers.to ? headers.to.split(",").map((item) => item.trim()).filter(Boolean) : [],
@@ -277,16 +278,42 @@ function gmailMessagePayload(message: GmailMessage) {
   }
 }
 
-type GmailInbox = { data: ReturnType<typeof gmailMessagePayload>[]; hasMore: boolean }
+type GmailInbox = { data: ReturnType<typeof gmailMessagePayload>[]; hasMore: boolean; partial?: boolean }
 const inboxRequests = new Map<string, { promise: Promise<GmailInbox>; expiresAt: number }>()
+
+export function invalidateGmailInbox(agencyId: string) {
+  inboxRequests.delete(agencyId)
+}
+
+export async function changeGmailMessage(agencyId: string, id: string, action: "read" | "unread" | "archive" | "trash" | "restore") {
+  const token = await googleAccessTokenForAgency(agencyId)
+  if (!token) throw new Error("Google mailbox is not connected.")
+  const path = `/messages/${encodeURIComponent(id)}`
+  const init: RequestInit = { method: "POST" }
+  if (action === "read" || action === "unread" || action === "archive") {
+    init.headers = { "Content-Type": "application/json" }
+    init.body = JSON.stringify({
+      addLabelIds: action === "unread" ? ["UNREAD"] : [],
+      removeLabelIds: action === "read" ? ["UNREAD"] : action === "archive" ? ["INBOX"] : [],
+    })
+  }
+  await gmailFetch<GmailMessage>(token, `${path}/${action === "trash" ? "trash" : action === "restore" ? "untrash" : "modify"}`, init)
+  invalidateGmailInbox(agencyId)
+}
 
 async function fetchGmailInbox(agencyId: string): Promise<GmailInbox> {
   const token = await googleAccessTokenForAgency(agencyId)
   if (!token) return { data: [], hasMore: false }
   const list = await gmailFetch<GmailListResponse>(token, "/messages?labelIds=INBOX&maxResults=100")
   const ids = (list.messages || []).map((item) => item.id).filter((id): id is string => Boolean(id))
-  const messages = await mapInBatches(ids, 10, (id) => gmailFetch<GmailMessage>(token, `/messages/${encodeURIComponent(id)}?format=full`))
-  return { data: messages.map(gmailMessagePayload), hasMore: Boolean(list.nextPageToken) }
+  const results = await settleInBatches(ids, 10, async (id) => gmailMessagePayload(
+    await gmailFetch<GmailMessage>(token, `/messages/${encodeURIComponent(id)}?format=full`),
+  ))
+  const messages = results.filter((result): result is PromiseFulfilledResult<ReturnType<typeof gmailMessagePayload>> => result.status === "fulfilled")
+    .map((result) => result.value)
+  const failed = results.find((result): result is PromiseRejectedResult => result.status === "rejected")
+  if (failed && messages.length === 0) throw failed.reason
+  return { data: messages, hasMore: Boolean(list.nextPageToken), partial: Boolean(failed) }
 }
 
 // The inbox page and the unread badge often ask at the same moment; share one Gmail load between them.
@@ -295,7 +322,10 @@ export function listGmailInbox(agencyId: string) {
   if (cached && cached.expiresAt > Date.now()) return cached.promise
   const promise = fetchGmailInbox(agencyId)
   inboxRequests.set(agencyId, { promise, expiresAt: Date.now() + 10_000 })
-  promise.catch(() => { if (inboxRequests.get(agencyId)?.promise === promise) inboxRequests.delete(agencyId) })
+  promise.then(
+    (result) => { if (result.partial && inboxRequests.get(agencyId)?.promise === promise) inboxRequests.delete(agencyId) },
+    () => { if (inboxRequests.get(agencyId)?.promise === promise) inboxRequests.delete(agencyId) },
+  )
   return promise
 }
 

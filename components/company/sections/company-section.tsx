@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation"
 
 import { Pulse } from "@/components/company/pulse"
 import { CompanyMedia } from "@/components/company/company-media"
+import { CompanyMessages } from "@/components/company/company-messages"
 import { CompanyPlan, useSubscription } from "@/components/company/company-plan"
 import { useCompanyPage, type CompanySectionKey } from "@/components/company/company-page-context"
 import { CompanyVisitors } from "@/components/company/company-visitors"
@@ -38,6 +39,11 @@ function DriveSection() {
       {!searchParams.get("doc") && <MediaSection />}
     </>
   )
+}
+
+/** Invoices, estimates and contracts. */
+function FinanceSection() {
+  return <DocumentsSection scope="finance" />
 }
 
 function VisitorsSection() {
@@ -82,6 +88,8 @@ const SECTION_COMPONENTS: Record<CompanySectionKey, ComponentType> = {
   activity: ActivitySection,
   pulse: PulseSection,
   drive: DriveSection,
+  finance: FinanceSection,
+  messages: CompanyMessages,
   visitors: VisitorsSection,
 }
 

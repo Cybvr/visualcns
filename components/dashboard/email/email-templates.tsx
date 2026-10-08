@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
 import type { BusinessProfile } from "@/lib/business-profile"
 import { SIGNUP_WELCOME_TEMPLATE_ID } from "@/lib/email-templates"
-import { EmailListHeader, EmailListRow } from "./email-list-row"
+import { EmailListRow } from "./email-list-row"
 import type { EmailTemplate } from "./types"
 
 export type EmailTemplatesProps = {
@@ -122,7 +122,7 @@ export function EmailTemplates({
         {templates.length === 0 ? <div className="mt-3 rounded-[12px] border border-dashed border-border px-4 py-8 text-center"><FileText className="mx-auto size-5 text-muted-foreground" aria-hidden="true" /><p className="mt-3 text-sm font-medium">No templates yet</p><p className="mt-1 text-xs leading-5 text-muted-foreground">Save the first one using the editor.</p></div> : visibleTemplates.length === 0 ? <div className="mt-3 rounded-[12px] border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground">No templates match your search.</div> : (
           <div>
             <div className="flex min-h-12 items-center gap-1 border-b border-border px-2 py-1.5"><input type="checkbox" checked={visibleTemplates.length > 0 && visibleTemplates.every((template) => selectedTemplateIds.includes(template.id))} onChange={(event) => onToggleAllTemplates(event.target.checked)} aria-label="Select all visible templates" className={cn("ml-1 size-4 shrink-0 accent-primary", selectedTemplateIds.length === 0 && "max-sm:hidden")} /><span className="mr-auto px-2 text-xs text-muted-foreground">{selectedTemplateIds.length ? `${selectedTemplateIds.length} selected` : `${templates.length} templates`}</span><Button type="button" variant="ghost" size="icon" className="size-8" onClick={onDeleteSelectedTemplates} disabled={selectedTemplateIds.length === 0} aria-label="Delete selected templates" title="Delete selected templates"><Trash2 className="size-4" aria-hidden="true" /></Button></div>
-            <EmailListHeader primaryLabel="Template" dateLabel="Updated" selectable />{visibleTemplates.map((template) => (
+            {visibleTemplates.map((template) => (
             <EmailListRow
               key={template.id}
               title={template.name}

@@ -1,14 +1,16 @@
-import { Activity, Briefcase, Eye, HardDrive, HeartPulse, Info, ListTodo, Users } from "lucide-react"
+import { Activity, Briefcase, Eye, HardDrive, HeartPulse, Info, ListTodo, MessageSquare, Users, Wallet } from "lucide-react"
 
 /** The sections of a company page, in menu order. Plain module so server routes can check a section too. */
 export const COMPANY_SECTIONS = [
-  { key: "projects", label: "Projects", icon: Briefcase },
+  { key: "projects", label: "Jobs", icon: Briefcase },
   { key: "tasks", label: "Tasks", icon: ListTodo },
   { key: "about", label: "About", icon: Info },
   { key: "team", label: "Team", icon: Users },
   { key: "activity", label: "Activity", icon: Activity },
   { key: "pulse", label: "Pulse", icon: HeartPulse },
   { key: "drive", label: "Drive", icon: HardDrive },
+  { key: "finance", label: "Finance", icon: Wallet },
+  { key: "messages", label: "Messages", icon: MessageSquare },
   { key: "visitors", label: "Pass", icon: Eye },
 ] as const
 

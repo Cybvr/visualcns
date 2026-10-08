@@ -6,6 +6,7 @@ import {
   ArrowDown,
   ArrowLeft,
   ArrowUp,
+  ArrowDownUp,
   Check,
   CheckCircle2,
   ChevronDown,
@@ -39,12 +40,17 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { FilterBar, MOBILE_CREATE_BUTTON_CLASS, MobileSearchBar, useFilterBar, type SortOption } from "@/components/dashboard/filter-bar"
 import { deleteEmailList, getEmailLists, saveEmailList, type EmailContactList } from "@/lib/email-lists"
@@ -82,7 +88,7 @@ import type {
   SentMessage,
 } from "@/components/dashboard/email/types"
 import { EmailComposer } from "@/components/dashboard/email/email-composer"
-import { useHideMobileFooter } from "@/components/dashboard/page-title-context"
+import { useHideMobileFooter, usePageHeaderSearch } from "@/components/dashboard/page-title-context"
 import { EmailListPicker, EmailLists } from "@/components/dashboard/email/email-lists"
 import { EmailMessageSurfaces } from "@/components/dashboard/email/email-message-surfaces"
 import { EmailBin, type EmailBinItem } from "@/components/dashboard/email/email-bin"
@@ -300,6 +306,7 @@ export default function EmailPage() {
   const [messages, setMessages] = useState<SentMessage[]>([])
   const [trashedMessages, setTrashedMessages] = useState<SentMessage[]>([])
   const [receivedMessages, setReceivedMessages] = useState<ReceivedMessage[]>([])
+  const [inboxSource, setInboxSource] = useState<"gmail" | "other">("other")
   const [hiddenReceivedIds, setHiddenReceivedIds] = useState<Set<string>>(new Set())
   const [trashedReceived, setTrashedReceived] = useState<HiddenReceivedEmail[]>([])
   const [readReceivedIds, setReadReceivedIds] = useState<Set<string>>(new Set())
@@ -387,15 +394,34 @@ export default function EmailPage() {
     defaultSort: "updatedAt",
     defaultDirection: "desc",
   })
-  const activeReceivedMessages = useMemo(
-    () => receivedMessages.filter((message) => !hiddenReceivedIds.has(message.id)),
-    [receivedMessages, hiddenReceivedIds],
+  const inboxReceivedMessages = useMemo(
+    () => receivedMessages.filter((message) => inboxSource === "gmail"
+      ? message.id.startsWith("gmail:")
+      : !hiddenReceivedIds.has(message.id)),
+    [receivedMessages, hiddenReceivedIds, inboxSource],
   )
-  const unreadReceivedCount = activeReceivedMessages.filter((message) => !readReceivedIds.has(message.id)).length
+  const updateMessages = useMemo(
+    () => inboxSource === "gmail" ? receivedMessages.filter((message) => message.id.startsWith("local:") && !hiddenReceivedIds.has(message.id)) : [],
+    [receivedMessages, hiddenReceivedIds, inboxSource],
+  )
+  const activeReceivedMessages = tab === "updates" ? updateMessages : inboxReceivedMessages
+  const isReceivedRead = (message: ReceivedMessage) => inboxSource === "gmail" && message.id.startsWith("gmail:")
+    ? !message.unread
+    : readReceivedIds.has(message.id)
+  const unreadReceivedCount = inboxReceivedMessages.filter((message) => !isReceivedRead(message)).length
+  const unreadUpdateCount = updateMessages.filter((message) => !readReceivedIds.has(message.id)).length
+  const displayedReadIds = new Set(readReceivedIds)
+  if (inboxSource === "gmail") {
+    for (const message of inboxReceivedMessages) {
+      if (message.unread) displayedReadIds.delete(message.id)
+      else displayedReadIds.add(message.id)
+    }
+  }
 
   useEffect(() => {
     successfulInboxRefreshRef.current = 0
     setReceivedMessages([])
+    setInboxSource("other")
     setReceivedError("")
   }, [workspaceId])
 
@@ -405,10 +431,11 @@ export default function EmailPage() {
 
   useEffect(() => {
     function onInboxRefresh(event: Event) {
-      const detail = (event as CustomEvent<{ workspaceId: string; messages: ReceivedMessage[] }>).detail
+      const detail = (event as CustomEvent<{ workspaceId: string; messages: ReceivedMessage[]; source?: string }>).detail
       if (detail?.workspaceId !== workspaceId) return
       successfulInboxRefreshRef.current += 1
       setReceivedError("")
+      setInboxSource(detail.source === "gmail" ? "gmail" : "other")
       setReceivedMessages((current) => {
         const existing = new Map(current.map((message) => [message.id, message]))
         return detail.messages.map((message) => ({
@@ -439,6 +466,7 @@ export default function EmailPage() {
     ...trashedReceived.flatMap((entry): EmailBinItem[] => {
       const message = receivedMessages.find((item) => item.id === entry.receivedId) || entry.message
       if (!entry.trashedAt || !message) return []
+      if (inboxSource === "gmail" && entry.receivedId.startsWith("gmail:") && inboxReceivedMessages.some((item) => item.id === entry.receivedId)) return []
       return [{ key: `received:${entry.receivedId}`, id: entry.receivedId, kind: "received", title: resolveName(message.from), subject: message.subject || "(No subject)", deletedAt: entry.trashedAt, previewHtml: message.html || message.text ? receivedMessagePreview(message) : null }]
     }),
     ...trashedDrafts.flatMap((draft): EmailBinItem[] => draft.trashedAt ? [{ key: `draft:${draft.id}`, id: draft.id, kind: "draft", title: draft.to ? resolveName(draft.to) : "No recipient", subject: draft.subject?.trim() || "(No subject)", deletedAt: draft.trashedAt, previewHtml: draft.body ? formatTemplateBody(draft.body) : null }] : []),
@@ -505,7 +533,9 @@ export default function EmailPage() {
   }, [tab, messages])
 
   useEffect(() => {
-    if (tab === "inbox" || tab === "messages") setMobileMessageView("list")
+    if (tab === "inbox" || tab === "updates" || tab === "messages") setMobileMessageView("list")
+    setSelectedReceivedId(null)
+    setSelectedReceivedIds(new Set())
   }, [tab])
 
   useEffect(() => {
@@ -576,7 +606,7 @@ export default function EmailPage() {
     defaultDirection: "desc",
   })
 
-  const activeFilterBar = tab === "inbox"
+  const activeFilterBar = tab === "inbox" || tab === "updates"
     ? receivedFilterBar
     : tab === "drafts"
       ? draftFilterBar
@@ -589,13 +619,14 @@ export default function EmailPage() {
         : listFilterBar
   const EMAIL_FOLDERS: { key: EmailTab; label: string; icon: typeof Inbox; count: () => number }[] = [
     { key: "inbox", label: "Inbox", icon: Inbox, count: () => unreadReceivedCount },
+    ...(inboxSource === "gmail" ? [{ key: "updates" as EmailTab, label: "Updates", icon: Mail, count: () => unreadUpdateCount }] : []),
     { key: "drafts", label: "Drafts", icon: FileText, count: () => drafts.length },
     { key: "messages", label: "Sent", icon: Send, count: () => messages.length },
     { key: "templates", label: "Templates", icon: FileText, count: () => templates.length },
     { key: "lists", label: "Lists", icon: List, count: () => lists.length },
     { key: "bin", label: "Bin", icon: Trash2, count: () => binItems.length },
   ]
-  const selectedReceived = receivedMessages.find((message) => message.id === selectedReceivedId) || null
+  const selectedReceived = activeReceivedMessages.find((message) => message.id === selectedReceivedId) || null
   const selectedSent = messages.find((message) => message.id === selectedSentId) || null
   const selectedContactName = contacts.find((contact) => recipientEmail(contact.email) === recipientEmail(to))?.name
   const composeRecipientName = selectedContactName || composeContext?.recipientName
@@ -616,13 +647,16 @@ export default function EmailPage() {
         headers: { Authorization: `Bearer ${idToken}` },
         cache: "no-store",
       })
-      const result = (await response.json()) as { data?: ReceivedMessage[]; error?: string; partial?: boolean }
+      const result = (await response.json()) as { data?: ReceivedMessage[]; source?: string; error?: string; partial?: boolean; warning?: string }
       if (!response.ok) throw new Error(result.error || "Received messages could not be loaded.")
       const data = Array.isArray(result.data) ? result.data : []
+      setInboxSource(result.source === "gmail" ? "gmail" : "other")
       // Gmail didn't answer this time: keep the Gmail messages already on screen.
       setReceivedMessages((current) => result.partial
-        ? [...current.filter((message) => message.id.startsWith("gmail:")), ...data].sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""))
+        ? [...new Map([...current.filter((message) => message.id.startsWith("gmail:")), ...data].map((message) => [message.id, message])).values()]
+          .sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""))
         : data)
+      if (result.partial) setReceivedError(result.warning || "Google inbox could not be loaded. Try again in a moment.")
       if (!result.partial) {
         successfulInboxRefreshRef.current += 1
         setReceivedError("")
@@ -704,6 +738,7 @@ export default function EmailPage() {
   }
 
   function previewReceivedMessageById(message: ReceivedMessage) {
+    if (inboxSource === "gmail" && message.id.startsWith("gmail:") && message.unread) void changeReceivedGmailMessage(message.id, "read")
     setReadReceivedIds((current) => {
       if (current.has(message.id)) return current
       const next = new Set(current)
@@ -725,7 +760,7 @@ export default function EmailPage() {
   }, [selectedSentId, messages])
 
   useEffect(() => {
-    if (!user?.uid || tab !== "inbox") return
+    if (!user?.uid || (tab !== "inbox" && tab !== "updates")) return
     void loadReceivedMessages()
   }, [tab, user?.uid])
 
@@ -1155,6 +1190,10 @@ export default function EmailPage() {
 
   async function deleteReceivedMessage(message: ReceivedMessage) {
     if (!user) return
+    if (message.id.startsWith("gmail:")) {
+      if (!await changeReceivedGmailMessage(message.id, "trash")) return
+      setReceivedMessages((current) => current.filter((item) => item.id !== message.id))
+    }
     const trashedAt = new Date().toISOString()
     try {
       await trashReceivedEmail({ message, companyId: workspaceId, createdBy: user.uid, trashedAt })
@@ -1200,8 +1239,31 @@ export default function EmailPage() {
     setSelectedReceivedIds(checked ? new Set(visibleReceivedMessages.map((message) => message.id)) : new Set())
   }
 
-  function markSelectedReceived(read: boolean) {
+  async function changeReceivedGmailMessage(id: string, action: "read" | "unread" | "archive" | "trash" | "restore") {
+    if (!user) return false
+    try {
+      const idToken = await user.getIdToken()
+      const response = await fetch("/api/email/received", {
+        method: "PATCH",
+        headers: { Authorization: `Bearer ${idToken}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ id, action }),
+      })
+      const result = await response.json().catch(() => ({})) as { error?: string }
+      if (!response.ok) throw new Error(result.error || "Google message could not be updated.")
+      if (action === "read" || action === "unread") {
+        setReceivedMessages((current) => current.map((message) => message.id === id ? { ...message, unread: action === "unread" } : message))
+      }
+      return true
+    } catch (error) {
+      setReceivedError(error instanceof Error ? error.message : "Google message could not be updated.")
+      return false
+    }
+  }
+
+  async function markSelectedReceived(read: boolean) {
     if (selectedReceivedIds.size === 0) return
+    await Promise.all([...selectedReceivedIds].filter((id) => id.startsWith("gmail:"))
+      .map((id) => changeReceivedGmailMessage(id, read ? "read" : "unread")))
     setReadReceivedIds((current) => {
       const next = new Set(current)
       selectedReceivedIds.forEach((id) => {
@@ -1219,22 +1281,27 @@ export default function EmailPage() {
 
   async function archiveReceivedIds(ids: string[]) {
     if (!user || ids.length === 0) return
-    setHiddenReceivedIds((current) => new Set([...current, ...ids]))
+    const gmailIds = ids.filter((id) => id.startsWith("gmail:"))
+    const localIds = ids.filter((id) => !gmailIds.includes(id))
+    const gmailResults = await Promise.all(gmailIds.map((id) => changeReceivedGmailMessage(id, "archive")))
+    const archivedIds = [...localIds, ...gmailIds.filter((_, index) => gmailResults[index])]
+    if (gmailIds.length > 0) setReceivedMessages((current) => current.filter((message) => !archivedIds.includes(message.id)))
+    setHiddenReceivedIds((current) => new Set([...current, ...localIds]))
     setSelectedReceivedIds((current) => {
       const next = new Set(current)
-      ids.forEach((id) => next.delete(id))
+      archivedIds.forEach((id) => next.delete(id))
       return next
     })
-    if (selectedReceivedId && ids.includes(selectedReceivedId)) {
+    if (selectedReceivedId && archivedIds.includes(selectedReceivedId)) {
       setSelectedReceivedId(null)
       setMobileMessageView("list")
     }
     try {
-      await Promise.all(ids.map((id) => hideReceivedEmail({ receivedId: id, companyId: workspaceId, createdBy: user.uid })))
+      await Promise.all(localIds.map((id) => hideReceivedEmail({ receivedId: id, companyId: workspaceId, createdBy: user.uid })))
     } catch {
       setHiddenReceivedIds((current) => {
         const next = new Set(current)
-        ids.forEach((id) => next.delete(id))
+        localIds.forEach((id) => next.delete(id))
         return next
       })
       setReceivedError("Some messages could not be archived.")
@@ -1292,9 +1359,11 @@ export default function EmailPage() {
       setTrashedMessages((current) => current.filter((entry) => entry.id !== item.id))
       setMessages((current) => [{ ...message, trashedAt: null }, ...current])
     } else {
+      if (item.id.startsWith("gmail:") && !await changeReceivedGmailMessage(item.id, "restore")) return
       await restoreReceivedEmail(workspaceId, item.id)
       setTrashedReceived((current) => current.filter((entry) => entry.receivedId !== item.id))
       setHiddenReceivedIds((current) => { const next = new Set(current); next.delete(item.id); return next })
+      if (item.id.startsWith("gmail:")) await loadReceivedMessages()
     }
   }
 
@@ -1893,33 +1962,60 @@ export default function EmailPage() {
     }
   }
 
-  const mobileReaderOpen = mobileMessageView === "reader" && ((tab === "inbox" && Boolean(selectedReceived)) || (tab === "messages" && Boolean(selectedSent)))
+  const mobileReaderOpen = mobileMessageView === "reader" && (((tab === "inbox" || tab === "updates") && Boolean(selectedReceived)) || (tab === "messages" && Boolean(selectedSent)))
+  const searchPlaceholder = tab === "inbox" ? "Search inbox" : tab === "updates" ? "Search updates" : tab === "drafts" ? "Search drafts" : tab === "messages" ? "Search sent" : tab === "bin" ? "Search bin" : tab === "templates" ? "Search templates" : "Search lists"
+  const headerSearch = useMemo(() => ({
+    query: activeFilterBar.query,
+    onQueryChange: activeFilterBar.onQueryChange,
+    placeholder: searchPlaceholder,
+  }), [activeFilterBar.query, activeFilterBar.onQueryChange, searchPlaceholder])
+  usePageHeaderSearch(headerSearch)
+  const activeReceivedSort = receivedFilterBar.sorts.find((option) => option.value === receivedFilterBar.sortKey)
+  const receivedSortDirectionLabel = receivedFilterBar.direction === "asc" ? activeReceivedSort?.ascLabel ?? "Ascending" : activeReceivedSort?.descLabel ?? "Descending"
+  const receivedSortControl = (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button type="button" variant="ghost" size="icon" className="size-8" aria-label={`Sort by ${activeReceivedSort?.label ?? "received date"}, ${receivedSortDirectionLabel}`} title="Sort messages">
+          <ArrowDownUp className="size-4" aria-hidden="true" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-56">
+        <DropdownMenuLabel>Sort by</DropdownMenuLabel>
+        <DropdownMenuRadioGroup value={receivedFilterBar.sortKey} onValueChange={receivedFilterBar.onSortKeyChange}>
+          {receivedFilterBar.sorts.map((option) => <DropdownMenuRadioItem key={option.value} value={option.value}>{option.label}</DropdownMenuRadioItem>)}
+        </DropdownMenuRadioGroup>
+        <DropdownMenuSeparator />
+        <DropdownMenuRadioGroup value={receivedFilterBar.direction} onValueChange={(value) => receivedFilterBar.onDirectionChange(value as "asc" | "desc")}>
+          <DropdownMenuRadioItem value="asc">{activeReceivedSort?.ascLabel ?? "Ascending"}</DropdownMenuRadioItem>
+          <DropdownMenuRadioItem value="desc">{activeReceivedSort?.descLabel ?? "Descending"}</DropdownMenuRadioItem>
+        </DropdownMenuRadioGroup>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
 
   return (
     <main className="mx-auto flex min-h-0 w-full min-w-0 max-w-6xl flex-1 flex-col overflow-visible px-3 pt-3 pb-5 sm:px-6 sm:pt-4 sm:pb-6 lg:flex-row lg:gap-6 lg:overflow-hidden">
-      {/* Gmail-style folder rail */}
-      <nav className="hidden shrink-0 lg:flex lg:w-52 lg:flex-col" aria-label="Email folders">
-        <Button type="button" size="lg" className="mb-3 w-fit justify-start gap-2 rounded-sm px-4 shadow-sm" onClick={() => openCompose(true)}>
+      <nav className="dashboard-sidebar hidden shrink-0 text-foreground lg:flex lg:w-52 lg:flex-col" aria-label="Email folders">
+        <Button type="button" size="lg" className="mb-3 w-fit justify-start gap-2 rounded-full px-4 shadow-none" onClick={() => openCompose(true)}>
           <Plus aria-hidden="true" />Compose
         </Button>
-        <div className="flex flex-col gap-0.5">
+        <SidebarMenu className="gap-0.5">
           {EMAIL_FOLDERS.map((folder) => (
-            <button
-              key={folder.key}
-              type="button"
-              onClick={() => setTab(folder.key)}
-              className={cn(
-                "flex items-center gap-3 rounded-full px-4 py-2 text-sm font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring",
-                tab === folder.key ? "bg-muted text-foreground hover:bg-muted" : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
-              )}
-              aria-current={tab === folder.key ? "page" : undefined}
-            >
-              <folder.icon className="size-4 shrink-0" aria-hidden="true" />
-              <span className="min-w-0 flex-1 truncate text-left">{folder.label}</span>
-              <span className="shrink-0 text-xs tabular-nums text-muted-foreground">{folder.count()}</span>
-            </button>
+            <SidebarMenuItem key={folder.key}>
+              <SidebarMenuButton
+                type="button"
+                isActive={tab === folder.key}
+                onClick={() => setTab(folder.key)}
+                className="h-9 gap-2 px-2 [&>svg]:size-[18px]"
+                aria-current={tab === folder.key ? "page" : undefined}
+              >
+                <folder.icon className="h-4 w-4" aria-hidden="true" />
+                <span className="sidebar-nav-label min-w-0 flex-1 truncate">{folder.label}</span>
+                <span className="shrink-0 text-xs tabular-nums opacity-70">{folder.count()}</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
           ))}
-        </div>
+        </SidebarMenu>
       </nav>
 
       <div className="flex h-full min-h-0 w-full min-w-0 flex-1 flex-col">
@@ -1928,7 +2024,7 @@ export default function EmailPage() {
           <div className="sm:hidden">
             <MobileSearchBar
               {...activeFilterBar}
-              placeholder={tab === "inbox" ? "Search emails" : tab === "drafts" ? "Search drafts" : tab === "messages" ? "Search sent" : tab === "bin" ? "Search bin" : tab === "templates" ? "Search templates" : "Search lists"}
+              placeholder={tab === "inbox" ? "Search emails" : tab === "updates" ? "Search updates" : tab === "drafts" ? "Search drafts" : tab === "messages" ? "Search sent" : tab === "bin" ? "Search bin" : tab === "templates" ? "Search templates" : "Search lists"}
               className="mt-1 mb-4"
               create={
                 <DropdownMenu>
@@ -1949,11 +2045,13 @@ export default function EmailPage() {
         )}
         <FilterBar
           {...activeFilterBar}
+          showSearch={false}
+          sorts={tab === "inbox" || tab === "updates" ? [] : activeFilterBar.sorts}
           mobileVariant="drawer"
           mobileSearch={false}
-          className={cn("mb-2 max-sm:hidden", tab === "inbox" && selectedReceived && "lg:hidden")}
-          placeholder={tab === "inbox" ? "Search inbox" : tab === "drafts" ? "Search drafts" : tab === "messages" ? "Search sent" : tab === "bin" ? "Search bin" : tab === "templates" ? "Search templates" : "Search lists"}
-          searchClassName={tab === "messages" || tab === "inbox" || tab === "bin" ? "sm:max-w-[16rem]" : undefined}
+          className={cn("mb-2 max-sm:hidden", (tab === "inbox" || tab === "updates") && "lg:hidden")}
+          placeholder={searchPlaceholder}
+          searchClassName={tab === "messages" || tab === "inbox" || tab === "updates" || tab === "bin" ? "sm:max-w-[16rem]" : undefined}
           actions={
             <>
             {tab === "templates" && mobileTemplateView === "list" && (
@@ -2002,13 +2100,14 @@ export default function EmailPage() {
           ))}
         </div>
 
-        {(tab === "inbox" || tab === "drafts" || tab === "messages") && (
+        {(tab === "inbox" || tab === "updates" || tab === "drafts" || tab === "messages") && (
           <EmailMessageSurfaces
             tab={tab}
             receivedMessages={activeReceivedMessages}
             visibleReceivedMessages={visibleReceivedMessages}
             receivedLoading={receivedLoading}
             receivedError={receivedError}
+            onRetryReceived={() => void loadReceivedMessages()}
             selectedReceived={selectedReceived}
             selectedReceivedId={selectedReceivedId}
             loadingReceivedId={loadingReceivedId}
@@ -2020,19 +2119,26 @@ export default function EmailPage() {
             onReplyReceived={(message) => composeReceivedMessage(message, "reply")}
             onForwardReceived={(message) => composeReceivedMessage(message, "forward")}
             selectedReceivedIds={[...selectedReceivedIds]}
-            readReceivedIds={[...readReceivedIds]}
+            readReceivedIds={[...displayedReadIds]}
             onToggleAllReceived={toggleAllReceivedSelection}
             onToggleReceived={toggleReceivedSelection}
             onArchiveReceived={() => void archiveSelectedReceived()}
             onArchiveReceivedMessage={(message) => void archiveReceivedIds([message.id])}
             onMarkReceivedRead={() => markSelectedReceived(true)}
             onMarkReceivedUnread={() => markSelectedReceived(false)}
-            onToggleReceivedRead={(message) => setReadReceivedIds((current) => {
-              const next = new Set(current)
-              if (next.has(message.id)) next.delete(message.id)
-              else next.add(message.id)
-              return next
-            })}
+            receivedSortControl={receivedSortControl}
+            onToggleReceivedRead={(message) => {
+              if (message.id.startsWith("gmail:")) {
+                void changeReceivedGmailMessage(message.id, message.unread ? "read" : "unread")
+                return
+              }
+              setReadReceivedIds((current) => {
+                const next = new Set(current)
+                if (next.has(message.id)) next.delete(message.id)
+                else next.add(message.id)
+                return next
+              })
+            }}
             drafts={drafts}
             visibleDrafts={visibleDrafts}
             selectedDraftIds={[...selectedDraftIds]}
@@ -2161,7 +2267,7 @@ export default function EmailPage() {
       </div>
 
       {/* Mobile: compose stays one tap away above the bottom nav. */}
-      {!mobileReaderOpen && !composeOpen && (tab === "inbox" || tab === "drafts" || tab === "messages" || tab === "bin") && (
+      {!mobileReaderOpen && !composeOpen && (tab === "inbox" || tab === "updates" || tab === "drafts" || tab === "messages" || tab === "bin") && (
         <Button
           type="button"
           size="lg"

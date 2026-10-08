@@ -53,7 +53,7 @@ function OutstandingSummary({ invoices }: { invoices: Invoice[] }) {
   }, [invoices, targetCurrency, currencies.join(",")])
 
   if (!unpaid.length) return null
-  const bannerClass = "mt-2 mb-4 rounded-sm bg-[#21190d] px-3 py-2 text-lg font-medium leading-7 text-[#ffd84d]"
+  const bannerClass = "mt-2 mb-4 rounded-sm bg-primary px-3 py-2 text-lg font-medium leading-7 text-primary-foreground"
   if (conversionError) return <p className={bannerClass}>Outstanding {currencies.map((currency) => formatMoney(unpaid.filter((invoice) => (invoice.currency || "USD") === currency).reduce((total, invoice) => total + (invoice.amount ?? 0), 0), currency)).join(" · ")}</p>
   if (!summary) return <p className={bannerClass}>Outstanding…</p>
   return <p className={bannerClass}>Outstanding {formatMoney(summary.amount, summary.currency)}</p>

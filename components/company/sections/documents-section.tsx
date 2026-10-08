@@ -29,7 +29,8 @@ function editHref(kind: CompanyDocumentKind, id: string) {
   return `/dashboard/${kind}s/${encodeURIComponent(id)}/edit`
 }
 
-export function DocumentsSection() {
+export function DocumentsSection({ scope = "drive" }: { scope?: "drive" | "finance" }) {
+  const finance = scope === "finance"
   const { company, invoices, contracts, estimates, documents, admin, isAdmin, canEditDocuments, updateParams } = useCompanyPage()
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -77,7 +78,7 @@ export function DocumentsSection() {
               className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
             >
               <ArrowLeft className="size-4" aria-hidden="true" />
-              Back to Documents
+              Back to {finance ? "Finance" : "Drive"}
             </button>
             {canEditDocuments ? (
               <Button asChild variant="outline" size="sm">
@@ -105,10 +106,13 @@ export function DocumentsSection() {
         </div>
       ) : (
         <CompanyDocuments
-          invoices={invoices}
-          contracts={contracts}
-          estimates={estimates}
-          documents={documents}
+          invoices={finance ? invoices : []}
+          contracts={finance ? contracts : []}
+          estimates={finance ? estimates : []}
+          documents={finance ? [] : documents}
+          heading={finance ? "Finance" : "Documents"}
+          addKinds={finance ? ["invoice", "contract", "estimate"] : ["document"]}
+          emptyDescription={finance ? "Invoices, estimates and contracts will appear here." : "Proposals and other documents will appear here."}
           onSelect={(kind, id) => updateParams({ doc: `${kind}:${id}` })}
           onEdit={canEditDocuments ? (kind, id) => router.push(editHref(kind, id)) : undefined}
           canAdd={Boolean(admin)}

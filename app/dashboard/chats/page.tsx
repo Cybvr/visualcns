@@ -1,15 +1,14 @@
 "use client"
 
 import { useState } from "react"
-import Link from "next/link"
 import { useRouter } from "next/navigation"
 
 import { useAgent, type AgentConversation } from "@/components/agent/agent-context"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { TableRowsSkeleton } from "@/components/dashboard/collection-skeletons"
+import { MobileCardsSkeleton } from "@/components/dashboard/collection-skeletons"
 import { CompactListSkeleton, InitialAvatar, MOBILE_LIST_CARD, MobileListRow, CheckAvatar } from "@/components/dashboard/compact-list-row"
+import { MobileDataCard } from "@/components/dashboard/mobile-data-card"
 import { EmptySearchState, FirstRunState } from "@/components/dashboard/empty-state"
 import { TableFilterBar } from "@/components/dashboard/table-filter-bar"
 import { useFilterBar, type SortOption } from "@/components/dashboard/filter-bar"
@@ -30,11 +29,6 @@ function searchChat(chat: AgentConversation) {
 function lastMessage(chat: AgentConversation) {
   const message = [...chat.messages].reverse().find((item) => item.content.trim())
   return message?.content.replace(/\s+/g, " ").trim() || "No messages yet"
-}
-
-function formatUpdatedAt(value?: number) {
-  if (!value) return "—"
-  return new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(new Date(value))
 }
 
 /** Today shows the time, older chats the day and month. */
@@ -108,7 +102,7 @@ export default function AllChatsPage() {
       {conversationsLoading ? (
         <>
           <div className="sm:hidden"><CompactListSkeleton /></div>
-          <div className="hidden sm:block"><TableRowsSkeleton headers={["", "Chat", "Updated", ""]} /></div>
+          <div className="hidden sm:block"><MobileCardsSkeleton /></div>
         </>
       ) : conversations.length === 0 ? (
         <FirstRunState
@@ -173,46 +167,35 @@ export default function AllChatsPage() {
             </ul>
           </div>
 
-          <div className="hidden overflow-x-hidden sm:block">
-            <Table className="w-full table-fixed">
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-10 px-2">
-                    <Checkbox
-                      aria-label="Select all chats"
-                      checked={selection.allSelected}
-                      indeterminate={selection.someSelected}
-                      onChange={selection.toggleAll}
-                    />
-                  </TableHead>
-                  <TableHead className="w-[27%]">Chat</TableHead>
-                  <TableHead className="w-[39%]">Last message</TableHead>
-                  <TableHead className="w-[16%]">Last modified</TableHead>
-                  <TableHead className="w-[12%] text-right">Messages</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {visibleChats.map((chat) => (
-                  <TableRow key={chat.id} className="cursor-pointer" onClick={() => openChat(chat)}>
-                    <TableCell onClick={(event) => event.stopPropagation()}>
-                      <Checkbox
-                        aria-label={`Select ${chat.title || "chat"}`}
-                        checked={selection.isSelected(chat.id)}
-                        onChange={(event) => selection.toggle(chat.id, (event.nativeEvent as MouseEvent).shiftKey)}
-                      />
-                    </TableCell>
-                    <TableCell className="max-w-0 font-medium">
-                      <Link href={`/dashboard/agent/${encodeURIComponent(chat.id)}`} onClick={(event) => { event.stopPropagation(); selectConversation(chat.id) }} className="block truncate rounded px-1 py-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                        {chat.title || "Untitled chat"}
-                      </Link>
-                    </TableCell>
-                    <TableCell className="max-w-0 text-muted-foreground"><span className="block truncate">{lastMessage(chat)}</span></TableCell>
-                    <TableCell className="whitespace-nowrap text-muted-foreground">{formatUpdatedAt(chat.updatedAt)}</TableCell>
-                    <TableCell className="text-right text-muted-foreground">{chat.messages.length}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+          <div className="hidden space-y-2 sm:block">
+            <label className="flex items-center gap-2 py-1 text-sm text-muted-foreground">
+              <Checkbox aria-label="Select all chats" checked={selection.allSelected} indeterminate={selection.someSelected} onChange={selection.toggleAll} />
+              Select all chats
+            </label>
+            {visibleChats.map((chat) => {
+              const title = chat.title || "Untitled chat"
+              const selected = selection.isSelected(chat.id)
+              return <MobileDataCard
+                key={chat.id}
+                surface="muted"
+                iconShape="circle"
+                icon={<InitialAvatar text={title} className="size-11" />}
+                title={title}
+                subtitle={lastMessage(chat)}
+                description={`${chat.messages.length} ${chat.messages.length === 1 ? "message" : "messages"}`}
+                trailing={formatShortDate(chat.updatedAt)}
+                selected={selected || chat.id === activeConversationId}
+                pressed={selected}
+                onClick={(event) => selection.selectedCount > 0 ? selection.toggle(chat.id, event.shiftKey) : openChat(chat)}
+                ariaLabel={`${selected ? "Selected. " : ""}Open ${title}`}
+                menuLabel={`Options for ${title}`}
+                menu={<>
+                  <DropdownMenuItem onSelect={() => openChat(chat)}>Open chat</DropdownMenuItem>
+                  <DropdownMenuCheckboxItem checked={selected} onCheckedChange={() => selection.toggle(chat.id)}>Select chat</DropdownMenuCheckboxItem>
+                  <DropdownMenuItem variant="destructive" onSelect={() => setPendingDelete(chat)}>Delete chat</DropdownMenuItem>
+                </>}
+              />
+            })}
           </div>
         </>
       )}

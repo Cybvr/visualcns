@@ -1,6 +1,7 @@
 "use client"
 
-import { CheckAvatar, CompactListRow, MobileListRow, shortListDate } from "@/components/dashboard/compact-list-row"
+import { CheckAvatar, MobileListRow, shortListDate } from "@/components/dashboard/compact-list-row"
+import { MobileDataCard } from "@/components/dashboard/mobile-data-card"
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
 
@@ -23,28 +24,13 @@ export type EmailListRowProps = {
   checked?: boolean
   onCheckedChange?: (checked: boolean) => void
   unread?: boolean
+  read?: boolean
   /** Short body snippet, shown on the mobile row. */
   preview?: string
 }
 
 
-export function EmailListHeader({ primaryLabel, dateLabel, selectable = false }: {
-  primaryLabel: string
-  dateLabel: string
-  compact?: boolean
-  selectable?: boolean
-}) {
-  return (
-    <div className="surface-table-header hidden h-10 items-center gap-3 border-b border-border px-2 sm:flex">
-      {selectable && <span className="size-4 shrink-0" aria-hidden="true" />}
-      <span className="min-w-0 flex-1">Subject</span>
-      <span className="shrink-0">{primaryLabel} · {dateLabel}</span>
-      <span className="w-11 shrink-0" aria-hidden="true" />
-    </div>
-  )
-}
-
-/** Shared list treatment for inbox, sent, drafts, templates and other dashboard lists. */
+/** Mobile mail row and the shared dashboard card on wider screens. */
 export function EmailListRow({
   title,
   subject,
@@ -55,6 +41,7 @@ export function EmailListRow({
   selected,
   onOpen,
   onDelete,
+  deleteLabel,
   deleteText = "Delete",
   ariaLabel,
   selectable = false,
@@ -62,21 +49,13 @@ export function EmailListRow({
   checked = false,
   onCheckedChange,
   unread = false,
+  read = false,
   preview,
 }: EmailListRowProps) {
-  const selectionControl = selectable && onCheckedChange ? (
-    <input
-      type="checkbox"
-      checked={checked}
-      onChange={(event) => onCheckedChange(event.target.checked)}
-      aria-label={`Select ${subject || title}`}
-      className={cn("size-4 shrink-0 accent-primary", !selectionMode && "max-sm:hidden")}
-    />
-  ) : undefined
-
   const canSelect = selectable && Boolean(onCheckedChange)
   const mobileRow = (
     <MobileListRow
+      className={read ? "bg-muted" : undefined}
       avatar={checked ? (
         <CheckAvatar />
       ) : (
@@ -100,19 +79,27 @@ export function EmailListRow({
   return (
     <>
     {mobileRow}
-    <CompactListRow
-      title={<span className={unread ? "font-bold text-foreground" : undefined}>{subject || "(No subject)"}</span>}
-      subtitle={`${title} · ${formattedDate || "No date"}`}
-      mobileSubtitle={date && formattedDate ? <time dateTime={date}>{formattedDate}</time> : "No date"}
-      active={selected}
-      leading={selectionControl}
-      onClick={() => selectionMode && onCheckedChange ? onCheckedChange(!checked) : onOpen()}
-      ariaLabel={unread ? `Unread. ${ariaLabel}` : ariaLabel}
-      menuLabel={`Options for ${subject || title}`}
-      menu={onDelete ? <DropdownMenuItem variant="destructive" onSelect={onDelete}>{deleteText}</DropdownMenuItem> : undefined}
-      className="px-2"
-      mobile={false}
-    />
+    <div className={cn("hidden sm:block", read && "bg-muted")}>
+      <MobileDataCard
+        surface="list"
+        variant="inline"
+        iconShape="circle"
+        title={<span className={unread ? "font-semibold" : undefined}>{title}</span>}
+        subtitle={<span className={unread ? "font-semibold text-foreground" : undefined}>{subject || "(No subject)"}</span>}
+        description={preview}
+        icon={<span className={cn("flex size-8 items-center justify-center rounded-full text-sm font-semibold", avatarTone)} aria-hidden="true">{avatarInitials.slice(0, 1)}</span>}
+        trailing={date ? <time dateTime={date}>{shortListDate(date)}</time> : formattedDate || "No date"}
+        selected={selected || checked}
+        pressed={checked}
+        onClick={() => selectionMode && onCheckedChange ? onCheckedChange(!checked) : onOpen()}
+        ariaLabel={unread ? `Unread. ${ariaLabel}` : ariaLabel}
+        menuLabel={`Options for ${subject || title}`}
+        menu={canSelect || onDelete ? <>
+          {canSelect && <DropdownMenuItem onSelect={() => onCheckedChange?.(!checked)}>{checked ? "Deselect" : "Select"}</DropdownMenuItem>}
+          {onDelete && <DropdownMenuItem variant="destructive" onSelect={onDelete} aria-label={deleteLabel}>{deleteText}</DropdownMenuItem>}
+        </> : undefined}
+      />
+    </div>
     </>
   )
 }

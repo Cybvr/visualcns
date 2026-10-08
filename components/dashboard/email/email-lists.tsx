@@ -1,8 +1,7 @@
 "use client"
 
-import { ArrowLeft, List, Trash2 } from "lucide-react"
+import { ArrowLeft, List } from "lucide-react"
 
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
@@ -42,8 +41,6 @@ export function EmailLists({
   editingListId,
   editList,
   deleteList,
-  contactInitials,
-  contactAvatarTone,
 }: EmailListsProps) {
   return (
     <section className="min-h-0 w-full min-w-0 max-w-full flex-1 overflow-visible" role="tabpanel">
@@ -70,20 +67,20 @@ export function EmailLists({
                 />
               ))}
             </div>
-            <div className="hidden divide-y divide-border sm:block">
+            <div className="hidden space-y-2 sm:block">
               {visibleLists.map((list) => (
-                <div key={list.id} className={cn("flex items-start gap-2 px-3.5 py-3", editingListId === list.id && "bg-sidebar-accent text-sidebar-accent-foreground")}>
-                  <Avatar className={cn("size-10 shrink-0", contactAvatarTone(list.name), editingListId === list.id && "bg-sidebar-accent-foreground/10 text-sidebar-accent-foreground")} aria-hidden="true">
-                    <AvatarFallback className="bg-transparent text-sm font-medium">{contactInitials(list.name, list.name)}</AvatarFallback>
-                  </Avatar>
-                  <button type="button" onClick={() => editList(list)} className="min-w-0 flex-1 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                    <span className="block truncate text-sm font-medium">{list.name}</span>
-                    <span className={cn("mt-1 block text-xs text-muted-foreground", editingListId === list.id && "text-sidebar-accent-foreground/70")}>{list.contactEmails.length} contact{list.contactEmails.length === 1 ? "" : "s"}</span>
-                  </button>
-                  <button type="button" onClick={() => deleteList(list.id)} aria-label={`Delete ${list.name}`} className="flex size-8 shrink-0 items-center justify-center rounded-sm text-muted-foreground hover:bg-destructive/10 hover:text-destructive focus-visible:ring-2 focus-visible:ring-ring">
-                    <Trash2 className="size-4" aria-hidden="true" />
-                  </button>
-                </div>
+                <MobileDataCard
+                  key={list.id}
+                  surface="muted"
+                  title={list.name}
+                  subtitle={`${list.contactEmails.length} contact${list.contactEmails.length === 1 ? "" : "s"}`}
+                  icon={<List className="size-5 text-blue-600 dark:text-blue-400" aria-hidden="true" />}
+                  selected={editingListId === list.id}
+                  onClick={() => editList(list)}
+                  ariaLabel={`Open ${list.name}`}
+                  menuLabel={`Options for ${list.name}`}
+                  menu={<DropdownMenuItem variant="destructive" onSelect={() => deleteList(list.id)}>Delete list</DropdownMenuItem>}
+                />
               ))}
             </div>
           </>

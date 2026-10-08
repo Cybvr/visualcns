@@ -4,13 +4,14 @@ import dynamic from "next/dynamic"
 import { useEffect, useState, type FormEvent, type ReactNode } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { ArrowLeft, Bell, Briefcase, Building2, FileText, Home, ListTodo, Plus, Receipt, ScrollText, Users } from "lucide-react"
+import { ArrowLeft, Bell, Briefcase, Building2, FileText, Home, ListTodo, Plus, Receipt, ScrollText, Search, Users, X } from "lucide-react"
 import { FiCheckSquare, FiMail, FiUser } from "react-icons/fi"
 
 import { useAgent } from "@/components/agent/agent-context"
 import { AppSidebar, type NavLink } from "@/components/app-sidebar"
 import { MobileFooterNav, type MobileFooterNavItem } from "@/components/mobile-footer-nav"
-import { DashboardSearchButton } from "@/components/dashboard/dashboard-search-button"
+import { useDashboardSearch } from "@/components/dashboard/sidebar-search"
+import { GlobalSearchDialog } from "@/components/search/global-search"
 import { useUnreadEmailCount } from "@/components/dashboard/email/use-unread-email-count"
 import { NewDocumentDialog } from "@/components/dashboard/new-document-dialog"
 import { Button } from "@/components/ui/button"
@@ -122,7 +123,8 @@ export function DashboardShell({
   const { open: agentOpen } = useAgent()
   const { agency } = useAuth()
   const unreadEmailCount = useUnreadEmailCount()
-  const { override: titleOverride, titleNode, actions: headerActions, replacesMobileDefaults, setHeaderSlot, hideMobileFooter, backAction } = usePageHeaderOverride()
+  const { override: titleOverride, titleNode, headerSearch, actions: headerActions, replacesMobileDefaults, setHeaderSlot, hideMobileFooter, backAction } = usePageHeaderOverride()
+  const { open: searchOpen, setOpen: setSearchOpen, openSearch, results: searchResults, loading: searchLoading } = useDashboardSearch()
   const [createItem, setCreateItem] = useState<(typeof QUICK_CREATE_LINKS)[number] | null>(null)
   const [createName, setCreateName] = useState("")
   const [documentCreateOpen, setDocumentCreateOpen] = useState(false)
@@ -171,16 +173,15 @@ export function DashboardShell({
         {/* overflow-y-auto: this column is the scroll container, not the body */}
         <SidebarInset
           className={cn(
-            "min-h-0 bg-card md:m-3 md:rounded-2xl",
-            isAgentRoute ? "overflow-y-auto md:overflow-hidden md:pb-0" : "overflow-y-auto md:pb-6",
+            "min-h-0 bg-card md:!m-0 md:!rounded-none md:bg-background md:!shadow-none",
+            isAgentRoute ? "overflow-y-auto md:overflow-hidden" : "overflow-y-auto",
             !hideMobileFooter && "max-md:pb-[calc(3.5rem+env(safe-area-inset-bottom))]",
-            isEmailRoute && "lg:min-h-0 lg:overflow-hidden lg:pb-0",
-            isCompanyDetailRoute && "md:peer-data-[variant=inset]:mt-0",
+            isEmailRoute && "lg:overflow-hidden",
           )}
         >
           <header
             className={cn(
-              "surface-nav sticky top-0 z-40 flex h-14 shrink-0 items-center gap-2 bg-card px-4 text-foreground max-md:border-b max-md:border-border md:rounded-t-2xl",
+              "surface-nav sticky top-0 z-40 flex h-14 shrink-0 items-center gap-2 bg-card px-4 text-foreground max-md:border-b max-md:border-border md:bg-background md:px-7",
               hideHeader && "md:hidden",
             )}
           >
@@ -216,7 +217,21 @@ export function DashboardShell({
               )}
               {!isProjectDetailRoute && !backAction && <Separator orientation="vertical" className="data-[orientation=vertical]:h-4 max-md:data-[orientation=vertical]:h-6" />}
             </div>
-            <div className={cn("flex min-w-0 items-center gap-1", titleNode && "flex-1")}>
+            <div className={cn("flex min-w-0 items-center gap-1 md:gap-3", titleNode && "flex-1")}>
+              <div className="relative hidden w-64 shrink-0 md:block lg:w-72">
+                {headerSearch ? (
+                  <>
+                    <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+                    <Input type="search" value={headerSearch.query} onChange={(event) => headerSearch.onQueryChange(event.target.value)} placeholder={headerSearch.placeholder} aria-label={headerSearch.placeholder} className="h-10 rounded-full border-0 bg-muted pl-9 pr-8 shadow-none [&::-webkit-search-cancel-button]:hidden" />
+                    {headerSearch.query && <button type="button" onClick={() => headerSearch.onQueryChange("")} aria-label="Clear search" className="absolute top-1/2 right-2 -translate-y-1/2 rounded-sm p-1 text-muted-foreground hover:text-foreground"><X className="size-3.5" aria-hidden="true" /></button>}
+                  </>
+                ) : (
+                  <button type="button" onClick={openSearch} className="flex h-10 w-full items-center gap-2 rounded-full bg-muted px-3 text-left text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label="Search workspace">
+                    <Search className="size-4 shrink-0" aria-hidden="true" />
+                    <span className="truncate">Search workspace</span>
+                  </button>
+                )}
+              </div>
               {titleOverride?.homeHref && (
                 <Link
                   href={titleOverride.homeHref}
@@ -227,12 +242,12 @@ export function DashboardShell({
                   <Home className="size-4 max-md:size-5" aria-hidden="true" />
                 </Link>
               )}
-              <h1 className={cn("surface-title min-w-0 truncate max-md:[--surface-title-size:17px]", titleNode && "flex-1")}>
+              <h1 className={cn("surface-title min-w-0 truncate max-md:[--surface-title-size:17px]", titleNode && "flex-1", !titleNode && "md:sr-only")}>
                 {titleNode ?? titleOverride?.title ?? dashboardPageTitle(pathname ?? "/dashboard")}
               </h1>
             </div>
             <div className="ml-auto flex shrink-0 items-center gap-2">
-              {!isBackDetailRoute && <DashboardSearchButton className={cn("size-10 md:hidden [&_svg]:size-5", replacesMobileDefaults && "max-sm:hidden")} />}
+              {!isBackDetailRoute && <Button type="button" variant="ghost" size="icon" aria-label="Search workspace" onClick={openSearch} className={cn("size-10 md:hidden [&_svg]:size-5", replacesMobileDefaults && "max-sm:hidden")}><Search className="size-4" aria-hidden="true" /></Button>}
               <div ref={setHeaderSlot} className="contents" />
               {headerActions}
               {!isCompanyDetailRoute && !isBackDetailRoute && (
@@ -257,11 +272,20 @@ export function DashboardShell({
               </Button>
             </div>
           </header>
-          {children}
+          <div className={cn(
+            "flex min-h-0 flex-1 flex-col bg-card md:m-3 md:mt-0 md:rounded-2xl md:shadow-[0_6px_24px_rgba(15,23,42,0.04)]",
+            !isAgentRoute && !isEmailRoute && "md:pb-6",
+            (isAgentRoute || isEmailRoute) && "lg:overflow-hidden",
+            hideHeader && "md:mt-3",
+          )}>
+            {children}
+          </div>
         </SidebarInset>
         <NgaiSidePanel />
         {!hideMobileFooter && <DashboardMobileFooterNav unreadEmailCount={unreadEmailCount} />}
       </SidebarProvider>
+
+      <GlobalSearchDialog open={searchOpen} onOpenChange={setSearchOpen} results={searchResults} loading={searchLoading} placeholder="Search companies, projects, documents…" />
 
       <Dialog
         open={Boolean(createItem)}

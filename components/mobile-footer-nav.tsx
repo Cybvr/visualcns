@@ -47,7 +47,7 @@ export function MobileFooterNav({ items, className }: { items: MobileFooterNavIt
           <>
             {Icon && <span className="relative inline-flex">
               <Icon className={cn("size-5", active ? "text-foreground" : "text-muted-foreground")} aria-hidden="true" />
-              {item.badge && item.badge > 0 ? <span className="absolute -right-3 -top-2 min-w-4 rounded-full bg-primary px-1 text-center text-[9px] font-bold leading-4 tabular-nums text-primary-foreground" aria-hidden="true">{item.badge > 99 ? "99+" : item.badge}</span> : null}
+              {item.badge && item.badge > 0 ? <span className="absolute -right-3 -top-2 min-w-4 rounded-full bg-button px-1 text-center text-[9px] font-bold leading-4 tabular-nums text-button-foreground" aria-hidden="true">{item.badge > 99 ? "99+" : item.badge}</span> : null}
             </span>}
             {item.label && (
               <span className={cn("text-[11px] font-semibold", active ? "text-foreground" : "text-muted-foreground")}>{item.label}</span>

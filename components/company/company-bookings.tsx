@@ -1,12 +1,14 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
-import { CalendarDays, MapPin, Video } from "lucide-react"
+import { CalendarDays, MapPin } from "lucide-react"
 import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
+import { MobileDataCard } from "@/components/dashboard/mobile-data-card"
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { bookingTime, type CalendarBooking } from "@/lib/calendar-bookings"
 
 function readableDate(booking: CalendarBooking) {
@@ -81,26 +83,23 @@ export function CompanyBookings({ companyId, canCancel = false }: { companyId: s
       {loading ? (
         <p className="text-sm text-muted-foreground">Loading bookings…</p>
       ) : (
-        <ul className="divide-y divide-border">
+        <div className="space-y-2">
           {bookings.map((booking) => (
-            <li key={booking.id} className="flex flex-wrap items-center gap-3 py-3 first:pt-1 last:pb-1">
-              <div className="min-w-0 flex-1">
-                <p className="truncate font-medium">{booking.title}</p>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  {readableDate(booking)} · {bookingTime(booking)} · {booking.durationMinutes} min
-                  {booking.projectName ? ` · ${booking.projectName}` : ""}
-                </p>
-                {(booking.location || booking.meetingUrl) && (
-                  <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-                    {booking.location && <span className="inline-flex items-center gap-1"><MapPin className="size-3.5" />{booking.location}</span>}
-                    {booking.meetingUrl && <a className="inline-flex items-center gap-1 text-primary hover:underline" href={booking.meetingUrl} target="_blank" rel="noreferrer"><Video className="size-3.5" />Join</a>}
-                  </p>
-                )}
-              </div>
-              {canCancel && <Button variant="outline" size="sm" onClick={() => setCancelTarget(booking)}>Cancel</Button>}
-            </li>
+            <MobileDataCard
+              key={booking.id}
+              surface="muted"
+              icon={<CalendarDays className="size-5 text-muted-foreground" aria-hidden="true" />}
+              title={booking.title}
+              subtitle={`${readableDate(booking)} · ${bookingTime(booking)} · ${booking.durationMinutes} min${booking.projectName ? ` · ${booking.projectName}` : ""}`}
+              description={booking.location ? <span className="inline-flex items-center gap-1"><MapPin className="size-3.5" />{booking.location}</span> : undefined}
+              menuLabel={`Actions for ${booking.title}`}
+              menu={booking.meetingUrl || canCancel ? <>
+                {booking.meetingUrl && <DropdownMenuItem asChild><a href={booking.meetingUrl} target="_blank" rel="noreferrer">Join meeting</a></DropdownMenuItem>}
+                {canCancel && <DropdownMenuItem onSelect={() => setCancelTarget(booking)}>Cancel booking</DropdownMenuItem>}
+              </> : undefined}
+            />
           ))}
-        </ul>
+        </div>
       )}
       <AlertDialog open={cancelTarget !== null} onOpenChange={(open) => !open && !cancelling && setCancelTarget(null)}>
         <AlertDialogContent>
