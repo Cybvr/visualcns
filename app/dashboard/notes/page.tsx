@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react"
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type TextareaHTMLAttributes } from "react"
 import { ListChecks, Plus, Trash2, X } from "lucide-react"
 import { toast } from "sonner"
 
@@ -13,7 +13,6 @@ import { TableFilterBar } from "@/components/dashboard/table-filter-bar"
 import { useFilterBar } from "@/components/dashboard/filter-bar"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Input } from "@/components/ui/input"
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { getCurrentAgencyId } from "@/lib/agency-scope"
 import { createNote, deleteNote, updateNote, watchNotes, type Note } from "@/lib/notes"
@@ -39,7 +38,7 @@ function editedAt(iso: string) {
 function notePreview(note: Pick<Note, "title" | "body">) {
   const body = typeof note.body === "string" ? note.body : ""
   if (isChecklist(body)) {
-    const items = parseChecklist(body)
+    const items = parseChecklist(body).filter((item) => !item.plain)
     return `${items.filter((item) => item.checked).length} of ${items.length} done`
   }
   const lines = body.split("\n").map((line) => line.trim()).filter(Boolean)
@@ -55,24 +54,52 @@ function searchNote(note: Note) {
   ]
 }
 
-type ChecklistItem = { checked: boolean; text: string }
+// A plain item is a heading or paragraph line: shown without a checkbox, saved as-is.
+type ChecklistItem = { checked: boolean; text: string; plain?: boolean }
 
-function parseChecklist(value: string): ChecklistItem[] {
+const CHECK_LINE = /^\s*-\s*\[([ xX])\]\s?(.*)$/
+
+// With convert, lines that aren't checklist items become items (used when turning a plain note into a checklist).
+function parseChecklist(value: string, convert = false): ChecklistItem[] {
   if (!value.trim()) return [{ checked: false, text: "" }]
   return value.split("\n").map((line) => {
-    const match = line.match(/^\s*-\s*\[([ xX])\]\s?(.*)$/)
+    const match = line.match(CHECK_LINE)
     return match
       ? { checked: match[1].toLowerCase() === "x", text: match[2] }
-      : { checked: false, text: line }
+      : { checked: false, text: line, plain: !convert }
   })
 }
 
 function serializeChecklist(items: ChecklistItem[]) {
-  return items.map((item) => `- [${item.checked ? "x" : " "}] ${item.text}`).join("\n")
+  return items.map((item) => (item.plain ? item.text : `- [${item.checked ? "x" : " "}] ${item.text}`)).join("\n")
 }
 
+// Any checklist line makes it a checklist note; other lines stay as plain text between the items.
 function isChecklist(value: string) {
-  return value.trim().length > 0 && value.split("\n").every((line) => /^\s*-\s*\[[ xX]\]\s?.*$/.test(line))
+  return value.split("\n").some((line) => CHECK_LINE.test(line))
+}
+
+/** A text box that grows with its text, so long lines wrap instead of clipping. */
+function GrowingText({ value, className, inputRef, ...props }: Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, "value"> & {
+  value: string
+  inputRef?: (node: HTMLTextAreaElement | null) => void
+}) {
+  const node = useRef<HTMLTextAreaElement | null>(null)
+  useEffect(() => {
+    const el = node.current
+    if (!el) return
+    el.style.height = "auto"
+    el.style.height = `${el.scrollHeight}px`
+  }, [value])
+  return (
+    <textarea
+      {...props}
+      ref={(el) => { node.current = el; inputRef?.(el) }}
+      rows={1}
+      value={value}
+      className={cn("block w-full resize-none overflow-hidden bg-transparent outline-none placeholder:text-muted-foreground", className)}
+    />
+  )
 }
 
 /** Shared agency notes: a list on the left, the open note on the right. */
@@ -91,7 +118,7 @@ export default function NotesPage() {
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
   // Which note the editor fields currently hold, so a note opened from the URL loads once.
   const loadedId = useRef("")
-  const itemInputs = useRef<Array<HTMLInputElement | null>>([])
+  const itemInputs = useRef<Array<HTMLTextAreaElement | null>>([])
 
   useRecordTitle(openId ? noteTitle({ title, body }) : null)
 
@@ -230,7 +257,7 @@ export default function NotesPage() {
       setChecklistMode(false)
       return
     }
-    edit({ body: serializeChecklist(parseChecklist(body)) })
+    edit({ body: serializeChecklist(parseChecklist(body, true)) })
     setChecklistMode(true)
   }
 
@@ -249,8 +276,21 @@ export default function NotesPage() {
     edit({ body: items.length > 0 ? serializeChecklist(items) : "" })
   }
 
+  // Enter starts a new item below.
+  function insertChecklistItem(index: number) {
+    const items = parseChecklist(body)
+    items.splice(index + 1, 0, { checked: false, text: "" })
+    edit({ body: serializeChecklist(items) })
+    requestAnimationFrame(() => itemInputs.current[index + 1]?.focus())
+  }
+
   // Backspace in an empty item removes it and moves the cursor to the end of the item above.
-  function onChecklistKeyDown(event: KeyboardEvent<HTMLInputElement>, index: number) {
+  function onChecklistKeyDown(event: KeyboardEvent<HTMLTextAreaElement>, index: number) {
+    if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault()
+      insertChecklistItem(index)
+      return
+    }
     if (event.key !== "Backspace" || event.currentTarget.value !== "" || index === 0) return
     event.preventDefault()
     removeChecklistItem(index)
@@ -411,22 +451,27 @@ export default function NotesPage() {
                   <div className="min-h-0 flex-1 overflow-y-auto py-5 max-sm:min-h-[55svh] max-sm:flex-none max-sm:py-1">
                     <div className="space-y-1">
                       {parseChecklist(body).map((item, index) => (
-                        <div key={index} className="group flex items-center gap-3 py-1">
-                          <Checkbox
-                            checked={item.checked}
-                            onChange={(event) => updateChecklist(index, { checked: event.target.checked })}
-                            aria-label={`Mark item ${index + 1} complete`}
-                          />
-                          <Input
-                            ref={(node) => {
+                        <div key={index} className="group flex items-start gap-3 py-1">
+                          {item.plain ? (
+                            <span className="size-4 shrink-0" aria-hidden="true" />
+                          ) : (
+                            <Checkbox
+                              className="mt-2.5"
+                              checked={item.checked}
+                              onChange={(event) => updateChecklist(index, { checked: event.target.checked })}
+                              aria-label={`Mark item ${index + 1} complete`}
+                            />
+                          )}
+                          <GrowingText
+                            inputRef={(node) => {
                               itemInputs.current[index] = node
                             }}
                             value={item.text}
-                            onChange={(event) => updateChecklist(index, { text: event.target.value })}
+                            onChange={(event) => updateChecklist(index, { text: event.target.value.replace(/\n/g, " ") })}
                             onKeyDown={(event) => onChecklistKeyDown(event, index)}
-                            placeholder="Checklist item"
-                            aria-label={`Checklist item ${index + 1}`}
-                            className={cn("h-9 flex-1 border-border/60 text-base", item.checked && "text-muted-foreground line-through")}
+                            placeholder={item.plain ? "Text" : "Checklist item"}
+                            aria-label={`${item.plain ? "Text line" : "Checklist item"} ${index + 1}`}
+                            className={cn("min-w-0 flex-1 py-1.5 text-base", item.checked && !item.plain && "text-muted-foreground line-through")}
                           />
                           <Button
                             type="button"
