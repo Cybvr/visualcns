@@ -220,7 +220,7 @@ export function EmailMessageSurfaces({
           )}
         </aside>
         {selectedReceived && (
-          <div className={cn("flex-1 flex-col overflow-hidden rounded-lg border border-border bg-card max-lg:min-h-[calc(100svh-8rem)] max-sm:overflow-visible max-sm:rounded-none max-sm:border-0 max-sm:bg-transparent max-sm:pb-40 lg:min-h-0", mobileMessageView === "reader" ? "flex" : "hidden")}>
+          <div className={cn("flex-1 flex-col overflow-hidden rounded-lg border border-border bg-card max-lg:min-h-[calc(100svh-8rem)] max-sm:overflow-visible max-sm:rounded-none max-sm:border-0 max-sm:bg-transparent lg:min-h-0", mobileMessageView === "reader" ? "flex" : "hidden")}>
             <div className="hidden shrink-0 lg:block">
               <div className="flex min-h-14 items-center gap-1 border-b border-border px-4">
                 <Button type="button" variant="ghost" size="icon" className="size-9" onClick={onClearReceived} aria-label="Back to inbox" title="Back to inbox"><ArrowLeft className="size-5" aria-hidden="true" /></Button>
@@ -281,7 +281,7 @@ export function EmailMessageSurfaces({
                 <Button type="button" variant="outline" size="sm" onClick={() => onForwardReceived(selectedReceived)}><Forward className="size-4" aria-hidden="true" /> Forward</Button>
               </div>
             </div>
-            <div className="min-h-0 flex-1 overflow-y-auto bg-white max-sm:flex-none max-sm:overflow-visible max-sm:rounded-3xl max-sm:border max-sm:border-border">
+            <div className="min-h-0 flex-1 overflow-y-auto bg-white max-sm:flex-none max-sm:overflow-visible max-sm:rounded-3xl max-sm:border max-sm:border-border max-sm:pb-[calc(10rem+env(safe-area-inset-bottom))]">
               {loadingReceivedId === selectedReceived.id ? <div className="space-y-4 p-6" role="status" aria-label="Loading message"><Skeleton className="h-6 w-2/3" /><Skeleton className="h-4 w-1/3" /><Skeleton className="h-32 w-full" /><Skeleton className="h-4 w-4/5" /><Skeleton className="h-4 w-3/5" /></div> : (
                 <>
                   <EmailContentFrame
@@ -295,7 +295,7 @@ export function EmailMessageSurfaces({
               )}
             </div>
             {/* Mobile: reply and forward stay in reach at the bottom of the screen. */}
-            <div className="fixed inset-x-3 bottom-[calc(0.75rem+env(safe-area-inset-bottom))] z-30 flex items-center gap-2 rounded-full border border-border bg-card p-1.5 shadow-lg sm:hidden">
+            <div className="fixed inset-x-3 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-30 flex items-center gap-2 rounded-full border border-border bg-card p-1.5 shadow-lg sm:hidden">
               <Button type="button" size="lg" className="h-12 flex-1 rounded-full text-base" onClick={() => onReplyReceived(selectedReceived)}><Reply className="size-5" aria-hidden="true" /> Reply</Button>
               <Button type="button" variant="secondary" size="icon" className="size-12 rounded-full" onClick={() => onForwardReceived(selectedReceived)} aria-label="Forward" title="Forward"><Forward className="size-5" aria-hidden="true" /></Button>
             </div>
