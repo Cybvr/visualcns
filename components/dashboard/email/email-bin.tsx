@@ -7,6 +7,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
+import { EmailContentFrame } from "./email-content-frame"
 import { EmailListRow } from "./email-list-row"
 
 export type EmailBinItem = {
@@ -115,14 +116,14 @@ export function EmailBin({
           )}
         </aside>
         {selected && (
-          <div className="flex min-h-[calc(100svh-8rem)] flex-1 flex-col overflow-hidden rounded-lg border border-border bg-card lg:min-h-0">
+          <div className="flex min-h-[calc(100svh-8rem)] flex-1 flex-col overflow-hidden rounded-lg border border-border bg-card max-sm:min-h-0 max-sm:overflow-visible lg:min-h-0">
             <div className="shrink-0 border-b border-border px-4 py-4 sm:px-5">
               <Button type="button" variant="ghost" size="icon" className="-ml-2 mb-2 size-8" onClick={() => setSelectedKey(null)} aria-label="Back to bin"><ArrowLeft aria-hidden="true" /></Button>
               <div className="flex items-start justify-between gap-3"><div className="min-w-0"><h2 className="break-words text-base font-semibold">{selected.subject}</h2><p className="mt-1 text-sm text-muted-foreground">{selected.kind === "received" ? "From" : "To"} {selected.title}</p><p className="mt-1 text-xs capitalize text-muted-foreground">{selected.kind === "sent" ? "Sent" : selected.kind === "draft" ? "Draft" : "Inbox"}</p></div><time dateTime={selected.deletedAt} className="shrink-0 text-right text-xs text-muted-foreground">Deleted {formatMessageDate(selected.deletedAt)}</time></div>
               {error && <p role="alert" className="mt-3 text-sm text-destructive">{error}</p>}
               <div className="mt-4 flex flex-wrap gap-2"><Button type="button" variant="outline" size="sm" onClick={() => void restore(selected)} disabled={busy}><RotateCcw className="size-4" aria-hidden="true" />Restore</Button><Button type="button" variant="destructive" size="sm" onClick={() => setDeleteTarget([selected])} disabled={busy}><Trash2 className="size-4" aria-hidden="true" />Delete permanently</Button></div>
             </div>
-            <div className="min-h-0 flex-1 overflow-hidden bg-white">{loadingKey === selected.key ? <div className="space-y-4 p-6" role="status" aria-label="Loading email"><Skeleton className="h-4 w-1/3" /><Skeleton className="h-32 w-full" /><Skeleton className="h-4 w-4/5" /></div> : selected.previewHtml ? <iframe title={`Deleted email: ${selected.subject}`} srcDoc={selected.previewHtml} sandbox="" className="h-full min-h-[24rem] w-full border-0" /> : selected.previewText ? <div className="h-full overflow-y-auto whitespace-pre-wrap p-6 text-sm text-neutral-900">{selected.previewText}</div> : <div className="flex h-full items-center justify-center px-6 text-center text-sm text-muted-foreground">Message preview unavailable.</div>}</div>
+            <div className="min-h-0 flex-1 overflow-hidden bg-white max-sm:flex-none max-sm:overflow-visible">{loadingKey === selected.key ? <div className="space-y-4 p-6" role="status" aria-label="Loading email"><Skeleton className="h-4 w-1/3" /><Skeleton className="h-32 w-full" /><Skeleton className="h-4 w-4/5" /></div> : selected.previewHtml ? <EmailContentFrame key={selected.key} title={`Deleted email: ${selected.subject}`} srcDoc={selected.previewHtml} /> : selected.previewText ? <div className="h-full overflow-y-auto whitespace-pre-wrap p-6 text-sm text-neutral-900">{selected.previewText}</div> : <div className="flex h-full items-center justify-center px-6 text-center text-sm text-muted-foreground">Message preview unavailable.</div>}</div>
           </div>
         )}
       </section>
