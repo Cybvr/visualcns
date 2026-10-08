@@ -299,8 +299,6 @@ export default function EmailPage() {
   const [composerPreviewOpen, setComposerPreviewOpen] = useState(false)
   const [templatePreviewOpen, setTemplatePreviewOpen] = useState(false)
   const [composeMinimized, setComposeMinimized] = useState(false)
-  // The composer covers the bottom of the screen on phones, so the footer nav steps aside.
-  useHideMobileFooter(composeOpen)
   const [selectedSentId, setSelectedSentId] = useState<string | null>(null)
   const [templates, setTemplates] = useState<EmailTemplate[]>([])
   const [messages, setMessages] = useState<SentMessage[]>([])
@@ -1963,6 +1961,8 @@ export default function EmailPage() {
   }
 
   const mobileReaderOpen = mobileMessageView === "reader" && (((tab === "inbox" || tab === "updates") && Boolean(selectedReceived)) || (tab === "messages" && Boolean(selectedSent)))
+  // Focused mobile workflows own the bottom edge, so the global footer steps aside.
+  useHideMobileFooter(composeOpen || mobileReaderOpen)
   const searchPlaceholder = tab === "inbox" ? "Search inbox" : tab === "updates" ? "Search updates" : tab === "drafts" ? "Search drafts" : tab === "messages" ? "Search sent" : tab === "bin" ? "Search bin" : tab === "templates" ? "Search templates" : "Search lists"
   const headerSearch = useMemo(() => ({
     query: activeFilterBar.query,
