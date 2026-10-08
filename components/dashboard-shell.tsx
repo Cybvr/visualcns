@@ -122,7 +122,7 @@ export function DashboardShell({
   const { open: agentOpen } = useAgent()
   const { agency } = useAuth()
   const unreadEmailCount = useUnreadEmailCount()
-  const { override: titleOverride, titleNode, actions: headerActions, replacesMobileDefaults, setHeaderSlot, hideMobileFooter } = usePageHeaderOverride()
+  const { override: titleOverride, titleNode, actions: headerActions, replacesMobileDefaults, setHeaderSlot, hideMobileFooter, backAction } = usePageHeaderOverride()
   const [createItem, setCreateItem] = useState<(typeof QUICK_CREATE_LINKS)[number] | null>(null)
   const [createName, setCreateName] = useState("")
   const [documentCreateOpen, setDocumentCreateOpen] = useState(false)
@@ -201,12 +201,22 @@ export function DashboardShell({
                 >
                   <ArrowLeft className="size-5" aria-hidden="true" />
                 </button>
+              ) : backAction ? (
+                <button
+                  type="button"
+                  onClick={backAction.onClick}
+                  aria-label={backAction.label}
+                  title={backAction.label}
+                  className="flex size-8 items-center justify-center rounded-md text-foreground outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <ArrowLeft className="size-5" aria-hidden="true" />
+                </button>
               ) : (
                 <SidebarTrigger className="-ml-1" />
               )}
-              {!isProjectDetailRoute && <Separator orientation="vertical" className="data-[orientation=vertical]:h-4 max-md:data-[orientation=vertical]:h-6" />}
+              {!isProjectDetailRoute && !backAction && <Separator orientation="vertical" className="data-[orientation=vertical]:h-4 max-md:data-[orientation=vertical]:h-6" />}
             </div>
-            <div className="flex min-w-0 items-center gap-1">
+            <div className={cn("flex min-w-0 items-center gap-1", titleNode && "flex-1")}>
               {titleOverride?.homeHref && (
                 <Link
                   href={titleOverride.homeHref}
@@ -217,7 +227,7 @@ export function DashboardShell({
                   <Home className="size-4 max-md:size-5" aria-hidden="true" />
                 </Link>
               )}
-              <h1 className="surface-title min-w-0 truncate max-md:[--surface-title-size:17px]">
+              <h1 className={cn("surface-title min-w-0 truncate max-md:[--surface-title-size:17px]", titleNode && "flex-1")}>
                 {titleNode ?? titleOverride?.title ?? dashboardPageTitle(pathname ?? "/dashboard")}
               </h1>
             </div>

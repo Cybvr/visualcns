@@ -27,6 +27,9 @@ interface PageTitleContextValue {
   /** The item open in a list/detail page, shown first in the browser tab title. */
   recordTitle: string | null
   setRecordTitle: Dispatch<SetStateAction<string | null>>
+  /** When set, phones show a Back button in the header in place of the menu button. */
+  backAction: { label: string; onClick: () => void } | null
+  setBackAction: Dispatch<SetStateAction<{ label: string; onClick: () => void } | null>>
 }
 
 const PageTitleContext = createContext<PageTitleContextValue | null>(null)
@@ -39,9 +42,10 @@ export function PageTitleProvider({ children }: { children: ReactNode }) {
   const [headerSlot, setHeaderSlot] = useState<HTMLElement | null>(null)
   const [hideMobileFooter, setHideMobileFooter] = useState(false)
   const [recordTitle, setRecordTitle] = useState<string | null>(null)
+  const [backAction, setBackAction] = useState<{ label: string; onClick: () => void } | null>(null)
   const value = useMemo(
-    () => ({ override, setOverride, titleNode, setTitleNode, actions, setActions, replacesMobileDefaults, setReplacesMobileDefaults, headerSlot, setHeaderSlot, hideMobileFooter, setHideMobileFooter, recordTitle, setRecordTitle }),
-    [override, titleNode, actions, replacesMobileDefaults, headerSlot, hideMobileFooter, recordTitle],
+    () => ({ override, setOverride, titleNode, setTitleNode, actions, setActions, replacesMobileDefaults, setReplacesMobileDefaults, headerSlot, setHeaderSlot, hideMobileFooter, setHideMobileFooter, recordTitle, setRecordTitle, backAction, setBackAction }),
+    [override, titleNode, actions, replacesMobileDefaults, headerSlot, hideMobileFooter, recordTitle, backAction],
   )
   return <PageTitleContext.Provider value={value}>{children}</PageTitleContext.Provider>
 }
@@ -98,6 +102,16 @@ export function usePageHeaderTitle(titleNode: ReactNode | null) {
     setTitleNode(titleNode)
     return () => setTitleNode(null)
   }, [titleNode, setTitleNode])
+}
+
+/** Shows a Back button in the phone header while `action` is set and the caller is mounted. */
+export function usePageHeaderBack(action: { label: string; onClick: () => void } | null) {
+  const { setBackAction } = usePageHeaderOverride()
+
+  useEffect(() => {
+    setBackAction(action)
+    return () => setBackAction(null)
+  }, [action, setBackAction])
 }
 
 /** Hides the mobile footer nav while `hidden` is true and the caller is mounted. */

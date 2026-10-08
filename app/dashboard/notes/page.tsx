@@ -1,13 +1,13 @@
 "use client"
 
-import { useEffect, useRef, useState, type KeyboardEvent } from "react"
-import { ArrowLeft, ListChecks, Plus, Trash2, X } from "lucide-react"
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react"
+import { ListChecks, Plus, Trash2, X } from "lucide-react"
 import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
-import { useRecordTitle } from "@/components/dashboard/page-title-context"
+import { useRecordTitle, usePageHeaderActions, usePageHeaderBack, usePageHeaderTitle, usePageHeaderOverride } from "@/components/dashboard/page-title-context"
 import { useUrlSelection } from "@/hooks/use-url-selection"
-import { CompactListRow, CompactListSkeleton, InitialAvatar, MOBILE_LIST_CARD } from "@/components/dashboard/compact-list-row"
+import { CompactListRow, CompactListSkeleton, MOBILE_LIST_CARD } from "@/components/dashboard/compact-list-row"
 import { EmptySearchState, FirstRunState } from "@/components/dashboard/empty-state"
 import { TableFilterBar } from "@/components/dashboard/table-filter-bar"
 import { useFilterBar } from "@/components/dashboard/filter-bar"
@@ -25,12 +25,6 @@ function noteTitle(note: Pick<Note, "title" | "body">) {
   const title = typeof note.title === "string" ? note.title : ""
   const body = typeof note.body === "string" ? note.body : ""
   return title.trim() || body.trim().split("\n")[0] || "New note"
-}
-
-function fullEditedAt(iso: string) {
-  const date = new Date(iso)
-  if (Number.isNaN(date.getTime())) return "just now"
-  return date.toLocaleString(undefined, { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })
 }
 
 function editedAt(iso: string) {
@@ -100,7 +94,22 @@ export default function NotesPage() {
   const itemInputs = useRef<Array<HTMLInputElement | null>>([])
 
   useRecordTitle(openId ? noteTitle({ title, body }) : null)
-  const openNote = notes?.find((note) => note.id === openId) ?? null
+
+  // On phones the open note's back button, title and actions live in the dashboard header.
+  const [phone, setPhone] = useState(false)
+  useEffect(() => {
+    const query = window.matchMedia("(max-width: 639px)")
+    const sync = () => setPhone(query.matches)
+    sync()
+    query.addEventListener("change", sync)
+    return () => query.removeEventListener("change", sync)
+  }, [])
+  const headerOpen = phone && Boolean(openId) && !error && notes !== null && notes.length > 0
+  const { setReplacesMobileDefaults } = usePageHeaderOverride()
+  useEffect(() => {
+    setReplacesMobileDefaults(headerOpen)
+    return () => setReplacesMobileDefaults(false)
+  }, [headerOpen, setReplacesMobileDefaults])
 
   useEffect(() => {
     if (!uid) return
@@ -253,6 +262,50 @@ export default function NotesPage() {
     })
   }
 
+  // Header nodes are memoized (they go through context); handlers are read from a ref so they stay current.
+  const latest = useRef({ edit, close, toggleChecklist, remove })
+  latest.current = { edit, close, toggleChecklist, remove }
+
+  const headerBack = useMemo(
+    () => (headerOpen ? { label: "Back to notes", onClick: () => latest.current.close() } : null),
+    [headerOpen],
+  )
+  const headerTitle = useMemo(
+    () => headerOpen ? (
+      <input
+        value={title}
+        onChange={(event) => latest.current.edit({ title: event.target.value })}
+        placeholder="New note"
+        aria-label="Note title"
+        className="w-full min-w-0 bg-transparent outline-none placeholder:text-muted-foreground"
+      />
+    ) : null,
+    [headerOpen, title],
+  )
+  const headerActions = useMemo(
+    () => headerOpen ? (
+      <>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className={cn("size-10 text-muted-foreground [&_svg]:size-5", checklistMode && "bg-muted text-foreground")}
+          onClick={() => latest.current.toggleChecklist()}
+          aria-label={checklistMode ? "Switch to note" : "Add checklist"}
+        >
+          <ListChecks aria-hidden="true" />
+        </Button>
+        <Button type="button" variant="ghost" size="icon" className="size-10 text-muted-foreground hover:text-destructive [&_svg]:size-5" onClick={() => void latest.current.remove()} aria-label="Delete note">
+          <Trash2 aria-hidden="true" />
+        </Button>
+      </>
+    ) : null,
+    [headerOpen, checklistMode],
+  )
+  usePageHeaderBack(headerBack)
+  usePageHeaderTitle(headerTitle)
+  usePageHeaderActions(headerActions)
+
   const { results: visibleNotes, bar } = useFilterBar({
     items: notes ?? [],
     search: searchNote,
@@ -328,58 +381,34 @@ export default function NotesPage() {
           )}>
             {openId ? (
               <div className="flex min-h-[70svh] flex-1 flex-col lg:min-h-0">
-                <div className="flex h-16 items-center gap-3 border-b border-border py-0 max-sm:h-auto max-sm:gap-1 max-sm:border-0 max-sm:pt-1 max-sm:pb-4">
-                  <Button type="button" variant="ghost" size="icon" className="-ml-2 size-10 shrink-0 sm:hidden" onClick={close} aria-label="Back to notes">
-                    <ArrowLeft className="size-5" aria-hidden="true" />
-                  </Button>
+                <div className="flex h-16 items-center gap-3 border-b border-border py-0 max-sm:hidden">
                   <input
                     value={title}
                     onChange={(event) => edit({ title: event.target.value })}
                     placeholder="New note"
                     aria-label="Note title"
-                    className="sidebar-nav-label min-w-0 flex-1 bg-transparent font-medium text-sidebar-foreground/70 outline-none placeholder:text-muted-foreground max-sm:hidden"
+                    className="sidebar-nav-label min-w-0 flex-1 bg-transparent font-medium text-sidebar-foreground/70 outline-none placeholder:text-muted-foreground"
                   />
-                  <span className="flex-1 sm:hidden" />
-                  <div className="flex shrink-0 items-center gap-2 max-sm:gap-1">
-                    <span className="text-xs text-muted-foreground max-sm:hidden" aria-live="polite">{saving ? "Saving…" : "Saved"}</span>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <span className="text-xs text-muted-foreground" aria-live="polite">{saving ? "Saving…" : "Saved"}</span>
                     <Button
                       type="button"
                       variant="ghost"
                       size="icon"
-                      className={cn("size-8 text-muted-foreground max-sm:size-10 max-sm:[&_svg]:size-5", checklistMode && "bg-muted text-foreground")}
+                      className={cn("size-8 text-muted-foreground", checklistMode && "bg-muted text-foreground")}
                       onClick={toggleChecklist}
                       aria-label={checklistMode ? "Switch to note" : "Add checklist"}
                       title={checklistMode ? "Switch to note" : "Add checklist"}
                     >
                       <ListChecks className="size-4" aria-hidden="true" />
                     </Button>
-                    <Button type="button" variant="ghost" size="icon" className="size-8 text-muted-foreground hover:text-destructive max-sm:size-10 max-sm:[&_svg]:size-5" onClick={() => void remove()} aria-label="Delete note">
+                    <Button type="button" variant="ghost" size="icon" className="size-8 text-muted-foreground hover:text-destructive" onClick={() => void remove()} aria-label="Delete note">
                       <Trash2 className="size-4" aria-hidden="true" />
                     </Button>
                   </div>
                 </div>
-                {/* Mobile: title, then who and when, like an opened email. */}
-                <div className="mb-4 sm:hidden">
-                  <textarea
-                    value={title}
-                    onChange={(event) => edit({ title: event.target.value.replace(/\n/g, " ") })}
-                    placeholder="New note"
-                    aria-label="Note title"
-                    rows={1}
-                    className="field-sizing-content w-full resize-none bg-transparent text-[1.375rem] leading-snug font-medium tracking-tight text-foreground outline-none placeholder:text-muted-foreground"
-                  />
-                  <div className="mt-3 flex items-center gap-3">
-                    <InitialAvatar text={openNote && openNote.createdBy !== uid ? "Team" : user?.displayName || user?.email || "You"} className="size-10 text-base" />
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-medium text-foreground">{openNote && openNote.createdBy !== uid ? "Shared note" : user?.displayName || "You"}</p>
-                      <p className="truncate text-xs text-muted-foreground" aria-live="polite">
-                        {saving ? "Saving…" : openNote ? `Edited ${fullEditedAt(openNote.updatedAt)}` : "Saved"}
-                      </p>
-                    </div>
-                  </div>
-                </div>
                 {checklistMode ? (
-                  <div className="min-h-0 flex-1 overflow-y-auto py-5 max-sm:min-h-[55svh] max-sm:flex-none max-sm:rounded-3xl max-sm:border max-sm:border-border max-sm:bg-card max-sm:px-4">
+                  <div className="min-h-0 flex-1 overflow-y-auto py-5 max-sm:min-h-[55svh] max-sm:flex-none max-sm:py-1">
                     <div className="space-y-1">
                       {parseChecklist(body).map((item, index) => (
                         <div key={index} className="group flex items-center gap-3 py-1">
@@ -423,7 +452,7 @@ export default function NotesPage() {
                     placeholder="Start writing"
                     aria-label="Note"
                     autoFocus
-                    className="note-body min-h-0 flex-1 resize-none py-5 text-foreground outline-none placeholder:text-muted-foreground max-sm:min-h-[55svh] max-sm:flex-none max-sm:rounded-3xl max-sm:border max-sm:border-border max-sm:bg-card max-sm:px-5"
+                    className="note-body min-h-0 flex-1 resize-none py-5 text-foreground outline-none placeholder:text-muted-foreground max-sm:min-h-[55svh] max-sm:flex-none max-sm:py-1"
                   />
                 )}
               </div>
