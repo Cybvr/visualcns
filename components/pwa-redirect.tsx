@@ -1,7 +1,6 @@
 "use client"
 
-import { useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useEffect, useState, type ReactNode } from "react"
 import { onAuthStateChanged } from "firebase/auth"
 
 import { auth } from "@/lib/firebase"
@@ -10,8 +9,8 @@ import { auth } from "@/lib/firebase"
  * Keep the public home page for signed-out visitors, but send signed-in users
  * straight to the app. Installed PWAs keep the existing signed-out login flow.
  */
-export function PwaRedirect({ to = "/login" }: { to?: string }) {
-  const router = useRouter()
+export function PwaRedirect({ children, to = "/login" }: { children: ReactNode; to?: string }) {
+  const [ready, setReady] = useState(false)
 
   useEffect(() => {
     if (typeof window === "undefined") return
@@ -21,12 +20,16 @@ export function PwaRedirect({ to = "/login" }: { to?: string }) {
       (window.navigator as Navigator & { standalone?: boolean }).standalone === true
 
     const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) router.replace("/dashboard")
-      else if (standalone) router.replace(to)
+      if (user) window.location.replace("/dashboard")
+      else if (standalone) window.location.replace(to)
+      else setReady(true)
     })
 
     return unsubscribe
-  }, [router, to])
+  }, [to])
 
-  return null
+  if (!ready) {
+    return <div className="min-h-svh bg-background" role="status" aria-label="Opening VisualCNS" />
+  }
+  return children
 }

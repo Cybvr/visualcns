@@ -17,7 +17,7 @@ import { NewDocumentDialog } from "@/components/dashboard/new-document-dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { dashboardPageTitle } from "@/components/dashboard/dashboard-document-title"
+import { dashboardPageTitle } from "@/lib/page-titles"
 import { usePageHeaderOverride } from "@/components/dashboard/page-title-context"
 import {
   Dialog,

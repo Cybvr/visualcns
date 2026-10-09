@@ -2,6 +2,15 @@ rules_version = '2';
 
 service firebase.storage {
   match /b/{bucket}/o {
+    // Email attachments are uploaded directly so Base64 data never exceeds the
+    // application request limit. The sender owns the short-lived upload.
+    match /email-attachments/{userId}/{messageId}/{fileId} {
+      allow create, update: if request.auth != null
+        && request.auth.uid == userId
+        && request.resource.size <= 5 * 1024 * 1024;
+      allow delete: if request.auth != null && request.auth.uid == userId;
+    }
+
     // Existing dashboard image uploads and links.
     match /{allPaths=**} {
       allow read: if true;

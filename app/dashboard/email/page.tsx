@@ -60,7 +60,8 @@ import { getHiddenReceivedEmails, hideReceivedEmail, permanentlyHideReceivedEmai
 import { EMAIL_INBOX_REFRESH_EVENT, publishUnreadEmailCount } from "@/components/dashboard/email/use-unread-email-count"
 import { contextualEmailBody, parseEmailList, plainTextToEditorHtml, readEmailComposeContext, type EmailComposeContext } from "@/lib/email-composer"
 import { getBusinessProfile, type BusinessProfile } from "@/lib/business-profile"
-import { MAX_EMAIL_ATTACHMENTS, MAX_EMAIL_ATTACHMENT_BYTES, readEmailAttachment } from "@/lib/email-attachments"
+import { MAX_EMAIL_ATTACHMENTS, MAX_EMAIL_ATTACHMENT_BYTES, MAX_EMAIL_ATTACHMENT_MEGABYTES, type StoredEmailAttachment } from "@/lib/email-attachments"
+import { prepareEmailAttachment, removeUploadedEmailAttachments, uploadEmailAttachments } from "@/lib/email-attachment-uploads"
 import { deleteEmailTemplate, getEmailTemplates, saveEmailTemplate } from "@/lib/email-templates-store"
 import { SIGNUP_WELCOME_TEMPLATE_ID } from "@/lib/email-templates"
 import { markdownToHtml } from "@/lib/markdown"
@@ -340,6 +341,7 @@ export default function EmailPage() {
   const [subject, setSubject] = useState("")
   const [body, setBody] = useState("")
   const [attachments, setAttachments] = useState<File[]>([])
+  const [preparingAttachments, setPreparingAttachments] = useState(false)
   const [messageKind, setMessageKind] = useState<EmailMessageKind>("transactional")
   const [brandedEmail, setBrandedEmail] = useState(true)
   const [composeContext, setComposeContext] = useState<EmailComposeContext | null>(null)
@@ -1492,27 +1494,35 @@ export default function EmailPage() {
     if (saved.length) setContacts((current) => [...current, ...saved])
   }
 
-  function addAttachments(files: File[]) {
+  async function addAttachments(files: File[]) {
     if (!files.length) return
-    const next = [...attachments, ...files]
-    if (next.length > MAX_EMAIL_ATTACHMENTS) {
+    if (attachments.length + files.length > MAX_EMAIL_ATTACHMENTS) {
       setSendNotice({ tone: "error", text: `Attach up to ${MAX_EMAIL_ATTACHMENTS} files.` })
       return
     }
-    if (next.some((file) => !file.size)) {
-      setSendNotice({ tone: "error", text: "Empty files cannot be attached." })
-      return
-    }
-    if (next.reduce((total, file) => total + file.size, 0) > MAX_EMAIL_ATTACHMENT_BYTES) {
-      setSendNotice({ tone: "error", text: "Attachments can total up to 5 MB." })
-      return
-    }
-    setAttachments(next)
+    setPreparingAttachments(true)
     setSendNotice(null)
+    try {
+      const preparedFiles = await Promise.all(files.map(prepareEmailAttachment))
+      const next = [...attachments, ...preparedFiles]
+      if (next.some((file) => !file.size)) {
+        setSendNotice({ tone: "error", text: "Empty files cannot be attached." })
+        return
+      }
+      if (next.reduce((total, file) => total + file.size, 0) > MAX_EMAIL_ATTACHMENT_BYTES) {
+        setSendNotice({ tone: "error", text: `Attachments can total up to ${MAX_EMAIL_ATTACHMENT_MEGABYTES} MB after image optimization.` })
+        return
+      }
+      setAttachments(next)
+    } catch (error) {
+      setSendNotice({ tone: "error", text: error instanceof Error ? error.message : "The attachment could not be prepared." })
+    } finally {
+      setPreparingAttachments(false)
+    }
   }
 
   async function sendEmail() {
-    if (!user || sending || !senderConfigured || !senderAddress?.trim()) return
+    if (!user || sending || preparingAttachments || !senderConfigured || !senderAddress?.trim()) return
 
     setSendNotice(null)
 
@@ -1546,8 +1556,9 @@ export default function EmailPage() {
 
     setSending(true)
 
+    let uploadedAttachments: StoredEmailAttachment[] = []
     try {
-      const encodedAttachments = await Promise.all(attachments.map(readEmailAttachment))
+      uploadedAttachments = await uploadEmailAttachments(attachments, user.uid)
       const sentBody = personalizeGreeting(body, composeRecipientName)
       const textBody = htmlToText(sentBody).trim()
       const bodyHtml = sentBody.includes("<") ? sentBody : markdownToHtml(sentBody)
@@ -1561,48 +1572,60 @@ export default function EmailPage() {
       })
       const savedCompanyId = composeContext?.companyId || workspaceId
       const idToken = await user.getIdToken()
+      const requestBody = JSON.stringify({
+        to: selectedList ? selectedList.contactEmails : to,
+        cc: ccList.valid.length ? ccList.valid : undefined,
+        intent: composeContext?.intent,
+        type: messageKind,
+        subject: trimmedSubject,
+        text: textBody,
+        html: bodyHtml,
+        branded: brandedEmail,
+        from: senderAddress || undefined,
+        brand: businessProfile,
+        cta: composeContext?.ctaUrl
+          ? { text: composeContext.ctaText || "Open your company page", url: composeContext.ctaUrl }
+          : undefined,
+        companyId: composeContext?.companyId,
+        projectId: composeContext?.projectId,
+        documentType: composeContext?.documentType,
+        documentId: composeContext?.documentId,
+        scheduledAt: scheduledAtIso || undefined,
+        attachments: uploadedAttachments,
+        threading: composeThreading || undefined,
+        history: {
+          companyId: savedCompanyId,
+          to: selectedList ? `${selectedList.name} (${selectedList.contactEmails.length})` : to.trim(),
+          createdAt: new Date().toISOString(),
+          recipients: recipientRecords,
+          companyName: composeContext?.companyName,
+          projectName: composeContext?.projectName,
+          documentTitle: composeContext?.documentTitle,
+          threadId: composeThreading?.threadId,
+          inReplyTo: composeThreading?.inReplyTo,
+          references: composeThreading?.references,
+        },
+      })
       const response = await fetch("/api/email/send", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${idToken}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          to: selectedList ? selectedList.contactEmails : to,
-          cc: ccList.valid.length ? ccList.valid : undefined,
-          intent: composeContext?.intent,
-          type: messageKind,
-          subject: trimmedSubject,
-          text: textBody,
-          html: bodyHtml,
-          branded: brandedEmail,
-          from: senderAddress || undefined,
-          brand: businessProfile,
-          cta: composeContext?.ctaUrl
-            ? { text: composeContext.ctaText || "Open your company page", url: composeContext.ctaUrl }
-            : undefined,
-          companyId: composeContext?.companyId,
-          projectId: composeContext?.projectId,
-          documentType: composeContext?.documentType,
-          documentId: composeContext?.documentId,
-          scheduledAt: scheduledAtIso || undefined,
-          attachments: encodedAttachments,
-          threading: composeThreading || undefined,
-          history: {
-            companyId: savedCompanyId,
-            to: selectedList ? `${selectedList.name} (${selectedList.contactEmails.length})` : to.trim(),
-            createdAt: new Date().toISOString(),
-            recipients: recipientRecords,
-            companyName: composeContext?.companyName,
-            projectName: composeContext?.projectName,
-            documentTitle: composeContext?.documentTitle,
-            threadId: composeThreading?.threadId,
-            inReplyTo: composeThreading?.inReplyTo,
-            references: composeThreading?.references,
-          },
-        }),
+        body: requestBody,
       })
-      const result = (await response.json()) as { id?: string; html?: string; text?: string; replyTo?: string | null; threadId?: string | null; suppressedCount?: number; scheduledAt?: string | null; cc?: string[]; historySaved?: boolean; error?: string }
+      const responseText = await response.text()
+      let result: { id?: string; html?: string; text?: string; replyTo?: string | null; threadId?: string | null; suppressedCount?: number; scheduledAt?: string | null; cc?: string[]; historySaved?: boolean; error?: string } = {}
+      try {
+        result = responseText ? JSON.parse(responseText) as typeof result : {}
+      } catch {
+        const requestTooLarge = response.status === 413 || /(?:request|payload).{0,20}too large/i.test(responseText)
+        result = {
+          error: requestTooLarge
+            ? "This email is too large to send. Remove an attachment and try again."
+            : "The email service returned an unreadable response. Try again.",
+        }
+      }
 
       if (!response.ok || !result.id) {
         throw new Error(result.error || "The message could not be sent.")
@@ -1665,6 +1688,7 @@ export default function EmailPage() {
       // shows as a page toast.
       closeCompose()
     } catch (error) {
+      if (uploadedAttachments.length) await removeUploadedEmailAttachments(uploadedAttachments)
       setSendNotice({
         tone: "error",
         text: error instanceof Error ? error.message : "The message could not be sent. Try again.",
@@ -2335,6 +2359,7 @@ export default function EmailPage() {
         attachments={attachments}
         addAttachments={addAttachments}
         removeAttachment={(index) => setAttachments((current) => current.filter((_, position) => position !== index))}
+        preparingAttachments={preparingAttachments}
         senderConfigured={Boolean(senderConfigured)}
         sending={sending}
         scheduleEnabled={Boolean(scheduleEnabled)}

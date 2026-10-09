@@ -19,10 +19,10 @@ const news = getBlogPosts()
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <PwaRedirect />
-      <Header />
-      <main className="pt-28 sm:pt-32 md:pt-36">
+    <PwaRedirect>
+      <div className="min-h-screen bg-background text-foreground">
+        <Header />
+        <main className="pt-28 sm:pt-32 md:pt-36">
         {/* Hero: the tagline is the page, not a caption on a video. */}
         <section aria-labelledby="home-hero-heading" className="mx-auto max-w-7xl px-4 sm:px-8 md:px-20">
           <p className="home-rise font-mono text-xs uppercase tracking-[0.24em] text-muted-foreground md:text-sm">
@@ -84,8 +84,9 @@ export default function HomePage() {
         <div className="mx-auto max-w-7xl px-4 pb-8 sm:px-8 md:px-20">
           <HomeSections products={products} capabilities={capabilities} news={news} />
         </div>
-      </main>
-      <Footer />
-    </div>
+        </main>
+        <Footer />
+      </div>
+    </PwaRedirect>
   )
 }

@@ -97,8 +97,9 @@ export type EmailComposerProps = {
   body: string
   setBody: (value: string) => void
   attachments: File[]
-  addAttachments: (files: File[]) => void
+  addAttachments: (files: File[]) => Promise<void>
   removeAttachment: (index: number) => void
+  preparingAttachments: boolean
   senderConfigured: boolean
   sending: boolean
   scheduleEnabled: boolean
@@ -162,6 +163,7 @@ export function EmailComposer({
   attachments,
   addAttachments,
   removeAttachment,
+  preparingAttachments,
   senderConfigured,
   sending,
   scheduleEnabled,
@@ -215,7 +217,7 @@ export function EmailComposer({
   const hasRecipient = selectedListId
     ? Boolean(selectedList?.contactEmails.length && selectedList.contactEmails.every((email) => EMAIL_PATTERN.test(email.trim())))
     : EMAIL_PATTERN.test(to.trim())
-  const sendDisabled = !senderConfigured || !senderAddress.trim() || !hasRecipient || sending || !subject.trim() || !htmlToText(body).trim() || (scheduleEnabled && !scheduleAt)
+  const sendDisabled = !senderConfigured || !senderAddress.trim() || !hasRecipient || sending || preparingAttachments || !subject.trim() || !htmlToText(body).trim() || (scheduleEnabled && !scheduleAt)
 
   function writeCc(chips: string[], draft: string) {
     setCc(chips.length ? `${chips.join(", ")}, ${draft.trimStart()}` : draft.trimStart())
@@ -424,7 +426,7 @@ export function EmailComposer({
 
               <div className="shrink-0 border-t border-border px-3 py-2">
                 <input ref={attachmentInputRef} type="file" multiple className="sr-only" tabIndex={-1} aria-label="Choose email attachments" onChange={(event) => { addAttachments(Array.from(event.target.files || [])); event.target.value = "" }} />
-                <button type="button" onClick={() => attachmentInputRef.current?.click()} disabled={sending} className="inline-flex h-8 items-center gap-2 rounded-md px-2 text-sm text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"><Paperclip className="size-4" aria-hidden="true" />Attach files</button>
+                <button type="button" onClick={() => attachmentInputRef.current?.click()} disabled={sending || preparingAttachments} className="inline-flex h-8 items-center gap-2 rounded-md px-2 text-sm text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"><Paperclip className="size-4" aria-hidden="true" />{preparingAttachments ? "Optimizing…" : "Attach files"}</button>
                 {attachments.length > 0 && (
                   <div className="mt-1 flex flex-wrap gap-1.5">
                     {attachments.map((file, index) => (

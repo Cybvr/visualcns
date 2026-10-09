@@ -7,7 +7,7 @@ import { markdownToHtml } from "@/lib/markdown"
 import { getAgencySecret, recordAgencyUsage } from "@/lib/server/agency-secrets"
 import { requireAgencyId } from "@/lib/require-agency-id"
 import { parseEmailList } from "@/lib/email-composer"
-import { MAX_EMAIL_ATTACHMENTS, MAX_EMAIL_ATTACHMENT_BYTES, type EmailAttachment, type EmailAttachmentInfo } from "@/lib/email-attachments"
+import { MAX_EMAIL_ATTACHMENTS, MAX_EMAIL_ATTACHMENT_BYTES, MAX_EMAIL_ATTACHMENT_MEGABYTES, type EmailAttachment, type EmailAttachmentInfo, type StoredEmailAttachment } from "@/lib/email-attachments"
 import { SITE_ORIGIN, X_URL, LINKEDIN_URL, absoluteWebUrl, brandedEmail, escapeHtml, extractEmailAddress, normalizeEmailAddress, safeBrandValue } from "@/lib/server/email-branding"
 import { getGmailMessage, gmailSenders, hasGmailConnection, sendGmailMessage } from "@/lib/server/google-gmail"
 
@@ -124,10 +124,10 @@ async function hasValidFirebaseSession(idToken: string) {
 
 async function getAdminCaller(idToken: string) {
   try {
-    const { auth, db } = adminServices()
+    const { auth, db, storage } = adminServices()
     const decoded = await auth.verifyIdToken(idToken)
     const snapshot = await db.collection("users").doc(decoded.uid).get()
-    return snapshot.exists ? { uid: decoded.uid, data: snapshot.data() || {}, db } : null
+    return snapshot.exists ? { uid: decoded.uid, data: snapshot.data() || {}, db, storage } : null
   } catch {
     return null
   }
@@ -352,17 +352,36 @@ export async function POST(request: Request) {
   }
   const attachments: EmailAttachment[] = []
   const attachmentInfo: EmailAttachmentInfo[] = []
+  const storedAttachments: StoredEmailAttachment[] = []
   let attachmentBytes = 0
   for (const item of rawAttachments) {
     if (!item || typeof item !== "object") return NextResponse.json({ error: "An attachment could not be read." }, { status: 400 })
     const file = item as Record<string, unknown>
+    if (typeof file.storagePath === "string") {
+      if (
+        typeof file.filename !== "string"
+        || !file.filename.trim()
+        || file.filename.length > 255
+        || typeof file.contentType !== "string"
+        || !/^[\w.+-]+\/[\w.+-]+$/.test(file.contentType)
+        || typeof file.size !== "number"
+        || !Number.isSafeInteger(file.size)
+        || file.size <= 0
+        || file.size > MAX_EMAIL_ATTACHMENT_BYTES
+        || !/^email-attachments\/[A-Za-z0-9_-]+\/[0-9a-f-]+\/[0-9a-f-]+$/i.test(file.storagePath)
+      ) {
+        return NextResponse.json({ error: "An attachment could not be read." }, { status: 400 })
+      }
+      storedAttachments.push({ filename: file.filename, contentType: file.contentType, size: file.size, storagePath: file.storagePath })
+      continue
+    }
     if (typeof file.filename !== "string" || !file.filename.trim() || file.filename.length > 255 || typeof file.content !== "string" || file.content.length > Math.ceil(MAX_EMAIL_ATTACHMENT_BYTES / 3) * 4 || !/^[A-Za-z0-9+/]+={0,2}$/.test(file.content) || file.content.length % 4 !== 0) {
       return NextResponse.json({ error: "An attachment could not be read." }, { status: 400 })
     }
     const contentType = typeof file.contentType === "string" && /^[\w.+-]+\/[\w.+-]+$/.test(file.contentType) ? file.contentType : "application/octet-stream"
     const size = Buffer.from(file.content, "base64").length
     attachmentBytes += size
-    if (!size || attachmentBytes > MAX_EMAIL_ATTACHMENT_BYTES) return NextResponse.json({ error: "Attachments can total up to 5 MB." }, { status: 400 })
+    if (!size || attachmentBytes > MAX_EMAIL_ATTACHMENT_BYTES) return NextResponse.json({ error: `Attachments can total up to ${MAX_EMAIL_ATTACHMENT_MEGABYTES} MB.` }, { status: 400 })
     attachments.push({ filename: file.filename.replace(/[\r\n]/g, "_"), contentType, content: file.content })
     attachmentInfo.push({ filename: file.filename.replace(/[\r\n]/g, "_"), size })
   }
@@ -437,6 +456,36 @@ export async function POST(request: Request) {
   const caller = await getAdminCaller(idToken)
   if (!caller) return NextResponse.json({ error: "Your account has no agency assigned." }, { status: 403 })
   const agencyId = requireAgencyId(caller.data)
+  if (storedAttachments.length) {
+    const ownedPrefix = `email-attachments/${caller.uid}/`
+    if (storedAttachments.some((attachment) => !attachment.storagePath.startsWith(ownedPrefix))) {
+      return NextResponse.json({ error: "An attachment is not available to this account." }, { status: 403 })
+    }
+    try {
+      for (const attachment of storedAttachments) {
+        const storedFile = caller.storage.bucket().file(attachment.storagePath)
+        try {
+          const [metadata] = await storedFile.getMetadata()
+          const storedSize = Number(metadata.size || 0)
+          if (!Number.isSafeInteger(storedSize) || storedSize <= 0 || storedSize !== attachment.size || attachmentBytes + storedSize > MAX_EMAIL_ATTACHMENT_BYTES) {
+            return NextResponse.json({ error: `Attachments can total up to ${MAX_EMAIL_ATTACHMENT_MEGABYTES} MB.` }, { status: 400 })
+          }
+          const [content] = await storedFile.download()
+          attachmentBytes += content.length
+          attachments.push({
+            filename: attachment.filename.replace(/[\r\n]/g, "_"),
+            contentType: typeof metadata.contentType === "string" && /^[\w.+-]+\/[\w.+-]+$/.test(metadata.contentType) ? metadata.contentType : attachment.contentType,
+            content: content.toString("base64"),
+          })
+          attachmentInfo.push({ filename: attachment.filename.replace(/[\r\n]/g, "_"), size: content.length })
+        } finally {
+          await storedFile.delete({ ignoreNotFound: true }).catch(() => undefined)
+        }
+      }
+    } catch {
+      return NextResponse.json({ error: "An attachment could not be retrieved. Reattach it and try again." }, { status: 503 })
+    }
+  }
   if (caller && !payload.brand) {
     const agency = (await caller.db.collection("agencies").doc(agencyId).get()).data() || {}
     payload.brand = {

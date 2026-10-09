@@ -1,13 +1,8 @@
 import type { Metadata } from "next"
 import type { ReactNode } from "react"
+import { headers } from "next/headers"
 
-function readableCompanyName(slug: string) {
-  return decodeURIComponent(slug)
-    .replace(/[-_]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .replace(/\b\w/g, (letter) => letter.toUpperCase()) || "Company"
-}
+import { publicCompanyMetadata } from "@/lib/server/page-metadata"
 
 export async function generateMetadata({
   params,
@@ -15,18 +10,9 @@ export async function generateMetadata({
   params: Promise<{ clientSlug: string }>
 }): Promise<Metadata> {
   const { clientSlug } = await params
-  const name = readableCompanyName(clientSlug)
-  const title = `${name} | VisualCNS`
-  const description = `View ${name}'s company profile on VisualCNS.`
   const path = `/${encodeURIComponent(clientSlug)}`
-
-  return {
-    title,
-    description,
-    alternates: { canonical: path },
-    openGraph: { title, description, url: path, type: "website" },
-    twitter: { card: "summary", title, description },
-  }
+  const requestHeaders = await headers()
+  return publicCompanyMetadata(clientSlug, null, path, requestHeaders.get("x-agency-subdomain") || "")
 }
 
 export default function ClientSlugLayout({ children }: { children: ReactNode }) {
