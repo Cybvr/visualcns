@@ -1,3 +1,4 @@
+import type { ReactNode } from "react"
 import { ClipboardList, FileSignature, FileText, Receipt } from "lucide-react"
 
 import {
@@ -11,11 +12,23 @@ import {
 } from "@/lib/billing"
 import { companyDocumentKindMeta, companyDocumentStatusMeta, type CompanyDocument } from "@/lib/company-documents"
 import { CompanyEmptyState } from "@/components/company/empty-state"
+import { ListSearch, useListSearch } from "@/components/dashboard/list-search"
 import { MobileDataCard } from "@/components/dashboard/mobile-data-card"
 import { SectionAddButton } from "@/components/company/section-add-button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 
 export type CompanyDocumentKind = "invoice" | "contract" | "estimate" | "document"
+
+type Entry = {
+  key: string
+  kind: CompanyDocumentKind
+  id: string
+  title: string
+  kindLabel: string
+  statusLabel: string
+  amount?: string
+  icon: ReactNode
+}
 
 export function CompanyDocuments({
   invoices,
@@ -29,6 +42,12 @@ export function CompanyDocuments({
   heading = "Documents",
   addKinds = ["document", "invoice", "contract", "estimate"],
   emptyDescription = "Proposals, invoices and contracts will appear here.",
+  media,
+  mediaCount = 0,
+  onUpload,
+  uploading = false,
+  hideHeading = false,
+  layout = "grid",
 }: {
   invoices: Invoice[]
   contracts: Contract[]
@@ -42,20 +61,85 @@ export function CompanyDocuments({
   /** Which kinds the add menu offers. */
   addKinds?: CompanyDocumentKind[]
   emptyDescription?: string
+  /** Image and video tiles for the same grid as the documents, filtered by the search text. */
+  media?: (query: string) => ReactNode
+  mediaCount?: number
+  /** Adds an "Upload files" entry to the add menu. */
+  onUpload?: () => void
+  uploading?: boolean
+  /** Hides the visible label when the page already titles itself. */
+  hideHeading?: boolean
+  /** "rows" is the searchable list the email page uses. */
+  layout?: "grid" | "rows"
 }) {
-  const count = invoices.length + contracts.length + estimates.length + documents.length
+  const count = invoices.length + contracts.length + estimates.length + documents.length + mediaCount
+
+  const entries: Entry[] = [
+    ...documents.map((document) => ({
+      key: `document-${document.id}`,
+      kind: "document" as const,
+      id: document.id,
+      title: document.title || "Document",
+      kindLabel: companyDocumentKindMeta[document.kind]?.label ?? "Document",
+      statusLabel: (companyDocumentStatusMeta[document.status] ?? companyDocumentStatusMeta.draft).label,
+      icon: <FileText className="size-5 text-blue-600 dark:text-blue-400" aria-hidden="true" />,
+    })),
+    ...invoices.map((invoice) => ({
+      key: `invoice-${invoice.id}`,
+      kind: "invoice" as const,
+      id: invoice.id,
+      title: invoice.title?.trim() || invoice.invoiceNumber || "Invoice",
+      kindLabel: "Invoice",
+      statusLabel: invoiceStatusMeta[invoice.status].label,
+      amount: formatMoney(invoice.amount, invoice.currency),
+      icon: <Receipt className="size-5 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />,
+    })),
+    ...contracts.map((contract) => ({
+      key: `contract-${contract.id}`,
+      kind: "contract" as const,
+      id: contract.id,
+      title: contract.title || "Contract",
+      kindLabel: "Contract",
+      statusLabel: contractStatusMeta[contract.status].label,
+      icon: <FileSignature className="size-5 text-indigo-600 dark:text-indigo-400" aria-hidden="true" />,
+    })),
+    ...estimates.map((estimate) => ({
+      key: `estimate-${estimate.id}`,
+      kind: "estimate" as const,
+      id: estimate.id,
+      title: estimate.estimateNumber || estimate.title || "Estimate",
+      kindLabel: "Estimate",
+      statusLabel: estimateStatusMeta[estimate.status].label,
+      amount: formatMoney(estimate.amount, estimate.currency),
+      icon: <ClipboardList className="size-5 text-amber-600 dark:text-amber-400" aria-hidden="true" />,
+    })),
+  ]
+
+  const { query, setQuery, results } = useListSearch(entries, (entry) => [entry.title, entry.kindLabel, entry.statusLabel, entry.amount])
+
+  function menuFor(entry: Entry) {
+    return (
+      <>
+        <DropdownMenuItem onSelect={() => onSelect(entry.kind, entry.id)}>Open {entry.kind}</DropdownMenuItem>
+        {onEdit && <DropdownMenuItem onSelect={() => onEdit(entry.kind, entry.id)}>Edit {entry.kind}</DropdownMenuItem>}
+      </>
+    )
+  }
 
   return (
     <section className="mt-4" aria-labelledby="company-documents-heading">
       <div className="flex items-center justify-between gap-3">
         <h2 id="company-documents-heading" className="sr-only">{heading}</h2>
-        <span className="sidebar-nav-label text-muted-foreground">{heading}</span>
+        {layout === "rows" || hideHeading ? (
+          <ListSearch value={query} onChange={setQuery} placeholder={`Search ${heading.toLowerCase()}`} className="max-w-sm flex-1" />
+        ) : <span className="sidebar-nav-label text-muted-foreground">{heading}</span>}
         {canAdd && onAdd && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <SectionAddButton label="Add document" />
+              <SectionAddButton label={onUpload ? "Add to Drive" : "Add document"} disabled={uploading} />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
+              {onUpload && <DropdownMenuItem onSelect={onUpload}>Upload files</DropdownMenuItem>}
               {addKinds.includes("document") && <DropdownMenuItem onSelect={() => onAdd("document")}>Document</DropdownMenuItem>}
               {addKinds.includes("invoice") && <DropdownMenuItem onSelect={() => onAdd("invoice")}>Invoice</DropdownMenuItem>}
               {addKinds.includes("contract") && <DropdownMenuItem onSelect={() => onAdd("contract")}>Contract</DropdownMenuItem>}
@@ -68,88 +152,49 @@ export function CompanyDocuments({
       {count === 0 ? (
         <CompanyEmptyState
           icon={FileText}
-          title={`No ${heading.toLowerCase()} yet`}
+          title={heading === "Drive" ? "Nothing in Drive yet" : `No ${heading.toLowerCase()} yet`}
           description={emptyDescription}
         />
+      ) : layout === "rows" ? (
+        <div className="mt-4">
+          {results.length === 0 ? (
+            <p className="px-3 py-8 text-center text-sm text-muted-foreground">Nothing matches your search.</p>
+          ) : results.map((entry) => (
+            <MobileDataCard
+              key={entry.key}
+              surface="list"
+              variant="inline"
+              iconShape="circle"
+              title={entry.title}
+              subtitle={`${entry.kindLabel} · ${entry.statusLabel}`}
+              icon={entry.icon}
+              trailing={entry.amount}
+              onClick={() => onSelect(entry.kind, entry.id)}
+              ariaLabel={`Open ${entry.title}`}
+              menuLabel={`Options for ${entry.title}`}
+              menu={menuFor(entry)}
+            />
+          ))}
+        </div>
       ) : (
-        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-          {documents.map((document) => {
-            const status = companyDocumentStatusMeta[document.status] ?? companyDocumentStatusMeta.draft
-            const kind = companyDocumentKindMeta[document.kind]?.label ?? "Document"
-            return (
-              <MobileDataCard
-                key={`document-${document.id}`}
-                title={document.title || "Document"}
-                subtitle={`${kind} · ${status.label}`}
-                ariaLabel={`Open ${document.title || "Document"}`}
-                icon={<FileText className="size-5 text-blue-600 dark:text-blue-400" aria-hidden="true" />}
-                menuLabel={`Options for ${document.title || "Document"}`}
-                menu={<>
-                  <DropdownMenuItem onSelect={() => onSelect("document", document.id)}>Open document</DropdownMenuItem>
-                  {onEdit && <DropdownMenuItem onSelect={() => onEdit("document", document.id)}>Edit document</DropdownMenuItem>}
-                </>}
-                onClick={() => onSelect("document", document.id)}
-              />
-            )
-          })}
+        <div className={`mt-4 grid gap-3 sm:grid-cols-3 lg:grid-cols-4 ${mediaCount > 0 ? "grid-cols-2" : "grid-cols-1"}`}>
+          {results.map((entry) => (
+            <MobileDataCard
+              key={entry.key}
+              title={entry.title}
+              subtitle={entry.amount ? `${entry.amount} · ${entry.statusLabel}` : `${entry.kindLabel} · ${entry.statusLabel}`}
+              ariaLabel={`Open ${entry.title}`}
+              icon={entry.icon}
+              menuLabel={`Options for ${entry.title}`}
+              menu={menuFor(entry)}
+              onClick={() => onSelect(entry.kind, entry.id)}
+            />
+          ))}
 
-          {invoices.map((invoice) => {
-            const status = invoiceStatusMeta[invoice.status]
-            const title = invoice.title?.trim() || invoice.invoiceNumber || "Invoice"
-            return (
-              <MobileDataCard
-                key={`invoice-${invoice.id}`}
-                title={title}
-                subtitle={`${formatMoney(invoice.amount, invoice.currency)} · ${status.label}`}
-                ariaLabel={`Open invoice ${title}`}
-                icon={<Receipt className="size-5 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />}
-                menuLabel={`Options for invoice ${title}`}
-                menu={<>
-                  <DropdownMenuItem onSelect={() => onSelect("invoice", invoice.id)}>Open invoice</DropdownMenuItem>
-                  {onEdit && <DropdownMenuItem onSelect={() => onEdit("invoice", invoice.id)}>Edit invoice</DropdownMenuItem>}
-                </>}
-                onClick={() => onSelect("invoice", invoice.id)}
-              />
-            )
-          })}
-
-          {contracts.map((contract) => {
-            const status = contractStatusMeta[contract.status]
-            return (
-              <MobileDataCard
-                key={`contract-${contract.id}`}
-                title={contract.title || "Contract"}
-                subtitle={`Contract · ${status.label}`}
-                ariaLabel={`Open ${contract.title || "Contract"}`}
-                icon={<FileSignature className="size-5 text-indigo-600 dark:text-indigo-400" aria-hidden="true" />}
-                menuLabel={`Options for ${contract.title || "Contract"}`}
-                menu={<>
-                  <DropdownMenuItem onSelect={() => onSelect("contract", contract.id)}>Open contract</DropdownMenuItem>
-                  {onEdit && <DropdownMenuItem onSelect={() => onEdit("contract", contract.id)}>Edit contract</DropdownMenuItem>}
-                </>}
-                onClick={() => onSelect("contract", contract.id)}
-              />
-            )
-          })}
-
-          {estimates.map((estimate) => {
-            const status = estimateStatusMeta[estimate.status]
-            return (
-              <MobileDataCard
-                key={`estimate-${estimate.id}`}
-                title={estimate.estimateNumber || estimate.title || "Estimate"}
-                subtitle={`${formatMoney(estimate.amount, estimate.currency)} · ${status.label}`}
-                ariaLabel={`Open estimate ${estimate.estimateNumber || estimate.title || ""}`}
-                icon={<ClipboardList className="size-5 text-amber-600 dark:text-amber-400" aria-hidden="true" />}
-                menuLabel={`Options for ${estimate.estimateNumber || estimate.title || "Estimate"}`}
-                menu={<>
-                  <DropdownMenuItem onSelect={() => onSelect("estimate", estimate.id)}>Open estimate</DropdownMenuItem>
-                  {onEdit && <DropdownMenuItem onSelect={() => onEdit("estimate", estimate.id)}>Edit estimate</DropdownMenuItem>}
-                </>}
-                onClick={() => onSelect("estimate", estimate.id)}
-              />
-            )
-          })}
+          {media?.(query)}
+          {query.trim() && results.length === 0 && mediaCount === 0 && (
+            <p className="col-span-full px-3 py-8 text-center text-sm text-muted-foreground">Nothing matches your search.</p>
+          )}
         </div>
       )}
     </section>

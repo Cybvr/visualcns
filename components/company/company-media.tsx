@@ -1,10 +1,8 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { ChevronLeft, ChevronRight, Images, Play, X } from "lucide-react"
+import { ChevronLeft, ChevronRight, Play, X } from "lucide-react"
 
-import { CompanyEmptyState } from "@/components/company/empty-state"
-import { GalleryDropzone } from "@/components/image-dropzone"
 import { mediaKindForUrl, type MediaKind } from "@/lib/media"
 import type { Project } from "@/lib/projects"
 
@@ -32,28 +30,44 @@ function derivedMedia(logoUrl: string | undefined, projects: Project[]): MediaIt
   return items
 }
 
+function galleryItems(logoUrl: string | undefined, projects: Project[], uploaded: string[]): MediaItem[] {
+  const uploadedItems: MediaItem[] = uploaded
+    .filter(Boolean)
+    .map((url) => ({ url, label: "Uploaded media", project: "Company", kind: mediaKindForUrl(url) }))
+
+  return [...new Map([...uploadedItems, ...derivedMedia(logoUrl, projects)].map((item) => [item.url, item])).values()]
+}
+
+export function companyMediaCount(logoUrl: string | undefined, projects: Project[], uploaded: string[] = []) {
+  return galleryItems(logoUrl, projects, uploaded).length
+}
+
+/**
+ * The company's images and videos as tiles for the Drive grid, plus the
+ * lightbox they open. Render it inside the same grid as the documents.
+ */
 export function CompanyMedia({
   logoUrl,
   projects,
   uploaded = [],
   onUploadedChange,
+  query = "",
 }: {
   logoUrl?: string
   projects: Project[]
   /** Media an admin added directly to the company (persisted on the organization). */
   uploaded?: string[]
-  /** Present only for admins; wiring it in turns the section into an editor. */
+  /** Present only for admins; lets them remove what they uploaded. */
   onUploadedChange?: (urls: string[]) => void
+  /** Only tiles whose label, project or file name contain this text are shown. */
+  query?: string
 }) {
   const isAdmin = Boolean(onUploadedChange)
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
-  const uploadedItems: MediaItem[] = uploaded
-    .filter(Boolean)
-    .map((url) => ({ url, label: "Uploaded media", project: "Company", kind: mediaKindForUrl(url) }))
-
-  const gallery = [
-    ...new Map([...uploadedItems, ...derivedMedia(logoUrl, projects)].map((item) => [item.url, item])).values(),
-  ]
+  const term = query.trim().toLowerCase()
+  const gallery = galleryItems(logoUrl, projects, uploaded).filter(
+    (item) => !term || [item.label, item.project, item.kind, item.url.split("/").pop()].some((field) => field?.toLowerCase().includes(term)),
+  )
 
   const lightbox = lightboxIndex === null ? null : gallery[lightboxIndex] ?? null
   const showArrows = gallery.length > 1
@@ -72,66 +86,52 @@ export function CompanyMedia({
   }, [lightbox, gallery.length])
 
   return (
-    <section className="mt-4" aria-labelledby="company-media-heading">
-      <div className="flex items-center justify-between gap-4">
-        <h2 id="company-media-heading" className="sr-only">Media</h2>
-        <span className="sidebar-nav-label text-muted-foreground">Media</span>
-      </div>
-
-      {isAdmin && (
-        <div className="mt-4">
-          <GalleryDropzone
-            value={uploaded.filter(Boolean)}
-            acceptVideos
-            onChange={(urls) => onUploadedChange?.(urls)}
-          />
-        </div>
-      )}
-
-      {gallery.length === 0 ? (
-        <CompanyEmptyState
-          icon={Images}
-          title="No media yet"
-          description="Project covers, images, and videos will appear here."
-        />
-      ) : (
-        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-          {gallery.map((item, index) => (
+    <>
+      {gallery.map((item, index) => (
+        <div key={item.url} className="group relative">
+          {isAdmin && uploaded.includes(item.url) && (
             <button
-              key={item.url}
               type="button"
-              onClick={() => setLightboxIndex(index)}
-              className="relative aspect-square overflow-hidden rounded-[10px] bg-muted outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-              aria-label={`View ${item.label} from ${item.project}`}
+              onClick={() => onUploadedChange?.(uploaded.filter((url) => url && url !== item.url))}
+              aria-label={`Remove ${item.kind}`}
+              className="absolute right-1.5 top-1.5 z-10 flex size-6 items-center justify-center rounded-full bg-destructive text-destructive-foreground opacity-0 shadow transition-opacity focus-visible:opacity-100 group-hover:opacity-100"
             >
-              {item.kind === "video" ? (
-                <>
-                  <video
-                    src={item.url}
-                    muted
-                    playsInline
-                    preload="metadata"
-                    aria-hidden="true"
-                    className="h-full w-full object-cover transition-transform duration-300 hover:scale-[1.02]"
-                  />
-                  <span className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/15 text-white">
-                    <Play className="size-7 fill-current" aria-hidden="true" />
-                  </span>
-                </>
-              ) : (
-                // Media URLs may come from any configured storage host.
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
+              <X className="size-3" aria-hidden="true" />
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => setLightboxIndex(index)}
+            className="relative aspect-square w-full overflow-hidden rounded-[10px] bg-muted outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            aria-label={`View ${item.label} from ${item.project}`}
+          >
+            {item.kind === "video" ? (
+              <>
+                <video
                   src={item.url}
-                  alt={`${item.label} from ${item.project}`}
-                  loading="lazy"
+                  muted
+                  playsInline
+                  preload="metadata"
+                  aria-hidden="true"
                   className="h-full w-full object-cover transition-transform duration-300 hover:scale-[1.02]"
                 />
-              )}
-            </button>
-          ))}
+                <span className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/15 text-white">
+                  <Play className="size-7 fill-current" aria-hidden="true" />
+                </span>
+              </>
+            ) : (
+              // Media URLs may come from any configured storage host.
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={item.url}
+                alt={`${item.label} from ${item.project}`}
+                loading="lazy"
+                className="h-full w-full object-cover transition-transform duration-300 hover:scale-[1.02]"
+              />
+            )}
+          </button>
         </div>
-      )}
+      ))}
 
       {lightbox && (
         <div
@@ -195,6 +195,6 @@ export function CompanyMedia({
           )}
         </div>
       )}
-    </section>
+    </>
   )
 }

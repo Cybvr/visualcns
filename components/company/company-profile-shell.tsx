@@ -1,20 +1,18 @@
 "use client"
 
-import { useState, type ReactNode } from "react"
+import { useCallback, useMemo, useState, type ComponentProps, type ReactNode } from "react"
 import Link from "next/link"
-import { Building2, ChevronRight, LogIn, Share2, UserPlus } from "lucide-react"
+import { Bell, Building2, ChevronRight, LogIn, Search } from "lucide-react"
 
 import { useAuth } from "@/components/auth-provider"
 import { BrandLockup } from "@/components/brand-lockup"
 import { useCompanyPage } from "@/components/company/company-page-context"
 import { NgaiWidget } from "@/components/company/ngai-widget"
-import { TeamInvitePanel, useTeamSeats } from "@/components/company/team-seats"
-import { ShareLinkActions } from "@/components/dashboard/share-link-actions"
+import { HeaderTeam } from "@/components/company/header-team"
 import { NavUser } from "@/components/nav-user"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { GlobalSearchDialog, useSearchHotkey, type SearchResult } from "@/components/search/global-search"
 import { Button } from "@/components/ui/button"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Separator } from "@/components/ui/separator"
 import {
   Sidebar,
@@ -32,8 +30,23 @@ import {
   SidebarProvider,
   SidebarRail,
   SidebarTrigger,
+  useSidebar,
 } from "@/components/ui/sidebar"
 import { cn } from "@/lib/utils"
+
+function CompanySidebarLink({ onClick, ...props }: ComponentProps<typeof Link>) {
+  const { setOpenMobile } = useSidebar()
+
+  return (
+    <Link
+      {...props}
+      onClick={(event) => {
+        onClick?.(event)
+        setOpenMobile(false)
+      }}
+    />
+  )
+}
 
 function CompanyIdentity() {
   const { company } = useCompanyPage()
@@ -61,72 +74,6 @@ function CompanyIdentity() {
 
 const AGENCY_GROUP = { label: "Agency", keys: ["projects", "tasks", "messages"] as string[] }
 
-const MAX_AVATARS = 4
-
-/**
- * Top right of the header: the team as a cluster of avatars, then Invite (for the
- * people who manage the team) and Share. Replaces the separate Team page.
- */
-function HeaderTeam() {
-  const { company, people, canManageTeam, absoluteUrl } = useCompanyPage()
-  const teamSeats = useTeamSeats(company.id, canManageTeam)
-  const [inviteOpen, setInviteOpen] = useState(false)
-  const [shareOpen, setShareOpen] = useState(false)
-  const shown = people.slice(0, MAX_AVATARS)
-  const extra = people.length - shown.length
-  const shareUrl = absoluteUrl(`/${encodeURIComponent(company.slug || company.id)}`)
-
-  return (
-    <div className="ml-auto flex shrink-0 items-center gap-2 print:hidden">
-      {people.length > 0 && (
-        <div className="mr-1 flex -space-x-2" aria-label={`${people.length} team member${people.length === 1 ? "" : "s"}`}>
-          {shown.map((person) => (
-            <Avatar key={person.id} className="size-8 border-2 border-card" title={person.name}>
-              {person.photoUrl && <AvatarImage src={person.photoUrl} alt={person.name} referrerPolicy="no-referrer" />}
-              <AvatarFallback className="text-xs">{person.name.trim().charAt(0).toUpperCase() || "?"}</AvatarFallback>
-            </Avatar>
-          ))}
-          {extra > 0 && (
-            <span className="grid size-8 place-items-center rounded-full border-2 border-card bg-muted text-xs font-medium text-muted-foreground">+{extra}</span>
-          )}
-        </div>
-      )}
-      {canManageTeam && teamSeats.info && (
-        <Button type="button" variant="outline" size="sm" onClick={() => setInviteOpen(true)}>
-          <UserPlus className="size-4" aria-hidden="true" />
-          <span className="max-sm:hidden">Invite</span>
-        </Button>
-      )}
-      <Button type="button" variant="outline" size="sm" onClick={() => setShareOpen(true)}>
-        <Share2 className="size-4" aria-hidden="true" />
-        <span className="max-sm:hidden">Share</span>
-      </Button>
-
-      <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Invite to {company.name}</DialogTitle>
-            <DialogDescription>
-              {teamSeats.info ? (teamSeats.info.limit === null ? `${teamSeats.info.seats} seats in use.` : `${teamSeats.info.seats} of ${teamSeats.info.limit} seats in use.`) : "Invite a colleague by email."}
-            </DialogDescription>
-          </DialogHeader>
-          {teamSeats.info && <TeamInvitePanel info={teamSeats.info} call={teamSeats.call} onChange={() => void teamSeats.reload()} />}
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={shareOpen} onOpenChange={setShareOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Share company page</DialogTitle>
-            <DialogDescription>Copy this link to share {company.name}&apos;s page.</DialogDescription>
-          </DialogHeader>
-          <ShareLinkActions url={shareUrl} label="Company link" shareText={`See ${company.name}'s company page`} />
-        </DialogContent>
-      </Dialog>
-    </div>
-  )
-}
-
 /** The dashboard's account menu when signed in, a sign-in button for visitors. */
 function SidebarAccount() {
   const { company } = useCompanyPage()
@@ -151,8 +98,21 @@ function SidebarAccount() {
  * card on the tinted background and the page header inside the card.
  */
 export function CompanyProfileShell({ children }: { children: ReactNode }) {
-  const { company, sections, section, sectionHref } = useCompanyPage()
+  const { company, people, canManageTeam, absoluteUrl, sections, section, sectionHref, projects, invoices, contracts, estimates, documents } = useCompanyPage()
   const sectionLabel = sections.find((item) => item.key === section)?.label
+  const [searchOpen, setSearchOpen] = useState(false)
+  const openSearch = useCallback(() => setSearchOpen(true), [])
+  useSearchHotkey(openSearch)
+
+  const searchResults = useMemo<SearchResult[]>(() => [
+    ...sections.map((item) => ({ id: `section-${item.key}`, group: "Pages", label: item.label, href: sectionHref(item.key) })),
+    ...projects.map((project) => ({ id: `project-${project.id}`, group: "Jobs", label: project.title, sublabel: project.service || undefined, href: sectionHref("projects") })),
+    ...documents.map((doc) => ({ id: `document-${doc.id}`, group: "Documents", label: doc.title || "Document", href: sectionHref("drive", { doc: `document:${doc.id}` }) })),
+    ...invoices.map((invoice) => ({ id: `invoice-${invoice.id}`, group: "Finance", label: invoice.invoiceNumber || invoice.title || "Invoice", href: sectionHref("finance", { doc: `invoice:${invoice.id}` }) })),
+    ...estimates.map((estimate) => ({ id: `estimate-${estimate.id}`, group: "Finance", label: estimate.estimateNumber || estimate.title || "Estimate", href: sectionHref("finance", { doc: `estimate:${estimate.id}` }) })),
+    ...contracts.map((contract) => ({ id: `contract-${contract.id}`, group: "Finance", label: contract.title || "Contract", href: sectionHref("finance", { doc: `contract:${contract.id}` }) })),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  ], [sections, projects, documents, invoices, estimates, contracts])
 
   // Jobs, Tasks and Messages sit together under one Agency dropdown, where the first of them falls.
   type SectionItem = (typeof sections)[number]
@@ -176,10 +136,10 @@ export function CompanyProfileShell({ children }: { children: ReactNode }) {
           tooltip={item.label}
           className="h-9 gap-2 px-2 max-md:h-12 max-md:min-h-12 max-md:gap-3 max-md:px-3 [&>svg]:size-[18px] [&>svg]:max-md:size-5"
         >
-          <Link href={sectionHref(item.key)}>
+          <CompanySidebarLink href={sectionHref(item.key)}>
             {Icon && <Icon className="h-4 w-4" aria-hidden="true" />}
             <span className="sidebar-nav-label">{item.label}</span>
-          </Link>
+          </CompanySidebarLink>
         </SidebarMenuButton>
       </SidebarMenuItem>
     )
@@ -221,10 +181,10 @@ export function CompanyProfileShell({ children }: { children: ReactNode }) {
                                 return (
                                   <SidebarMenuSubItem key={item.key}>
                                     <SidebarMenuSubButton asChild isActive={section === item.key} className="h-9 gap-2 px-2 max-md:h-11 max-md:min-h-11 max-md:gap-3 max-md:px-3">
-                                      <Link href={sectionHref(item.key)}>
+                                      <CompanySidebarLink href={sectionHref(item.key)}>
                                         {Icon && <Icon className="h-4 w-4" aria-hidden="true" />}
                                         <span className="sidebar-nav-label">{item.label}</span>
-                                      </Link>
+                                      </CompanySidebarLink>
                                     </SidebarMenuSubButton>
                                   </SidebarMenuSubItem>
                                 )
@@ -248,23 +208,49 @@ export function CompanyProfileShell({ children }: { children: ReactNode }) {
         {/* The inset itself is the full-height scroller, flush to the window's right edge,
             so its scrollbar is the window's. The header sits on the tinted background and
             sticky strips in that colour hide content passing the card's edges. */}
-        <SidebarInset className="min-h-0 overflow-y-auto bg-card md:bg-sidebar">
-          <header className="surface-nav sticky top-0 z-40 flex h-14 shrink-0 items-center gap-2 bg-card px-4 text-foreground max-md:border-b max-md:border-border md:bg-sidebar print:hidden md:after:pointer-events-none md:after:absolute md:after:left-0 md:after:top-full md:after:size-4 md:after:bg-[radial-gradient(circle_at_100%_100%,transparent_15.5px,var(--sidebar)_16px)]">
+        <SidebarInset className="min-h-0 overflow-y-auto bg-card md:!m-0 md:!rounded-none md:bg-background md:!shadow-none">
+          <header className="surface-nav sticky top-0 z-40 flex h-14 shrink-0 items-center gap-2 bg-card px-4 text-foreground max-md:border-b max-md:border-border md:h-[72px] md:bg-background md:px-7 print:hidden">
             <div className="flex shrink-0 items-center gap-2 md:hidden">
               <SidebarTrigger className="-ml-1" />
               <Separator orientation="vertical" className="data-[orientation=vertical]:h-4 max-md:data-[orientation=vertical]:h-6" />
             </div>
-            <h1 className="surface-title min-w-0 truncate max-md:[--surface-title-size:17px]">{sectionLabel ?? company.name}</h1>
-            <HeaderTeam />
+            <div className="flex min-w-0 items-center gap-1 md:gap-3">
+              <div className="relative hidden w-64 shrink-0 md:block lg:w-72">
+                <button type="button" onClick={openSearch} className="flex h-12 w-full items-center gap-2 rounded-full bg-sidebar-accent/25 px-4 text-left text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label={`Search ${company.name}`}>
+                  <Search className="size-4 shrink-0" aria-hidden="true" />
+                  <span className="truncate">Search {company.name}</span>
+                </button>
+              </div>
+              <h1 className="surface-title min-w-0 truncate max-md:[--surface-title-size:17px] md:sr-only">{sectionLabel ?? company.name}</h1>
+            </div>
+            <div className="ml-auto flex shrink-0 items-center gap-2">
+              <Button type="button" variant="ghost" size="icon" className="rounded-full text-foreground hover:bg-muted/50 active:bg-muted/50 md:hidden" aria-label={`Search ${company.name}`} onClick={openSearch}>
+                <Search className="size-[18px]" aria-hidden="true" />
+              </Button>
+              <HeaderTeam
+                company={company}
+                people={people}
+                canManageTeam={canManageTeam}
+                shareUrl={absoluteUrl(`/${encodeURIComponent(company.slug || company.id)}`)}
+              />
+              <Button type="button" variant="ghost" size="icon" className="hidden rounded-full text-foreground hover:bg-muted/50 active:bg-muted/50 sm:inline-flex" aria-label="Notifications">
+                <Bell className="size-[18px]" aria-hidden="true" />
+              </Button>
+            </div>
           </header>
-          <main className="min-w-0 flex-1 bg-card px-4 pb-16 pt-4 sm:px-6 sm:pt-6 md:rounded-tl-2xl lg:px-8">
+          <main className="min-w-0 flex-1 bg-card px-4 pb-16 pt-4 sm:px-6 sm:pt-6 md:m-3 md:mt-0 md:rounded-2xl md:pb-6 md:shadow-[0_6px_24px_rgba(15,23,42,0.04)] lg:px-8">
+            {section !== "about" && sectionLabel && (
+              <div className="mb-0.5 flex items-center justify-between gap-3">
+                <h2 className="min-w-0 truncate text-[18px] tracking-[-0.02em] text-foreground max-md:hidden md:text-[23px]">{sectionLabel}</h2>
+                {/* Pages portal their own action buttons here, opposite the title. */}
+                <div id="company-title-actions" className="ml-auto flex shrink-0 items-center gap-2" />
+              </div>
+            )}
             {children}
           </main>
-          <div
-            aria-hidden="true"
-            className="pointer-events-none sticky bottom-0 z-40 hidden h-3 shrink-0 bg-sidebar after:absolute after:bottom-full after:left-0 after:size-4 after:bg-[radial-gradient(circle_at_100%_0%,transparent_15.5px,var(--sidebar)_16px)] print:hidden md:block"
-          />
         </SidebarInset>
+
+        <GlobalSearchDialog open={searchOpen} onOpenChange={setSearchOpen} results={searchResults} placeholder={`Search ${company.name}…`} />
 
         <NgaiWidget />
       </SidebarProvider>

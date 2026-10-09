@@ -102,6 +102,8 @@ interface CompanyPageValue extends CompanyPageData {
   goToSection: (key: CompanySectionKey, query?: Record<string, string>) => void
   /** Change query values on the current page, keeping the section. */
   updateParams: (next: Record<string, string | null>, replace?: boolean) => void
+  /** "routes" is the public /{slug}/{section} page, which titles each section itself. */
+  mode: CompanySectionMode
   absoluteUrl: (path: string) => string
   tasks: Task[]
   tasksLoading: boolean
@@ -288,6 +290,7 @@ export function CompanyPageProvider({
     sectionHref,
     goToSection,
     updateParams,
+    mode,
     absoluteUrl: (path) => typeof window !== "undefined" ? `${window.location.origin}${path}` : path,
     tasks,
     tasksLoading,

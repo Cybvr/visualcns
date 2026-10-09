@@ -321,6 +321,7 @@ export default function EmailPage() {
   const [confirmingDelete, setConfirmingDelete] = useState(false)
   const [receivedLoading, setReceivedLoading] = useState(false)
   const [receivedError, setReceivedError] = useState("")
+  const [receivedReconnectRequired, setReceivedReconnectRequired] = useState(false)
   const successfulInboxRefreshRef = useRef(0)
   const [selectedReceivedId, setSelectedReceivedId] = useState<string | null>(null)
   const [loadingReceivedId, setLoadingReceivedId] = useState<string | null>(null)
@@ -649,10 +650,11 @@ export default function EmailPage() {
         headers: { Authorization: `Bearer ${idToken}` },
         cache: "no-store",
       })
-      const result = (await response.json()) as { data?: ReceivedMessage[]; source?: string; error?: string; partial?: boolean; warning?: string }
+      const result = (await response.json()) as { data?: ReceivedMessage[]; source?: string; error?: string; partial?: boolean; warning?: string; reconnectRequired?: boolean }
       if (!response.ok) throw new Error(result.error || "Received messages could not be loaded.")
       const data = Array.isArray(result.data) ? result.data : []
       setInboxSource(result.source === "gmail" ? "gmail" : "other")
+      setReceivedReconnectRequired(Boolean(result.reconnectRequired))
       // Gmail didn't answer this time: keep the Gmail messages already on screen.
       setReceivedMessages((current) => result.partial
         ? [...new Map([...current.filter((message) => message.id.startsWith("gmail:")), ...data].map((message) => [message.id, message])).values()]
@@ -666,6 +668,7 @@ export default function EmailPage() {
       }
     } catch (error) {
       if (successfulInboxRefreshRef.current === successfulRefreshAtStart) {
+        setReceivedReconnectRequired(false)
         setReceivedError(error instanceof Error ? error.message : "Received messages could not be loaded.")
       }
     } finally {
@@ -2131,6 +2134,7 @@ export default function EmailPage() {
             visibleReceivedMessages={visibleReceivedMessages}
             receivedLoading={receivedLoading}
             receivedError={receivedError}
+            receivedReconnectRequired={receivedReconnectRequired}
             onRetryReceived={() => void loadReceivedMessages()}
             selectedReceived={selectedReceived}
             selectedReceivedId={selectedReceivedId}

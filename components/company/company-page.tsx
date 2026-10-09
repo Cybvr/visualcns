@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { ExternalLink, LogOut, Mail, MoreVertical, Share2 } from "lucide-react"
+import { ExternalLink, LogOut, Mail, MoreVertical } from "lucide-react"
 
 import { useAuth } from "@/components/auth-provider"
 import {
@@ -11,12 +11,12 @@ import {
   useCompanyPage,
   type CompanyPageData,
 } from "@/components/company/company-page-context"
+import { HeaderTeam } from "@/components/company/header-team"
 import { CompanyProfileHeader } from "@/components/company/company-profile-header"
 import { SectionNav } from "@/components/company/section-nav"
 import { CompanySection } from "@/components/company/sections/company-section"
 import { usePageHeaderActions } from "@/components/dashboard/page-title-context"
 import { ImageDropzone } from "@/components/image-dropzone"
-import { ShareLinkActions } from "@/components/dashboard/share-link-actions"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
@@ -30,7 +30,6 @@ function DashboardCompanyView({ embedded = false, editHref }: { embedded?: boole
   const router = useRouter()
   const pathname = usePathname()
   const [logoEditOpen, setLogoEditOpen] = useState(false)
-  const [shareOpen, setShareOpen] = useState(false)
 
   const primaryContact = people.find((person) => person.adminUser?.uid === company.primaryContactId)
     || people.find((person) => person.adminUser?.email)
@@ -41,14 +40,25 @@ function DashboardCompanyView({ embedded = false, editHref }: { embedded?: boole
   const recipientEmail = primaryContact?.adminUser?.email
   const recipientName = primaryContact?.adminUser?.displayName || primaryContact?.name
 
+  const shareUrl = sharePath ? absoluteUrl(sharePath) : ""
+  const teamKey = JSON.stringify(people.map((person) => ({ id: person.id, name: person.name, email: person.email, photoUrl: person.photoUrl })))
+  const canManageTeam = Boolean(admin)
+
   const headerActions = useMemo(() => sharePath ? (
+    <div className="flex items-center gap-2">
+    <HeaderTeam
+      company={{ id: company.id, name: company.name }}
+      people={JSON.parse(teamKey)}
+      canManageTeam={canManageTeam}
+      shareUrl={shareUrl}
+    />
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <button
           type="button"
           aria-label="More actions"
           title="More actions"
-          className="flex size-10 items-center justify-center rounded-xl bg-transparent text-current outline-none transition-colors hover:bg-black/5 focus-visible:ring-2 focus-visible:ring-ring"
+          className="flex size-10 items-center justify-center rounded-full bg-transparent text-current outline-none transition-colors hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring"
         >
           <MoreVertical className="size-5" aria-hidden="true" />
         </button>
@@ -67,10 +77,6 @@ function DashboardCompanyView({ embedded = false, editHref }: { embedded?: boole
             Email
           </Link>
         </DropdownMenuItem>
-        <DropdownMenuItem onSelect={() => setShareOpen(true)}>
-          <Share2 className="size-4" aria-hidden="true" />
-          Share
-        </DropdownMenuItem>
         <DropdownMenuItem asChild>
           <Link href={sharePath} target="_blank" rel="noreferrer">
             <ExternalLink className="size-4" aria-hidden="true" />
@@ -79,7 +85,8 @@ function DashboardCompanyView({ embedded = false, editHref }: { embedded?: boole
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
-  ) : null, [sharePath, company.id, company.name, recipientEmail, recipientName])
+    </div>
+  ) : null, [sharePath, shareUrl, teamKey, canManageTeam, company.id, company.name, recipientEmail, recipientName])
 
   usePageHeaderActions(headerActions)
 
@@ -98,7 +105,6 @@ function DashboardCompanyView({ embedded = false, editHref }: { embedded?: boole
         contactCount={people.length}
         publicPath={admin?.sharePath}
         admin={Boolean(admin)}
-        onShare={admin ? () => setShareOpen(true) : undefined}
         onEdit={admin ? () => router.push(editHref ?? `${pathname}/edit`) : undefined}
         onChangeLogo={admin ? () => setLogoEditOpen(true) : undefined}
         onChangeCover={admin ? () => goToSection("drive") : undefined}
@@ -136,20 +142,6 @@ function DashboardCompanyView({ embedded = false, editHref }: { embedded?: boole
                 onChange={(url) => {
                   void admin.onUpdateCompany({ logoUrl: url }).then(() => setLogoEditOpen(false))
                 }}
-              />
-            </DialogContent>
-          </Dialog>
-
-          <Dialog open={shareOpen} onOpenChange={setShareOpen}>
-            <DialogContent className="max-w-md">
-              <DialogHeader>
-                <DialogTitle>Share company page</DialogTitle>
-                <DialogDescription>Copy this link to share {company.name}&apos;s client page.</DialogDescription>
-              </DialogHeader>
-              <ShareLinkActions
-                url={absoluteUrl(admin.sharePath)}
-                label="Company link"
-                shareText={`See ${company.name}'s company page`}
               />
             </DialogContent>
           </Dialog>

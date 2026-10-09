@@ -19,15 +19,19 @@ const AgentDock = dynamic(() => import("@/components/agent/agent-dock").then((mo
 
 const DASHBOARD_NAV: NavLink[] = [
   { label: "New", href: "/dashboard/agent", icon: Pencil, startsNewChat: true },
-  { label: "Tasks", href: "/dashboard/tasks", icon: FiCheckSquare },
+  // Workspace
+  { label: "Tasks", href: "/dashboard/tasks", icon: FiCheckSquare, groupStart: true },
   { label: "Notes", href: "/dashboard/notes", icon: StickyNote },
   { label: "Email", href: "/dashboard/email", icon: FiMail },
-  { label: "Invoices", href: "/dashboard/invoices", icon: Receipt, adminOnly: true },
-  { label: "Estimates", href: "/dashboard/estimates", icon: ClipboardList, adminOnly: true },
-  { label: "Clients", href: "/dashboard/clients", icon: FiBriefcase, adminOnly: true },
+  // People
+  { label: "Leads", href: "/dashboard/leads", icon: FiTrendingUp, adminOnly: true, groupStart: true },
   { label: "Contacts", href: "/dashboard/users", icon: FiUsers, adminOnly: true },
-  { label: "Leads", href: "/dashboard/leads", icon: FiTrendingUp, adminOnly: true },
-  { label: "Documents", href: "/dashboard/documents", icon: FileText, adminOnly: true },
+  { label: "Clients", href: "/dashboard/clients", icon: FiBriefcase, adminOnly: true },
+  // Money
+  { label: "Estimates", href: "/dashboard/estimates", icon: ClipboardList, adminOnly: true, groupStart: true },
+  { label: "Invoices", href: "/dashboard/invoices", icon: Receipt, adminOnly: true },
+  // Files
+  { label: "Documents", href: "/dashboard/documents", icon: FileText, adminOnly: true, groupStart: true },
   { label: "Media", href: "/dashboard/media", icon: FiImage },
 ]
 

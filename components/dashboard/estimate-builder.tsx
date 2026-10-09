@@ -430,7 +430,7 @@ export function EstimateBuilder({ estimate, initialCompanyId, onSaved, onDeleted
 
   return (
     <>
-    <form onSubmit={submit} className="billing-editor mx-auto max-w-2xl space-y-3 bg-card px-4 pt-3 print:hidden sm:rounded-2xl">
+    <form onSubmit={submit} className="billing-editor mx-auto max-w-2xl space-y-3 bg-card px-2 pt-2 print:hidden sm:rounded-2xl sm:px-4 sm:pt-3">
       <div className="flex items-center gap-1">
         <Link
           href="/dashboard/estimates"
@@ -553,8 +553,8 @@ export function EstimateBuilder({ estimate, initialCompanyId, onSaved, onDeleted
                         onChange={(event) => updateLine(line.id, { details: event.target.value })}
                         placeholder="Description (optional)"
                         aria-label="Description"
-                        rows={1}
-                        className="min-h-11 resize-y"
+                        rows={2}
+                        className="min-h-16 resize-y"
                       />
                       <div className="grid grid-cols-2 gap-2">
                         <EditorField label="Billing" htmlFor={`billing-${line.id}`}>

@@ -99,7 +99,7 @@ export function EditorCard({
   className?: string
 }) {
   return (
-    <section className={cn("rounded-2xl bg-muted/50 p-4", className)}>
+    <section className={cn("rounded-2xl bg-muted/50 p-3 sm:p-4", className)}>
       {(title || action) && (
         <div className="mb-3 flex items-center justify-between gap-3">
           {title && <h2 className="billing-editor-section">{title}</h2>}
@@ -297,7 +297,7 @@ export function EditorActionBar({
   deleteAction?: ReactNode
 }) {
   return (
-    <div className="sticky bottom-0 z-20 -mx-4 mt-2 flex items-center gap-2 border-t border-border bg-card px-4 py-2 sm:rounded-b-2xl md:-bottom-6">
+    <div className="sticky bottom-0 z-20 -mx-2 mt-2 flex items-center gap-2 border-t border-border bg-card px-2 py-2 sm:-mx-4 sm:rounded-b-2xl sm:px-4 md:-bottom-6">
       {deleteAction}
       <Button type="button" variant="secondary" size="sm" onClick={onPreview} aria-label="Preview" className="billing-editor-action ml-auto shrink-0 rounded-md shadow-none">
         <Eye className="size-4" aria-hidden="true" />

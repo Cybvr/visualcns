@@ -1,11 +1,14 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { ArrowLeft, Pencil } from "lucide-react"
 
 import { CompanyDocuments, type CompanyDocumentKind } from "@/components/company/company-documents"
+import { CompanyMedia, companyMediaCount } from "@/components/company/company-media"
+import { uploadToCloudinary } from "@/components/image-dropzone"
+import { mediaKindForFile } from "@/lib/media"
 import { useCompanyPage } from "@/components/company/company-page-context"
 import { CompanyDocumentView } from "@/components/dashboard/company-document-view"
 import { ContractDocument } from "@/components/dashboard/contract-document"
@@ -31,9 +34,33 @@ function editHref(kind: CompanyDocumentKind, id: string) {
 
 export function DocumentsSection({ scope = "drive" }: { scope?: "drive" | "finance" }) {
   const finance = scope === "finance"
-  const { company, invoices, contracts, estimates, documents, admin, isAdmin, canEditDocuments, updateParams } = useCompanyPage()
+  const { company, projects, invoices, contracts, estimates, documents, admin, isAdmin, canEditDocuments, updateParams, mode } = useCompanyPage()
   const router = useRouter()
   const searchParams = useSearchParams()
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [uploading, setUploading] = useState(false)
+  const [uploadError, setUploadError] = useState<string | null>(null)
+  const uploaded = (company.media ?? []).filter(Boolean)
+  const onMediaChange = admin?.onMediaChange
+
+  async function handleFiles(files: FileList) {
+    if (!onMediaChange) return
+    setUploadError(null)
+    const accepted = Array.from(files).filter((file) => mediaKindForFile(file))
+    if (accepted.length === 0) {
+      setUploadError("Choose image or video files.")
+      return
+    }
+    setUploading(true)
+    try {
+      const results = await Promise.allSettled(accepted.map(uploadToCloudinary))
+      const urls = results.flatMap((result) => (result.status === "fulfilled" ? [result.value] : []))
+      if (urls.length > 0) await onMediaChange([...uploaded, ...urls])
+      if (urls.length < accepted.length) setUploadError("Some files could not be uploaded. Try again.")
+    } finally {
+      setUploading(false)
+    }
+  }
   const [issuer, setIssuer] = useState<BusinessProfile | null>(null)
   const [creatingDocument, setCreatingDocument] = useState(false)
 
@@ -110,15 +137,42 @@ export function DocumentsSection({ scope = "drive" }: { scope?: "drive" | "finan
           contracts={finance ? contracts : []}
           estimates={finance ? estimates : []}
           documents={finance ? [] : documents}
-          heading={finance ? "Finance" : "Documents"}
+          heading={finance ? "Finance" : "Drive"}
           addKinds={finance ? ["invoice", "contract", "estimate"] : ["document"]}
-          emptyDescription={finance ? "Invoices, estimates and contracts will appear here." : "Proposals and other documents will appear here."}
+          emptyDescription={finance ? "Invoices, estimates and contracts will appear here." : "Documents, images and videos will appear here."}
           onSelect={(kind, id) => updateParams({ doc: `${kind}:${id}` })}
           onEdit={canEditDocuments ? (kind, id) => router.push(editHref(kind, id)) : undefined}
           canAdd={Boolean(admin)}
           onAdd={handleAdd}
+          media={finance ? undefined : (query) => (
+            <CompanyMedia
+              logoUrl={company.logoUrl}
+              projects={projects}
+              uploaded={uploaded}
+              onUploadedChange={onMediaChange ? (urls) => void onMediaChange(urls) : undefined}
+              query={query}
+            />
+          )}
+          mediaCount={finance ? 0 : companyMediaCount(company.logoUrl, projects, uploaded)}
+          onUpload={!finance && onMediaChange ? () => fileInputRef.current?.click() : undefined}
+          uploading={uploading}
+          hideHeading={mode === "routes"}
+          layout={finance && mode === "routes" ? "rows" : "grid"}
         />
       )}
+      {uploadError && <p role="alert" className="mt-3 text-sm text-destructive">{uploadError}</p>}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*,video/*"
+        multiple
+        className="hidden"
+        onChange={(event) => {
+          if (event.target.files?.length) void handleFiles(event.target.files)
+          event.target.value = ""
+        }}
+      />
+      {uploading && <p className="mt-3 text-sm text-muted-foreground">Uploading…</p>}
 
       {admin && (
         <NewDocumentDialog

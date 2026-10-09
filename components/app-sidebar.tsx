@@ -41,6 +41,8 @@ export type NavLink = {
   label: string
   /** Optional section label displayed before this navigation item. */
   sectionLabel?: string
+  /** Leaves an empty, transparent gap above this item to start a new group. */
+  groupStart?: boolean
   href: string
   icon: ComponentType<{ className?: string }>
   /** Admin destinations remain visible to admins while previewing another account. */
@@ -119,6 +121,7 @@ export function AppSidebar({
               <SidebarMenu className="gap-0.5 max-md:gap-1.5">
               {navLinks.map((link) => (
                 <React.Fragment key={link.href}>
+                  {link.groupStart && <SidebarMenuItem aria-hidden="true" className="h-3 max-md:h-2 group-data-[collapsible=icon]:h-2" />}
                   {link.sectionLabel && (
                     <SidebarMenuItem className="group-data-[collapsible=icon]:hidden">
                       <p className="surface-section-label px-2 pb-0.5 pt-3">{link.sectionLabel}</p>
@@ -162,14 +165,14 @@ export function AppSidebar({
                         type="button"
                         isActive={isActive(pathname, link.href, rootHref)}
                         tooltip={link.label}
-                        className={mobileNavButton}
+                        className={cn(mobileNavButton, "h-11 !w-fit !rounded-sm bg-card pr-4 font-medium shadow-xs hover:bg-card/80 group-data-[collapsible=icon]:!w-8 [&_.sidebar-nav-label]:!text-base [&>svg]:size-5")}
                         onClick={() => {
                           reset()
                           handleNavigate(link.adminOnly)
                           if (pathname !== link.href) router.push(link.href)
                         }}
                       >
-                        <link.icon className="h-4 w-4" />
+                        <link.icon className="h-5 w-5" />
                         <span className="sidebar-nav-label">{link.label}</span>
                       </SidebarMenuButton>
                     ) : link.opensAgent ? (

@@ -8,6 +8,7 @@ import { CompanyEmptyState } from "@/components/company/empty-state"
 import { useCompanyPage } from "@/components/company/company-page-context"
 import { SectionAddButton } from "@/components/company/section-add-button"
 import { GridCard, GridCardList } from "@/components/dashboard/grid-card"
+import { ListSearch, useListSearch } from "@/components/dashboard/list-search"
 import { MobileDataCard } from "@/components/dashboard/mobile-data-card"
 import { NewProjectDialog } from "@/components/dashboard/new-project-dialog"
 import { ProjectDetail } from "@/components/dashboard/project-detail"
@@ -29,7 +30,9 @@ import { Input } from "@/components/ui/input"
 import { deleteProjectWithTasks, duplicateProject, renameProject, type Project } from "@/lib/projects"
 
 export function ProjectsSection() {
-  const { company, projects, admin, emptyProjectsLabel } = useCompanyPage()
+  const { company, projects, admin, emptyProjectsLabel, mode } = useCompanyPage()
+  const rows = mode === "routes"
+  const { query, setQuery, results } = useListSearch(projects, (project) => [project.title, project.service, project.status, project.dueDate])
   const [selectedProject, setSelectedProject] = useState<Project | null>(null)
   const [creatingProject, setCreatingProject] = useState(false)
   const [renamingProject, setRenamingProject] = useState<Project | null>(null)
@@ -130,7 +133,9 @@ export function ProjectsSection() {
         <>
           <div className="flex items-center justify-between gap-4">
             <h2 className="sr-only">Jobs</h2>
-            <span className="sidebar-nav-label text-muted-foreground">Jobs</span>
+            {rows
+              ? <ListSearch value={query} onChange={setQuery} placeholder="Search jobs" className="max-w-sm flex-1" />
+              : <span className="sidebar-nav-label text-muted-foreground">Jobs</span>}
             {admin && <SectionAddButton onClick={() => setCreatingProject(true)} label="New project" />}
           </div>
 
@@ -140,6 +145,27 @@ export function ProjectsSection() {
               title={admin ? "No jobs yet" : emptyProjectsLabel}
               action={admin ? <SectionAddButton onClick={() => setCreatingProject(true)} label="New project" /> : undefined}
             />
+          ) : rows ? (
+            <div className="mt-4">
+              {results.length === 0 ? (
+                <p className="px-3 py-8 text-center text-sm text-muted-foreground">Nothing matches your search.</p>
+              ) : results.map((project) => (
+                <MobileDataCard
+                  key={project.id}
+                  surface="list"
+                  variant="inline"
+                  iconShape="circle"
+                  title={project.title}
+                  subtitle={project.service || undefined}
+                  icon={<FolderOpen className="size-5 text-amber-600 dark:text-amber-400" aria-hidden="true" />}
+                  trailing={project.dueDate || undefined}
+                  onClick={() => setSelectedProject(project)}
+                  ariaLabel={`Open ${project.title}`}
+                  menuLabel={`Options for ${project.title}`}
+                  menu={projectMenu(project)}
+                />
+              ))}
+            </div>
           ) : (
             <>
               <div className="mt-4 space-y-2 sm:hidden">

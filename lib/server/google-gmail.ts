@@ -43,6 +43,12 @@ export type GmailListResponse = {
 
 export type GmailSender = { email: string; name?: string; display: string }
 
+/** Google uses several messages for the same terminal OAuth state. Retrying cannot repair it. */
+export function gmailReconnectRequired(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error || "")
+  return /invalid_grant|expired or revoked|token has been expired|invalid credentials|unauthorized/i.test(message)
+}
+
 function requiredEnv(name: string) {
   const value = process.env[name]?.trim()
   if (!value) throw new Error(`${name} is not configured.`)

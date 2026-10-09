@@ -1,0 +1,235 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<!--
+  Event details laid over 1234.mp4 as a tracking-HUD animation, timed to its cuts.
+  frames/ is the source clip held from 8 to 30fps and upscaled to 1080x1920:
+    ffmpeg -i ../1234.mp4 -vf "fps=30,scale=1080:-2:flags=lanczos,crop=1080:1920,unsharp=5:5:0.6" -q:v 2 -start_number 0 frames/f%03d.jpg
+  Render with: node render.mjs ko-sparring-overlay ko-sparring-overlay/ko-sparring-overlay-9x16.mp4
+-->
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=JetBrains+Mono:wght@500;700&display=block" rel="stylesheet">
+<style>
+  :root { --gold:#c4ae71; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  html,body { width:1080px; height:1920px; overflow:hidden; background:#000; }
+  body { color:#fff; -webkit-font-smoothing:antialiased; }
+  #stage { position:absolute; inset:-30px; }
+  #v { position:absolute; left:30px; top:30px; width:1080px; height:1920px; display:block; }
+  #shade { position:absolute; left:30px; top:30px; width:1080px; height:1920px; pointer-events:none;
+    background:linear-gradient(#000a, #0000 22%, #0000 58%, #000c 92%); }
+  #hud { position:absolute; inset:0; }
+
+  .mono { font-family:"JetBrains Mono", monospace; font-weight:700; letter-spacing:.08em; text-transform:uppercase; white-space:pre; }
+  .lab { font-size:26px; color:var(--gold); }
+  .lab::before { content:""; display:inline-block; width:14px; height:14px; background:var(--gold); margin-right:14px; vertical-align:1px; }
+  .sub { font-size:34px; color:#fff; }
+  .big { font-family:Anton, sans-serif; line-height:.92; text-transform:uppercase; white-space:nowrap; display:block; transform-origin:0 50%; }
+  .gold { color:var(--gold); }
+
+  .cb { position:absolute; visibility:hidden; }
+  .cb > * { position:relative; }
+  .cb .row + .row { margin-top:14px; }
+  .corner { position:absolute; width:34px; height:34px; border:0 solid #fff; }
+  .corner.tl { left:-26px; top:-26px; border-width:4px 0 0 4px; }
+  .corner.tr { right:-26px; top:-26px; border-width:4px 4px 0 0; }
+  .corner.bl { left:-26px; bottom:-26px; border-width:0 0 4px 4px; }
+  .corner.br { right:-26px; bottom:-26px; border-width:0 4px 4px 0; }
+
+  .frame { position:absolute; border:2px solid #fff6; }
+  #tagL, #tagR { position:absolute; top:84px; font-size:24px; color:#fffc; }
+  #tagL { left:64px; } #tagR { right:64px; text-align:right; }
+  #flash { position:absolute; inset:0; background:#fff; mix-blend-mode:difference; visibility:hidden; z-index:9; }
+  #logo { position:absolute; left:64px; top:330px; width:560px; visibility:hidden; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <img id="v" alt="">
+  <div id="shade"></div>
+  <div id="hud">
+    <span class="mono" id="tagL"></span>
+    <span class="mono" id="tagR"></span>
+
+    <!-- 0.1s, the face: fighter picked up -->
+    <div class="cb" data-in=".12" data-out=".85" style="left:94px; top:250px">
+      <p class="mono lab row" data-scr="Fighter detected"></p>
+      <p class="mono sub row" data-scr="Track 01 // Corner red"></p>
+    </div>
+
+    <!-- 0.875s, the wide corner -->
+    <div class="cb" data-in=".875" data-out="1.42" style="left:94px; top:1230px">
+      <p class="mono lab row" data-scr="Query"></p>
+      <span class="big row" data-at=".875" data-w="760">Who's</span>
+      <span class="big row gold" data-at="1.0" data-w="900">Stepping in?</span>
+    </div>
+
+    <!-- 1.75s, the iris lights up -->
+    <div class="cb" data-in="1.75" data-out="2.42" style="left:94px; top:1130px">
+      <p class="mono lab row" data-scr="Date lock"></p>
+      <span class="big row gold" data-at="1.75" data-size="380">4</span>
+      <span class="big row" data-at="2.0" data-w="900">October</span>
+    </div>
+
+    <!-- 2.5s, the hand turns to metal -->
+    <div class="cb" data-in="2.5" data-out="3.9" style="left:94px; top:1170px">
+      <p class="mono lab row" data-scr="Event // KO Style"></p>
+      <span class="big row" data-at="2.5" data-w="560">KO Style</span>
+      <span class="big row" data-at="2.875" data-w="760">Sparring</span>
+      <span class="big row gold" data-at="3.5" data-w="660">Series</span>
+    </div>
+
+    <!-- 4.375s, the machine back -->
+    <div class="cb" data-in="4.375" data-out="5.6" style="left:94px; top:1190px">
+      <p class="mono lab row" data-scr="Venue" data-at="4.375"></p>
+      <span class="big row" data-at="4.375" data-w="900">Spartans Boxing Club</span>
+      <p class="mono sub row" data-scr="Dubai Production City" data-at="4.5"></p>
+      <p class="mono lab row" data-scr="Time" data-at="4.875" style="margin-top:44px"></p>
+      <span class="big row gold" data-at="4.875" data-size="150">12:30pm - 4pm</span>
+    </div>
+
+    <!-- 5.625s, the arena -->
+    <div class="cb" data-in="5.625" data-out="6.22" style="left:94px; top:1120px">
+      <p class="mono lab row" data-scr="Card"></p>
+      <span class="big row gold" data-at="5.625" data-size="360">10</span>
+      <p class="mono sub row" data-scr="Sparring matches"></p>
+    </div>
+
+    <!-- 6.25s, POV on the opponent -->
+    <div class="cb" data-in="6.25" data-out="6.97" style="left:94px; top:1170px">
+      <p class="mono lab row" data-scr="Format"></p>
+      <span class="big row" data-at="6.25" data-size="320">3×3</span>
+      <p class="mono sub row" data-scr="3 rounds // 3 minutes"></p>
+    </div>
+
+    <div class="cb" data-in="7.0" data-out="7.47" style="left:94px; top:1170px">
+      <p class="mono lab row" data-scr="Entry"></p>
+      <span class="big row gold" data-at="7.0" data-size="320">Free</span>
+      <p class="mono sub row" data-scr="Coaches + friends too"></p>
+    </div>
+
+    <!-- 7.5s, the punches -->
+    <div class="cb" data-in="7.5" data-out="7.86" style="left:94px; top:1170px">
+      <p class="mono lab row" data-scr="Kit"></p>
+      <span class="big row" data-at="7.5" data-w="700">Gloves</span>
+      <p class="mono sub row" data-scr="KO Style gloves provided"></p>
+    </div>
+
+    <!-- 7.875s, the glove lands -->
+    <div class="cb" data-in="7.875" data-out="8.55" style="left:94px; top:1170px">
+      <p class="mono lab row" data-scr="Impact"></p>
+      <span class="big row gold" data-at="7.875" data-w="760">Free tee</span>
+      <p class="mono sub row" data-scr="For every fighter"></p>
+    </div>
+
+    <div class="cb" data-in="8.55" data-out="8.98" style="left:94px; top:1170px">
+      <p class="mono lab row" data-scr="Open"></p>
+      <span class="big row" data-at="8.55" data-w="820">All levels</span>
+      <p class="mono sub row" data-scr="Debut to 11+ bouts"></p>
+    </div>
+
+    <!-- 9s, the camera pulls up and away -->
+    <img id="logo" src="ko-logo.svg" alt="">
+    <div class="cb" data-in="9.0" data-out="10.1" style="left:94px; top:1080px">
+      <p class="mono lab row" data-scr="Register now"></p>
+      <span class="big row gold" data-at="9.0" data-w="900">Step in</span>
+      <p class="mono sub row" data-scr="kostyle.ae/sparringsessions" data-at="9.15"></p>
+      <span class="big row" data-at="9.35" data-w="900" style="margin-top:30px">4 Oct · Dubai</span>
+    </div>
+  </div>
+</div>
+<div id="flash"></div>
+
+<script>
+window.DURATION = 10
+const FRAMES = 300
+const $ = id => document.getElementById(id)
+const cl = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v))
+const p = (t, a, b) => cl((t - a) / (b - a))
+const outExpo = x => x === 1 ? 1 : 1 - Math.pow(2, -10 * x)
+const lerp = (a, b, x) => a + (b - a) * x
+
+// Mono lines resolve out of random glyphs, like the tracking readouts in the footage.
+const GLYPHS = "ABCDEFGHJKLMNPRSTUVWXYZ0123456789#/<>+:"
+function scramble(str, k, frame) {
+  const n = Math.floor(k * str.length)
+  let out = ""
+  for (let i = 0; i < str.length; i++) {
+    const c = str[i]
+    out += i < n || c === " " ? c : GLYPHS[(i * 31 + frame * 7) % GLYPHS.length]
+  }
+  return out
+}
+
+const boxes = [...document.querySelectorAll(".cb")]
+function setup() {
+  for (const cb of boxes) {
+    ;["tl", "tr", "bl", "br"].forEach(c => { const s = document.createElement("span"); s.className = "corner " + c; cb.appendChild(s) })
+    cb.querySelectorAll(".big").forEach(el => {
+      if (el.dataset.size) { el.style.fontSize = el.dataset.size + "px"; return }
+      el.style.fontSize = "200px"
+      el.style.fontSize = Math.min(260, 200 * +el.dataset.w / el.offsetWidth) + "px"
+    })
+  }
+}
+
+// Shake and flash land on the big moments in the footage.
+const HITS = [.875, 1.75, 3.5, 5.625, 7.875, 9.0]
+const FLASH = [1.75, 7.875]
+function shake(t) {
+  for (const at of HITS) {
+    const k = 1 - (t - at) / .22
+    if (t >= at && k > 0) return `translate(${Math.sin(t * 210) * 22 * k}px, ${Math.cos(t * 260) * 22 * k}px)`
+  }
+  return ""
+}
+
+const img = $("v")
+let ready = false
+async function render(t) {
+  if (!ready) { setup(); ready = true }
+  const frame = Math.round(t * 30)
+  img.src = `frames/f${String(Math.min(FRAMES - 1, frame)).padStart(3, "0")}.jpg`
+  await img.decode()
+
+  $("stage").style.transform = shake(t)
+  $("flash").style.visibility = FLASH.some(h => t >= h && t < h + 1 / 30) ? "visible" : "hidden"
+
+  // Corner readouts run the whole way through until the outro.
+  const tagOn = t >= .1 && t < 9.0
+  $("tagL").textContent = tagOn ? scramble("KO Style // Sparring Series", p(t, .1, .5), frame) : ""
+  $("tagR").textContent = tagOn ? `REC ${frame % 30 < 18 ? "●" : " "} T+${t.toFixed(2).padStart(5, "0")}` : ""
+
+  for (const cb of boxes) {
+    const a = +cb.dataset.in, b = +cb.dataset.out
+    // Each block blinks out over its last few frames instead of fading.
+    const on = t >= a && t < b && !(t > b - .1 && frame % 2)
+    cb.style.visibility = "visible"
+    cb.style.display = on ? "block" : "none"
+    if (!on) continue
+    cb.querySelectorAll(".corner").forEach(c => {
+      const k = outExpo(p(t, a, a + .14))
+      c.style.transform = `scale(${lerp(2.2, 1, k)})`
+      c.style.opacity = k
+    })
+    cb.querySelectorAll("[data-scr]").forEach(el => {
+      const at = +(el.dataset.at || a)
+      el.textContent = t < at ? "" : scramble(el.dataset.scr, p(t, at, at + .14), frame)
+    })
+    cb.querySelectorAll(".big").forEach(el => {
+      const at = +el.dataset.at, k = p(t, at, at + .14)
+      el.style.visibility = t >= at ? "visible" : "hidden"
+      el.style.transform = `scale(${lerp(1.35, 1, outExpo(k))})`
+      // A red and cyan split that closes up as the word lands.
+      const s = (1 - outExpo(p(t, at, at + .2))) * 22
+      el.style.textShadow = s > .5 ? `${s}px 0 #ff2a4a, ${-s}px 0 #2affe8` : "0 4px 30px #0008"
+    })
+  }
+
+  $("logo").style.visibility = t >= 9.6 ? "visible" : "hidden"
+  $("logo").style.clipPath = `inset(0 ${100 - outExpo(p(t, 9.6, 9.8)) * 100}% 0 0)`
+}
+window.render = render
+</script>
+</body>
+</html>

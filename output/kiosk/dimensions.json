@@ -1,0 +1,16 @@
+{
+  "overall_height": 1400,
+  "base_width": 500,
+  "base_depth": 400,
+  "base_thickness": 30,
+  "post_width": 120,
+  "post_depth": 80,
+  "post_top": 825,
+  "head_width": 340,
+  "head_height": 610,
+  "head_depth": 55,
+  "head_tilt_degrees": 12,
+  "screen_width": 268,
+  "screen_height": 477,
+  "screen_lower_margin": 78
+}

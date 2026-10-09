@@ -39,7 +39,7 @@ export function DocumentSplitPane<T>({
 }) {
   return (
     <div className="flex flex-col lg:grid lg:grid-cols-[minmax(18rem,0.7fr)_minmax(0,1.3fr)] lg:items-start lg:gap-6">
-      <div className="min-w-0">
+      <div className={cn("min-w-0", selectedId && "hidden sm:block")}>
         {filter}
         {listExtra}
         {loading ? (

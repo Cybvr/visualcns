@@ -11,6 +11,7 @@ import { useAgent } from "@/components/agent/agent-context"
 import { AppSidebar, type NavLink } from "@/components/app-sidebar"
 import { MobileFooterNav, type MobileFooterNavItem } from "@/components/mobile-footer-nav"
 import { useDashboardSearch } from "@/components/dashboard/sidebar-search"
+import { DashboardHeaderTeam } from "@/components/dashboard/dashboard-header-team"
 import { GlobalSearchDialog } from "@/components/search/global-search"
 import { useUnreadEmailCount } from "@/components/dashboard/email/use-unread-email-count"
 import { NewDocumentDialog } from "@/components/dashboard/new-document-dialog"
@@ -181,7 +182,7 @@ export function DashboardShell({
         >
           <header
             className={cn(
-              "surface-nav sticky top-0 z-40 flex h-14 shrink-0 items-center gap-2 bg-card px-4 text-foreground max-md:border-b max-md:border-border md:bg-background md:px-7",
+              "surface-nav sticky top-0 z-40 flex h-14 shrink-0 md:h-[72px] items-center gap-2 bg-card px-4 text-foreground max-md:border-b max-md:border-border md:bg-background md:px-7",
               hideHeader && "md:hidden",
             )}
           >
@@ -222,11 +223,11 @@ export function DashboardShell({
                 {headerSearch ? (
                   <>
                     <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
-                    <Input type="search" value={headerSearch.query} onChange={(event) => headerSearch.onQueryChange(event.target.value)} placeholder={headerSearch.placeholder} aria-label={headerSearch.placeholder} className="h-10 rounded-full border-0 bg-muted pl-9 pr-8 shadow-none [&::-webkit-search-cancel-button]:hidden" />
+                    <Input type="search" value={headerSearch.query} onChange={(event) => headerSearch.onQueryChange(event.target.value)} placeholder={headerSearch.placeholder} aria-label={headerSearch.placeholder} className="h-12 rounded-full border-0 bg-sidebar-accent/25 pl-9 pr-8 shadow-none [&::-webkit-search-cancel-button]:hidden" />
                     {headerSearch.query && <button type="button" onClick={() => headerSearch.onQueryChange("")} aria-label="Clear search" className="absolute top-1/2 right-2 -translate-y-1/2 rounded-sm p-1 text-muted-foreground hover:text-foreground"><X className="size-3.5" aria-hidden="true" /></button>}
                   </>
                 ) : (
-                  <button type="button" onClick={openSearch} className="flex h-10 w-full items-center gap-2 rounded-full bg-muted px-3 text-left text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label="Search workspace">
+                  <button type="button" onClick={openSearch} className="flex h-12 w-full items-center gap-2 rounded-full bg-sidebar-accent/25 px-4 text-left text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label="Search workspace">
                     <Search className="size-4 shrink-0" aria-hidden="true" />
                     <span className="truncate">Search workspace</span>
                   </button>
@@ -250,25 +251,26 @@ export function DashboardShell({
               {!isBackDetailRoute && <Button type="button" variant="ghost" size="icon" aria-label="Search workspace" onClick={openSearch} className={cn("size-10 md:hidden [&_svg]:size-5", replacesMobileDefaults && "max-sm:hidden")}><Search className="size-4" aria-hidden="true" /></Button>}
               <div ref={setHeaderSlot} className="contents" />
               {headerActions}
+              {!isCompanyDetailRoute && <DashboardHeaderTeam />}
               {!isCompanyDetailRoute && !isBackDetailRoute && (
                 <QuickCreateMenu
                   onSelect={selectQuickCreate}
                   trigger={
                     <Button
                       type="button"
-                      variant="outline"
+                      variant="ghost"
                       size="icon"
                       aria-label="Create new"
                       title="Create new"
-                      className={cn("max-md:border-transparent max-md:bg-transparent max-md:shadow-none", replacesMobileDefaults && "max-sm:hidden")}
+                      className={cn("rounded-full text-foreground hover:bg-muted/50 active:bg-muted/50", replacesMobileDefaults && "max-sm:hidden")}
                     >
-                      <Plus className="size-4" aria-hidden="true" />
+                      <Plus className="size-[18px]" aria-hidden="true" />
                     </Button>
                   }
                 />
               )}
-              <Button type="button" variant="ghost" size="icon" className="hidden sm:inline-flex" aria-label="Notifications">
-                <Bell className="size-4" aria-hidden="true" />
+              <Button type="button" variant="ghost" size="icon" className="hidden rounded-full text-foreground hover:bg-muted/50 active:bg-muted/50 sm:inline-flex" aria-label="Notifications">
+                <Bell className="size-[18px]" aria-hidden="true" />
               </Button>
             </div>
           </header>

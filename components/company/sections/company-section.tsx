@@ -1,10 +1,8 @@
 "use client"
 
 import type { ComponentType } from "react"
-import { useSearchParams } from "next/navigation"
 
 import { Pulse } from "@/components/company/pulse"
-import { CompanyMedia } from "@/components/company/company-media"
 import { CompanyMessages } from "@/components/company/company-messages"
 import { CompanyPlan, useSubscription } from "@/components/company/company-plan"
 import { useCompanyPage, type CompanySectionKey } from "@/components/company/company-page-context"
@@ -16,29 +14,9 @@ import { ProjectsSection } from "@/components/company/sections/projects-section"
 import { TasksSection } from "@/components/company/sections/tasks-section"
 import { TeamSection } from "@/components/company/sections/team-section"
 
-function MediaSection() {
-  const { company, projects, admin } = useCompanyPage()
-  return (
-    <div className="mt-5">
-      <CompanyMedia
-        logoUrl={company.logoUrl}
-        projects={projects}
-        uploaded={company.media ?? []}
-        onUploadedChange={admin?.onMediaChange ? (urls) => void admin.onMediaChange?.(urls) : undefined}
-      />
-    </div>
-  )
-}
-
-/** Documents and media together. An open document takes the whole page. */
+/** Documents and media in one grid. An open document takes the whole page. */
 function DriveSection() {
-  const searchParams = useSearchParams()
-  return (
-    <>
-      <DocumentsSection />
-      {!searchParams.get("doc") && <MediaSection />}
-    </>
-  )
+  return <DocumentsSection />
 }
 
 /** Invoices, estimates and contracts. */

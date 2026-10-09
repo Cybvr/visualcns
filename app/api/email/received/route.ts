@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import { adminServices } from "@/lib/firebase-admin"
 import { cidReferences, inlineCidImages, normalizeCid } from "@/lib/server/inline-email-images"
-import { changeGmailMessage, getGmailAttachment, getGmailMessage, hasStoredGmailConnection, listGmailInbox } from "@/lib/server/google-gmail"
+import { changeGmailMessage, getGmailAttachment, getGmailMessage, gmailReconnectRequired, hasStoredGmailConnection, listGmailInbox } from "@/lib/server/google-gmail"
 
 type ReceivedEmail = {
   id?: string
@@ -166,9 +166,21 @@ export async function GET(request: Request) {
         const data = [...gmail.data, ...localMessages].sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""))
         return NextResponse.json({ data, source: "gmail", hasMore: gmail.hasMore, partial: gmail.partial, warning: gmail.partial ? "Some Google messages could not be loaded. Try again to load the rest." : undefined })
       } catch (error) {
-        // Show what we have; the next refresh picks up Gmail once it responds.
+        // Show what we have, but distinguish a retryable outage from a dead OAuth grant.
         console.error("Gmail inbox load failed", error)
-        return NextResponse.json({ data: localMessages, source: "gmail", hasMore: false, partial: true, warning: "Google inbox could not be loaded. Try again in a moment." })
+        const reconnectRequired = gmailReconnectRequired(error)
+        return NextResponse.json({
+          data: localMessages,
+          source: "gmail",
+          hasMore: false,
+          partial: true,
+          reconnectRequired,
+          warning: reconnectRequired
+            ? "Your Google mailbox connection has expired. Reconnect Google to load your emails."
+            : error instanceof Error
+              ? `Google inbox could not be loaded: ${error.message}`
+              : "Google inbox could not be loaded. Try again in a moment.",
+        })
       }
     }
     if (!process.env.RESEND_API_KEY) {

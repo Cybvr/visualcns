@@ -12,6 +12,7 @@ import { EmptySearchState, FirstRunState } from "@/components/dashboard/empty-st
 import { TableFilterBar } from "@/components/dashboard/table-filter-bar"
 import { useFilterBar } from "@/components/dashboard/filter-bar"
 import { RichTextEditor } from "@/components/dashboard/rich-text-editor"
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { getCurrentAgencyId } from "@/lib/agency-scope"
@@ -106,6 +107,7 @@ export default function NotesPage() {
   const [title, setTitle] = useState("")
   const [body, setBody] = useState("")
   const [saving, setSaving] = useState(false)
+  const [pendingDelete, setPendingDelete] = useState<{ id: string; title: string } | null>(null)
   const pending = useRef<{ id: string; title: string; body: string } | null>(null)
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
   // Which note the editor fields currently hold, so a note opened from the URL loads once.
@@ -228,21 +230,25 @@ export default function NotesPage() {
     }
   }
 
-  async function removeFromList(note: Note) {
-    if (note.id === openId) {
+  function askDelete() {
+    setPendingDelete({ id: openId, title: noteTitle({ title, body }) })
+  }
+
+  async function removeFromList(id: string) {
+    if (id === openId) {
       await remove()
       return
     }
     try {
-      await deleteNote(note.id)
+      await deleteNote(id)
     } catch {
       toast.error("Couldn't delete the note.")
     }
   }
 
   // Header nodes are memoized (they go through context); handlers are read from a ref so they stay current.
-  const latest = useRef({ edit, close, remove })
-  latest.current = { edit, close, remove }
+  const latest = useRef({ edit, close, askDelete })
+  latest.current = { edit, close, askDelete }
 
   const headerBack = useMemo(
     () => (headerOpen ? { label: "Back to notes", onClick: () => latest.current.close() } : null),
@@ -263,7 +269,7 @@ export default function NotesPage() {
   const headerActions = useMemo(
     () => headerOpen ? (
       <>
-        <Button type="button" variant="ghost" size="icon" className="size-10 text-muted-foreground hover:text-destructive [&_svg]:size-5" onClick={() => void latest.current.remove()} aria-label="Delete note">
+        <Button type="button" variant="ghost" size="icon" className="size-10 text-muted-foreground hover:text-destructive [&_svg]:size-5" onClick={() => latest.current.askDelete()} aria-label="Delete note">
           <Trash2 aria-hidden="true" />
         </Button>
       </>
@@ -333,7 +339,7 @@ export default function NotesPage() {
                         menuLabel={`Options for ${noteTitle(shown)}`}
                         menu={<>
                           <DropdownMenuItem onSelect={() => void open(note)}>Open note</DropdownMenuItem>
-                          <DropdownMenuItem variant="destructive" onSelect={() => void removeFromList(note)}>Delete note</DropdownMenuItem>
+                          <DropdownMenuItem variant="destructive" onSelect={() => setPendingDelete({ id: note.id, title: noteTitle(note) })}>Delete note</DropdownMenuItem>
                         </>}
                       />
                     </li>
@@ -359,7 +365,7 @@ export default function NotesPage() {
                   />
                   <div className="flex shrink-0 items-center gap-2">
                     <span className="text-xs text-muted-foreground" aria-live="polite">{saving ? "Saving…" : "Saved"}</span>
-                    <Button type="button" variant="ghost" size="icon" className="size-8 text-muted-foreground hover:text-destructive" onClick={() => void remove()} aria-label="Delete note">
+                    <Button type="button" variant="ghost" size="icon" className="size-8 text-muted-foreground hover:text-destructive" onClick={askDelete} aria-label="Delete note">
                       <Trash2 className="size-4" aria-hidden="true" />
                     </Button>
                   </div>
@@ -380,6 +386,18 @@ export default function NotesPage() {
           </section>
         </div>
       )}
+      <AlertDialog open={pendingDelete !== null} onOpenChange={(open) => !open && setPendingDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this note?</AlertDialogTitle>
+            <AlertDialogDescription>{pendingDelete?.title || "This note"} will be removed for good.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => pendingDelete && void removeFromList(pendingDelete.id)}>Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </main>
   )
 }

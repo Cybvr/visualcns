@@ -132,7 +132,7 @@ export function CompanyProfileHeader({
             )}
           </div>
 
-          <h1 data-weight="bold" className="mt-3 mb-0.5 truncate text-[21px] tracking-[-0.02em] text-foreground md:text-[26px]">{heading ?? name}</h1>
+          <h1 className="mt-3 mb-0.5 truncate text-[18px] tracking-[-0.02em] text-foreground md:text-[23px]">{heading ?? name}</h1>
           {!heading && <div className="flex flex-wrap items-center gap-x-3.5 gap-y-1 text-sm text-muted-foreground">
             {handle && (publicPath ? (
               <a
