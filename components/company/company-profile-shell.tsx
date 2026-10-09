@@ -2,13 +2,16 @@
 
 import { useCallback, useMemo, useState, type ComponentProps, type ReactNode } from "react"
 import Link from "next/link"
-import { Bell, Building2, ChevronRight, LogIn, Search } from "lucide-react"
+import { Bell, Building2, ChevronRight, LogIn, Search, Sparkles } from "lucide-react"
 
 import { useAuth } from "@/components/auth-provider"
 import { BrandLockup } from "@/components/brand-lockup"
 import { useCompanyPage } from "@/components/company/company-page-context"
 import { NgaiWidget } from "@/components/company/ngai-widget"
+import { useSubscription } from "@/components/company/company-plan"
+import { UpgradeModal } from "@/components/company/upgrade-modal"
 import { HeaderTeam } from "@/components/company/header-team"
+import { useTeamSeats } from "@/components/company/team-seats"
 import { NavUser } from "@/components/nav-user"
 import { GlobalSearchDialog, useSearchHotkey, type SearchResult } from "@/components/search/global-search"
 import { Button } from "@/components/ui/button"
@@ -72,7 +75,33 @@ function CompanyIdentity() {
   )
 }
 
-const AGENCY_GROUP = { label: "Agency", keys: ["projects", "tasks", "messages"] as string[] }
+/** Opens the plans in a modal. Sits under Notifications, for the people who manage the team. */
+function UpgradeNavItem() {
+  const { company, canManageTeam } = useCompanyPage()
+  const { setOpenMobile } = useSidebar()
+  const billing = useSubscription(company.id)
+  const teamSeats = useTeamSeats(company.id, canManageTeam)
+  const [open, setOpen] = useState(false)
+
+  if (!canManageTeam) return null
+
+  return (
+    <SidebarMenuItem>
+      <SidebarMenuButton
+        type="button"
+        tooltip="Upgrade"
+        onClick={() => { setOpenMobile(false); setOpen(true) }}
+        className="h-9 gap-2 px-2 max-md:h-12 max-md:min-h-12 max-md:gap-3 max-md:px-3 [&>svg]:size-[18px] [&>svg]:max-md:size-5"
+      >
+        <Sparkles className="h-4 w-4" aria-hidden="true" />
+        <span className="sidebar-nav-label">Upgrade</span>
+      </SidebarMenuButton>
+      <UpgradeModal open={open} onOpenChange={setOpen} companyId={company.id} companyName={company.name} billing={billing} seats={teamSeats.info?.seats ?? null} />
+    </SidebarMenuItem>
+  )
+}
+
+const AGENCY_GROUP ={ label: "Agency", keys: ["projects", "tasks", "messages"] as string[] }
 
 /** The dashboard's account menu when signed in, a sign-in button for visitors. */
 function SidebarAccount() {
@@ -195,6 +224,7 @@ export function CompanyProfileShell({ children }: { children: ReactNode }) {
                       </Collapsible>
                     )
                   })}
+                  <UpgradeNavItem />
                 </SidebarMenu>
               </SidebarGroup>
             </SidebarContent>

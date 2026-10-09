@@ -129,20 +129,6 @@ export function PulseIntro({
 
   return (
     <section className="mt-5 space-y-3 sm:space-y-4">
-      {/* Hero */}
-      <div className="flex items-center gap-4 rounded-2xl border border-rose-100 bg-gradient-to-br from-rose-50 via-violet-50 to-sky-50 p-4 sm:gap-6 sm:p-7 dark:border-border dark:from-rose-950/30 dark:via-violet-950/20 dark:to-sky-950/30">
-        <Logo name={details.name} logoUrl={details.logoUrl} className="size-16 sm:size-28" />
-        <div className="min-w-0">
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Pulse</p>
-          <h2 data-weight="bold" className="mt-1 text-xl font-bold tracking-[-0.02em] text-foreground sm:text-3xl">
-            Let&apos;s understand {details.name}
-          </h2>
-          <p className="mt-1.5 max-w-2xl text-sm leading-6 text-muted-foreground sm:text-base">
-            We&apos;ll use the information in your record and analyse your website to give you insights, opportunities and recommendations.
-          </p>
-        </div>
-      </div>
-
       <div className="grid gap-3 sm:gap-4 lg:grid-cols-2">
         {/* Business details */}
         <div className="rounded-2xl border border-border bg-background p-4 sm:p-5">
@@ -222,62 +208,68 @@ export function PulseIntro({
 
         {/* What we'll analyse, which doubles as scan progress. */}
         <div className="rounded-2xl border border-border bg-background p-4 sm:p-5">
+          <div className="mb-5 min-w-0 border-b border-border pb-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Pulse</p>
+            <h2 data-weight="bold" className="mt-1 text-xl font-bold tracking-[-0.02em] text-foreground sm:text-2xl">
+              Let&apos;s understand {details.name}
+            </h2>
+            <p className="mt-1.5 text-sm leading-6 text-muted-foreground">
+              We&apos;ll use the information in your record and analyse your website to give you insights, opportunities and recommendations.
+            </p>
+          </div>
           <h3 data-weight="bold" className="text-lg font-bold tracking-[-0.01em] text-foreground">
-            {scanning ? "Analysing…" : "What we'll analyse"}
+            {scanning ? "Analysing…" : "What we'll analyse:"}
           </h3>
           <p className="mt-0.5 text-sm text-muted-foreground">
             {scanning
               ? "Crawling your website and public sources. This takes a minute or two."
               : "We'll crawl your website and public sources to understand:"}
           </p>
-          <ul className="mt-4 grid gap-4 sm:grid-cols-2">
+          <ul className="mt-3 space-y-2 text-sm text-foreground">
             {ANALYSE_AREAS.map((area, index) => {
               const done = scanning && index < step
               const active = scanning && index === step
               return (
-                <li key={area.key} className={cn("flex items-start gap-3 transition-opacity", scanning && !done && !active && "opacity-50")}>
-                  <span className={cn("flex size-11 shrink-0 items-center justify-center rounded-xl", area.box)}>
+                <li key={area.key} className={cn("flex items-start gap-2.5 transition-opacity", scanning && !done && !active && "opacity-50")}>
+                  <span className="mt-0.5 flex size-4 shrink-0 items-center justify-center" aria-hidden="true">
                     {done ? (
-                      <Check className={cn("size-5", area.tint)} aria-hidden="true" />
+                      <Check className="size-4 text-emerald-600" />
                     ) : active ? (
-                      <Loader2 className={cn("size-5 animate-spin", area.tint)} aria-hidden="true" />
+                      <Loader2 className="size-4 animate-spin text-muted-foreground" />
                     ) : (
-                      <area.icon className={cn("size-5", area.tint)} aria-hidden="true" />
+                      <span className="size-1.5 rounded-full bg-muted-foreground/60" />
                     )}
                   </span>
-                  <div className="min-w-0">
-                    <p className="font-medium text-foreground">{area.title}</p>
-                    <p className="text-sm leading-5 text-muted-foreground">{area.detail}</p>
-                  </div>
+                  <span className="min-w-0">
+                    <span className="font-medium">{area.title}:</span>{" "}
+                    <span className="text-muted-foreground">{area.detail}</span>
+                  </span>
                 </li>
               )
             })}
           </ul>
+          {/* Start */}
+          <div className="mt-5 flex flex-col items-center border-t border-border pt-5 text-center">
+            <Button
+              type="button"
+              size="lg"
+              onClick={onAnalyse}
+              disabled={scanning || editing}
+              className="h-12 w-full rounded-xl bg-foreground text-base text-background hover:bg-foreground/90 sm:mx-auto sm:max-w-md"
+            >
+              {scanning ? <Loader2 className="size-5 animate-spin" aria-hidden="true" /> : <Sparkles className="size-5" aria-hidden="true" />}
+              {scanning ? "Analysing your business…" : onBack ? "Run a new analysis" : "Analyse my business"}
+            </Button>
+            {onBack && !scanning && (
+              <Button type="button" variant="ghost" onClick={onBack} className="mt-2 w-full sm:mx-auto sm:max-w-md">
+                Back to the report
+              </Button>
+            )}
+            {missing && (
+              <p className="mt-2.5 text-sm text-muted-foreground">Add your website for the best results. We&apos;ll still check public sources.</p>
+            )}
+          </div>
         </div>
-      </div>
-
-      {/* Start */}
-      <div className="flex flex-col items-center rounded-2xl border border-border bg-background p-4 text-center sm:p-5">
-        <Button
-          type="button"
-          size="lg"
-          onClick={onAnalyse}
-          disabled={scanning || editing}
-          className="h-12 w-full rounded-xl bg-foreground text-base text-background hover:bg-foreground/90 sm:mx-auto sm:max-w-md"
-        >
-          {scanning ? <Loader2 className="size-5 animate-spin" aria-hidden="true" /> : <Sparkles className="size-5" aria-hidden="true" />}
-          {scanning ? "Analysing your business…" : onBack ? "Run a new analysis" : "Analyse my business"}
-        </Button>
-        {onBack && !scanning && (
-          <Button type="button" variant="ghost" onClick={onBack} className="mt-2 w-full sm:mx-auto sm:max-w-md">
-            Back to the report
-          </Button>
-        )}
-        <p className="mt-2.5 text-sm text-muted-foreground">
-          {missing
-            ? "Add your website for the best results. We'll still check public sources."
-            : "This will scan your website and build your business intelligence."}
-        </p>
       </div>
     </section>
   )

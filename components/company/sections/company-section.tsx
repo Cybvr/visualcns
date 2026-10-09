@@ -37,10 +37,11 @@ function PlanPanel() {
 }
 
 function PulseSection() {
-  const { company, admin, canManageTeam } = useCompanyPage()
+  const { company, admin, canManageTeam, mode } = useCompanyPage()
   return (
     <>
-      {canManageTeam && <PlanPanel />}
+      {/* On the public page the plan lives behind Upgrade in the sidebar. */}
+      {canManageTeam && mode !== "routes" && <PlanPanel />}
       <Pulse
         companyId={company.id}
         details={{

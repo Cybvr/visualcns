@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react"
 import { createPortal } from "react-dom"
-import { Copy, Download, ExternalLink, Loader2, LogOut, RefreshCw, Settings, Sparkles, Eye } from "lucide-react"
+import { Copy, Download, ExternalLink, Loader2, LogOut, RefreshCw, Settings, Eye } from "lucide-react"
 import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
@@ -15,12 +15,9 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
-import { CompanyPlan, usePlanBilling, useSubscription } from "@/components/company/company-plan"
-import type { PlanKey } from "@/lib/subscription"
+import { usePlanBilling, useSubscription } from "@/components/company/company-plan"
 import { VisitorExtras } from "@/components/company/visitor-extras"
 import { getAllVisitors, kioskUrl, resetKioskKey, visitorsCsv, visitDay as day, visitTime as time, setKioskEnabled, signOutVisitor, watchKiosk, watchVisitors, type Visitor, type VisitorKiosk } from "@/lib/visitors"
-
-type StaffInfo = { staff: { id: string; name: string; email: string }[]; pending: { id: string; email: string }[]; seats: number; limit: number | null; plan: PlanKey | null }
 
 /** The company's Visitors tab: who is in now, past visits, and the front-desk tablet link. */
 export function CompanyVisitors({ agencyId, companyId, slug }: { agencyId: string; companyId: string; slug: string }) {
@@ -32,9 +29,7 @@ export function CompanyVisitors({ agencyId, companyId, slug }: { agencyId: strin
   const [kioskBusy, setKioskBusy] = useState(false)
   const billing = useSubscription(companyId)
   const billingCall = usePlanBilling(companyId)
-  const [staffInfo, setStaffInfo] = useState<StaffInfo | null>(null)
   const { user } = useAuth()
-  const [upgradeOpen, setUpgradeOpen] = useState(false)
   const [shareOpen, setShareOpen] = useState(false)
   // The page title row (in the company shell) has a spot for page actions.
   const [titleSlot, setTitleSlot] = useState<HTMLElement | null>(null)
@@ -80,32 +75,6 @@ export function CompanyVisitors({ agencyId, companyId, slug }: { agencyId: strin
   const rows = useMemo(() => [...results.filter((visitor) => visitor.status === "on_site"), ...results.filter((visitor) => visitor.status !== "on_site")], [results])
   const link = kiosk?.enabled && kiosk.key ? kioskUrl(slug, kiosk.key) : ""
 
-  async function staffCall(method: "GET" | "POST" | "DELETE", body?: Record<string, string>) {
-    if (!user) throw new Error("Please sign in again.")
-    const response = await fetch(method === "GET" ? `/api/visitors/staff?companyId=${encodeURIComponent(companyId)}` : "/api/visitors/staff", {
-      method,
-      headers: { Authorization: `Bearer ${await user.getIdToken()}`, "Content-Type": "application/json" },
-      body: method === "GET" ? undefined : JSON.stringify({ companyId, ...body }),
-    })
-    const data = await response.json().catch(() => ({}))
-    if (!response.ok) throw new Error(data.error || "Something went wrong. Please try again.")
-    return data
-  }
-
-  async function reloadStaff() {
-    try {
-      setStaffInfo(await staffCall("GET") as StaffInfo)
-    } catch {
-      setStaffInfo(null)
-    }
-  }
-
-  // Staff and the plan's limit change when someone is invited or the site pays.
-  useEffect(() => {
-    if (user && companyId) void reloadStaff()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, companyId, billing?.plan, billing?.paidUntil?.toMillis?.()])
-
   // A tablet switched on before billing existed starts its trial now.
   useEffect(() => {
     if (kiosk?.enabled && billing === null && user) void billingCall("start").catch(() => undefined)
@@ -150,9 +119,6 @@ export function CompanyVisitors({ agencyId, companyId, slug }: { agencyId: strin
 
   const actions = (
     <>
-      <Button type="button" onClick={() => setUpgradeOpen(true)}>
-        <Sparkles className="size-4" aria-hidden="true" /> Upgrade
-      </Button>
       <Button type="button" onClick={() => setShareOpen(true)}>
         <Settings className="size-4" aria-hidden="true" /> Settings
       </Button>
@@ -162,16 +128,6 @@ export function CompanyVisitors({ agencyId, companyId, slug }: { agencyId: strin
   return (
     <div className="mt-5 space-y-8">
       {titleSlot ? createPortal(actions, titleSlot) : <div className="flex justify-end gap-2">{actions}</div>}
-
-      <Dialog open={upgradeOpen} onOpenChange={setUpgradeOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Upgrade</DialogTitle>
-            <DialogDescription>Choose the plan for this company&apos;s sign-in.</DialogDescription>
-          </DialogHeader>
-          <CompanyPlan companyId={companyId} billing={billing} seats={staffInfo?.seats ?? null} />
-        </DialogContent>
-      </Dialog>
 
       <Dialog open={shareOpen} onOpenChange={setShareOpen}>
         <DialogContent className="max-h-[85vh] max-w-lg overflow-y-auto">

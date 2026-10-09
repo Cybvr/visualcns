@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useState } from "react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { Check, CreditCard, Loader2 } from "lucide-react"
 import { toast } from "sonner"
@@ -38,32 +38,27 @@ export function useSubscription(companyId: string) {
   return billing
 }
 
-/**
- * The company's VisualCNS plan: trial, paid or paused, with the three tiers
- * monthly or yearly. Also confirms a payment when Paystack sends the payer back.
- */
-export function CompanyPlan({ companyId, billing, seats = null, className }: { companyId: string; billing: Subscription | null | undefined; seats?: number | null; className?: string }) {
+/** References already sent for confirmation, so two plan panels on one page confirm a payment once. */
+const confirmedReferences = new Set<string>()
+
+/** Back from Paystack: confirms the payment, then tidies the address bar. */
+export function usePaymentReturn(companyId: string, setBusy?: (busy: boolean) => void) {
   const { user } = useAuth()
   const call = usePlanBilling(companyId)
   const router = useRouter()
   const pathname = usePathname() ?? ""
   const searchParams = useSearchParams()
-  const [busy, setBusy] = useState(false)
-  const [plansOpen, setPlansOpen] = useState(false)
-  const [interval, setInterval] = useState<PlanInterval>("monthly")
-  const verified = useRef(false)
 
-  // Back from Paystack: confirm the payment, then tidy the address bar.
   useEffect(() => {
     const reference = searchParams?.get("reference") || searchParams?.get("trxref")
-    if (!user || !reference || verified.current) return
-    verified.current = true
-    setBusy(true)
+    if (!user || !reference || confirmedReferences.has(reference)) return
+    confirmedReferences.add(reference)
+    setBusy?.(true)
     call("verify", { reference })
       .then(() => toast.success("Payment received. Your plan is on."))
       .catch((reason) => toast.error(reason instanceof Error ? reason.message : "We couldn't confirm the payment."))
       .finally(() => {
-        setBusy(false)
+        setBusy?.(false)
         const params = new URLSearchParams(searchParams?.toString())
         params.delete("reference")
         params.delete("trxref")
@@ -71,6 +66,21 @@ export function CompanyPlan({ companyId, billing, seats = null, className }: { c
       })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, searchParams])
+}
+
+/**
+ * The company's VisualCNS plan: trial, paid or paused, with the three tiers
+ * monthly or yearly. Also confirms a payment when Paystack sends the payer back.
+ */
+export function CompanyPlan({ companyId, billing, seats = null, className, expanded = false }: { companyId: string; billing: Subscription | null | undefined; seats?: number | null; className?: string; /** Shows the plans straight away with no toggle, for use inside a modal. */ expanded?: boolean }) {
+  const call = usePlanBilling(companyId)
+  const pathname = usePathname() ?? ""
+  const searchParams = useSearchParams()
+  const [busy, setBusy] = useState(false)
+  const [plansOpen, setPlansOpen] = useState(false)
+  const [interval, setInterval] = useState<PlanInterval>("monthly")
+
+  usePaymentReturn(companyId, setBusy)
 
   async function openPaystack(action: "subscribe" | "manage", plan?: PlanKey) {
     setBusy(true)
@@ -121,7 +131,7 @@ export function CompanyPlan({ companyId, billing, seats = null, className }: { c
   const showManage = subscribed && !(cancelled && access?.state === "paused")
 
   return (
-    <div className={cn("border-t border-border pt-4", className)}>
+    <div className={cn(!expanded && "border-t border-border pt-4", className)}>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">
           <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Your plan</p>
@@ -129,7 +139,7 @@ export function CompanyPlan({ companyId, billing, seats = null, className }: { c
           <p className="mt-0.5 text-sm text-muted-foreground">{detail}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          {plansToShow.length > 0 && (
+          {plansToShow.length > 0 && !expanded && (
             <Button type="button" variant="ghost" size="sm" onClick={() => setPlansOpen((open) => !open)} aria-expanded={plansOpen}>
               {plansOpen ? "Hide plans" : choosePlan ? "View plans" : "Upgrade plan"}
             </Button>
@@ -139,7 +149,7 @@ export function CompanyPlan({ companyId, billing, seats = null, className }: { c
           )}
         </div>
       </div>
-      {plansOpen && plansToShow.length > 0 && (
+      {(plansOpen || expanded) && plansToShow.length > 0 && (
         <div className="mt-3 space-y-3">
           <div className="inline-flex rounded-full border border-border bg-muted p-[3px] text-xs font-semibold">
             {(["monthly", "yearly"] as const).map((option) => (
