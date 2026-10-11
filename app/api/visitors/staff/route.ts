@@ -4,8 +4,7 @@ import { FieldValue, Timestamp } from "firebase-admin/firestore"
 
 import { getAgencySecret } from "@/lib/server/agency-secrets"
 import { authorizeVisitorManager as authorize, VisitorRefused } from "@/lib/server/visitor-auth"
-import { brandedEmail, normalizeEmailAddress, SITE_ORIGIN } from "@/lib/server/email-branding"
-import { loadTransactionalMessage } from "@/lib/server/transactional-templates"
+import { brandedEmail, escapeHtml, normalizeEmailAddress, SITE_ORIGIN } from "@/lib/server/email-branding"
 import { visitorStaff } from "@/lib/server/visitor-staff"
 import { isPlanKey, planForStaff, PLANS, staffLimit } from "@/lib/subscription"
 
@@ -44,16 +43,17 @@ function failure(error: unknown) {
   return json({ error: "Something went wrong. Please try again." }, 500)
 }
 
-async function sendInvite(agencyId: string, to: string, companyName: string, inviterName: string, url: string, logoUrl: string, companyId: string) {
+async function sendInvite(agencyId: string, to: string, companyName: string, inviterName: string, url: string) {
   const apiKey = await getAgencySecret(agencyId, "RESEND_API_KEY", process.env.RESEND_API_KEY || "")
   const from = normalizeEmailAddress(await getAgencySecret(agencyId, "EMAIL_FROM", process.env.EMAIL_FROM || ""))
   if (!apiKey || !from) return false
-  const message = await loadTransactionalMessage(agencyId, companyId, "staff-invitation", { companyName, inviterName: inviterName || "Your colleague", inviteUrl: url })
-  const html = brandedEmail(message.html, message.subject, { name: companyName, logoUrl }, from, null)
+  const subject = `${inviterName || companyName} invited you to ${companyName} on VisualCNS`
+  const text = `${inviterName || "Your colleague"} added you to ${companyName}'s visitor sign-in. Visitors can pick you when they arrive at the front desk, and you'll get an email when they do.\n\nAccept the invite to set up your account. The link works for 7 days.`
+  const html = brandedEmail(`<p>${escapeHtml(text).replace(/\n\n/g, "</p><p>")}</p>`, subject, { name: "VisualCNS" }, from, { text: "Accept invite", url })
   const response = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ from, to: [to], subject: message.subject, text: `${message.text}\n\nAccept invite: ${url}`, html }),
+    body: JSON.stringify({ from, to: [to], subject, text: `${text}\n\nAccept invite: ${url}`, html }),
     cache: "no-store",
   }).catch(() => null)
   return Boolean(response?.ok)
@@ -103,7 +103,7 @@ export async function POST(request: NextRequest) {
       expiresAt: Timestamp.fromMillis(Date.now() + 7 * 24 * 60 * 60 * 1000),
     })
     const inviteUrl = `${SITE_ORIGIN}/invite/${rawToken}`
-    const emailed = await sendInvite(agencyId, email, companyName, inviterName, inviteUrl, String(org.logoUrl || ""), companyId)
+    const emailed = await sendInvite(agencyId, email, companyName, inviterName, inviteUrl)
     return json({ ok: true, inviteUrl, emailed })
   } catch (error) {
     return failure(error)
