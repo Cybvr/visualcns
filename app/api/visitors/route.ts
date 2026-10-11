@@ -4,6 +4,8 @@ import { FieldValue, Timestamp } from "firebase-admin/firestore"
 
 import { adminServices } from "@/lib/firebase-admin"
 import { getAgencySecret } from "@/lib/server/agency-secrets"
+import { brandedEmail } from "@/lib/server/email-branding"
+import { loadTransactionalMessage } from "@/lib/server/transactional-templates"
 import { ensureSubscription } from "@/lib/server/paystack"
 import { activeAgreement, announceArrival, announceDeparture, getVisitorSettings } from "@/lib/server/visitor-connections"
 import { planAccess } from "@/lib/subscription"
@@ -57,10 +59,6 @@ function happenedAt(value: unknown) {
   return Number.isFinite(at) && at > now - OFFLINE_WINDOW_MS && at <= now + 5 * 60 * 1000 ? Timestamp.fromMillis(Math.min(at, now)) : FieldValue.serverTimestamp()
 }
 
-function escapeHtml(value: string) {
-  return value.replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char] as string)
-}
-
 async function resolveKiosk(slug: string, key: string) {
   if (!slug || !key) return null
   const { db } = adminServices()
@@ -111,24 +109,23 @@ async function onSite(db: ReturnType<typeof adminServices>["db"], agencyId: stri
     .sort((a, b) => b.at - a.at)
 }
 
-async function emailHost(agencyId: string, to: string, companyName: string, visitor: { name: string; visitorCompany: string; reason: string; phone: string; email: string; minutesAgo: number }) {
+async function emailHost(agencyId: string, to: string, companyName: string, visitor: { name: string; visitorCompany: string; reason: string; phone: string; email: string; minutesAgo: number }, logoUrl: string, companyId: string) {
   const apiKey = await getAgencySecret(agencyId, "RESEND_API_KEY", process.env.RESEND_API_KEY || "")
   const from = (await getAgencySecret(agencyId, "EMAIL_FROM", process.env.EMAIL_FROM || "")).trim().replace(/^(["'])(.*)\1$/, "$2")
   if (!apiKey || !from || !EMAIL_PATTERN.test(to)) return false
   const details = [visitor.visitorCompany && `From: ${visitor.visitorCompany}`, visitor.reason && `Reason: ${visitor.reason}`, visitor.phone && `Phone: ${visitor.phone}`, visitor.email && `Email: ${visitor.email}`].filter(Boolean)
-  const subject = `${visitor.name} is here to see you`
   // A sign-in saved while the tablet was offline arrives late, so say when it really happened.
   const when = visitor.minutesAgo >= 5 ? `signed in ${visitor.minutesAgo < 90 ? `${visitor.minutesAgo} minutes` : `about ${Math.round(visitor.minutesAgo / 60)} hours`} ago` : "just signed in"
-  const body = `${visitor.name} ${when} at the ${companyName} front desk.${details.length ? `\n\n${details.join("\n")}` : ""}`
+  const message = await loadTransactionalMessage(agencyId, companyId, "visitor-arrival", { visitorName: visitor.name, arrivalTime: when, companyName, visitorDetails: details.join(" · ") })
   const response = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json", "Idempotency-Key": crypto.randomUUID() },
     body: JSON.stringify({
       from,
       to: [to],
-      subject,
-      text: body,
-      html: `<p>${escapeHtml(body).replace(/\n/g, "<br />")}</p>`,
+      subject: message.subject,
+      text: message.text,
+      html: brandedEmail(message.html, message.subject, { name: companyName, logoUrl }, from, null),
     }),
     cache: "no-store",
   }).catch(() => null)
@@ -237,7 +234,7 @@ export async function POST(request: Request) {
     const minutesAgo = Math.floor((Date.now() - signedInMs) / 60000)
     let hostNotified = false
     if (host?.email) {
-      hostNotified = await emailHost(agencyId, host.email, String(org.name || "your"), { name, visitorCompany, reason, phone, email, minutesAgo })
+      hostNotified = await emailHost(agencyId, host.email, String(org.name || "your"), { name, visitorCompany, reason, phone, email, minutesAgo }, String(org.logoUrl || ""), orgId)
       if (hostNotified) await ref.set({ hostNotified: true }, { merge: true })
     }
     // Slack, Teams and the webhook go out after the tablet has its answer.

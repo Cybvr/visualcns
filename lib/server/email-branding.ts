@@ -59,13 +59,18 @@ export function absoluteWebUrl(value: string, fallback: string) {
 
 export function brandedEmail(content: string, subject: string, input: unknown, senderAddress: string, ctaInput: unknown, unsubscribeLink = "") {
   const source = input && typeof input === "object" ? input as Record<string, unknown> : {}
+  const bbdo = /bbdo/i.test(safeBrandValue(source.name))
+  const disclaimer = safeBrandValue(source.disclaimer) || (bbdo ? "This email and any attachments are intended only for the named recipient and may contain confidential information. If you received it in error, please notify the sender and delete it. Please do not copy, disclose or distribute its contents." : "")
+  const socials = bbdo
+    ? [{ label: "LinkedIn", url: "https://ng.linkedin.com/company/bbdo-west-africa" }, { label: "Instagram", url: "https://www.instagram.com/bbdo_westafrica/?hl=en" }]
+    : [{ label: "X", url: X_URL }, { label: "LinkedIn", url: LINKEDIN_URL }]
   const brand: EmailBrand = {
     name: safeBrandValue(source.name, "VisualCNS") || "VisualCNS",
     email: extractEmailAddress(senderAddress || safeBrandValue(source.email, "hello@visualcns.com")),
     phone: safeBrandValue(source.phone),
-    address: safeBrandValue(source.address, "Lagos, Nigeria"),
-    website: safeBrandValue(source.website, "visualcns.com"),
-    logoUrl: safeBrandValue(source.logoUrl, `${SITE_ORIGIN}/visualcns-email-logo.png`) || `${SITE_ORIGIN}/visualcns-email-logo.png`,
+    address: bbdo ? "Plot 5 Chief Yesufu Abiodun Oniru Road, Victoria Island, Lagos 106104, Lagos" : safeBrandValue(source.address, "Lagos, Nigeria"),
+    website: safeBrandValue(source.website, bbdo ? "" : "visualcns.com"),
+    logoUrl: safeBrandValue(source.logoUrl) || (bbdo ? "" : `${SITE_ORIGIN}/visualcns-email-logo.png`),
   }
   const websiteUrl = absoluteWebUrl(brand.website, SITE_ORIGIN)
   const ctaSource = ctaInput && typeof ctaInput === "object" ? ctaInput as Record<string, unknown> : {}
@@ -100,7 +105,7 @@ export function brandedEmail(content: string, subject: string, input: unknown, s
             <tr>
               <td style="padding:22px 28px;">
                 <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
-                  <td style="vertical-align:middle;height:56px;line-height:0;"><img src="${escapeHtml(brand.logoUrl)}" width="320" alt="${escapeHtml(brand.name)}" style="display:block;width:320px;max-width:100%;height:auto;max-height:56px;object-fit:contain;object-position:left center;border:0;"></td>
+                  <td style="vertical-align:middle;height:56px;">${brand.logoUrl ? `<img src="${escapeHtml(brand.logoUrl)}" width="280" alt="${escapeHtml(brand.name)}" style="display:block;width:280px;max-width:100%;height:auto;max-height:56px;object-fit:contain;object-position:left center;border:0;">` : `<span style="font-size:24px;font-weight:700;">${escapeHtml(brand.name)}</span>`}</td>
                 </tr></table>
               </td>
             </tr>
@@ -119,11 +124,11 @@ export function brandedEmail(content: string, subject: string, input: unknown, s
                       ${unsubscribeMarkup}
                     </td>
                     <td style="vertical-align:top;text-align:right;white-space:nowrap;">
-                      <a href="${X_URL}" aria-label="X" style="display:inline-block;margin-left:12px;color:#303440;font-weight:700;text-decoration:none;">X</a>
-                      <a href="${LINKEDIN_URL}" aria-label="LinkedIn" style="display:inline-block;margin-left:12px;color:#303440;font-weight:700;text-decoration:none;">in</a>
+                      ${socials.map((social) => `<a href="${escapeHtml(social.url)}" style="display:inline-block;margin-left:12px;color:#303440;font-weight:700;text-decoration:none;">${social.label}</a>`).join("")}
                     </td>
                   </tr>
                 </table>
+                ${disclaimer ? `<p style="margin:16px 0 0;font-size:11px;line-height:1.6;">${escapeHtml(disclaimer)}</p>` : ""}
               </td>
             </tr>
           </table>

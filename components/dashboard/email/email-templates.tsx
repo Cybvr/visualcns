@@ -1,5 +1,7 @@
 "use client"
 
+import Link from "next/link"
+
 import { ArrowLeft, Eye, FileText, Linkedin, Trash2, Twitter } from "lucide-react"
 
 import { RichTextEditor } from "@/components/dashboard/rich-text-editor"
@@ -79,6 +81,7 @@ export function EmailTemplates({
 
   return (
     <section className="flex min-h-0 w-full min-w-0 max-w-full flex-1 flex-col gap-4 lg:gap-6 lg:overflow-hidden" role="tabpanel">
+      {isAdmin && <Button asChild variant="outline" className="self-start"><Link href="/dashboard/email/designer">Transactional Message Designer</Link></Button>}
       <form onSubmit={saveTemplate} className={cn("min-h-0 w-full min-w-0 max-w-full flex-1 flex-col overflow-x-hidden max-lg:min-h-[calc(100svh-8rem)]", mobileTemplateView === "editor" ? "flex" : "hidden")}>
         <div className="mb-1 flex items-center gap-2">
           <Button type="button" variant="ghost" size="icon" onClick={() => setMobileTemplateView("list")} aria-label="Back to templates"><ArrowLeft aria-hidden="true" /></Button>

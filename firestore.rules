@@ -254,9 +254,20 @@ service cloud.firestore {
 
     // Email is an agency tool: agency admins can manage templates for every company in their agency.
     match /emailTemplates/{id} {
+      function validMessage() {
+        return request.resource.data.name is string
+          && request.resource.data.subject is string
+          && request.resource.data.body is string
+          && request.resource.data.name.size() > 0
+          && request.resource.data.subject.size() > 0
+          && request.resource.data.subject.size() <= 998
+          && request.resource.data.body.size() > 0
+          && request.resource.data.body.size() <= 500000;
+      }
       allow read: if agencyAdmin(resource.data);
-      allow create: if isAdmin() && sameAgency(request.resource.data);
-      allow update: if agencyAdmin(resource.data) && sameAgency(request.resource.data);
+      allow create: if isAdmin() && sameAgency(request.resource.data) && validMessage();
+      allow update: if agencyAdmin(resource.data) && sameAgency(request.resource.data)
+        && request.resource.data.companyId == resource.data.companyId && validMessage();
       allow delete: if agencyAdmin(resource.data);
     }
 
