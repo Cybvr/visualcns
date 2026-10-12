@@ -26,7 +26,7 @@ import { deleteTask, getTasksByCompanyId, tsToMillis, updateTask, type Task } fr
 import { companyPath } from "@/lib/navigation"
 import { useUrlSelection } from "@/hooks/use-url-selection"
 
-const VIEW_FROM_TAB: Record<CampaignTab, string> = { home: "", about: "brief", people: "creators", creatives: "content", media: "media", payments: "payments", tasks: "tasks", settings: "settings" }
+const VIEW_FROM_TAB: Record<CampaignTab, string> = { home: "", analytics: "analytics", about: "brief", people: "creators", creatives: "content", media: "media", payments: "payments", tasks: "tasks", settings: "settings" }
 const TAB_FROM_VIEW: Record<string, CampaignTab> = Object.fromEntries(Object.entries(VIEW_FROM_TAB).map(([tab, view]) => [view, tab as CampaignTab]))
 
 interface ProjectDetailProps {
