@@ -1,7 +1,9 @@
 "use client"
 
+import Image from "next/image"
 import { useEffect, useMemo, useState } from "react"
-import { Check, Loader2, Sparkles, X } from "lucide-react"
+import { Check, Loader2, X } from "lucide-react"
+import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
 import { useCompanyPage } from "@/components/company/company-page-context"
@@ -21,7 +23,7 @@ const PARTS: { key: PartKey; label: string }[] = [
   { key: "announcement", label: "Announcement post" },
   { key: "hooks", label: "Hooks" },
   { key: "rosterTarget", label: "Creator target" },
-  { key: "creatorSuggestions", label: "Creator suggestions" },
+  { key: "creatorSuggestions", label: "Creator research" },
   { key: "tasks", label: "Tasks" },
 ]
 
@@ -51,7 +53,7 @@ export function CampaignGenerateButton({ project, companyName, onPatched }: { pr
       announcement: textPosts.some((post) => /announcement/i.test(post.title) && post.body?.trim()),
       hooks: textPosts.some((post) => /^hook\b/i.test(post.title)),
       rosterTarget: Boolean(project.rosterTarget?.trim()),
-      creatorSuggestions: Boolean(project.creatorSuggestions?.length),
+      creatorSuggestions: Boolean(project.creatorSuggestions?.some((handle) => handle.trim().startsWith("@"))),
       tasks: tasks.some((task) => task.projectId === project.id),
     }
   }, [posts, project, tasks])
@@ -88,8 +90,9 @@ export function CampaignGenerateButton({ project, companyName, onPatched }: { pr
         if (!response.ok) throw new Error(body.error)
         if (body.patch && Object.keys(body.patch).length) onPatched?.(body.patch)
         setSteps((current) => ({ ...current, [key]: "done" }))
-      } catch {
+      } catch (error) {
         setSteps((current) => ({ ...current, [key]: "failed" }))
+        toast.error(error instanceof Error && error.message ? error.message : "Ngai couldn't finish this part.")
       }
     }
     setRunning(false)
@@ -99,15 +102,15 @@ export function CampaignGenerateButton({ project, companyName, onPatched }: { pr
 
   return (
     <>
-      <Button type="button" variant="outline" className="h-11 shrink-0 gap-1.5 rounded-full px-5" onClick={openDialog}>
-        <Sparkles className="size-4" aria-hidden="true" />
-        Generate with Ngai
+      <Button type="button" variant="ghost" onClick={openDialog}>
+        <Image src="/ngai-logo.png" alt="" width={16} height={16} className="rounded-full" />
+        <span className="underline underline-offset-4">Build with Ngai</span>
       </Button>
 
       <Dialog open={open} onOpenChange={(next) => { if (!running) setOpen(next) }}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
-            <DialogTitle>Generate with Ngai</DialogTitle>
+            <DialogTitle>Build with Ngai</DialogTitle>
             <DialogDescription className="sr-only">Ngai writes what the campaign is missing.</DialogDescription>
           </DialogHeader>
           {!hasAbout && <p className="text-sm text-muted-foreground">Write About the event in Brief first.</p>}
@@ -132,7 +135,7 @@ export function CampaignGenerateButton({ project, companyName, onPatched }: { pr
               <Button type="button" onClick={() => setOpen(false)}>Close</Button>
             ) : (
               <Button type="button" onClick={() => void run()} disabled={running || !hasAbout}>
-                {running ? "Generating…" : missing.length ? "Generate" : "Rewrite all"}
+                {running ? "Building…" : missing.length ? "Build" : "Rebuild all"}
               </Button>
             )}
           </DialogFooter>

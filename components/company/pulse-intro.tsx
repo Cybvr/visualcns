@@ -129,15 +129,15 @@ export function PulseIntro({
   const missing = !details.website
 
   return (
-    <section className="mt-4 rounded-2xl border border-border bg-background p-4 sm:p-5">
+    <section className="mt-4 rounded-2xl bg-gradient-to-br from-primary to-primary/75 p-4 text-primary-foreground sm:p-5">
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <h2 className="text-lg font-semibold tracking-[-0.02em] text-foreground">Analyse {details.name}</h2>
-          <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
+          <h2 className="text-lg font-semibold tracking-[-0.02em] text-primary-foreground">Analyse {details.name}</h2>
+          <p className="mt-1 max-w-2xl text-sm text-primary-foreground/80">
             {scanning ? "Scanning your website and public sources…" : "Check your website, search presence, competitors and reputation."}
           </p>
         </div>
-        <Button type="button" variant="outline" size="sm" onClick={() => setDetailsOpen(true)} className="shrink-0">
+        <Button type="button" variant="ghost" size="sm" onClick={() => setDetailsOpen(true)} className="shrink-0 text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground">
           <Pencil className="size-4" aria-hidden="true" />
           Details
         </Button>
@@ -148,25 +148,25 @@ export function PulseIntro({
           const done = scanning && index < step
           const active = scanning && index === step
           return (
-            <li key={area.key} className={cn("flex min-w-0 items-center gap-2 border-b border-border py-2.5 transition-opacity", scanning && !done && !active && "opacity-50")}>
-              <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground" aria-hidden="true">
-                {done ? <Check className="size-4 text-primary" /> : active ? <Loader2 className="size-4 animate-spin text-primary" /> : <area.icon className="size-4" />}
+            <li key={area.key} className={cn("flex min-w-0 items-center gap-2 border-b border-primary-foreground/20 py-2.5 transition-opacity", scanning && !done && !active && "opacity-50")}>
+              <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-primary-foreground/10 text-primary-foreground" aria-hidden="true">
+                {done ? <Check className="size-4 text-primary-foreground" /> : active ? <Loader2 className="size-4 animate-spin text-primary-foreground" /> : <area.icon className="size-4" />}
               </span>
-              <span className="truncate text-sm font-medium text-foreground">{area.title}</span>
+              <span className="truncate text-sm font-medium text-primary-foreground">{area.title}</span>
             </li>
           )
         })}
       </ul>
 
       <div className="mt-4 flex flex-col-reverse gap-3 sm:flex-row sm:items-center">
-        {missing && <p className="text-sm text-muted-foreground">Add a website in Details for better results.</p>}
+        {missing && <p className="text-sm text-primary-foreground/80">Add a website in Details for better results.</p>}
         <div className="flex gap-2 sm:ml-auto">
           {onBack && !scanning && (
-            <Button type="button" variant="ghost" onClick={onBack}>
+            <Button type="button" variant="ghost" onClick={onBack} className="text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground">
               Back
             </Button>
           )}
-          <Button type="button" onClick={onAnalyse} disabled={scanning || editing} className="max-sm:flex-1">
+          <Button type="button" onClick={onAnalyse} disabled={scanning || editing} className="bg-primary-foreground text-primary hover:bg-primary-foreground/90 max-sm:flex-1">
             {scanning && <Loader2 className="size-4 animate-spin" aria-hidden="true" />}
             {scanning ? "Analysing…" : onBack ? "Run new analysis" : "Analyse business"}
           </Button>

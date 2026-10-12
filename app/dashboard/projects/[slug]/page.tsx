@@ -8,6 +8,7 @@ import { useAuth } from "@/components/auth-provider"
 import { DashboardPageSkeleton } from "@/components/dashboard/dashboard-page-skeleton"
 import { ProjectDetail } from "@/components/dashboard/project-detail"
 import { usePageTitle } from "@/components/dashboard/page-title-context"
+import { getInvoicesByCompanyId, getPublicInvoicesByCompanyId, type Invoice } from "@/lib/billing"
 import { getProjectBySlug, type Project } from "@/lib/projects"
 
 /** Goes back a step in history, falling back to the dashboard on a cold open. */
@@ -34,6 +35,7 @@ export default function ProjectDetailPage() {
   const clientName = appUser?.company || appUser?.displayName || ""
 
   const [project, setProject] = useState<Project | null>(null)
+  const [invoices, setInvoices] = useState<Invoice[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
 
@@ -45,13 +47,19 @@ export default function ProjectDetailPage() {
     try {
       const found = await getProjectBySlug(slug)
       setProject(found)
+      if (found) {
+        const rows = await (isAdmin ? getInvoicesByCompanyId(found.companyId, true) : getPublicInvoicesByCompanyId(found.companyId)).catch(() => [])
+        setInvoices(rows.filter((invoice) => invoice.projectId === found.id))
+      } else {
+        setInvoices([])
+      }
     } catch (err) {
       console.error("Error loading project:", err)
       setError(true)
     } finally {
       setLoading(false)
     }
-  }, [slug])
+  }, [isAdmin, slug])
 
   useEffect(() => {
     fetchProject()
@@ -97,6 +105,7 @@ export default function ProjectDetailPage() {
         isAdmin={isAdmin}
         companyId={companyId}
         clientName={clientName}
+        invoices={invoices}
         onProjectPatched={handleProjectPatched}
         onProjectDeleted={() => router.push("/dashboard/projects")}
       />

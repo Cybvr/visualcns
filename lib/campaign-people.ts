@@ -8,7 +8,7 @@ const COLLECTION_NAME = "campaignPeople"
 
 export const PERSON_APPS = ["X", "Instagram", "TikTok", "YouTube", "Facebook", "Snapchat", "Threads", "LinkedIn"] as const
 export const PERSON_TIERS = ["Big account", "Mid account", "Small account"] as const
-export const PERSON_STATUSES = ["Contacted", "Agreed", "Posted", "Declined"] as const
+export const PERSON_STATUSES = ["Prospect", "Contacted", "Agreed", "Posted", "Declined"] as const
 export const PERSON_WAVES = ["", "1", "2", "3", "4", "5"] as const
 
 /** One creator or account booked on a campaign. */
@@ -37,6 +37,8 @@ export interface CampaignPerson {
   overlap?: number
   /** False for a suggested creator the client hasn't added yet. Older rows have no value and are on the roster. */
   onRoster?: boolean
+  /** Ngai suggestions come from grounded Firecrawl search results. */
+  source?: "ngai"
   createdAt?: Timestamp
   updatedAt?: Timestamp
 }
@@ -119,7 +121,7 @@ export function parseCount(value: string): number {
   return Math.round(Number(match[1]) * multiplier)
 }
 
-export const onRoster = (person: Pick<CampaignPerson, "onRoster">) => person.onRoster !== false
+export const onRoster = (person: Pick<CampaignPerson, "onRoster" | "source">) => person.source === "ngai" || person.onRoster !== false
 
 /** Short follower counts: 950, 15k, 1.2m. */
 export function compactCount(value: number) {

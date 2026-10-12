@@ -198,7 +198,7 @@ export function ProjectsSection() {
       {selectedProject ? (
         <div>
           {selectedProject.thumbnailUrl && (
-            <div className="mb-4 aspect-[4/1] w-full overflow-hidden rounded-2xl bg-muted">
+            <div className="mb-2 aspect-[4/1] w-full overflow-hidden rounded-2xl bg-muted">
               <ProjectCover project={selectedProject} />
             </div>
           )}
@@ -238,7 +238,7 @@ export function ProjectsSection() {
               <CampaignGenerateButton project={selectedProject} companyName={company.name} onPatched={patchSelected} />
             )}
           </div>
-          <div className="mt-4">
+          <div className="mt-3">
             <ProjectDetail
               project={selectedProject}
               isAdmin={Boolean(admin)}

@@ -298,7 +298,7 @@ export function ProjectDetail({
                 aria-current={tab === item.key ? "page" : undefined}
                 data-active={tab === item.key}
                 /* Same look as the company sidebar. */
-                className="flex h-10 shrink-0 items-center gap-2 rounded-full px-3 text-left text-sm text-sidebar-foreground outline-none hover:bg-muted hover:text-sidebar-accent-foreground focus-visible:ring-2 focus-visible:ring-ring data-[active=true]:bg-sidebar-accent data-[active=true]:font-semibold data-[active=true]:text-sidebar-accent-foreground"
+                className="flex h-10 shrink-0 items-center gap-2 rounded-full px-3 text-left text-sm text-sidebar-foreground outline-none hover:bg-muted hover:text-sidebar-accent-foreground focus-visible:ring-2 focus-visible:ring-ring data-[active=true]:bg-sidebar-accent data-[active=true]:font-semibold data-[active=true]:text-primary"
               >
                 <item.icon className="size-[18px] shrink-0" aria-hidden="true" />
                 <span className="truncate">{item.label}</span>
@@ -317,7 +317,7 @@ export function ProjectDetail({
               />
             ) : tab === "analytics" ? (
               peopleLoaded && creativesLoaded ? (
-                <AnalyticsView scope={{ type: "campaign", campaignId: project.id }} people={roster} content={contentItems} />
+                <AnalyticsView scope={{ type: "campaign", campaignId: project.id }} people={roster} content={contentItems} invoices={invoices} />
               ) : (
                 <AnalyticsSkeleton scope="campaign" />
               )
@@ -326,7 +326,6 @@ export function ProjectDetail({
             ) : tab === "people" ? (
               <CampaignPeople
                 people={people}
-                suggestions={project.creatorSuggestions}
                 agencyId={project.agencyId}
                 companyId={project.companyId || companyId}
                 projectId={project.id}

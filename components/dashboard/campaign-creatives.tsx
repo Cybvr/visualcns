@@ -1,7 +1,7 @@
 "use client"
 
 import { useRef, useState, type FormEvent } from "react"
-import { ExternalLink, Image as ImageIcon, Images, ImagePlus, Link2, Palette, Plus, Video, X } from "lucide-react"
+import { ExternalLink, Image as ImageIcon, Images, ImagePlus, Link2, Palette, Video, X } from "lucide-react"
 import { toast } from "sonner"
 
 import {
@@ -15,8 +15,9 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
+import { SectionAddButton } from "@/components/company/section-add-button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { GridCard, GridCardList } from "@/components/dashboard/grid-card"
 import { ListToolbar, useListSearch } from "@/components/dashboard/list-search"
 import { Input } from "@/components/ui/input"
@@ -82,10 +83,7 @@ export function CampaignCreatives({ creatives, agencyId, companyId, projectId, c
         <div className="flex items-center justify-between gap-3">
           <h3 className="text-lg font-semibold tracking-[-0.01em] text-foreground">Copy and hooks</h3>
           {(canEdit || canReview) && (
-            <Button type="button" variant="outline" className="rounded-full" onClick={() => setEditing("new")}>
-              <Plus className="size-4" aria-hidden="true" />
-              {canEdit ? "Add post" : "Suggest a post"}
-            </Button>
+            <SectionAddButton label={canEdit ? "New post" : "Suggest a post"} onClick={() => setEditing("new")} />
           )}
         </div>
         <div className="mt-4">
@@ -431,13 +429,15 @@ function MediaLibrary({ files, scope, canEdit }: { files: CampaignCreative[]; sc
         onQueryChange={setQuery}
         placeholder="Search media"
         actions={canEdit ? (
-          <>
-            <Button type="button" variant="ghost" onClick={() => setLinking(true)}>Add link</Button>
-            <Button type="button" className="h-11 gap-1.5 px-5" disabled={Boolean(uploading)} onClick={() => fileInput.current?.click()}>
-              <ImagePlus className="size-4" aria-hidden="true" />
-              {uploading ? `Uploading ${uploading}` : "Upload"}
-            </Button>
-          </>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <SectionAddButton label="New media" disabled={Boolean(uploading)} />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onSelect={() => fileInput.current?.click()}>Upload images or videos</DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => setLinking(true)}>Add link</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         ) : undefined}
       />
       <input ref={fileInput} type="file" accept="image/*,video/*" multiple hidden onChange={(event) => { void handleFiles(event.target.files); event.target.value = "" }} />

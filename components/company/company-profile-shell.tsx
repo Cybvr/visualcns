@@ -236,7 +236,10 @@ export function CompanyProfileShell({ children }: { children: ReactNode }) {
               </Button>
             </div>
           </header>
-          <main className="min-w-0 flex-1 bg-card px-4 pb-16 pt-4 sm:px-6 sm:pt-6 md:m-3 md:mt-0 md:rounded-2xl md:pb-6 md:shadow-[0_6px_24px_rgba(15,23,42,0.04)] lg:px-8">
+          <main className={cn(
+            "min-w-0 flex-1 bg-card px-4 pb-16 sm:px-6 md:m-3 md:mt-0 md:rounded-2xl md:pb-6 md:shadow-[0_6px_24px_rgba(15,23,42,0.04)] lg:px-8",
+            recordOpen ? "pt-2 sm:pt-3" : "pt-4 sm:pt-6",
+          )}>
             {(isSettingsPage || section !== "about") && pageLabel && !recordOpen && (
               <div className="mb-0.5 flex items-center justify-between gap-3">
                 <h2 className="min-w-0 truncate text-[18px] tracking-[-0.02em] text-foreground max-md:hidden md:text-[23px]">{pageLabel}</h2>

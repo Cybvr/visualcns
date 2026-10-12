@@ -9,7 +9,7 @@ import { onRoster, watchCompanyCampaignPeople, type CampaignPerson } from "@/lib
 
 /** Client-wide analytics at /{companySlug}/analytics. */
 export function AnalyticsSection() {
-  const { company, projects } = useCompanyPage()
+  const { company, projects, invoices } = useCompanyPage()
   const [people, setPeople] = useState<CampaignPerson[]>([])
   const [content, setContent] = useState<CampaignCreative[]>([])
   const [peopleLoaded, setPeopleLoaded] = useState(false)
@@ -43,6 +43,7 @@ export function AnalyticsSection() {
         scope={{ type: "company", companyId: company.id }}
         people={people}
         content={content}
+        invoices={invoices}
         campaigns={projects.map((project) => ({ id: project.id, title: project.title }))}
       />
     </div>

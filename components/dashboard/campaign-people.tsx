@@ -1,9 +1,10 @@
 "use client"
 
 import { useRef, useState, type FormEvent, type ReactNode } from "react"
-import { Pencil, Trash2 } from "lucide-react"
+import { Pencil, Trash2, X } from "lucide-react"
 import { toast } from "sonner"
 
+import { SectionAddButton } from "@/components/company/section-add-button"
 import { ListToolbar, useListSearch } from "@/components/dashboard/list-search"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -52,8 +53,6 @@ interface CampaignPeopleProps {
   canEdit: boolean
   /** The client's own people: can add a suggested creator. */
   canReview?: boolean
-  /** Kinds of creators Ngai suggests looking for. */
-  suggestions?: string[]
 }
 
 const fieldClass = "h-9 w-full min-w-0 rounded-md border border-input bg-transparent px-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
@@ -62,12 +61,12 @@ const fieldClass = "h-9 w-full min-w-0 rounded-md border border-input bg-transpa
  * The Creators tab: one table of everyone on the campaign. The agency adds
  * creators in the row above the table or by Import, and opens any of them to change the rest.
  */
-export function CampaignPeople({ people, agencyId, companyId, projectId, canEdit, canReview = false, suggestions = [] }: CampaignPeopleProps) {
+export function CampaignPeople({ people, agencyId, companyId, projectId, canEdit, canReview = false }: CampaignPeopleProps) {
   const [openId, setOpenId] = useState<string | null>(null)
+  const [adding, setAdding] = useState(false)
   const [importing, setImporting] = useState(false)
   const [deleting, setDeleting] = useState<CampaignPerson | null>(null)
   const open = people.find((person) => person.id === openId) ?? null
-  const showMatch = people.some((person) => (person.overlap ?? 0) > 0)
   // Added creators first, then suggestions, each by best match.
   const sorted = [...people].sort((a, b) => Number(onRoster(b)) - Number(onRoster(a)) || (b.overlap ?? 0) - (a.overlap ?? 0))
   const { query, setQuery, results } = useListSearch(sorted, (person) => [person.handle, person.app, person.category, person.status])
@@ -113,12 +112,6 @@ export function CampaignPeople({ people, agencyId, companyId, projectId, canEdit
 
   return (
     <div className="space-y-4">
-      {suggestions.length > 0 && (
-        <div className="flex flex-wrap items-center gap-2 text-sm">
-          <span className="text-muted-foreground">Look for</span>
-          {suggestions.map((item) => <span key={item} className="rounded-full bg-muted px-3 py-1 text-foreground">{item}</span>)}
-        </div>
-      )}
       <ListToolbar
         query={query}
         onQueryChange={setQuery}
@@ -127,20 +120,27 @@ export function CampaignPeople({ people, agencyId, companyId, projectId, canEdit
           <>
             {canEdit && <Button type="button" variant="ghost" onClick={() => setImporting(true)}>Import</Button>}
             {people.length > 0 && <Button type="button" variant="ghost" onClick={() => downloadCsv(people.filter(onRoster))}>Download</Button>}
+            {canEdit && <SectionAddButton label="New creator" disabled={adding} onClick={() => setAdding(true)} />}
           </>
         }
       />
 
-      {canEdit && <AddCreatorRow scope={{ agencyId, companyId, projectId }} showMatch={showMatch} />}
+      {canEdit && adding && (
+        <AddCreatorRow
+          scope={{ agencyId, companyId, projectId }}
+          onDone={() => setAdding(false)}
+          onCancel={() => setAdding(false)}
+        />
+      )}
 
       {/* Phones get a stacked list instead of the table, so nothing scrolls sideways. */}
-      <div className="divide-y divide-border md:hidden">
+      <div className="divide-y divide-border xl:hidden">
         {results.map((person) => (
           <div key={person.id} className="flex items-start gap-3 py-3">
             <div className="min-w-0 flex-1 text-sm">
               <CreatorName person={person} />
-              <p className="truncate text-muted-foreground">{[person.app, person.category, `${compactCount(person.followers)} followers`, showMatch ? `${person.overlap ?? 0}% match` : ""].filter(Boolean).join(" · ")}</p>
-              <p className="truncate text-muted-foreground">{!onRoster(person) ? "Suggested" : person.status} · {person.pay ? formatPay(person.pay, payCurrency(person)) : "Free"}</p>
+              <p className="truncate text-muted-foreground">{[person.app, person.category, `${compactCount(person.followers)} followers`].filter(Boolean).join(" · ")}</p>
+              <p className="truncate text-muted-foreground">{person.status} · {person.source === "ngai" && !person.pay ? "Pay unknown" : person.pay ? formatPay(person.pay, payCurrency(person)) : "Free"}</p>
             </div>
             {rowActions(person)}
           </div>
@@ -148,18 +148,17 @@ export function CampaignPeople({ people, agencyId, companyId, projectId, canEdit
         {results.length === 0 && <p className="py-4 text-sm text-muted-foreground">{people.length === 0 ? "No creators yet." : "Nothing matches your search."}</p>}
       </div>
 
-      <div className="hidden md:block">
+      <div className="hidden xl:block">
       <Table className="table-fixed">
-        <Columns showMatch={showMatch} />
+        <Columns />
         <TableHeader>
           <TableRow>
-            <TableHead>Creator</TableHead>
-            <TableHead>App</TableHead>
-            <TableHead>Category</TableHead>
-            <TableHead>Followers</TableHead>
-            {showMatch && <TableHead>Match</TableHead>}
-            <TableHead>Status</TableHead>
-            <TableHead>Pay</TableHead>
+            <TableHead className="overflow-hidden text-ellipsis">Creator</TableHead>
+            <TableHead className="overflow-hidden text-ellipsis">App</TableHead>
+            <TableHead className="overflow-hidden text-ellipsis">Category</TableHead>
+            <TableHead className="overflow-hidden text-ellipsis">Followers</TableHead>
+            <TableHead className="overflow-hidden text-ellipsis">Status</TableHead>
+            <TableHead className="overflow-hidden text-ellipsis">Pay</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
@@ -168,20 +167,21 @@ export function CampaignPeople({ people, agencyId, companyId, projectId, canEdit
             const suggested = !onRoster(person)
             return (
               <TableRow key={person.id}>
-                <TableCell><CreatorName person={person} /></TableCell>
-                <TableCell>{person.app}</TableCell>
-                <TableCell>{person.category || "—"}</TableCell>
-                <TableCell>{compactCount(person.followers)}</TableCell>
-                {showMatch && <TableCell>{person.overlap ?? 0}%</TableCell>}
-                <TableCell>{suggested ? "Suggested" : person.status}</TableCell>
-                <TableCell>{person.pay ? formatPay(person.pay, payCurrency(person)) : "Free"}</TableCell>
+                <TableCell className="overflow-hidden"><CreatorName person={person} /></TableCell>
+                <TableCell className="overflow-hidden text-ellipsis" title={person.app}>{person.app}</TableCell>
+                <TableCell className="overflow-hidden">
+                  <span className="block truncate" title={person.category || undefined}>{person.category || "—"}</span>
+                </TableCell>
+                <TableCell className="overflow-hidden text-ellipsis">{compactCount(person.followers)}</TableCell>
+                <TableCell className="overflow-hidden text-ellipsis">{suggested ? "Suggested" : person.status}</TableCell>
+                <TableCell className="overflow-hidden text-ellipsis">{person.source === "ngai" && !person.pay ? "—" : person.pay ? formatPay(person.pay, payCurrency(person)) : "Free"}</TableCell>
                 <TableCell>{rowActions(person)}</TableCell>
               </TableRow>
             )
           })}
           {results.length === 0 && (
             <TableRow>
-              <TableCell colSpan={showMatch ? 8 : 7} className="text-muted-foreground">
+              <TableCell colSpan={7} className="text-muted-foreground">
                 {people.length === 0 ? "No creators yet." : "Nothing matches your search."}
               </TableCell>
             </TableRow>
@@ -222,18 +222,17 @@ async function saveCreators(scope: Scope, rows: CampaignPersonInput[]) {
 }
 
 /** Column widths shared by the add row and the table under it, so each box sits over its column. */
-function Columns({ showMatch }: { showMatch: boolean }) {
-  const widths = showMatch ? ["18%", "11%", "13%", "10%", "8%", "11%", "17%", "12%"] : ["20%", "12%", "14%", "11%", "12%", "19%", "12%"]
+function Columns() {
+  const widths = ["19%", "11%", "24%", "10%", "12%", "8%", "16%"]
   return <colgroup>{widths.map((width, index) => <col key={index} style={{ width }} />)}</colgroup>
 }
 
 /** A row of boxes above the table, one per column, to add a creator. */
-function AddCreatorRow({ scope, showMatch }: { scope: Scope; showMatch: boolean }) {
+function AddCreatorRow({ scope, onDone, onCancel }: { scope: Scope; onDone: () => void; onCancel: () => void }) {
   const [handle, setHandle] = useState("")
   const [app, setApp] = useState<string>(PERSON_APPS[0])
   const [category, setCategory] = useState("")
   const [followers, setFollowers] = useState("")
-  const [overlap, setOverlap] = useState("")
   const [currency, setCurrency] = useState<string>(PAY_CURRENCIES[0])
   const [pay, setPay] = useState("")
   const [busy, setBusy] = useState(false)
@@ -247,7 +246,6 @@ function AddCreatorRow({ scope, showMatch }: { scope: Scope; showMatch: boolean 
       app,
       category: category.trim(),
       followers: parseCount(followers),
-      overlap: Math.min(100, parseCount(overlap.replace("%", ""))),
       tier: PERSON_TIERS[0],
       currency,
       pay: parseCount(pay),
@@ -256,14 +254,14 @@ function AddCreatorRow({ scope, showMatch }: { scope: Scope; showMatch: boolean 
     if (!saved) return
     setHandle("")
     setFollowers("")
-    setOverlap("")
     setPay("")
+    onDone()
   }
 
   return (
     <form onSubmit={handleAdd}>
       {/* Phones: the same boxes stacked two to a row. */}
-      <div className="grid grid-cols-2 gap-2 md:hidden">
+      <div className="grid grid-cols-2 gap-2 xl:hidden">
         <input value={handle} onChange={(event) => setHandle(event.target.value)} placeholder="@handle" aria-label="Handle" className={cn(fieldClass, "col-span-2")} />
         <Pick label="App" value={app} options={PERSON_APPS} onChange={setApp} />
         <Pick label="Category" placeholder="Category" value={category} options={PERSON_CATEGORIES} onChange={setCategory} />
@@ -272,11 +270,12 @@ function AddCreatorRow({ scope, showMatch }: { scope: Scope; showMatch: boolean 
           <Pick label="Currency" value={currency} options={PAY_CURRENCIES} onChange={setCurrency} className="w-20 shrink-0" />
           <input value={pay} onChange={(event) => setPay(event.target.value)} placeholder="Pay" inputMode="numeric" aria-label="Pay" className={fieldClass} />
         </div>
-        <Button type="submit" className="col-span-2" disabled={busy || !normalizeHandle(handle)}>Add creator</Button>
+        <Button type="button" variant="ghost" onClick={onCancel} disabled={busy}>Cancel</Button>
+        <Button type="submit" disabled={busy || !normalizeHandle(handle)}>Add creator</Button>
       </div>
-      <div className="hidden md:block">
+      <div className="hidden xl:block">
       <Table className="table-fixed">
-        <Columns showMatch={showMatch} />
+        <Columns />
         <TableBody>
           <TableRow className="border-0 hover:bg-transparent">
             <TableCell><input value={handle} onChange={(event) => setHandle(event.target.value)} placeholder="@handle" aria-label="Handle" className={fieldClass} /></TableCell>
@@ -285,7 +284,6 @@ function AddCreatorRow({ scope, showMatch }: { scope: Scope; showMatch: boolean 
             </TableCell>
             <TableCell><Pick label="Category" placeholder="Category" value={category} options={PERSON_CATEGORIES} onChange={setCategory} /></TableCell>
             <TableCell><input value={followers} onChange={(event) => setFollowers(event.target.value)} placeholder="Followers" inputMode="numeric" aria-label="Followers" className={fieldClass} /></TableCell>
-            {showMatch && <TableCell><input value={overlap} onChange={(event) => setOverlap(event.target.value)} placeholder="%" inputMode="numeric" aria-label="Match" className={fieldClass} /></TableCell>}
             <TableCell />
             <TableCell>
               <div className="flex gap-1">
@@ -293,7 +291,14 @@ function AddCreatorRow({ scope, showMatch }: { scope: Scope; showMatch: boolean 
                 <input value={pay} onChange={(event) => setPay(event.target.value)} placeholder="Pay" inputMode="numeric" aria-label="Pay" className={fieldClass} />
               </div>
             </TableCell>
-            <TableCell><Button type="submit" size="sm" disabled={busy || !normalizeHandle(handle)}>Add</Button></TableCell>
+            <TableCell>
+              <div className="flex items-center justify-end gap-1">
+                <Button type="button" variant="ghost" size="icon" className="size-8" onClick={onCancel} disabled={busy} aria-label="Cancel" title="Cancel">
+                  <X className="size-4" aria-hidden="true" />
+                </Button>
+                <Button type="submit" size="sm" disabled={busy || !normalizeHandle(handle)}>Add</Button>
+              </div>
+            </TableCell>
           </TableRow>
         </TableBody>
       </Table>
@@ -544,6 +549,6 @@ function Pick({
 function CreatorName({ person }: { person: CampaignPerson }) {
   const href = profileUrl(person)
   return href
-    ? <a href={href} target="_blank" rel="noreferrer" className="font-medium text-foreground hover:underline">{person.handle}</a>
-    : <span className="font-medium text-foreground">{person.handle}</span>
+    ? <a href={href} target="_blank" rel="noreferrer" className="block truncate font-medium text-foreground hover:underline" title={person.handle}>{person.handle}</a>
+    : <span className="block truncate font-medium text-foreground" title={person.handle}>{person.handle}</span>
 }
