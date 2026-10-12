@@ -1,8 +1,9 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import Link from "next/link"
 import { useSearchParams } from "next/navigation"
-import { ArrowLeft, ListTodo, Megaphone } from "lucide-react"
+import { ChevronRight, House, ListTodo, Megaphone } from "lucide-react"
 import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
@@ -176,27 +177,37 @@ export function ProjectsSection() {
               <ProjectCover project={selectedProject} />
             </div>
           )}
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex min-w-0 items-center gap-3">
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedProject(null)
-                  if (linkedTaskId || linkedCampaignId) updateParams({ task: null, campaign: null }, true)
-                }}
-                aria-label="Back to Campaigns"
-                title="Back to Campaigns"
-                className="-ml-2 flex size-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                <ArrowLeft className="size-5" aria-hidden="true" />
-              </button>
-              {selectedProject.logoUrl && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={selectedProject.logoUrl} alt="" className="size-10 shrink-0 rounded-full object-cover" />
-              )}
-              <h2 className="min-w-0 truncate text-xl font-semibold tracking-[-0.02em]">{selectedProject.title}</h2>
-            </div>
-          </div>
+          <nav aria-label="Campaign breadcrumb" className="min-w-0">
+            <ol className="flex min-w-0 items-center gap-1 text-sm">
+              <li className="flex shrink-0 items-center">
+                <Link
+                  href={sectionHref("about")}
+                  aria-label="Home"
+                  title="Home"
+                  className="flex size-9 items-center justify-center rounded-lg text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <House className="size-4" aria-hidden="true" />
+                </Link>
+              </li>
+              <li className="flex shrink-0 items-center gap-1">
+                <ChevronRight className="size-4 text-muted-foreground/60" aria-hidden="true" />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedProject(null)
+                    if (linkedTaskId || linkedCampaignId) updateParams({ task: null, campaign: null }, true)
+                  }}
+                  className="rounded-md px-2 py-2 text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  Campaigns
+                </button>
+              </li>
+              <li className="flex min-w-0 items-center gap-1" aria-current="page">
+                <ChevronRight className="size-4 shrink-0 text-muted-foreground/60" aria-hidden="true" />
+                <span className="min-w-0 truncate px-2 py-2 font-medium text-foreground">{selectedProject.title}</span>
+              </li>
+            </ol>
+          </nav>
           <div className="mt-4">
             <ProjectDetail
               project={selectedProject}
@@ -206,8 +217,9 @@ export function ProjectsSection() {
               companyId={company.id}
               clientName={company.name}
               publicTasks={admin ? undefined : publicTasks}
+              /* The agency writes and manages; only the client approves. */
               canEditCampaign={canCreate}
-              canReview={canCreate || appUser?.companyId === company.id}
+              canReview={!admin && appUser?.companyId === company.id}
               invoices={invoices.filter((invoice) => invoice.projectId === selectedProject.id)}
               invoiceHref={(invoice) => sectionHref("finance", { doc: `invoice:${invoice.id}` })}
               onProjectPatched={(patch) => {

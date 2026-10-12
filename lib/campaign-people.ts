@@ -24,8 +24,10 @@ export interface CampaignPerson {
   wave: string
   status: string
   postLink: string
-  /** In naira. 0 means they posted for free. */
+  /** In `currency`. 0 means they posted for free. */
   pay: number
+  /** USD, NGN, GBP or EUR. Older rows have none and were entered in naira. */
+  currency?: string
   paid: boolean
   /** The post is marked as an ad. */
   labelled: boolean
@@ -39,7 +41,7 @@ export interface CampaignPerson {
   updatedAt?: Timestamp
 }
 
-export type CampaignPersonInput = Pick<CampaignPerson, "handle" | "app" | "followers" | "tier" | "pay"> & Partial<Pick<CampaignPerson, "category" | "overlap" | "onRoster">>
+export type CampaignPersonInput = Pick<CampaignPerson, "handle" | "app" | "followers" | "tier" | "pay"> & Partial<Pick<CampaignPerson, "category" | "overlap" | "onRoster" | "currency">>
 
 /** Live list of everyone on one campaign, oldest first so the order stays put while editing. */
 export function watchCampaignPeople(projectId: string, onChange: (people: CampaignPerson[]) => void, onError?: (error: Error) => void) {
@@ -76,6 +78,7 @@ export async function addCampaignPeople(scope: { agencyId?: string; companyId: s
       status: "Contacted",
       postLink: "",
       pay: person.pay,
+      currency: person.currency ?? "USD",
       paid: false,
       labelled: false,
       category: person.category ?? "",
@@ -111,4 +114,56 @@ export function compactCount(value: number) {
   if (value >= 1_000_000) return `${Number((value / 1_000_000).toFixed(1))}m`
   if (value >= 1_000) return `${Number((value / 1_000).toFixed(value >= 100_000 ? 0 : 1))}k`
   return String(value)
+}
+
+export const PAY_CURRENCIES = ["USD", "NGN", "GBP", "EUR"] as const
+
+export const payCurrency = (person: Pick<CampaignPerson, "currency">) => person.currency || "NGN"
+
+/** Whole amounts with their symbol: $500, ₦50,000. */
+export function formatPay(amount: number, currency: string) {
+  try {
+    return new Intl.NumberFormat("en", { style: "currency", currency, maximumFractionDigits: 0 }).format(amount)
+  } catch {
+    return `${currency} ${amount.toLocaleString("en")}`
+  }
+}
+
+export const PERSON_CATEGORIES = [
+  "Fashion",
+  "Beauty",
+  "Lifestyle",
+  "E-commerce",
+  "Food",
+  "Travel",
+  "Fitness",
+  "Health",
+  "Tech",
+  "Gaming",
+  "Music",
+  "Comedy",
+  "Entertainment",
+  "Sports",
+  "Parenting",
+  "Finance",
+  "Business",
+  "Education",
+  "Automotive",
+] as const
+
+const PROFILE_URLS: Record<string, (name: string) => string> = {
+  X: (name) => `https://x.com/${name}`,
+  Instagram: (name) => `https://www.instagram.com/${name}`,
+  TikTok: (name) => `https://www.tiktok.com/@${name}`,
+  YouTube: (name) => `https://www.youtube.com/@${name}`,
+  Facebook: (name) => `https://www.facebook.com/${name}`,
+  Snapchat: (name) => `https://www.snapchat.com/add/${name}`,
+  Threads: (name) => `https://www.threads.net/@${name}`,
+  LinkedIn: (name) => `https://www.linkedin.com/in/${name}`,
+}
+
+/** The creator's profile page on their app, or "" for an app we don't know. */
+export function profileUrl(person: Pick<CampaignPerson, "handle" | "app">) {
+  const name = encodeURIComponent(person.handle.replace(/^@+/, ""))
+  return name ? PROFILE_URLS[person.app]?.(name) ?? "" : ""
 }

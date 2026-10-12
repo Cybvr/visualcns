@@ -22,7 +22,6 @@ import type { Invoice } from "@/lib/billing"
 import { buildEmailComposeHref } from "@/lib/email-composer"
 import { deleteProjectWithTasks, renameProject, slugify, type Project } from "@/lib/projects"
 import { deleteTask, getTasksByCompanyId, tsToMillis, updateTask, type Task } from "@/lib/tasks"
-import { cn } from "@/lib/utils"
 import { companyPath } from "@/lib/navigation"
 
 interface ProjectDetailProps {
@@ -61,7 +60,7 @@ export function ProjectDetail({
   onProjectDeleted,
   publicTasks,
   canEditCampaign = isAdmin,
-  canReview = canEditCampaign,
+  canReview = false,
   invoices = [],
   invoiceHref,
 }: ProjectDetailProps) {
@@ -75,8 +74,9 @@ export function ProjectDetail({
   useEffect(() => watchCampaignCreatives(project.id, setCreatives, () => setCreatives([])), [project.id])
   // Suggested creators wait in Roster matching; everything else counts only the roster.
   const roster = people.filter(onRoster)
-  const contentItems = creatives.filter((item) => item.kind !== "media")
-  const mediaItems = creatives.filter((item) => item.kind === "media")
+  // Content is the written posts; every image, video and link lives in Media, wherever it was first added.
+  const contentItems = creatives.filter((item) => item.type === "text")
+  const mediaItems = creatives.filter((item) => item.type !== "text")
   const [shareOpen, setShareOpen] = useState(false)
   const [titleDraft, setTitleDraft] = useState(project.title)
   const [titleEditing, setTitleEditing] = useState(false)
@@ -278,12 +278,9 @@ export function ProjectDetail({
                 type="button"
                 onClick={() => setTab(item.key)}
                 aria-current={tab === item.key ? "page" : undefined}
-                className={cn(
-                  "flex h-10 shrink-0 items-center gap-2.5 rounded-xl px-3 text-sm font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring",
-                  tab === item.key
-                    ? "bg-muted text-foreground"
-                    : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
-                )}
+                data-active={tab === item.key}
+                /* Same look as the company sidebar. */
+                className="flex h-10 shrink-0 items-center gap-2 rounded-full px-3 text-left text-sm text-sidebar-foreground outline-none hover:bg-muted hover:text-sidebar-accent-foreground focus-visible:ring-2 focus-visible:ring-ring data-[active=true]:bg-sidebar-accent data-[active=true]:font-semibold data-[active=true]:text-sidebar-accent-foreground"
               >
                 <item.icon className="size-[18px] shrink-0" aria-hidden="true" />
                 <span className="truncate">{item.label}</span>
@@ -310,9 +307,6 @@ export function ProjectDetail({
                 projectId={project.id}
                 canEdit={canEditCampaign}
                 canReview={canReview}
-                project={project}
-                content={contentItems}
-                onPatched={onProjectPatched}
               />
             ) : tab === "creatives" || tab === "media" ? (
               <CampaignCreatives
@@ -324,6 +318,8 @@ export function ProjectDetail({
                 projectId={project.id}
                 canEdit={canEditCampaign}
                 canReview={canReview}
+                brandName={project.client || clientName}
+                brandImage={project.logoUrl || project.thumbnailUrl}
               />
             ) : tab === "payments" ? (
               <CampaignPayments

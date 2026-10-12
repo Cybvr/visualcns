@@ -28,6 +28,9 @@ export interface CampaignCreative {
   type: "image" | "video" | "link" | "text"
   /** Who posts it: the client themselves ("Founder") or the creators ("Roster"). */
   postedBy?: string
+  /** An image or video shown with a written post. */
+  mediaUrl?: string
+  mediaType?: "image" | "video"
   /** The words of a written post or hook. */
   body?: string
   /** Content is work made for the campaign and reviewed; media is raw files kept with it. Older rows have no kind and count as content. */
@@ -52,7 +55,7 @@ export function watchCampaignCreatives(projectId: string, onChange: (creatives: 
 
 export async function addCampaignCreative(
   scope: { agencyId?: string; companyId: string; projectId: string },
-  creative: Pick<CampaignCreative, "title" | "url" | "type"> & { kind: "content" | "media"; body?: string; status?: string; postedBy?: string },
+  creative: Pick<CampaignCreative, "title" | "url" | "type"> & { kind: "content" | "media"; body?: string; status?: string; postedBy?: string; mediaUrl?: string; mediaType?: "image" | "video" },
 ) {
   const now = Timestamp.now()
   await addDoc(collection(db, COLLECTION_NAME), {
@@ -66,7 +69,7 @@ export async function addCampaignCreative(
   })
 }
 
-export async function updateCampaignCreative(id: string, patch: Partial<Pick<CampaignCreative, "title" | "status" | "body" | "postedBy">>) {
+export async function updateCampaignCreative(id: string, patch: Partial<Pick<CampaignCreative, "title" | "status" | "body" | "postedBy" | "mediaUrl" | "mediaType">>) {
   await updateDoc(doc(db, COLLECTION_NAME, id), { ...patch, updatedAt: Timestamp.now() })
 }
 

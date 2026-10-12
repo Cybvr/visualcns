@@ -4,7 +4,7 @@ import Link from "next/link"
 import { toast } from "sonner"
 
 import type { Invoice } from "@/lib/billing"
-import { updateCampaignPerson, type CampaignPerson } from "@/lib/campaign-people"
+import { formatPay, payCurrency, updateCampaignPerson, type CampaignPerson } from "@/lib/campaign-people"
 import { formatMoney } from "@/lib/money"
 import { cn } from "@/lib/utils"
 
@@ -15,7 +15,12 @@ interface CampaignPaymentsProps {
   invoiceHref?: (invoice: Invoice) => string
 }
 
-const naira = (value: number) => `₦${value.toLocaleString("en-NG")}`
+/** Adds up pay per currency and shows each, e.g. "$500 · ₦50,000". */
+function sumByCurrency(people: CampaignPerson[]) {
+  const totals = new Map<string, number>()
+  for (const person of people) totals.set(payCurrency(person), (totals.get(payCurrency(person)) ?? 0) + person.pay)
+  return totals.size ? [...totals].map(([currency, amount]) => formatPay(amount, currency)).join(" · ") : formatPay(0, "USD")
+}
 
 const invoiceTone: Record<string, string> = {
   draft: "bg-muted text-muted-foreground",
@@ -28,8 +33,6 @@ const invoiceTone: Record<string, string> = {
 /** What the campaign pays its creators, and the invoices raised for it. */
 export function CampaignPayments({ people, invoices, canEdit, invoiceHref }: CampaignPaymentsProps) {
   const paidPeople = people.filter((person) => person.pay > 0)
-  const total = paidPeople.reduce((sum, person) => sum + person.pay, 0)
-  const settled = paidPeople.filter((person) => person.paid).reduce((sum, person) => sum + person.pay, 0)
 
   async function togglePaid(person: CampaignPerson, paid: boolean) {
     try {
@@ -45,9 +48,9 @@ export function CampaignPayments({ people, invoices, canEdit, invoiceHref }: Cam
       <section>
         <h3 className="text-lg font-semibold tracking-[-0.01em] text-foreground">Creators</h3>
         <div className="mt-3 grid gap-3 sm:grid-cols-3">
-          <Tile label="Total" value={naira(total)} />
-          <Tile label="Paid" value={naira(settled)} />
-          <Tile label="Still to pay" value={naira(total - settled)} />
+          <Tile label="Total" value={sumByCurrency(paidPeople)} />
+          <Tile label="Paid" value={sumByCurrency(paidPeople.filter((person) => person.paid))} />
+          <Tile label="Still to pay" value={sumByCurrency(paidPeople.filter((person) => !person.paid))} />
         </div>
 
         {paidPeople.length === 0 ? (
@@ -70,7 +73,7 @@ export function CampaignPayments({ people, invoices, canEdit, invoiceHref }: Cam
                     <td className="px-3 py-3 font-medium">{person.handle}</td>
                     <td className="px-3 py-3">{person.app}</td>
                     <td className="px-3 py-3">{person.status}</td>
-                    <td className="px-3 py-3 text-right tabular-nums">{naira(person.pay)}</td>
+                    <td className="px-3 py-3 text-right tabular-nums">{formatPay(person.pay, payCurrency(person))}</td>
                     <td className="px-3 py-3 text-center">
                       {canEdit ? (
                         <input type="checkbox" checked={person.paid} onChange={(event) => void togglePaid(person, event.target.checked)} aria-label={`Paid ${person.handle}`} className="size-4 accent-foreground" />
