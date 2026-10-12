@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState, type FormEvent } from "react"
-import { ChevronLeft, ExternalLink, Folder, FolderInput, Image as ImageIcon, Images, ImagePlus, Link2, MoreVertical, Palette, Pencil, Video, X } from "lucide-react"
+import { ChevronLeft, ChevronRight, ExternalLink, Folder, FolderInput, Image as ImageIcon, Images, ImagePlus, Link2, MoreVertical, Palette, Pencil, Video, X } from "lucide-react"
 import { toast } from "sonner"
 
 import {
@@ -421,6 +421,10 @@ function MediaLibrary({ files, scope, canEdit }: { files: CampaignCreative[]; sc
   const { query, setQuery, results } = useListSearch(browsedItems, (item) => [item.title, item.type])
   const shownFolders = results.filter((item) => item.type === "folder")
   const shownMedia = results.filter((item) => item.type !== "folder")
+  // Pictures and videos open in the lightbox, stepping through what's shown; links still open in a new tab.
+  const viewable = shownMedia.filter((item) => item.type === "image" || item.type === "video")
+  const [viewingId, setViewingId] = useState<string | null>(null)
+  const open = (creative: CampaignCreative) => (creative.type === "link" ? window.open(creative.url, "_blank", "noopener,noreferrer") : setViewingId(creative.id))
 
   useEffect(() => {
     if (activeFolderId && files.length > 0 && !folders.some((item) => item.id === activeFolderId)) setActiveFolderId(null)
@@ -580,12 +584,12 @@ function MediaLibrary({ files, scope, canEdit }: { files: CampaignCreative[]; sc
                   imageUrl={creative.type === "image" ? creative.url : undefined}
                   preview={creative.type === "video" ? <video src={creative.url} muted playsInline preload="metadata" className="size-full object-cover" /> : undefined}
                   placeholder={<ExternalLink className="size-8 text-muted-foreground" aria-hidden="true" />}
-                  onClick={() => window.open(creative.url, "_blank", "noopener,noreferrer")}
+                  onClick={() => open(creative)}
                   ariaLabel={`Open ${creative.title}`}
                   menuLabel={`Options for ${creative.title}`}
                   menu={canEdit ? (
                     <>
-                      <DropdownMenuItem onSelect={() => window.open(creative.url, "_blank", "noopener,noreferrer")}>Open</DropdownMenuItem>
+                      <DropdownMenuItem onSelect={() => open(creative)}>Open</DropdownMenuItem>
                       {folders.length > 0 && (
                         <DropdownMenuSub>
                           <DropdownMenuSubTrigger><FolderInput className="size-4" aria-hidden="true" />Move to</DropdownMenuSubTrigger>
@@ -606,6 +610,8 @@ function MediaLibrary({ files, scope, canEdit }: { files: CampaignCreative[]; sc
           )}
         </div>
       )}
+
+      <Lightbox items={viewable} activeId={viewingId} onChange={setViewingId} />
 
       {canEdit && (
         <>
@@ -717,6 +723,59 @@ function AddLinkDialog({ open, onOpenChange, scope, folderId }: { open: boolean;
             <Button type="submit" disabled={busy || !link.trim()}>{busy ? "Adding…" : "Add link"}</Button>
           </DialogFooter>
         </form>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+/** Full-size pictures and videos with previous and next, by button or arrow key. */
+function Lightbox({ items, activeId, onChange }: { items: CampaignCreative[]; activeId: string | null; onChange: (id: string | null) => void }) {
+  const index = items.findIndex((item) => item.id === activeId)
+  const item = index >= 0 ? items[index] : null
+  const step = (by: number) => {
+    if (index < 0 || items.length < 2) return
+    onChange(items[(index + by + items.length) % items.length].id)
+  }
+
+  useEffect(() => {
+    if (!item) return
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "ArrowLeft") step(-1)
+      if (event.key === "ArrowRight") step(1)
+    }
+    window.addEventListener("keydown", onKey)
+    return () => window.removeEventListener("keydown", onKey)
+  })
+
+  return (
+    <Dialog open={Boolean(item)} onOpenChange={(next) => { if (!next) onChange(null) }}>
+      <DialogContent className="max-w-none gap-0 border-0 bg-black/95 p-0 text-white sm:max-w-[min(96vw,72rem)] [&>button]:text-white">
+        <DialogTitle className="sr-only">{item?.title ?? "Media"}</DialogTitle>
+        <DialogDescription className="sr-only">Use the arrow keys to move between pictures.</DialogDescription>
+        {item && (
+          <div className="relative flex h-[85vh] items-center justify-center">
+            {item.type === "video" ? (
+              <video key={item.id} src={item.url} controls autoPlay playsInline className="max-h-full max-w-full" />
+            ) : (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img key={item.id} src={item.url} alt={item.title} className="max-h-full max-w-full object-contain" />
+            )}
+            {items.length > 1 && (
+              <>
+                <button type="button" onClick={() => step(-1)} aria-label="Previous" className="absolute left-3 top-1/2 grid size-10 -translate-y-1/2 place-items-center rounded-full bg-white/10 outline-none transition-colors hover:bg-white/20 focus-visible:ring-2 focus-visible:ring-white">
+                  <ChevronLeft className="size-5" aria-hidden="true" />
+                </button>
+                <button type="button" onClick={() => step(1)} aria-label="Next" className="absolute right-3 top-1/2 grid size-10 -translate-y-1/2 place-items-center rounded-full bg-white/10 outline-none transition-colors hover:bg-white/20 focus-visible:ring-2 focus-visible:ring-white">
+                  <ChevronRight className="size-5" aria-hidden="true" />
+                </button>
+              </>
+            )}
+            <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-3 bg-gradient-to-t from-black/70 to-transparent px-4 pb-3 pt-8 text-sm">
+              <span className="min-w-0 truncate">{item.title}</span>
+              <span className="shrink-0 tabular-nums text-white/70">{index + 1} / {items.length}</span>
+            </div>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   )

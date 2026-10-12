@@ -281,7 +281,8 @@ export function DashboardShell({
           </header>
           <div className={cn(
             "flex min-h-0 flex-1 flex-col bg-card md:m-3 md:mt-0 md:rounded-2xl md:shadow-[0_6px_24px_rgba(15,23,42,0.04)]",
-            !isAgentRoute && !isEmailRoute && "md:pb-6",
+            // The card stays fitted to the screen and its content scrolls inside it. Chat and email manage their own scrolling.
+            !isAgentRoute && !isEmailRoute && "md:overflow-y-auto md:pb-6",
             (isAgentRoute || isEmailRoute) && "lg:overflow-hidden",
             hideHeader && "md:mt-3",
           )}>

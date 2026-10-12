@@ -80,7 +80,7 @@ function MemberNgai() {
     <>
       <NgaiTitleActions />
       <AgentChat
-        className="h-[calc(100svh-8rem)] min-h-[26rem] md:h-[calc(100svh-10rem)]"
+        className="h-[calc(100svh-6rem)] min-h-[26rem] md:h-[calc(100svh-8.75rem)]"
         messages={messages}
         conversations={conversations}
         activeConversationId={activeConversationId}

@@ -298,7 +298,8 @@ export function ProjectDetail({
   return (
     <div className="space-y-4">
       {isAdmin || publicView ? (
-        <div className="flex flex-col gap-4 md:flex-row md:gap-8">
+        <div className="flex flex-col gap-4 md:-mb-6 md:flex-row md:gap-8">
+          {/* The row reaches into the card's bottom padding (the content keeps it instead), so the sticky menu isn't pushed up at the end of a long page. */}
           {/* Phones: three main tabs, the rest under More. */}
           <nav className="sticky top-0 z-10 flex items-center gap-6 border-b border-border bg-card md:hidden" aria-label="Campaign sections">
             {sections.slice(0, 3).map((item) => (
@@ -355,7 +356,7 @@ export function ProjectDetail({
             ))}
           </nav>
 
-          <div className="min-w-0 flex-1">
+          <div className="min-w-0 flex-1 md:pb-6">
             {tab === "home" ? (
               <CampaignHome
                 people={roster}
