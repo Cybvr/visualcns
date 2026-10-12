@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react"
-import { DollarSign, FileText, House, Images, ListTodo, Mail, MoreVertical, Palette, Settings, Share2, TrendingUp, Users, type LucideIcon } from "lucide-react"
+import { ChevronDown, DollarSign, FileText, House, Images, ListTodo, Mail, MoreVertical, Palette, Settings, Share2, TrendingUp, Users, type LucideIcon } from "lucide-react"
 
 import { AnalyticsSkeleton, AnalyticsView } from "@/components/company/analytics-view"
 import { CampaignBrief } from "@/components/dashboard/campaign-brief"
@@ -275,22 +275,62 @@ export function ProjectDetail({
     />
   )
 
+  const sections = [
+    { key: "home", label: "Home", icon: House },
+    { key: "about", label: "Brief", icon: FileText },
+    { key: "people", label: "Creators", count: roster.length, icon: Users },
+    { key: "creatives", label: "Content", count: contentItems.length, icon: Palette },
+    { key: "media", label: "Media", count: mediaItems.length, icon: Images },
+    { key: "analytics", label: "Analytics", icon: TrendingUp },
+    { key: "payments", label: "Payments", icon: DollarSign },
+    ...(publicView && !publicTasks ? [] : [{ key: "tasks", label: "Tasks", icon: ListTodo }]),
+    ...(canEditCampaign ? [{ key: "settings", label: "Settings", icon: Settings }] : []),
+  ] as { key: CampaignTab; label: string; count?: number; icon: LucideIcon }[]
+
   return (
     <div className="space-y-4">
       {isAdmin || publicView ? (
         <div className="flex flex-col gap-4 md:flex-row md:gap-8">
-          <nav className="sticky top-0 z-10 -mx-1 flex shrink-0 gap-1 overflow-x-auto bg-card px-1 py-1 md:top-4 md:mx-0 md:w-48 md:flex-col md:self-start md:overflow-visible md:bg-transparent md:px-0 md:py-0" aria-label="Campaign sections">
-            {([
-              { key: "home", label: "Home", icon: House },
-              { key: "about", label: "Brief", icon: FileText },
-              { key: "people", label: "Creators", count: roster.length, icon: Users },
-              { key: "creatives", label: "Content", count: contentItems.length, icon: Palette },
-              { key: "media", label: "Media", count: mediaItems.length, icon: Images },
-              { key: "analytics", label: "Analytics", icon: TrendingUp },
-              { key: "payments", label: "Payments", icon: DollarSign },
-              ...(publicView && !publicTasks ? [] : [{ key: "tasks", label: "Tasks", icon: ListTodo }]),
-              ...(canEditCampaign ? [{ key: "settings", label: "Settings", icon: Settings }] : []),
-            ] as { key: typeof tab; label: string; count?: number; icon: LucideIcon }[]).map((item) => (
+          {/* Phones: three main tabs, the rest under More. */}
+          <nav className="sticky top-0 z-10 flex items-center gap-6 border-b border-border bg-card md:hidden" aria-label="Campaign sections">
+            {sections.slice(0, 3).map((item) => (
+              <button
+                key={item.key}
+                type="button"
+                onClick={() => setTab(item.key)}
+                aria-current={tab === item.key ? "page" : undefined}
+                data-active={tab === item.key}
+                className="-mb-px flex h-12 shrink-0 items-center gap-1.5 border-b-2 border-transparent text-[15px] text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring data-[active=true]:border-foreground data-[active=true]:text-foreground"
+              >
+                {item.label}
+                {item.count ? <span className="text-xs tabular-nums text-muted-foreground">{item.count}</span> : null}
+              </button>
+            ))}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  data-active={sections.slice(3).some((item) => item.key === tab)}
+                  className="-mb-px flex h-12 shrink-0 items-center gap-1 border-b-2 border-transparent text-[15px] text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring data-[active=true]:border-foreground data-[active=true]:text-foreground"
+                >
+                  {sections.slice(3).find((item) => item.key === tab)?.label ?? "More"}
+                  <ChevronDown className="size-4" aria-hidden="true" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                {sections.slice(3).map((item) => (
+                  <DropdownMenuItem key={item.key} onSelect={() => setTab(item.key)}>
+                    <item.icon className="size-4" aria-hidden="true" />
+                    {item.label}
+                    {item.count ? <span className="ml-auto text-xs tabular-nums text-muted-foreground">{item.count}</span> : null}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </nav>
+
+          <nav className="sticky top-4 z-10 flex w-48 shrink-0 flex-col gap-1 self-start max-md:hidden" aria-label="Campaign sections">
+            {sections.map((item) => (
               <button
                 key={item.key}
                 type="button"

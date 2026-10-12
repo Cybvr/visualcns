@@ -33,6 +33,14 @@ export function CampaignHome({
     { value: `${posted}/${people.length}`, label: "Posted" },
   ]
 
+  const share = (done: number, total: number) => (total ? done / total : 0)
+  const rows: { label: string; value: string; progress?: number }[] = [
+    { label: "Creators", value: String(people.length) },
+    { label: "Posts approved", value: `${approved} of ${posts.length}`, progress: share(approved, posts.length) },
+    { label: "Posted", value: `${posted} of ${people.length}`, progress: share(posted, people.length) },
+    { label: "Posting days", value: waves.length ? `${wavesDone} of ${waves.length} done` : "Not started" },
+  ]
+
   async function approve(post: CampaignCreative) {
     try {
       await updateCampaignCreative(post.id, { status: "Approved" })
@@ -44,7 +52,24 @@ export function CampaignHome({
 
   return (
     <div className="space-y-10">
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      {/* Phones: a plain list with progress bars. */}
+      <div className="md:hidden">
+        {rows.map((row) => (
+          <div key={row.label} className="border-b border-border py-4">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-[15px] text-foreground">{row.label}</p>
+              <p className="text-[15px] tabular-nums text-muted-foreground">{row.value}</p>
+            </div>
+            {row.progress !== undefined && (
+              <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-muted">
+                <div className="h-full rounded-full bg-primary" style={{ width: `${Math.round(row.progress * 100)}%` }} />
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-2 gap-3 max-md:hidden lg:grid-cols-4">
         {stats.map((stat) => (
           <div key={stat.label} className="rounded-2xl bg-muted/60 px-4 py-4">
             <p className="text-2xl font-semibold tabular-nums tracking-[-0.02em] text-foreground">{stat.value}</p>
