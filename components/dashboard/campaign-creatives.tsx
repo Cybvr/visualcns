@@ -77,12 +77,35 @@ export function CampaignCreatives({ creatives, agencyId, companyId, projectId, c
   const files = creatives.filter((item) => item.type !== "text")
   const [editing, setEditing] = useState<CampaignCreative | "new" | null>(null)
   const [deleting, setDeleting] = useState<CampaignCreative | null>(null)
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const selected = posts.find((post) => post.id === selectedId) ?? posts[0] ?? null
+  // On a phone the list and the preview are separate screens; a post is open once it has been tapped.
+  const opened = selected !== null && selected.id === selectedId
+
+  // The copy starts as a draft so it goes through review again.
+  async function duplicatePost(post: CampaignCreative) {
+    try {
+      await addCampaignCreative(scope, {
+        title: `${post.title} (copy)`,
+        url: "",
+        type: "text",
+        kind: "content",
+        body: post.body ?? "",
+        postedBy: post.postedBy || "Founder",
+        status: "Draft",
+        ...(post.mediaUrl ? { mediaUrl: post.mediaUrl, mediaType: post.mediaType ?? "image" } : {}),
+      })
+    } catch (error) {
+      console.error("Error duplicating post:", error)
+      toast.error("Couldn't duplicate that post.")
+    }
+  }
 
   if (kind === "content") {
     return (
       <section>
         <div className="flex items-center justify-between gap-3">
-          <h3 className="text-lg font-semibold tracking-[-0.01em] text-foreground">Copy and hooks</h3>
+          <h3 className="text-lg font-semibold tracking-[-0.01em] text-foreground">Content text</h3>
           {(canEdit || canReview) && (
             <SectionAddButton label={canEdit ? "New post" : "Suggest a post"} onClick={() => setEditing("new")} />
           )}
@@ -91,18 +114,33 @@ export function CampaignCreatives({ creatives, agencyId, companyId, projectId, c
           {posts.length === 0 ? (
             <p className="py-6 text-sm text-muted-foreground">No posts yet.</p>
           ) : (
-            <GridCardList>
-              {posts.map((post) => (
-            <PostCard
-              key={post.id}
-              post={post}
-              canEdit={canEdit}
-              canReview={canReview}
-              onEdit={() => setEditing(post)}
-              onDelete={() => setDeleting(post)}
-            />
-              ))}
-            </GridCardList>
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,20rem)_minmax(0,1fr)]">
+              <ul className={cn("flex min-w-0 flex-col gap-1 lg:sticky lg:top-[calc(var(--shell-header-h,0px)+1rem)] lg:max-h-[calc(100svh-var(--shell-header-h,0px)-2rem)] lg:self-start lg:overflow-y-auto", opened && "max-lg:hidden")}>
+                {posts.map((post) => (
+                  <li key={post.id}>
+                    <PostRow
+                      post={post}
+                      selected={post.id === selected?.id}
+                      onSelect={() => setSelectedId(post.id)}
+                      canEdit={canEdit}
+                      canReview={canReview}
+                      onEdit={() => setEditing(post)}
+                      onDelete={() => setDeleting(post)}
+                      onDuplicate={() => void duplicatePost(post)}
+                    />
+                  </li>
+                ))}
+              </ul>
+              {selected && (
+                <div className={cn("min-w-0", !opened && "max-lg:hidden")}>
+                  <button type="button" onClick={() => setSelectedId(null)} className="mb-3 flex items-center gap-1 rounded-md py-1.5 pr-2 text-sm text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring lg:hidden">
+                    <ChevronLeft className="size-4" aria-hidden="true" />
+                    All posts
+                  </button>
+                  <PostPreview post={selected} />
+                </div>
+              )}
+            </div>
           )}
         </div>
 
@@ -159,48 +197,90 @@ async function removeCreative(id: string) {
 // Stored as Founder or Roster; shown in plain words.
 const POSTED_BY = [{ value: "Founder", label: "You" }, { value: "Roster", label: "Creators" }] as const
 
-/** One post as the shared grid card: its picture as the preview, its status under it, and every action in the menu. */
-function PostCard({
+function postDate(post: CampaignCreative) {
+  const ms = (post.createdAt ?? post.updatedAt)?.toMillis()
+  return ms ? new Date(ms).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : ""
+}
+
+/** One post in the list: its picture on the left, then the first line of its caption and its date, with every action in the menu. */
+function PostRow({
   post,
+  selected,
+  onSelect,
   canEdit,
   canReview,
   onEdit,
   onDelete,
+  onDuplicate,
 }: {
   post: CampaignCreative
+  selected: boolean
+  onSelect: () => void
   canEdit: boolean
   canReview: boolean
   onEdit: () => void
   onDelete: () => void
+  onDuplicate: () => void
 }) {
   const status = creativeStatus(post)
   const setStatus = (next: string) => void saveCreative(post.id, { status: next })
-  const menu = (canEdit || canReview) ? (
-    <>
-      <DropdownMenuItem onSelect={onEdit}>{canEdit ? "Edit" : "Edit text"}</DropdownMenuItem>
-      {canReview && status !== "Approved" && <DropdownMenuItem onSelect={() => setStatus("Approved")}>Approve</DropdownMenuItem>}
-      {canReview && status !== "Approved" && <DropdownMenuItem onSelect={() => setStatus("Changes requested")}>Request changes</DropdownMenuItem>}
-      {canReview && status === "Approved" && <DropdownMenuItem onSelect={() => setStatus(READY_FOR_REVIEW)}>Undo approval</DropdownMenuItem>}
-      {canEdit && !canReview && (status === "Draft" || status === "Changes requested") && (
-        <DropdownMenuItem onSelect={() => setStatus(READY_FOR_REVIEW)}>Send for review</DropdownMenuItem>
-      )}
-      {canEdit && <DropdownMenuItem variant="destructive" onSelect={onDelete}>Delete</DropdownMenuItem>}
-    </>
-  ) : undefined
 
   return (
-    <GridCard
-      title={post.title}
-      subtitle={status}
-      icon={<Palette className="size-4 text-muted-foreground" aria-hidden="true" />}
-      imageUrl={post.mediaType === "video" ? undefined : post.mediaUrl}
-      preview={post.mediaUrl && post.mediaType === "video" ? <video src={post.mediaUrl} muted playsInline preload="metadata" className="size-full object-cover" /> : undefined}
-      placeholder={<ImageIcon className="size-8 text-muted-foreground" aria-hidden="true" />}
-      onClick={canEdit || canReview ? onEdit : undefined}
-      ariaLabel={`Open ${post.title}`}
-      menu={menu}
-      menuLabel={`Options for ${post.title}`}
-    />
+    <div className={cn("relative flex items-center gap-3 rounded-xl p-2 transition-colors", selected ? "bg-muted" : "hover:bg-muted/60")}>
+      <button type="button" onClick={onSelect} aria-current={selected ? "true" : undefined} aria-label={`Preview ${post.title}`} className="absolute inset-0 rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ring" />
+      <div className="pointer-events-none relative grid size-14 shrink-0 place-items-center overflow-hidden rounded-lg bg-muted">
+        {post.mediaUrl ? (
+          post.mediaType === "video" ? (
+            <video src={post.mediaUrl} muted playsInline preload="metadata" className="size-full object-cover" />
+          ) : (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={post.mediaUrl} alt="" loading="lazy" className="size-full object-cover" />
+          )
+        ) : (
+          <Palette className="size-5 text-muted-foreground" aria-hidden="true" />
+        )}
+      </div>
+      <div className="pointer-events-none relative min-w-0 flex-1">
+        <p className="truncate text-sm text-foreground">{post.body?.trim() || post.title}</p>
+        <p className="mt-0.5 text-xs text-muted-foreground">{postDate(post)}</p>
+      </div>
+      {(canEdit || canReview) && (
+        <DropdownMenu modal={false}>
+          <DropdownMenuTrigger asChild>
+            <button type="button" aria-label={`Options for ${post.title}`} className="relative z-10 flex size-8 shrink-0 items-center justify-center rounded-full outline-none transition-colors hover:bg-background/70 focus-visible:ring-2 focus-visible:ring-ring">
+              <MoreVertical className="size-4" aria-hidden="true" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onSelect={onEdit}>{canEdit ? "Edit" : "Edit text"}</DropdownMenuItem>
+            {canReview && status !== "Approved" && <DropdownMenuItem onSelect={() => setStatus("Approved")}>Approve</DropdownMenuItem>}
+            {canReview && status !== "Approved" && <DropdownMenuItem onSelect={() => setStatus("Changes requested")}>Request changes</DropdownMenuItem>}
+            {canReview && status === "Approved" && <DropdownMenuItem onSelect={() => setStatus(READY_FOR_REVIEW)}>Undo approval</DropdownMenuItem>}
+            {canEdit && <DropdownMenuItem onSelect={onDuplicate}>Duplicate</DropdownMenuItem>}
+            {canEdit && <DropdownMenuItem variant="destructive" onSelect={onDelete}>Delete</DropdownMenuItem>}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
+    </div>
+  )
+}
+
+/** The chosen post in full: its picture, status and caption. */
+function PostPreview({ post }: { post: CampaignCreative }) {
+  return (
+    <article className="min-w-0 rounded-2xl border border-border p-4">
+      {post.mediaUrl && (
+        <div className="mb-4 overflow-hidden rounded-xl bg-muted">
+          {post.mediaType === "video" ? (
+            <video key={post.mediaUrl} src={post.mediaUrl} controls playsInline className="max-h-[32rem] w-full object-contain" />
+          ) : (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={post.mediaUrl} alt="" className="max-h-[32rem] w-full object-contain" />
+          )}
+        </div>
+      )}
+      <p className="whitespace-pre-wrap text-sm leading-6 text-foreground">{post.body?.trim() || <span className="text-muted-foreground">No caption yet.</span>}</p>
+    </article>
   )
 }
 

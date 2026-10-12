@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react"
 import { ChevronDown, DollarSign, FileText, House, Images, ListTodo, Mail, MoreVertical, Palette, Settings, Share2, TrendingUp, Users, type LucideIcon } from "lucide-react"
 
 import { AnalyticsSkeleton, AnalyticsView } from "@/components/company/analytics-view"
@@ -16,6 +16,7 @@ import { ProjectShareButton } from "@/components/dashboard/project-share-button"
 import { ProjectTeamPicker } from "@/components/dashboard/project-team-picker"
 import { TasksView } from "@/components/dashboard/tasks-view"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { useOptionalSidebar } from "@/components/ui/sidebar"
 import { usePageHeaderActions, usePageHeaderTitle } from "@/components/dashboard/page-title-context"
 import { watchCampaignCreatives, type CampaignCreative } from "@/lib/campaign-creatives"
 import { onRoster, watchCampaignPeople, type CampaignPerson } from "@/lib/campaign-people"
@@ -75,6 +76,14 @@ export function ProjectDetail({
   const [view, setView] = useUrlSelection("view")
   const tab = TAB_FROM_VIEW[view ?? ""] ?? "home"
   const setTab = (next: CampaignTab) => setView(next === "home" ? null : VIEW_FROM_TAB[next])
+  // The campaign has its own section nav, so the app menu folds to its icon rail while it is open.
+  const sidebar = useOptionalSidebar()
+  const setSidebarOpen = useRef(sidebar?.setOpen)
+  setSidebarOpen.current = sidebar?.setOpen
+  useEffect(() => {
+    setSidebarOpen.current?.(false)
+    return () => setSidebarOpen.current?.(true)
+  }, [])
   const [people, setPeople] = useState<CampaignPerson[]>([])
   const [peopleLoaded, setPeopleLoaded] = useState(false)
 
@@ -338,7 +347,7 @@ export function ProjectDetail({
             </DropdownMenu>
           </nav>
 
-          <nav className="sticky top-4 z-10 flex w-48 shrink-0 flex-col gap-1 self-start max-md:hidden" aria-label="Campaign sections">
+          <nav className="sticky top-[calc(var(--shell-header-h,0px)+1rem)] z-10 flex w-48 shrink-0 flex-col gap-1 self-start max-md:hidden" aria-label="Campaign sections">
             {sections.map((item) => (
               <button
                 key={item.key}
