@@ -1,9 +1,8 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { Building2, Maximize2, Pencil } from "lucide-react"
+import { Building2 } from "lucide-react"
 import type { Timestamp } from "firebase/firestore"
 
 import { useAuth } from "@/components/auth-provider"
@@ -251,17 +250,6 @@ export default function CompaniesPage() {
           filter={clientFilter}
           emptySearchLabel="No clients match your search."
           getKey={companyRefOf}
-          selectedTitle={selected?.name}
-          headerActions={selected && (
-            <>
-              <Button asChild variant="ghost" size="icon" className="size-8 text-muted-foreground hover:text-foreground" aria-label="Edit client" title="Edit client">
-                <Link href={`${companyHref(selected)}/edit`}><Pencil className="size-4" aria-hidden="true" /></Link>
-              </Button>
-              <Button asChild variant="ghost" size="icon" className="size-8 text-muted-foreground hover:text-foreground" aria-label="Open full client page" title="Open full client page">
-                <Link href={companyHref(selected)}><Maximize2 className="size-4" aria-hidden="true" /></Link>
-              </Button>
-            </>
-          )}
           content={selected ? <ClientPreview companyRef={companyRefOf(selected)} href={companyHref(selected)} /> : null}
           renderItem={(row, active) => (
             <CompactListRow
