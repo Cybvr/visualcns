@@ -152,7 +152,7 @@ export function ImagePickerDialog({
         <DialogHeader className="border-b border-border px-5 py-4 pr-12">
           <DialogTitle>Choose an image</DialogTitle>
           <DialogDescription>
-            Pick an image from Drive or your company pages, or upload one. Uploads are resized to a 1600px maximum edge and compressed below 1.75 MB.
+            Pick an image from Drive or your company pages, or upload one. Uploads are resized to a 1600px maximum edge and compressed below 1 MB.
           </DialogDescription>
         </DialogHeader>
         <div className="flex items-center gap-2 border-b border-border px-5 py-3">
