@@ -1,4 +1,4 @@
-import { addDoc, collection, deleteDoc, doc, getDocs, onSnapshot, query, Timestamp, updateDoc, where } from "firebase/firestore"
+import { addDoc, collection, deleteDoc, doc, getDocs, onSnapshot, query, Timestamp, updateDoc, where, writeBatch } from "firebase/firestore"
 
 import { db } from "./firebase"
 import { getCurrentAgencyId } from "./agency-scope"
@@ -16,7 +16,7 @@ export function creativeStatus(creative: Pick<CampaignCreative, "status">) {
   return OLD_STATUSES[creative.status] ?? creative.status ?? "Draft"
 }
 
-/** One written post, image, video or link kept with a campaign. */
+/** One written post, media file, link or media folder kept with a campaign. */
 export interface CampaignCreative {
   id: string
   agencyId: string
@@ -25,7 +25,9 @@ export interface CampaignCreative {
   title: string
   /** Empty for written posts. */
   url: string
-  type: "image" | "video" | "link" | "text"
+  type: "image" | "video" | "link" | "text" | "folder"
+  /** Media folders are flat; an empty value keeps the item in All media. */
+  folderId?: string
   /** Who posts it: the client themselves ("Founder") or the creators ("Roster"). */
   postedBy?: string
   /** An image or video shown with a written post. */
@@ -68,7 +70,7 @@ export function watchCompanyCampaignCreatives(companyId: string, onChange: (crea
 
 export async function addCampaignCreative(
   scope: { agencyId?: string; companyId: string; projectId: string },
-  creative: Pick<CampaignCreative, "title" | "url" | "type"> & { kind: "content" | "media"; body?: string; status?: string; postedBy?: string; mediaUrl?: string; mediaType?: "image" | "video" },
+  creative: Pick<CampaignCreative, "title" | "url" | "type"> & { kind: "content" | "media"; folderId?: string; body?: string; status?: string; postedBy?: string; mediaUrl?: string; mediaType?: "image" | "video" },
 ) {
   const now = Timestamp.now()
   await addDoc(collection(db, COLLECTION_NAME), {
@@ -82,12 +84,24 @@ export async function addCampaignCreative(
   })
 }
 
-export async function updateCampaignCreative(id: string, patch: Partial<Pick<CampaignCreative, "title" | "status" | "body" | "postedBy" | "mediaUrl" | "mediaType">>) {
+export async function updateCampaignCreative(id: string, patch: Partial<Pick<CampaignCreative, "title" | "status" | "body" | "postedBy" | "mediaUrl" | "mediaType" | "folderId">>) {
   await updateDoc(doc(db, COLLECTION_NAME, id), { ...patch, updatedAt: Timestamp.now() })
 }
 
 export async function deleteCampaignCreative(id: string) {
   await deleteDoc(doc(db, COLLECTION_NAME, id))
+}
+
+/** Remove a folder without removing its media; its contents return to All media. */
+export async function deleteCampaignMediaFolder(projectId: string, folderId: string) {
+  const snapshot = await getDocs(query(collection(db, COLLECTION_NAME), where("projectId", "==", projectId)))
+  const batch = writeBatch(db)
+  const now = Timestamp.now()
+  for (const item of snapshot.docs) {
+    if (item.id !== folderId && item.data().folderId === folderId) batch.update(item.ref, { folderId: "", updatedAt: now })
+  }
+  batch.delete(doc(db, COLLECTION_NAME, folderId))
+  await batch.commit()
 }
 
 /** Every file link already kept in any of a company's campaigns, so old Drive media isn't moved twice. */

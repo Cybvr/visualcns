@@ -148,6 +148,7 @@ export function CompanyPageProvider({
     // Tasks and media live inside each campaign, so they have no menu entry of their own.
     const visible = COMPANY_SECTIONS
       .filter((item) => item.key !== "tasks" && item.key !== "drive")
+      .filter((item) => mode === "routes" || item.key !== "ngai")
       .filter((item) => !["visitors", "messages", "notes"].includes(item.key) || canSeeVisitors)
     if (mode !== "routes") return [...visible]
     const about = visible.find((item) => item.key === "about")!
@@ -160,6 +161,7 @@ export function CompanyPageProvider({
       find("pulse"),
       find("visitors"),
       find("notes"),
+      find("ngai"),
       find("analytics"),
       activity && { ...activity, label: "Notifications", icon: Bell },
     ]

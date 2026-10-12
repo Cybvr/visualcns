@@ -13,6 +13,7 @@ import { AnalyticsSection } from "@/components/company/sections/analytics-sectio
 import { DocumentsSection } from "@/components/company/sections/documents-section"
 import { ProjectsSection } from "@/components/company/sections/projects-section"
 import { NotesSection } from "@/components/company/sections/notes-section"
+import { NgaiSection } from "@/components/company/sections/ngai-section"
 import { TeamSection } from "@/components/company/sections/team-section"
 
 /** Documents and media in one grid. An open document takes the whole page. */
@@ -62,6 +63,7 @@ function PulseSection() {
 
 const SECTION_COMPONENTS: Record<CompanySectionKey, ComponentType> = {
   projects: ProjectsSection,
+  ngai: NgaiSection,
   analytics: AnalyticsSection,
   tasks: ProjectsSection,
   notes: NotesSection,

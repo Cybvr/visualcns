@@ -15,7 +15,7 @@ import {
   type DragEndEvent,
   type DragStartEvent,
 } from "@dnd-kit/core"
-import { FileUp, Kanban, Rows3 } from "lucide-react"
+import { FileUp, Kanban, Mail, Phone, Rows3 } from "lucide-react"
 import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
@@ -24,6 +24,7 @@ import { MobileDataCard } from "@/components/dashboard/mobile-data-card"
 import { TableFilterBar } from "@/components/dashboard/table-filter-bar"
 import { useFilterBar } from "@/components/dashboard/filter-bar"
 import { ImportLeadsDialog } from "@/components/dashboard/import-leads-dialog"
+import { QuickEmailComposer } from "@/components/dashboard/email/quick-email-composer"
 import { TableBulkBar } from "@/components/dashboard/table-bulk-bar"
 import { useViewMode, type ViewMode } from "@/components/dashboard/view-toggle"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
@@ -102,6 +103,7 @@ export default function LeadsPage() {
   const [editing, setEditing] = useState<Lead | "new" | null>(null)
   const [importOpen, setImportOpen] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState<Lead | null>(null)
+  const [emailingLead, setEmailingLead] = useState<Lead | null>(null)
   // "grid" is the board and "list" the table. The board comes first, and the choice is remembered.
   const [view, setView] = useViewMode("leads", "grid")
 
@@ -204,7 +206,7 @@ export default function LeadsPage() {
               return (
                 <StageColumn key={stage.value} stage={stage.value} label={stage.label} count={stageLeads.length} total={total} loading={leads === null}>
                   {stageLeads.map((lead) => (
-                    <DraggableLead key={lead.id} lead={lead} hidden={lead.id === activeId} onOpen={() => setEditing(lead)} />
+                    <DraggableLead key={lead.id} lead={lead} hidden={lead.id === activeId} onOpen={() => setEditing(lead)} onEmail={() => setEmailingLead(lead)} />
                   ))}
                 </StageColumn>
               )
@@ -236,6 +238,17 @@ export default function LeadsPage() {
         uid={uid}
         existingLeads={(leads ?? []).map((lead) => ({ id: lead.id, email: lead.email }))}
       />
+
+      {emailingLead?.email && (
+        <QuickEmailComposer
+          key={emailingLead.id}
+          open
+          onOpenChange={(open) => { if (!open) setEmailingLead(null) }}
+          email={emailingLead.email}
+          name={emailingLead.name}
+          companyName={emailingLead.company}
+        />
+      )}
 
       <AlertDialog open={confirmDelete !== null} onOpenChange={(open) => !open && setConfirmDelete(null)}>
         <AlertDialogContent>
@@ -437,30 +450,59 @@ function StageColumn({ stage, label, count, total, loading, children }: { stage:
   )
 }
 
-function DraggableLead({ lead, hidden, onOpen }: { lead: Lead; hidden: boolean; onOpen: () => void }) {
+function DraggableLead({ lead, hidden, onOpen, onEmail }: { lead: Lead; hidden: boolean; onOpen: () => void; onEmail: () => void }) {
   const { attributes, listeners, setNodeRef } = useDraggable({ id: lead.id })
   return (
     <div ref={setNodeRef} className={cn("touch-manipulation", hidden && "opacity-30")} {...attributes} {...listeners}>
-      <LeadCard lead={lead} onOpen={onOpen} />
+      <LeadCard lead={lead} onOpen={onOpen} onEmail={onEmail} />
     </div>
   )
 }
 
-function LeadCard({ lead, dragging = false, onOpen }: { lead: Lead; dragging?: boolean; onOpen?: () => void }) {
+function LeadCard({ lead, dragging = false, onOpen, onEmail }: { lead: Lead; dragging?: boolean; onOpen?: () => void; onEmail?: () => void }) {
   const details = [lead.company, lead.category].filter(Boolean).join(" · ")
+  const phone = lead.phone || lead.mobilePhone || lead.companyPhone
   return (
-    <button
-      type="button"
-      onClick={onOpen}
+    <div
       className={cn(
-        "block w-full cursor-grab rounded-lg border border-border bg-background px-3 py-2.5 text-left outline-none transition-shadow hover:shadow-sm focus-visible:ring-2 focus-visible:ring-ring active:cursor-grabbing",
+        "w-full cursor-grab rounded-lg border border-border bg-background px-3 py-2.5 text-left transition-shadow hover:shadow-sm active:cursor-grabbing",
         dragging && "rotate-1 shadow-lg",
       )}
     >
-      <span className="block truncate text-sm font-medium text-foreground">{lead.name || "Unnamed lead"}</span>
-      {details && <span className="mt-0.5 block truncate text-xs text-muted-foreground">{details}</span>}
+      <button type="button" onClick={onOpen} className="block w-full text-left outline-none focus-visible:ring-2 focus-visible:ring-ring">
+        <span className="block truncate text-sm font-medium text-foreground">{lead.name || "Unnamed lead"}</span>
+        {details && <span className="mt-0.5 block truncate text-xs text-muted-foreground">{details}</span>}
+      </button>
+      {!dragging && (lead.email || phone) && (
+        <div className="mt-2 flex items-center gap-1">
+          {phone && (
+            <a
+              href={`tel:${phone.replace(/[^\d+*#,;]/g, "")}`}
+              aria-label={`Call ${lead.name || phone}`}
+              title={phone}
+              onPointerDown={(event) => event.stopPropagation()}
+              onClick={(event) => event.stopPropagation()}
+              className="flex size-8 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <Phone className="size-4" aria-hidden="true" />
+            </a>
+          )}
+          {lead.email && (
+            <button
+              type="button"
+              onClick={(event) => { event.stopPropagation(); onEmail?.() }}
+              aria-label={`Email ${lead.name || lead.email}`}
+              title={lead.email}
+              onPointerDown={(event) => event.stopPropagation()}
+              className="flex size-8 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <Mail className="size-4" aria-hidden="true" />
+            </button>
+          )}
+        </div>
+      )}
       {lead.value > 0 && <span className="mt-1.5 block text-xs font-medium text-foreground">{formatValue(lead.value)}</span>}
-    </button>
+    </div>
   )
 }
 

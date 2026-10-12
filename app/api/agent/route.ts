@@ -17,7 +17,7 @@ const MAX_TOOL_ROUNDS = 16
 type AttachedFile = { name?: string; url?: string; mimeType?: string }
 type ChatMessage = { role: "user" | "assistant"; content: string; images?: string[]; files?: AttachedFile[] }
 type Surface = "client_portal" | "agency_dashboard"
-type AgentBody = { messages?: ChatMessage[]; firstName?: string; surface?: Surface }
+type AgentBody = { messages?: ChatMessage[]; firstName?: string; surface?: Surface; companyContext?: { id?: string; name?: string } }
 
 function adminServices() {
   const app = getApps()[0] ?? initializeApp({
@@ -1392,9 +1392,14 @@ export async function POST(request: Request) {
     // whatever surface the browser asked for.
     const portal = body.surface === "client_portal" || (role !== "admin" && role !== "superadmin")
     const basePrompt = portal ? PORTAL_PROMPT : DASHBOARD_PROMPT
-    const systemInstruction = body.firstName
+    const personInstruction = body.firstName
       ? `${basePrompt}\n\nThe person you are speaking with is called ${body.firstName}.`
       : basePrompt
+    const companyId = typeof body.companyContext?.id === "string" ? body.companyContext.id.trim().slice(0, 200) : ""
+    const companyName = typeof body.companyContext?.name === "string" ? body.companyContext.name.trim().slice(0, 200) : ""
+    const systemInstruction = companyId
+      ? `${personInstruction}\n\nThis chat is open from ${companyName || "a company"}'s page. Treat that company as the active context and use companyId ${companyId} for company-scoped tools unless the person explicitly asks about another company.`
+      : personInstruction
 
     const apiKey = await getAgencySecret(agencyId, "OPENAI_API_KEY", process.env.OPENAI_API_KEY || "")
     if (!apiKey) return new Response(JSON.stringify({ error: "The assistant is not configured yet." }), { status: 503, headers: { "content-type": "application/json" } })

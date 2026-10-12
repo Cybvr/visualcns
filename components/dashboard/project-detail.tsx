@@ -93,7 +93,8 @@ export function ProjectDetail({
   const roster = people.filter(onRoster)
   // Content is the written posts; every image, video and link lives in Media, wherever it was first added.
   const contentItems = creatives.filter((item) => item.type === "text")
-  const mediaItems = creatives.filter((item) => item.type !== "text")
+  const campaignMedia = creatives.filter((item) => item.type !== "text")
+  const mediaItems = campaignMedia.filter((item) => item.type !== "folder")
   const [shareOpen, setShareOpen] = useState(false)
   const [titleDraft, setTitleDraft] = useState(project.title)
   const [titleEditing, setTitleEditing] = useState(false)
@@ -376,7 +377,7 @@ export function ProjectDetail({
               <CampaignCreatives
                 key={tab}
                 kind={tab === "media" ? "media" : "content"}
-                creatives={tab === "media" ? mediaItems : contentItems}
+                creatives={tab === "media" ? campaignMedia : contentItems}
                 library={mediaItems}
                 agencyId={project.agencyId}
                 companyId={project.companyId || companyId}

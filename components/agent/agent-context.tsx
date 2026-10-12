@@ -117,8 +117,16 @@ function messageId(nextId: MutableRefObject<number>): string {
   return `${Date.now()}-${nextId.current++}`
 }
 
-/** `surface` picks which Ngai the server runs: the full dashboard one, or the client one on company pages. */
-export function AgentProvider({ children, surface = "agency_dashboard" }: { children: ReactNode; surface?: "agency_dashboard" | "client_portal" }) {
+/** `surface` picks which Ngai the server runs; context keeps a company-page chat focused on that company. */
+export function AgentProvider({
+  children,
+  surface = "agency_dashboard",
+  companyContext,
+}: {
+  children: ReactNode
+  surface?: "agency_dashboard" | "client_portal"
+  companyContext?: { id: string; name: string }
+}) {
   const { appUser, user } = useAuth()
   const [open, setOpen] = useState(false)
   const [messages, setMessages] = useState<AgentMessage[]>([])
@@ -262,7 +270,7 @@ export function AgentProvider({ children, surface = "agency_dashboard" }: { chil
           const response = await fetch("/api/agent", {
             method: "POST",
             headers: { "content-type": "application/json", Authorization: `Bearer ${await currentUser.getIdToken()}` },
-            body: JSON.stringify({ messages: payload, firstName, surface }),
+            body: JSON.stringify({ messages: payload, firstName, surface, companyContext }),
           })
 
           if (!response.ok || !response.body) {
@@ -305,7 +313,7 @@ export function AgentProvider({ children, surface = "agency_dashboard" }: { chil
         }
       })()
     },
-    [messages, sending, firstName, activeConversationId, conversations, rememberConversation, user, surface],
+    [messages, sending, firstName, activeConversationId, conversations, rememberConversation, user, surface, companyContext],
   )
 
   const reset = useCallback(() => {

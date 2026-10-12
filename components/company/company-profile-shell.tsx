@@ -1,6 +1,7 @@
 "use client"
 
 import { useCallback, useMemo, useState, type ComponentProps, type ReactNode } from "react"
+import Image from "next/image"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Bell, LogIn, Search, Settings, Sparkles } from "lucide-react"
@@ -157,7 +158,11 @@ export function CompanyProfileShell({ children }: { children: ReactNode }) {
           className="h-9 gap-2 px-2 max-md:h-12 max-md:min-h-12 max-md:gap-3 max-md:px-3 [&>svg]:size-[18px] [&>svg]:max-md:size-5"
         >
           <CompanySidebarLink href={sectionHref(item.key)}>
-            {Icon && <Icon className="h-4 w-4" aria-hidden="true" />}
+            {item.key === "ngai" ? (
+              <Image src="/ngai-logo.png" alt="" width={18} height={18} className="size-[18px] shrink-0 rounded-full max-md:size-5" />
+            ) : Icon ? (
+              <Icon className="h-4 w-4" aria-hidden="true" />
+            ) : null}
             <span className="sidebar-nav-label">{item.label}</span>
             {item.key === "projects" && (
               <span className="ml-auto inline-flex size-5 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-semibold tabular-nums text-primary-foreground group-data-[collapsible=icon]:hidden">

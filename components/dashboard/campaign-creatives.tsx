@@ -1,7 +1,7 @@
 "use client"
 
-import { useRef, useState, type FormEvent } from "react"
-import { ExternalLink, Image as ImageIcon, Images, ImagePlus, Link2, Palette, Video, X } from "lucide-react"
+import { useEffect, useRef, useState, type FormEvent } from "react"
+import { ChevronLeft, ExternalLink, Folder, FolderInput, Image as ImageIcon, Images, ImagePlus, Link2, MoreVertical, Palette, Pencil, Video, X } from "lucide-react"
 import { toast } from "sonner"
 
 import {
@@ -17,7 +17,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { SectionAddButton } from "@/components/company/section-add-button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { GridCard, GridCardList } from "@/components/dashboard/grid-card"
 import { ListToolbar, useListSearch } from "@/components/dashboard/list-search"
 import { Input } from "@/components/ui/input"
@@ -28,6 +28,7 @@ import {
   CREATIVE_STATUSES,
   creativeStatus,
   deleteCampaignCreative,
+  deleteCampaignMediaFolder,
   READY_FOR_REVIEW,
   updateCampaignCreative,
   type CampaignCreative,
@@ -421,7 +422,22 @@ function MediaLibrary({ files, scope, canEdit }: { files: CampaignCreative[]; sc
   const [uploading, setUploading] = useState<string | null>(null)
   const [dragging, setDragging] = useState(false)
   const [linking, setLinking] = useState(false)
-  const { query, setQuery, results } = useListSearch(files, (item) => [item.title, item.type])
+  const [activeFolderId, setActiveFolderId] = useState<string | null>(null)
+  const [folderDialog, setFolderDialog] = useState<CampaignCreative | "new" | null>(null)
+  const [deletingFolder, setDeletingFolder] = useState<CampaignCreative | null>(null)
+  const folders = files.filter((item) => item.type === "folder")
+  const media = files.filter((item) => item.type !== "folder")
+  const activeFolder = folders.find((item) => item.id === activeFolderId) ?? null
+  const browsedItems = activeFolderId
+    ? media.filter((item) => item.folderId === activeFolderId)
+    : [...folders, ...media.filter((item) => !item.folderId)]
+  const { query, setQuery, results } = useListSearch(browsedItems, (item) => [item.title, item.type])
+  const shownFolders = results.filter((item) => item.type === "folder")
+  const shownMedia = results.filter((item) => item.type !== "folder")
+
+  useEffect(() => {
+    if (activeFolderId && files.length > 0 && !folders.some((item) => item.id === activeFolderId)) setActiveFolderId(null)
+  }, [activeFolderId, files, folders])
 
   async function handleFiles(list: FileList | null) {
     if (!list?.length) return
@@ -438,13 +454,39 @@ function MediaLibrary({ files, scope, canEdit }: { files: CampaignCreative[]; sc
       try {
         setUploading(`${file.name} 0%`)
         const url = await uploadFileToStorage(file, (pct) => setUploading(`${pct}%`))
-        await addCampaignCreative(scope, { title: file.name.replace(/\.[^.]+$/, ""), url, type: isVideo ? "video" : "image", kind: "media" })
+        await addCampaignCreative(scope, {
+          title: file.name.replace(/\.[^.]+$/, ""),
+          url,
+          type: isVideo ? "video" : "image",
+          kind: "media",
+          folderId: activeFolderId || undefined,
+        })
       } catch (error) {
         console.error("Error uploading file:", error)
         toast.error(`${file.name} didn't upload.`)
       }
     }
     setUploading(null)
+  }
+
+  async function moveMedia(id: string, folderId: string) {
+    try {
+      await updateCampaignCreative(id, { folderId })
+    } catch (error) {
+      console.error("Error moving media:", error)
+      toast.error("Couldn't move that media.")
+    }
+  }
+
+  async function removeFolder(folder: CampaignCreative) {
+    setDeletingFolder(null)
+    if (activeFolderId === folder.id) setActiveFolderId(null)
+    try {
+      await deleteCampaignMediaFolder(scope.projectId, folder.id)
+    } catch (error) {
+      console.error("Error deleting media folder:", error)
+      toast.error("Couldn't delete that folder.")
+    }
   }
 
   return (
@@ -457,20 +499,32 @@ function MediaLibrary({ files, scope, canEdit }: { files: CampaignCreative[]; sc
       <ListToolbar
         query={query}
         onQueryChange={setQuery}
-        placeholder="Search media"
+        placeholder={activeFolder ? `Search ${activeFolder.title}` : "Search media"}
         actions={canEdit ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <SectionAddButton label="New media" disabled={Boolean(uploading)} />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onSelect={() => fileInput.current?.click()}>Upload images or videos</DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => setLinking(true)}>Add link</DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => setFolderDialog("new")}><Folder className="size-4" aria-hidden="true" />New folder</DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => fileInput.current?.click()}><ImagePlus className="size-4" aria-hidden="true" />Upload images or videos</DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => setLinking(true)}><Link2 className="size-4" aria-hidden="true" />Add link</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         ) : undefined}
       />
       <input ref={fileInput} type="file" accept="image/*,video/*" multiple hidden onChange={(event) => { void handleFiles(event.target.files); event.target.value = "" }} />
+
+      {activeFolder && (
+        <div className="mt-3 flex min-w-0 items-center gap-2 text-sm">
+          <button type="button" onClick={() => { setActiveFolderId(null); setQuery("") }} className="flex shrink-0 items-center gap-1 rounded-md px-2 py-1.5 text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring">
+            <ChevronLeft className="size-4" aria-hidden="true" />
+            All media
+          </button>
+          <span className="text-muted-foreground/50">/</span>
+          <span className="min-w-0 truncate font-medium text-foreground">{activeFolder.title}</span>
+        </div>
+      )}
 
       {files.length === 0 ? (
         <button
@@ -480,43 +534,165 @@ function MediaLibrary({ files, scope, canEdit }: { files: CampaignCreative[]; sc
           className="mt-4 flex w-full flex-col items-center gap-2 rounded-2xl border border-dashed border-border px-6 py-14 text-center outline-none transition-colors enabled:hover:bg-muted/40 focus-visible:ring-2 focus-visible:ring-ring"
         >
           <Images className="size-6 text-muted-foreground" aria-hidden="true" />
-          <span className="text-sm text-muted-foreground">{canEdit ? "Drop images or videos here, or click to upload" : "No media yet."}</span>
+          <span className="text-sm text-muted-foreground">{canEdit ? "Create a folder or drop images and videos here" : "No media yet."}</span>
         </button>
       ) : results.length === 0 ? (
-        <p className="py-8 text-center text-sm text-muted-foreground">Nothing matches your search.</p>
+        query ? (
+          <p className="py-8 text-center text-sm text-muted-foreground">Nothing matches your search.</p>
+        ) : (
+          <button
+            type="button"
+            disabled={!canEdit}
+            onClick={() => fileInput.current?.click()}
+            className="mt-4 flex w-full flex-col items-center gap-2 rounded-2xl border border-dashed border-border px-6 py-12 text-center outline-none transition-colors enabled:hover:bg-muted/40 focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <Folder className="size-6 text-muted-foreground" aria-hidden="true" />
+            <span className="text-sm text-muted-foreground">{canEdit ? "This folder is empty. Drop media here or click to upload." : "This folder is empty."}</span>
+          </button>
+        )
       ) : (
-        <div className="mt-4">
-          <GridCardList>
-            {results.map((creative) => (
-              <GridCard
-                key={creative.id}
-                title={creative.title}
-                icon={creative.type === "video" ? <Video className="size-4 text-muted-foreground" aria-hidden="true" /> : creative.type === "link" ? <Link2 className="size-4 text-muted-foreground" aria-hidden="true" /> : <ImageIcon className="size-4 text-muted-foreground" aria-hidden="true" />}
-                imageUrl={creative.type === "image" ? creative.url : undefined}
-                preview={creative.type === "video" ? <video src={creative.url} muted playsInline preload="metadata" className="size-full object-cover" /> : undefined}
-                placeholder={<ExternalLink className="size-8 text-muted-foreground" aria-hidden="true" />}
-                onClick={() => window.open(creative.url, "_blank", "noopener,noreferrer")}
-                ariaLabel={`Open ${creative.title}`}
-                menuLabel={`Options for ${creative.title}`}
-                menu={canEdit ? (
-                  <>
-                    <DropdownMenuItem onSelect={() => window.open(creative.url, "_blank", "noopener,noreferrer")}>Open</DropdownMenuItem>
-                    <DropdownMenuItem variant="destructive" onSelect={() => void removeCreative(creative.id)}>Delete</DropdownMenuItem>
-                  </>
-                ) : undefined}
-              />
-            ))}
-          </GridCardList>
+        <div className="mt-4 space-y-5">
+          {shownFolders.length > 0 && (
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              {shownFolders.map((folder) => {
+                const count = media.filter((item) => item.folderId === folder.id).length
+                return (
+                  <div key={folder.id} className="relative flex min-h-20 items-center gap-3 rounded-xl bg-muted/60 px-4 py-3 transition-colors hover:bg-muted">
+                    <button type="button" onClick={() => { setActiveFolderId(folder.id); setQuery("") }} aria-label={`Open ${folder.title}`} className="absolute inset-0 rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ring" />
+                    <Folder className="pointer-events-none relative size-5 shrink-0 text-muted-foreground" aria-hidden="true" />
+                    <div className="pointer-events-none relative min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium text-foreground">{folder.title}</p>
+                      <p className="mt-0.5 text-xs text-muted-foreground">{count} {count === 1 ? "item" : "items"}</p>
+                    </div>
+                    {canEdit && (
+                      <DropdownMenu modal={false}>
+                        <DropdownMenuTrigger asChild>
+                          <button type="button" aria-label={`Options for ${folder.title}`} className="relative z-10 flex size-8 shrink-0 items-center justify-center rounded-full outline-none transition-colors hover:bg-background/70 focus-visible:ring-2 focus-visible:ring-ring">
+                            <MoreVertical className="size-4" aria-hidden="true" />
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onSelect={() => setFolderDialog(folder)}><Pencil className="size-4" aria-hidden="true" />Rename</DropdownMenuItem>
+                          <DropdownMenuItem variant="destructive" onSelect={() => setDeletingFolder(folder)}>Delete folder</DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          )}
+
+          {shownMedia.length > 0 && (
+            <GridCardList>
+              {shownMedia.map((creative) => (
+                <GridCard
+                  key={creative.id}
+                  title={creative.title}
+                  icon={creative.type === "video" ? <Video className="size-4 text-muted-foreground" aria-hidden="true" /> : creative.type === "link" ? <Link2 className="size-4 text-muted-foreground" aria-hidden="true" /> : <ImageIcon className="size-4 text-muted-foreground" aria-hidden="true" />}
+                  imageUrl={creative.type === "image" ? creative.url : undefined}
+                  preview={creative.type === "video" ? <video src={creative.url} muted playsInline preload="metadata" className="size-full object-cover" /> : undefined}
+                  placeholder={<ExternalLink className="size-8 text-muted-foreground" aria-hidden="true" />}
+                  onClick={() => window.open(creative.url, "_blank", "noopener,noreferrer")}
+                  ariaLabel={`Open ${creative.title}`}
+                  menuLabel={`Options for ${creative.title}`}
+                  menu={canEdit ? (
+                    <>
+                      <DropdownMenuItem onSelect={() => window.open(creative.url, "_blank", "noopener,noreferrer")}>Open</DropdownMenuItem>
+                      {folders.length > 0 && (
+                        <DropdownMenuSub>
+                          <DropdownMenuSubTrigger><FolderInput className="size-4" aria-hidden="true" />Move to</DropdownMenuSubTrigger>
+                          <DropdownMenuSubContent>
+                            <DropdownMenuItem disabled={!creative.folderId} onSelect={() => void moveMedia(creative.id, "")}>All media</DropdownMenuItem>
+                            {folders.filter((folder) => folder.id !== creative.folderId).map((folder) => (
+                              <DropdownMenuItem key={folder.id} onSelect={() => void moveMedia(creative.id, folder.id)}>{folder.title}</DropdownMenuItem>
+                            ))}
+                          </DropdownMenuSubContent>
+                        </DropdownMenuSub>
+                      )}
+                      <DropdownMenuItem variant="destructive" onSelect={() => void removeCreative(creative.id)}>Delete</DropdownMenuItem>
+                    </>
+                  ) : undefined}
+                />
+              ))}
+            </GridCardList>
+          )}
         </div>
       )}
 
-      {canEdit && <AddLinkDialog open={linking} onOpenChange={setLinking} scope={scope} />}
+      {canEdit && (
+        <>
+          <MediaFolderDialog
+            folder={folderDialog === "new" ? null : folderDialog}
+            open={folderDialog !== null}
+            onOpenChange={(open) => { if (!open) setFolderDialog(null) }}
+            scope={scope}
+          />
+          <AddLinkDialog open={linking} onOpenChange={setLinking} scope={scope} folderId={activeFolderId || undefined} />
+          <AlertDialog open={Boolean(deletingFolder)} onOpenChange={(open) => { if (!open) setDeletingFolder(null) }}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete this folder?</AlertDialogTitle>
+                <AlertDialogDescription>The media inside {deletingFolder?.title || "this folder"} will move back to All media.</AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => { if (deletingFolder) void removeFolder(deletingFolder) }}>Delete folder</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </>
+      )}
     </section>
   )
 }
 
+function MediaFolderDialog({ folder, open, onOpenChange, scope }: { folder: CampaignCreative | null; open: boolean; onOpenChange: (open: boolean) => void; scope: { agencyId?: string; companyId: string; projectId: string } }) {
+  const [name, setName] = useState("")
+  const [busy, setBusy] = useState(false)
+
+  useEffect(() => {
+    if (open) setName(folder?.title ?? "")
+  }, [folder, open])
+
+  async function save(event: FormEvent) {
+    event.preventDefault()
+    const title = name.trim()
+    if (!title || busy) return
+    setBusy(true)
+    try {
+      if (folder) await updateCampaignCreative(folder.id, { title })
+      else await addCampaignCreative(scope, { title, url: "", type: "folder", kind: "media" })
+      onOpenChange(false)
+    } catch (error) {
+      console.error("Error saving media folder:", error)
+      toast.error(`Couldn't ${folder ? "rename" : "create"} that folder.`)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>{folder ? "Rename folder" : "New folder"}</DialogTitle>
+          <DialogDescription className="sr-only">{folder ? "Change this media folder's name." : "Create a folder for this campaign's media."}</DialogDescription>
+        </DialogHeader>
+        <form onSubmit={save} className="space-y-4">
+          <Input value={name} onChange={(event) => setName(event.target.value)} placeholder="Folder name" aria-label="Folder name" autoFocus />
+          <DialogFooter>
+            <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
+            <Button type="submit" disabled={busy || !name.trim()}>{busy ? "Saving…" : folder ? "Save" : "Create folder"}</Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 /** Adds a link (Figma, Drive, Canva…) to Media. */
-function AddLinkDialog({ open, onOpenChange, scope }: { open: boolean; onOpenChange: (open: boolean) => void; scope: { agencyId?: string; companyId: string; projectId: string } }) {
+function AddLinkDialog({ open, onOpenChange, scope, folderId }: { open: boolean; onOpenChange: (open: boolean) => void; scope: { agencyId?: string; companyId: string; projectId: string }; folderId?: string }) {
   const [link, setLink] = useState("")
   const [name, setName] = useState("")
   const [busy, setBusy] = useState(false)
@@ -527,7 +703,7 @@ function AddLinkDialog({ open, onOpenChange, scope }: { open: boolean; onOpenCha
     if (!/^https?:\/\//i.test(url)) return toast.error("Links need to start with http:// or https://")
     setBusy(true)
     try {
-      await addCampaignCreative(scope, { title: name.trim() || new URL(url).hostname, url, type: "link", kind: "media" })
+      await addCampaignCreative(scope, { title: name.trim() || new URL(url).hostname, url, type: "link", kind: "media", folderId })
       setLink("")
       setName("")
       onOpenChange(false)

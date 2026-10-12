@@ -121,8 +121,9 @@ function NgaiPanel({ onClose }: { onClose: () => void }) {
  */
 export function NgaiWidget() {
   const { appUser } = useAuth()
+  const { section } = useCompanyPage()
   const [open, setOpen] = useState(false)
-  if (appUser?.role === "admin" || appUser?.role === "superadmin") return null
+  if (section === "ngai" || appUser?.role === "admin" || appUser?.role === "superadmin") return null
 
   return (
     <AgentProvider surface="client_portal">
