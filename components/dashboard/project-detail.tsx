@@ -2,9 +2,11 @@
 
 import Link from "next/link"
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react"
-import { DollarSign, FileText, Images, ListTodo, Mail, MoreVertical, Palette, Settings, Share2, Users, type LucideIcon } from "lucide-react"
+import { DollarSign, FileText, House, Images, ListTodo, Mail, MoreVertical, Palette, Settings, Share2, Users, type LucideIcon } from "lucide-react"
 
+import { CampaignBrief } from "@/components/dashboard/campaign-brief"
 import { CampaignCreatives } from "@/components/dashboard/campaign-creatives"
+import { CampaignHome, type CampaignTab } from "@/components/dashboard/campaign-home"
 import { CampaignPeople } from "@/components/dashboard/campaign-people"
 import { CampaignPayments } from "@/components/dashboard/campaign-payments"
 import { CampaignSettings } from "@/components/dashboard/campaign-settings"
@@ -15,7 +17,7 @@ import { TasksView } from "@/components/dashboard/tasks-view"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { usePageHeaderActions, usePageHeaderTitle } from "@/components/dashboard/page-title-context"
 import { watchCampaignCreatives, type CampaignCreative } from "@/lib/campaign-creatives"
-import { watchCampaignPeople, type CampaignPerson } from "@/lib/campaign-people"
+import { onRoster, watchCampaignPeople, type CampaignPerson } from "@/lib/campaign-people"
 import type { Invoice } from "@/lib/billing"
 import { buildEmailComposeHref } from "@/lib/email-composer"
 import { deleteProjectWithTasks, renameProject, slugify, type Project } from "@/lib/projects"
@@ -34,6 +36,8 @@ interface ProjectDetailProps {
   onProjectDeleted?: () => void | Promise<void>
   /** Signed-in agency admins on the public page, who can manage people and creatives without the admin view. */
   canEditCampaign?: boolean
+  /** The client's own signed-in people, who can edit post text and approve it. */
+  canReview?: boolean
   /** Invoices raised for this campaign, and where each one opens. */
   invoices?: Invoice[]
   invoiceHref?: (invoice: Invoice) => string
@@ -57,17 +61,20 @@ export function ProjectDetail({
   onProjectDeleted,
   publicTasks,
   canEditCampaign = isAdmin,
+  canReview = canEditCampaign,
   invoices = [],
   invoiceHref,
 }: ProjectDetailProps) {
   const [tasks, setTasks] = useState<Task[]>([])
   const [deleting, setDeleting] = useState<string | null>(null)
-  const [tab, setTab] = useState<"tasks" | "about" | "people" | "creatives" | "media" | "payments" | "settings">("about")
+  const [tab, setTab] = useState<CampaignTab>("home")
   const [people, setPeople] = useState<CampaignPerson[]>([])
 
   useEffect(() => watchCampaignPeople(project.id, setPeople, () => setPeople([])), [project.id])
   const [creatives, setCreatives] = useState<CampaignCreative[]>([])
   useEffect(() => watchCampaignCreatives(project.id, setCreatives, () => setCreatives([])), [project.id])
+  // Suggested creators wait in Roster matching; everything else counts only the roster.
+  const roster = people.filter(onRoster)
   const contentItems = creatives.filter((item) => item.kind !== "media")
   const mediaItems = creatives.filter((item) => item.kind === "media")
   const [shareOpen, setShareOpen] = useState(false)
@@ -257,8 +264,9 @@ export function ProjectDetail({
         <div className="flex flex-col gap-4 md:flex-row md:gap-8">
           <nav className="-mx-1 flex shrink-0 gap-1 overflow-x-auto px-1 md:mx-0 md:w-48 md:flex-col md:overflow-visible md:px-0" aria-label="Campaign sections">
             {([
+              { key: "home", label: "Home", icon: House },
               { key: "about", label: "Brief", icon: FileText },
-              { key: "people", label: "Creators", count: people.length, icon: Users },
+              { key: "people", label: "Creators", count: roster.length, icon: Users },
               { key: "creatives", label: "Content", count: contentItems.length, icon: Palette },
               { key: "media", label: "Media", count: mediaItems.length, icon: Images },
               { key: "payments", label: "Payments", icon: DollarSign },
@@ -285,23 +293,15 @@ export function ProjectDetail({
           </nav>
 
           <div className="min-w-0 flex-1">
-            {tab === "about" ? (
-              publicView ? (
-                project.description || project.excerpt || project.summary ? (
-                  <p className="whitespace-pre-wrap text-sm leading-6 text-foreground">{project.description || project.excerpt || project.summary}</p>
-                ) : (
-                  <p className="text-sm text-muted-foreground">No brief yet.</p>
-                )
-              ) : (
-                <div className="space-y-6">
-                  <ProjectTeamPicker project={project} onPatched={onProjectPatched} />
-                  <CaseStudyForm
-                    project={project}
-                    onSaved={onProjectPatched}
-                    onDelete={handleDeleteProject}
-                  />
-                </div>
-              )
+            {tab === "home" ? (
+              <CampaignHome
+                people={roster}
+                content={contentItems}
+                canReview={canReview}
+                onOpen={setTab}
+              />
+            ) : tab === "about" ? (
+              <CampaignBrief project={project} content={contentItems} canEdit={canEditCampaign} onPatched={onProjectPatched} />
             ) : tab === "people" ? (
               <CampaignPeople
                 people={people}
@@ -309,6 +309,10 @@ export function ProjectDetail({
                 companyId={project.companyId || companyId}
                 projectId={project.id}
                 canEdit={canEditCampaign}
+                canReview={canReview}
+                project={project}
+                content={contentItems}
+                onPatched={onProjectPatched}
               />
             ) : tab === "creatives" || tab === "media" ? (
               <CampaignCreatives
@@ -319,16 +323,25 @@ export function ProjectDetail({
                 companyId={project.companyId || companyId}
                 projectId={project.id}
                 canEdit={canEditCampaign}
+                canReview={canReview}
               />
             ) : tab === "payments" ? (
               <CampaignPayments
-                people={people}
+                people={roster}
                 invoices={invoices}
                 canEdit={canEditCampaign}
                 invoiceHref={invoiceHref}
               />
             ) : tab === "settings" ? (
-              <CampaignSettings project={project} onPatched={onProjectPatched} />
+              <div className="space-y-10">
+                <CampaignSettings project={project} onPatched={onProjectPatched} />
+                {isAdmin && (
+                  <div className="max-w-2xl space-y-6 border-t border-border pt-8">
+                    <ProjectTeamPicker project={project} onPatched={onProjectPatched} />
+                    <CaseStudyForm project={project} onSaved={onProjectPatched} onDelete={handleDeleteProject} />
+                  </div>
+                )}
+              </div>
             ) : (
               publicView ? publicTasks : tasksPanel
             )}

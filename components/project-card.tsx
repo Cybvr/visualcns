@@ -18,16 +18,17 @@ function hueFor(seed: string) {
 }
 
 /**
- * The cover on a project card. A stored image wins; otherwise a generated tile
- * carrying the workflow icon, or the first letter of the title.
+ * The cover on a project card. The banner wins, then the profile image; otherwise
+ * a generated tile carrying the workflow icon, or the first letter of the title.
  */
 export function ProjectCover({ project, className = "" }: { project: Project; className?: string }) {
-  if (project.thumbnailUrl) {
+  const image = project.thumbnailUrl || project.logoUrl
+  if (image) {
     return (
       // Thumbnails are arbitrary stored URLs, so this stays a plain img rather
       // than next/image, which would need every host allowlisted in the config.
       // eslint-disable-next-line @next/next/no-img-element
-      <img src={project.thumbnailUrl} alt="" loading="lazy" className={`h-full w-full object-cover ${className}`} />
+      <img src={image} alt="" loading="lazy" className={`h-full w-full object-cover ${className}`} />
     )
   }
 

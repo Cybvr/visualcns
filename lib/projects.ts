@@ -63,6 +63,10 @@ export interface Project {
   caseStudyStatus?: "draft" | "published"
   excerpt?: string
   description?: string
+  /** The one claim a campaign is built on, shown at the top of its Brief. */
+  angle?: string
+  /** How many creators the campaign aims for, e.g. "80–100". */
+  rosterTarget?: string
   category?: string[]
   location?: string
   imageUrl?: string

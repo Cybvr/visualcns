@@ -196,7 +196,6 @@ export function ProjectsSection() {
               )}
               <h2 className="min-w-0 truncate text-xl font-semibold tracking-[-0.02em]">{selectedProject.title}</h2>
             </div>
-            {canCreate && <SectionAddButton label="New campaign" onClick={() => setCreatingProject(true)} />}
           </div>
           <div className="mt-4">
             <ProjectDetail
@@ -208,6 +207,7 @@ export function ProjectsSection() {
               clientName={company.name}
               publicTasks={admin ? undefined : publicTasks}
               canEditCampaign={canCreate}
+              canReview={canCreate || appUser?.companyId === company.id}
               invoices={invoices.filter((invoice) => invoice.projectId === selectedProject.id)}
               invoiceHref={(invoice) => sectionHref("finance", { doc: `invoice:${invoice.id}` })}
               onProjectPatched={(patch) => {

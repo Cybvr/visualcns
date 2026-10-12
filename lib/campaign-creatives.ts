@@ -6,17 +6,30 @@ import { tsToMillis } from "./tasks"
 
 const COLLECTION_NAME = "campaignCreatives"
 
-export const CREATIVE_STATUSES = ["Draft", "In review", "Changes needed", "Approved"] as const
+export const READY_FOR_REVIEW = "Ready for your review"
+export const CREATIVE_STATUSES = ["Draft", READY_FOR_REVIEW, "Changes requested", "Approved"] as const
 
-/** One image, video or link kept with a campaign. */
+// Earlier names for the same statuses, so older posts read the same way.
+const OLD_STATUSES: Record<string, string> = { "In review": READY_FOR_REVIEW, "Changes needed": "Changes requested" }
+
+export function creativeStatus(creative: Pick<CampaignCreative, "status">) {
+  return OLD_STATUSES[creative.status] ?? creative.status ?? "Draft"
+}
+
+/** One written post, image, video or link kept with a campaign. */
 export interface CampaignCreative {
   id: string
   agencyId: string
   companyId: string
   projectId: string
   title: string
+  /** Empty for written posts. */
   url: string
-  type: "image" | "video" | "link"
+  type: "image" | "video" | "link" | "text"
+  /** Who posts it: the client themselves ("Founder") or the creators ("Roster"). */
+  postedBy?: string
+  /** The words of a written post or hook. */
+  body?: string
   /** Content is work made for the campaign and reviewed; media is raw files kept with it. Older rows have no kind and count as content. */
   kind?: "content" | "media"
   status: string
@@ -39,21 +52,21 @@ export function watchCampaignCreatives(projectId: string, onChange: (creatives: 
 
 export async function addCampaignCreative(
   scope: { agencyId?: string; companyId: string; projectId: string },
-  creative: Pick<CampaignCreative, "title" | "url" | "type"> & { kind: "content" | "media" },
+  creative: Pick<CampaignCreative, "title" | "url" | "type"> & { kind: "content" | "media"; body?: string; status?: string; postedBy?: string },
 ) {
   const now = Timestamp.now()
   await addDoc(collection(db, COLLECTION_NAME), {
     agencyId: scope.agencyId || await getCurrentAgencyId(),
     companyId: scope.companyId,
     projectId: scope.projectId,
-    ...creative,
     status: "Draft",
+    ...creative,
     createdAt: now,
     updatedAt: now,
   })
 }
 
-export async function updateCampaignCreative(id: string, patch: Partial<Pick<CampaignCreative, "title" | "status">>) {
+export async function updateCampaignCreative(id: string, patch: Partial<Pick<CampaignCreative, "title" | "status" | "body" | "postedBy">>) {
   await updateDoc(doc(db, COLLECTION_NAME, id), { ...patch, updatedAt: Timestamp.now() })
 }
 

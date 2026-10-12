@@ -43,7 +43,7 @@ export function CampaignPayments({ people, invoices, canEdit, invoiceHref }: Cam
   return (
     <div className="space-y-8">
       <section>
-        <h3 className="text-sm font-medium text-muted-foreground">Creator payments</h3>
+        <h3 className="text-lg font-semibold tracking-[-0.01em] text-foreground">Creators</h3>
         <div className="mt-3 grid gap-3 sm:grid-cols-3">
           <Tile label="Total" value={naira(total)} />
           <Tile label="Paid" value={naira(settled)} />
@@ -51,7 +51,7 @@ export function CampaignPayments({ people, invoices, canEdit, invoiceHref }: Cam
         </div>
 
         {paidPeople.length === 0 ? (
-          <p className="mt-4 text-sm text-muted-foreground">No creators on this campaign are being paid yet. Add pay in the Creators tab.</p>
+          <p className="mt-4 text-sm text-muted-foreground">No one to pay yet.</p>
         ) : (
           <div className="mt-4 overflow-x-auto">
             <table className="w-full min-w-[480px] text-left text-sm">
@@ -85,9 +85,9 @@ export function CampaignPayments({ people, invoices, canEdit, invoiceHref }: Cam
       </section>
 
       <section>
-        <h3 className="text-sm font-medium text-muted-foreground">Invoices</h3>
+        <h3 className="text-lg font-semibold tracking-[-0.01em] text-foreground">Invoices</h3>
         {invoices.length === 0 ? (
-          <p className="mt-3 text-sm text-muted-foreground">No invoices for this campaign yet.</p>
+          <p className="mt-3 text-sm text-muted-foreground">No invoices yet.</p>
         ) : (
           <div className="mt-3 divide-y divide-border border-y border-border">
             {invoices.map((invoice) => {

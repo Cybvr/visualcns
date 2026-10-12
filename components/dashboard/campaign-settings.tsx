@@ -84,7 +84,7 @@ export function CampaignSettings({ project, onPatched }: { project: Project; onP
               // eslint-disable-next-line @next/next/no-img-element
               <img src={project.logoUrl} alt="" className="size-full object-cover" />
             ) : (
-              <ProjectCover project={{ ...project, thumbnailUrl: "" }} />
+              <ProjectCover project={{ ...project, thumbnailUrl: "", logoUrl: "" }} />
             )}
           </div>
           <div className="flex flex-wrap gap-2">
@@ -106,7 +106,7 @@ export function CampaignSettings({ project, onPatched }: { project: Project; onP
       <section className="space-y-3">
         <Label>Banner</Label>
         <div className="aspect-[3/1] w-full overflow-hidden rounded-2xl bg-muted">
-          <ProjectCover project={project} />
+          <ProjectCover project={{ ...project, logoUrl: "" }} />
         </div>
         <div className="flex flex-wrap gap-2">
           <Button type="button" variant="outline" disabled={busy === "banner"} onClick={() => bannerInput.current?.click()} className="gap-1.5">
@@ -120,7 +120,6 @@ export function CampaignSettings({ project, onPatched }: { project: Project; onP
             </Button>
           )}
         </div>
-        <p className="text-sm text-muted-foreground">The banner is also the picture on the campaign&apos;s card.</p>
         <input ref={bannerInput} type="file" accept="image/*" hidden onChange={(event) => { void upload(event.target.files?.[0], "banner"); event.target.value = "" }} />
       </section>
     </div>

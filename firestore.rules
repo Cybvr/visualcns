@@ -116,18 +116,24 @@ service cloud.firestore {
     }
 
     // Creators booked on a campaign. Readable by anyone, like the campaign itself.
+    // The client's own people can add a suggested creator to the roster or take one off.
     match /campaignPeople/{id} {
       allow read: if true;
       allow create: if isAdmin() && sameAgency(request.resource.data);
-      allow update: if agencyAdmin(resource.data) && sameAgency(request.resource.data);
+      allow update: if (agencyAdmin(resource.data) && sameAgency(request.resource.data))
+        || (owns(resource.data) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['onRoster', 'updatedAt']));
       allow delete: if agencyAdmin(resource.data);
     }
 
-    // Artwork, videos and links made for a campaign. Readable by anyone, like the campaign itself.
+    // Posts, artwork, videos and links made for a campaign. Readable by anyone, like the campaign itself.
+    // The client's own people can suggest a written post, edit post text and approve or send it back.
     match /campaignCreatives/{id} {
       allow read: if true;
-      allow create: if isAdmin() && sameAgency(request.resource.data);
-      allow update: if agencyAdmin(resource.data) && sameAgency(request.resource.data);
+      allow create: if (isAdmin() && sameAgency(request.resource.data))
+        || (owns(request.resource.data) && request.resource.data.type == 'text' && request.resource.data.status == 'Draft');
+      allow update: if (agencyAdmin(resource.data) && sameAgency(request.resource.data))
+        || (owns(resource.data) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'body', 'updatedAt'])
+          && request.resource.data.status in ['Draft', 'Ready for your review', 'Changes requested', 'Approved', 'In review', 'Changes needed']);
       allow delete: if agencyAdmin(resource.data);
     }
 

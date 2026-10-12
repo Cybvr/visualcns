@@ -29,11 +29,17 @@ export interface CampaignPerson {
   paid: boolean
   /** The post is marked as an ad. */
   labelled: boolean
+  /** What they make content about, e.g. Engineering. */
+  category?: string
+  /** How much their audience matches the client's, 0 to 100. */
+  overlap?: number
+  /** False for a suggested creator the client hasn't added yet. Older rows have no value and are on the roster. */
+  onRoster?: boolean
   createdAt?: Timestamp
   updatedAt?: Timestamp
 }
 
-export type CampaignPersonInput = Pick<CampaignPerson, "handle" | "app" | "followers" | "tier" | "pay">
+export type CampaignPersonInput = Pick<CampaignPerson, "handle" | "app" | "followers" | "tier" | "pay"> & Partial<Pick<CampaignPerson, "category" | "overlap" | "onRoster">>
 
 /** Live list of everyone on one campaign, oldest first so the order stays put while editing. */
 export function watchCampaignPeople(projectId: string, onChange: (people: CampaignPerson[]) => void, onError?: (error: Error) => void) {
@@ -72,6 +78,9 @@ export async function addCampaignPeople(scope: { agencyId?: string; companyId: s
       pay: person.pay,
       paid: false,
       labelled: false,
+      category: person.category ?? "",
+      overlap: person.overlap ?? 0,
+      onRoster: person.onRoster ?? true,
       createdAt: now,
       updatedAt: now,
     })
@@ -92,4 +101,14 @@ export function parseCount(value: string): number {
   if (!match) return 0
   const multiplier = match[2] === "k" ? 1_000 : match[2] === "m" ? 1_000_000 : 1
   return Math.round(Number(match[1]) * multiplier)
+}
+
+export const onRoster = (person: Pick<CampaignPerson, "onRoster">) => person.onRoster !== false
+
+/** Short follower counts: 950, 15k, 1.2m. */
+export function compactCount(value: number) {
+  if (!value) return "—"
+  if (value >= 1_000_000) return `${Number((value / 1_000_000).toFixed(1))}m`
+  if (value >= 1_000) return `${Number((value / 1_000).toFixed(value >= 100_000 ? 0 : 1))}k`
+  return String(value)
 }
