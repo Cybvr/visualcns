@@ -59,7 +59,7 @@ For creator suggestions, use only the supplied Firecrawl evidence. Never invent 
 
 const clip = (value: unknown, max: number) => String(value ?? "").replace(/\s+/g, " ").trim().slice(0, max)
 
-function creatorFromResult(entry: Partial<Document & SearchResultWeb>): CreatorEvidence | null {
+function creatorFromResult(entry: Partial<Document & SearchResultWeb & { snippet?: string }>): CreatorEvidence | null {
   const url = entry.url || entry.metadata?.sourceURL || entry.metadata?.url
   if (!url) return null
   try {

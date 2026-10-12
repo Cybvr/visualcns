@@ -237,8 +237,8 @@ export function CompanyProfileShell({ children }: { children: ReactNode }) {
             </div>
           </header>
           <main className={cn(
-            "min-w-0 flex-1 bg-card px-4 pb-16 sm:px-6 md:m-3 md:mt-0 md:rounded-2xl md:pb-6 md:shadow-[0_6px_24px_rgba(15,23,42,0.04)] lg:px-8",
-            recordOpen ? "pt-2 sm:pt-3" : "pt-4 sm:pt-6",
+            "min-w-0 flex-1 bg-card px-3 pb-16 sm:px-6 md:m-3 md:mt-0 md:rounded-2xl md:pb-6 md:shadow-[0_6px_24px_rgba(15,23,42,0.04)] lg:px-8",
+            recordOpen ? "pt-2 sm:pt-3" : "pt-1 sm:pt-6",
           )}>
             {(isSettingsPage || section !== "about") && pageLabel && !recordOpen && (
               <div className="mb-0.5 flex items-center justify-between gap-3">
