@@ -24,6 +24,10 @@ import { buildEmailComposeHref } from "@/lib/email-composer"
 import { deleteProjectWithTasks, renameProject, slugify, type Project } from "@/lib/projects"
 import { deleteTask, getTasksByCompanyId, tsToMillis, updateTask, type Task } from "@/lib/tasks"
 import { companyPath } from "@/lib/navigation"
+import { useUrlSelection } from "@/hooks/use-url-selection"
+
+const VIEW_FROM_TAB: Record<CampaignTab, string> = { home: "", about: "brief", people: "creators", creatives: "content", media: "media", payments: "payments", tasks: "tasks", settings: "settings" }
+const TAB_FROM_VIEW: Record<string, CampaignTab> = Object.fromEntries(Object.entries(VIEW_FROM_TAB).map(([tab, view]) => [view, tab as CampaignTab]))
 
 interface ProjectDetailProps {
   project: Project
@@ -67,7 +71,10 @@ export function ProjectDetail({
 }: ProjectDetailProps) {
   const [tasks, setTasks] = useState<Task[]>([])
   const [deleting, setDeleting] = useState<string | null>(null)
-  const [tab, setTab] = useState<CampaignTab>("home")
+  // Each tab has its own address (?view=creators), so it can be linked, refreshed and gone back to.
+  const [view, setView] = useUrlSelection("view")
+  const tab = TAB_FROM_VIEW[view ?? ""] ?? "home"
+  const setTab = (next: CampaignTab) => setView(next === "home" ? null : VIEW_FROM_TAB[next])
   const [people, setPeople] = useState<CampaignPerson[]>([])
   const [peopleLoaded, setPeopleLoaded] = useState(false)
 

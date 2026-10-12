@@ -42,6 +42,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 
+import { AppSwitcher } from "@/components/dashboard/app-switcher"
+import { NgaiHeaderButton } from "@/components/agent/agent-header-button"
+
 const NgaiSidePanel = dynamic(() => import("@/components/agent/ngai-side-panel").then((module) => module.NgaiSidePanel), { ssr: false })
 
 export type { NavLink }
@@ -252,6 +255,8 @@ export function DashboardShell({
               <div ref={setHeaderSlot} className="contents" />
               {headerActions}
               {!isCompanyDetailRoute && <DashboardHeaderTeam />}
+              <AppSwitcher />
+              <NgaiHeaderButton />
               {!isCompanyDetailRoute && !isBackDetailRoute && (
                 <QuickCreateMenu
                   onSelect={selectQuickCreate}

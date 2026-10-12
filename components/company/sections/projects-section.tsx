@@ -71,13 +71,25 @@ export function ProjectsSection() {
     if (project) setSelectedProject((current) => current?.id === project.id ? current : project)
   }, [linkedTaskId, projects, tasks])
 
-  // The home page's campaign cards link here with ?campaign= to open one straight away.
+  // The open campaign follows the address, so links, refresh and the back button all work.
   const linkedCampaignId = searchParams.get("campaign")
   useEffect(() => {
-    if (!linkedCampaignId) return
+    if (!linkedCampaignId) {
+      if (!linkedTaskId) setSelectedProject(null)
+      return
+    }
     const project = projects.find((item) => item.id === linkedCampaignId)
     if (project) setSelectedProject((current) => current?.id === project.id ? current : project)
-  }, [linkedCampaignId, projects])
+  }, [linkedCampaignId, linkedTaskId, projects])
+
+  // An open campaign lives in the address (?campaign=id), with its tab as ?view=.
+  function openCampaign(project: Project) {
+    updateParams({ campaign: project.id, view: null, task: null })
+  }
+
+  function closeCampaign() {
+    updateParams({ campaign: null, view: null, task: null })
+  }
 
   // Campaign edits show at once, before the company data reloads.
   function patchSelected(patch: Partial<Project>) {
@@ -219,10 +231,7 @@ export function ProjectsSection() {
                 <ChevronRight className="size-4 text-muted-foreground/60" aria-hidden="true" />
                 <button
                   type="button"
-                  onClick={() => {
-                    setSelectedProject(null)
-                    if (linkedTaskId || linkedCampaignId) updateParams({ task: null, campaign: null }, true)
-                  }}
+                  onClick={closeCampaign}
                   className="rounded-md px-2 py-2 text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   Campaigns
@@ -255,7 +264,7 @@ export function ProjectsSection() {
               onProjectPatched={patchSelected}
               onProjectDeleted={admin ? async () => {
                 await admin.reload()
-                setSelectedProject(null)
+                closeCampaign()
               } : undefined}
             />
           </div>
@@ -286,7 +295,7 @@ export function ProjectsSection() {
                 {results.map((project) => (
                   <GridCard
                     key={project.id}
-                    onClick={() => setSelectedProject(project)}
+                    onClick={() => openCampaign(project)}
                     ariaLabel={`Open ${project.title}`}
                     title={project.title}
                     subtitle={modifiedLabel(project)}
@@ -310,7 +319,7 @@ export function ProjectsSection() {
                   subtitle={modifiedLabel(project)}
                   icon={<Megaphone className="size-5 text-amber-600 dark:text-amber-400" aria-hidden="true" />}
                   trailing={project.dueDate || undefined}
-                  onClick={() => setSelectedProject(project)}
+                  onClick={() => openCampaign(project)}
                   ariaLabel={`Open ${project.title}`}
                   menuLabel={`Options for ${project.title}`}
                   menu={projectMenu(project)}
@@ -393,7 +402,7 @@ export function ProjectsSection() {
           onCreated={async (project) => {
             if (admin) await admin.reload()
             else setAddedProjects((current) => [project, ...current])
-            setSelectedProject(project)
+            openCampaign(project)
           }}
         />
       )}

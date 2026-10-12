@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import Image from "next/image"
 import { History, LogIn, Plus, X } from "lucide-react"
 
@@ -115,32 +115,51 @@ function NgaiPanel({ onClose }: { onClose: () => void }) {
   )
 }
 
+/** Opens or closes the Ngai panel from anywhere on a company page, e.g. the header icon. */
+const TOGGLE_EVENT = "ngai:toggle"
+
+function useNgaiAvailable() {
+  const { section } = useCompanyPage()
+  // The Ngai section already is the chat.
+  return section !== "ngai"
+}
+
+/** The Ngai icon in the company page header. */
+export function NgaiCompanyHeaderButton() {
+  const available = useNgaiAvailable()
+  if (!available) return null
+  return (
+    <button
+      type="button"
+      onClick={() => window.dispatchEvent(new Event(TOGGLE_EVENT))}
+      aria-label="Ask Ngai"
+      title="Ask Ngai"
+      className="grid size-9 place-items-center rounded-full outline-none transition-colors hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring"
+    >
+      <Image src="/ngai-logo.png" alt="" width={20} height={20} className="rounded-full" />
+    </button>
+  )
+}
+
 /**
- * Ngai on company pages: a button bottom right that opens a chat panel.
- * Members chat; anyone else is asked to sign in. Admins use Ngai in the dashboard.
+ * Ngai on company pages: a chat panel opened from the header icon.
+ * Members chat; anyone else is asked to sign in.
  */
 export function NgaiWidget() {
-  const { appUser } = useAuth()
-  const { section } = useCompanyPage()
+  const available = useNgaiAvailable()
   const [open, setOpen] = useState(false)
-  if (section === "ngai" || appUser?.role === "admin" || appUser?.role === "superadmin") return null
+
+  useEffect(() => {
+    const toggle = () => setOpen((current) => !current)
+    window.addEventListener(TOGGLE_EVENT, toggle)
+    return () => window.removeEventListener(TOGGLE_EVENT, toggle)
+  }, [])
+
+  if (!available || !open) return null
 
   return (
     <AgentProvider surface="client_portal">
-      {open && <NgaiPanel onClose={() => setOpen(false)} />}
-      <button
-        type="button"
-        onClick={() => setOpen((current) => !current)}
-        aria-label={open ? "Close Ngai" : "Ask Ngai"}
-        aria-expanded={open}
-        className={cn(
-          "fixed bottom-5 right-5 z-40 flex h-12 items-center gap-2 rounded-full bg-foreground pl-2 pr-4 text-sm font-medium text-background shadow-lg outline-none transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring print:hidden",
-          open && "max-sm:hidden",
-        )}
-      >
-        <Image src="/ngai-logo.png" alt="" width={32} height={32} className="rounded-full" />
-        {open ? "Close" : "Ask Ngai"}
-      </button>
+      <NgaiPanel onClose={() => setOpen(false)} />
     </AgentProvider>
   )
 }

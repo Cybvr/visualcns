@@ -9,7 +9,8 @@ import { Bell, LogIn, Search, Settings, Sparkles } from "lucide-react"
 import { useAuth } from "@/components/auth-provider"
 import { BrandLockup } from "@/components/brand-lockup"
 import { useCompanyPage } from "@/components/company/company-page-context"
-import { NgaiWidget } from "@/components/company/ngai-widget"
+import { NgaiCompanyHeaderButton, NgaiWidget } from "@/components/company/ngai-widget"
+import { AppSwitcher } from "@/components/dashboard/app-switcher"
 import { useSubscription } from "@/components/company/company-plan"
 import { UpgradeModal } from "@/components/company/upgrade-modal"
 import { HeaderTeam } from "@/components/company/header-team"
@@ -231,6 +232,8 @@ export function CompanyProfileShell({ children }: { children: ReactNode }) {
                 canManageTeam={canManageTeam}
                 shareUrl={absoluteUrl(`/${encodeURIComponent(company.slug || company.id)}`)}
               />
+              <AppSwitcher />
+              <NgaiCompanyHeaderButton />
               <Button asChild variant="ghost" size="icon" className={cn("rounded-full text-foreground hover:bg-muted/50 active:bg-muted/50", isSettingsPage && "bg-muted/50")}>
                 <Link href={settingsHref} aria-label="Settings" title="Settings" aria-current={isSettingsPage ? "page" : undefined}>
                   <Settings className="size-[18px]" aria-hidden="true" />

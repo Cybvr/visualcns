@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { useEffect, useState } from "react"
 import { useTheme } from "next-themes"
-import { ChevronsUpDown, LogOut, Moon, Palette, UserCog } from "lucide-react"
+import { ChevronsUpDown, LogOut, Moon, UserCog } from "lucide-react"
 
 import { useAuth } from "@/components/auth-provider"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -91,12 +91,6 @@ export function NavUser() {
               <Link href="/dashboard/account">
                 <UserCog />
                 Account
-              </Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <Link href="/dashboard/account/customization">
-                <Palette />
-                Customization
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem onSelect={(event) => event.preventDefault()}>
