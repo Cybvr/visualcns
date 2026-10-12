@@ -58,9 +58,20 @@ export type PulseReport = {
 
 export type PulseAnswer = { question: string; text: string; sources: string[] }
 
-/** What the route returns for a company. */
+/** One saved report and the items marked done or dismissed on it. */
 export type PulseState = {
+  id?: string
   report: PulseReport | null
   done: string[]
   dismissed: string[]
+}
+
+/** A saved report as it shows in the list of reports. */
+export type PulseReportSummary = {
+  id: string
+  scannedAt: string
+  score: number
+  summary: string
+  attention: number
+  opportunities: number
 }

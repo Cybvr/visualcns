@@ -11,7 +11,7 @@ import { AboutSection } from "@/components/company/sections/about-section"
 import { ActivitySection } from "@/components/company/sections/activity-section"
 import { DocumentsSection } from "@/components/company/sections/documents-section"
 import { ProjectsSection } from "@/components/company/sections/projects-section"
-import { TasksSection } from "@/components/company/sections/tasks-section"
+import { NotesSection } from "@/components/company/sections/notes-section"
 import { TeamSection } from "@/components/company/sections/team-section"
 
 /** Documents and media in one grid. An open document takes the whole page. */
@@ -61,7 +61,8 @@ function PulseSection() {
 
 const SECTION_COMPONENTS: Record<CompanySectionKey, ComponentType> = {
   projects: ProjectsSection,
-  tasks: TasksSection,
+  tasks: ProjectsSection,
+  notes: NotesSection,
   about: AboutSection,
   team: TeamSection,
   activity: ActivitySection,

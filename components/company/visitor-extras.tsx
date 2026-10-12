@@ -1,8 +1,8 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, type ReactNode } from "react"
 import QRCode from "qrcode"
-import { Download, Loader2, RefreshCw, Send } from "lucide-react"
+import { ChevronDown, Download, Loader2, RefreshCw, Send } from "lucide-react"
 import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
@@ -134,93 +134,123 @@ export function VisitorExtras({ companyId, slug }: { companyId: string; slug: st
 
   if (!settings) return null
 
+  const connected = [settings.slackUrl && "Slack", settings.teamsUrl && "Teams", settings.webhookUrl && "Webhook"].filter(Boolean).join(", ")
+
   return (
-    <div className="mt-4 space-y-3 border-t border-border pt-4">
-      <details className="group">
-        <summary className="flex w-full cursor-pointer items-center justify-between gap-3 rounded-sm text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring">
-          <span className="font-semibold text-foreground">Phone sign-in with a QR code</span>
-          <span className="text-xs text-muted-foreground">{settings.qrKey ? "On" : "Off"}</span>
-        </summary>
-        <div className="mt-3 space-y-3">
-          <div className="flex items-start justify-between gap-4">
-            <p className="text-sm text-muted-foreground">Print it for reception. Visitors scan it to sign in on their phone.</p>
-            <Switch checked={Boolean(settings.qrKey)} onCheckedChange={(checked) => void setQr(checked)} disabled={busy === "qr"} aria-label="Phone sign-in" />
-          </div>
-          {phoneLink && qrImage && (
-            <div className="flex flex-wrap items-end gap-4">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={qrImage} alt="QR code for signing in on a phone" className="size-40 rounded-lg border border-border bg-white" />
-              <div className="flex flex-wrap gap-2">
-                <Button type="button" size="sm" asChild>
-                  <a href={qrImage} download={`sign-in-qr-${slug}.png`}><Download className="size-4" aria-hidden="true" /> Download</a>
-                </Button>
-                <Button type="button" variant="ghost" size="sm" onClick={() => void resetQr()} disabled={busy === "qr"}>
-                  <RefreshCw className="size-4" aria-hidden="true" /> New code
-                </Button>
-              </div>
-            </div>
-          )}
-        </div>
-      </details>
-
-      <details className="group">
-        <summary className="flex w-full cursor-pointer items-center justify-between gap-3 rounded-sm text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring">
-          <span className="font-semibold text-foreground">Visitor terms (NDA)</span>
-          <span className="text-xs text-muted-foreground">{settings.agreement.enabled ? "On" : "Off"}</span>
-        </summary>
-        <div className="mt-3 space-y-3">
-          <div className="flex items-start justify-between gap-4">
-            <p className="text-sm text-muted-foreground">Visitors tick &quot;I agree to the terms&quot; to sign in.</p>
-            <Switch
-              checked={agreement.enabled}
-              onCheckedChange={(enabled) => (enabled
-                ? setAgreement((current) => ({ enabled, title: current.title || DEFAULT_TERMS.title, text: current.text || DEFAULT_TERMS.text }))
-                : void saveAgreement({ ...agreement, enabled }))}
-              disabled={busy === "agreement"}
-              aria-label="Visitor agreement"
-            />
-          </div>
-          {agreement.enabled && (
-            <>
-              <div className="space-y-1.5">
-                <Label htmlFor="agreement-title">Title</Label>
-                <Input id="agreement-title" value={agreement.title} maxLength={80} onChange={(event) => setAgreement((current) => ({ ...current, title: event.target.value }))} placeholder="Non-disclosure agreement" />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="agreement-text">Text</Label>
-                <Textarea id="agreement-text" value={agreement.text} maxLength={6000} rows={6} onChange={(event) => setAgreement((current) => ({ ...current, text: event.target.value }))} placeholder="Paste your NDA, safety rules or visitor terms." />
-              </div>
-              <Button type="button" size="sm" onClick={() => void saveAgreement()} disabled={busy === "agreement"}>
-                {busy === "agreement" && <Loader2 className="size-4 animate-spin" aria-hidden="true" />} Save terms
+    <>
+      <SettingRow
+        title="Phone sign-in"
+        description="Visitors scan a QR code to sign in on their own phone."
+        control={<Switch checked={Boolean(settings.qrKey)} onCheckedChange={(checked) => void setQr(checked)} disabled={busy === "qr"} aria-label="Phone sign-in" />}
+      >
+        {phoneLink && qrImage && (
+          <div className="flex items-center gap-4">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={qrImage} alt="QR code for signing in on a phone" className="size-24 rounded-md border border-border bg-white" />
+            <div className="flex flex-col items-start gap-1">
+              <Button type="button" variant="ghost" size="sm" asChild className="-ml-3">
+                <a href={qrImage} download={`sign-in-qr-${slug}.png`}><Download className="size-4" aria-hidden="true" /> Download</a>
               </Button>
-            </>
-          )}
-        </div>
-      </details>
+              <Button type="button" variant="ghost" size="sm" onClick={() => void resetQr()} disabled={busy === "qr"} className="-ml-3 text-muted-foreground">
+                <RefreshCw className="size-4" aria-hidden="true" /> Reset code
+              </Button>
+            </div>
+          </div>
+        )}
+      </SettingRow>
 
-      <details className="group">
-        <summary className="flex w-full cursor-pointer items-center justify-between gap-3 rounded-sm text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring">
-          <span className="font-semibold text-foreground">Slack, Teams and webhooks</span>
-          <span className="text-xs text-muted-foreground">{[settings.slackUrl && "Slack", settings.teamsUrl && "Teams", settings.webhookUrl && "Webhook"].filter(Boolean).join(" · ") || "Off"}</span>
-        </summary>
-        <div className="mt-3 space-y-5">
+      <SettingRow
+        title="Visitor terms"
+        description="Visitors agree to your terms or NDA before signing in."
+        control={
+          <Switch
+            checked={agreement.enabled}
+            onCheckedChange={(enabled) => (enabled
+              ? setAgreement((current) => ({ enabled, title: current.title || DEFAULT_TERMS.title, text: current.text || DEFAULT_TERMS.text }))
+              : void saveAgreement({ ...agreement, enabled }))}
+            disabled={busy === "agreement"}
+            aria-label="Visitor terms"
+          />
+        }
+      >
+        {agreement.enabled && (
+          <div className="space-y-3">
+            <Input aria-label="Terms title" value={agreement.title} maxLength={80} onChange={(event) => setAgreement((current) => ({ ...current, title: event.target.value }))} placeholder="Title" />
+            <Textarea aria-label="Terms text" value={agreement.text} maxLength={6000} rows={5} onChange={(event) => setAgreement((current) => ({ ...current, text: event.target.value }))} placeholder="Paste your NDA, safety rules or visitor terms." />
+            <Button type="button" size="sm" onClick={() => void saveAgreement()} disabled={busy === "agreement"}>
+              {busy === "agreement" && <Loader2 className="size-4 animate-spin" aria-hidden="true" />} Save
+            </Button>
+          </div>
+        )}
+      </SettingRow>
+
+      <SettingRow
+        title="Notifications"
+        description={connected ? `Sign-ins post to ${connected}.` : "Post each sign-in to Slack, Teams or a webhook."}
+        collapsible
+      >
+        <div className="space-y-4">
           {CONNECTIONS.map(({ kind, field, label, placeholder, help }) => (
             <div key={kind} className="space-y-1.5">
-              <Label htmlFor={`connection-${kind}`}>{label}</Label>
-              <Input id={`connection-${kind}`} type="url" inputMode="url" value={urls[field]} onChange={(event) => setUrls((current) => ({ ...current, [field]: event.target.value }))} placeholder={placeholder} />
-              <p className="text-xs text-muted-foreground">{help}</p>
-              <div className="flex flex-wrap gap-2 pt-1">
-                <Button type="button" size="sm" onClick={() => void saveConnection(field)} disabled={busy === field || urls[field] === settings[field]}>
-                  {busy === field && <Loader2 className="size-4 animate-spin" aria-hidden="true" />} {urls[field] || !settings[field] ? "Save" : "Remove"}
+              <Label htmlFor={`connection-${kind}`} className="text-sm">{label}</Label>
+              <div className="flex gap-2">
+                <Input id={`connection-${kind}`} type="url" inputMode="url" value={urls[field]} onChange={(event) => setUrls((current) => ({ ...current, [field]: event.target.value }))} placeholder={placeholder} title={help} />
+                <Button type="button" variant="outline" size="sm" className="h-9 shrink-0" onClick={() => void saveConnection(field)} disabled={busy === field || urls[field] === settings[field]}>
+                  {busy === field ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : urls[field] || !settings[field] ? "Save" : "Remove"}
                 </Button>
-                <Button type="button" variant="outline" size="sm" onClick={() => void test(kind, field)} disabled={!urls[field] || busy === `test-${kind}`}>
-                  {busy === `test-${kind}` ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <Send className="size-4" aria-hidden="true" />} Send test
+                <Button type="button" variant="ghost" size="icon" className="size-9 shrink-0" onClick={() => void test(kind, field)} disabled={!urls[field] || busy === `test-${kind}`} aria-label={`Send a test to ${label}`} title="Send test">
+                  {busy === `test-${kind}` ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <Send className="size-4" aria-hidden="true" />}
                 </Button>
               </div>
             </div>
           ))}
         </div>
-      </details>
+      </SettingRow>
+    </>
+  )
+}
+
+/**
+ * One line of a settings list: name and a short description on the left, its
+ * switch on the right, and its options underneath when it's on. A collapsible
+ * row has no switch and opens with a chevron instead.
+ */
+export function SettingRow({
+  title,
+  description,
+  control,
+  collapsible = false,
+  children,
+}: {
+  title: string
+  description: string
+  control?: ReactNode
+  collapsible?: boolean
+  children?: ReactNode
+}) {
+  const [open, setOpen] = useState(false)
+  const showChildren = collapsible ? open : Boolean(children)
+
+  return (
+    <div className="border-t border-border py-4 first:border-t-0 first:pt-0">
+      <div className="flex items-center justify-between gap-6">
+        <div className="min-w-0">
+          <p className="text-sm font-medium text-foreground">{title}</p>
+          <p className="mt-0.5 text-sm text-muted-foreground">{description}</p>
+        </div>
+        {collapsible ? (
+          <button
+            type="button"
+            onClick={() => setOpen((current) => !current)}
+            aria-expanded={open}
+            aria-label={open ? `Hide ${title}` : `Show ${title}`}
+            className="flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <ChevronDown className={`size-4 transition-transform ${open ? "rotate-180" : ""}`} aria-hidden="true" />
+          </button>
+        ) : control}
+      </div>
+      {showChildren && children && <div className="mt-4">{children}</div>}
     </div>
   )
 }

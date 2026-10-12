@@ -13,7 +13,6 @@ import {
 } from "firebase/firestore"
 import { db } from "./firebase"
 import { getCurrentAgencyId } from "./agency-scope"
-import { syncPortalProject, deleteAgencyRecord } from "./portal-data"
 import {
   createTask,
   deleteTask,
@@ -103,28 +102,11 @@ export async function getProjectsByCompanyId(companyId: string): Promise<Project
   return snapshot.docs.map((d) => ({ ...(d.data() as object), id: d.id })) as Project[]
 }
 
-/** Client-facing projects for an anonymous company profile. */
+/** Every project for a company, readable on the public company page. */
 export async function getPublicProjectsByCompanyId(companyId: string): Promise<Project[]> {
   if (!companyId) return []
-  const snapshot = await getDocs(query(collection(db, "portalProjects"), where("companyId", "==", companyId)))
-  return snapshot.docs.map((d) => {
-    const data = d.data() as Record<string, unknown>
-    return {
-      id: d.id,
-      agencyId: typeof data.agencyId === "string" ? data.agencyId : undefined,
-      companyId,
-      client: typeof data.client === "string" ? data.client : "",
-      title: typeof data.title === "string" ? data.title : "Untitled project",
-      service: typeof data.service === "string" ? data.service : "",
-      status: data.status as ProjectStatus,
-      progress: typeof data.progress === "number" ? data.progress : 0,
-      dueDate: typeof data.dueDate === "string" ? data.dueDate : "",
-      slug: typeof data.legacySlug === "string" ? data.legacySlug : undefined,
-      thumbnailUrl: typeof data.thumbnailUrl === "string" ? data.thumbnailUrl : "",
-      summary: typeof data.summary === "string" ? data.summary : "",
-      description: typeof data.summary === "string" ? data.summary : "",
-    }
-  })
+  const snapshot = await getDocs(query(collection(db, COLLECTION_NAME), where("companyId", "==", companyId)))
+  return snapshot.docs.map((d) => ({ ...(d.data() as object), id: d.id })) as Project[]
 }
 
 export async function getProject(id: string): Promise<Project | null> {
@@ -173,11 +155,11 @@ export async function createProject(data: Omit<Project, "id" | "createdAt" | "up
 }
 
 export async function updateProject(id: string, data: Partial<Omit<Project, "id" | "createdAt">>): Promise<void> {
-  await syncPortalProject(id, data)
+  await updateDoc(doc(db, COLLECTION_NAME, id), { ...data, updatedAt: Timestamp.now() })
 }
 
 export async function deleteProject(id: string): Promise<void> {
-  await deleteAgencyRecord("projects", id)
+  await deleteDoc(doc(db, COLLECTION_NAME, id))
 }
 
 /**

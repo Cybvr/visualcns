@@ -15,6 +15,7 @@ function normalizeDate(value: unknown, fallback = "") {
 export type Note = {
   id: string
   agencyId: string
+  companyId?: string
   createdBy: string
   title: string
   body: string
@@ -22,9 +23,10 @@ export type Note = {
   updatedAt: string
 }
 
-/** Live list of the agency's notes, most recently edited first. */
-export function watchNotes(agencyId: string, onChange: (notes: Note[]) => void, onError: (error: Error) => void) {
-  const notesQuery = query(collection(db, COLLECTION_NAME), where("agencyId", "==", agencyId))
+function watchScopedNotes(agencyId: string, companyId: string | undefined, onChange: (notes: Note[]) => void, onError: (error: Error) => void) {
+  const notesQuery = companyId
+    ? query(collection(db, COLLECTION_NAME), where("agencyId", "==", agencyId), where("companyId", "==", companyId))
+    : query(collection(db, COLLECTION_NAME), where("agencyId", "==", agencyId))
   return onSnapshot(
     notesQuery,
     (snapshot) => onChange(
@@ -37,6 +39,7 @@ export function watchNotes(agencyId: string, onChange: (notes: Note[]) => void, 
           return {
             id: item.id,
             agencyId: typeof data.agencyId === "string" ? data.agencyId : "",
+            companyId: typeof data.companyId === "string" ? data.companyId : undefined,
             createdBy: typeof data.createdBy === "string" ? data.createdBy : "",
             title: typeof data.title === "string" ? data.title : "",
             body: typeof data.body === "string" ? data.body : "",
@@ -50,10 +53,28 @@ export function watchNotes(agencyId: string, onChange: (notes: Note[]) => void, 
   )
 }
 
-export async function createNote(uid: string): Promise<string> {
+/** Live list of agency-wide notes, excluding notes filed against a company. */
+export function watchNotes(agencyId: string, onChange: (notes: Note[]) => void, onError: (error: Error) => void) {
+  return watchScopedNotes(agencyId, undefined, (notes) => onChange(notes.filter((note) => !note.companyId)), onError)
+}
+
+/** Live list of notes belonging to one company. */
+export function watchCompanyNotes(agencyId: string, companyId: string, onChange: (notes: Note[]) => void, onError: (error: Error) => void) {
+  return watchScopedNotes(agencyId, companyId, onChange, onError)
+}
+
+export async function createNote(uid: string, companyId?: string): Promise<string> {
   const ref = doc(collection(db, COLLECTION_NAME))
   const now = new Date().toISOString()
-  await setDoc(ref, { agencyId: await getCurrentAgencyId(), createdBy: uid, title: "", body: "", createdAt: now, updatedAt: now })
+  await setDoc(ref, {
+    agencyId: await getCurrentAgencyId(),
+    ...(companyId ? { companyId } : {}),
+    createdBy: uid,
+    title: "",
+    body: "",
+    createdAt: now,
+    updatedAt: now,
+  })
   return ref.id
 }
 

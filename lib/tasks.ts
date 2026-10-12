@@ -12,7 +12,6 @@ import {
 } from "firebase/firestore"
 import { db } from "./firebase"
 import { getCurrentAgencyId } from "./agency-scope"
-import { ensureTaskShared, deleteAgencyRecord } from "./portal-data"
 
 export type TaskStatus = "todo" | "in-progress" | "review" | "done"
 export type TaskPriority = "low" | "medium" | "high"
@@ -110,6 +109,13 @@ export async function getTasksByCompanyId(companyId: string): Promise<Task[]> {
   return tasks.sort((a, b) => Math.max(tsToMillis(b.updatedAt), tsToMillis(b.createdAt)) - Math.max(tsToMillis(a.updatedAt), tsToMillis(a.createdAt)))
 }
 
+/** Every task for a company, readable on the public company page. */
+export async function getPublicTasksByCompanyId(companyId: string): Promise<Task[]> {
+  if (!companyId) return []
+  const snapshot = await getDocs(query(collection(db, COLLECTION_NAME), where("companyId", "==", companyId)))
+  return snapshot.docs.map((d) => ({ ...(d.data() as object), id: d.id })) as Task[]
+}
+
 /**
  * Every task on one project, oldest first, which is the order they were
  * authored in. Templates rely on that order - the task list is the workflow.
@@ -169,8 +175,6 @@ export async function createTask(data: Omit<Task, "id" | "createdAt" | "updatedA
     createdAt: now,
     updatedAt: now,
   })
-  // Client tasks show in the portal automatically - no separate publish step.
-  await ensureTaskShared({ ...(data as Task), id: ref.id, agencyId, createdAt: now, updatedAt: now })
   return ref.id
 }
 
@@ -191,12 +195,10 @@ export async function duplicateTask(task: Task, companyId = task.companyId, clie
 
 export async function updateTask(id: string, data: Partial<Omit<Task, "id" | "createdAt">>): Promise<void> {
   await updateDoc(doc(db, COLLECTION_NAME, id), { ...data, updatedAt: Timestamp.now() })
-  const snapshot = await getDoc(doc(db, COLLECTION_NAME, id))
-  if (snapshot.exists()) await ensureTaskShared({ ...(snapshot.data() as Task), id })
 }
 
 export async function deleteTask(id: string): Promise<void> {
-  await deleteAgencyRecord("tasks", id)
+  await deleteDoc(doc(db, COLLECTION_NAME, id))
 }
 
 /**

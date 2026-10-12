@@ -1,15 +1,22 @@
 "use client"
 
 import Link from "next/link"
-import { useCallback, useEffect, useMemo, useState } from "react"
-import { Mail, MoreVertical, Share2 } from "lucide-react"
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react"
+import { DollarSign, FileText, Images, ListTodo, Mail, MoreVertical, Palette, Settings, Share2, Users, type LucideIcon } from "lucide-react"
 
+import { CampaignCreatives } from "@/components/dashboard/campaign-creatives"
+import { CampaignPeople } from "@/components/dashboard/campaign-people"
+import { CampaignPayments } from "@/components/dashboard/campaign-payments"
+import { CampaignSettings } from "@/components/dashboard/campaign-settings"
 import { CaseStudyForm } from "@/components/dashboard/case-study-form"
 import { ProjectShareButton } from "@/components/dashboard/project-share-button"
 import { ProjectTeamPicker } from "@/components/dashboard/project-team-picker"
 import { TasksView } from "@/components/dashboard/tasks-view"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { usePageHeaderActions, usePageHeaderTitle } from "@/components/dashboard/page-title-context"
+import { watchCampaignCreatives, type CampaignCreative } from "@/lib/campaign-creatives"
+import { watchCampaignPeople, type CampaignPerson } from "@/lib/campaign-people"
+import type { Invoice } from "@/lib/billing"
 import { buildEmailComposeHref } from "@/lib/email-composer"
 import { deleteProjectWithTasks, renameProject, slugify, type Project } from "@/lib/projects"
 import { deleteTask, getTasksByCompanyId, tsToMillis, updateTask, type Task } from "@/lib/tasks"
@@ -25,6 +32,13 @@ interface ProjectDetailProps {
   embedded?: boolean
   onProjectPatched?: (patch: Partial<Project>) => void
   onProjectDeleted?: () => void | Promise<void>
+  /** Signed-in agency admins on the public page, who can manage people and creatives without the admin view. */
+  canEditCampaign?: boolean
+  /** Invoices raised for this campaign, and where each one opens. */
+  invoices?: Invoice[]
+  invoiceHref?: (invoice: Invoice) => string
+  /** The job's shared tasks for the public view, which can't edit them. */
+  publicTasks?: ReactNode
 }
 
 /**
@@ -41,10 +55,21 @@ export function ProjectDetail({
   embedded = false,
   onProjectPatched,
   onProjectDeleted,
+  publicTasks,
+  canEditCampaign = isAdmin,
+  invoices = [],
+  invoiceHref,
 }: ProjectDetailProps) {
   const [tasks, setTasks] = useState<Task[]>([])
   const [deleting, setDeleting] = useState<string | null>(null)
-  const [tab, setTab] = useState<"tasks" | "about">(publicView ? "about" : "tasks")
+  const [tab, setTab] = useState<"tasks" | "about" | "people" | "creatives" | "media" | "payments" | "settings">("about")
+  const [people, setPeople] = useState<CampaignPerson[]>([])
+
+  useEffect(() => watchCampaignPeople(project.id, setPeople, () => setPeople([])), [project.id])
+  const [creatives, setCreatives] = useState<CampaignCreative[]>([])
+  useEffect(() => watchCampaignCreatives(project.id, setCreatives, () => setCreatives([])), [project.id])
+  const contentItems = creatives.filter((item) => item.kind !== "media")
+  const mediaItems = creatives.filter((item) => item.kind === "media")
   const [shareOpen, setShareOpen] = useState(false)
   const [titleDraft, setTitleDraft] = useState(project.title)
   const [titleEditing, setTitleEditing] = useState(false)
@@ -229,48 +254,44 @@ export function ProjectDetail({
   return (
     <div className="space-y-4">
       {isAdmin || publicView ? (
-        <div>
-          <nav className="flex gap-6 border-b border-border" aria-label="Project sections">
-            {(
-              publicView
-                ? ([{ key: "about", label: "About" }] as const)
-                : ([
-                    { key: "tasks", label: "Tasks" },
-                    { key: "about", label: "About" },
-                  ] as const)
-            ).map((item) => (
+        <div className="flex flex-col gap-4 md:flex-row md:gap-8">
+          <nav className="-mx-1 flex shrink-0 gap-1 overflow-x-auto px-1 md:mx-0 md:w-48 md:flex-col md:overflow-visible md:px-0" aria-label="Campaign sections">
+            {([
+              { key: "about", label: "Brief", icon: FileText },
+              { key: "people", label: "Creators", count: people.length, icon: Users },
+              { key: "creatives", label: "Content", count: contentItems.length, icon: Palette },
+              { key: "media", label: "Media", count: mediaItems.length, icon: Images },
+              { key: "payments", label: "Payments", icon: DollarSign },
+              ...(publicView && !publicTasks ? [] : [{ key: "tasks", label: "Tasks", icon: ListTodo }]),
+              ...(canEditCampaign ? [{ key: "settings", label: "Settings", icon: Settings }] : []),
+            ] as { key: typeof tab; label: string; count?: number; icon: LucideIcon }[]).map((item) => (
               <button
                 key={item.key}
                 type="button"
                 onClick={() => setTab(item.key)}
+                aria-current={tab === item.key ? "page" : undefined}
                 className={cn(
-                  "relative -mb-px shrink-0 px-0 py-2 text-base font-medium outline-none transition-colors",
+                  "flex h-10 shrink-0 items-center gap-2.5 rounded-xl px-3 text-sm font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring",
                   tab === item.key
-                    ? "border-b-2 border-foreground text-foreground"
-                    : "text-muted-foreground hover:text-foreground",
+                    ? "bg-muted text-foreground"
+                    : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
                 )}
               >
-                {item.label}
+                <item.icon className="size-[18px] shrink-0" aria-hidden="true" />
+                <span className="truncate">{item.label}</span>
+                {item.count ? <span className="ml-auto pl-2 text-xs tabular-nums text-muted-foreground">{item.count}</span> : null}
               </button>
             ))}
           </nav>
 
-          <div className="min-w-0 pt-4">
+          <div className="min-w-0 flex-1">
             {tab === "about" ? (
               publicView ? (
-                <div className="space-y-5">
-                  {project.description || project.excerpt || project.summary ? (
-                    <p className="whitespace-pre-wrap text-sm leading-6 text-foreground">{project.description || project.excerpt || project.summary}</p>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">No project description yet.</p>
-                  )}
-                  <div className="grid gap-3 text-sm sm:grid-cols-2">
-                    <div><span className="text-muted-foreground">Service</span><p className="mt-1 font-medium">{project.service || "Not set"}</p></div>
-                    <div><span className="text-muted-foreground">Status</span><p className="mt-1 font-medium">{project.status}</p></div>
-                    <div><span className="text-muted-foreground">Progress</span><p className="mt-1 font-medium">{project.progress}%</p></div>
-                    <div><span className="text-muted-foreground">Due date</span><p className="mt-1 font-medium">{project.dueDate || "Not set"}</p></div>
-                  </div>
-                </div>
+                project.description || project.excerpt || project.summary ? (
+                  <p className="whitespace-pre-wrap text-sm leading-6 text-foreground">{project.description || project.excerpt || project.summary}</p>
+                ) : (
+                  <p className="text-sm text-muted-foreground">No brief yet.</p>
+                )
               ) : (
                 <div className="space-y-6">
                   <ProjectTeamPicker project={project} onPatched={onProjectPatched} />
@@ -281,8 +302,35 @@ export function ProjectDetail({
                   />
                 </div>
               )
+            ) : tab === "people" ? (
+              <CampaignPeople
+                people={people}
+                agencyId={project.agencyId}
+                companyId={project.companyId || companyId}
+                projectId={project.id}
+                canEdit={canEditCampaign}
+              />
+            ) : tab === "creatives" || tab === "media" ? (
+              <CampaignCreatives
+                key={tab}
+                kind={tab === "media" ? "media" : "content"}
+                creatives={tab === "media" ? mediaItems : contentItems}
+                agencyId={project.agencyId}
+                companyId={project.companyId || companyId}
+                projectId={project.id}
+                canEdit={canEditCampaign}
+              />
+            ) : tab === "payments" ? (
+              <CampaignPayments
+                people={people}
+                invoices={invoices}
+                canEdit={canEditCampaign}
+                invoiceHref={invoiceHref}
+              />
+            ) : tab === "settings" ? (
+              <CampaignSettings project={project} onPatched={onProjectPatched} />
             ) : (
-              tasksPanel
+              publicView ? publicTasks : tasksPanel
             )}
           </div>
         </div>

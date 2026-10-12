@@ -374,7 +374,7 @@ const AGENT_TOOLS = [
   {
     type: "function",
     name: "create_project",
-    description: "Create a client project and publish its safe summary to that client's portal.",
+    description: "Create a client project.",
     parameters: {
       type: "object",
       properties: {
@@ -392,7 +392,7 @@ const AGENT_TOOLS = [
   {
     type: "function",
     name: "create_task",
-    description: "Create a task for a client project and publish its safe fields to the portal.",
+    description: "Create a task for a client project.",
     parameters: {
       type: "object",
       properties: {
@@ -970,21 +970,16 @@ async function runAgentTool(name: string, rawArgs: string, uid: string) {
     const actionArgs = JSON.parse(rawArgs) as Record<string, unknown>
     const id = requireText(actionArgs, "taskId")
     const done = actionArgs.done !== false
-    const portalRef = db.collection("portalTasks").doc(id)
     const taskRef = db.collection("tasks").doc(id)
-    const [portalSnap, taskSnap] = await Promise.all([portalRef.get(), taskRef.get()])
-    if (!portalSnap.exists) throw new Error("That task isn't shared with you.")
-    const portal = portalSnap.data() as FirebaseFirestore.DocumentData
+    const taskSnap = await taskRef.get()
+    if (!taskSnap.exists) throw new Error("That task doesn't exist.")
+    const task = taskSnap.data() as FirebaseFirestore.DocumentData
     if (!isAdmin) {
-      if (portal.agencyId !== agencyId || portal.companyId !== callerCompanyId) throw new Error("You can only update your own tasks.")
-      if (portal.assigneeUid && portal.assigneeUid !== uid) throw new Error("That task is assigned to someone else.")
+      if (task.agencyId !== agencyId || task.companyId !== callerCompanyId) throw new Error("You can only update your own tasks.")
+      if (task.assigneeUid && task.assigneeUid !== uid) throw new Error("That task is assigned to someone else.")
     }
     const status = done ? "done" : "todo"
-    const stamp = FieldValue.serverTimestamp()
-    const batch = db.batch()
-    batch.set(portalRef, { status, updatedAt: stamp }, { merge: true })
-    if (taskSnap.exists) batch.set(taskRef, { status, updatedAt: stamp }, { merge: true })
-    await batch.commit()
+    await taskRef.set({ status, updatedAt: FieldValue.serverTimestamp() }, { merge: true })
     return { type: "task_updated", id, status }
   }
 
@@ -1060,23 +1055,6 @@ async function runAgentTool(name: string, rawArgs: string, uid: string) {
 
     await ref.set({ ...patch, updatedAt: now }, { merge: true })
 
-    // Keep the client-facing projections in step, safe fields only.
-    const companyId = existing.data()?.companyId
-    if (collectionName === "projects" && companyId) {
-      const safe: Record<string, unknown> = {}
-      for (const key of ["title", "status", "progress", "dueDate", "summary"]) {
-        if (patch[key] !== undefined) safe[key] = patch[key]
-      }
-      if (Object.keys(safe).length) await db.collection("portalProjects").doc(id).set(safe, { merge: true })
-    }
-    if (collectionName === "tasks" && companyId) {
-      const safe: Record<string, unknown> = {}
-      for (const key of ["name", "status", "dueDate"]) {
-        if (patch[key] !== undefined) safe[key] = patch[key]
-      }
-      if (Object.keys(safe).length) await db.collection("portalTasks").doc(id).set(safe, { merge: true })
-    }
-
     return { type: "updated", collection: collectionName, id, fields: Object.keys(patch), url: recordUrl(collectionName, id) }
   }
 
@@ -1110,7 +1088,6 @@ async function runAgentTool(name: string, rawArgs: string, uid: string) {
     const dueDate = optionalText(args, "dueDate")
     const summary = optionalText(args, "summary")
     await ref.set({ agencyId, companyId, client, title, service, status: "in-progress", progress: 0, dueDate, summary, isPublic: false, createdAt: now, updatedAt: now })
-    await db.collection("portalProjects").doc(ref.id).set({ agencyId, companyId, title, status: "in-progress", progress: 0, dueDate, thumbnailUrl: "", summary, legacySlug: title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") })
     return { type: "project", id: ref.id, title, client, url: `/dashboard/projects/${ref.id}` }
   }
 
@@ -1126,7 +1103,6 @@ async function runAgentTool(name: string, rawArgs: string, uid: string) {
     const dueDate = optionalText(args, "dueDate")
     const content = optionalText(args, "content")
     await ref.set({ agencyId, name: taskName, companyId, client, projectId, project, status: "todo", priority, dueDate, content, isPublic: false, createdAt: now, updatedAt: now })
-    await db.collection("portalTasks").doc(ref.id).set({ agencyId, companyId, projectId, name: taskName, status: "todo", dueDate, instructions: content, assigneeUid: "" })
     return { type: "task", id: ref.id, name: taskName, project, url: `/dashboard/tasks` }
   }
 

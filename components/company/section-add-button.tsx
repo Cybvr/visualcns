@@ -3,13 +3,15 @@
 import { forwardRef, type ComponentPropsWithoutRef } from "react"
 import { Plus } from "lucide-react"
 
+import { buttonVariants } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
 interface SectionAddButtonProps extends ComponentPropsWithoutRef<"button"> {
+  /** What it adds, for screen readers and the tooltip, e.g. "New note". */
   label: string
 }
 
-/** The one "add" affordance every company tab uses: an icon-only square, never a labeled button. */
+/** The one "New" button every company page uses: a plus and the word New, on the right of the toolbar. */
 export const SectionAddButton = forwardRef<HTMLButtonElement, SectionAddButtonProps>(
   function SectionAddButton({ label, className, ...props }, ref) {
     return (
@@ -18,13 +20,11 @@ export const SectionAddButton = forwardRef<HTMLButtonElement, SectionAddButtonPr
         type="button"
         aria-label={label}
         title={label}
-        className={cn(
-          "flex size-10 shrink-0 items-center justify-center rounded-xl bg-muted text-foreground outline-none transition-colors hover:bg-muted/70 focus-visible:ring-2 focus-visible:ring-ring",
-          className,
-        )}
+        className={cn(buttonVariants(), "h-11 shrink-0 gap-1.5 px-5", className)}
         {...props}
       >
-        <Plus className="size-5" aria-hidden="true" />
+        <Plus className="size-4" aria-hidden="true" />
+        New
       </button>
     )
   },

@@ -1,36 +1,4 @@
 import type { Invoice } from "./billing"
-import type { ProjectStatus } from "./projects"
-import type { TaskStatus } from "./tasks"
-
-export interface PortalProject {
-  id: string
-  agencyId?: string
-  companyId: string
-  title: string
-  status: ProjectStatus
-  progress: number
-  dueDate: string
-  thumbnailUrl: string
-  summary: string
-  isPublic?: boolean
-  legacySlug?: string
-}
-
-export interface PortalTask {
-  id: string
-  agencyId?: string
-  companyId: string
-  projectId: string
-  name: string
-  status: TaskStatus
-  dueDate: string
-  instructions: string
-  assigneeUid: string
-  isPublic?: boolean
-  /** Mirrored from the dashboard task so activity can be ordered consistently. */
-  createdAt?: unknown
-  updatedAt?: unknown
-}
 
 export const portalTabs = ["overview", "tasks", "documents", "billing"] as const
 export type PortalTab = (typeof portalTabs)[number]

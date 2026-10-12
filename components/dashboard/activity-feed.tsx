@@ -18,6 +18,16 @@ const KIND_ICON: Record<ActivityKind, ComponentType<{ className?: string }>> = {
   file: Paperclip,
 }
 
+const KIND_ICON_COLOR: Record<ActivityKind, string> = {
+  project: "text-violet-600 dark:text-violet-400",
+  task: "text-sky-600 dark:text-sky-400",
+  invoice: "text-emerald-600 dark:text-emerald-400",
+  estimate: "text-amber-600 dark:text-amber-400",
+  contract: "text-indigo-600 dark:text-indigo-400",
+  document: "text-blue-600 dark:text-blue-400",
+  file: "text-slate-600 dark:text-slate-400",
+}
+
 function timeAgo(ms: number): string {
   const diff = Date.now() - ms
   if (diff < 60_000) return "just now"
@@ -39,6 +49,7 @@ export function ActivityFeed({
   title = "Activity",
   emptyLabel = "No recent activity yet.",
   showHeader = true,
+  layout = "default",
   className,
 }: {
   items: ActivityItem[]
@@ -48,8 +59,44 @@ export function ActivityFeed({
   title?: string
   emptyLabel?: string
   showHeader?: boolean
+  layout?: "default" | "rows"
   className?: string
 }) {
+  if (layout === "rows") {
+    return (
+      <section className={className}>
+        {showHeader && (
+          <h2 className="mb-4 flex items-center gap-2 text-sm font-semibold">
+            {title}
+            {items.length > 0 && <span className="font-normal tabular-nums text-muted-foreground">{items.length}</span>}
+          </h2>
+        )}
+        {items.length ? items.map((item) => {
+          const Icon = KIND_ICON[item.kind]
+          const clickable = Boolean(onItemClick && (isItemClickable ? isItemClickable(item) : true))
+          const href = clickable ? undefined : hrefFor?.(item)
+          return (
+            <MobileDataCard
+              key={item.id}
+              surface="list"
+              variant="inline"
+              iconShape="circle"
+              title={item.title}
+              subtitle={item.subtitle}
+              icon={<Icon className={cn("size-5", KIND_ICON_COLOR[item.kind])} aria-hidden="true" />}
+              trailing={timeAgo(item.at)}
+              href={href}
+              onClick={clickable ? () => onItemClick?.(item) : undefined}
+              ariaLabel={`Open ${item.title}`}
+            />
+          )
+        }) : (
+          <p className="px-3 py-8 text-center text-sm text-muted-foreground">{emptyLabel}</p>
+        )}
+      </section>
+    )
+  }
+
   return (
     <section className={cn("sm:rounded-lg sm:bg-card sm:p-5", className)}>
       {showHeader && (

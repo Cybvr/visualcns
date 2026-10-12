@@ -5,7 +5,7 @@ import { getFirestore, FieldValue } from "firebase-admin/firestore"
 import { requireAgencyId } from "@/lib/require-agency-id"
 
 export const runtime = "nodejs"
-const AGENCY_COLLECTIONS = ["users", "projects", "tasks", "invoices", "contracts", "estimates", "companyDocuments", "documents", "approvals", "comments", "portalProjects", "portalTasks", "portalComments", "emailMessages", "emailTemplates", "emailDrafts", "emailLists", "organizations", "settings", "invites", "agencyUsage", "agencySecrets"]
+const AGENCY_COLLECTIONS = ["users", "projects", "tasks", "invoices", "contracts", "estimates", "companyDocuments", "documents", "approvals", "comments", "portalProjects", "portalTasks", "portalComments", "campaignPeople", "campaignCreatives", "emailMessages", "emailTemplates", "emailDrafts", "emailLists", "organizations", "settings", "invites", "agencyUsage", "agencySecrets"]
 
 function services() {
   const app = getApps()[0] ?? initializeApp({ credential: cert({

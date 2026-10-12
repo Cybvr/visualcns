@@ -1,14 +1,17 @@
 "use client"
 
-import { useState } from "react"
-import { ArrowLeft, Briefcase, FolderOpen } from "lucide-react"
+import { useEffect, useState } from "react"
+import { useSearchParams } from "next/navigation"
+import { ArrowLeft, ListTodo, Megaphone } from "lucide-react"
 import { toast } from "sonner"
 
+import { useAuth } from "@/components/auth-provider"
 import { CompanyEmptyState } from "@/components/company/empty-state"
 import { useCompanyPage } from "@/components/company/company-page-context"
 import { SectionAddButton } from "@/components/company/section-add-button"
+import { TaskDetailSheet } from "@/components/company/task-detail-sheet"
 import { GridCard, GridCardList } from "@/components/dashboard/grid-card"
-import { ListSearch, useListSearch } from "@/components/dashboard/list-search"
+import { ListToolbar, useListSearch, useListView } from "@/components/dashboard/list-search"
 import { MobileDataCard } from "@/components/dashboard/mobile-data-card"
 import { NewProjectDialog } from "@/components/dashboard/new-project-dialog"
 import { ProjectDetail } from "@/components/dashboard/project-detail"
@@ -28,12 +31,76 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import { deleteProjectWithTasks, duplicateProject, renameProject, type Project } from "@/lib/projects"
+import { formatTimestamp, taskStatusMeta, tsToMillis } from "@/lib/tasks"
 
 export function ProjectsSection() {
-  const { company, projects, admin, emptyProjectsLabel, mode } = useCompanyPage()
-  const rows = mode === "routes"
+  const { company, projects: loadedProjects, admin, emptyProjectsLabel, tasks, tasksLoading, updateParams, setRecordOpen, invoices, sectionHref } = useCompanyPage()
+  const { appUser } = useAuth()
+  // The public page has no admin handle, but the agency's own admins can still create campaigns there.
+  const canCreate = Boolean(admin)
+    || appUser?.role === "superadmin"
+    || (appUser?.role === "admin" && Boolean(appUser.agencyId) && appUser.agencyId === company.agencyId)
+  const [addedProjects, setAddedProjects] = useState<Project[]>([])
+  // Campaigns made or edited here show at once, before the company data reloads.
+  const projects = [
+    ...addedProjects.filter((added) => !loadedProjects.some((project) => project.id === added.id)),
+    ...loadedProjects.map((project) => addedProjects.find((added) => added.id === project.id) ?? project),
+  ]
+  const searchParams = useSearchParams()
+  const [view, setView] = useListView("company-campaigns")
   const { query, setQuery, results } = useListSearch(projects, (project) => [project.title, project.service, project.status, project.dueDate])
   const [selectedProject, setSelectedProject] = useState<Project | null>(null)
+  const projectOpen = Boolean(selectedProject)
+  useEffect(() => {
+    setRecordOpen(projectOpen)
+    return () => setRecordOpen(false)
+  }, [projectOpen, setRecordOpen])
+
+  // A task link opens the job the task belongs to, with the task on top.
+  const linkedTaskId = searchParams.get("task")
+  useEffect(() => {
+    if (!linkedTaskId) return
+    const projectId = tasks.find((task) => task.id === linkedTaskId)?.projectId
+    const project = projectId ? projects.find((item) => item.id === projectId) : undefined
+    if (project) setSelectedProject((current) => current?.id === project.id ? current : project)
+  }, [linkedTaskId, projects, tasks])
+
+  // The home page's campaign cards link here with ?campaign= to open one straight away.
+  const linkedCampaignId = searchParams.get("campaign")
+  useEffect(() => {
+    if (!linkedCampaignId) return
+    const project = projects.find((item) => item.id === linkedCampaignId)
+    if (project) setSelectedProject((current) => current?.id === project.id ? current : project)
+  }, [linkedCampaignId, projects])
+
+  function modifiedLabel(project: Project) {
+    const millis = tsToMillis(project.updatedAt) || tsToMillis(project.createdAt)
+    return millis ? formatTimestamp(millis) : undefined
+  }
+
+  const jobTasks = selectedProject ? tasks.filter((task) => task.projectId === selectedProject.id) : []
+  const publicTasks = tasksLoading ? (
+    <p className="text-sm text-muted-foreground" role="status">Loading tasks…</p>
+  ) : jobTasks.length === 0 ? (
+    <CompanyEmptyState icon={ListTodo} title="No shared tasks yet" />
+  ) : (
+    <div>
+      {jobTasks.map((task) => (
+        <MobileDataCard
+          key={task.id}
+          surface="list"
+          variant="inline"
+          iconShape="circle"
+          icon={<ListTodo className="size-5 text-muted-foreground" aria-hidden="true" />}
+          title={task.name}
+          subtitle={task.dueDate ? `Due ${task.dueDate}` : undefined}
+          trailing={(taskStatusMeta[task.status] ?? taskStatusMeta.todo).label}
+          onClick={() => updateParams({ task: task.id })}
+          ariaLabel={`View task: ${task.name}`}
+        />
+      ))}
+    </div>
+  )
   const [creatingProject, setCreatingProject] = useState(false)
   const [renamingProject, setRenamingProject] = useState<Project | null>(null)
   const [titleDraft, setTitleDraft] = useState("")
@@ -104,15 +171,33 @@ export function ProjectsSection() {
     <div className="mt-5">
       {selectedProject ? (
         <div>
-          <button
-            type="button"
-            onClick={() => setSelectedProject(null)}
-            className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
-          >
-            <ArrowLeft className="size-4" aria-hidden="true" />
-            Back to Jobs
-          </button>
-          <h2 className="mt-4 text-xl font-semibold tracking-[-0.02em]">{selectedProject.title}</h2>
+          {selectedProject.thumbnailUrl && (
+            <div className="mb-4 aspect-[4/1] w-full overflow-hidden rounded-2xl bg-muted">
+              <ProjectCover project={selectedProject} />
+            </div>
+          )}
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex min-w-0 items-center gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedProject(null)
+                  if (linkedTaskId || linkedCampaignId) updateParams({ task: null, campaign: null }, true)
+                }}
+                aria-label="Back to Campaigns"
+                title="Back to Campaigns"
+                className="-ml-2 flex size-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <ArrowLeft className="size-5" aria-hidden="true" />
+              </button>
+              {selectedProject.logoUrl && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={selectedProject.logoUrl} alt="" className="size-10 shrink-0 rounded-full object-cover" />
+              )}
+              <h2 className="min-w-0 truncate text-xl font-semibold tracking-[-0.02em]">{selectedProject.title}</h2>
+            </div>
+            {canCreate && <SectionAddButton label="New campaign" onClick={() => setCreatingProject(true)} />}
+          </div>
           <div className="mt-4">
             <ProjectDetail
               project={selectedProject}
@@ -121,7 +206,15 @@ export function ProjectsSection() {
               embedded
               companyId={company.id}
               clientName={company.name}
-              onProjectPatched={(patch) => setSelectedProject((current) => current ? { ...current, ...patch } : current)}
+              publicTasks={admin ? undefined : publicTasks}
+              canEditCampaign={canCreate}
+              invoices={invoices.filter((invoice) => invoice.projectId === selectedProject.id)}
+              invoiceHref={(invoice) => sectionHref("finance", { doc: `invoice:${invoice.id}` })}
+              onProjectPatched={(patch) => {
+                const patched = { ...selectedProject, ...patch }
+                setSelectedProject(patched)
+                setAddedProjects((current) => [patched, ...current.filter((project) => project.id !== patched.id)])
+              }}
               onProjectDeleted={admin ? async () => {
                 await admin.reload()
                 setSelectedProject(null)
@@ -131,33 +224,53 @@ export function ProjectsSection() {
         </div>
       ) : (
         <>
-          <div className="flex items-center justify-between gap-4">
-            <h2 className="sr-only">Jobs</h2>
-            {rows
-              ? <ListSearch value={query} onChange={setQuery} placeholder="Search jobs" className="max-w-sm flex-1" />
-              : <span className="sidebar-nav-label text-muted-foreground">Jobs</span>}
-            {admin && <SectionAddButton onClick={() => setCreatingProject(true)} label="New project" />}
-          </div>
+          <h2 className="sr-only">Campaigns</h2>
+          <ListToolbar
+            query={query}
+            onQueryChange={setQuery}
+            placeholder="Search campaigns"
+            view={view}
+            onViewChange={setView}
+            actions={canCreate ? <SectionAddButton label="New campaign" onClick={() => setCreatingProject(true)} /> : undefined}
+          />
 
           {projects.length === 0 ? (
             <CompanyEmptyState
-              icon={Briefcase}
-              title={admin ? "No jobs yet" : emptyProjectsLabel}
-              action={admin ? <SectionAddButton onClick={() => setCreatingProject(true)} label="New project" /> : undefined}
+              icon={Megaphone}
+              title={canCreate ? "No campaigns yet" : emptyProjectsLabel}
+              action={canCreate ? <SectionAddButton label="New campaign" onClick={() => setCreatingProject(true)} /> : undefined}
             />
-          ) : rows ? (
+          ) : results.length === 0 ? (
+            <p className="px-3 py-8 text-center text-sm text-muted-foreground">Nothing matches your search.</p>
+          ) : view === "card" ? (
             <div className="mt-4">
-              {results.length === 0 ? (
-                <p className="px-3 py-8 text-center text-sm text-muted-foreground">Nothing matches your search.</p>
-              ) : results.map((project) => (
+              <GridCardList>
+                {results.map((project) => (
+                  <GridCard
+                    key={project.id}
+                    onClick={() => setSelectedProject(project)}
+                    ariaLabel={`Open ${project.title}`}
+                    title={project.title}
+                    subtitle={modifiedLabel(project)}
+                    icon={<Megaphone className="size-4 text-amber-600 dark:text-amber-400" aria-hidden="true" />}
+                    preview={<ProjectCover project={project} />}
+                    menuLabel={`Options for ${project.title}`}
+                    menu={projectMenu(project)}
+                  />
+                ))}
+              </GridCardList>
+            </div>
+          ) : (
+            <div className="mt-4">
+              {results.map((project) => (
                 <MobileDataCard
                   key={project.id}
                   surface="list"
                   variant="inline"
                   iconShape="circle"
                   title={project.title}
-                  subtitle={project.service || undefined}
-                  icon={<FolderOpen className="size-5 text-amber-600 dark:text-amber-400" aria-hidden="true" />}
+                  subtitle={modifiedLabel(project)}
+                  icon={<Megaphone className="size-5 text-amber-600 dark:text-amber-400" aria-hidden="true" />}
                   trailing={project.dueDate || undefined}
                   onClick={() => setSelectedProject(project)}
                   ariaLabel={`Open ${project.title}`}
@@ -166,43 +279,11 @@ export function ProjectsSection() {
                 />
               ))}
             </div>
-          ) : (
-            <>
-              <div className="mt-4 space-y-2 sm:hidden">
-                {projects.map((project) => (
-                  <MobileDataCard
-                    key={project.id}
-                    onClick={() => setSelectedProject(project)}
-                    ariaLabel={`Open ${project.title}`}
-                    title={project.title}
-                    subtitle={project.dueDate || "No due date"}
-                    icon={<FolderOpen className="size-5 text-amber-600 dark:text-amber-400" aria-hidden="true" />}
-                    menuLabel={`Options for ${project.title}`}
-                    menu={projectMenu(project)}
-                  />
-                ))}
-              </div>
-
-              <div className="mt-4 hidden sm:block">
-                <GridCardList>
-                  {projects.map((project) => (
-                    <GridCard
-                      key={project.id}
-                      onClick={() => setSelectedProject(project)}
-                      ariaLabel={`Open ${project.title}`}
-                      title={project.title}
-                      icon={<FolderOpen className="size-4 text-amber-600 dark:text-amber-400" aria-hidden="true" />}
-                      preview={<ProjectCover project={project} />}
-                      menuLabel={`Options for ${project.title}`}
-                      menu={projectMenu(project)}
-                    />
-                  ))}
-                </GridCardList>
-              </div>
-            </>
           )}
         </>
       )}
+
+      {!admin && <TaskDetailSheet />}
 
       {admin && (
         <>
@@ -263,17 +344,20 @@ export function ProjectsSection() {
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
-
-          <NewProjectDialog
-            open={creatingProject}
-            onOpenChange={setCreatingProject}
-            initialCompanyId={company.id}
-            onCreated={async (project) => {
-              await admin.reload()
-              setSelectedProject(project)
-            }}
-          />
         </>
+      )}
+
+      {canCreate && (
+        <NewProjectDialog
+          open={creatingProject}
+          onOpenChange={setCreatingProject}
+          initialCompanyId={company.id}
+          onCreated={async (project) => {
+            if (admin) await admin.reload()
+            else setAddedProjects((current) => [project, ...current])
+            setSelectedProject(project)
+          }}
+        />
       )}
     </div>
   )

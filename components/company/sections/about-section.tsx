@@ -8,6 +8,8 @@ import { CompanyBookings } from "@/components/company/company-bookings"
 import { CompanyLinks } from "@/components/company/company-links"
 import { useCompanyPage } from "@/components/company/company-page-context"
 import { CompanyDetails, type CompanyDetailsPatch } from "@/components/company/company-sidebar"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 
 function ProfileCard({ title, children }: { title: string; children: ReactNode }) {
@@ -16,6 +18,32 @@ function ProfileCard({ title, children }: { title: string; children: ReactNode }
       <h2 className="text-xl font-semibold tracking-[-0.02em] text-foreground">{title}</h2>
       <div className="mt-5">{children}</div>
     </section>
+  )
+}
+
+function ReadOnlyFormField({ id, label, value, multiline = false }: { id: string; label: string; value?: string; multiline?: boolean }) {
+  return (
+    <div className="space-y-2">
+      <Label htmlFor={id} className="text-muted-foreground">{label}</Label>
+      {multiline ? (
+        <Textarea
+          id={id}
+          value={value ?? ""}
+          placeholder="Not set"
+          readOnly
+          rows={4}
+          className="min-h-28 resize-none bg-background"
+        />
+      ) : (
+        <Input
+          id={id}
+          value={value ?? ""}
+          placeholder="Not set"
+          readOnly
+          className="h-10 rounded-md border border-input bg-background px-3"
+        />
+      )}
+    </div>
   )
 }
 
@@ -112,7 +140,7 @@ function CompanyTagsCard({ tags = [], onSave }: { tags?: string[]; onSave?: (pat
   )
 }
 
-export function AboutSection({ singleColumn = false }: { singleColumn?: boolean } = {}) {
+export function AboutSection({ singleColumn = false, formStyle = false }: { singleColumn?: boolean; formStyle?: boolean } = {}) {
   const { company, admin } = useCompanyPage()
   const { user } = useAuth()
 
@@ -141,6 +169,30 @@ export function AboutSection({ singleColumn = false }: { singleColumn?: boolean 
   const tags = <CompanyTagsCard tags={company.tags} onSave={admin?.onUpdateCompany} />
   const links = <CompanyLinks links={company.links} onSave={admin ? (next) => admin.onUpdateCompany({ links: next }) : undefined} />
   const bookings = user ? <CompanyBookings companyId={company.id} canCancel={!admin} /> : null
+
+  if (formStyle) {
+    return (
+      <div className="mt-5 w-full max-w-2xl space-y-8">
+        <ProfileCard title="About">
+          <ReadOnlyFormField id={`company-about-${company.id}`} label="Description" value={company.description} multiline />
+        </ProfileCard>
+        <ProfileCard title="Details">
+          <div className="space-y-5">
+            <ReadOnlyFormField id={`company-domain-${company.id}`} label="Domain" value={company.website} />
+            <ReadOnlyFormField id={`company-industry-${company.id}`} label="Industry" value={company.industry} />
+            <ReadOnlyFormField id={`company-location-${company.id}`} label="Location" value={company.location} />
+            <ReadOnlyFormField id={`company-address-${company.id}`} label="Address" value={company.address} multiline />
+            <ReadOnlyFormField id={`company-size-${company.id}`} label="Company size" value={company.companySize ? `${company.companySize} employees` : undefined} />
+            <ReadOnlyFormField id={`company-source-${company.id}`} label="Source" value={company.source} />
+            <ReadOnlyFormField id={`company-linkedin-${company.id}`} label="LinkedIn" value={company.linkedIn} />
+          </div>
+        </ProfileCard>
+        {tags}
+        {links}
+        {bookings}
+      </div>
+    )
+  }
 
   if (singleColumn) {
     return <div className="mt-5 min-w-0 space-y-6">{about}{details}{tags}{links}{bookings}</div>

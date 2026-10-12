@@ -38,23 +38,6 @@ service cloud.firestore {
           'companyId', 'company', 'slug', 'onboardingStatus', 'welcomeEmailPending'
         ]);
     }
-    function visibleProject(projectId) {
-      return signedIn() && sameAgency(get(/databases/$(database)/documents/portalProjects/$(projectId)).data)
-        && get(/databases/$(database)/documents/portalProjects/$(projectId)).data.companyId == companyId();
-    }
-    function visibleTask(taskId) {
-      let task = get(/databases/$(database)/documents/portalTasks/$(taskId)).data;
-      return owns(task) && visibleProject(task.projectId);
-    }
-    function assignedTask(taskId) {
-      let task = get(/databases/$(database)/documents/portalTasks/$(taskId)).data;
-      return visibleTask(taskId) && task.assigneeUid == request.auth.uid;
-    }
-    function completionOnly() {
-      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt'])
-        && request.resource.data.status in ['todo', 'done']
-        && request.resource.data.updatedAt == request.time;
-    }
 
     match /portfolio/{id} { allow read: if true; allow write: if isAdmin(); }
     match /jpportfolio/{id} { allow read: if true; allow write: if isAdmin(); }
@@ -91,8 +74,8 @@ service cloud.firestore {
 
     // Agency source documents stay private, apart from existing marketing publications.
     match /projects/{id} {
-      allow read: if agencyAdmin(resource.data) || resource.data.get('isPublic', false) == true
-        || (resource.data.get('isCaseStudy', false) == true && resource.data.get('caseStudyStatus', '') == 'published');
+      // Readable by anyone, so the public company page can show every project in full.
+      allow read: if true;
       allow create: if isAdmin() && sameAgency(request.resource.data);
       allow update: if agencyAdmin(resource.data) && sameAgency(request.resource.data);
       allow delete: if agencyAdmin(resource.data);
@@ -125,34 +108,27 @@ service cloud.firestore {
       allow read, write: if false;
     }
     match /tasks/{id} {
-      allow read: if agencyAdmin(resource.data)
-        || resource.data.get('isPublic', false) == true
-        || resource.data.get('shareEnabled', false) == true;
+      // Readable by anyone, so the public company page can show every task in full.
+      allow read: if true;
       allow create: if isAdmin() && sameAgency(request.resource.data);
       allow delete: if agencyAdmin(resource.data);
-      allow update: if agencyAdmin(resource.data) || (owns(resource.data) && assignedTask(id) && completionOnly()
-        && getAfter(/databases/$(database)/documents/portalTasks/$(id)).data.status == request.resource.data.status);
+      allow update: if agencyAdmin(resource.data);
     }
 
-    // Deliberately published, allowlisted client views; no internal note fields.
-    // resource is null for a missing doc; admins check existence before publishing.
-    match /portalProjects/{id} {
-      // These are client-facing projections by definition. The public company
-      // slug intentionally exposes the same project list as the client view.
+    // Creators booked on a campaign. Readable by anyone, like the campaign itself.
+    match /campaignPeople/{id} {
       allow read: if true;
       allow create: if isAdmin() && sameAgency(request.resource.data);
       allow update: if agencyAdmin(resource.data) && sameAgency(request.resource.data);
       allow delete: if agencyAdmin(resource.data);
     }
-    match /portalTasks/{id} {
-      // Task mirrors contain the client instructions, not the internal task
-      // body, and are intentionally public on the public company slug.
+
+    // Artwork, videos and links made for a campaign. Readable by anyone, like the campaign itself.
+    match /campaignCreatives/{id} {
       allow read: if true;
       allow create: if isAdmin() && sameAgency(request.resource.data);
+      allow update: if agencyAdmin(resource.data) && sameAgency(request.resource.data);
       allow delete: if agencyAdmin(resource.data);
-      allow update: if agencyAdmin(resource.data) || (owns(resource.data) && visibleProject(resource.data.projectId)
-        && resource.data.assigneeUid == request.auth.uid && completionOnly()
-        && getAfter(/databases/$(database)/documents/tasks/$(id)).data.status == request.resource.data.status);
     }
 
     // Task discussions are agency notes.
@@ -222,13 +198,18 @@ service cloud.firestore {
       allow delete: if agencyAdmin(resource.data) || (owns(resource.data) && resource.data.createdBy == request.auth.uid);
     }
 
-    // Notes are shared across the agency. The author is retained for history,
-    // but any signed-in user in the same agency can read and manage them.
+    // Notes without a companyId are shared across the agency. Company notes are
+    // limited to that company's people and the agency admins who manage them.
     match /notes/{id} {
-      allow read, delete: if sameAgency(resource.data);
-      allow create: if sameAgency(request.resource.data) && request.resource.data.createdBy == request.auth.uid;
+      allow read, delete: if sameAgency(resource.data)
+        && (resource.data.get('companyId', '') == '' || agencyAdmin(resource.data) || owns(resource.data));
+      allow create: if sameAgency(request.resource.data)
+        && request.resource.data.createdBy == request.auth.uid
+        && (request.resource.data.get('companyId', '') == '' || agencyAdmin(request.resource.data) || owns(request.resource.data));
       allow update: if sameAgency(resource.data) && sameAgency(request.resource.data)
         && request.resource.data.agencyId == resource.data.agencyId
+        && request.resource.data.get('companyId', '') == resource.data.get('companyId', '')
+        && (resource.data.get('companyId', '') == '' || agencyAdmin(resource.data) || owns(resource.data))
         && request.resource.data.createdBy == resource.data.createdBy;
     }
 

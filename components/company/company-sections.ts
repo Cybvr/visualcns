@@ -1,17 +1,18 @@
-import { Activity, Briefcase, Eye, HardDrive, HeartPulse, Info, ListTodo, MessageSquare, Users, Wallet } from "lucide-react"
+import { Activity, ChartColumn, DollarSign, HardDrive, Info, ListTodo, Megaphone, MessageSquare, ScanLine, StickyNote, Users } from "lucide-react"
 
 /** The sections of a company page, in menu order. Plain module so server routes can check a section too. */
 export const COMPANY_SECTIONS = [
-  { key: "projects", label: "Jobs", icon: Briefcase },
+  { key: "projects", label: "Campaigns", icon: Megaphone },
   { key: "tasks", label: "Tasks", icon: ListTodo },
+  { key: "notes", label: "Notes", icon: StickyNote },
   { key: "about", label: "About", icon: Info },
   { key: "team", label: "Team", icon: Users },
   { key: "activity", label: "Activity", icon: Activity },
-  { key: "pulse", label: "Pulse", icon: HeartPulse },
+  { key: "pulse", label: "Reports", icon: ChartColumn },
   { key: "drive", label: "Drive", icon: HardDrive },
-  { key: "finance", label: "Finance", icon: Wallet },
+  { key: "finance", label: "Payments", icon: DollarSign },
   { key: "messages", label: "Messages", icon: MessageSquare },
-  { key: "visitors", label: "Pass", icon: Eye },
+  { key: "visitors", label: "Pass", icon: ScanLine },
 ] as const
 
 export type CompanySectionKey = (typeof COMPANY_SECTIONS)[number]["key"]

@@ -2,7 +2,8 @@
 
 import { useCallback, useMemo, useState, type ComponentProps, type ReactNode } from "react"
 import Link from "next/link"
-import { Bell, Building2, ChevronRight, LogIn, Search, Sparkles } from "lucide-react"
+import { usePathname } from "next/navigation"
+import { Bell, LogIn, Search, Settings, Sparkles } from "lucide-react"
 
 import { useAuth } from "@/components/auth-provider"
 import { BrandLockup } from "@/components/brand-lockup"
@@ -15,7 +16,6 @@ import { useTeamSeats } from "@/components/company/team-seats"
 import { NavUser } from "@/components/nav-user"
 import { GlobalSearchDialog, useSearchHotkey, type SearchResult } from "@/components/search/global-search"
 import { Button } from "@/components/ui/button"
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { Separator } from "@/components/ui/separator"
 import {
   Sidebar,
@@ -27,9 +27,6 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarMenuSub,
-  SidebarMenuSubButton,
-  SidebarMenuSubItem,
   SidebarProvider,
   SidebarRail,
   SidebarTrigger,
@@ -75,7 +72,7 @@ function CompanyIdentity() {
   )
 }
 
-/** Opens the plans in a modal. Sits under Notifications, for the people who manage the team. */
+/** Opens the plans in a modal for the people who manage the team. */
 function UpgradeNavItem() {
   const { company, canManageTeam } = useCompanyPage()
   const { setOpenMobile } = useSidebar()
@@ -101,8 +98,6 @@ function UpgradeNavItem() {
   )
 }
 
-const AGENCY_GROUP ={ label: "Agency", keys: ["projects", "tasks", "messages"] as string[] }
-
 /** The dashboard's account menu when signed in, a sign-in button for visitors. */
 function SidebarAccount() {
   const { company } = useCompanyPage()
@@ -127,41 +122,37 @@ function SidebarAccount() {
  * card on the tinted background and the page header inside the card.
  */
 export function CompanyProfileShell({ children }: { children: ReactNode }) {
-  const { company, people, canManageTeam, absoluteUrl, sections, section, sectionHref, projects, invoices, contracts, estimates, documents } = useCompanyPage()
+  const { company, people, canManageTeam, absoluteUrl, sections, section, sectionHref, projects, invoices, contracts, estimates, documents, recordOpen } = useCompanyPage()
+  const pathname = usePathname()
+  const isSettingsPage = pathname.split("/").filter(Boolean)[1] === "settings"
   const sectionLabel = sections.find((item) => item.key === section)?.label
+  const pageLabel = isSettingsPage ? "Settings" : sectionLabel
+  const settingsHref = `/${encodeURIComponent(company.slug || company.id)}/settings`
   const [searchOpen, setSearchOpen] = useState(false)
   const openSearch = useCallback(() => setSearchOpen(true), [])
   useSearchHotkey(openSearch)
 
   const searchResults = useMemo<SearchResult[]>(() => [
     ...sections.map((item) => ({ id: `section-${item.key}`, group: "Pages", label: item.label, href: sectionHref(item.key) })),
-    ...projects.map((project) => ({ id: `project-${project.id}`, group: "Jobs", label: project.title, sublabel: project.service || undefined, href: sectionHref("projects") })),
+    ...projects.map((project) => ({ id: `project-${project.id}`, group: "Campaigns", label: project.title, sublabel: project.service || undefined, href: sectionHref("projects") })),
     ...documents.map((doc) => ({ id: `document-${doc.id}`, group: "Documents", label: doc.title || "Document", href: sectionHref("drive", { doc: `document:${doc.id}` }) })),
-    ...invoices.map((invoice) => ({ id: `invoice-${invoice.id}`, group: "Finance", label: invoice.invoiceNumber || invoice.title || "Invoice", href: sectionHref("finance", { doc: `invoice:${invoice.id}` }) })),
-    ...estimates.map((estimate) => ({ id: `estimate-${estimate.id}`, group: "Finance", label: estimate.estimateNumber || estimate.title || "Estimate", href: sectionHref("finance", { doc: `estimate:${estimate.id}` }) })),
-    ...contracts.map((contract) => ({ id: `contract-${contract.id}`, group: "Finance", label: contract.title || "Contract", href: sectionHref("finance", { doc: `contract:${contract.id}` }) })),
+    ...invoices.map((invoice) => ({ id: `invoice-${invoice.id}`, group: "Payments", label: invoice.invoiceNumber || invoice.title || "Invoice", href: sectionHref("finance", { doc: `invoice:${invoice.id}` }) })),
+    ...estimates.map((estimate) => ({ id: `estimate-${estimate.id}`, group: "Payments", label: estimate.estimateNumber || estimate.title || "Estimate", href: sectionHref("finance", { doc: `estimate:${estimate.id}` }) })),
+    ...contracts.map((contract) => ({ id: `contract-${contract.id}`, group: "Payments", label: contract.title || "Contract", href: sectionHref("finance", { doc: `contract:${contract.id}` }) })),
     // eslint-disable-next-line react-hooks/exhaustive-deps
   ], [sections, projects, documents, invoices, estimates, contracts])
 
-  // Jobs, Tasks and Messages sit together under one Agency dropdown, where the first of them falls.
   type SectionItem = (typeof sections)[number]
-  const entries: Array<{ type: "item"; item: SectionItem } | { type: "group"; items: SectionItem[] }> = []
-  for (const item of sections) {
-    if (!AGENCY_GROUP.keys.includes(item.key)) entries.push({ type: "item", item })
-    else {
-      const group = entries.find((entry) => entry.type === "group")
-      if (group && group.type === "group") group.items.push(item)
-      else entries.push({ type: "group", items: [item] })
-    }
-  }
+  const sidebarSections = sections.filter((item) => item.key !== "activity")
 
   function renderItem(item: SectionItem) {
     const Icon = item.icon
+    const isActive = !isSettingsPage && section === item.key
     return (
       <SidebarMenuItem key={item.key}>
         <SidebarMenuButton
           asChild
-          isActive={section === item.key}
+          isActive={isActive}
           tooltip={item.label}
           className="h-9 gap-2 px-2 max-md:h-12 max-md:min-h-12 max-md:gap-3 max-md:px-3 [&>svg]:size-[18px] [&>svg]:max-md:size-5"
         >
@@ -190,40 +181,7 @@ export function CompanyProfileShell({ children }: { children: ReactNode }) {
             <SidebarContent>
               <SidebarGroup className="group-data-[collapsible=icon]:p-1">
                 <SidebarMenu className="gap-0.5 max-md:gap-1.5">
-                  {entries.map((entry) => {
-                    if (entry.type === "item") return renderItem(entry.item)
-                    const open = entry.items.some((item) => item.key === section)
-                    return (
-                      <Collapsible key="agency-group" asChild defaultOpen={open} className="group/collapsible">
-                        <SidebarMenuItem>
-                          <CollapsibleTrigger asChild>
-                            <SidebarMenuButton tooltip={AGENCY_GROUP.label} className="h-9 gap-2 px-2 max-md:h-12 max-md:min-h-12 max-md:gap-3 max-md:px-3 [&>svg]:size-[18px] [&>svg]:max-md:size-5">
-                              <Building2 className="h-4 w-4" aria-hidden="true" />
-                              <span className="sidebar-nav-label">{AGENCY_GROUP.label}</span>
-                              <ChevronRight className="ml-auto h-4 w-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" aria-hidden="true" />
-                            </SidebarMenuButton>
-                          </CollapsibleTrigger>
-                          <CollapsibleContent>
-                            <SidebarMenuSub className="gap-0.5">
-                              {entry.items.map((item) => {
-                                const Icon = item.icon
-                                return (
-                                  <SidebarMenuSubItem key={item.key}>
-                                    <SidebarMenuSubButton asChild isActive={section === item.key} className="h-9 gap-2 px-2 max-md:h-11 max-md:min-h-11 max-md:gap-3 max-md:px-3">
-                                      <CompanySidebarLink href={sectionHref(item.key)}>
-                                        {Icon && <Icon className="h-4 w-4" aria-hidden="true" />}
-                                        <span className="sidebar-nav-label">{item.label}</span>
-                                      </CompanySidebarLink>
-                                    </SidebarMenuSubButton>
-                                  </SidebarMenuSubItem>
-                                )
-                              })}
-                            </SidebarMenuSub>
-                          </CollapsibleContent>
-                        </SidebarMenuItem>
-                      </Collapsible>
-                    )
-                  })}
+                  {sidebarSections.map(renderItem)}
                   <UpgradeNavItem />
                 </SidebarMenu>
               </SidebarGroup>
@@ -251,7 +209,7 @@ export function CompanyProfileShell({ children }: { children: ReactNode }) {
                   <span className="truncate">Search {company.name}</span>
                 </button>
               </div>
-              <h1 className="surface-title min-w-0 truncate max-md:[--surface-title-size:17px] md:sr-only">{sectionLabel ?? company.name}</h1>
+              <h1 className="surface-title min-w-0 truncate max-md:[--surface-title-size:17px] md:sr-only">{pageLabel ?? company.name}</h1>
             </div>
             <div className="ml-auto flex shrink-0 items-center gap-2">
               <Button type="button" variant="ghost" size="icon" className="rounded-full text-foreground hover:bg-muted/50 active:bg-muted/50 md:hidden" aria-label={`Search ${company.name}`} onClick={openSearch}>
@@ -263,15 +221,20 @@ export function CompanyProfileShell({ children }: { children: ReactNode }) {
                 canManageTeam={canManageTeam}
                 shareUrl={absoluteUrl(`/${encodeURIComponent(company.slug || company.id)}`)}
               />
+              <Button asChild variant="ghost" size="icon" className={cn("rounded-full text-foreground hover:bg-muted/50 active:bg-muted/50", isSettingsPage && "bg-muted/50")}>
+                <Link href={settingsHref} aria-label="Settings" title="Settings" aria-current={isSettingsPage ? "page" : undefined}>
+                  <Settings className="size-[18px]" aria-hidden="true" />
+                </Link>
+              </Button>
               <Button type="button" variant="ghost" size="icon" className="hidden rounded-full text-foreground hover:bg-muted/50 active:bg-muted/50 sm:inline-flex" aria-label="Notifications">
                 <Bell className="size-[18px]" aria-hidden="true" />
               </Button>
             </div>
           </header>
           <main className="min-w-0 flex-1 bg-card px-4 pb-16 pt-4 sm:px-6 sm:pt-6 md:m-3 md:mt-0 md:rounded-2xl md:pb-6 md:shadow-[0_6px_24px_rgba(15,23,42,0.04)] lg:px-8">
-            {section !== "about" && sectionLabel && (
+            {(isSettingsPage || section !== "about") && pageLabel && !recordOpen && (
               <div className="mb-0.5 flex items-center justify-between gap-3">
-                <h2 className="min-w-0 truncate text-[18px] tracking-[-0.02em] text-foreground max-md:hidden md:text-[23px]">{sectionLabel}</h2>
+                <h2 className="min-w-0 truncate text-[18px] tracking-[-0.02em] text-foreground max-md:hidden md:text-[23px]">{pageLabel}</h2>
                 {/* Pages portal their own action buttons here, opposite the title. */}
                 <div id="company-title-actions" className="ml-auto flex shrink-0 items-center gap-2" />
               </div>

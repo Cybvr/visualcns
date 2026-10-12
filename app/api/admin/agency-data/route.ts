@@ -4,7 +4,7 @@ import { FieldValue } from "firebase-admin/firestore"
 import { adminServices } from "@/lib/firebase-admin"
 
 export const runtime = "nodejs"
-const COLLECTIONS = ["users", "projects", "tasks", "invoices", "contracts", "estimates", "companyDocuments", "documents", "approvals", "comments", "portalProjects", "portalTasks", "portalComments", "emailMessages", "emailTemplates", "emailDrafts", "emailLists", "organizations", "settings", "invites", "agencyUsage"]
+const COLLECTIONS = ["users", "projects", "tasks", "invoices", "contracts", "estimates", "companyDocuments", "documents", "approvals", "comments", "portalProjects", "portalTasks", "portalComments", "campaignPeople", "campaignCreatives", "emailMessages", "emailTemplates", "emailDrafts", "emailLists", "organizations", "settings", "invites", "agencyUsage"]
 
 async function authorize(request: NextRequest) {
   const token = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "")

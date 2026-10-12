@@ -12,10 +12,8 @@ import type { CompanyDetailsPatch } from "@/components/company/company-sidebar"
 import type { Contract, Estimate, Invoice } from "@/lib/billing"
 import type { CompanyDocument } from "@/lib/company-documents"
 import type { CompanyLink, PublicTeamMember } from "@/lib/organizations"
-import { getPublicPortalTasks } from "@/lib/portal-data"
-import type { PortalTask } from "@/lib/portal-model"
 import type { Project } from "@/lib/projects"
-import { deleteTask, getTasks, tsToMillis, updateTask, type Task } from "@/lib/tasks"
+import { deleteTask, getPublicTasksByCompanyId, getTasks, tsToMillis, updateTask, type Task } from "@/lib/tasks"
 import type { AppUser } from "@/lib/users"
 
 export { COMPANY_SECTIONS, isCompanySection, type CompanySectionKey } from "@/components/company/company-sections"
@@ -111,6 +109,9 @@ interface CompanyPageValue extends CompanyPageData {
   patchTask: (id: string, patch: Partial<Task>) => void
   removeTask: (id: string) => void
   refreshTasks: () => void
+  /** True while a section shows one open record (like a campaign) with its own title. */
+  recordOpen: boolean
+  setRecordOpen: (open: boolean) => void
 }
 
 const CompanyPageContext = createContext<CompanyPageValue | null>(null)
@@ -144,7 +145,10 @@ export function CompanyPageProvider({
     || (appUser?.role === "admin" && Boolean(appUser.agencyId) && appUser.agencyId === company.agencyId)
     || (Boolean(appUser?.companyId) && appUser?.companyId === company.id)
   const sections = useMemo(() => {
-    const visible = COMPANY_SECTIONS.filter((item) => (item.key !== "visitors" && item.key !== "messages") || canSeeVisitors)
+    // Tasks and media live inside each campaign, so they have no menu entry of their own.
+    const visible = COMPANY_SECTIONS
+      .filter((item) => item.key !== "tasks" && item.key !== "drive")
+      .filter((item) => !["visitors", "messages", "notes"].includes(item.key) || canSeeVisitors)
     if (mode !== "routes") return [...visible]
     const about = visible.find((item) => item.key === "about")!
     const find = (key: CompanySectionKey) => visible.find((item) => item.key === key)
@@ -152,12 +156,10 @@ export function CompanyPageProvider({
     const order = [
       { ...about, label: "Home", icon: House },
       find("projects"),
-      find("tasks"),
-      find("messages"),
-      find("drive"),
       find("finance"),
       find("pulse"),
       find("visitors"),
+      find("notes"),
       activity && { ...activity, label: "Notifications", icon: Bell },
     ]
     return order.filter((item): item is NonNullable<typeof item> => Boolean(item))
@@ -166,12 +168,13 @@ export function CompanyPageProvider({
   const basePath = mode === "routes" ? `/${pathname.split("/")[1] ?? ""}` : pathname
   const requested = mode === "routes" ? pathname.split("/")[2] : searchParams.get("tab")
   // "brand-health" is Pulse's old key; keep links that still use it working.
-  const requestedSection = requested === "brand-health" ? "pulse" : mode === "routes" && requested === "notifications" ? "activity" : requested
+  const requestedSection = requested === "brand-health" ? "pulse" : requested === "tasks" || requested === "drive" ? "projects" : mode === "routes" && requested === "notifications" ? "activity" : requested
   const section: CompanySectionKey = sections.some((s) => s.key === requestedSection)
     ? (requestedSection as CompanySectionKey)
-    : mode === "tabs" && searchParams.get("task") && !isAdmin ? "tasks" : mode === "routes" ? "about" : "projects"
+    : mode === "tabs" && searchParams.get("task") && !isAdmin ? "projects" : mode === "routes" ? "about" : "projects"
 
-  function sectionHref(key: CompanySectionKey, query: Record<string, string> = {}) {
+  function sectionHref(section: CompanySectionKey, query: Record<string, string> = {}) {
+    const key = section === "tasks" || section === "drive" ? "projects" : section
     const params = new URLSearchParams({ ...data.keepParams, ...query })
     let path = basePath
     if (mode === "routes") {
@@ -203,6 +206,7 @@ export function CompanyPageProvider({
   const [tasksLoading, setTasksLoading] = useState(true)
   const [taskRevision, setTaskRevision] = useState(0)
   const [deletingTaskId, setDeletingTaskId] = useState<string | null>(null)
+  const [recordOpen, setRecordOpen] = useState(false)
   // Tasks feed both the Tasks and Activity sections, so they load once here.
   useEffect(() => {
     let active = true
@@ -225,26 +229,8 @@ export function CompanyPageProvider({
           return
         }
 
-        const projectById = new Map(projects.map((project) => [project.id, project]))
-        const taskGroups = await Promise.all(projects.map((project) => getPublicPortalTasks(company.id, project.id)))
-        const found = taskGroups.flat().map((task: PortalTask) => {
-          const project = projectById.get(task.projectId)
-          return {
-            id: task.id,
-            agencyId: task.agencyId,
-            name: task.name,
-            companyId: task.companyId,
-            client: company.name,
-            projectId: task.projectId,
-            project: project?.title || "",
-            status: task.status,
-            priority: "medium" as const,
-            dueDate: task.dueDate,
-            content: task.instructions,
-            createdAt: (task.createdAt ?? project?.createdAt) as Task["createdAt"],
-            updatedAt: task.updatedAt as Task["updatedAt"],
-          } satisfies Task
-        })
+        const found = (await getPublicTasksByCompanyId(company.id))
+          .sort((a, b) => Math.max(tsToMillis(b.updatedAt), tsToMillis(b.createdAt)) - Math.max(tsToMillis(a.updatedAt), tsToMillis(a.createdAt)))
         if (active) setTasks(found)
       } catch {
         if (active) setTasks([])
@@ -278,7 +264,7 @@ export function CompanyPageProvider({
   const value: CompanyPageValue = {
     ...data,
     documents: data.documents ?? [],
-    emptyProjectsLabel: data.emptyProjectsLabel ?? "No jobs yet.",
+    emptyProjectsLabel: data.emptyProjectsLabel ?? "No campaigns yet.",
     isAdmin,
     canSeeVisitors,
     // The company's own staff and agency admins manage the team; each person is a seat.
@@ -298,6 +284,8 @@ export function CompanyPageProvider({
     patchTask,
     removeTask,
     refreshTasks: () => setTaskRevision((current) => current + 1),
+    recordOpen,
+    setRecordOpen,
   }
 
   return <CompanyPageContext.Provider value={value}>{children}</CompanyPageContext.Provider>

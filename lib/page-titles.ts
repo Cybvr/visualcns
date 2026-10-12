@@ -27,15 +27,15 @@ const DASHBOARD_SECTION_TITLES: Record<string, string> = {
 const COMPANY_SECTION_TITLES: Record<string, string> = {
   about: "Home",
   activity: "Notifications",
-  "brand-health": "Pulse",
+  "brand-health": "Reports",
   documents: "Drive",
   drive: "Drive",
-  finance: "Finance",
+  finance: "Payments",
   media: "Drive",
   messages: "Messages",
   notifications: "Notifications",
-  projects: "Jobs",
-  pulse: "Pulse",
+  projects: "Campaigns",
+  pulse: "Reports",
   tasks: "Tasks",
   team: "Team",
   visitors: "Pass",
@@ -99,7 +99,7 @@ export function dashboardPageTitle(pathname: string, searchParams?: SearchParams
     const clientRef = record || searchParams?.get("client")
     if (!clientRef) return "Clients"
     if (action === "edit") return "Edit Client"
-    return companySectionTitle(searchParams?.get("tab"), "Jobs")
+    return companySectionTitle(searchParams?.get("tab"), "Campaigns")
   }
   if (section === "contracts") return recordSection("Contracts", "Contract", record, action)
   if (section === "documents") return recordSection("Documents", "Document", record, action)

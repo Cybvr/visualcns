@@ -1,6 +1,5 @@
 "use client"
 
-import { useEffect, useState } from "react"
 import { useSearchParams } from "next/navigation"
 import { Share2 } from "lucide-react"
 import { toast } from "sonner"
@@ -13,42 +12,13 @@ import { taskStatusMeta } from "@/lib/tasks"
 
 /** Keeps task details in the current company surface instead of routing away. */
 export function TaskDetailSheet() {
-  const { company, admin, tasks, sectionHref, updateParams, absoluteUrl } = useCompanyPage()
+  const { tasks, sectionHref, updateParams, absoluteUrl } = useCompanyPage()
   const searchParams = useSearchParams()
   const viewingTaskId = searchParams.get("task")
   const viewingTask = viewingTaskId ? tasks.find((task) => task.id === viewingTaskId) ?? null : null
-  const [content, setContent] = useState<string | null>(null)
-  const [contentError, setContentError] = useState(false)
-  const [retry, setRetry] = useState(0)
-
-  useEffect(() => {
-    if (!viewingTaskId) {
-      setContent(null)
-      setContentError(false)
-      return
-    }
-    setContent(null)
-    setContentError(false)
-    if (admin) {
-      setContent(viewingTask?.content || "")
-      return
-    }
-    const controller = new AbortController()
-    fetch(`/api/organizations/public/task-content?companyId=${encodeURIComponent(company.id)}&taskId=${encodeURIComponent(viewingTaskId)}`, {
-      cache: "no-store",
-      signal: controller.signal,
-    })
-      .then((response) => {
-        if (!response.ok) throw new Error("Task content unavailable")
-        return response.json() as Promise<{ content: string }>
-      })
-      .then((result) => setContent(result.content))
-      .catch(() => { if (!controller.signal.aborted) setContentError(true) })
-    return () => controller.abort()
-  }, [admin, company.id, viewingTask?.content, viewingTaskId, retry])
 
   function taskHref(id: string) {
-    return sectionHref("tasks", { task: id })
+    return sectionHref("projects", { task: id })
   }
 
   async function copyTaskLink() {
@@ -99,16 +69,7 @@ export function TaskDetailSheet() {
             </dl>
             <section>
               <h3 className="text-sm font-medium text-foreground">Content</h3>
-              {contentError ? (
-                <div className="mt-2 text-sm text-muted-foreground">
-                  <p>Couldn’t load the task content.</p>
-                  <button type="button" className="mt-2 font-medium text-foreground underline underline-offset-4" onClick={() => setRetry((value) => value + 1)}>Try again</button>
-                </div>
-              ) : content === null ? (
-                <p className="mt-2 text-sm text-muted-foreground" role="status">Loading content…</p>
-              ) : (
-                <TaskContent value={content} className="mt-2" />
-              )}
+              <TaskContent value={viewingTask.content || ""} className="mt-2" />
             </section>
           </div>
         )}

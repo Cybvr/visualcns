@@ -12,7 +12,8 @@ import {
 } from "@/lib/billing"
 import { companyDocumentKindMeta, companyDocumentStatusMeta, type CompanyDocument } from "@/lib/company-documents"
 import { CompanyEmptyState } from "@/components/company/empty-state"
-import { ListSearch, useListSearch } from "@/components/dashboard/list-search"
+import { ListToolbar, useListSearch, useListView } from "@/components/dashboard/list-search"
+import { GridCard, GridCardList } from "@/components/dashboard/grid-card"
 import { MobileDataCard } from "@/components/dashboard/mobile-data-card"
 import { SectionAddButton } from "@/components/company/section-add-button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
@@ -46,8 +47,6 @@ export function CompanyDocuments({
   mediaCount = 0,
   onUpload,
   uploading = false,
-  hideHeading = false,
-  layout = "grid",
 }: {
   invoices: Invoice[]
   contracts: Contract[]
@@ -67,10 +66,6 @@ export function CompanyDocuments({
   /** Adds an "Upload files" entry to the add menu. */
   onUpload?: () => void
   uploading?: boolean
-  /** Hides the visible label when the page already titles itself. */
-  hideHeading?: boolean
-  /** "rows" is the searchable list the email page uses. */
-  layout?: "grid" | "rows"
 }) {
   const count = invoices.length + contracts.length + estimates.length + documents.length + mediaCount
 
@@ -116,6 +111,7 @@ export function CompanyDocuments({
   ]
 
   const { query, setQuery, results } = useListSearch(entries, (entry) => [entry.title, entry.kindLabel, entry.statusLabel, entry.amount])
+  const [view, setView] = useListView(`company-${heading.toLowerCase()}`)
 
   function menuFor(entry: Entry) {
     return (
@@ -128,15 +124,17 @@ export function CompanyDocuments({
 
   return (
     <section className="mt-4" aria-labelledby="company-documents-heading">
-      <div className="flex items-center justify-between gap-3">
-        <h2 id="company-documents-heading" className="sr-only">{heading}</h2>
-        {layout === "rows" || hideHeading ? (
-          <ListSearch value={query} onChange={setQuery} placeholder={`Search ${heading.toLowerCase()}`} className="max-w-sm flex-1" />
-        ) : <span className="sidebar-nav-label text-muted-foreground">{heading}</span>}
-        {canAdd && onAdd && (
+      <h2 id="company-documents-heading" className="sr-only">{heading}</h2>
+      <ListToolbar
+        query={query}
+        onQueryChange={setQuery}
+        placeholder={`Search ${heading.toLowerCase()}`}
+        view={view}
+        onViewChange={setView}
+        actions={canAdd && onAdd ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <SectionAddButton label={onUpload ? "Add to Drive" : "Add document"} disabled={uploading} />
+              <SectionAddButton label={heading === "Payments" ? "New invoice, estimate or contract" : "New document"} disabled={uploading} />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               {onUpload && <DropdownMenuItem onSelect={onUpload}>Upload files</DropdownMenuItem>}
@@ -146,8 +144,8 @@ export function CompanyDocuments({
               {addKinds.includes("estimate") && <DropdownMenuItem onSelect={() => onAdd("estimate")}>Estimate / quote</DropdownMenuItem>}
             </DropdownMenuContent>
           </DropdownMenu>
-        )}
-      </div>
+        ) : undefined}
+      />
 
       {count === 0 ? (
         <CompanyEmptyState
@@ -155,7 +153,7 @@ export function CompanyDocuments({
           title={heading === "Drive" ? "Nothing in Drive yet" : `No ${heading.toLowerCase()} yet`}
           description={emptyDescription}
         />
-      ) : layout === "rows" ? (
+      ) : view === "list" ? (
         <div className="mt-4">
           {results.length === 0 ? (
             <p className="px-3 py-8 text-center text-sm text-muted-foreground">Nothing matches your search.</p>
@@ -177,23 +175,31 @@ export function CompanyDocuments({
           ))}
         </div>
       ) : (
-        <div className={`mt-4 grid gap-3 sm:grid-cols-3 lg:grid-cols-4 ${mediaCount > 0 ? "grid-cols-2" : "grid-cols-1"}`}>
-          {results.map((entry) => (
-            <MobileDataCard
-              key={entry.key}
-              title={entry.title}
-              subtitle={entry.amount ? `${entry.amount} · ${entry.statusLabel}` : `${entry.kindLabel} · ${entry.statusLabel}`}
-              ariaLabel={`Open ${entry.title}`}
-              icon={entry.icon}
-              menuLabel={`Options for ${entry.title}`}
-              menu={menuFor(entry)}
-              onClick={() => onSelect(entry.kind, entry.id)}
-            />
-          ))}
-
-          {media?.(query)}
-          {query.trim() && results.length === 0 && mediaCount === 0 && (
-            <p className="col-span-full px-3 py-8 text-center text-sm text-muted-foreground">Nothing matches your search.</p>
+        <div className="mt-4">
+          {results.length === 0 && mediaCount === 0 ? (
+            <p className="px-3 py-8 text-center text-sm text-muted-foreground">Nothing matches your search.</p>
+          ) : (
+            <GridCardList>
+              {results.map((entry) => (
+                <GridCard
+                  key={entry.key}
+                  icon={<span className="flex [&_svg]:size-4">{entry.icon}</span>}
+                  title={entry.title}
+                  subtitle={`${entry.kindLabel} · ${entry.statusLabel}`}
+                  preview={
+                    <div className="flex size-full flex-col items-center justify-center gap-3 p-4 text-center">
+                      <span className="flex [&_svg]:size-10">{entry.icon}</span>
+                      {entry.amount && <p className="text-lg font-semibold tabular-nums tracking-[-0.02em] text-foreground">{entry.amount}</p>}
+                    </div>
+                  }
+                  ariaLabel={`Open ${entry.title}`}
+                  menuLabel={`Options for ${entry.title}`}
+                  menu={menuFor(entry)}
+                  onClick={() => onSelect(entry.kind, entry.id)}
+                />
+              ))}
+              {media?.(query)}
+            </GridCardList>
           )}
         </div>
       )}

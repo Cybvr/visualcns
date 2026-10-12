@@ -1,11 +1,14 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useSearchParams } from "next/navigation"
 import {
   AlertCircle,
+  ArrowLeft,
   ArrowUp,
   BarChart3,
   Calendar,
+  ChartColumn,
   Check,
   ChevronRight,
   FilePlus,
@@ -28,10 +31,16 @@ import {
 import type { LucideIcon } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import { SectionAddButton } from "@/components/company/section-add-button"
+import { useCompanyPage } from "@/components/company/company-page-context"
+import { GridCard, GridCardList } from "@/components/dashboard/grid-card"
+import { ListSkeleton, ListToolbar, useListSearch, useListView } from "@/components/dashboard/list-search"
+import { MobileDataCard } from "@/components/dashboard/mobile-data-card"
+import { useUrlSelection } from "@/hooks/use-url-selection"
 import { cn } from "@/lib/utils"
 import { ANALYSE_AREAS, PulseIntro, type BusinessDetails } from "@/components/company/pulse-intro"
 import { useAuth } from "@/components/auth-provider"
-import type { PulseAction, PulseAnswer, PulseIcon, PulseItem, PulseLevel, PulseReport, PulseState } from "@/lib/pulse"
+import type { PulseAction, PulseAnswer, PulseIcon, PulseItem, PulseLevel, PulseReport, PulseReportSummary, PulseState } from "@/lib/pulse"
 
 type Level = PulseLevel
 type Item = Omit<PulseItem, "icon"> & { icon: LucideIcon }
@@ -98,21 +107,12 @@ function Source({ source }: { source: string }) {
 
 type Hue = "red" | "green" | "blue" | "purple" | "amber"
 
-// Soft tints for icons and tiles, taken from the Pulse mock.
-const HUE: Record<Hue, { box: string; icon: string; tile: string }> = {
-  red: { box: "bg-red-100 dark:bg-red-950/50", icon: "text-red-500 dark:text-red-400", tile: "bg-red-50 border-red-100 dark:bg-red-950/30 dark:border-red-900/40" },
-  green: { box: "bg-emerald-100 dark:bg-emerald-950/50", icon: "text-emerald-600 dark:text-emerald-400", tile: "bg-emerald-50 border-emerald-100 dark:bg-emerald-950/30 dark:border-emerald-900/40" },
-  blue: { box: "bg-blue-100 dark:bg-blue-950/50", icon: "text-blue-600 dark:text-blue-400", tile: "bg-blue-50 border-blue-100 dark:bg-blue-950/30 dark:border-blue-900/40" },
-  purple: { box: "bg-violet-100 dark:bg-violet-950/50", icon: "text-violet-600 dark:text-violet-400", tile: "bg-violet-50 border-violet-100 dark:bg-violet-950/30 dark:border-violet-900/40" },
-  amber: { box: "bg-amber-100 dark:bg-amber-950/50", icon: "text-amber-600 dark:text-amber-400", tile: "bg-amber-50 border-amber-100 dark:bg-amber-950/30 dark:border-amber-900/40" },
-}
+// The report is plain black and grey: every tone looks the same.
+const PLAIN = { box: "", icon: "text-muted-foreground", tile: "" }
+const HUE: Record<Hue, { box: string; icon: string; tile: string }> = { red: PLAIN, green: PLAIN, blue: PLAIN, purple: PLAIN, amber: PLAIN }
 
-const TONE: Record<NonNullable<Item["badge"]>["tone"], string> = {
-  bad: "bg-red-500/10 text-red-700 dark:text-red-400",
-  warn: "bg-amber-500/10 text-amber-700 dark:text-amber-400",
-  good: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
-  plain: "bg-muted text-muted-foreground",
-}
+const BADGE = "border border-border text-muted-foreground"
+const TONE: Record<NonNullable<Item["badge"]>["tone"], string> = { bad: BADGE, warn: BADGE, good: BADGE, plain: BADGE }
 
 function Badge({ badge }: { badge: NonNullable<Item["badge"]> }) {
   return (
@@ -124,8 +124,8 @@ function Badge({ badge }: { badge: NonNullable<Item["badge"]> }) {
 
 function IconBox({ icon: Icon, tone, className }: { icon: LucideIcon; tone?: Hue; className?: string }) {
   return (
-    <span className={cn("flex size-10 shrink-0 items-center justify-center rounded-xl", tone ? HUE[tone].box : "bg-muted", className)}>
-      <Icon className={cn("size-5", tone ? HUE[tone].icon : "text-foreground")} aria-hidden="true" />
+    <span className={cn("flex size-10 shrink-0 items-center justify-center", tone ? HUE[tone].box : "", className)}>
+      <Icon className={cn("size-5", tone ? HUE[tone].icon : "text-muted-foreground")} aria-hidden="true" />
     </span>
   )
 }
@@ -133,12 +133,12 @@ function IconBox({ icon: Icon, tone, className }: { icon: LucideIcon; tone?: Hue
 /** A tappable row that opens to show more detail and its source. */
 function Row({ item, open, onToggle, onDismiss }: { item: Item; open: boolean; onToggle: () => void; onDismiss?: () => void }) {
   return (
-    <li>
+    <li className="border-b border-border last:border-b-0">
       <button
         type="button"
         onClick={onToggle}
         aria-expanded={open}
-        className="flex w-full items-start gap-3 rounded-xl p-2 text-left transition-colors hover:bg-muted/50 sm:p-3"
+        className="flex w-full items-start gap-3 py-3 text-left"
       >
         <IconBox icon={item.icon} tone={item.tone} />
         <div className="min-w-0 flex-1">
@@ -152,7 +152,7 @@ function Row({ item, open, onToggle, onDismiss }: { item: Item; open: boolean; o
         <ChevronRight className={cn("mt-2.5 size-4 shrink-0 text-muted-foreground transition-transform", open && "rotate-90")} aria-hidden="true" />
       </button>
       {open && (item.more || item.source) && (
-        <div className="mb-2 ml-[3.25rem] mr-2 rounded-xl bg-muted/50 p-3 text-sm sm:ml-[3.75rem]">
+        <div className="mb-3 ml-[3.25rem] text-sm">
           {item.more && <p className="text-foreground">{item.more}</p>}
           <div className="mt-2 flex items-center gap-2">
             {item.source && <Source source={item.source} />}
@@ -187,8 +187,8 @@ function Card({
   className?: string
 }) {
   return (
-    <div id={`bh-${id}`} className={cn("scroll-mt-24 rounded-2xl border border-border bg-background p-3 sm:p-4", className)}>
-      <div className="mb-1 flex items-center justify-between gap-2 px-1 sm:px-0">
+    <div id={`bh-${id}`} className={cn("scroll-mt-24 border-b border-border py-5", className)}>
+      <div className="mb-1 flex items-center justify-between gap-2">
         <h3 data-weight="semibold" className="font-semibold tracking-[-0.01em] text-foreground sm:text-lg">{title}</h3>
         {onToggleAll && total !== undefined && (
           <button
@@ -211,14 +211,14 @@ function ScoreRing({ score }: { score: number }) {
   const c = 2 * Math.PI * r
   return (
     <div className="relative size-24 shrink-0 sm:size-32" role="img" aria-label={`Health score ${score} out of 100`}>
-      <svg viewBox="0 0 100 100" className="size-full -rotate-90">
+      <svg viewBox="0 0 100 100" className="size-full -rotate-90 text-foreground">
         <defs>
           <linearGradient id="bh-ring" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor="#34d399" />
-            <stop offset="100%" stopColor="#10b981" />
+            <stop offset="0%" stopColor="currentColor" />
+            <stop offset="100%" stopColor="currentColor" />
           </linearGradient>
         </defs>
-        <circle cx="50" cy="50" r={r} fill="none" strokeWidth="8" className="stroke-emerald-500/15" />
+        <circle cx="50" cy="50" r={r} fill="none" strokeWidth="8" className="stroke-border" />
         <circle
           cx="50"
           cy="50"
@@ -242,24 +242,30 @@ function ScoreRing({ score }: { score: number }) {
 
 function ErrorNote({ message }: { message: string }) {
   return (
-    <p role="alert" className="mt-5 flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-300">
+    <p role="alert" className="mt-5 flex items-start gap-2 text-sm text-destructive">
       <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
       {message}
     </p>
   )
 }
 
-export function Pulse({
+/** One saved report, opened from the list at ?report={id}. */
+function ReportView({
   companyId,
   details,
   onSave,
+  reportId,
+  onBack,
+  onScanned,
 }: {
   companyId: string
   details: BusinessDetails
   onSave?: (patch: Partial<BusinessDetails>) => Promise<void>
+  reportId: string
+  onBack: () => void
+  onScanned: (id: string) => void
 }) {
   const companyName = details.name
-  const { user } = useAuth()
 
   const [report, setReport] = useState<PulseReport | null>(null)
   const [loading, setLoading] = useState(true)
@@ -278,21 +284,7 @@ export function Pulse({
   const [answers, setAnswers] = useState<Answer[]>([])
   const progress = useRef<ReturnType<typeof setInterval> | null>(null)
 
-  const call = useCallback(
-    async (init?: { method: "POST"; body: Record<string, unknown> }) => {
-      if (!user) throw new Error("Please sign in to use Pulse.")
-      const token = await user.getIdToken()
-      const response = await fetch(init ? "/api/pulse" : `/api/pulse?companyId=${encodeURIComponent(companyId)}`, {
-        method: init?.method ?? "GET",
-        headers: { Authorization: `Bearer ${token}`, ...(init ? { "content-type": "application/json" } : {}) },
-        ...(init ? { body: JSON.stringify({ companyId, ...init.body }) } : {}),
-      })
-      const body = await response.json().catch(() => ({}))
-      if (!response.ok) throw new Error(body?.error || "Something went wrong. Please try again.")
-      return body
-    },
-    [companyId, user],
-  )
+  const { call, ready, signedOut } = useReportsApi(companyId, reportId)
 
   function applyState(state: PulseState) {
     setReport(state.report)
@@ -302,6 +294,12 @@ export function Pulse({
   }
 
   useEffect(() => {
+    if (signedOut) {
+      setError("Please sign in to use Reports.")
+      setLoading(false)
+      return
+    }
+    if (!ready) return
     let active = true
     setLoading(true)
     call()
@@ -311,7 +309,7 @@ export function Pulse({
     return () => {
       active = false
     }
-  }, [call])
+  }, [call, ready, signedOut])
 
   useEffect(() => () => {
     if (progress.current) clearInterval(progress.current)
@@ -328,6 +326,7 @@ export function Pulse({
       const state = (await call({ method: "POST", body: { action: "scan" } })) as PulseState
       setStep(ANALYSE_AREAS.length)
       applyState(state)
+      if (state.id) onScanned(state.id)
       setExpanded(new Set())
       setOpenRow(null)
       window.scrollTo({ top: 0, behavior: "smooth" })
@@ -391,6 +390,7 @@ export function Pulse({
   const visible = (items: Item[]) => items.filter((item) => !dismissed.has(item.id))
   const attention = visible(data.attention)
   const opportunities = visible(data.opportunities)
+  const { market, online, changes, actions } = data
   const limit = (key: string, items: Item[], count: number) => (expanded.has(key) ? items : items.slice(0, count))
   const rowProps = (item: Item, dismissable = false) => ({
     item,
@@ -399,28 +399,21 @@ export function Pulse({
     onDismiss: dismissable ? () => mark("dismissed", item.id) : undefined,
   })
 
-  const openActions = data.actions.filter((action) => !done.has(action.id)).length
+  const openActions = actions.filter((action) => !done.has(action.id)).length
   const found = attention.length + opportunities.length
 
   const stats: { id: string; icon: LucideIcon; tone: Hue; value: number; label: string }[] = [
     { id: "attention", tone: "red", icon: AlertCircle, value: attention.length, label: "Needs attention" },
     { id: "opportunities", tone: "green", icon: TrendingUp, value: opportunities.length, label: "Opportunities" },
-    { id: "market", tone: "blue", icon: BarChart3, value: data.market.length, label: "Market & competitors" },
-    { id: "online", tone: "purple", icon: Globe, value: data.online.length, label: "Your business online" },
+    { id: "market", tone: "blue", icon: BarChart3, value: market.length, label: "Market & competitors" },
+    { id: "online", tone: "purple", icon: Globe, value: online.length, label: "Your business online" },
   ]
 
   function jump(id: string) {
     document.getElementById(`bh-${id}`)?.scrollIntoView({ behavior: "smooth", block: "start" })
   }
 
-  if (loading) {
-    return (
-      <p className="mt-10 flex items-center justify-center gap-2 text-sm text-muted-foreground">
-        <Loader2 className="size-4 animate-spin" aria-hidden="true" />
-        Loading Pulse…
-      </p>
-    )
-  }
+  if (loading) return <ListSkeleton view="card" label="Loading report" toolbar={false} />
 
   if (view === "intro" || !report) {
     return (
@@ -430,7 +423,7 @@ export function Pulse({
           details={details}
           onSave={onSave}
           onAnalyse={() => void scan()}
-          onBack={report ? () => setView("dashboard") : undefined}
+          onBack={report ? () => setView("dashboard") : onBack}
           scanning={scanning}
           step={step}
         />
@@ -439,19 +432,31 @@ export function Pulse({
   }
 
   return (
-    <section className="mt-5 space-y-3 sm:space-y-4">
+    <section className="mt-5">
+      <div className="mb-4 flex min-w-0 items-center gap-3">
+        <button
+          type="button"
+          onClick={onBack}
+          aria-label="Back to Reports"
+          title="Back to Reports"
+          className="-ml-2 flex size-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <ArrowLeft className="size-5" aria-hidden="true" />
+        </button>
+        <h2 className="min-w-0 truncate text-xl font-semibold tracking-[-0.02em]">Report · {reportDate(report.scannedAt)}</h2>
+      </div>
       {error && <ErrorNote message={error} />}
       {scanning && (
-        <p className="flex items-center gap-2 rounded-xl border border-blue-100 bg-blue-50 px-3 py-2.5 text-sm text-blue-800 dark:border-blue-900/40 dark:bg-blue-950/30 dark:text-blue-200">
+        <p className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
           <Loader2 className="size-4 shrink-0 animate-spin" aria-hidden="true" />
           Scanning your website and the web. This takes a minute or two; the report updates when it&apos;s done.
         </p>
       )}
       {/* Hero: what this is, the score, and when it last looked. */}
-      <div className="rounded-2xl border border-rose-100 bg-gradient-to-br from-rose-50 via-orange-50 to-emerald-50 p-4 sm:p-6 dark:border-border dark:from-rose-950/30 dark:via-orange-950/20 dark:to-emerald-950/30">
+      <div className="border-b border-border py-6">
         <div className="flex items-start gap-4">
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Pulse</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Reports</p>
             <h2 data-weight="semibold" className="mt-1.5 text-xl font-semibold tracking-[-0.02em] text-foreground sm:text-3xl">
               AI intelligence for {companyName}
             </h2>
@@ -470,7 +475,7 @@ export function Pulse({
               <Pencil className="size-4" aria-hidden="true" />
               Business details
             </Button>
-            <Button type="button" variant="outline" size="sm" onClick={scan} disabled={scanning} className="bg-background">
+            <Button type="button" variant="outline" size="sm" onClick={scan} disabled={scanning}>
               {scanning ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <RefreshCw className="size-4" aria-hidden="true" />}
               {scanning ? "Scanning…" : "Run new scan"}
             </Button>
@@ -479,14 +484,14 @@ export function Pulse({
       </div>
 
       {/* Briefing: opens to the summary and prioritised actions. */}
-      <div className="rounded-2xl border border-blue-100 bg-gradient-to-r from-blue-50 to-violet-50 dark:border-blue-900/40 dark:from-blue-950/30 dark:to-violet-950/30">
+      <div className="border-b border-border">
         <button
           type="button"
           onClick={() => setBriefOpen((open) => !open)}
           aria-expanded={briefOpen}
-          className="flex w-full items-center gap-3 p-4 text-left"
+          className="flex w-full items-center gap-3 py-4 text-left"
         >
-          <IconBox icon={Sparkles} tone="blue" className="bg-background dark:bg-background" />
+          <IconBox icon={Sparkles} />
           <div className="min-w-0 flex-1">
             <p className="font-semibold text-foreground">Here&apos;s what I found</p>
             <p className="text-sm text-muted-foreground">
@@ -496,13 +501,13 @@ export function Pulse({
           <ChevronRight className={cn("size-5 shrink-0 text-muted-foreground transition-transform", briefOpen && "rotate-90")} aria-hidden="true" />
         </button>
         {briefOpen && (
-          <div className="border-t border-blue-100 p-4 dark:border-blue-900/40">
+          <div className="pb-5">
             <p className="max-w-3xl text-[15px] leading-7 text-foreground">{data.summary}</p>
             <p className="mt-5 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-              Recommended actions · {done.size} of {data.actions.length} done
+              Recommended actions · {actions.filter((action) => done.has(action.id)).length} of {actions.length} done
             </p>
             <ol className="mt-2 divide-y divide-border">
-              {data.actions.map((action, index) => {
+              {actions.map((action, index) => {
                 const isDone = done.has(action.id)
                 const isOpen = openAction === action.id
                 return (
@@ -536,11 +541,11 @@ export function Pulse({
                     </div>
                     {isOpen && !isDone && (
                       <div className="ml-8 mt-3 grid gap-2 sm:grid-cols-2">
-                        <div className="rounded-xl bg-muted/50 p-3">
+                        <div>
                           <p className="text-xs font-medium text-muted-foreground">Evidence</p>
                           <p className="mt-1 text-sm text-foreground">{action.evidence}</p>
                         </div>
-                        <div className="rounded-xl bg-muted/50 p-3">
+                        <div>
                           <p className="text-xs font-medium text-muted-foreground">Next steps</p>
                           <ul className="mt-1 space-y-0.5">
                             {action.steps.map((step) => (
@@ -559,13 +564,13 @@ export function Pulse({
       </div>
 
       {/* Counts that jump to each section. */}
-      <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4">
+      <div className="grid grid-cols-2 border-b border-border lg:grid-cols-4">
         {stats.map((stat) => (
           <button
             key={stat.id}
             type="button"
             onClick={() => jump(stat.id)}
-            className={cn("flex items-start gap-2.5 rounded-2xl border p-3 text-left transition-opacity hover:opacity-80 sm:p-4", HUE[stat.tone].tile)}
+            className="flex items-start gap-2.5 py-4 pr-3 text-left transition-colors hover:text-foreground"
           >
             <stat.icon className={cn("mt-1 size-5 shrink-0", HUE[stat.tone].icon)} aria-hidden="true" />
             <div className="min-w-0 flex-1">
@@ -586,7 +591,7 @@ export function Pulse({
         onToggleAll={attention.length > 3 ? () => toggleIn(setExpanded, "attention") : undefined}
       >
         {attention.length === 0 ? (
-          <p className="px-1 py-4 text-sm text-muted-foreground">Nothing needs attention right now.</p>
+          <p className="px-1 py-4 text-sm text-muted-foreground">{"Nothing needs attention right now."}</p>
         ) : (
           <ul>
             {limit("attention", attention, 3).map((item) => (
@@ -605,13 +610,13 @@ export function Pulse({
         onToggleAll={opportunities.length > 3 ? () => toggleIn(setExpanded, "opportunities") : undefined}
       >
         {opportunities.length === 0 ? (
-          <p className="px-1 py-4 text-sm text-muted-foreground">No open opportunities right now.</p>
+          <p className="px-1 py-4 text-sm text-muted-foreground">{"No open opportunities right now."}</p>
         ) : (
-          <ul className="mt-2 grid gap-2 sm:grid-cols-2 sm:gap-3 lg:grid-cols-3">
+          <ul className="mt-2 grid sm:grid-cols-2 sm:gap-x-6 lg:grid-cols-3">
             {limit("opportunities", opportunities, 3).map((item) => {
               const open = openRow === item.id
               return (
-                <li key={item.id} className="flex flex-col rounded-xl border border-border p-3 sm:p-4">
+                <li key={item.id} className="flex flex-col border-b border-border py-4 last:border-b-0">
                   <button
                     type="button"
                     onClick={() => setOpenRow(open ? null : item.id)}
@@ -619,7 +624,7 @@ export function Pulse({
                     className="flex-1 text-left"
                   >
                     <div className="flex items-center justify-between gap-2">
-                      <IconBox icon={item.icon} tone={item.tone} className="size-9" />
+                      <IconBox icon={item.icon} tone={item.tone} className="size-5 justify-start" />
                       <div className="flex items-center gap-1">
                         {item.badge && <Badge badge={item.badge} />}
                         <ChevronRight className={cn("size-4 text-muted-foreground transition-transform", open && "rotate-90")} aria-hidden="true" />
@@ -649,17 +654,17 @@ export function Pulse({
       </Card>
 
       {/* Market and online presence side by side on desktop. */}
-      <div className="grid gap-3 sm:gap-4 lg:grid-cols-2">
+      <div className="grid lg:grid-cols-2 lg:gap-x-8">
         <Card
           id="market"
           title="Market & competitors"
-          total={data.market.length}
+          total={market.length}
           expanded={expanded.has("market")}
-          onToggleAll={data.market.length > 2 ? () => toggleIn(setExpanded, "market") : undefined}
+          onToggleAll={market.length > 2 ? () => toggleIn(setExpanded, "market") : undefined}
         >
-          {data.market.length === 0 && <p className="px-1 py-4 text-sm text-muted-foreground">No competitor or market news found this time.</p>}
+          {market.length === 0 && <p className="px-1 py-4 text-sm text-muted-foreground">{"No competitor or market news found this time."}</p>}
           <ul>
-            {limit("market", data.market, 2).map((item) => (
+            {limit("market", market, 2).map((item) => (
               <Row key={item.id} {...rowProps(item)} />
             ))}
           </ul>
@@ -667,13 +672,13 @@ export function Pulse({
         <Card
           id="online"
           title="Your business online"
-          total={data.online.length}
+          total={online.length}
           expanded={expanded.has("online")}
-          onToggleAll={data.online.length > 2 ? () => toggleIn(setExpanded, "online") : undefined}
+          onToggleAll={online.length > 2 ? () => toggleIn(setExpanded, "online") : undefined}
         >
-          {data.online.length === 0 && <p className="px-1 py-4 text-sm text-muted-foreground">Nothing to report yet.</p>}
+          {online.length === 0 && <p className="px-1 py-4 text-sm text-muted-foreground">{"Nothing to report yet."}</p>}
           <ul>
-            {limit("online", data.online, 2).map((item) => (
+            {limit("online", online, 2).map((item) => (
               <Row key={item.id} {...rowProps(item)} />
             ))}
           </ul>
@@ -684,24 +689,24 @@ export function Pulse({
       <Card
         id="changes"
         title="Recent changes"
-        total={data.changes.length}
+        total={changes.length}
         expanded={expanded.has("changes")}
-        onToggleAll={data.changes.length > 2 ? () => toggleIn(setExpanded, "changes") : undefined}
+        onToggleAll={changes.length > 2 ? () => toggleIn(setExpanded, "changes") : undefined}
       >
-        {data.changes.length === 0 && <p className="px-1 py-4 text-sm text-muted-foreground">Changes show up here after your next scan.</p>}
-        <ul className="grid sm:grid-cols-2 sm:gap-x-3">
-          {limit("changes", data.changes, 2).map((item) => (
+        {changes.length === 0 && <p className="px-1 py-4 text-sm text-muted-foreground">{"Changes show up here after your next scan."}</p>}
+        <ul className="grid sm:grid-cols-2 sm:gap-x-6">
+          {limit("changes", changes, 2).map((item) => (
             <Row key={item.id} {...rowProps(item)} />
           ))}
         </ul>
       </Card>
 
       {/* Ask AI */}
-      <div className="rounded-2xl border border-border bg-background p-3 sm:p-4">
+      <div className="border-b border-border py-5">
         {(asking || answers.length > 0) && (
           <div className="mb-3 space-y-2">
             {answers.map((answer, index) => (
-              <div key={`${answer.question}-${index}`} className="rounded-xl bg-muted/50 p-3 sm:p-4">
+              <div key={`${answer.question}-${index}`} className="border-b border-border pb-3">
                 <div className="flex items-start justify-between gap-3">
                   <p className="text-sm font-medium text-foreground">{answer.question}</p>
                   <button
@@ -736,9 +741,9 @@ export function Pulse({
             event.preventDefault()
             ask(query)
           }}
-          className="flex items-center gap-2 rounded-xl border border-border bg-muted/30 py-1.5 pl-3 pr-1.5"
+          className="flex items-center gap-2 rounded-xl border border-border py-1.5 pl-3 pr-1.5"
         >
-          <Sparkles className="size-4 shrink-0 text-primary" aria-hidden="true" />
+          <Sparkles className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
@@ -770,7 +775,213 @@ export function Pulse({
         </div>
       </div>
 
-      <p className="px-1 text-xs text-muted-foreground">Built from your website and public web sources. Check anything important before acting on it.</p>
+      <p className="pt-4 text-xs text-muted-foreground">Built from your website and public web sources. Check anything important before acting on it.</p>
+    </section>
+  )
+}
+
+function reportDate(iso: string) {
+  const date = new Date(iso)
+  return Number.isNaN(date.getTime()) ? "Undated" : date.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })
+}
+
+/**
+ * Calls the reports route for one company, and for one report when `reportId`
+ * is given. `ready` is false until sign-in has settled, so pages wait instead of
+ * firing a request that fails and then firing it again.
+ */
+function useReportsApi(companyId: string, reportId?: string) {
+  const { user, loading } = useAuth()
+  // The signed-in user object can be replaced on token refresh; keying on the uid stops that from reloading the page.
+  const userRef = useRef(user)
+  userRef.current = user
+  const uid = user?.uid ?? ""
+  const call = useCallback(
+    async (init?: { method: "POST"; body: Record<string, unknown> }) => {
+      const current = userRef.current
+      if (!current) throw new Error("Please sign in to use Reports.")
+      const token = await current.getIdToken()
+      const search = new URLSearchParams({ companyId, ...(reportId ? { reportId } : {}) })
+      const response = await fetch(init ? "/api/pulse" : `/api/pulse?${search}`, {
+        method: init?.method ?? "GET",
+        headers: { Authorization: `Bearer ${token}`, ...(init ? { "content-type": "application/json" } : {}) },
+        ...(init ? { body: JSON.stringify({ companyId, ...(reportId ? { reportId } : {}), ...init.body }) } : {}),
+      })
+      const body = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(body?.error || "Something went wrong. Please try again.")
+      return body
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [companyId, reportId, uid],
+  )
+  return { call, ready: !loading && Boolean(uid), signedOut: !loading && !uid }
+}
+
+/**
+ * The Reports page: every scan saved as its own report, newest first, with the
+ * same search, card/list switch and New button as the other company pages.
+ * A report opens at ?report={id}.
+ */
+export function Pulse({
+  companyId,
+  details,
+  onSave,
+}: {
+  companyId: string
+  details: BusinessDetails
+  onSave?: (patch: Partial<BusinessDetails>) => Promise<void>
+}) {
+  const { call, ready, signedOut } = useReportsApi(companyId)
+  const { setRecordOpen } = useCompanyPage()
+  // Read from the address bar during render, so a link straight to a report never loads the list first.
+  const openId = useSearchParams().get("report")
+  const [, select] = useUrlSelection("report")
+  const [reports, setReports] = useState<PulseReportSummary[] | null>(null)
+  const [error, setError] = useState("")
+  const [scanning, setScanning] = useState(false)
+  const [step, setStep] = useState(0)
+  const [revision, setRevision] = useState(0)
+  const [view, setView] = useListView("company-reports")
+  const progress = useRef<ReturnType<typeof setInterval> | null>(null)
+  const { query, setQuery, results } = useListSearch(reports ?? [], (item) => [reportDate(item.scannedAt), item.summary, `score ${item.score}`])
+
+  useEffect(() => {
+    setRecordOpen(Boolean(openId))
+    return () => setRecordOpen(false)
+  }, [openId, setRecordOpen])
+
+  useEffect(() => {
+    if (openId) return
+    if (signedOut) {
+      setError("Please sign in to use Reports.")
+      setReports([])
+      return
+    }
+    if (!ready) return
+    let active = true
+    call()
+      .then((body: { reports: PulseReportSummary[] }) => { if (active) setReports(body.reports) })
+      .catch((reason: Error) => {
+        if (!active) return
+        setError(reason.message)
+        setReports([])
+      })
+    return () => { active = false }
+  }, [call, openId, ready, revision, signedOut])
+
+  useEffect(() => () => {
+    if (progress.current) clearInterval(progress.current)
+  }, [])
+
+  async function scan() {
+    if (scanning) return
+    setScanning(true)
+    setError("")
+    setStep(0)
+    progress.current = setInterval(() => setStep((current) => Math.min(current + 1, ANALYSE_AREAS.length - 1)), 9000)
+    try {
+      const state = (await call({ method: "POST", body: { action: "scan" } })) as PulseState
+      setStep(ANALYSE_AREAS.length)
+      setRevision((current) => current + 1)
+      if (state.id) select(state.id)
+    } catch (reason) {
+      setError((reason as Error).message)
+    } finally {
+      if (progress.current) clearInterval(progress.current)
+      setScanning(false)
+    }
+  }
+
+  if (openId) {
+    return (
+      <ReportView
+        key={openId}
+        companyId={companyId}
+        details={details}
+        onSave={onSave}
+        reportId={openId}
+        onBack={() => select(null)}
+        onScanned={(id) => {
+          setRevision((current) => current + 1)
+          select(id, { replace: true })
+        }}
+      />
+    )
+  }
+
+  if (reports === null) return <ListSkeleton view={view} label="Loading reports" />
+
+  // Before the first scan, the page explains Reports and confirms the details the scan will use.
+  if (reports.length === 0) {
+    return (
+      <div>
+        {error && <ErrorNote message={error} />}
+        <PulseIntro details={details} onSave={onSave} onAnalyse={() => void scan()} scanning={scanning} step={step} />
+      </div>
+    )
+  }
+
+  return (
+    <section className="mt-5">
+      <h2 className="sr-only">Reports</h2>
+      <ListToolbar
+        query={query}
+        onQueryChange={setQuery}
+        placeholder="Search reports"
+        view={view}
+        onViewChange={setView}
+        actions={<SectionAddButton label="New scan" onClick={() => void scan()} disabled={scanning} />}
+      />
+      {error && <ErrorNote message={error} />}
+      {scanning && (
+        <p className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
+          <Loader2 className="size-4 shrink-0 animate-spin" aria-hidden="true" />
+          Scanning your website and the web. This takes a minute or two; the new report opens when it&apos;s done.
+        </p>
+      )}
+
+      {results.length === 0 ? (
+        <p className="px-3 py-8 text-center text-sm text-muted-foreground">Nothing matches your search.</p>
+      ) : view === "card" ? (
+        <div className="mt-4">
+          <GridCardList>
+            {results.map((item) => (
+              <GridCard
+                key={item.id}
+                icon={<ChartColumn className="size-4 text-muted-foreground" aria-hidden="true" />}
+                title={reportDate(item.scannedAt)}
+                subtitle={`${item.attention} need attention · ${item.opportunities} opportunities`}
+                preview={
+                  <div className="flex flex-col items-center justify-center">
+                    <span className="text-4xl font-semibold tabular-nums tracking-[-0.03em] text-foreground">{item.score}</span>
+                    <span className="text-xs text-muted-foreground">out of 100</span>
+                  </div>
+                }
+                onClick={() => select(item.id)}
+                ariaLabel={`Open report from ${reportDate(item.scannedAt)}`}
+              />
+            ))}
+          </GridCardList>
+        </div>
+      ) : (
+        <div className="mt-4">
+          {results.map((item) => (
+            <MobileDataCard
+              key={item.id}
+              surface="list"
+              variant="inline"
+              iconShape="circle"
+              icon={<ChartColumn className="size-5 text-muted-foreground" aria-hidden="true" />}
+              title={reportDate(item.scannedAt)}
+              subtitle={`Score ${item.score}`}
+              description={`${item.attention} need attention · ${item.opportunities} opportunities`}
+              trailing={timeAgo(item.scannedAt)}
+              onClick={() => select(item.id)}
+              ariaLabel={`Open report from ${reportDate(item.scannedAt)}`}
+            />
+          ))}
+        </div>
+      )}
     </section>
   )
 }

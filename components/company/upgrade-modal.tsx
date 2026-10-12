@@ -95,7 +95,7 @@ export function UpgradeModal({ open, onOpenChange, companyId, companyName, billi
   } else if (access?.state === "paused") {
     badge = "Paused"
     headline = "Switched off"
-    detail = "Choose a plan to switch Pass and Pulse back on. Your records are kept."
+    detail = "Choose a plan to switch Pass and Reports back on. Your records are kept."
   }
 
   return (

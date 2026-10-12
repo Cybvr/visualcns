@@ -7,6 +7,8 @@ import { cn } from "@/lib/utils"
 
 type GridCardProps = {
   title: ReactNode
+  /** A short line under the preview, such as a date. */
+  subtitle?: ReactNode
   /** Small icon beside the title. */
   icon?: ReactNode
   /** Fills the preview tile. Falls back to `imageUrl`, then to `placeholder`. */
@@ -29,6 +31,7 @@ type GridCardProps = {
  */
 export function GridCard({
   title,
+  subtitle,
   icon,
   preview,
   imageUrl,
@@ -86,6 +89,7 @@ export function GridCard({
             placeholder
           ))}
       </div>
+      {subtitle !== undefined && <p className="pointer-events-none relative truncate px-1 text-xs text-muted-foreground">{subtitle}</p>}
     </div>
   )
 }

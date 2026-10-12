@@ -121,7 +121,7 @@ export function CompanyPlan({ companyId, billing, seats = null, className, expan
     tone = "text-amber-600"
   } else if (access?.state === "paused") {
     title = "Paused"
-    detail = "Choose a plan to switch Pass and Pulse back on. Your records are kept."
+    detail = "Choose a plan to switch Pass and Reports back on. Your records are kept."
     tone = "text-destructive"
   }
 
