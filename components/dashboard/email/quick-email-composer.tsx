@@ -10,6 +10,8 @@ import { MAX_EMAIL_ATTACHMENTS, MAX_EMAIL_ATTACHMENT_BYTES, MAX_EMAIL_ATTACHMENT
 import { prepareEmailAttachment, removeUploadedEmailAttachments, uploadEmailAttachments } from "@/lib/email-attachment-uploads"
 import { parseEmailList, plainTextToEditorHtml } from "@/lib/email-composer"
 import { markdownToHtml } from "@/lib/markdown"
+import { getEmailTemplates, type EmailTemplateRecord } from "@/lib/email-templates-store"
+import { withMessageImage } from "@/components/dashboard/email/email-preview"
 import type { EmailMessageKind } from "@/components/dashboard/email/types"
 
 type Notice = { tone: "success" | "error"; text: string } | null
@@ -60,7 +62,7 @@ export function QuickEmailComposer({
   name?: string
   companyName?: string
 }) {
-  const { user } = useAuth()
+  const { user, appUser, isAdmin, isImpersonating } = useAuth()
   const firstName = name?.trim().split(/\s+/)[0] || "there"
   const [composeMinimized, setComposeMinimized] = useState(false)
   const [subject, setSubject] = useState("")
@@ -78,12 +80,42 @@ export function QuickEmailComposer({
   const [attachments, setAttachments] = useState<File[]>([])
   const [preparingAttachments, setPreparingAttachments] = useState(false)
   const [sending, setSending] = useState(false)
+  // The same templates the Email page offers.
+  const [templates, setTemplates] = useState<EmailTemplateRecord[]>([])
+  const [selectedTemplateId, setSelectedTemplateId] = useState("")
+  const selectedTemplate = templates.find((template) => template.id === selectedTemplateId) ?? null
   const [scheduleEnabled, setScheduleEnabled] = useState(false)
   const [scheduleAt, setScheduleAt] = useState("")
   const [composerPreviewOpen, setComposerPreviewOpen] = useState(false)
   const [sendNotice, setSendNotice] = useState<Notice>(null)
 
   useHideMobileFooter(open)
+
+  // An admin "viewing as" a client sees only that client's templates, as on the Email page.
+  const showAllTemplates = isAdmin && !isImpersonating
+  const workspaceId = appUser?.companyId || user?.uid || "workspace"
+  useEffect(() => {
+    if (!user?.uid) return
+    let active = true
+    getEmailTemplates(workspaceId, showAllTemplates)
+      .then((rows) => { if (active) setTemplates(rows) })
+      .catch(() => { if (active) setTemplates([]) })
+    return () => { active = false }
+  }, [showAllTemplates, user?.uid, workspaceId])
+
+  function applyTemplate(templateId: string) {
+    setSelectedTemplateId(templateId)
+    const template = templates.find((item) => item.id === templateId)
+    if (!template) return
+    setSubject(template.subject)
+    // Fill the lead's name into the greeting, like the Email page does.
+    const html = withMessageImage(template.body, template.imageUrl, template.imageAlt)
+    const leadName = name?.trim()
+    setBody(leadName
+      ? html.replace(/\[Customer Name\]|\[Name\]/gi, leadName).replace(/(^|>|\n)(\s*(?:Dear|Hello)\s+)(Customer)(\s*,?)/i, `$1$2${leadName}$4`)
+      : html)
+    setSendNotice(null)
+  }
 
   useEffect(() => {
     let active = true
@@ -280,9 +312,9 @@ export function QuickEmailComposer({
       draftStatus="idle"
       savingDraft={false}
       setComposerPreviewOpen={setComposerPreviewOpen}
-      templates={[]}
-      selectedTemplate={null}
-      applyTemplate={() => undefined}
+      templates={templates}
+      selectedTemplate={selectedTemplate}
+      applyTemplate={applyTemplate}
       editingDraftId={null}
       removeDraft={() => undefined}
       clearComposer={clearComposer}
