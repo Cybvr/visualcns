@@ -42,7 +42,7 @@ export function HeaderTeam({ company, people, canManageTeam, shareUrl, className
   return (
     <div className={cn("flex shrink-0 items-center gap-2 print:hidden", className)}>
       {(people.length > 0 || canInvite) && (
-        <div className="mr-1 flex -space-x-2" aria-label={`${people.length} team member${people.length === 1 ? "" : "s"}`}>
+        <div className="mr-1 flex -space-x-2 max-md:hidden" aria-label={`${people.length} team member${people.length === 1 ? "" : "s"}`}>
           {shown.map((person) => (
             <Avatar key={person.id} className="size-9 border-2 border-card" title={person.name}>
               {person.photoUrl && <AvatarImage src={person.photoUrl} alt={person.name} referrerPolicy="no-referrer" />}

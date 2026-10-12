@@ -216,7 +216,7 @@ export function CompanyProfileShell({ children }: { children: ReactNode }) {
               </div>
               <h1 className="surface-title min-w-0 truncate max-md:[--surface-title-size:17px] md:sr-only">{pageLabel ?? company.name}</h1>
             </div>
-            <div className="ml-auto flex shrink-0 items-center gap-2">
+            <div className="ml-auto flex shrink-0 items-center gap-1 md:gap-2">
               <Button type="button" variant="ghost" size="icon" className="rounded-full text-foreground hover:bg-muted/50 active:bg-muted/50 md:hidden" aria-label={`Search ${company.name}`} onClick={openSearch}>
                 <Search className="size-[18px]" aria-hidden="true" />
               </Button>
