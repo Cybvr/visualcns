@@ -7,6 +7,7 @@ import { getAuth as getAdminAuth } from "firebase-admin/auth"
 import { FieldPath, FieldValue, getFirestore as getAdminFirestore } from "firebase-admin/firestore"
 import { getAgencySecret, recordAgencyUsage } from "@/lib/server/agency-secrets"
 import { buildEmailComposeHref } from "@/lib/email-composer"
+import { POST as generateCampaignParts } from "@/app/api/campaigns/generate/route"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -15,7 +16,8 @@ const MODEL = process.env.OPENAI_MODEL || "gpt-5.6-luna"
 const MAX_TOOL_ROUNDS = 16
 
 type AttachedFile = { name?: string; url?: string; mimeType?: string }
-type ChatMessage = { role: "user" | "assistant"; content: string; images?: string[]; files?: AttachedFile[] }
+type ChatMention = { type?: string; id?: string; label?: string; companyId?: string }
+type ChatMessage = { role: "user" | "assistant"; content: string; images?: string[]; files?: AttachedFile[]; mentions?: ChatMention[] }
 type Surface = "client_portal" | "agency_dashboard"
 type AgentBody = { messages?: ChatMessage[]; firstName?: string; surface?: Surface; companyContext?: { id?: string; name?: string } }
 
@@ -85,6 +87,11 @@ each area to a line or two, skip areas with nothing in them, and link records by
 
 Creation tools are available for companies, projects, tasks, draft invoices, draft estimates, draft
 contracts and written company documents.
+
+When the user asks to find and add creators to a campaign, call research_campaign_creators with the
+exact projectId from their @campaign mention. This is one research operation, so do it directly without
+a plan when they have clearly asked for it. It uses grounded public profile research and adds the results
+to that campaign's creator roster.
 
 When the user attaches a file, they usually want one of two things: to file it into a company's Drive,
 or to turn its contents into a record. If they say to save, add, store or keep the file, use attach_file
@@ -168,12 +175,13 @@ const AGENT_TOOLS = [
       properties: {
         collection: {
           type: "string",
-          enum: ["organizations", "projects", "tasks", "invoices", "estimates", "contracts", "companyDocuments", "documents", "users"],
+          enum: ["organizations", "projects", "tasks", "invoices", "estimates", "contracts", "companyDocuments", "documents", "users", "campaignPeople"],
           description:
-            "Which records to read. organizations = client companies, projects = projects, tasks = tasks, invoices/estimates/contracts = billing documents, companyDocuments = written company documents, documents = uploaded/shared files, users = people.",
+            "Which records to read. organizations = client companies, projects = campaigns, tasks = tasks, invoices/estimates/contracts = billing documents, companyDocuments = written company documents, documents = uploaded/shared files, users = people, campaignPeople = creators on campaigns.",
         },
         limit: { type: ["number", "null"], description: "Maximum records to return. Defaults to 100, capped at 300." },
         companyId: { type: ["string", "null"], description: "Only return records for this client company (id from find_client). Admins only." },
+        projectId: { type: ["string", "null"], description: "Only return this campaign or records attached to it. Use the exact projectId supplied by a selected @campaign mention." },
         search: { type: ["string", "null"], description: "Only return records whose name, title, client, number or email contains this text." },
       },
       required: ["collection"],
@@ -189,6 +197,19 @@ const AGENT_TOOLS = [
       type: "object",
       properties: {},
       required: [],
+      additionalProperties: false,
+    },
+  },
+  {
+    type: "function",
+    name: "research_campaign_creators",
+    description: "Find verified public creator profiles with Firecrawl and add the strongest matches directly to one campaign's creator roster. Use the exact projectId from an @campaign mention. Agency admins only.",
+    parameters: {
+      type: "object",
+      properties: {
+        projectId: { type: "string", description: "Exact campaign id supplied by the selected @campaign mention." },
+      },
+      required: ["projectId"],
       additionalProperties: false,
     },
   },
@@ -592,6 +613,7 @@ const READABLE_COLLECTIONS = [
   "companyDocuments",
   "documents",
   "users",
+  "campaignPeople",
 ]
 
 const UPDATABLE_COLLECTIONS = ["organizations", "projects", "tasks", "invoices", "estimates", "contracts", "companyDocuments"]
@@ -682,6 +704,24 @@ function clip(text: string, max: number): string {
   return text.length > max ? `${text.slice(0, max)}… [cut short]` : text
 }
 
+function selectedCampaignContext(message: ChatMessage): string {
+  if (message.role !== "user" || !Array.isArray(message.mentions)) return ""
+  const campaigns = message.mentions
+    .filter((mention) => mention?.type === "campaign" && typeof mention.id === "string" && typeof mention.label === "string" && typeof mention.companyId === "string")
+    .slice(0, 8)
+    .map((mention) => ({
+      id: String(mention.id).trim().slice(0, 200),
+      label: String(mention.label).replace(/[\r\n]+/g, " ").trim().slice(0, 200),
+      companyId: String(mention.companyId).trim().slice(0, 200),
+    }))
+    .filter((mention) => mention.id && mention.label && mention.companyId)
+  if (!campaigns.length) return ""
+  return [
+    "Campaigns explicitly selected by the user with the @ picker. Use these exact IDs instead of resolving the campaign by name:",
+    ...campaigns.map((campaign) => `- ${campaign.label}: projectId=${campaign.id}, companyId=${campaign.companyId}`),
+  ].join("\n")
+}
+
 /** Refuses local and private network addresses, so a saved link can't reach internal services. */
 function isFetchableUrl(raw: string): boolean {
   try {
@@ -766,7 +806,7 @@ function stepLabel(name: string, rawArgs: string): string {
   const text = (key: string) => (typeof args[key] === "string" ? String(args[key]).trim() : "")
   const readable: Record<string, string> = {
     organizations: "clients", projects: "projects", tasks: "tasks", invoices: "invoices", estimates: "estimates",
-    contracts: "contracts", companyDocuments: "documents", documents: "Drive files", users: "people",
+    contracts: "contracts", companyDocuments: "documents", documents: "Drive files", users: "people", campaignPeople: "campaign creators",
   }
   switch (name) {
     case "find_client": return `Looking up “${text("name")}”`
@@ -774,6 +814,7 @@ function stepLabel(name: string, rawArgs: string): string {
     case "read_file": return "Opening a file"
     case "query_workspace": return `Checking ${readable[text("collection")] ?? "records"}${text("search") ? ` for “${text("search")}”` : ""}`
     case "workspace_summary": return "Pulling together an overview"
+    case "research_campaign_creators": return "Finding creators for the campaign"
     case "update_record": return "Saving changes"
     case "create_company": return `Adding ${text("name") || "the client"}`
     case "create_project": return `Creating project ${text("title")}`.trim()
@@ -790,7 +831,7 @@ function stepLabel(name: string, rawArgs: string): string {
   }
 }
 
-async function runAgentTool(name: string, rawArgs: string, uid: string) {
+async function runAgentTool(name: string, rawArgs: string, uid: string, authorization: string) {
   const { db } = adminServices()
   const userSnapshot = await db.collection("users").doc(uid).get()
   const userData = userSnapshot.data()
@@ -830,12 +871,16 @@ async function runAgentTool(name: string, rawArgs: string, uid: string) {
           ? query.where(FieldPath.documentId(), "==", onlyCompany)
           : query.where("companyId", "==", onlyCompany)
     }
+    const onlyProject = optionalText(readArgs, "projectId")
     const search = optionalText(readArgs, "search").toLowerCase()
 
-    const snapshot = await query.limit(search ? 1000 : limit).get()
-    const docs = search
-      ? snapshot.docs.filter((item) => searchableText(item.data()).includes(search)).slice(0, limit)
-      : snapshot.docs
+    // Project filtering happens after the permission-scoped query so campaign
+    // mentions do not require a new composite Firestore index for every collection.
+    const snapshot = await query.limit(search || onlyProject ? 1000 : limit).get()
+    const docs = snapshot.docs
+      .filter((item) => !onlyProject || (collectionName === "projects" ? item.id === onlyProject : item.data().projectId === onlyProject))
+      .filter((item) => !search || searchableText(item.data()).includes(search))
+      .slice(0, limit)
     const records = docs.map((item) => ({ id: item.id, ...safeRecord(collectionName, item.data(), isAdmin) }))
     return {
       type: "records",
@@ -1002,6 +1047,25 @@ async function runAgentTool(name: string, rawArgs: string, uid: string) {
 
   const args = JSON.parse(rawArgs) as Record<string, unknown>
   const now = FieldValue.serverTimestamp()
+
+  if (name === "research_campaign_creators") {
+    const projectId = requireText(args, "projectId")
+    const response = await generateCampaignParts(new Request("http://visualcns.local/api/campaigns/generate", {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization },
+      body: JSON.stringify({ projectId, parts: ["creatorSuggestions"] }),
+    }))
+    const generated = await response.json().catch(() => ({})) as { error?: string; patch?: { creatorSuggestions?: string[] } }
+    if (!response.ok) throw new Error(generated.error || "Creator research failed. Try again.")
+    const creators = Array.isArray(generated.patch?.creatorSuggestions) ? generated.patch.creatorSuggestions : []
+    return {
+      type: "campaign_creators_added",
+      projectId,
+      count: creators.length,
+      creators,
+      url: `/dashboard/projects/${projectId}`,
+    }
+  }
 
   if (name === "update_record") {
     const collectionName = requireText(args, "collection")
@@ -1397,9 +1461,10 @@ export async function POST(request: Request) {
       : basePrompt
     const companyId = typeof body.companyContext?.id === "string" ? body.companyContext.id.trim().slice(0, 200) : ""
     const companyName = typeof body.companyContext?.name === "string" ? body.companyContext.name.trim().slice(0, 200) : ""
-    const systemInstruction = companyId
+    const pageInstruction = companyId
       ? `${personInstruction}\n\nThis chat is open from ${companyName || "a company"}'s page. Treat that company as the active context and use companyId ${companyId} for company-scoped tools unless the person explicitly asks about another company.`
       : personInstruction
+    const systemInstruction = `${pageInstruction}\n\nWhen a user selects a campaign with the @ picker, the message contains its exact projectId and companyId. Treat that selected record as the campaign they mean, use projectId to scope query_workspace, and do not resolve it again from its display name.`
 
     const apiKey = await getAgencySecret(agencyId, "OPENAI_API_KEY", process.env.OPENAI_API_KEY || "")
     if (!apiKey) return new Response(JSON.stringify({ error: "The assistant is not configured yet." }), { status: 503, headers: { "content-type": "application/json" } })
@@ -1409,13 +1474,15 @@ export async function POST(request: Request) {
     // a vision-capable model can actually see what was shared. Plain turns stay
     // simple strings.
     const input = messages.map((message) => {
+      const campaignContext = selectedCampaignContext(message)
+      const messageText = [message.content.trim(), campaignContext].filter(Boolean).join("\n\n")
       const images = message.role === "user" && Array.isArray(message.images)
         ? message.images.filter((url): url is string => typeof url === "string" && /^https?:\/\//.test(url))
         : []
       const files = message.role === "user" && Array.isArray(message.files)
         ? message.files.filter((file): file is AttachedFile => Boolean(file) && typeof file.url === "string" && /^https?:\/\//.test(file.url))
         : []
-      if (!images.length && !files.length) return { role: message.role, content: message.content }
+      if (!images.length && !files.length) return { role: message.role, content: messageText }
 
       // Only PDFs can be read directly; the manifest lets the model file any
       // attachment (including non-readable types) with its real storage URL.
@@ -1427,7 +1494,7 @@ export async function POST(request: Request) {
       return {
         role: message.role,
         content: [
-          ...(message.content.trim() ? [{ type: "input_text", text: message.content }] : []),
+          ...(messageText ? [{ type: "input_text", text: messageText }] : []),
           ...images.map((url) => ({ type: "input_image", image_url: url })),
           ...pdfFiles.map((file) => ({ type: "input_file", file_url: file.url, filename: file.name || "document.pdf" })),
           { type: "input_text", text: `Attached files (use these exact URLs with attach_file):\n${manifest}` },
@@ -1506,7 +1573,7 @@ export async function POST(request: Request) {
               let result: unknown
               try {
                 if (!uid) throw new Error("Please sign in before using agency tools.")
-                result = await runAgentTool(call.name || "", call.arguments || "{}", uid)
+                result = await runAgentTool(call.name || "", call.arguments || "{}", uid, authorization)
               } catch (error) {
                 result = { error: error instanceof Error ? error.message : "That could not be completed." }
               }

@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { createPortal } from "react-dom"
 import Image from "next/image"
 import { History, LogIn, Plus } from "lucide-react"
@@ -66,6 +66,15 @@ function NgaiTitleActions() {
 
 function MemberNgai() {
   const { messages, conversations, activeConversationId, sending, firstName, send, reset, selectConversation } = useAgent()
+  const { company, projects } = useCompanyPage()
+  const campaignMentions = useMemo(() => [...projects]
+    .sort((a, b) => a.title.localeCompare(b.title))
+    .map((campaign) => ({
+      type: "campaign" as const,
+      id: campaign.id,
+      label: campaign.title || "Untitled campaign",
+      companyId: campaign.companyId || company.id,
+    })), [projects, company.id])
 
   return (
     <>
@@ -81,6 +90,7 @@ function MemberNgai() {
         onSelectConversation={selectConversation}
         onNewChat={reset}
         startingOptions={STARTING_OPTIONS}
+        campaignMentions={campaignMentions}
       />
     </>
   )

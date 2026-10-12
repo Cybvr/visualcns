@@ -2,9 +2,9 @@
 
 import Image from "next/image"
 import { useEffect, useRef, useState, type ChangeEvent, type ClipboardEvent, type DragEvent, type FormEvent, type KeyboardEvent, type ReactNode } from "react"
-import { ArrowUp, Check, ChevronDown, ChevronRight, FileText, ListChecks, Loader2, MessageSquare, Mic, Plus, UploadCloud, X } from "lucide-react"
+import { ArrowUp, Check, ChevronDown, ChevronRight, FileText, ListChecks, Loader2, Megaphone, MessageSquare, Mic, Plus, UploadCloud, X } from "lucide-react"
 
-import type { AgentConversation, AgentFile, AgentForm, AgentMessage, AgentPlan } from "@/components/agent/agent-context"
+import type { AgentConversation, AgentFile, AgentForm, AgentMention, AgentMessage, AgentPlan } from "@/components/agent/agent-context"
 import { uploadFileToStorage } from "@/lib/documents"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -362,6 +362,19 @@ const DEFAULT_STARTING_OPTIONS = [
   "Add a task",
 ]
 
+type MentionTrigger = { start: number; end: number; query: string }
+
+function campaignMentionAt(value: string, cursor: number): MentionTrigger | null {
+  const beforeCursor = value.slice(0, cursor)
+  const match = /(^|\s)@([^@\n]*)$/.exec(beforeCursor)
+  if (!match) return null
+  const query = match[2]
+  // Once another sentence boundary is reached this is ordinary text, not a campaign search.
+  if (query.length > 80 || /[.,!?;:]\s/.test(query)) return null
+  const start = match.index + match[1].length
+  return { start, end: cursor, query: query.trimStart() }
+}
+
 /**
  * The agent conversation surface, shared by the full-page route and the
  * dashboard dock. `compact` tightens spacing for the narrow docked panel.
@@ -380,13 +393,14 @@ export function AgentChat({
   startingOptions = DEFAULT_STARTING_OPTIONS,
   allowAttachments = true,
   welcome,
+  campaignMentions,
 }: {
   messages: AgentMessage[]
   conversations: AgentConversation[]
   activeConversationId: string
   sending: boolean
   firstName: string
-  onSend: (text: string, images?: string[], files?: AgentFile[]) => void
+  onSend: (text: string, images?: string[], files?: AgentFile[], mentions?: AgentMention[]) => void
   onSelectConversation: (id: string) => void
   onNewChat: () => void
   compact?: boolean
@@ -397,6 +411,8 @@ export function AgentChat({
   allowAttachments?: boolean
   /** Heading on a new chat. Defaults to welcoming the signed-in person by name. */
   welcome?: string
+  /** Campaigns available to the @ mention picker. Omit to disable campaign mentions. */
+  campaignMentions?: AgentMention[]
 }) {
   const recentChats = conversations.filter((conversation) => conversation.messages.length > 0).slice(0, 3)
   const [input, setInput] = useState("")
@@ -404,6 +420,9 @@ export function AgentChat({
   const [uploading, setUploading] = useState(false)
   const [attachError, setAttachError] = useState("")
   const [dragging, setDragging] = useState(false)
+  const [selectedMentions, setSelectedMentions] = useState<AgentMention[]>([])
+  const [mentionTrigger, setMentionTrigger] = useState<MentionTrigger | null>(null)
+  const [activeMentionIndex, setActiveMentionIndex] = useState(0)
   const fileInput = useRef<HTMLInputElement>(null)
   const textInput = useRef<HTMLTextAreaElement>(null)
   const dragDepth = useRef(0)
@@ -411,6 +430,12 @@ export function AgentChat({
   // The last assistant message is empty while its stream is still arriving.
   const streaming = sending && messages[messages.length - 1]?.content === ""
   const canSend = (input.trim().length > 0 || attachments.length > 0) && !uploading && !streaming
+  const matchingCampaigns = mentionTrigger
+    ? (campaignMentions ?? [])
+        .filter((campaign) => !selectedMentions.some((selected) => selected.id === campaign.id))
+        .filter((campaign) => campaign.label.toLowerCase().includes(mentionTrigger.query.toLowerCase()))
+        .slice(0, 8)
+    : []
 
   useEffect(() => {
     transcriptEnd.current?.scrollIntoView({ behavior: "smooth", block: "end" })
@@ -538,7 +563,45 @@ export function AgentChat({
 
   function applyQuickAction(prompt: string) {
     setInput(prompt)
+    setSelectedMentions([])
+    setMentionTrigger(null)
     requestAnimationFrame(() => textInput.current?.focus())
+  }
+
+  function availableMentionTrigger(value: string, cursor: number, mentions = selectedMentions) {
+    const trigger = campaignMentions ? campaignMentionAt(value, cursor) : null
+    if (!trigger) return null
+    const followsSelectedMention = mentions.some((mention) => {
+      const token = `@${mention.label}`
+      return value.slice(trigger.start, trigger.start + token.length) === token
+    })
+    return followsSelectedMention ? null : trigger
+  }
+
+  function updateInput(value: string, cursor: number) {
+    setInput(value)
+    const remainingMentions = selectedMentions.filter((mention) => value.includes(`@${mention.label}`))
+    setSelectedMentions(remainingMentions)
+    setMentionTrigger(availableMentionTrigger(value, cursor, remainingMentions))
+    setActiveMentionIndex(0)
+  }
+
+  function selectCampaignMention(campaign: AgentMention) {
+    if (!mentionTrigger) return
+    const token = `@${campaign.label}`
+    const before = input.slice(0, mentionTrigger.start)
+    const after = input.slice(mentionTrigger.end)
+    const separator = after.startsWith(" ") || after.length === 0 ? "" : " "
+    const next = `${before}${token}${separator}${after}`
+    const cursor = before.length + token.length + (after.length === 0 ? 1 : separator.length)
+    setInput(after.length === 0 ? `${next} ` : next)
+    setSelectedMentions((current) => current.some((item) => item.id === campaign.id) ? current : [...current, campaign])
+    setMentionTrigger(null)
+    setActiveMentionIndex(0)
+    requestAnimationFrame(() => {
+      textInput.current?.focus()
+      textInput.current?.setSelectionRange(cursor, cursor)
+    })
   }
 
   function submit(event?: FormEvent<HTMLFormElement>) {
@@ -549,13 +612,37 @@ export function AgentChat({
     const files: AgentFile[] = attachments
       .filter((item) => !item.mimeType.startsWith("image/"))
       .map(({ name, url, mimeType }) => ({ name, url, mimeType }))
-    onSend(content, images, files)
+    const mentions = selectedMentions.filter((mention) => content.includes(`@${mention.label}`))
+    onSend(content, images, files, mentions)
     setInput("")
+    setSelectedMentions([])
+    setMentionTrigger(null)
     setAttachments([])
     setAttachError("")
   }
 
   function handleKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
+    if (mentionTrigger && matchingCampaigns.length > 0) {
+      if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+        event.preventDefault()
+        setActiveMentionIndex((current) => {
+          const direction = event.key === "ArrowDown" ? 1 : -1
+          return (current + direction + matchingCampaigns.length) % matchingCampaigns.length
+        })
+        return
+      }
+      if (event.key === "Enter" || event.key === "Tab") {
+        event.preventDefault()
+        selectCampaignMention(matchingCampaigns[activeMentionIndex] ?? matchingCampaigns[0])
+        return
+      }
+    }
+    if (mentionTrigger && event.key === "Escape") {
+      event.preventDefault()
+      setMentionTrigger(null)
+      return
+    }
+    if (event.nativeEvent.isComposing) return
     if (event.key === "Enter" && !event.shiftKey) {
       event.preventDefault()
       submit()
@@ -709,8 +796,8 @@ export function AgentChat({
           className={cn(
             "mx-auto flex w-full flex-col gap-2",
             compact
-              ? "rounded-[16px] bg-sidebar-accent p-2 shadow-[0_8px_24px_rgba(15,23,42,0.08)]"
-              : "max-w-3xl rounded-[16px] bg-sidebar-accent p-2.5",
+              ? "rounded-[16px] bg-sidebar-accent/25 p-2 shadow-[0_8px_24px_rgba(15,23,42,0.08)]"
+              : "max-w-3xl rounded-[16px] bg-sidebar-accent/25 p-2.5",
           )}
         >
           {(attachments.length > 0 || uploading) && (
@@ -758,17 +845,54 @@ export function AgentChat({
               ))}
             </div>
           )}
-          <div className="space-y-2">
+          <div className="relative space-y-2">
             <input ref={fileInput} type="file" accept={ACCEPT_ATTR} multiple onChange={handleFiles} className="hidden" />
+            {mentionTrigger && campaignMentions && (
+              <div
+                id="ngai-campaign-mentions"
+                role="listbox"
+                aria-label="Campaigns"
+                className="absolute inset-x-0 bottom-full z-20 mb-2 max-h-64 overflow-y-auto rounded-[14px] bg-popover p-1.5 text-popover-foreground shadow-[0_12px_32px_rgba(15,23,42,0.16)]"
+              >
+                {matchingCampaigns.length > 0 ? matchingCampaigns.map((campaign, index) => (
+                  <button
+                    key={campaign.id}
+                    id={`ngai-campaign-${campaign.id}`}
+                    type="button"
+                    role="option"
+                    aria-selected={index === activeMentionIndex}
+                    onMouseDown={(event) => event.preventDefault()}
+                    onClick={() => selectCampaignMention(campaign)}
+                    onMouseEnter={() => setActiveMentionIndex(index)}
+                    className={cn(
+                      "flex w-full min-w-0 items-center gap-3 rounded-[10px] px-3 py-2.5 text-left text-foreground outline-none",
+                      index === activeMentionIndex && "bg-muted",
+                    )}
+                  >
+                    <Megaphone className="size-4 shrink-0 text-primary" aria-hidden="true" />
+                    <span className="min-w-0 flex-1 truncate">{campaign.label}</span>
+                    <span className="shrink-0 text-xs text-muted-foreground">Campaign</span>
+                  </button>
+                )) : (
+                  <p className="px-3 py-2.5 text-sm text-muted-foreground">No campaigns match “{mentionTrigger.query}”.</p>
+                )}
+              </div>
+            )}
             <Textarea
               ref={textInput}
               value={input}
-              onChange={(event) => setInput(event.target.value)}
+              onChange={(event) => updateInput(event.target.value, event.target.selectionStart ?? event.target.value.length)}
               onKeyDown={handleKeyDown}
+              onClick={(event) => setMentionTrigger(availableMentionTrigger(event.currentTarget.value, event.currentTarget.selectionStart ?? event.currentTarget.value.length))}
+              onBlur={() => setMentionTrigger(null)}
               onPaste={allowAttachments ? handlePaste : undefined}
               rows={1}
               placeholder="Ask Ngai"
               aria-label="Message Ngai"
+              aria-autocomplete={campaignMentions ? "list" : undefined}
+              aria-expanded={campaignMentions ? Boolean(mentionTrigger) : undefined}
+              aria-controls={mentionTrigger ? "ngai-campaign-mentions" : undefined}
+              aria-activedescendant={mentionTrigger && matchingCampaigns[activeMentionIndex] ? `ngai-campaign-${matchingCampaigns[activeMentionIndex].id}` : undefined}
               className="agent-composer-input h-auto min-h-0 max-h-40 w-full resize-none overflow-y-auto rounded-lg border-0 bg-transparent! px-2 py-2 text-sm !text-foreground placeholder:!text-foreground font-medium shadow-none outline-none focus:border-transparent focus-visible:border-transparent focus:ring-0 focus-visible:ring-0"
             />
             <div className="flex items-center justify-between">

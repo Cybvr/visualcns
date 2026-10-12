@@ -225,7 +225,7 @@ function PostDialog({
 }) {
   return (
     <Dialog open={open} onOpenChange={(next) => { if (!next) onClose() }}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-3xl">
         <DialogHeader>
           <DialogTitle>{post ? "Edit post" : canEdit ? "New post" : "Suggest a post"}</DialogTitle>
           <DialogDescription className="sr-only">Write the post and add a picture.</DialogDescription>
@@ -292,94 +292,26 @@ function PostForm({ post, scope, canEdit, library, onDone }: { post: CampaignCre
     }
   }
 
-  // Until a picture is picked, the library sits in the row to pick from.
-  const choices = canEdit && !media ? library.slice(0, 12) : []
-  const tile = "relative size-[72px] shrink-0 overflow-hidden rounded-xl bg-muted"
-
   return (
-    <form onSubmit={save} className="flex flex-col gap-5">
-      <div className="space-y-2">
-        <p className="text-sm font-medium text-muted-foreground">Media</p>
-        <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-1">
-          {media && (
-            <div className={tile}>
-              {media.type === "video" ? (
-                <video src={media.url} muted playsInline preload="metadata" className="size-full object-cover" />
-              ) : (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={media.url} alt="" className="size-full object-cover" />
-              )}
-              {canEdit && (
-                <button type="button" onClick={() => setMedia(null)} aria-label="Remove picture" className="absolute right-1 top-1 grid size-6 place-items-center rounded-full bg-black/70 text-white outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                  <X className="size-3.5" aria-hidden="true" />
-                </button>
-              )}
-            </div>
-          )}
-          {choices.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => setMedia({ url: item.url, type: item.type === "video" ? "video" : "image" })}
-              aria-label={`Use ${item.title}`}
-              title={item.title}
-              className={cn(tile, "opacity-70 outline-none hover:opacity-100 focus-visible:ring-2 focus-visible:ring-ring")}
-            >
-              {item.type === "video" ? (
-                <video src={item.url} muted playsInline preload="metadata" className="size-full object-cover" />
-              ) : (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={item.url} alt="" loading="lazy" className="size-full object-cover" />
-              )}
-            </button>
-          ))}
-          {canEdit ? (
-            <button
-              type="button"
-              disabled={uploading}
-              onClick={() => fileInput.current?.click()}
-              className="flex size-[72px] shrink-0 flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-border text-xs text-muted-foreground outline-none transition-colors hover:bg-muted/40 focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              <ImagePlus className="size-5" aria-hidden="true" />
-              {uploading ? "Uploading…" : media ? "Replace" : "Add"}
-            </button>
-          ) : !media && (
-            <div className={cn(tile, "grid place-items-center")}>
-              <ImageIcon className="size-6 text-muted-foreground" aria-hidden="true" />
-            </div>
-          )}
-        </div>
-        <input ref={fileInput} type="file" accept="image/*,video/*" hidden onChange={(event) => { void upload(event.target.files?.[0]); event.target.value = "" }} />
-      </div>
-
-      {canEdit && (
-        <div className="grid grid-cols-[minmax(0,1fr)_8.5rem] gap-3">
-          <label className="space-y-2">
-            <span className="block text-sm font-medium text-muted-foreground">Title</span>
-            <Input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Post name" className="h-11" />
-          </label>
-          <div className="space-y-2">
-            <span className="block text-sm font-medium text-muted-foreground">Assigned to</span>
+    <form onSubmit={save} className="grid gap-5 md:grid-cols-[minmax(0,1fr)_15rem]">
+      <div className="flex min-w-0 flex-col gap-3">
+        {canEdit && (
+          <div className="grid grid-cols-[minmax(0,1fr)_8rem] gap-2">
+            <Input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Title" aria-label="Title" />
             <Select value={postedBy} onValueChange={setPostedBy}>
-              <SelectTrigger size="default" className="!h-11 w-full" aria-label="Assigned to"><SelectValue /></SelectTrigger>
+              <SelectTrigger size="default" className="w-full" aria-label="Assigned to"><SelectValue /></SelectTrigger>
               <SelectContent>
                 {POSTED_BY.map((item) => <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
+        )}
+        <div className="relative">
+          <Textarea value={body} onChange={(event) => setBody(event.target.value)} rows={8} maxLength={CAPTION_MAX} placeholder="Caption" aria-label="Caption" className="min-h-48 resize-none pb-6 text-sm leading-6" />
+          <span className="pointer-events-none absolute bottom-2 right-3 text-xs tabular-nums text-muted-foreground">{body.length}/{CAPTION_MAX}</span>
         </div>
-      )}
-
-      <label className="space-y-2">
-        <span className="block text-sm font-medium text-muted-foreground">Caption</span>
-        <Textarea value={body} onChange={(event) => setBody(event.target.value)} rows={5} maxLength={CAPTION_MAX} placeholder="What should it say?" className="min-h-32 text-sm leading-6" />
-        <span className="block text-right text-xs tabular-nums text-muted-foreground">{body.length} / {CAPTION_MAX}</span>
-      </label>
-
-      {canEdit && (
-        <div className="space-y-2">
-          <span className="block text-sm font-medium text-muted-foreground">Status</span>
-          <div role="radiogroup" aria-label="Status" className="grid grid-cols-4 gap-1 rounded-xl border border-border bg-muted/40 p-1">
+        {canEdit && (
+          <div role="radiogroup" aria-label="Status" className="grid grid-cols-4 gap-1 rounded-lg bg-muted p-1">
             {CREATIVE_STATUSES.map((item) => (
               <button
                 key={item}
@@ -387,19 +319,74 @@ function PostForm({ post, scope, canEdit, library, onDone }: { post: CampaignCre
                 role="radio"
                 aria-checked={status === item}
                 onClick={() => setStatus(item)}
-                className="h-10 truncate rounded-lg px-1 text-sm text-muted-foreground outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring aria-checked:bg-background aria-checked:font-medium aria-checked:text-foreground aria-checked:shadow-sm"
+                className="h-7 truncate rounded-md px-1 text-xs text-muted-foreground outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring aria-checked:bg-background aria-checked:font-medium aria-checked:text-foreground aria-checked:shadow-sm"
               >
                 {STATUS_SHORT[item]}
               </button>
             ))}
           </div>
-        </div>
-      )}
-
-      <div className="sticky bottom-0 -mx-6 -mb-6 grid grid-cols-[1fr_1.6fr] gap-3 border-t border-border bg-background px-6 py-4">
-        <Button type="button" variant="outline" className="h-12" onClick={onDone}>Cancel</Button>
-        <Button type="submit" className="h-12" disabled={saving || uploading}>{saving ? "Saving…" : post ? "Save" : canEdit ? "Add post" : "Send suggestion"}</Button>
+        )}
       </div>
+
+      <div className="flex min-w-0 flex-col gap-2">
+        <div className="relative aspect-square overflow-hidden rounded-xl bg-muted">
+          {media ? (
+            media.type === "video" ? (
+              <video src={media.url} controls playsInline className="size-full object-cover" />
+            ) : (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={media.url} alt="" className="size-full object-cover" />
+            )
+          ) : (
+            <button
+              type="button"
+              disabled={!canEdit || uploading}
+              onClick={() => fileInput.current?.click()}
+              className="flex size-full flex-col items-center justify-center gap-1.5 text-xs text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring enabled:hover:bg-muted/70"
+            >
+              {canEdit ? <ImagePlus className="size-5" aria-hidden="true" /> : <ImageIcon className="size-6" aria-hidden="true" />}
+              {canEdit && (uploading ? "Uploading…" : "Upload")}
+            </button>
+          )}
+          {media && canEdit && (
+            <div className="absolute right-2 top-2 flex gap-1">
+              <button type="button" onClick={() => fileInput.current?.click()} aria-label="Replace" title="Replace" className="grid size-7 place-items-center rounded-full bg-black/70 text-white outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                <ImagePlus className="size-3.5" aria-hidden="true" />
+              </button>
+              <button type="button" onClick={() => setMedia(null)} aria-label="Remove" title="Remove" className="grid size-7 place-items-center rounded-full bg-black/70 text-white outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                <X className="size-3.5" aria-hidden="true" />
+              </button>
+            </div>
+          )}
+        </div>
+        {canEdit && library.length > 0 && (
+          <div className="grid grid-cols-5 gap-1">
+            {library.slice(0, 10).map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => setMedia({ url: item.url, type: item.type === "video" ? "video" : "image" })}
+                aria-label={`Use ${item.title}`}
+                title={item.title}
+                className={cn("aspect-square overflow-hidden rounded-md bg-muted outline-none focus-visible:ring-2 focus-visible:ring-ring", media?.url === item.url ? "ring-2 ring-foreground" : "opacity-70 hover:opacity-100")}
+              >
+                {item.type === "video" ? (
+                  <video src={item.url} muted playsInline preload="metadata" className="size-full object-cover" />
+                ) : (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={item.url} alt="" loading="lazy" className="size-full object-cover" />
+                )}
+              </button>
+            ))}
+          </div>
+        )}
+        <input ref={fileInput} type="file" accept="image/*,video/*" hidden onChange={(event) => { void upload(event.target.files?.[0]); event.target.value = "" }} />
+      </div>
+
+      <DialogFooter className="md:col-span-2">
+        <Button type="button" variant="ghost" onClick={onDone}>Cancel</Button>
+        <Button type="submit" disabled={saving || uploading}>{saving ? "Saving…" : post ? "Save" : canEdit ? "Add post" : "Send suggestion"}</Button>
+      </DialogFooter>
     </form>
   )
 }

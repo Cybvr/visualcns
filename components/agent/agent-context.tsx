@@ -28,6 +28,14 @@ export type AgentFile = {
   mimeType?: string
 }
 
+/** A record explicitly selected from the composer with an @ mention. */
+export type AgentMention = {
+  type: "campaign"
+  id: string
+  label: string
+  companyId: string
+}
+
 export type AgentMessage = {
   id: string
   role: "user" | "assistant"
@@ -36,6 +44,8 @@ export type AgentMessage = {
   images?: string[]
   /** Non-image files (PDFs, Word, Excel…) attached to this message. */
   files?: AgentFile[]
+  /** Exact workspace records selected in the composer, kept separate from display text. */
+  mentions?: AgentMention[]
   /** Present when the agent answered and then asked for details as a form. */
   form?: AgentForm
   /** A checklist the agent wants approved before it does a big job. */
@@ -102,7 +112,7 @@ interface AgentContextValue {
   activeConversationId: string
   sending: boolean
   firstName: string
-  send: (text: string, images?: string[], files?: AgentFile[]) => void
+  send: (text: string, images?: string[], files?: AgentFile[], mentions?: AgentMention[]) => void
   reset: () => void
   selectConversation: (id: string) => void
   deleteConversations: (ids: string[]) => Promise<void>
@@ -115,6 +125,24 @@ const NEW_CHAT_TITLE = "New chat"
 function messageId(nextId: MutableRefObject<number>): string {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) return crypto.randomUUID()
   return `${Date.now()}-${nextId.current++}`
+}
+
+function validMentions(value: unknown): AgentMention[] {
+  if (!Array.isArray(value)) return []
+  return value
+    .filter((mention): mention is AgentMention => Boolean(
+      mention
+      && mention.type === "campaign"
+      && typeof mention.id === "string"
+      && typeof mention.label === "string"
+      && typeof mention.companyId === "string",
+    ))
+    .map((mention) => ({
+      type: "campaign",
+      id: mention.id.slice(0, 200),
+      label: mention.label.slice(0, 200),
+      companyId: mention.companyId.slice(0, 200),
+    }))
 }
 
 /** `surface` picks which Ngai the server runs; context keeps a company-page chat focused on that company. */
@@ -157,14 +185,14 @@ export function AgentProvider({
           const stored = chat.data().messages
           const chatMessages = Array.isArray(stored)
             ? stored
-                .filter((message): message is { id: string | number; role: "user" | "assistant"; content: string; images?: string[]; files?: AgentFile[] } =>
+                .filter((message): message is { id: string | number; role: "user" | "assistant"; content: string; images?: string[]; files?: AgentFile[]; mentions?: AgentMention[] } =>
                   Boolean(message) &&
                   (message.role === "user" || message.role === "assistant") &&
                   typeof message.content === "string" &&
                   !(message.role === "assistant" && !message.content.trim()),
                 )
                 .slice(-MAX_HISTORY_MESSAGES)
-                .map((message) => ({ ...message, id: String(message.id), ...(Array.isArray(message.images) ? { images: message.images.filter((url): url is string => typeof url === "string") } : {}), ...(Array.isArray(message.files) ? { files: message.files.filter((file): file is AgentFile => Boolean(file) && typeof file.url === "string" && typeof file.name === "string") } : {}) }))
+                .map((message) => ({ ...message, id: String(message.id), ...(Array.isArray(message.images) ? { images: message.images.filter((url): url is string => typeof url === "string") } : {}), ...(Array.isArray(message.files) ? { files: message.files.filter((file): file is AgentFile => Boolean(file) && typeof file.url === "string" && typeof file.name === "string") } : {}), ...(validMentions(message.mentions).length ? { mentions: validMentions(message.mentions) } : {}) }))
             : []
           const updatedAt = chat.data().updatedAt
           return {
@@ -181,14 +209,14 @@ export function AgentProvider({
           const stored = legacy.data()?.messages
           const legacyMessages = Array.isArray(stored)
             ? stored
-                .filter((message): message is { id: string | number; role: "user" | "assistant"; content: string; images?: string[]; files?: AgentFile[] } =>
+                .filter((message): message is { id: string | number; role: "user" | "assistant"; content: string; images?: string[]; files?: AgentFile[]; mentions?: AgentMention[] } =>
                   Boolean(message) &&
                   (message.role === "user" || message.role === "assistant") &&
                   typeof message.content === "string" &&
                   !(message.role === "assistant" && !message.content.trim()),
                 )
                 .slice(-MAX_HISTORY_MESSAGES)
-                .map((message) => ({ ...message, id: String(message.id), ...(Array.isArray(message.images) ? { images: message.images.filter((url): url is string => typeof url === "string") } : {}), ...(Array.isArray(message.files) ? { files: message.files.filter((file): file is AgentFile => Boolean(file) && typeof file.url === "string" && typeof file.name === "string") } : {}) }))
+                .map((message) => ({ ...message, id: String(message.id), ...(Array.isArray(message.images) ? { images: message.images.filter((url): url is string => typeof url === "string") } : {}), ...(Array.isArray(message.files) ? { files: message.files.filter((file): file is AgentFile => Boolean(file) && typeof file.url === "string" && typeof file.name === "string") } : {}), ...(validMentions(message.mentions).length ? { mentions: validMentions(message.mentions) } : {}) }))
             : []
           if (legacyMessages.length) restored = [{ id: "previous-chat", title: "Previous chat", messages: legacyMessages }]
         }
@@ -230,10 +258,11 @@ export function AgentProvider({
   )
 
   const send = useCallback(
-    (text: string, images?: string[], files?: AgentFile[]) => {
+    (text: string, images?: string[], files?: AgentFile[], mentions?: AgentMention[]) => {
       const content = text.trim()
       const attachments = (images ?? []).filter((url) => typeof url === "string" && url)
       const fileAttachments = (files ?? []).filter((file) => file && typeof file.url === "string" && file.url && typeof file.name === "string")
+      const selectedMentions = validMentions(mentions)
       const currentUser = user
       if ((!content && !attachments.length && !fileAttachments.length) || sending || !currentUser) return
 
@@ -243,6 +272,7 @@ export function AgentProvider({
         content,
         ...(attachments.length ? { images: attachments } : {}),
         ...(fileAttachments.length ? { files: fileAttachments } : {}),
+        ...(selectedMentions.length ? { mentions: selectedMentions } : {}),
       }
       const assistantId = messageId(nextId)
       const history = [...messages, userMessage]
@@ -258,11 +288,12 @@ export function AgentProvider({
       setSending(true)
 
       // A plan lives outside the text, so spell it out for the model to follow on "go ahead".
-      const payload = history.map(({ role, content: c, images: im, files: fl, plan }) => ({
+      const payload = history.map(({ role, content: c, images: im, files: fl, mentions: mn, plan }) => ({
         role,
         content: plan ? `${c}\n\nProposed plan: ${plan.title}\n${plan.steps.map((item, index) => `${index + 1}. ${item}`).join("\n")}` : c,
         ...(im?.length ? { images: im } : {}),
         ...(fl?.length ? { files: fl } : {}),
+        ...(mn?.length ? { mentions: mn } : {}),
       }))
 
       void (async () => {
