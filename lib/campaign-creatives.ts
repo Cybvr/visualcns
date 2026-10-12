@@ -53,6 +53,19 @@ export function watchCampaignCreatives(projectId: string, onChange: (creatives: 
   )
 }
 
+/** Live content and media across every campaign owned by one company. */
+export function watchCompanyCampaignCreatives(companyId: string, onChange: (creatives: CampaignCreative[]) => void, onError?: (error: Error) => void) {
+  return onSnapshot(
+    query(collection(db, COLLECTION_NAME), where("companyId", "==", companyId)),
+    (snapshot) => onChange(
+      snapshot.docs
+        .map((d) => ({ ...(d.data() as Omit<CampaignCreative, "id">), id: d.id }))
+        .sort((a, b) => tsToMillis(b.createdAt) - tsToMillis(a.createdAt)),
+    ),
+    onError,
+  )
+}
+
 export async function addCampaignCreative(
   scope: { agencyId?: string; companyId: string; projectId: string },
   creative: Pick<CampaignCreative, "title" | "url" | "type"> & { kind: "content" | "media"; body?: string; status?: string; postedBy?: string; mediaUrl?: string; mediaType?: "image" | "video" },

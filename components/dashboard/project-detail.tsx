@@ -2,8 +2,9 @@
 
 import Link from "next/link"
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react"
-import { DollarSign, FileText, House, Images, ListTodo, Mail, MoreVertical, Palette, Settings, Share2, Users, type LucideIcon } from "lucide-react"
+import { DollarSign, FileText, House, Images, ListTodo, Mail, MoreVertical, Palette, Settings, Share2, TrendingUp, Users, type LucideIcon } from "lucide-react"
 
+import { AnalyticsSkeleton, AnalyticsView } from "@/components/company/analytics-view"
 import { CampaignBrief } from "@/components/dashboard/campaign-brief"
 import { CampaignCreatives } from "@/components/dashboard/campaign-creatives"
 import { CampaignHome, type CampaignTab } from "@/components/dashboard/campaign-home"
@@ -68,10 +69,26 @@ export function ProjectDetail({
   const [deleting, setDeleting] = useState<string | null>(null)
   const [tab, setTab] = useState<CampaignTab>("home")
   const [people, setPeople] = useState<CampaignPerson[]>([])
+  const [peopleLoaded, setPeopleLoaded] = useState(false)
 
-  useEffect(() => watchCampaignPeople(project.id, setPeople, () => setPeople([])), [project.id])
+  useEffect(() => {
+    setPeopleLoaded(false)
+    return watchCampaignPeople(
+      project.id,
+      (rows) => { setPeople(rows); setPeopleLoaded(true) },
+      () => { setPeople([]); setPeopleLoaded(true) },
+    )
+  }, [project.id])
   const [creatives, setCreatives] = useState<CampaignCreative[]>([])
-  useEffect(() => watchCampaignCreatives(project.id, setCreatives, () => setCreatives([])), [project.id])
+  const [creativesLoaded, setCreativesLoaded] = useState(false)
+  useEffect(() => {
+    setCreativesLoaded(false)
+    return watchCampaignCreatives(
+      project.id,
+      (rows) => { setCreatives(rows); setCreativesLoaded(true) },
+      () => { setCreatives([]); setCreativesLoaded(true) },
+    )
+  }, [project.id])
   // Suggested creators wait in Roster matching; everything else counts only the roster.
   const roster = people.filter(onRoster)
   // Content is the written posts; every image, video and link lives in Media, wherever it was first added.
@@ -262,13 +279,14 @@ export function ProjectDetail({
     <div className="space-y-4">
       {isAdmin || publicView ? (
         <div className="flex flex-col gap-4 md:flex-row md:gap-8">
-          <nav className="-mx-1 flex shrink-0 gap-1 overflow-x-auto px-1 md:mx-0 md:w-48 md:flex-col md:overflow-visible md:px-0" aria-label="Campaign sections">
+          <nav className="sticky top-0 z-10 -mx-1 flex shrink-0 gap-1 overflow-x-auto bg-card px-1 py-1 md:top-4 md:mx-0 md:w-48 md:flex-col md:self-start md:overflow-visible md:bg-transparent md:px-0 md:py-0" aria-label="Campaign sections">
             {([
               { key: "home", label: "Home", icon: House },
               { key: "about", label: "Brief", icon: FileText },
               { key: "people", label: "Creators", count: roster.length, icon: Users },
               { key: "creatives", label: "Content", count: contentItems.length, icon: Palette },
               { key: "media", label: "Media", count: mediaItems.length, icon: Images },
+              { key: "analytics", label: "Analytics", icon: TrendingUp },
               { key: "payments", label: "Payments", icon: DollarSign },
               ...(publicView && !publicTasks ? [] : [{ key: "tasks", label: "Tasks", icon: ListTodo }]),
               ...(canEditCampaign ? [{ key: "settings", label: "Settings", icon: Settings }] : []),
@@ -297,11 +315,18 @@ export function ProjectDetail({
                 canReview={canReview}
                 onOpen={setTab}
               />
+            ) : tab === "analytics" ? (
+              peopleLoaded && creativesLoaded ? (
+                <AnalyticsView scope={{ type: "campaign", campaignId: project.id }} people={roster} content={contentItems} />
+              ) : (
+                <AnalyticsSkeleton scope="campaign" />
+              )
             ) : tab === "about" ? (
-              <CampaignBrief project={project} content={contentItems} canEdit={canEditCampaign} onPatched={onProjectPatched} />
+              <CampaignBrief project={project} content={contentItems} canEdit={canEditCampaign} canReview={canReview} onPatched={onProjectPatched} />
             ) : tab === "people" ? (
               <CampaignPeople
                 people={people}
+                suggestions={project.creatorSuggestions}
                 agencyId={project.agencyId}
                 companyId={project.companyId || companyId}
                 projectId={project.id}
@@ -313,13 +338,12 @@ export function ProjectDetail({
                 key={tab}
                 kind={tab === "media" ? "media" : "content"}
                 creatives={tab === "media" ? mediaItems : contentItems}
+                library={mediaItems}
                 agencyId={project.agencyId}
                 companyId={project.companyId || companyId}
                 projectId={project.id}
                 canEdit={canEditCampaign}
                 canReview={canReview}
-                brandName={project.client || clientName}
-                brandImage={project.logoUrl || project.thumbnailUrl}
               />
             ) : tab === "payments" ? (
               <CampaignPayments
@@ -330,7 +354,7 @@ export function ProjectDetail({
               />
             ) : tab === "settings" ? (
               <div className="space-y-10">
-                <CampaignSettings project={project} onPatched={onProjectPatched} />
+                <CampaignSettings project={project} library={mediaItems} onPatched={onProjectPatched} />
                 {isAdmin && (
                   <div className="max-w-2xl space-y-6 border-t border-border pt-8">
                     <ProjectTeamPicker project={project} onPatched={onProjectPatched} />

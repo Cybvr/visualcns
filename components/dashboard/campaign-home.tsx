@@ -5,7 +5,7 @@ import { creativeStatus, READY_FOR_REVIEW, updateCampaignCreative, type Campaign
 import type { CampaignPerson } from "@/lib/campaign-people"
 import { toast } from "sonner"
 
-export type CampaignTab = "home" | "about" | "people" | "creatives" | "media" | "payments" | "tasks" | "settings"
+export type CampaignTab = "home" | "analytics" | "about" | "people" | "creatives" | "media" | "payments" | "tasks" | "settings"
 
 /** A campaign at a glance: where it stands and what's waiting on you. */
 export function CampaignHome({

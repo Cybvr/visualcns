@@ -31,6 +31,7 @@ import {
 import type { LucideIcon } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import { Skeleton } from "@/components/ui/skeleton"
 import { SectionAddButton } from "@/components/company/section-add-button"
 import { useCompanyPage } from "@/components/company/company-page-context"
 import { GridCard, GridCardList } from "@/components/dashboard/grid-card"
@@ -413,7 +414,7 @@ function ReportView({
     document.getElementById(`bh-${id}`)?.scrollIntoView({ behavior: "smooth", block: "start" })
   }
 
-  if (loading) return <ListSkeleton view="card" label="Loading report" toolbar={false} />
+  if (loading) return <ReportSkeleton />
 
   if (view === "intro" || !report) {
     return (
@@ -787,8 +788,7 @@ function reportDate(iso: string) {
 
 /**
  * Calls the reports route for one company, and for one report when `reportId`
- * is given. `ready` is false until sign-in has settled, so pages wait instead of
- * firing a request that fails and then firing it again.
+ * is given. Loading can begin as soon as Firebase exposes the signed-in user.
  */
 function useReportsApi(companyId: string, reportId?: string) {
   const { user, loading } = useAuth()
@@ -814,7 +814,68 @@ function useReportsApi(companyId: string, reportId?: string) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [companyId, reportId, uid],
   )
-  return { call, ready: !loading && Boolean(uid), signedOut: !loading && !uid }
+  return { call, ready: Boolean(uid), signedOut: !loading && !uid }
+}
+
+function ReportSkeleton() {
+  return (
+    <section role="status" aria-label="Loading report" className="mt-5" aria-busy="true">
+      <span className="sr-only">Loading report…</span>
+
+      <div className="mb-4 flex items-center gap-3">
+        <Skeleton className="size-8 shrink-0 rounded-lg" />
+        <Skeleton className="h-7 w-52 max-w-[65%]" />
+      </div>
+
+      <div className="border-b border-border py-6">
+        <div className="flex items-start gap-4">
+          <div className="min-w-0 flex-1 space-y-3">
+            <Skeleton className="h-3 w-20" />
+            <Skeleton className="h-8 w-[min(32rem,85%)]" />
+            <Skeleton className="h-4 w-[min(28rem,75%)]" />
+          </div>
+          <Skeleton className="size-20 shrink-0 rounded-full" />
+        </div>
+        <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
+          <Skeleton className="h-4 w-72 max-w-full" />
+          <div className="flex gap-2">
+            <Skeleton className="h-9 w-32 rounded-lg" />
+            <Skeleton className="h-9 w-28 rounded-lg" />
+          </div>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-3 border-b border-border py-4">
+        <Skeleton className="size-10 shrink-0 rounded-lg" />
+        <div className="min-w-0 flex-1 space-y-2">
+          <Skeleton className="h-4 w-40" />
+          <Skeleton className="h-3 w-64 max-w-full" />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 border-b border-border lg:grid-cols-4">
+        {Array.from({ length: 4 }, (_, index) => (
+          <div key={index} className="flex items-start gap-3 py-4 pr-3">
+            <Skeleton className="size-5 shrink-0" />
+            <div className="min-w-0 flex-1 space-y-2">
+              <Skeleton className="h-7 w-10" />
+              <Skeleton className="h-3 w-24 max-w-full" />
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {Array.from({ length: 2 }, (_, index) => (
+        <div key={index} className="border-b border-border py-5">
+          <Skeleton className="h-5 w-40" />
+          <div className="mt-4 space-y-3">
+            <Skeleton className="h-4 w-4/5" />
+            <Skeleton className="h-4 w-3/5" />
+          </div>
+        </div>
+      ))}
+    </section>
+  )
 }
 
 /**
@@ -909,15 +970,22 @@ export function Pulse({
     )
   }
 
-  if (reports === null) return <ListSkeleton view={view} label="Loading reports" />
+  if (reports === null) return <ListSkeleton view={view} count={3} label="Loading reports" />
 
   // Before the first scan, the page explains Reports and confirms the details the scan will use.
   if (reports.length === 0) {
     return (
-      <div>
+      <section className="mt-5">
+        <ListToolbar
+          query={query}
+          onQueryChange={setQuery}
+          placeholder="Search reports"
+          view={view}
+          onViewChange={setView}
+        />
         {error && <ErrorNote message={error} />}
         <PulseIntro details={details} onSave={onSave} onAnalyse={() => void scan()} scanning={scanning} step={step} />
-      </div>
+      </section>
     )
   }
 

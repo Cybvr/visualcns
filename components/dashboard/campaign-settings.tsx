@@ -6,17 +6,67 @@ import { toast } from "sonner"
 
 import { ProjectCover } from "@/components/project-card"
 import { Button } from "@/components/ui/button"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import type { CampaignCreative } from "@/lib/campaign-creatives"
 import { uploadFileToStorage } from "@/lib/documents"
 import { slugify, updateProject, type Project } from "@/lib/projects"
+import { cn } from "@/lib/utils"
+
+function MediaImagePicker({
+  images,
+  value,
+  disabled,
+  onSelect,
+}: {
+  images: CampaignCreative[]
+  value?: string
+  disabled?: boolean
+  onSelect: (url: string) => void
+}) {
+  if (images.length === 0) return null
+
+  return (
+    <div className="flex max-h-48 flex-wrap gap-2 overflow-y-auto p-1">
+      {images.map((image) => (
+        <button
+          key={image.id}
+          type="button"
+          disabled={disabled}
+          onClick={() => onSelect(image.url)}
+          aria-label={`Use ${image.title}`}
+          aria-pressed={value === image.url}
+          title={image.title}
+          className={cn(
+            "size-14 shrink-0 overflow-hidden rounded-lg bg-muted outline-none transition-opacity hover:opacity-80 focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50",
+            value === image.url && "ring-2 ring-primary ring-offset-2 ring-offset-background",
+          )}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={image.url} alt="" loading="lazy" className="size-full object-cover" />
+        </button>
+      ))}
+    </div>
+  )
+}
 
 /** Where a campaign's name, profile image and banner are changed. */
-export function CampaignSettings({ project, onPatched }: { project: Project; onPatched?: (patch: Partial<Project>) => void }) {
+export function CampaignSettings({
+  project,
+  library = [],
+  onPatched,
+}: {
+  project: Project
+  library?: CampaignCreative[]
+  onPatched?: (patch: Partial<Project>) => void
+}) {
   const [title, setTitle] = useState(project.title)
   const [busy, setBusy] = useState<"logo" | "banner" | "title" | null>(null)
+  const [bannerChooserOpen, setBannerChooserOpen] = useState(false)
   const logoInput = useRef<HTMLInputElement>(null)
   const bannerInput = useRef<HTMLInputElement>(null)
+  const mediaImages = library.filter((item) => item.type === "image")
 
   useEffect(() => setTitle(project.title), [project.title])
 
@@ -25,9 +75,11 @@ export function CampaignSettings({ project, onPatched }: { project: Project; onP
     try {
       await updateProject(project.id, patch)
       onPatched?.(patch)
+      return true
     } catch (error) {
       console.error("Error saving campaign settings:", error)
       toast.error("That change didn't save.")
+      return false
     } finally {
       setBusy(null)
     }
@@ -42,12 +94,16 @@ export function CampaignSettings({ project, onPatched }: { project: Project; onP
     setBusy(what)
     try {
       const url = await uploadFileToStorage(file)
-      await save(what === "logo" ? { logoUrl: url } : { thumbnailUrl: url }, what)
+      if (await save(what === "logo" ? { logoUrl: url } : { thumbnailUrl: url }, what)) setBannerChooserOpen(false)
     } catch (error) {
       console.error("Error uploading campaign image:", error)
       toast.error(error instanceof Error ? error.message : "The image didn't upload.")
       setBusy(null)
     }
+  }
+
+  async function selectBannerFromMedia(url: string) {
+    if (await save({ thumbnailUrl: url }, "banner")) setBannerChooserOpen(false)
   }
 
   const nextTitle = title.trim()
@@ -109,9 +165,9 @@ export function CampaignSettings({ project, onPatched }: { project: Project; onP
           <ProjectCover project={{ ...project, logoUrl: "" }} />
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button type="button" variant="outline" disabled={busy === "banner"} onClick={() => bannerInput.current?.click()} className="gap-1.5">
+          <Button type="button" variant="outline" disabled={busy === "banner"} onClick={() => setBannerChooserOpen(true)} className="gap-1.5">
             <ImagePlus className="size-4" aria-hidden="true" />
-            {busy === "banner" ? "Uploading…" : project.thumbnailUrl ? "Change" : "Upload"}
+            {busy === "banner" ? "Saving…" : project.thumbnailUrl ? "Change" : "Choose image"}
           </Button>
           {project.thumbnailUrl && (
             <Button type="button" variant="ghost" disabled={busy === "banner"} onClick={() => void save({ thumbnailUrl: "" }, "banner")} className="gap-1.5 text-muted-foreground">
@@ -122,6 +178,35 @@ export function CampaignSettings({ project, onPatched }: { project: Project; onP
         </div>
         <input ref={bannerInput} type="file" accept="image/*" hidden onChange={(event) => { void upload(event.target.files?.[0], "banner"); event.target.value = "" }} />
       </section>
+
+      <Dialog open={bannerChooserOpen} onOpenChange={setBannerChooserOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Choose banner</DialogTitle>
+            <DialogDescription className="sr-only">Choose an image from campaign Media or upload a new one.</DialogDescription>
+          </DialogHeader>
+          {mediaImages.length > 0 ? (
+            <MediaImagePicker
+              images={mediaImages}
+              value={project.thumbnailUrl}
+              disabled={busy !== null}
+              onSelect={(url) => void selectBannerFromMedia(url)}
+            />
+          ) : (
+            <p className="py-4 text-sm text-muted-foreground">No images in Media yet.</p>
+          )}
+          <Button
+            type="button"
+            variant="outline"
+            disabled={busy !== null}
+            onClick={() => bannerInput.current?.click()}
+            className="w-full gap-1.5"
+          >
+            <ImagePlus className="size-4" aria-hidden="true" />
+            {busy ? "Uploading…" : "Upload image"}
+          </Button>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

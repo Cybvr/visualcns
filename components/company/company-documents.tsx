@@ -114,12 +114,8 @@ export function CompanyDocuments({
   const [view, setView] = useListView(`company-${heading.toLowerCase()}`)
 
   function menuFor(entry: Entry) {
-    return (
-      <>
-        <DropdownMenuItem onSelect={() => onSelect(entry.kind, entry.id)}>Open {entry.kind}</DropdownMenuItem>
-        {onEdit && <DropdownMenuItem onSelect={() => onEdit(entry.kind, entry.id)}>Edit {entry.kind}</DropdownMenuItem>}
-      </>
-    )
+    if (!onEdit) return undefined
+    return <DropdownMenuItem onSelect={() => onEdit(entry.kind, entry.id)}>Edit {entry.kind}</DropdownMenuItem>
   }
 
   return (

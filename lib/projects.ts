@@ -65,8 +65,12 @@ export interface Project {
   description?: string
   /** The one claim a campaign is built on, shown at the top of its Brief. */
   angle?: string
+  /** What the event or product is, at the top of the Brief. */
+  about?: string
   /** How many creators the campaign aims for, e.g. "80–100". */
   rosterTarget?: string
+  /** Kinds of creators to look for, suggested by Ngai. */
+  creatorSuggestions?: string[]
   category?: string[]
   location?: string
   imageUrl?: string

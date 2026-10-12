@@ -52,6 +52,8 @@ interface CampaignPeopleProps {
   canEdit: boolean
   /** The client's own people: can add a suggested creator. */
   canReview?: boolean
+  /** Kinds of creators Ngai suggests looking for. */
+  suggestions?: string[]
 }
 
 const fieldClass = "h-9 w-full min-w-0 rounded-md border border-input bg-transparent px-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
@@ -60,7 +62,7 @@ const fieldClass = "h-9 w-full min-w-0 rounded-md border border-input bg-transpa
  * The Creators tab: one table of everyone on the campaign. The agency adds
  * creators in the row above the table or by Import, and opens any of them to change the rest.
  */
-export function CampaignPeople({ people, agencyId, companyId, projectId, canEdit, canReview = false }: CampaignPeopleProps) {
+export function CampaignPeople({ people, agencyId, companyId, projectId, canEdit, canReview = false, suggestions = [] }: CampaignPeopleProps) {
   const [openId, setOpenId] = useState<string | null>(null)
   const [importing, setImporting] = useState(false)
   const [deleting, setDeleting] = useState<CampaignPerson | null>(null)
@@ -89,8 +91,34 @@ export function CampaignPeople({ people, agencyId, companyId, projectId, canEdit
     }
   }
 
+  function rowActions(person: CampaignPerson) {
+    return (
+      <div className="flex shrink-0 items-center justify-end gap-1">
+        {!onRoster(person) && (canEdit || canReview) && (
+          <Button type="button" size="sm" onClick={() => void addToRoster(person)}>Add</Button>
+        )}
+        {canEdit && (
+          <>
+            <Button type="button" variant="ghost" size="icon" className="size-8" onClick={() => setOpenId(person.id)} aria-label={`Edit ${person.handle}`} title="Edit">
+              <Pencil className="size-4" aria-hidden="true" />
+            </Button>
+            <Button type="button" variant="ghost" size="icon" className="size-8" onClick={() => setDeleting(person)} aria-label={`Delete ${person.handle}`} title="Delete">
+              <Trash2 className="size-4" aria-hidden="true" />
+            </Button>
+          </>
+        )}
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-4">
+      {suggestions.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2 text-sm">
+          <span className="text-muted-foreground">Look for</span>
+          {suggestions.map((item) => <span key={item} className="rounded-full bg-muted px-3 py-1 text-foreground">{item}</span>)}
+        </div>
+      )}
       <ListToolbar
         query={query}
         onQueryChange={setQuery}
@@ -105,6 +133,22 @@ export function CampaignPeople({ people, agencyId, companyId, projectId, canEdit
 
       {canEdit && <AddCreatorRow scope={{ agencyId, companyId, projectId }} showMatch={showMatch} />}
 
+      {/* Phones get a stacked list instead of the table, so nothing scrolls sideways. */}
+      <div className="divide-y divide-border md:hidden">
+        {results.map((person) => (
+          <div key={person.id} className="flex items-start gap-3 py-3">
+            <div className="min-w-0 flex-1 text-sm">
+              <CreatorName person={person} />
+              <p className="truncate text-muted-foreground">{[person.app, person.category, `${compactCount(person.followers)} followers`, showMatch ? `${person.overlap ?? 0}% match` : ""].filter(Boolean).join(" · ")}</p>
+              <p className="truncate text-muted-foreground">{!onRoster(person) ? "Suggested" : person.status} · {person.pay ? formatPay(person.pay, payCurrency(person)) : "Free"}</p>
+            </div>
+            {rowActions(person)}
+          </div>
+        ))}
+        {results.length === 0 && <p className="py-4 text-sm text-muted-foreground">{people.length === 0 ? "No creators yet." : "Nothing matches your search."}</p>}
+      </div>
+
+      <div className="hidden md:block">
       <Table className="table-fixed">
         <Columns showMatch={showMatch} />
         <TableHeader>
@@ -124,34 +168,14 @@ export function CampaignPeople({ people, agencyId, companyId, projectId, canEdit
             const suggested = !onRoster(person)
             return (
               <TableRow key={person.id}>
-                <TableCell>
-                  {profileUrl(person) ? (
-                    <a href={profileUrl(person)} target="_blank" rel="noreferrer" className="hover:underline">{person.handle}</a>
-                  ) : person.handle}
-                </TableCell>
+                <TableCell><CreatorName person={person} /></TableCell>
                 <TableCell>{person.app}</TableCell>
                 <TableCell>{person.category || "—"}</TableCell>
                 <TableCell>{compactCount(person.followers)}</TableCell>
                 {showMatch && <TableCell>{person.overlap ?? 0}%</TableCell>}
                 <TableCell>{suggested ? "Suggested" : person.status}</TableCell>
                 <TableCell>{person.pay ? formatPay(person.pay, payCurrency(person)) : "Free"}</TableCell>
-                <TableCell>
-                  <div className="flex items-center justify-end gap-1">
-                    {suggested && (canEdit || canReview) && (
-                      <Button type="button" size="sm" onClick={() => void addToRoster(person)}>Add</Button>
-                    )}
-                    {canEdit && (
-                      <>
-                        <Button type="button" variant="ghost" size="icon" className="size-8" onClick={() => setOpenId(person.id)} aria-label={`Edit ${person.handle}`} title="Edit">
-                          <Pencil className="size-4" aria-hidden="true" />
-                        </Button>
-                        <Button type="button" variant="ghost" size="icon" className="size-8" onClick={() => setDeleting(person)} aria-label={`Delete ${person.handle}`} title="Delete">
-                          <Trash2 className="size-4" aria-hidden="true" />
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                </TableCell>
+                <TableCell>{rowActions(person)}</TableCell>
               </TableRow>
             )
           })}
@@ -164,6 +188,7 @@ export function CampaignPeople({ people, agencyId, companyId, projectId, canEdit
           )}
         </TableBody>
       </Table>
+      </div>
 
       {canEdit && <ImportDialog open={importing} onOpenChange={setImporting} scope={{ agencyId, companyId, projectId }} />}
       {canEdit && <CreatorDialog person={open} onClose={() => setOpenId(null)} />}
@@ -237,6 +262,19 @@ function AddCreatorRow({ scope, showMatch }: { scope: Scope; showMatch: boolean 
 
   return (
     <form onSubmit={handleAdd}>
+      {/* Phones: the same boxes stacked two to a row. */}
+      <div className="grid grid-cols-2 gap-2 md:hidden">
+        <input value={handle} onChange={(event) => setHandle(event.target.value)} placeholder="@handle" aria-label="Handle" className={cn(fieldClass, "col-span-2")} />
+        <Pick label="App" value={app} options={PERSON_APPS} onChange={setApp} />
+        <Pick label="Category" placeholder="Category" value={category} options={PERSON_CATEGORIES} onChange={setCategory} />
+        <input value={followers} onChange={(event) => setFollowers(event.target.value)} placeholder="Followers" inputMode="numeric" aria-label="Followers" className={fieldClass} />
+        <div className="flex gap-1">
+          <Pick label="Currency" value={currency} options={PAY_CURRENCIES} onChange={setCurrency} className="w-20 shrink-0" />
+          <input value={pay} onChange={(event) => setPay(event.target.value)} placeholder="Pay" inputMode="numeric" aria-label="Pay" className={fieldClass} />
+        </div>
+        <Button type="submit" className="col-span-2" disabled={busy || !normalizeHandle(handle)}>Add creator</Button>
+      </div>
+      <div className="hidden md:block">
       <Table className="table-fixed">
         <Columns showMatch={showMatch} />
         <TableBody>
@@ -259,6 +297,7 @@ function AddCreatorRow({ scope, showMatch }: { scope: Scope; showMatch: boolean 
           </TableRow>
         </TableBody>
       </Table>
+      </div>
     </form>
   )
 }
@@ -499,4 +538,12 @@ function Pick({
       </SelectContent>
     </Select>
   )
+}
+
+/** The creator's handle, linked to their profile when we know the app. */
+function CreatorName({ person }: { person: CampaignPerson }) {
+  const href = profileUrl(person)
+  return href
+    ? <a href={href} target="_blank" rel="noreferrer" className="font-medium text-foreground hover:underline">{person.handle}</a>
+    : <span className="font-medium text-foreground">{person.handle}</span>
 }

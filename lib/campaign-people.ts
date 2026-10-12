@@ -56,6 +56,19 @@ export function watchCampaignPeople(projectId: string, onChange: (people: Campai
   )
 }
 
+/** Live creator rows across every campaign owned by one company. */
+export function watchCompanyCampaignPeople(companyId: string, onChange: (people: CampaignPerson[]) => void, onError?: (error: Error) => void) {
+  return onSnapshot(
+    query(collection(db, COLLECTION_NAME), where("companyId", "==", companyId)),
+    (snapshot) => onChange(
+      snapshot.docs
+        .map((d) => ({ ...(d.data() as Omit<CampaignPerson, "id">), id: d.id }))
+        .sort((a, b) => tsToMillis(a.createdAt) - tsToMillis(b.createdAt)),
+    ),
+    onError,
+  )
+}
+
 export function normalizeHandle(value: string) {
   const handle = value.trim().replace(/^@+/, "")
   return handle ? `@${handle}` : ""

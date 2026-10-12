@@ -27,6 +27,7 @@ const DASHBOARD_SECTION_TITLES: Record<string, string> = {
 const COMPANY_SECTION_TITLES: Record<string, string> = {
   about: "Home",
   activity: "Notifications",
+  analytics: "Analytics",
   "brand-health": "Reports",
   documents: "Drive",
   drive: "Drive",

@@ -15,6 +15,7 @@ import { GridCard, GridCardList } from "@/components/dashboard/grid-card"
 import { ListToolbar, useListSearch, useListView } from "@/components/dashboard/list-search"
 import { MobileDataCard } from "@/components/dashboard/mobile-data-card"
 import { NewProjectDialog } from "@/components/dashboard/new-project-dialog"
+import { CampaignGenerateButton } from "@/components/dashboard/campaign-generate"
 import { ProjectDetail } from "@/components/dashboard/project-detail"
 import { ProjectCover } from "@/components/project-card"
 import {
@@ -31,7 +32,7 @@ import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
-import { deleteProjectWithTasks, duplicateProject, renameProject, type Project } from "@/lib/projects"
+import { deleteProjectWithTasks, duplicateProject, getProject, renameProject, type Project } from "@/lib/projects"
 import { formatTimestamp, taskStatusMeta, tsToMillis } from "@/lib/tasks"
 
 export function ProjectsSection() {
@@ -41,12 +42,16 @@ export function ProjectsSection() {
   const canCreate = Boolean(admin)
     || appUser?.role === "superadmin"
     || (appUser?.role === "admin" && Boolean(appUser.agencyId) && appUser.agencyId === company.agencyId)
+  const isCompanyUser = appUser?.companyId === company.id
+  const canManageCampaigns = canCreate || isCompanyUser
+  const canDeleteCampaigns = canCreate
   const [addedProjects, setAddedProjects] = useState<Project[]>([])
+  const [removedProjectIds, setRemovedProjectIds] = useState<string[]>([])
   // Campaigns made or edited here show at once, before the company data reloads.
   const projects = [
     ...addedProjects.filter((added) => !loadedProjects.some((project) => project.id === added.id)),
     ...loadedProjects.map((project) => addedProjects.find((added) => added.id === project.id) ?? project),
-  ]
+  ].filter((project) => !removedProjectIds.includes(project.id))
   const searchParams = useSearchParams()
   const [view, setView] = useListView("company-campaigns")
   const { query, setQuery, results } = useListSearch(projects, (project) => [project.title, project.service, project.status, project.dueDate])
@@ -73,6 +78,14 @@ export function ProjectsSection() {
     const project = projects.find((item) => item.id === linkedCampaignId)
     if (project) setSelectedProject((current) => current?.id === project.id ? current : project)
   }, [linkedCampaignId, projects])
+
+  // Campaign edits show at once, before the company data reloads.
+  function patchSelected(patch: Partial<Project>) {
+    if (!selectedProject) return
+    const patched = { ...selectedProject, ...patch }
+    setSelectedProject(patched)
+    setAddedProjects((list) => [patched, ...list.filter((project) => project.id !== patched.id)])
+  }
 
   function modifiedLabel(project: Project) {
     const millis = tsToMillis(project.updatedAt) || tsToMillis(project.createdAt)
@@ -109,67 +122,79 @@ export function ProjectsSection() {
   const [busy, setBusy] = useState(false)
 
   async function handleDuplicate(project: Project) {
-    if (!admin || busy) return
+    if (!canManageCampaigns || busy) return
     setBusy(true)
     try {
-      await duplicateProject(project)
-      await admin.reload()
-      toast.success("Project duplicated")
+      const copyId = await duplicateProject(project)
+      if (admin) await admin.reload()
+      else {
+        const copy = await getProject(copyId)
+        if (copy) setAddedProjects((current) => [copy, ...current.filter((item) => item.id !== copy.id)])
+      }
+      toast.success("Campaign duplicated")
     } catch (duplicateError) {
-      console.error("Error duplicating project:", duplicateError)
-      toast.error("The project could not be duplicated.")
+      console.error("Error duplicating campaign:", duplicateError)
+      toast.error("The campaign could not be duplicated.")
     } finally {
       setBusy(false)
     }
   }
 
   async function handleRename() {
-    if (!admin || !renamingProject || busy) return
+    if (!canManageCampaigns || !renamingProject || busy) return
     const title = titleDraft.trim()
     if (!title || title === renamingProject.title) return
     setBusy(true)
     try {
       await renameProject(renamingProject.id, title)
+      if (!admin) {
+        const renamed = { ...renamingProject, title }
+        setAddedProjects((current) => [renamed, ...current.filter((project) => project.id !== renamed.id)])
+      }
       setRenamingProject(null)
-      await admin.reload()
-      toast.success("Project renamed")
+      if (admin) await admin.reload()
+      toast.success("Campaign renamed")
     } catch (renameError) {
-      console.error("Error renaming project:", renameError)
-      toast.error("The project could not be renamed.")
+      console.error("Error renaming campaign:", renameError)
+      toast.error("The campaign could not be renamed.")
     } finally {
       setBusy(false)
     }
   }
 
   async function handleDelete() {
-    if (!admin || !deletingProject || busy) return
+    if (!canDeleteCampaigns || !deletingProject || busy) return
     setBusy(true)
     try {
       await deleteProjectWithTasks(deletingProject.id)
+      if (!admin) {
+        setRemovedProjectIds((current) => [...current, deletingProject.id])
+        setAddedProjects((current) => current.filter((project) => project.id !== deletingProject.id))
+      }
       setDeletingProject(null)
-      await admin.reload()
-      toast.success("Project deleted")
+      if (admin) await admin.reload()
+      toast.success("Campaign deleted")
     } catch (deleteError) {
-      console.error("Error deleting project:", deleteError)
-      toast.error("The project could not be deleted.")
+      console.error("Error deleting campaign:", deleteError)
+      toast.error("The campaign could not be deleted.")
     } finally {
       setBusy(false)
     }
   }
 
   function projectMenu(project: Project) {
-    if (!admin) return undefined
+    if (!canManageCampaigns) return undefined
     return (
       <>
         <DropdownMenuItem onSelect={() => { setTitleDraft(project.title); setRenamingProject(project) }}>Rename</DropdownMenuItem>
         <DropdownMenuItem onSelect={() => void handleDuplicate(project)}>Duplicate</DropdownMenuItem>
-        <DropdownMenuItem variant="destructive" onSelect={() => setDeletingProject(project)}>Delete</DropdownMenuItem>
+        {canDeleteCampaigns && <DropdownMenuItem variant="destructive" onSelect={() => setDeletingProject(project)}>Delete</DropdownMenuItem>}
       </>
     )
   }
 
   return (
-    <div className="mt-5">
+    <div className={selectedProject ? "mt-0" : "mt-5"}>
       {selectedProject ? (
         <div>
           {selectedProject.thumbnailUrl && (
@@ -177,6 +202,7 @@ export function ProjectsSection() {
               <ProjectCover project={selectedProject} />
             </div>
           )}
+          <div className="flex items-center justify-between gap-3">
           <nav aria-label="Campaign breadcrumb" className="min-w-0">
             <ol className="flex min-w-0 items-center gap-1 text-sm">
               <li className="flex shrink-0 items-center">
@@ -208,6 +234,10 @@ export function ProjectsSection() {
               </li>
             </ol>
           </nav>
+            {(canCreate || appUser?.companyId === company.id) && (
+              <CampaignGenerateButton project={selectedProject} companyName={company.name} onPatched={patchSelected} />
+            )}
+          </div>
           <div className="mt-4">
             <ProjectDetail
               project={selectedProject}
@@ -222,11 +252,7 @@ export function ProjectsSection() {
               canReview={!admin && appUser?.companyId === company.id}
               invoices={invoices.filter((invoice) => invoice.projectId === selectedProject.id)}
               invoiceHref={(invoice) => sectionHref("finance", { doc: `invoice:${invoice.id}` })}
-              onProjectPatched={(patch) => {
-                const patched = { ...selectedProject, ...patch }
-                setSelectedProject(patched)
-                setAddedProjects((current) => [patched, ...current.filter((project) => project.id !== patched.id)])
-              }}
+              onProjectPatched={patchSelected}
               onProjectDeleted={admin ? async () => {
                 await admin.reload()
                 setSelectedProject(null)
@@ -297,7 +323,7 @@ export function ProjectsSection() {
 
       {!admin && <TaskDetailSheet />}
 
-      {admin && (
+      {canManageCampaigns && (
         <>
           <Dialog
             open={Boolean(renamingProject)}
@@ -305,7 +331,7 @@ export function ProjectsSection() {
           >
             <DialogContent className="max-w-sm">
               <DialogHeader>
-                <DialogTitle>Rename project</DialogTitle>
+                <DialogTitle>Rename campaign</DialogTitle>
                 <DialogDescription>Choose a new name for {renamingProject?.title}.</DialogDescription>
               </DialogHeader>
               <Input
@@ -338,7 +364,7 @@ export function ProjectsSection() {
               <AlertDialogHeader>
                 <AlertDialogTitle>Delete {deletingProject?.title}?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  This removes the project and every task filed under it. This cannot be undone.
+                  This removes the campaign and every task filed under it. This cannot be undone.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
@@ -351,7 +377,7 @@ export function ProjectsSection() {
                   }}
                   className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                 >
-                  {busy ? "Deleting…" : "Delete project"}
+                  {busy ? "Deleting…" : "Delete campaign"}
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>

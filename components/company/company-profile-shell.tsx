@@ -159,6 +159,11 @@ export function CompanyProfileShell({ children }: { children: ReactNode }) {
           <CompanySidebarLink href={sectionHref(item.key)}>
             {Icon && <Icon className="h-4 w-4" aria-hidden="true" />}
             <span className="sidebar-nav-label">{item.label}</span>
+            {item.key === "projects" && (
+              <span className="ml-auto inline-flex size-5 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-semibold tabular-nums text-primary-foreground group-data-[collapsible=icon]:hidden">
+                {projects.length}
+              </span>
+            )}
           </CompanySidebarLink>
         </SidebarMenuButton>
       </SidebarMenuItem>

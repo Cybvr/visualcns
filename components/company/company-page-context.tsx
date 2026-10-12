@@ -160,6 +160,7 @@ export function CompanyPageProvider({
       find("pulse"),
       find("visitors"),
       find("notes"),
+      find("analytics"),
       activity && { ...activity, label: "Notifications", icon: Bell },
     ]
     return order.filter((item): item is NonNullable<typeof item> => Boolean(item))

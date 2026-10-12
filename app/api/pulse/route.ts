@@ -34,7 +34,11 @@ async function resolveCaller(request: Request, companyId: string) {
     return { error: json({ error: "Could not verify your account." }, 401) }
   }
 
-  const user = (await db.collection("users").doc(uid).get()).data()
+  const [userSnapshot, organizationSnapshot] = await Promise.all([
+    db.collection("users").doc(uid).get(),
+    db.collection("organizations").doc(companyId).get(),
+  ])
+  const user = userSnapshot.data()
   if (!user) return { error: json({ error: "Your account is not ready." }, 403) }
 
   const role = String(user.role || "")
@@ -46,7 +50,7 @@ async function resolveCaller(request: Request, companyId: string) {
     return { error: json({ error: "Your account has no agency assigned." }, 403) }
   }
 
-  const org = (await db.collection("organizations").doc(companyId).get()).data()
+  const org = organizationSnapshot.data()
   if (!org) return { error: json({ error: "Company not found." }, 404) }
   if (org.agencyId && org.agencyId !== agencyId) return { error: json({ error: "You can't view this company." }, 403) }
   if (!isAdmin && user.companyId !== companyId) return { error: json({ error: "You can only view your own company." }, 403) }
@@ -72,21 +76,10 @@ async function keysFor(agencyId: string) {
   return { firecrawl, openai }
 }
 
-/**
- * Each company has one record for its scan allowance, and a "reports"
- * collection under it with every scan ever run. Before reports were kept, the
- * single latest report sat on the company record itself; `moveOldReport` copies
- * that into the collection the first time it's read, so nothing is lost.
- */
 type CompanyRecord = {
   latestReportId?: string
   scanMonth?: string
   scansThisMonth?: number
-  // The old single-report fields.
-  report?: PulseReport | null
-  links?: string[]
-  done?: string[]
-  dismissed?: string[]
 }
 type StoredReport = { report: PulseReport; links?: string[]; done?: string[]; dismissed?: string[] }
 type CompanyRef = FirebaseFirestore.DocumentReference
@@ -98,39 +91,13 @@ function stateOf(id: string, data: StoredReport | undefined): PulseState {
   return { id, report: data?.report ?? null, done: data?.done ?? [], dismissed: data?.dismissed ?? [] }
 }
 
-async function moveOldReport(db: FirebaseFirestore.Firestore, ref: CompanyRef, agencyId: string, companyId: string) {
-  await db.runTransaction(async (tx) => {
-    const record = (await tx.get(ref)).data() as CompanyRecord | undefined
-    if (!record?.report || record.latestReportId) return
-    const reportRef = reportsOf(ref).doc()
-    tx.set(reportRef, {
-      agencyId,
-      companyId,
-      report: record.report,
-      links: record.links ?? [],
-      done: record.done ?? [],
-      dismissed: record.dismissed ?? [],
-      scannedAt: record.report.scannedAt,
-      createdAt: FieldValue.serverTimestamp(),
-    })
-    tx.set(ref, {
-      latestReportId: reportRef.id,
-      report: FieldValue.delete(),
-      links: FieldValue.delete(),
-      done: FieldValue.delete(),
-      dismissed: FieldValue.delete(),
-    }, { merge: true })
-  })
-}
-
 /** Every saved report for a company, newest first, or one report in full with ?reportId=. */
 export async function GET(request: Request) {
   const params = new URL(request.url).searchParams
   const caller = await resolveCaller(request, params.get("companyId") || "")
   if ("error" in caller) return caller.error
-  const { db, agencyId, companyId } = caller
+  const { db, companyId } = caller
   const ref = db.collection(COLLECTION).doc(companyId)
-  await moveOldReport(db, ref, agencyId, companyId)
 
   const reportId = params.get("reportId")
   if (reportId) {
@@ -139,7 +106,7 @@ export async function GET(request: Request) {
     return json(stateOf(snap.id, snap.data() as StoredReport))
   }
 
-  const snaps = await reportsOf(ref).orderBy("scannedAt", "desc").limit(200).get()
+  const snaps = await reportsOf(ref).orderBy("scannedAt", "desc").limit(50).get()
   const reports: PulseReportSummary[] = snaps.docs.map((doc) => {
     const { report } = doc.data() as StoredReport
     return {
@@ -170,7 +137,6 @@ export async function POST(request: Request) {
   if ("error" in caller) return caller.error
   const { db, agencyId, companyId, company, isAdmin } = caller
   const ref = db.collection(COLLECTION).doc(companyId)
-  await moveOldReport(db, ref, agencyId, companyId)
 
   if (body.action === "update") {
     if (!body.reportId) return json({ error: "Missing report." }, 400)

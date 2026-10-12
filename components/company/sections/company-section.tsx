@@ -9,6 +9,7 @@ import { useCompanyPage, type CompanySectionKey } from "@/components/company/com
 import { CompanyVisitors } from "@/components/company/company-visitors"
 import { AboutSection } from "@/components/company/sections/about-section"
 import { ActivitySection } from "@/components/company/sections/activity-section"
+import { AnalyticsSection } from "@/components/company/sections/analytics-section"
 import { DocumentsSection } from "@/components/company/sections/documents-section"
 import { ProjectsSection } from "@/components/company/sections/projects-section"
 import { NotesSection } from "@/components/company/sections/notes-section"
@@ -61,6 +62,7 @@ function PulseSection() {
 
 const SECTION_COMPONENTS: Record<CompanySectionKey, ComponentType> = {
   projects: ProjectsSection,
+  analytics: AnalyticsSection,
   tasks: ProjectsSection,
   notes: NotesSection,
   about: AboutSection,

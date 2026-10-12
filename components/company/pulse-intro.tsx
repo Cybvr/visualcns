@@ -14,7 +14,6 @@ import {
   Pencil,
   Search,
   ShieldCheck,
-  Sparkles,
   Tag,
   TrendingUp,
   Trophy,
@@ -58,12 +57,6 @@ export const ANALYSE_AREAS: { key: string; icon: LucideIcon; title: string; deta
   { key: "presence", icon: TrendingUp, title: "Online Presence", detail: "Brand mentions, content, and reputation", box: "bg-emerald-100 dark:bg-emerald-950/50", tint: "text-emerald-600 dark:text-emerald-400" },
 ]
 
-const SAMPLE_SCORES = [
-  { label: "Website", score: 78 },
-  { label: "Search", score: 54 },
-  { label: "Technical", score: 66 },
-  { label: "Reputation", score: 82 },
-]
 function hrefFor(url: string) {
   return url.startsWith("http") ? url : `https://${url}`
 }
@@ -136,100 +129,51 @@ export function PulseIntro({
   const missing = !details.website
 
   return (
-    <section className="mt-5 grid gap-3 sm:gap-4 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
-      {/* Pitch: what Pulse does, with a sample of the report. */}
-      <div className="flex flex-col rounded-3xl bg-[linear-gradient(160deg,var(--primary),color-mix(in_oklch,var(--primary)_55%,black))] p-5 text-white sm:p-7">
-        <span className="inline-flex w-fit items-center gap-2 rounded-full bg-white/15 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide">
-          <span className="size-2 rounded-full bg-cyan-300" aria-hidden="true" />
-          VisualCNS Reports
-        </span>
-        <h2 data-weight="bold" className="mt-6 max-w-sm text-3xl font-bold leading-tight tracking-[-0.02em] text-white sm:text-4xl">
-          See how your business shows up online.
-        </h2>
-        <p className="mt-3 max-w-sm text-sm leading-6 text-white/80 sm:text-base">
-          One scan checks your website, search, competitors and reputation, then tells you what to fix first.
-        </p>
-        <svg viewBox="0 0 600 90" className="my-8 h-16 w-full text-teal-300 sm:h-20" fill="none" preserveAspectRatio="none" aria-hidden="true">
-          <path d="M0 50 H270 L292 8 L320 82 L342 50 H470 L490 28 L512 62 L526 50 H600" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
-        </svg>
-        <div className="mt-auto rounded-2xl bg-white p-4 text-foreground sm:p-5">
-          <div className="flex items-center justify-between">
-            <p className="text-sm font-semibold">Sample report</p>
-            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Example</p>
-          </div>
-          <dl className="mt-3 space-y-2.5">
-            {SAMPLE_SCORES.map((row) => (
-              <div key={row.label} className="grid grid-cols-[5.5rem_minmax(0,1fr)_1.75rem] items-center gap-3 text-sm">
-                <dt>{row.label}</dt>
-                <dd className="h-2 overflow-hidden rounded-full bg-muted"><span className="block h-full rounded-full bg-primary" style={{ width: `${row.score}%` }} /></dd>
-                <dd className="text-right font-semibold tabular-nums">{row.score}</dd>
-              </div>
-            ))}
-          </dl>
+    <section className="mt-4 rounded-2xl border border-border bg-background p-4 sm:p-5">
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <h2 className="text-lg font-semibold tracking-[-0.02em] text-foreground">Analyse {details.name}</h2>
+          <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
+            {scanning ? "Scanning your website and public sources…" : "Check your website, search presence, competitors and reputation."}
+          </p>
         </div>
+        <Button type="button" variant="outline" size="sm" onClick={() => setDetailsOpen(true)} className="shrink-0">
+          <Pencil className="size-4" aria-hidden="true" />
+          Details
+        </Button>
       </div>
 
-      {/* Start: what we check, which doubles as scan progress. */}
-      <div className="flex flex-col rounded-3xl border border-border bg-background p-5 sm:p-7">
-        <div className="flex items-start justify-between gap-4">
-          <div className="min-w-0">
-            <h2 data-weight="bold" className="text-2xl font-bold tracking-[-0.02em] text-foreground">Analyse {details.name}</h2>
-            <p className="mt-1.5 max-w-md text-sm leading-6 text-muted-foreground sm:text-base">
-              {scanning ? "Crawling your website and public sources. This takes a minute or two." : "We review your website and public data, then give you clear insights, opportunities and next steps."}
-            </p>
-          </div>
-          <div className="flex shrink-0 items-center gap-2">
-            <span className={cn("hidden items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium sm:inline-flex", missing ? "bg-amber-50 text-amber-700" : "bg-emerald-50 text-emerald-700")}>
-              {missing ? "Add website" : <><Check className="size-4" aria-hidden="true" /> Ready</>}
-            </span>
-            <Button type="button" onClick={() => setDetailsOpen(true)}>
-              <Check className="size-4" aria-hidden="true" /> Check
-            </Button>
-          </div>
-        </div>
+      <ul className="mt-4 grid grid-cols-2 gap-x-4 sm:grid-cols-3">
+        {ANALYSE_AREAS.map((area, index) => {
+          const done = scanning && index < step
+          const active = scanning && index === step
+          return (
+            <li key={area.key} className={cn("flex min-w-0 items-center gap-2 border-b border-border py-2.5 transition-opacity", scanning && !done && !active && "opacity-50")}>
+              <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground" aria-hidden="true">
+                {done ? <Check className="size-4 text-primary" /> : active ? <Loader2 className="size-4 animate-spin text-primary" /> : <area.icon className="size-4" />}
+              </span>
+              <span className="truncate text-sm font-medium text-foreground">{area.title}</span>
+            </li>
+          )
+        })}
+      </ul>
 
-        <p className="mt-7 text-xs font-semibold uppercase tracking-wide text-muted-foreground">What we check</p>
-        <ul className="mt-3 grid gap-3 sm:grid-cols-2">
-          {ANALYSE_AREAS.map((area, index) => {
-            const done = scanning && index < step
-            const active = scanning && index === step
-            return (
-              <li key={area.key} className={cn("flex items-start gap-3 rounded-2xl border border-border p-4 transition-opacity", scanning && !done && !active && "opacity-50")}>
-                <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary" aria-hidden="true">
-                  {done ? <Check className="size-5" /> : active ? <Loader2 className="size-5 animate-spin" /> : <area.icon className="size-5" />}
-                </span>
-                <div className="min-w-0">
-                  <p className="font-medium text-foreground">{area.title}</p>
-                  <p className="mt-0.5 text-sm leading-5 text-muted-foreground">{area.detail}</p>
-                </div>
-              </li>
-            )
-          })}
-        </ul>
-
-        <div className="mt-6">
-          <Button
-            type="button"
-            size="lg"
-            onClick={onAnalyse}
-            disabled={scanning || editing}
-            className="h-12 w-full rounded-xl bg-primary text-base font-semibold text-primary-foreground hover:bg-primary/90"
-          >
-            {scanning ? <Loader2 className="size-5 animate-spin" aria-hidden="true" /> : <Sparkles className="size-5" aria-hidden="true" />}
-            {scanning ? "Analysing your business…" : onBack ? "Run a new analysis" : "Analyse my business"}
-          </Button>
+      <div className="mt-4 flex flex-col-reverse gap-3 sm:flex-row sm:items-center">
+        {missing && <p className="text-sm text-muted-foreground">Add a website in Details for better results.</p>}
+        <div className="flex gap-2 sm:ml-auto">
           {onBack && !scanning && (
-            <Button type="button" variant="ghost" onClick={onBack} className="mt-2 w-full">
-              Back to the report
+            <Button type="button" variant="ghost" onClick={onBack}>
+              Back
             </Button>
           )}
-          {missing && (
-            <p className="mt-2.5 text-center text-sm text-muted-foreground">Add your website for the best results. We&apos;ll still check public sources.</p>
-          )}
+          <Button type="button" onClick={onAnalyse} disabled={scanning || editing} className="max-sm:flex-1">
+            {scanning && <Loader2 className="size-4 animate-spin" aria-hidden="true" />}
+            {scanning ? "Analysing…" : onBack ? "Run new analysis" : "Analyse business"}
+          </Button>
         </div>
       </div>
 
-      {/* Business details, in a modal opened from Check. */}
+      {/* Business details, opened from the compact Details action. */}
       <Dialog open={detailsOpen} onOpenChange={(open) => { setDetailsOpen(open); if (!open) { setEditing(false); setError("") } }}>
         <DialogContent className="max-h-[85vh] max-w-lg overflow-y-auto">
           <DialogHeader>

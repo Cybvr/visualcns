@@ -1,4 +1,4 @@
-import { Activity, ChartColumn, DollarSign, HardDrive, Info, ListTodo, Megaphone, MessageSquare, ScanLine, StickyNote, Users } from "lucide-react"
+import { Activity, ChartColumn, DollarSign, HardDrive, Info, ListTodo, Megaphone, MessageSquare, ScanLine, StickyNote, TrendingUp, Users } from "lucide-react"
 
 /** The sections of a company page, in menu order. Plain module so server routes can check a section too. */
 export const COMPANY_SECTIONS = [
@@ -9,6 +9,7 @@ export const COMPANY_SECTIONS = [
   { key: "team", label: "Team", icon: Users },
   { key: "activity", label: "Activity", icon: Activity },
   { key: "pulse", label: "Reports", icon: ChartColumn },
+  { key: "analytics", label: "Analytics", icon: TrendingUp },
   { key: "drive", label: "Drive", icon: HardDrive },
   { key: "finance", label: "Payments", icon: DollarSign },
   { key: "messages", label: "Messages", icon: MessageSquare },
