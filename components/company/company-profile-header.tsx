@@ -1,11 +1,7 @@
 "use client"
 
-import { useState, type ReactNode } from "react"
-import { Camera, Globe2, Linkedin, MapPin, Pencil, Share2 } from "lucide-react"
-
-function externalHref(value: string) {
-  return /^https?:\/\//i.test(value) ? value : `https://${value}`
-}
+import type { ReactNode } from "react"
+import { Camera, Pencil, Share2 } from "lucide-react"
 
 function initialsFor(name: string) {
   return name
@@ -24,20 +20,12 @@ const actionClass =
 export function CompanyProfileHeader({
   name,
   handle,
-  description,
-  categoryLabel,
   logoUrl,
-  coverUrl,
-  location,
-  website,
-  linkedIn,
-  contactCount,
   publicPath,
   admin,
   onShare,
   onEdit,
   onChangeLogo,
-  onChangeCover,
   accountAction,
   tabs,
   heading,
@@ -60,45 +48,22 @@ export function CompanyProfileHeader({
   onChangeCover?: () => void
   accountAction?: ReactNode
   tabs?: ReactNode
-  /** Shows this as the title in place of the banner, logo, location and description. */
+  /** Shows this as the title in place of the logo, name and handle. */
   heading?: string
 }) {
-  // Location and description stay folded away until someone taps "More".
-  const [showMore, setShowMore] = useState(false)
-  const links = [
-    linkedIn ? { label: "LinkedIn", href: externalHref(linkedIn), icon: Linkedin } : null,
-  ].filter((link): link is { label: string; href: string; icon: typeof Globe2 } => Boolean(link))
-
   return (
     <>
-      {/* Full-bleed white profile block on phones; sits in the page column on desktop. */}
-      <div className={heading ? "" : "-mx-4 -mt-4 border-b border-border bg-background sm:-mx-6 sm:-mt-6 md:mx-0 md:mt-0"}>
-        {!heading && <div className="px-3 pt-3 md:px-0 md:pt-0">
-          <div className="relative h-[104px] overflow-hidden rounded-[14px] border border-border bg-[linear-gradient(120deg,#FBEFE2_0%,#FBE6E9_50%,#E6F3E8_100%)] dark:bg-[linear-gradient(120deg,#2a211c_0%,#2b1f24_50%,#1c2a20_100%)] md:h-44 md:rounded-2xl">
-            {coverUrl && (
-              // Uploaded media is user-controlled, so keep this as a plain image rather than requiring host allowlisting.
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={coverUrl} alt="" className="absolute inset-0 size-full object-cover" />
-            )}
-            {onChangeCover && (
-              <button
-                type="button"
-                onClick={onChangeCover}
-                className="absolute top-2.5 right-2.5 inline-flex h-8 items-center rounded-lg border border-border bg-white/85 px-2.5 font-medium text-[#16181D] outline-none transition-colors hover:bg-white focus-visible:ring-2 focus-visible:ring-ring md:top-4 md:right-4"
-              >
-                <span className="text-[13px]">Change cover</span>
-              </button>
-            )}
-          </div>
-        </div>}
-
-        <div className={heading ? "px-0 pb-4 pt-2" : "px-4 pb-4 md:px-6 md:pb-5"}>
-          <div className={heading ? "hidden" : "relative z-[1] -mt-9 flex items-end justify-between gap-3 md:-mt-12"}>
-            <div className="grid size-[76px] shrink-0 place-items-center overflow-hidden rounded-full border border-border bg-white shadow-[0_0_0_4px_var(--background)] md:size-24">
+      {heading ? (
+        <h1 className="mt-2 mb-4 truncate text-[18px] tracking-[-0.02em] text-foreground md:text-[23px]">{heading}</h1>
+      ) : (
+        // Compact profile row: logo, name and handle, with actions on the right.
+        <div className="-mx-4 -mt-4 border-b border-border bg-background px-4 py-3 sm:-mx-6 sm:-mt-6 md:mx-0 md:mt-0 md:px-0 md:py-4">
+          <div className="flex items-center gap-3">
+            <div className="grid size-11 shrink-0 place-items-center overflow-hidden rounded-full border border-border bg-white md:size-12">
               {logoUrl ? (
                 // Company logos can be hosted outside the configured image domains.
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={logoUrl} alt={`${name} logo`} className="size-14 object-contain md:size-[72px]" />
+                <img src={logoUrl} alt={`${name} logo`} className="size-8 object-contain md:size-9" />
               ) : onChangeLogo ? (
                 <button
                   type="button"
@@ -106,10 +71,25 @@ export function CompanyProfileHeader({
                   aria-label="Add company image"
                   className="flex size-full items-center justify-center text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
                 >
-                  <Camera className="size-6" aria-hidden="true" />
+                  <Camera className="size-5" aria-hidden="true" />
                 </button>
               ) : (
-                <span className="text-xl font-semibold text-muted-foreground md:text-2xl">{initialsFor(name)}</span>
+                <span className="text-sm font-semibold text-muted-foreground">{initialsFor(name)}</span>
+              )}
+            </div>
+
+            <div className="min-w-0 flex-1">
+              <h1 className="m-0 truncate text-[17px] tracking-[-0.02em] text-foreground md:text-[20px]">{name}</h1>
+              {handle && (
+                <div className="truncate text-sm text-muted-foreground">
+                  {publicPath ? (
+                    <a href={publicPath} target="_blank" rel="noreferrer" className="outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring">
+                      @{handle}
+                    </a>
+                  ) : (
+                    <span>@{handle}</span>
+                  )}
+                </div>
               )}
             </div>
 
@@ -131,74 +111,8 @@ export function CompanyProfileHeader({
               </div>
             )}
           </div>
-
-          <h1 className="mt-3 mb-0.5 truncate text-[18px] tracking-[-0.02em] text-foreground md:text-[23px]">{heading ?? name}</h1>
-          {!heading && <div className="flex flex-wrap items-center gap-x-3.5 gap-y-1 text-sm text-muted-foreground">
-            {handle && (publicPath ? (
-              <a
-                href={publicPath}
-                target="_blank"
-                rel="noreferrer"
-                className="truncate font-semibold text-foreground outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                @{handle}
-              </a>
-            ) : (
-              <span className="truncate font-semibold text-foreground">@{handle}</span>
-            ))}
-            <span>{contactCount} contact{contactCount === 1 ? "" : "s"}</span>
-            {categoryLabel && <span className="truncate">{categoryLabel}</span>}
-            {website && (
-              <a
-                href={externalHref(website)}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex min-w-0 max-w-full items-center gap-1.5 outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                <Globe2 className="size-4 shrink-0" aria-hidden="true" />
-                <span className="truncate underline-offset-4 hover:underline">{website.replace(/^https?:\/\//i, "").replace(/\/$/, "")}</span>
-              </a>
-            )}
-          </div>}
-          {!heading && (location || description) && (showMore ? (
-            <div className="mt-2 max-w-2xl space-y-1.5 text-sm leading-6 text-muted-foreground">
-              {location && (
-                <div className="flex items-center gap-1.5">
-                  <MapPin className="size-4 shrink-0" aria-hidden="true" />
-                  <span>{location}</span>
-                </div>
-              )}
-              {description && <div>{description}</div>}
-              <button type="button" onClick={() => setShowMore(false)} className="font-medium text-foreground outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring">
-                Less
-              </button>
-            </div>
-          ) : (
-            <div className="mt-1.5 text-sm">
-              <button type="button" onClick={() => setShowMore(true)} className="font-medium text-foreground outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring">
-                More
-              </button>
-            </div>
-          ))}
-
-          {!heading && links.length > 0 && (
-            <div className="mt-3 flex flex-wrap gap-2 text-sm">
-              {links.map(({ label, href, icon: Icon }) => (
-                <a
-                  key={label}
-                  href={href}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex h-8 items-center gap-2 rounded-full border border-border bg-page px-3 font-medium text-foreground outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  <Icon className="size-4 text-muted-foreground" aria-hidden="true" />
-                  {label}
-                </a>
-              ))}
-            </div>
-          )}
         </div>
-      </div>
+      )}
 
       {/* Tabs live outside the profile block so they can stick under the header while scrolling. */}
       {tabs && (
