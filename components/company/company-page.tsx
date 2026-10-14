@@ -1,8 +1,8 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { ExternalLink, LogOut, Mail, MoreVertical } from "lucide-react"
 
 import { useAuth } from "@/components/auth-provider"
@@ -15,20 +15,52 @@ import { HeaderTeam } from "@/components/company/header-team"
 import { CompanyProfileHeader } from "@/components/company/company-profile-header"
 import { SectionNav } from "@/components/company/section-nav"
 import { CompanySection } from "@/components/company/sections/company-section"
-import { useClientOpen, usePageHeaderActions } from "@/components/dashboard/page-title-context"
+import { useClientOpen, usePageHeaderActions, usePageHeaderBack, usePageHeaderTitle } from "@/components/dashboard/page-title-context"
 import { ImageDropzone } from "@/components/image-dropzone"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { buildEmailComposeHref } from "@/lib/email-composer"
+import { cn } from "@/lib/utils"
+
+function usePhone() {
+  const [phone, setPhone] = useState(false)
+  useEffect(() => {
+    const query = window.matchMedia("(max-width: 639px)")
+    const sync = () => setPhone(query.matches)
+    sync()
+    query.addEventListener("change", sync)
+    return () => query.removeEventListener("change", sync)
+  }, [])
+  return phone
+}
 
 export type { CompanyPageAdmin, CompanyPageCompany, CompanyPagePerson } from "@/components/company/company-page-context"
 
-function DashboardCompanyView({ embedded = false }: { embedded?: boolean }) {
-  const { company, people, admin, sections, section, sectionHref, absoluteUrl } = useCompanyPage()
+function DashboardCompanyView({ embedded = false, onBack }: { embedded?: boolean; onBack?: () => void }) {
+  const { company, people, admin, sections, section, sectionHref, absoluteUrl, projects, updateParams } = useCompanyPage()
   const { user, signOut } = useAuth()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [logoEditOpen, setLogoEditOpen] = useState(false)
+
+  // On phones an open campaign takes the whole pane: the client's tabs hide and the
+  // header shows the campaign's name, with Back closing it. Otherwise the header
+  // shows the client's name, with Back to the clients list.
+  const phone = usePhone()
+  const campaignId = section === "projects" ? searchParams.get("campaign") : null
+  const campaignTitle = campaignId ? projects.find((project) => project.id === campaignId)?.title : undefined
+  const campaignOpen = Boolean(campaignTitle)
+  const latest = useRef({ updateParams, onBack })
+  latest.current = { updateParams, onBack }
+  const headerTitle = phone ? (campaignTitle ?? company.name) : null
+  const headerBack = useMemo(() => {
+    if (!phone) return null
+    if (campaignOpen) return { label: "Back to campaigns", onClick: () => latest.current.updateParams({ campaign: null, view: null, task: null }) }
+    return onBack ? { label: "Back to clients", onClick: () => latest.current.onBack?.() } : null
+  }, [phone, campaignOpen, onBack])
+  usePageHeaderTitle(useMemo(() => headerTitle ? <span className="block truncate">{headerTitle}</span> : null, [headerTitle]))
+  usePageHeaderBack(headerBack)
 
   const primaryContact = people.find((person) => person.adminUser?.uid === company.primaryContactId)
     || people.find((person) => person.adminUser?.email)
@@ -93,9 +125,9 @@ function DashboardCompanyView({ embedded = false }: { embedded?: boolean }) {
   return (
     <main className={embedded ? "w-full min-w-0" : "mx-auto min-h-screen w-full max-w-7xl max-md:bg-page px-4 pb-[calc(7rem+env(safe-area-inset-bottom))] pt-4 sm:px-6 sm:pb-16 sm:pt-6"}>
       {/* Tabs stick under the header while scrolling. In the clients pane the pane itself scrolls, so they stick to its top. */}
-      <div className={embedded
+      <div className={cn(campaignOpen && "max-sm:hidden", embedded
         ? "sticky top-0 z-30 border-b border-border bg-background print:hidden"
-        : "sticky top-14 z-30 -mx-4 -mt-4 border-b border-border bg-background print:hidden sm:-mx-6 sm:-mt-6 md:static md:mx-0 md:mt-0"}
+        : "sticky top-14 z-30 -mx-4 -mt-4 border-b border-border bg-background print:hidden sm:-mx-6 sm:-mt-6 md:static md:mx-0 md:mt-0")}
       >
         <SectionNav sections={sections} active={section} href={sectionHref} phoneVisible={3} />
       </div>
@@ -156,10 +188,10 @@ function DashboardCompanyView({ embedded = false }: { embedded?: boolean }) {
  * Supplying `admin` reveals private actions; omitting it keeps the page
  * read-only. The public page uses the same sections in CompanyProfileShell.
  */
-export function CompanyPage({ embedded, ...props }: CompanyPageData & { embedded?: boolean }) {
+export function CompanyPage({ embedded, onBack, ...props }: CompanyPageData & { embedded?: boolean; onBack?: () => void }) {
   return (
     <CompanyPageProvider mode="tabs" {...props}>
-      <DashboardCompanyView embedded={embedded} />
+      <DashboardCompanyView embedded={embedded} onBack={onBack} />
     </CompanyPageProvider>
   )
 }

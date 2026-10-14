@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 
 import { useAuth } from "@/components/auth-provider"
@@ -11,10 +11,11 @@ import { updateOrganization } from "@/lib/organizations"
 import { addUserToCompany, getUsers, type AppUser } from "@/lib/users"
 
 /** The client page with all its tabs, as its own route or inside the clients split pane. */
-export function CompanyDashboardView({ embedded, keepParams }: { embedded?: boolean; keepParams?: Record<string, string> } = {}) {
+export function CompanyDashboardView({ embedded, keepParams, onBack }: { embedded?: boolean; keepParams?: Record<string, string>; onBack?: () => void } = {}) {
   const router = useRouter()
   const { viewAsUser, isAdmin } = useAuth()
   const [allContacts, setAllContacts] = useState<AppUser[]>([])
+  const goToClients = useCallback(() => router.push("/dashboard/clients"), [router])
 
   useEffect(() => {
     if (!isAdmin) return
@@ -128,6 +129,7 @@ export function CompanyDashboardView({ embedded, keepParams }: { embedded?: bool
           : undefined
       }
       embedded={embedded}
+      onBack={onBack ?? goToClients}
       keepParams={keepParams}
     />
   )

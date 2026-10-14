@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Building2 } from "lucide-react"
 import type { Timestamp } from "firebase/firestore"
@@ -11,7 +11,7 @@ import { CompactListRow, InitialAvatar, shortListDate } from "@/components/dashb
 import { CompanyCreateSheet } from "@/components/dashboard/company-create-sheet"
 import { DocumentSplitPane } from "@/components/dashboard/document-split-pane"
 import { FirstRunState } from "@/components/dashboard/empty-state"
-import { usePageHeaderBack, usePageTitle, useRecordTitle } from "@/components/dashboard/page-title-context"
+import { useRecordTitle } from "@/components/dashboard/page-title-context"
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import {
   AlertDialog,
@@ -186,14 +186,7 @@ export default function CompaniesPage() {
   // ?client= holds the slug, but an old link may carry the raw workspace id.
   const selected = selectedRef ? companies.find((row) => companyRefOf(row) === selectedRef || row.id === selectedRef) ?? null : null
   useRecordTitle(selected?.name ?? null)
-  // On phones an open client shows its name in the dashboard header, with Back in place of the menu.
-  usePageTitle(selected?.name ?? null)
-  const selectedOpen = Boolean(selected)
-  const headerBack = useMemo(
-    () => selectedOpen ? { label: "Back to clients", onClick: () => setSelectedRef(null, { clear: ["tab"] }) } : null,
-    [selectedOpen, setSelectedRef],
-  )
-  usePageHeaderBack(headerBack)
+  const closeClient = useCallback(() => setSelectedRef(null, { clear: ["tab", "campaign", "view", "task"] }), [setSelectedRef])
 
   async function handleDelete(row: CompanyRow) {
     if (deleting) return
@@ -259,7 +252,7 @@ export default function CompaniesPage() {
           filter={clientFilter}
           emptySearchLabel="No clients match your search."
           getKey={companyRefOf}
-          content={selected ? <ClientPreview companyRef={companyRefOf(selected)}/> : null}
+          content={selected ? <ClientPreview companyRef={companyRefOf(selected)} onBack={closeClient} /> : null}
           renderItem={(row, active) => (
             <CompactListRow
               leading={row.logoUrl ? (

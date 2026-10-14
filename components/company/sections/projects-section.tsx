@@ -214,8 +214,8 @@ export function ProjectsSection() {
               <ProjectCover project={selectedProject} />
             </div>
           )}
-          <div className="flex items-center justify-between gap-3">
-          <nav aria-label="Campaign breadcrumb" className="min-w-0">
+          <div className="flex items-center justify-between gap-3 max-sm:justify-end">
+          <nav aria-label="Campaign breadcrumb" className="min-w-0 max-sm:hidden">
             <ol className="flex min-w-0 items-center gap-1 text-sm">
               <li className="flex shrink-0 items-center">
                 <Link

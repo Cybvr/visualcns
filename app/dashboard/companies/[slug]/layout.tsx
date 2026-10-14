@@ -1,22 +1,17 @@
 "use client"
 
-import { useMemo, type ReactNode } from "react"
+import type { ReactNode } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
 import { ArrowLeft } from "lucide-react"
 
 import { CompanyProvider, useCompanyState } from "@/components/dashboard/company-context"
 import { DashboardPageSkeleton } from "@/components/dashboard/dashboard-page-skeleton"
-import { usePageHeaderBack, usePageTitle } from "@/components/dashboard/page-title-context"
+import { usePageTitle } from "@/components/dashboard/page-title-context"
 
 function CompanyLayoutBody({ children }: { children: ReactNode }) {
   const { loading, error, client, name } = useCompanyState()
 
-  const router = useRouter()
-  // Phones show the client's name in the header, with Back in place of the menu.
   usePageTitle(!loading && client ? name : null)
-  const back = useMemo(() => ({ label: "Back to clients", onClick: () => router.push("/dashboard/clients") }), [router])
-  usePageHeaderBack(back)
 
   if (loading) {
     return (

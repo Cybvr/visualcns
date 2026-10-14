@@ -16,19 +16,19 @@ function Loading() {
   )
 }
 
-function ClientPaneBody({ companyRef }: { companyRef: string }) {
+function ClientPaneBody({ companyRef, onBack }: { companyRef: string; onBack: () => void }) {
   const { loading, error, client } = useCompanyState()
   if (loading) return <Loading />
   if (error || !client) return <p className="text-sm text-muted-foreground">{error ?? "This client could not be loaded."}</p>
-  return <CompanyDashboardView embedded keepParams={{ client: companyRef }} />
+  return <CompanyDashboardView embedded keepParams={{ client: companyRef }} onBack={onBack} />
 }
 
 /** The full client page, tabs and all, inside the clients split view. Tabs stay in the URL beside ?client=. */
-export function ClientPreview({ companyRef }: { companyRef: string }) {
+export function ClientPreview({ companyRef, onBack }: { companyRef: string; onBack: () => void }) {
   return (
     <CompanyProvider key={companyRef} companyRef={companyRef}>
       <Suspense fallback={<Loading />}>
-        <ClientPaneBody companyRef={companyRef} />
+        <ClientPaneBody companyRef={companyRef} onBack={onBack} />
       </Suspense>
     </CompanyProvider>
   )
