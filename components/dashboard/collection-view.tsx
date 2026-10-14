@@ -1,10 +1,10 @@
 "use client"
 
-import type { ComponentType, ReactNode } from "react"
+import { Fragment, type ComponentType, type ReactNode } from "react"
 
 import { CompanyEmptyState } from "@/components/company/empty-state"
 import { GridCard, GridCardList, type GridCardProps } from "@/components/dashboard/grid-card"
-import { ListSkeleton, ListToolbar, useListSearch, useListView } from "@/components/dashboard/list-search"
+import { ListSkeleton, ListToolbar, useListSearch, useListView, type ListView } from "@/components/dashboard/list-search"
 import { MobileDataCard, type MobileDataCardProps } from "@/components/dashboard/mobile-data-card"
 
 /** What a row shows in list view. The icon, open action and menu come from the card. */
@@ -26,9 +26,11 @@ export function CollectionView<T>({
   empty,
   card,
   row,
+  listItem,
   before,
   cardsAfter,
   hasExtraCards = false,
+  initialView = "card",
   className = "mt-5",
 }: {
   items: T[]
@@ -46,15 +48,18 @@ export function CollectionView<T>({
   card: (item: T) => GridCardProps
   /** Extra text for the list row. Falls back to the card's subtitle. */
   row?: (item: T) => CollectionRow
+  /** Optional complete list-row renderer for collections that need a richer compact layout. */
+  listItem?: (item: T) => ReactNode
   /** Shown between the toolbar and the items, e.g. totals or a folder path. */
   before?: ReactNode
   /** More cards at the end of the grid, filtered by the search text. */
   cardsAfter?: (query: string) => ReactNode
   /** True when `cardsAfter` has anything, so the tab doesn't count as empty. */
   hasExtraCards?: boolean
+  initialView?: ListView
   className?: string
 }) {
-  const [view, setView] = useListView(viewKey)
+  const [view, setView] = useListView(viewKey, initialView)
   const { query, setQuery, results } = useListSearch(items, searchFields)
   const isEmpty = items.length === 0 && !hasExtraCards
 
@@ -77,7 +82,7 @@ export function CollectionView<T>({
         </div>
       ) : (
         <div className="mt-4">
-          {results.map((item) => {
+          {listItem ? results.map((item) => <Fragment key={getKey(item)}>{listItem(item)}</Fragment>) : results.map((item) => {
             const { title, icon, href, onClick, ariaLabel, menu, menuLabel, subtitle } = card(item)
             const extra = row?.(item)
             return (

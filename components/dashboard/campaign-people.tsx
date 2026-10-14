@@ -1,7 +1,9 @@
 "use client"
 
-import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react"
-import { UserRound, Users } from "lucide-react"
+import { useEffect, useState, type FormEvent, type ReactNode } from "react"
+import { Linkedin, MoreVertical, Users } from "lucide-react"
+import { SiFacebook, SiInstagram, SiSnapchat, SiThreads, SiTiktok, SiX, SiYoutube } from "react-icons/si"
+import type { IconType } from "react-icons"
 import { toast } from "sonner"
 
 import { SectionAddButton } from "@/components/company/section-add-button"
@@ -21,8 +23,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
-import { Textarea } from "@/components/ui/textarea"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import {
   addCampaignPeople,
   compactCount,
@@ -63,12 +64,11 @@ const fieldClass = "h-9 w-full min-w-0 rounded-md border border-input bg-transpa
 
 /**
  * The Creators tab: everyone on the campaign as cards or a list. The agency adds
- * creators in the row above the list or by Import, and opens any of them to change the rest.
+ * creators in the row above the list and opens any of them to change the rest.
  */
 export function CampaignPeople({ people, agencyId, companyId, projectId, canEdit, canReview = false, startNew = false, onActionHandled }: CampaignPeopleProps) {
   const [openId, setOpenId] = useState<string | null>(null)
   const [adding, setAdding] = useState(false)
-  const [importing, setImporting] = useState(false)
   const [deleting, setDeleting] = useState<CampaignPerson | null>(null)
   const open = people.find((person) => person.id === openId) ?? null
   // Added creators first, then suggestions, each by best match.
@@ -131,11 +131,10 @@ export function CampaignPeople({ people, agencyId, companyId, projectId, canEdit
         getKey={(person) => person.id}
         searchFields={(person) => [person.handle, person.app, person.category, person.status]}
         searchPlaceholder="Search creators"
-        viewKey="campaign-creators"
+        viewKey="campaign-creators-inline"
+        initialView="list"
         actions={
           <>
-            {canEdit && <Button type="button" variant="ghost" className="max-sm:hidden" onClick={() => setImporting(true)}>Import</Button>}
-            {people.length > 0 && <Button type="button" variant="ghost" className="max-sm:hidden" onClick={() => downloadCsv(people.filter(onRoster))}>Download</Button>}
             {canEdit && <SectionAddButton label="New creator" disabled={adding} onClick={() => setAdding(true)} />}
           </>
         }
@@ -147,19 +146,14 @@ export function CampaignPeople({ people, agencyId, companyId, projectId, canEdit
         empty={{
           icon: Users,
           title: "No creators yet",
-          description: "Add creators one by one or import a list.",
-          action: canEdit ? (
-            <div className="flex items-center gap-2">
-              <Button type="button" variant="ghost" onClick={() => setImporting(true)}>Import</Button>
-              <SectionAddButton label="New creator" onClick={() => setAdding(true)} />
-            </div>
-          ) : undefined,
+          description: "Add creators one by one.",
+          action: canEdit ? <SectionAddButton label="New creator" onClick={() => setAdding(true)} /> : undefined,
         }}
         card={(person) => {
           const suggested = !onRoster(person)
           const status = suggested ? "Suggested" : person.status
           return {
-            icon: <UserRound className="size-4 text-muted-foreground" aria-hidden="true" />,
+            icon: <CreatorThumbnail person={person} compact />,
             title: person.handle,
             subtitle: (
               <span className="inline-flex min-w-0 items-center gap-2">
@@ -186,9 +180,22 @@ export function CampaignPeople({ people, agencyId, companyId, projectId, canEdit
             ),
           }
         }}
+        listItem={(person) => {
+          const status = onRoster(person) ? person.status : "Suggested"
+          return (
+            <CreatorListRow
+              key={person.id}
+              person={person}
+              status={status}
+              pay={payLabel(person)}
+              onOpen={() => openPerson(person)}
+              profileHref={profileUrl(person)}
+              menu={menuFor(person)}
+            />
+          )
+        }}
       />
 
-      {canEdit && <ImportDialog open={importing} onOpenChange={setImporting} scope={{ agencyId, companyId, projectId }} />}
       {canEdit && <CreatorDialog person={open} onClose={() => setOpenId(null)} />}
       <AlertDialog open={Boolean(deleting)} onOpenChange={(next) => { if (!next) setDeleting(null) }}>
         <AlertDialogContent>
@@ -202,6 +209,69 @@ export function CampaignPeople({ people, agencyId, companyId, projectId, canEdit
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+    </div>
+  )
+}
+
+const PLATFORM_ICONS: Record<string, IconType> = {
+  X: SiX,
+  Instagram: SiInstagram,
+  TikTok: SiTiktok,
+  YouTube: SiYoutube,
+  Facebook: SiFacebook,
+  Snapchat: SiSnapchat,
+  Threads: SiThreads,
+  LinkedIn: Linkedin,
+}
+
+function CreatorListRow({
+  person,
+  status,
+  pay,
+  onOpen,
+  profileHref,
+  menu,
+}: {
+  person: CampaignPerson
+  status: string
+  pay: string
+  onOpen: () => void
+  profileHref?: string
+  menu?: ReactNode
+}) {
+  const meta = [person.category, person.followers ? `${compactCount(person.followers)} followers` : undefined].filter(Boolean).join(" · ")
+  const isSuggested = status === "Suggested"
+  const PlatformIcon = PLATFORM_ICONS[person.app]
+
+  return (
+    <div className="flex min-w-0 items-center gap-3 border-b border-border px-2 py-3 sm:gap-4">
+      <button type="button" onClick={onOpen} className="size-14 shrink-0 overflow-hidden rounded-full bg-muted ring-1 ring-border transition-opacity hover:opacity-85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:size-16" aria-label={`Open ${person.handle}`}>
+        <CreatorThumbnail person={person} compact />
+      </button>
+      <div className="min-w-0 flex-1">
+        <div className="flex min-w-0 items-center gap-2">
+          <button type="button" onClick={onOpen} className="truncate text-left text-sm font-semibold text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:text-base">{person.handle}</button>
+          <span className="hidden truncate text-xs text-muted-foreground sm:inline">{person.category || "Creator"}</span>
+        </div>
+        <p className="mt-0.5 truncate text-xs text-muted-foreground">{meta || "Creator"}</p>
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {profileHref && PlatformIcon && <a href={profileHref} target="_blank" rel="noreferrer" className="inline-flex size-7 items-center justify-center rounded-full border border-input text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label={`Open ${person.app} profile`} title={`Open ${person.app} profile`}><PlatformIcon className="size-3.5" /></a>}
+        </div>
+      </div>
+      <div className="flex shrink-0 flex-col items-end gap-1.5">
+        <Badge variant="secondary" className={cn("rounded-full px-2.5 py-1 text-xs", isSuggested ? "bg-amber-500/15 text-amber-700" : "bg-emerald-500/15 text-emerald-700")}>{status}</Badge>
+        <span className="whitespace-nowrap text-xs text-muted-foreground sm:text-sm">{pay}</span>
+      </div>
+      {menu && (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button type="button" variant="ghost" size="icon" className="size-8 shrink-0" aria-label={`Options for ${person.handle}`}>
+              <MoreVertical className="size-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">{menu}</DropdownMenuContent>
+        </DropdownMenu>
+      )}
     </div>
   )
 }
@@ -263,76 +333,6 @@ function AddCreatorRow({ scope, onDone, onCancel }: { scope: Scope; onDone: () =
       <Button type="button" variant="ghost" onClick={onCancel} disabled={busy}>Cancel</Button>
       <Button type="submit" disabled={busy || !normalizeHandle(handle)}>Add creator</Button>
     </form>
-  )
-}
-
-/** Reads one creator per line: handle, app, followers, category, pay, currency (dollars if left out). Commas or tabs, so CSV files and spreadsheet pastes both work. */
-function parseCreatorList(text: string): CampaignPersonInput[] {
-  return text
-    .split(/\r?\n/)
-    .map((line) => line.split(line.includes("\t") ? "\t" : ",").map((cell) => cell.trim().replace(/^"|"$/g, "")))
-    .filter((cells) => normalizeHandle(cells[0] ?? "") && !/^handle$/i.test(cells[0] ?? ""))
-    .map(([handle, app = "", followers = "", category = "", pay = "", currency = ""]) => ({
-      handle,
-      app: PERSON_APPS.find((item) => item.toLowerCase() === app.toLowerCase()) ?? PERSON_APPS[0],
-      followers: parseCount(followers),
-      tier: PERSON_TIERS[0],
-      category,
-      pay: parseCount(pay),
-      currency: PAY_CURRENCIES.find((item) => item === currency.toUpperCase()) ?? PAY_CURRENCIES[0],
-    }))
-}
-
-/** Add many creators at once, pasted in or from a CSV file. */
-function ImportDialog({ open, onOpenChange, scope }: { open: boolean; onOpenChange: (open: boolean) => void; scope: Scope }) {
-  const [text, setText] = useState("")
-  const [busy, setBusy] = useState(false)
-  const fileInput = useRef<HTMLInputElement>(null)
-  const rows = parseCreatorList(text)
-
-  async function readFile(file: File | undefined) {
-    if (!file) return
-    try {
-      setText(await file.text())
-    } catch {
-      toast.error("Couldn't read that file.")
-    }
-  }
-
-  async function importAll() {
-    if (!rows.length || busy) return
-    setBusy(true)
-    const saved = await saveCreators(scope, rows)
-    setBusy(false)
-    if (!saved) return
-    toast.success(`Added ${rows.length} ${rows.length === 1 ? "creator" : "creators"}`)
-    setText("")
-    onOpenChange(false)
-  }
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
-          <DialogTitle>Import creators</DialogTitle>
-          <DialogDescription>One per line: handle, app, followers, category, pay, currency.</DialogDescription>
-        </DialogHeader>
-        <Textarea
-          value={text}
-          onChange={(event) => setText(event.target.value)}
-          rows={8}
-          placeholder={"@ada, Instagram, 12k, Food, 500, USD\n@tunde, X, 3400, Sport, 50000, NGN"}
-          aria-label="Creators to import"
-        />
-        <input ref={fileInput} type="file" accept=".csv,.tsv,.txt,text/csv,text/plain" hidden onChange={(event) => { void readFile(event.target.files?.[0]); event.target.value = "" }} />
-        <DialogFooter className="items-center gap-2 sm:justify-between">
-          <Button type="button" variant="ghost" onClick={() => fileInput.current?.click()} className="-ml-3">Choose a file</Button>
-          <Button type="button" disabled={busy || !rows.length} onClick={() => void importAll()}>
-            {busy ? "Importing…" : rows.length ? `Import ${rows.length}` : "Import"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
   )
 }
 
@@ -454,20 +454,6 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
   )
 }
 
-function downloadCsv(people: CampaignPerson[]) {
-  const header = ["Handle", "App", "Followers", "Category", "Match %", "Size", "Posting day", "Status", "Post link", "Pay", "Currency", "Paid", "Marked as ad"]
-  const rows = people.map((person) => [
-    person.handle, person.app, person.followers, person.category ?? "", person.overlap ?? "", person.tier, person.wave, person.status, person.postLink, person.pay, payCurrency(person), person.paid ? "Yes" : "No", person.labelled ? "Yes" : "No",
-  ])
-  const csv = [header, ...rows].map((row) => row.map((cell) => `"${String(cell ?? "").replace(/"/g, '""')}"`).join(",")).join("\r\n")
-  const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }))
-  const anchor = document.createElement("a")
-  anchor.href = url
-  anchor.download = "campaign-creators.csv"
-  anchor.click()
-  URL.revokeObjectURL(url)
-}
-
 // Radix Select can't hold an empty value, so "none" stands in for it.
 const NONE = "__none"
 
@@ -517,7 +503,7 @@ function hueFor(text: string) {
  * The creator's card picture: their profile photo when the app has a public one,
  * otherwise a made-up tile in a colour picked from their handle, with their initials.
  */
-function CreatorThumbnail({ person }: { person: CampaignPerson }) {
+function CreatorThumbnail({ person, compact = false }: { person: CampaignPerson; compact?: boolean }) {
   const name = person.handle.replace(/^@+/, "")
   const provider = AVATAR_PROVIDERS[person.app]
   const [failed, setFailed] = useState(!provider || !name)
@@ -541,9 +527,9 @@ function CreatorThumbnail({ person }: { person: CampaignPerson }) {
           className="absolute inset-0 size-full object-cover"
         />
       )}
-      <span className="absolute bottom-2 left-2 rounded-full bg-black/45 px-2 py-0.5 text-[11px] font-medium text-white">
+      {!compact && <span className="absolute bottom-2 left-2 rounded-full bg-black/45 px-2 py-0.5 text-[11px] font-medium text-white">
         {person.app}{person.followers ? ` · ${compactCount(person.followers)}` : ""}
-      </span>
+      </span>}
     </div>
   )
 }
