@@ -250,7 +250,7 @@ export default function CompaniesPage() {
           filter={clientFilter}
           emptySearchLabel="No clients match your search."
           getKey={companyRefOf}
-          content={selected ? <ClientPreview companyRef={companyRefOf(selected)} href={companyHref(selected)} /> : null}
+          content={selected ? <ClientPreview companyRef={companyRefOf(selected)}/> : null}
           renderItem={(row, active) => (
             <CompactListRow
               leading={row.logoUrl ? (

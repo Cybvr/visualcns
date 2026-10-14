@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react"
 import Link from "next/link"
-import { usePathname, useRouter } from "next/navigation"
+import { useRouter } from "next/navigation"
 import { ExternalLink, LogOut, Mail, MoreVertical } from "lucide-react"
 
 import { useAuth } from "@/components/auth-provider"
@@ -24,11 +24,10 @@ import { buildEmailComposeHref } from "@/lib/email-composer"
 
 export type { CompanyPageAdmin, CompanyPageCompany, CompanyPagePerson } from "@/components/company/company-page-context"
 
-function DashboardCompanyView({ embedded = false, editHref }: { embedded?: boolean; editHref?: string }) {
-  const { company, people, admin, sections, section, sectionHref, goToSection, absoluteUrl } = useCompanyPage()
+function DashboardCompanyView({ embedded = false }: { embedded?: boolean }) {
+  const { company, people, admin, sections, section, sectionHref, absoluteUrl } = useCompanyPage()
   const { user, signOut } = useAuth()
   const router = useRouter()
-  const pathname = usePathname()
   const [logoEditOpen, setLogoEditOpen] = useState(false)
 
   const primaryContact = people.find((person) => person.adminUser?.uid === company.primaryContactId)
@@ -92,36 +91,32 @@ function DashboardCompanyView({ embedded = false, editHref }: { embedded?: boole
 
   return (
     <main className={embedded ? "w-full min-w-0" : "mx-auto min-h-screen w-full max-w-7xl max-md:bg-page px-4 pb-[calc(7rem+env(safe-area-inset-bottom))] pt-4 sm:px-6 sm:pb-16 sm:pt-6"}>
-      <CompanyProfileHeader
-        name={company.name}
-        handle={company.slug || admin?.sharePath.split("/").filter(Boolean).pop()}
-        description={company.description}
-        categoryLabel={company.categoryLabel}
-        logoUrl={company.logoUrl}
-        coverUrl={company.media?.find((url) => url && url !== company.logoUrl)}
-        location={company.location}
-        website={company.website}
-        linkedIn={company.linkedIn}
-        contactCount={people.length}
-        publicPath={admin?.sharePath}
-        admin={Boolean(admin)}
-        onEdit={admin ? () => router.push(editHref ?? `${pathname}/edit`) : undefined}
-        onChangeLogo={admin ? () => setLogoEditOpen(true) : undefined}
-        onChangeCover={admin ? () => goToSection("drive") : undefined}
-        accountAction={!admin && user ? (
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            className="h-9 rounded-[9px] px-3"
-            onClick={() => { void signOut().then(() => router.replace("/login")) }}
-          >
-            <LogOut className="size-4" aria-hidden="true" />
-            Log out
-          </Button>
-        ) : undefined}
-        tabs={<SectionNav sections={sections} active={section} href={sectionHref} />}
-      />
+      {/* Tabs stick under the header while scrolling. */}
+      <div className="sticky top-14 z-30 -mx-4 -mt-4 border-b border-border bg-background print:hidden sm:-mx-6 sm:-mt-6 md:static md:mx-0 md:mt-0">
+        <SectionNav sections={sections} active={section} href={sectionHref} />
+      </div>
+
+      {section === "activity" && (
+        <CompanyProfileHeader
+          name={company.name}
+          handle={company.slug || admin?.sharePath.split("/").filter(Boolean).pop()}
+          logoUrl={company.logoUrl}
+          publicPath={admin?.sharePath}
+          onChangeLogo={admin ? () => setLogoEditOpen(true) : undefined}
+          accountAction={!admin && user ? (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="h-9 rounded-[9px] px-3"
+              onClick={() => { void signOut().then(() => router.replace("/login")) }}
+            >
+              <LogOut className="size-4" aria-hidden="true" />
+              Log out
+            </Button>
+          ) : undefined}
+        />
+      )}
 
       <div className="min-w-0">
         <CompanySection section={section} />
@@ -157,10 +152,10 @@ function DashboardCompanyView({ embedded = false, editHref }: { embedded?: boole
  * Supplying `admin` reveals private actions; omitting it keeps the page
  * read-only. The public page uses the same sections in CompanyProfileShell.
  */
-export function CompanyPage({ embedded, editHref, ...props }: CompanyPageData & { embedded?: boolean; editHref?: string }) {
+export function CompanyPage({ embedded, ...props }: CompanyPageData & { embedded?: boolean }) {
   return (
     <CompanyPageProvider mode="tabs" {...props}>
-      <DashboardCompanyView embedded={embedded} editHref={editHref} />
+      <DashboardCompanyView embedded={embedded} />
     </CompanyPageProvider>
   )
 }

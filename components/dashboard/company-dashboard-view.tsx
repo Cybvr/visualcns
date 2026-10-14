@@ -6,11 +6,12 @@ import { useRouter } from "next/navigation"
 import { useAuth } from "@/components/auth-provider"
 import { CompanyPage } from "@/components/company/company-page"
 import { useCompany } from "@/components/dashboard/company-context"
+import { CompanyProfileSettings } from "@/components/dashboard/company-profile-settings"
 import { updateOrganization } from "@/lib/organizations"
 import { addUserToCompany, getUsers, type AppUser } from "@/lib/users"
 
 /** The client page with all its tabs, as its own route or inside the clients split pane. */
-export function CompanyDashboardView({ embedded, editHref, keepParams }: { embedded?: boolean; editHref?: string; keepParams?: Record<string, string> } = {}) {
+export function CompanyDashboardView({ embedded, keepParams }: { embedded?: boolean; keepParams?: Record<string, string> } = {}) {
   const router = useRouter()
   const { viewAsUser, isAdmin } = useAuth()
   const [allContacts, setAllContacts] = useState<AppUser[]>([])
@@ -122,11 +123,11 @@ export function CompanyDashboardView({ embedded, editHref, keepParams }: { embed
                 await reload()
               },
               reload,
+              profileSettings: <CompanyProfileSettings />,
             }
           : undefined
       }
       embedded={embedded}
-      editHref={editHref}
       keepParams={keepParams}
     />
   )

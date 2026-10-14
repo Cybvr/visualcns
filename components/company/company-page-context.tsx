@@ -62,6 +62,8 @@ export interface CompanyPageAdmin {
   /** Attach a contact to this company (if needed) and make them the primary contact. */
   onSelectPrimaryContact?: (contactId: string) => Promise<void>
   reload: () => Promise<void>
+  /** Logo, name, public address and delete, shown at the top of About. */
+  profileSettings?: ReactNode
 }
 
 export interface CompanyPageData {
@@ -150,7 +152,14 @@ export function CompanyPageProvider({
       .filter((item) => item.key !== "tasks" && item.key !== "drive")
       .filter((item) => mode === "routes" || item.key !== "ngai")
       .filter((item) => !["visitors", "messages", "notes"].includes(item.key) || canSeeVisitors)
-    if (mode !== "routes") return [...visible]
+    if (mode !== "routes") {
+      // Dashboard tabs open on Home: the company's activity, with its name and logo on top.
+      const home = visible.find((item) => item.key === "activity")
+      return [
+        ...(home ? [{ ...home, label: "Home", icon: House }] : []),
+        ...visible.filter((item) => item.key !== "activity"),
+      ]
+    }
     const about = visible.find((item) => item.key === "about")!
     const find = (key: CompanySectionKey) => visible.find((item) => item.key === key)
     const activity = find("activity")
@@ -174,7 +183,7 @@ export function CompanyPageProvider({
   const requestedSection = requested === "brand-health" ? "pulse" : requested === "tasks" || requested === "drive" ? "projects" : mode === "routes" && requested === "notifications" ? "activity" : requested
   const section: CompanySectionKey = sections.some((s) => s.key === requestedSection)
     ? (requestedSection as CompanySectionKey)
-    : mode === "tabs" && searchParams.get("task") && !isAdmin ? "projects" : mode === "routes" ? "about" : "projects"
+    : mode === "routes" ? "about" : searchParams.get("task") || searchParams.get("campaign") ? "projects" : "activity"
 
   function sectionHref(section: CompanySectionKey, query: Record<string, string> = {}) {
     const key = section === "tasks" || section === "drive" ? "projects" : section
@@ -182,7 +191,7 @@ export function CompanyPageProvider({
     let path = basePath
     if (mode === "routes") {
       if (key !== "about") path = `${basePath}/${key === "activity" ? "notifications" : key}`
-    } else if (key !== "projects") {
+    } else if (key !== "activity") {
       params.set("tab", key)
     }
     const search = params.toString()

@@ -26,6 +26,12 @@ function FinanceSection() {
   return <DocumentsSection scope="finance" />
 }
 
+/** On the dashboard this tab is called Home, so its list keeps the Activity title. */
+function HomeActivitySection() {
+  const { mode } = useCompanyPage()
+  return <ActivitySection heading={mode === "tabs" ? "Activity" : undefined} />
+}
+
 function VisitorsSection() {
   const { company, visitorAgencyId } = useCompanyPage()
   return <CompanyVisitors agencyId={visitorAgencyId} companyId={company.id} slug={company.slug || company.id} />
@@ -69,7 +75,7 @@ const SECTION_COMPONENTS: Record<CompanySectionKey, ComponentType> = {
   notes: NotesSection,
   about: AboutSection,
   team: TeamSection,
-  activity: ActivitySection,
+  activity: HomeActivitySection,
   pulse: PulseSection,
   drive: DriveSection,
   finance: FinanceSection,

@@ -6,13 +6,12 @@ import { useRouter, useSearchParams } from "next/navigation"
 
 import { useAuth } from "@/components/auth-provider"
 import { isCompanySection, useCompanyPage } from "@/components/company/company-page-context"
-import { CompanyProfileHeader } from "@/components/company/company-profile-header"
 import { ActivitySection } from "@/components/company/sections/activity-section"
 import { ProjectCover } from "@/components/project-card"
 import { formatTimestamp, tsToMillis } from "@/lib/tasks"
 
 export default function CompanyHomePage() {
-  const { company, people, sectionHref } = useCompanyPage()
+  const { company, sectionHref } = useCompanyPage()
   const { user, appUser } = useAuth()
   const firstName = (appUser?.displayName || user?.displayName || "").trim().split(/\s+/)[0]
   const searchParams = useSearchParams()
@@ -44,19 +43,9 @@ export default function CompanyHomePage() {
   return (
     <>
       <HomeBanner coverUrl={company.media?.find((url) => url && url !== company.logoUrl)} />
-      {/* A welcome line under the banner, with the handle, contacts, category and website under it. */}
-      <CompanyProfileHeader
-        heading={firstName ? `Welcome back, ${firstName}` : `Welcome to ${company.name}`}
-        name={company.name}
-        handle={company.slug}
-        description={company.description}
-        categoryLabel={company.categoryLabel}
-        logoUrl={company.logoUrl}
-        location={company.location}
-        website={company.website}
-        linkedIn={company.linkedIn}
-        contactCount={people.length}
-      />
+      <h1 className="mt-2 mb-4 truncate text-[18px] tracking-[-0.02em] text-foreground md:text-[23px]">
+        {firstName ? `Welcome back, ${firstName}` : `Welcome to ${company.name}`}
+      </h1>
       <div className="grid gap-8 lg:grid-cols-2">
         <CampaignColumn />
         <div className="min-w-0">

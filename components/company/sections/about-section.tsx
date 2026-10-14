@@ -166,6 +166,7 @@ export function AboutSection({ singleColumn = false, formStyle = false }: { sing
       <CompanyDetails company={profile} onSave={admin?.onUpdateCompany} hideTags hideDescription />
     </ProfileCard>
   )
+  const settings = admin?.profileSettings ? <ProfileCard title="Profile">{admin.profileSettings}</ProfileCard> : null
   const tags = <CompanyTagsCard tags={company.tags} onSave={admin?.onUpdateCompany} />
   const links = <CompanyLinks links={company.links} onSave={admin ? (next) => admin.onUpdateCompany({ links: next }) : undefined} />
   const bookings = user ? <CompanyBookings companyId={company.id} canCancel={!admin} /> : null
@@ -195,11 +196,12 @@ export function AboutSection({ singleColumn = false, formStyle = false }: { sing
   }
 
   if (singleColumn) {
-    return <div className="mt-5 min-w-0 space-y-6">{about}{details}{tags}{links}{bookings}</div>
+    return <div className="mt-5 min-w-0 space-y-6">{settings}{about}{details}{tags}{links}{bookings}</div>
   }
 
   return (
     <div className="mt-5">
+      {settings && <div className="mb-6 max-w-md">{settings}</div>}
       <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[minmax(0,0.72fr)_minmax(0,1.28fr)]">
         <div className="min-w-0 space-y-6">{about}{tags}</div>
         {details}
