@@ -258,7 +258,7 @@ export function CompanyProfileShell({ children }: { children: ReactNode }) {
             "min-w-0 flex-1 bg-card px-3 sm:px-6 md:m-3 md:mt-0 md:rounded-2xl md:shadow-[0_6px_24px_rgba(15,23,42,0.04)] lg:px-8",
             // Ngai sits its composer near the bottom edge; other pages keep room below.
             section === "ngai" ? "pb-1 md:pb-1" : "pb-16 md:pb-6",
-            recordOpen ? "pt-2 sm:pt-3" : "pt-1 sm:pt-6",
+            recordOpen ? "pt-0 sm:pt-0" : "pt-1 sm:pt-6",
           )}>
             {(isSettingsPage || section !== "about") && pageLabel && !recordOpen && (
               <div className="mb-0.5 flex items-center justify-between gap-3">

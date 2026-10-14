@@ -21,18 +21,10 @@ const STARTING_OPTIONS = [
   "What is VisualCNS Pass?",
 ]
 
-function NgaiTitleActions() {
+function NgaiActions() {
   const { conversations, activeConversationId, sending, reset, selectConversation } = useAgent()
-  const [slot, setSlot] = useState<HTMLElement | null>(null)
   const chatted = conversations.filter((conversation) => conversation.messages.length > 0)
-
-  useEffect(() => {
-    setSlot(document.getElementById("company-title-actions"))
-  }, [])
-
-  if (!slot) return null
-
-  return createPortal(
+  return (
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
@@ -59,12 +51,36 @@ function NgaiTitleActions() {
         <Plus className="size-4" aria-hidden="true" />
         New
       </Button>
-    </>,
-    slot,
+    </>
   )
 }
 
-function MemberNgai() {
+function NgaiTitleActions() {
+  const [slot, setSlot] = useState<HTMLElement | null>(null)
+  const [checked, setChecked] = useState(false)
+
+  useEffect(() => {
+    setSlot(document.getElementById("company-title-actions"))
+    setChecked(true)
+  }, [])
+
+  if (!checked) return null
+  if (slot) return createPortal(<NgaiActions />, slot)
+
+  return (
+    <header className="mb-3 flex items-center justify-between gap-3 border-b border-border pb-3">
+      <div className="flex min-w-0 items-center gap-2">
+        <Image src="/ngai-logo.png" alt="" width={24} height={24} className="rounded-full" />
+        <h1 className="truncate text-lg font-semibold tracking-[-0.02em]">Ngai</h1>
+      </div>
+      <div className="flex shrink-0 items-center gap-1">
+        <NgaiActions />
+      </div>
+    </header>
+  )
+}
+
+function MemberNgai({ className }: { className?: string }) {
   const { messages, conversations, activeConversationId, sending, firstName, send, reset, selectConversation } = useAgent()
   const { company, projects } = useCompanyPage()
   const campaignMentions = useMemo(() => [...projects]
@@ -80,7 +96,7 @@ function MemberNgai() {
     <>
       <NgaiTitleActions />
       <AgentChat
-        className="h-[calc(100svh-6rem)] min-h-[26rem] md:h-[calc(100svh-8.75rem)]"
+        className={cn("h-[calc(100svh-6rem)] min-h-[26rem] md:h-[calc(100svh-8.75rem)]", className)}
         messages={messages}
         conversations={conversations}
         activeConversationId={activeConversationId}
@@ -96,6 +112,17 @@ function MemberNgai() {
   )
 }
 
+/** Reusable company-scoped Ngai conversation surface for full pages and campaign tabs. */
+export function CompanyNgaiChat({ surface = "client_portal", className }: { surface?: "agency_dashboard" | "client_portal"; className?: string }) {
+  const { company } = useCompanyPage()
+
+  return (
+    <AgentProvider surface={surface} companyContext={{ id: company.id, name: company.name }}>
+      <MemberNgai className={className} />
+    </AgentProvider>
+  )
+}
+
 export function NgaiSection() {
   const { company, canManageTeam } = useCompanyPage()
   const { user, appUser, role, loading } = useAuth()
@@ -108,14 +135,7 @@ export function NgaiSection() {
   const canUseNgai = belongsToCompany || canManageTeam || isAgencyAdmin
 
   if (canUseNgai) {
-    return (
-      <AgentProvider
-        surface={isAgencyAdmin ? "agency_dashboard" : "client_portal"}
-        companyContext={{ id: company.id, name: company.name }}
-      >
-        <MemberNgai />
-      </AgentProvider>
-    )
+    return <CompanyNgaiChat surface={isAgencyAdmin ? "agency_dashboard" : "client_portal"} />
   }
 
   return (

@@ -12,7 +12,6 @@ import { SectionAddButton } from "@/components/company/section-add-button"
 import { TaskDetailSheet } from "@/components/company/task-detail-sheet"
 import { CollectionView } from "@/components/dashboard/collection-view"
 import { NewProjectDialog } from "@/components/dashboard/new-project-dialog"
-import { CampaignGenerateButton } from "@/components/dashboard/campaign-generate"
 import { ProjectDetail } from "@/components/dashboard/project-detail"
 import { ProjectCover } from "@/components/project-card"
 import {
@@ -237,11 +236,8 @@ export function ProjectsSection() {
               </li>
             </ol>
           </nav>
-            {(canCreate || appUser?.companyId === company.id) && (
-              <CampaignGenerateButton project={selectedProject} companyName={company.name} onPatched={patchSelected} />
-            )}
           </div>
-          <div className="mt-3">
+          <div className="mt-0 sm:mt-2">
             <ProjectDetail
               project={selectedProject}
               isAdmin={Boolean(admin)}

@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react"
-import { ChevronDown, DollarSign, FileText, House, Images, ListTodo, Mail, MoreVertical, Palette, Settings, Share2, TrendingUp, Users, type LucideIcon } from "lucide-react"
+import { ChevronDown, DollarSign, FileText, House, Images, ListTodo, Mail, MoreVertical, Palette, Settings, Share2, Sparkles, TrendingUp, Users, type LucideIcon } from "lucide-react"
 
 import { AnalyticsSkeleton, AnalyticsView } from "@/components/company/analytics-view"
 import { CampaignBrief } from "@/components/dashboard/campaign-brief"
@@ -13,6 +13,7 @@ import { CampaignPayments } from "@/components/dashboard/campaign-payments"
 import { CampaignGenerateButton } from "@/components/dashboard/campaign-generate"
 import { CampaignSettings } from "@/components/dashboard/campaign-settings"
 import { CaseStudyForm } from "@/components/dashboard/case-study-form"
+import { CompanyNgaiChat } from "@/components/company/sections/ngai-section"
 import { ProjectShareButton } from "@/components/dashboard/project-share-button"
 import { ProjectTeamPicker } from "@/components/dashboard/project-team-picker"
 import { TasksView } from "@/components/dashboard/tasks-view"
@@ -28,7 +29,7 @@ import { deleteTask, getTasksByCompanyId, tsToMillis, updateTask, type Task } fr
 import { companyPath } from "@/lib/navigation"
 import { useUrlSelection } from "@/hooks/use-url-selection"
 
-const VIEW_FROM_TAB: Record<CampaignTab, string> = { home: "", analytics: "analytics", about: "brief", people: "creators", creatives: "content", media: "media", payments: "payments", tasks: "tasks", settings: "settings" }
+const VIEW_FROM_TAB: Record<CampaignTab, string> = { home: "", build: "build", analytics: "analytics", about: "brief", people: "creators", creatives: "content", media: "media", payments: "payments", tasks: "tasks", settings: "settings" }
 const TAB_FROM_VIEW: Record<string, CampaignTab> = Object.fromEntries(Object.entries(VIEW_FROM_TAB).map(([tab, view]) => [view, tab as CampaignTab]))
 
 interface ProjectDetailProps {
@@ -313,16 +314,17 @@ export function ProjectDetail({
     { key: "analytics", label: "Analytics", icon: TrendingUp },
     { key: "payments", label: "Payments", icon: DollarSign },
     ...(publicView && !publicTasks ? [] : [{ key: "tasks", label: "Tasks", icon: ListTodo }]),
+    ...(embedded && canEditCampaign ? [{ key: "build", label: "Ngai", icon: Sparkles }] : []),
     ...(canEditCampaign ? [{ key: "settings", label: "Settings", icon: Settings }] : []),
   ] as { key: CampaignTab; label: string; count?: number; icon: LucideIcon }[]
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2 md:space-y-4">
       {isAdmin || publicView ? (
-        <div className="flex flex-col gap-4 md:-mb-6 md:flex-row md:gap-8">
+        <div className="flex flex-col gap-2 md:-mb-6 md:flex-row md:gap-8">
           {/* The row reaches into the card's bottom padding (the content keeps it instead), so the sticky menu isn't pushed up at the end of a long page. */}
           {/* Phones: three main tabs, the rest under More. */}
-          <nav className="sticky top-0 z-10 flex items-center gap-6 border-b border-border bg-card md:hidden" aria-label="Campaign sections">
+          <nav className="sticky top-0 z-10 flex items-center gap-4 border-b border-border bg-card md:hidden" aria-label="Campaign sections">
             {sections.slice(0, 3).map((item) => (
               <button
                 key={item.key}
@@ -330,7 +332,7 @@ export function ProjectDetail({
                 onClick={() => setTab(item.key)}
                 aria-current={tab === item.key ? "page" : undefined}
                 data-active={tab === item.key}
-                className="-mb-px flex h-12 shrink-0 items-center gap-1.5 border-b-2 border-transparent text-[15px] text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring data-[active=true]:border-foreground data-[active=true]:text-foreground"
+                className="-mb-px flex h-10 shrink-0 items-center gap-1.5 border-b-2 border-transparent text-[15px] text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring data-[active=true]:border-foreground data-[active=true]:text-foreground"
               >
                 {item.label}
                 {item.count ? <span className="text-xs tabular-nums text-muted-foreground">{item.count}</span> : null}
@@ -341,7 +343,7 @@ export function ProjectDetail({
                 <button
                   type="button"
                   data-active={sections.slice(3).some((item) => item.key === tab)}
-                  className="-mb-px flex h-12 shrink-0 items-center gap-1 border-b-2 border-transparent text-[15px] text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring data-[active=true]:border-foreground data-[active=true]:text-foreground"
+                  className="-mb-px flex h-10 shrink-0 items-center gap-1 border-b-2 border-transparent text-[15px] text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring data-[active=true]:border-foreground data-[active=true]:text-foreground"
                 >
                   {sections.slice(3).find((item) => item.key === tab)?.label ?? "More"}
                   <ChevronDown className="size-4" aria-hidden="true" />
@@ -381,9 +383,7 @@ export function ProjectDetail({
             {tab === "home" ? (
               <>
                 <CampaignHome
-                  people={roster}
                   content={contentItems}
-                  canReview={canReview}
                   canEdit={canEditCampaign}
                   onOpen={setTab}
                   onAction={startQuickAction}
@@ -407,6 +407,8 @@ export function ProjectDetail({
               )
             ) : tab === "about" ? (
               <CampaignBrief project={project} content={contentItems} canEdit={canEditCampaign} canReview={canReview} onPatched={onProjectPatched} />
+            ) : tab === "build" && embedded && canEditCampaign ? (
+              <CompanyNgaiChat surface="agency_dashboard" />
             ) : tab === "people" ? (
               <CampaignPeople
                 people={people}
