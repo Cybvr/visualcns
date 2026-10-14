@@ -98,11 +98,14 @@ function MemberNgai() {
 
 export function NgaiSection() {
   const { company, canManageTeam } = useCompanyPage()
-  const { user, appUser, loading } = useAuth()
+  const { user, appUser, role, loading } = useAuth()
   const [loginOpen, setLoginOpen] = useState(false)
   const belongsToCompany = Boolean(appUser?.companyId) && appUser?.companyId === company.id
-  const isAgencyAdmin = appUser?.role === "admin" || appUser?.role === "superadmin"
-  const canUseNgai = belongsToCompany || canManageTeam
+  // `appUser` can be the client an admin is viewing as, so use the signed-in
+  // role for authority and keep regular admins inside their own agency.
+  const isAgencyAdmin = role === "superadmin"
+    || (role === "admin" && Boolean(appUser?.agencyId) && appUser?.agencyId === company.agencyId)
+  const canUseNgai = belongsToCompany || canManageTeam || isAgencyAdmin
 
   if (canUseNgai) {
     return (

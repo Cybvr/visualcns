@@ -24,11 +24,13 @@ const iconButton = "flex size-8 items-center justify-center rounded-full text-mu
 
 function NgaiPanel({ onClose }: { onClose: () => void }) {
   const { company } = useCompanyPage()
-  const { user, appUser, loading } = useAuth()
+  const { user, appUser, role, loading } = useAuth()
   const { messages, conversations, activeConversationId, sending, firstName, send, reset, selectConversation } = useAgent()
   const [loginOpen, setLoginOpen] = useState(false)
 
-  const isMember = appUser?.role === "client" && Boolean(appUser.companyId) && appUser.companyId === company.id
+  const isAgencyAdmin = role === "superadmin"
+    || (role === "admin" && Boolean(appUser?.agencyId) && appUser?.agencyId === company.agencyId)
+  const isMember = (Boolean(appUser?.companyId) && appUser?.companyId === company.id) || isAgencyAdmin
   const chatted = conversations.filter((conversation) => conversation.messages.length > 0)
 
   return (
@@ -147,7 +149,11 @@ export function NgaiCompanyHeaderButton() {
  */
 export function NgaiWidget() {
   const available = useNgaiAvailable()
+  const { company } = useCompanyPage()
+  const { appUser, role } = useAuth()
   const [open, setOpen] = useState(false)
+  const isAgencyAdmin = role === "superadmin"
+    || (role === "admin" && Boolean(appUser?.agencyId) && appUser?.agencyId === company.agencyId)
 
   useEffect(() => {
     const toggle = () => setOpen((current) => !current)
@@ -158,7 +164,10 @@ export function NgaiWidget() {
   if (!available || !open) return null
 
   return (
-    <AgentProvider surface="client_portal">
+    <AgentProvider
+      surface={isAgencyAdmin ? "agency_dashboard" : "client_portal"}
+      companyContext={{ id: company.id, name: company.name }}
+    >
       <NgaiPanel onClose={() => setOpen(false)} />
     </AgentProvider>
   )

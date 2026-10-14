@@ -1,18 +1,14 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Building2 } from "lucide-react"
 import type { Timestamp } from "firebase/firestore"
 
 import { useAuth } from "@/components/auth-provider"
-import { cn } from "@/lib/utils"
-import { ClientPreview } from "@/components/dashboard/client-preview"
-import { CompactListRow, InitialAvatar, shortListDate } from "@/components/dashboard/compact-list-row"
+import { CompactListRow, CompactListSkeleton, InitialAvatar, MOBILE_LIST_CARD, shortListDate } from "@/components/dashboard/compact-list-row"
 import { CompanyCreateSheet } from "@/components/dashboard/company-create-sheet"
-import { DocumentSplitPane } from "@/components/dashboard/document-split-pane"
-import { FirstRunState } from "@/components/dashboard/empty-state"
-import { useRecordTitle } from "@/components/dashboard/page-title-context"
+import { EmptySearchState, FirstRunState } from "@/components/dashboard/empty-state"
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import {
   AlertDialog,
@@ -27,7 +23,6 @@ import {
 import { Button } from "@/components/ui/button"
 import { TableFilterBar } from "@/components/dashboard/table-filter-bar"
 import { useFilterBar, type SortOption } from "@/components/dashboard/filter-bar"
-import { useUrlSelection } from "@/hooks/use-url-selection"
 import { deleteOrganization, getOrganizations, type Organization } from "@/lib/organizations"
 import { formatTimestamp, tsToMillis } from "@/lib/tasks"
 import { getProjects, type Project } from "@/lib/projects"
@@ -72,7 +67,7 @@ function companyHref(row: CompanyRow): string {
 }
 
 
-/** Clients as a list on the left and the open client on the right, like tasks and notes. */
+/** Clients list. Opening a client uses its full page instead of a split preview. */
 export default function CompaniesPage() {
   const router = useRouter()
   const { viewAsUser } = useAuth()
@@ -84,7 +79,6 @@ export default function CompaniesPage() {
   const [deleting, setDeleting] = useState<string | null>(null)
   const [pendingDelete, setPendingDelete] = useState<CompanyRow | null>(null)
   const [creating, setCreating] = useState(false)
-  const [selectedRef, setSelectedRef] = useUrlSelection("client")
 
   async function fetchCompanies() {
     setError(null)
@@ -184,11 +178,6 @@ export default function CompaniesPage() {
     defaultDirection: "desc",
   })
 
-  // ?client= holds the slug, but an old link may carry the raw workspace id.
-  const selected = selectedRef ? companies.find((row) => companyRefOf(row) === selectedRef || row.id === selectedRef) ?? null : null
-  useRecordTitle(selected?.name ?? null)
-  const closeClient = useCallback(() => setSelectedRef(null, { clear: ["tab", "campaign", "view", "task"] }), [setSelectedRef])
-
   async function handleDelete(row: CompanyRow) {
     if (deleting) return
     setDeleting(row.id)
@@ -197,7 +186,6 @@ export default function CompaniesPage() {
       if (row.hasOrg) await deleteOrganization(row.id)
       if (row.user) await deleteUser(row.user.uid)
       setPendingDelete(null)
-      if (selected?.id === row.id) setSelectedRef(null)
       await fetchCompanies()
     } catch (deleteError) {
       console.error("Error deleting company:", deleteError)
@@ -222,7 +210,7 @@ export default function CompaniesPage() {
   )
 
   return (
-    <main className={cn("mx-auto w-full max-w-6xl px-4 pb-12 pt-4 sm:px-6", selected && "max-sm:pt-0")}>
+    <main className="mx-auto w-full max-w-6xl px-4 pb-12 pt-4 sm:px-6">
       {error && (
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
           <p>{error}</p>
@@ -243,44 +231,44 @@ export default function CompaniesPage() {
           />
         </>
       ) : (
-        <DocumentSplitPane
-          visibleItems={loading ? [] : visibleCompanies}
-          loading={loading}
-          selectedId={selected ? companyRefOf(selected) : null}
-          onClearSelection={() => setSelectedRef(null, { clear: ["tab"] })}
-          sectionLabel="Clients"
-          phoneHeaderInShell
-          filter={clientFilter}
-          emptySearchLabel="No clients match your search."
-          getKey={companyRefOf}
-          content={selected ? <ClientPreview companyRef={companyRefOf(selected)} onBack={closeClient} /> : null}
-          renderItem={(row, active) => (
-            <CompactListRow
-              leading={row.logoUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={row.logoUrl} alt="" referrerPolicy="no-referrer" className="size-8 rounded-full object-cover max-sm:size-12" />
-              ) : (
-                <>
-                  <InitialAvatar text={row.name} className="sm:hidden" />
-                  <span className="flex size-8 items-center justify-center rounded-full bg-muted max-sm:hidden"><Building2 className="size-4 text-muted-foreground" aria-hidden="true" /></span>
-                </>
-              )}
-              title={row.name}
-              meta={shortListDate(Math.max(tsToMillis(row.updatedAt), tsToMillis(row.createdAt)))}
-              subtitle={`${row.label || (row.projectCount ? `${row.projectCount} project${row.projectCount === 1 ? "" : "s"}` : "No projects yet")} · ${formatTimestamp(row.updatedAt ?? row.createdAt)}`}
-              mobileSubtitle={[row.label, row.projectCount ? `${row.projectCount} project${row.projectCount === 1 ? "" : "s"}` : "No projects yet"].filter(Boolean).join(" · ")}
-              active={active}
-              onClick={() => setSelectedRef(companyRefOf(row), { clear: ["tab"] })}
-              menuLabel={`Options for ${row.name}`}
-              menu={<>
-                <DropdownMenuItem onSelect={() => setSelectedRef(companyRefOf(row), { clear: ["tab"] })}>Open client</DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => router.push(companyHref(row))}>Open full page</DropdownMenuItem>
-                {row.user && <DropdownMenuItem onSelect={() => handleViewWorkspace(row)}>View workspace</DropdownMenuItem>}
-                <DropdownMenuItem variant="destructive" onSelect={() => setPendingDelete(row)}>Remove client</DropdownMenuItem>
-              </>}
-            />
+        <div className="min-w-0 lg:max-w-3xl">
+          {clientFilter}
+          {loading ? (
+            <CompactListSkeleton />
+          ) : visibleCompanies.length === 0 ? (
+            <EmptySearchState label="No clients match your search." />
+          ) : (
+            <ul className={`mt-1 ${MOBILE_LIST_CARD}`}>
+              {visibleCompanies.map((row) => (
+                <li key={companyRefOf(row)}>
+                  <CompactListRow
+                    leading={row.logoUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={row.logoUrl} alt="" referrerPolicy="no-referrer" className="size-8 rounded-full object-cover max-sm:size-12" />
+                    ) : (
+                      <>
+                        <InitialAvatar text={row.name} className="sm:hidden" />
+                        <span className="flex size-8 items-center justify-center rounded-full bg-muted max-sm:hidden"><Building2 className="size-4 text-muted-foreground" aria-hidden="true" /></span>
+                      </>
+                    )}
+                    title={row.name}
+                    meta={shortListDate(Math.max(tsToMillis(row.updatedAt), tsToMillis(row.createdAt)))}
+                    subtitle={`${row.label || (row.projectCount ? `${row.projectCount} project${row.projectCount === 1 ? "" : "s"}` : "No projects yet")} · ${formatTimestamp(row.updatedAt ?? row.createdAt)}`}
+                    mobileSubtitle={[row.label, row.projectCount ? `${row.projectCount} project${row.projectCount === 1 ? "" : "s"}` : "No projects yet"].filter(Boolean).join(" · ")}
+                    href={companyHref(row)}
+                    ariaLabel={`Open ${row.name}`}
+                    menuLabel={`Options for ${row.name}`}
+                    menu={<>
+                      <DropdownMenuItem onSelect={() => router.push(companyHref(row))}>Open client</DropdownMenuItem>
+                      {row.user && <DropdownMenuItem onSelect={() => handleViewWorkspace(row)}>View workspace</DropdownMenuItem>}
+                      <DropdownMenuItem variant="destructive" onSelect={() => setPendingDelete(row)}>Remove client</DropdownMenuItem>
+                    </>}
+                  />
+                </li>
+              ))}
+            </ul>
           )}
-        />
+        </div>
       )}
 
       <AlertDialog open={Boolean(pendingDelete)} onOpenChange={(open) => !open && !deleting && setPendingDelete(null)}>
@@ -308,13 +296,13 @@ export default function CompaniesPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Creating stays a sheet; the new client opens in the right pane once it saves. */}
+      {/* Creating stays a sheet; the new client opens on its full page once it saves. */}
       <CompanyCreateSheet
         open={creating}
         onClose={() => setCreating(false)}
         onSaved={(workspaceId) => {
           setCreating(false)
-          void fetchCompanies().then(() => setSelectedRef(workspaceId))
+          router.push(`/dashboard/clients/${encodeURIComponent(workspaceId)}`)
         }}
       />
     </main>
