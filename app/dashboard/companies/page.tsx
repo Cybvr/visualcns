@@ -273,7 +273,6 @@ export default function CompaniesPage() {
                 <DropdownMenuItem onSelect={() => setSelectedRef(companyRefOf(row), { clear: ["tab"] })}>Open client</DropdownMenuItem>
                 <DropdownMenuItem onSelect={() => router.push(companyHref(row))}>Open full page</DropdownMenuItem>
                 {row.user && <DropdownMenuItem onSelect={() => handleViewWorkspace(row)}>View workspace</DropdownMenuItem>}
-                <DropdownMenuItem onSelect={() => router.push(`${companyHref(row)}/edit`)}>Edit client</DropdownMenuItem>
                 <DropdownMenuItem variant="destructive" onSelect={() => setPendingDelete(row)}>Remove client</DropdownMenuItem>
               </>}
             />
