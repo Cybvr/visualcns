@@ -151,13 +151,7 @@ export function CampaignPeople({ people, agencyId, companyId, projectId, canEdit
             icon: <UserRound className="size-4 text-muted-foreground" aria-hidden="true" />,
             title: person.handle,
             subtitle: [suggested ? "Suggested" : person.status, payLabel(person)].join(" · "),
-            preview: (
-              <div className="flex size-full flex-col items-center justify-center gap-1 p-4 text-center">
-                <span className="text-3xl font-semibold tabular-nums tracking-[-0.03em] text-foreground">{compactCount(person.followers)}</span>
-                <span className="text-xs text-muted-foreground">{person.app} followers</span>
-                {person.category && <span className="mt-1 max-w-full truncate text-xs text-muted-foreground">{person.category}</span>}
-              </div>
-            ),
+            preview: <CreatorThumbnail person={person} />,
             onClick: canEdit || profileUrl(person) ? () => openPerson(person) : undefined,
             ariaLabel: canEdit ? `Edit ${person.handle}` : `Open ${person.handle}`,
             menuLabel: `Options for ${person.handle}`,
@@ -484,5 +478,49 @@ function Pick({
         ))}
       </SelectContent>
     </Select>
+  )
+}
+
+// unavatar.io serves a public profile's picture by app and handle.
+const AVATAR_PROVIDERS: Record<string, string> = { X: "x", Instagram: "instagram", TikTok: "tiktok", YouTube: "youtube", Facebook: "facebook" }
+
+function hueFor(text: string) {
+  let hash = 0
+  for (const char of text) hash = (hash * 31 + char.charCodeAt(0)) % 360
+  return hash
+}
+
+/**
+ * The creator's card picture: their profile photo when the app has a public one,
+ * otherwise a made-up tile in a colour picked from their handle, with their initials.
+ */
+function CreatorThumbnail({ person }: { person: CampaignPerson }) {
+  const name = person.handle.replace(/^@+/, "")
+  const provider = AVATAR_PROVIDERS[person.app]
+  const [failed, setFailed] = useState(!provider || !name)
+  const hue = hueFor(name.toLowerCase())
+  const initials = name.replace(/[^a-z0-9]/gi, "").slice(0, 2).toUpperCase() || "?"
+
+  return (
+    <div
+      className="relative flex size-full items-center justify-center"
+      style={{ background: `linear-gradient(135deg, hsl(${hue} 70% 55%), hsl(${(hue + 50) % 360} 70% 38%))` }}
+    >
+      <span className="text-4xl font-semibold tracking-[-0.03em] text-white/95">{initials}</span>
+      {!failed && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={`https://unavatar.io/${provider}/${encodeURIComponent(name)}?fallback=false`}
+          alt=""
+          loading="lazy"
+          referrerPolicy="no-referrer"
+          onError={() => setFailed(true)}
+          className="absolute inset-0 size-full object-cover"
+        />
+      )}
+      <span className="absolute bottom-2 left-2 rounded-full bg-black/45 px-2 py-0.5 text-[11px] font-medium text-white">
+        {person.app}{person.followers ? ` · ${compactCount(person.followers)}` : ""}
+      </span>
+    </div>
   )
 }
