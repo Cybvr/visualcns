@@ -73,7 +73,7 @@ export function DocumentSplitPane<T>({
               </div>
               {headerActions && <div className="flex shrink-0 items-center gap-1">{headerActions}</div>}
             </div>
-            <div className={cn("min-h-0 flex-1 overflow-y-auto py-5", phoneHeaderInShell && "max-sm:pt-0")}>{content}</div>
+            <div className={cn("min-h-0 flex-1 overflow-y-auto py-5", phoneHeaderInShell && "max-sm:-mx-4 max-sm:px-4 max-sm:pt-0")}>{content}</div>
           </div>
         ) : (
           <div className="min-h-[34rem]" aria-hidden="true" />
