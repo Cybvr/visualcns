@@ -255,7 +255,7 @@ function CreatorListRow({
         </div>
         <p className="mt-0.5 truncate text-xs text-muted-foreground">{meta || "Creator"}</p>
         <div className="mt-2 flex flex-wrap gap-1.5">
-          {profileHref && PlatformIcon && <a href={profileHref} target="_blank" rel="noreferrer" className="inline-flex size-7 items-center justify-center rounded-full border border-input text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label={`Open ${person.app} profile`} title={`Open ${person.app} profile`}><PlatformIcon className="size-3.5" /></a>}
+          {profileHref && PlatformIcon && <a href={profileHref} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label={`Open ${person.app} profile`} title={`Open ${person.app} profile`}><PlatformIcon className="size-4" /></a>}
         </div>
       </div>
       <div className="flex shrink-0 flex-col items-end gap-1.5">
