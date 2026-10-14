@@ -96,12 +96,21 @@ function PlanPanel() {
   return <CompanyPlan companyId={company.id} billing={billing} className="mt-5" />
 }
 
-function PulseSection() {
-  const { company, admin, canManageTeam, mode } = useCompanyPage()
+/** About, called Settings on the dashboard, where the plan sits too. On the public page the plan lives behind Upgrade in the sidebar. */
+function SettingsSection() {
+  const { canManageTeam, mode } = useCompanyPage()
   return (
     <>
-      {/* On the public page the plan lives behind Upgrade in the sidebar. */}
       {canManageTeam && mode !== "routes" && <PlanPanel />}
+      <AboutSection />
+    </>
+  )
+}
+
+function PulseSection() {
+  const { company, admin } = useCompanyPage()
+  return (
+    <>
       <Pulse
         companyId={company.id}
         details={{
@@ -125,7 +134,7 @@ const SECTION_COMPONENTS: Record<CompanySectionKey, ComponentType> = {
   analytics: AnalyticsSection,
   tasks: ProjectsSection,
   notes: NotesSection,
-  about: AboutSection,
+  about: SettingsSection,
   team: TeamSection,
   activity: HomeActivitySection,
   pulse: PulseSection,

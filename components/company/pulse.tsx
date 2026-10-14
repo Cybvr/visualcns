@@ -33,6 +33,8 @@ import type { LucideIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { SectionAddButton } from "@/components/company/section-add-button"
+import { CompanyEmptyState } from "@/components/company/empty-state"
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
 import { useCompanyPage } from "@/components/company/company-page-context"
 import { GridCard, GridCardList } from "@/components/dashboard/grid-card"
 import { ListSkeleton, ListToolbar, useListSearch, useListView } from "@/components/dashboard/list-search"
@@ -902,6 +904,7 @@ export function Pulse({
   const [scanning, setScanning] = useState(false)
   const [step, setStep] = useState(0)
   const [revision, setRevision] = useState(0)
+  const [introOpen, setIntroOpen] = useState(false)
   const [view, setView] = useListView("company-reports")
   const progress = useRef<ReturnType<typeof setInterval> | null>(null)
   const { query, setQuery, results } = useListSearch(reports ?? [], (item) => [reportDate(item.scannedAt), item.summary, `score ${item.score}`])
@@ -950,6 +953,7 @@ export function Pulse({
     } finally {
       if (progress.current) clearInterval(progress.current)
       setScanning(false)
+      setIntroOpen(false)
     }
   }
 
@@ -972,23 +976,6 @@ export function Pulse({
 
   if (reports === null) return <ListSkeleton view={view} count={3} label="Loading reports" />
 
-  // Before the first scan, the page explains Reports and confirms the details the scan will use.
-  if (reports.length === 0) {
-    return (
-      <section className="mt-5">
-        <ListToolbar
-          query={query}
-          onQueryChange={setQuery}
-          placeholder="Search reports"
-          view={view}
-          onViewChange={setView}
-        />
-        {error && <ErrorNote message={error} />}
-        <PulseIntro details={details} onSave={onSave} onAnalyse={() => void scan()} scanning={scanning} step={step} />
-      </section>
-    )
-  }
-
   return (
     <section className="mt-5">
       <h2 className="sr-only">Reports</h2>
@@ -998,7 +985,7 @@ export function Pulse({
         placeholder="Search reports"
         view={view}
         onViewChange={setView}
-        actions={<SectionAddButton label="New scan" onClick={() => void scan()} disabled={scanning} />}
+        actions={<SectionAddButton label="New scan" onClick={() => setIntroOpen(true)} disabled={scanning} />}
       />
       {error && <ErrorNote message={error} />}
       {scanning && (
@@ -1008,7 +995,14 @@ export function Pulse({
         </p>
       )}
 
-      {results.length === 0 ? (
+      {reports.length === 0 ? (
+        <CompanyEmptyState
+          icon={ChartColumn}
+          title="No reports yet"
+          description="Scan the business's website and the web to see what needs attention."
+          action={<SectionAddButton label="New scan" onClick={() => setIntroOpen(true)} disabled={scanning} />}
+        />
+      ) : results.length === 0 ? (
         <p className="px-3 py-8 text-center text-sm text-muted-foreground">Nothing matches your search.</p>
       ) : view === "card" ? (
         <div className="mt-4">
@@ -1050,6 +1044,13 @@ export function Pulse({
           ))}
         </div>
       )}
+      <Dialog open={introOpen} onOpenChange={(open) => { if (!scanning) setIntroOpen(open) }}>
+        <DialogContent className="max-h-[90svh] max-w-lg overflow-y-auto p-0">
+          <DialogTitle className="sr-only">New scan</DialogTitle>
+          <DialogDescription className="sr-only">Check the business details, then analyse.</DialogDescription>
+          <PulseIntro details={details} onSave={onSave} onAnalyse={() => void scan()} scanning={scanning} step={step} />
+        </DialogContent>
+      </Dialog>
     </section>
   )
 }
