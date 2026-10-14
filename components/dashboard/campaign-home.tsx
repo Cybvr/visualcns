@@ -1,10 +1,11 @@
 "use client"
 
+import { useState } from "react"
 import { Image as ImageIcon, Images, Megaphone, Palette, PenLine, UserPlus } from "lucide-react"
 
+import { CampaignPostViewDialog } from "@/components/dashboard/campaign-creatives"
 import { Button } from "@/components/ui/button"
-import { StatusPill } from "@/components/dashboard/campaign-creatives"
-import { creativeStatus, type CampaignCreative } from "@/lib/campaign-creatives"
+import type { CampaignCreative } from "@/lib/campaign-creatives"
 import { GridCard, GridCardList } from "@/components/dashboard/grid-card"
 
 export type CampaignTab = "home" | "build" | "analytics" | "about" | "people" | "creatives" | "media" | "payments" | "tasks" | "settings"
@@ -23,6 +24,7 @@ export function CampaignHome({
   onAction: (action: CampaignQuickAction) => void
 }) {
   const posts = content.filter((item) => item.type === "text")
+  const [viewingPost, setViewingPost] = useState<CampaignCreative | null>(null)
   const bannerImage = posts.find((post) => post.mediaUrl && post.mediaType !== "video")?.mediaUrl
 
   const postDate = (post: CampaignCreative) => {
@@ -32,6 +34,14 @@ export function CampaignHome({
 
   return (
     <div className="space-y-5">
+      <CampaignPostViewDialog
+        post={viewingPost}
+        open={Boolean(viewingPost)}
+        onClose={() => setViewingPost(null)}
+        canEdit={canEdit}
+        posts={posts}
+        onNavigate={setViewingPost}
+      />
       <div aria-label="Campaign overview" className="relative h-20 overflow-hidden rounded-xl bg-muted sm:h-24">
         {bannerImage && (
           // eslint-disable-next-line @next/next/no-img-element
@@ -53,10 +63,10 @@ export function CampaignHome({
               key={action}
               type="button"
               onClick={() => onAction(action)}
-              className="group flex min-h-16 items-center gap-3 rounded-2xl border border-border bg-card p-4 text-left outline-none transition-colors hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring"
+              className="group flex min-h-14 items-center gap-2.5 rounded-sm bg-primary/5 p-3 text-left outline-none transition-colors hover:bg-primary/10 focus-visible:ring-2 focus-visible:ring-ring"
             >
-              <Icon className="size-5 text-muted-foreground transition-colors group-hover:text-foreground" aria-hidden="true" />
-              <span className="block text-sm font-semibold text-foreground">{label}</span>
+              <Icon className="size-5 text-primary transition-colors" aria-hidden="true" />
+              <span className="block text-sm font-semibold text-primary">{label}</span>
             </button>
           ))}
         </section>
@@ -74,7 +84,7 @@ export function CampaignHome({
                 key={post.id}
                 icon={<Palette className="size-4 text-muted-foreground" aria-hidden="true" />}
                 title={post.title || "Post"}
-                subtitle={<span className="flex items-center gap-2"><StatusPill status={creativeStatus(post)} />{postDate(post) && <span>{postDate(post)}</span>}</span>}
+                subtitle={postDate(post)}
                 preview={post.mediaUrl ? (
                   post.mediaType === "video"
                     ? <video src={post.mediaUrl} muted playsInline preload="metadata" className="size-full object-cover" />
@@ -82,7 +92,7 @@ export function CampaignHome({
                     : <img src={post.mediaUrl} alt="" loading="lazy" className="size-full object-cover" />
                 ) : undefined}
                 placeholder={<div className="flex size-full items-center justify-center bg-muted/30" aria-label="No thumbnail available"><ImageIcon className="size-10 text-muted-foreground/45" aria-hidden="true" /></div>}
-                onClick={() => onOpen("creatives")}
+                onClick={() => setViewingPost(post)}
                 ariaLabel={`Open content: ${post.title || "Post"}`}
               />
             ))}

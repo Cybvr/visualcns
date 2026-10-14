@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState, type FormEvent } from "react"
-import { ChevronLeft, ChevronRight, ExternalLink, Folder, FolderInput, Image as ImageIcon, Images, ImagePlus, Link2, Palette, Pencil, Video, X } from "lucide-react"
+import { Bookmark, ChevronLeft, ChevronRight, CircleUserRound, ExternalLink, Folder, FolderInput, Heart, Image as ImageIcon, Images, ImagePlus, Link2, MessageCircle, MoreHorizontal, Palette, Pencil, Repeat2, Send, Video, VolumeX, X } from "lucide-react"
 import { toast } from "sonner"
 
 import {
@@ -164,23 +164,15 @@ export function CampaignCreatives({ creatives, agencyId, companyId, projectId, c
           row={(post) => ({ subtitle: post.body?.trim() || post.title, description: creativeStatus(post), trailing: postDate(post) })}
         />
 
-        <Dialog open={Boolean(selected)} onOpenChange={(next) => { if (!next) setSelectedId(null) }}>
-          <DialogContent className="max-h-[90svh] max-w-lg overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <span className="min-w-0 truncate">{selected?.title || "Post"}</span>
-                {selected && <StatusPill status={creativeStatus(selected)} />}
-              </DialogTitle>
-              <DialogDescription className="sr-only">The post&apos;s picture and caption.</DialogDescription>
-            </DialogHeader>
-            {selected && <PostPreview post={selected} />}
-            {selected && (canEdit || canReview) && (
-              <DialogFooter>
-                <Button type="button" variant="ghost" onClick={() => { setEditing(selected); setSelectedId(null) }}>{canEdit ? "Edit" : "Edit text"}</Button>
-              </DialogFooter>
-            )}
-          </DialogContent>
-        </Dialog>
+        <CampaignPostViewDialog
+          post={selected}
+          open={Boolean(selected)}
+          onClose={() => setSelectedId(null)}
+          canEdit={canEdit}
+          canReview={canReview}
+          posts={posts}
+          onNavigate={(post) => setSelectedId(post.id)}
+        />
 
         <PostDialog
           post={editing === "new" ? null : editing}
@@ -240,22 +232,196 @@ function postDate(post: CampaignCreative) {
   return ms ? new Date(ms).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : ""
 }
 
-/** The chosen post in full: its picture, status and caption. */
-function PostPreview({ post }: { post: CampaignCreative }) {
+/** Shared read-only view for posts opened from Content or campaign Home. */
+export function CampaignPostViewDialog({
+  post,
+  open,
+  onClose,
+  canEdit = false,
+  canReview = false,
+  posts = [],
+  onNavigate,
+}: {
+  post: CampaignCreative | null
+  open: boolean
+  onClose: () => void
+  canEdit?: boolean
+  canReview?: boolean
+  posts?: CampaignCreative[]
+  onNavigate?: (post: CampaignCreative) => void
+}) {
+  const currentIndex = post ? posts.findIndex((item) => item.id === post.id) : -1
+  const previous = currentIndex > 0 ? posts[currentIndex - 1] : null
+  const next = currentIndex >= 0 && currentIndex < posts.length - 1 ? posts[currentIndex + 1] : null
+
+  useEffect(() => {
+    if (!open || !post) return
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault()
+        onClose()
+        return
+      }
+      if (!onNavigate || posts.length < 2) return
+      const target = event.target as HTMLElement | null
+      if (target?.matches("input, textarea, select, [contenteditable=\"true\"]") || target?.tagName === "VIDEO") return
+      if (event.key === "ArrowLeft" && previous) {
+        event.preventDefault()
+        onNavigate(previous)
+      } else if (event.key === "ArrowRight" && next) {
+        event.preventDefault()
+        onNavigate(next)
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown)
+    return () => window.removeEventListener("keydown", handleKeyDown)
+  }, [next, onClose, onNavigate, open, post, posts.length, previous])
+
+  useEffect(() => {
+    if (!open || !post) return
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = "hidden"
+    return () => { document.body.style.overflow = previousOverflow }
+  }, [open, post])
+
+  const [editing, setEditing] = useState(false)
+  useEffect(() => setEditing(false), [open, post?.id])
+
+  if (!open || !post) return null
+
   return (
-    <article className="min-w-0">
-      {post.mediaUrl && (
-        <div className="mb-4 overflow-hidden rounded-xl bg-muted">
-          {post.mediaType === "video" ? (
-            <video key={post.mediaUrl} src={post.mediaUrl} controls playsInline className="max-h-[32rem] w-full object-contain" />
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/55 p-3 sm:p-6"
+      role="presentation"
+      onMouseDown={(event) => { if (event.target === event.currentTarget) onClose() }}
+    >
+      <button type="button" aria-label="Close post preview" onClick={onClose} className="fixed right-4 top-4 z-[102] grid size-10 place-items-center rounded-full text-white outline-none transition-colors hover:bg-white/15 focus-visible:ring-2 focus-visible:ring-white/80">
+        <X className="size-7" aria-hidden="true" />
+      </button>
+      {onNavigate && posts.length > 1 && (
+        <>
+          <button type="button" aria-label="Previous post" disabled={!previous} onClick={() => previous && onNavigate(previous)} className="fixed left-3 top-1/2 z-[102] grid size-10 -translate-y-1/2 place-items-center rounded-full bg-background text-foreground shadow-lg outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-35 sm:left-6">
+            <ChevronLeft className="size-5" aria-hidden="true" />
+          </button>
+          <button type="button" aria-label="Next post" disabled={!next} onClick={() => next && onNavigate(next)} className="fixed right-3 top-1/2 z-[102] grid size-10 -translate-y-1/2 place-items-center rounded-full bg-background text-foreground shadow-lg outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-35 sm:right-6">
+            <ChevronRight className="size-5" aria-hidden="true" />
+          </button>
+        </>
+      )}
+      <section
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={`post-view-title-${post.id}`}
+        className="relative grid max-h-[90svh] w-full max-w-5xl overflow-hidden rounded-2xl bg-background shadow-2xl md:grid-cols-[minmax(0,1.15fr)_minmax(18rem,0.85fr)]"
+      >
+        <div className="relative flex max-h-[45svh] min-h-64 items-center justify-center bg-black md:max-h-none md:min-h-0">
+            {post.mediaUrl ? (
+              post.mediaType === "video" ? (
+                <video key={post.mediaUrl} src={post.mediaUrl} controls playsInline className="max-h-[45svh] max-w-full object-contain md:max-h-[90svh]" />
+              ) : (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={post.mediaUrl} alt="" className="max-h-[45svh] max-w-full object-contain md:max-h-[90svh]" />
+              )
+            ) : (
+              <div className="flex min-h-64 items-center justify-center" aria-label="No media attached">
+                <ImageIcon className="size-8 text-muted-foreground/50" aria-hidden="true" />
+              </div>
+            )}
+        </div>
+        <div className="flex min-h-0 flex-col bg-background">
+          <header className="relative flex items-center gap-3 border-b border-border px-5 py-4 pr-14">
+            <span className="grid size-9 shrink-0 place-items-center rounded-full bg-muted"><CircleUserRound className="size-5 text-muted-foreground" aria-hidden="true" /></span>
+            <div className="min-w-0 flex-1">
+              <h2 id={`post-view-title-${post.id}`} className="flex min-w-0 items-center gap-2 text-sm font-semibold">
+                <span className="min-w-0 truncate">{post.title || "Post"}</span>
+                <StatusPill status={creativeStatus(post)} />
+              </h2>
+              <p className="text-xs text-muted-foreground">Original post · {postDate(post) || "Campaign"}</p>
+            </div>
+            <MoreHorizontal className="size-5 text-muted-foreground" aria-hidden="true" />
+          </header>
+          {editing ? (
+            <InlinePostEditor post={post} canEdit={canEdit} canReview={canReview} onCancel={() => setEditing(false)} onSaved={() => setEditing(false)} />
           ) : (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={post.mediaUrl} alt="" className="max-h-[32rem] w-full object-contain" />
+            <>
+              <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5">
+                <div className="flex gap-3 text-sm leading-6 text-foreground">
+                  <CircleUserRound className="mt-1 size-5 shrink-0 text-muted-foreground" aria-hidden="true" />
+                  <p><span className="font-semibold">{post.postedBy === "Roster" ? "Creators" : "Post"}</span>{" "}{post.body?.trim() || <span className="text-muted-foreground">No caption yet.</span>}</p>
+                </div>
+              </div>
+              <footer className="border-t border-border px-5 py-4">
+                <div className="mb-3 flex items-center justify-between text-foreground">
+                  <div className="flex items-center gap-4">
+                    <Heart className="size-6" aria-hidden="true" />
+                    <MessageCircle className="size-6" aria-hidden="true" />
+                    <Repeat2 className="size-6" aria-hidden="true" />
+                    <Send className="size-6" aria-hidden="true" />
+                  </div>
+                  <Bookmark className="size-6" aria-hidden="true" />
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                <div />
+                {(canEdit || canReview) && <Button type="button" size="sm" onClick={() => setEditing(true)}>Edit post</Button>}
+                </div>
+              </footer>
+            </>
           )}
         </div>
+      </section>
+    </div>
+  )
+}
+
+function InlinePostEditor({ post, canEdit, canReview, onCancel, onSaved }: { post: CampaignCreative; canEdit: boolean; canReview: boolean; onCancel: () => void; onSaved: () => void }) {
+  const [title, setTitle] = useState(post.title)
+  const [postedBy, setPostedBy] = useState(post.postedBy || "Founder")
+  const [body, setBody] = useState(post.body ?? "")
+  const [status, setStatus] = useState(creativeStatus(post))
+  const [saving, setSaving] = useState(false)
+
+  async function save(event: FormEvent) {
+    event.preventDefault()
+    if (saving) return
+    setSaving(true)
+    try {
+      await updateCampaignCreative(post.id, canEdit ? { title: title.trim() || post.title, postedBy, body, status } : { body })
+      toast.success("Saved")
+      onSaved()
+    } catch (error) {
+      console.error("Error saving post:", error)
+      toast.error("That didn't save.")
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <form onSubmit={save} className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-5">
+      {canEdit && (
+        <div className="grid grid-cols-[minmax(0,1fr)_8rem] gap-2">
+          <Input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Title" aria-label="Title" />
+          <Select value={postedBy} onValueChange={setPostedBy}>
+            <SelectTrigger aria-label="Assigned to"><SelectValue /></SelectTrigger>
+            <SelectContent>{POSTED_BY.map((item) => <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>)}</SelectContent>
+          </Select>
+        </div>
       )}
-      <p className="whitespace-pre-wrap text-sm leading-6 text-foreground">{post.body?.trim() || <span className="text-muted-foreground">No caption yet.</span>}</p>
-    </article>
+      <Textarea value={body} onChange={(event) => setBody(event.target.value)} rows={10} maxLength={CAPTION_MAX} placeholder="Caption" aria-label="Caption" className="min-h-48 flex-1 resize-none text-sm leading-6" />
+      {canEdit && (
+        <div role="radiogroup" aria-label="Status" className="grid grid-cols-4 gap-1 rounded-lg bg-muted p-1">
+          {CREATIVE_STATUSES.map((item) => (
+            <button key={item} type="button" role="radio" aria-checked={status === item} onClick={() => setStatus(item)} className="h-8 truncate rounded-md px-1 text-xs text-muted-foreground outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring aria-checked:bg-background aria-checked:font-medium aria-checked:text-foreground aria-checked:shadow-sm">
+              {STATUS_SHORT[item]}
+            </button>
+          ))}
+        </div>
+      )}
+      <div className="mt-auto flex justify-end gap-2 border-t border-border pt-4">
+        <Button type="button" variant="ghost" onClick={onCancel}>Cancel</Button>
+        <Button type="submit" disabled={saving}>{saving ? "Saving…" : "Save"}</Button>
+      </div>
+    </form>
   )
 }
 
