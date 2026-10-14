@@ -33,12 +33,9 @@ import type { LucideIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { SectionAddButton } from "@/components/company/section-add-button"
-import { CompanyEmptyState } from "@/components/company/empty-state"
+import { CollectionView } from "@/components/dashboard/collection-view"
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
 import { useCompanyPage } from "@/components/company/company-page-context"
-import { GridCard, GridCardList } from "@/components/dashboard/grid-card"
-import { ListSkeleton, ListToolbar, useListSearch, useListView } from "@/components/dashboard/list-search"
-import { MobileDataCard } from "@/components/dashboard/mobile-data-card"
 import { useUrlSelection } from "@/hooks/use-url-selection"
 import { cn } from "@/lib/utils"
 import { ANALYSE_AREAS, PulseIntro, type BusinessDetails } from "@/components/company/pulse-intro"
@@ -905,9 +902,7 @@ export function Pulse({
   const [step, setStep] = useState(0)
   const [revision, setRevision] = useState(0)
   const [introOpen, setIntroOpen] = useState(false)
-  const [view, setView] = useListView("company-reports")
   const progress = useRef<ReturnType<typeof setInterval> | null>(null)
-  const { query, setQuery, results } = useListSearch(reports ?? [], (item) => [reportDate(item.scannedAt), item.summary, `score ${item.score}`])
 
   useEffect(() => {
     setRecordOpen(Boolean(openId))
@@ -974,76 +969,47 @@ export function Pulse({
     )
   }
 
-  if (reports === null) return <ListSkeleton view={view} count={3} label="Loading reports" />
-
   return (
-    <section className="mt-5">
+    <>
       <h2 className="sr-only">Reports</h2>
-      <ListToolbar
-        query={query}
-        onQueryChange={setQuery}
-        placeholder="Search reports"
-        view={view}
-        onViewChange={setView}
+      <CollectionView
+        items={reports ?? []}
+        loading={reports === null}
+        getKey={(item) => item.id}
+        searchFields={(item) => [reportDate(item.scannedAt), item.summary, `score ${item.score}`]}
+        searchPlaceholder="Search reports"
+        viewKey="company-reports"
         actions={<SectionAddButton label="New scan" onClick={() => setIntroOpen(true)} disabled={scanning} />}
+        before={<>
+          {error && <ErrorNote message={error} />}
+          {scanning && (
+            <p className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="size-4 shrink-0 animate-spin" aria-hidden="true" />
+              Scanning your website and the web. This takes a minute or two; the new report opens when it&apos;s done.
+            </p>
+          )}
+        </>}
+        empty={{
+          icon: ChartColumn,
+          title: "No reports yet",
+          description: "Scan the business's website and the web to see what needs attention.",
+          action: <SectionAddButton label="New scan" onClick={() => setIntroOpen(true)} disabled={scanning} />,
+        }}
+        card={(item) => ({
+          icon: <ChartColumn className="size-4 text-muted-foreground" aria-hidden="true" />,
+          title: reportDate(item.scannedAt),
+          subtitle: `${item.attention} need attention · ${item.opportunities} opportunities`,
+          preview: (
+            <div className="flex flex-col items-center justify-center">
+              <span className="text-4xl font-semibold tabular-nums tracking-[-0.03em] text-foreground">{item.score}</span>
+              <span className="text-xs text-muted-foreground">out of 100</span>
+            </div>
+          ),
+          onClick: () => select(item.id),
+          ariaLabel: `Open report from ${reportDate(item.scannedAt)}`,
+        })}
+        row={(item) => ({ subtitle: `Score ${item.score}`, description: `${item.attention} need attention · ${item.opportunities} opportunities`, trailing: timeAgo(item.scannedAt) })}
       />
-      {error && <ErrorNote message={error} />}
-      {scanning && (
-        <p className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
-          <Loader2 className="size-4 shrink-0 animate-spin" aria-hidden="true" />
-          Scanning your website and the web. This takes a minute or two; the new report opens when it&apos;s done.
-        </p>
-      )}
-
-      {reports.length === 0 ? (
-        <CompanyEmptyState
-          icon={ChartColumn}
-          title="No reports yet"
-          description="Scan the business's website and the web to see what needs attention."
-          action={<SectionAddButton label="New scan" onClick={() => setIntroOpen(true)} disabled={scanning} />}
-        />
-      ) : results.length === 0 ? (
-        <p className="px-3 py-8 text-center text-sm text-muted-foreground">Nothing matches your search.</p>
-      ) : view === "card" ? (
-        <div className="mt-4">
-          <GridCardList>
-            {results.map((item) => (
-              <GridCard
-                key={item.id}
-                icon={<ChartColumn className="size-4 text-muted-foreground" aria-hidden="true" />}
-                title={reportDate(item.scannedAt)}
-                subtitle={`${item.attention} need attention · ${item.opportunities} opportunities`}
-                preview={
-                  <div className="flex flex-col items-center justify-center">
-                    <span className="text-4xl font-semibold tabular-nums tracking-[-0.03em] text-foreground">{item.score}</span>
-                    <span className="text-xs text-muted-foreground">out of 100</span>
-                  </div>
-                }
-                onClick={() => select(item.id)}
-                ariaLabel={`Open report from ${reportDate(item.scannedAt)}`}
-              />
-            ))}
-          </GridCardList>
-        </div>
-      ) : (
-        <div className="mt-4">
-          {results.map((item) => (
-            <MobileDataCard
-              key={item.id}
-              surface="list"
-              variant="inline"
-              iconShape="circle"
-              icon={<ChartColumn className="size-5 text-muted-foreground" aria-hidden="true" />}
-              title={reportDate(item.scannedAt)}
-              subtitle={`Score ${item.score}`}
-              description={`${item.attention} need attention · ${item.opportunities} opportunities`}
-              trailing={timeAgo(item.scannedAt)}
-              onClick={() => select(item.id)}
-              ariaLabel={`Open report from ${reportDate(item.scannedAt)}`}
-            />
-          ))}
-        </div>
-      )}
       <Dialog open={introOpen} onOpenChange={(open) => { if (!scanning) setIntroOpen(open) }}>
         <DialogContent className="max-h-[90svh] max-w-lg overflow-y-auto p-0">
           <DialogTitle className="sr-only">New scan</DialogTitle>
@@ -1051,6 +1017,6 @@ export function Pulse({
           <PulseIntro details={details} onSave={onSave} onAnalyse={() => void scan()} scanning={scanning} step={step} />
         </DialogContent>
       </Dialog>
-    </section>
+    </>
   )
 }

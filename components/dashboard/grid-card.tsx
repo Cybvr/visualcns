@@ -5,7 +5,7 @@ import type { ReactNode } from "react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
 
-type GridCardProps = {
+export type GridCardProps = {
   title: ReactNode
   /** A short line under the preview, such as a date. */
   subtitle?: ReactNode

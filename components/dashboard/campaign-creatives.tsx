@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState, type FormEvent } from "react"
-import { ChevronLeft, ChevronRight, ExternalLink, Folder, FolderInput, Image as ImageIcon, Images, ImagePlus, Link2, MoreVertical, Palette, Pencil, Video, X } from "lucide-react"
+import { ChevronLeft, ChevronRight, ExternalLink, Folder, FolderInput, Image as ImageIcon, Images, ImagePlus, Link2, Palette, Pencil, Video, X } from "lucide-react"
 import { toast } from "sonner"
 
 import {
@@ -18,8 +18,7 @@ import { Button } from "@/components/ui/button"
 import { SectionAddButton } from "@/components/company/section-add-button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { GridCard, GridCardList } from "@/components/dashboard/grid-card"
-import { ListToolbar, useListSearch } from "@/components/dashboard/list-search"
+import { CollectionView } from "@/components/dashboard/collection-view"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
@@ -78,9 +77,7 @@ export function CampaignCreatives({ creatives, agencyId, companyId, projectId, c
   const [editing, setEditing] = useState<CampaignCreative | "new" | null>(null)
   const [deleting, setDeleting] = useState<CampaignCreative | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
-  const selected = posts.find((post) => post.id === selectedId) ?? posts[0] ?? null
-  // On a phone the list and the preview are separate screens; a post is open once it has been tapped.
-  const opened = selected !== null && selected.id === selectedId
+  const selected = posts.find((post) => post.id === selectedId) ?? null
 
   // The copy starts as a draft so it goes through review again.
   async function duplicatePost(post: CampaignCreative) {
@@ -101,48 +98,77 @@ export function CampaignCreatives({ creatives, agencyId, companyId, projectId, c
     }
   }
 
+  function postMenu(post: CampaignCreative) {
+    if (!canEdit && !canReview) return undefined
+    const status = creativeStatus(post)
+    const setStatus = (next: string) => void saveCreative(post.id, { status: next })
+    return (
+      <>
+        <DropdownMenuItem onSelect={() => setEditing(post)}>{canEdit ? "Edit" : "Edit text"}</DropdownMenuItem>
+        {canReview && status !== "Approved" && <DropdownMenuItem onSelect={() => setStatus("Approved")}>Approve</DropdownMenuItem>}
+        {canReview && status !== "Approved" && <DropdownMenuItem onSelect={() => setStatus("Changes requested")}>Request changes</DropdownMenuItem>}
+        {canReview && status === "Approved" && <DropdownMenuItem onSelect={() => setStatus(READY_FOR_REVIEW)}>Undo approval</DropdownMenuItem>}
+        {canEdit && <DropdownMenuItem onSelect={() => void duplicatePost(post)}>Duplicate</DropdownMenuItem>}
+        {canEdit && <DropdownMenuItem variant="destructive" onSelect={() => setDeleting(post)}>Delete</DropdownMenuItem>}
+      </>
+    )
+  }
+
   if (kind === "content") {
     return (
       <section>
-        <div className="flex items-center justify-between gap-3">
-          <h3 className="text-lg font-semibold tracking-[-0.01em] text-foreground">Content text</h3>
-          {(canEdit || canReview) && (
-            <SectionAddButton label={canEdit ? "New post" : "Suggest a post"} onClick={() => setEditing("new")} />
-          )}
-        </div>
-        <div className="mt-4">
-          {posts.length === 0 ? (
-            <p className="py-6 text-sm text-muted-foreground">No posts yet.</p>
-          ) : (
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,20rem)_minmax(0,1fr)]">
-              <ul className={cn("flex min-w-0 flex-col gap-1 lg:sticky lg:top-[calc(var(--shell-header-h,0px)+1rem)] lg:max-h-[calc(100svh-var(--shell-header-h,0px)-2rem)] lg:self-start lg:overflow-y-auto", opened && "max-lg:hidden")}>
-                {posts.map((post) => (
-                  <li key={post.id}>
-                    <PostRow
-                      post={post}
-                      selected={post.id === selected?.id}
-                      onSelect={() => setSelectedId(post.id)}
-                      canEdit={canEdit}
-                      canReview={canReview}
-                      onEdit={() => setEditing(post)}
-                      onDelete={() => setDeleting(post)}
-                      onDuplicate={() => void duplicatePost(post)}
-                    />
-                  </li>
-                ))}
-              </ul>
-              {selected && (
-                <div className={cn("min-w-0", !opened && "max-lg:hidden")}>
-                  <button type="button" onClick={() => setSelectedId(null)} className="mb-3 flex items-center gap-1 rounded-md py-1.5 pr-2 text-sm text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring lg:hidden">
-                    <ChevronLeft className="size-4" aria-hidden="true" />
-                    All posts
-                  </button>
-                  <PostPreview post={selected} />
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+        <h3 className="sr-only">Content</h3>
+        <CollectionView
+          className=""
+          items={posts}
+          getKey={(post) => post.id}
+          searchFields={(post) => [post.title, post.body, creativeStatus(post)]}
+          searchPlaceholder="Search content"
+          viewKey="campaign-content"
+          actions={canEdit || canReview ? <SectionAddButton label={canEdit ? "New post" : "Suggest a post"} onClick={() => setEditing("new")} /> : undefined}
+          empty={{
+            icon: Palette,
+            title: "No posts yet",
+            description: "Write the posts and hooks for this campaign here.",
+            action: canEdit || canReview ? <SectionAddButton label={canEdit ? "New post" : "Suggest a post"} onClick={() => setEditing("new")} /> : undefined,
+          }}
+          card={(post) => ({
+            icon: <Palette className="size-4 text-muted-foreground" aria-hidden="true" />,
+            title: post.title || "Post",
+            subtitle: [creativeStatus(post), postDate(post)].filter(Boolean).join(" · "),
+            preview: post.mediaUrl ? (
+              post.mediaType === "video"
+                ? <video src={post.mediaUrl} muted playsInline preload="metadata" className="size-full object-cover" />
+                // eslint-disable-next-line @next/next/no-img-element
+                : <img src={post.mediaUrl} alt="" loading="lazy" className="size-full object-cover" />
+            ) : (
+              <p className="line-clamp-6 size-full p-4 text-left text-sm leading-6 text-muted-foreground">{post.body?.trim() || "No caption yet."}</p>
+            ),
+            onClick: () => setSelectedId(post.id),
+            ariaLabel: `Preview ${post.title}`,
+            menuLabel: `Options for ${post.title}`,
+            menu: postMenu(post),
+          })}
+          row={(post) => ({ subtitle: post.body?.trim() || post.title, description: creativeStatus(post), trailing: postDate(post) })}
+        />
+
+        <Dialog open={Boolean(selected)} onOpenChange={(next) => { if (!next) setSelectedId(null) }}>
+          <DialogContent className="max-h-[90svh] max-w-lg overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <span className="min-w-0 truncate">{selected?.title || "Post"}</span>
+                {selected && <StatusPill status={creativeStatus(selected)} />}
+              </DialogTitle>
+              <DialogDescription className="sr-only">The post&apos;s picture and caption.</DialogDescription>
+            </DialogHeader>
+            {selected && <PostPreview post={selected} />}
+            {selected && (canEdit || canReview) && (
+              <DialogFooter>
+                <Button type="button" variant="ghost" onClick={() => { setEditing(selected); setSelectedId(null) }}>{canEdit ? "Edit" : "Edit text"}</Button>
+              </DialogFooter>
+            )}
+          </DialogContent>
+        </Dialog>
 
         <PostDialog
           post={editing === "new" ? null : editing}
@@ -202,73 +228,10 @@ function postDate(post: CampaignCreative) {
   return ms ? new Date(ms).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : ""
 }
 
-/** One post in the list: its picture on the left, then the first line of its caption and its date, with every action in the menu. */
-function PostRow({
-  post,
-  selected,
-  onSelect,
-  canEdit,
-  canReview,
-  onEdit,
-  onDelete,
-  onDuplicate,
-}: {
-  post: CampaignCreative
-  selected: boolean
-  onSelect: () => void
-  canEdit: boolean
-  canReview: boolean
-  onEdit: () => void
-  onDelete: () => void
-  onDuplicate: () => void
-}) {
-  const status = creativeStatus(post)
-  const setStatus = (next: string) => void saveCreative(post.id, { status: next })
-
-  return (
-    <div className={cn("relative flex items-center gap-3 rounded-xl p-2 transition-colors", selected ? "bg-muted" : "hover:bg-muted/60")}>
-      <button type="button" onClick={onSelect} aria-current={selected ? "true" : undefined} aria-label={`Preview ${post.title}`} className="absolute inset-0 rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ring" />
-      <div className="pointer-events-none relative grid size-14 shrink-0 place-items-center overflow-hidden rounded-lg bg-muted">
-        {post.mediaUrl ? (
-          post.mediaType === "video" ? (
-            <video src={post.mediaUrl} muted playsInline preload="metadata" className="size-full object-cover" />
-          ) : (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={post.mediaUrl} alt="" loading="lazy" className="size-full object-cover" />
-          )
-        ) : (
-          <Palette className="size-5 text-muted-foreground" aria-hidden="true" />
-        )}
-      </div>
-      <div className="pointer-events-none relative min-w-0 flex-1">
-        <p className="truncate text-sm text-foreground">{post.body?.trim() || post.title}</p>
-        <p className="mt-0.5 text-xs text-muted-foreground">{postDate(post)}</p>
-      </div>
-      {(canEdit || canReview) && (
-        <DropdownMenu modal={false}>
-          <DropdownMenuTrigger asChild>
-            <button type="button" aria-label={`Options for ${post.title}`} className="relative z-10 flex size-8 shrink-0 items-center justify-center rounded-full outline-none transition-colors hover:bg-background/70 focus-visible:ring-2 focus-visible:ring-ring">
-              <MoreVertical className="size-4" aria-hidden="true" />
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onSelect={onEdit}>{canEdit ? "Edit" : "Edit text"}</DropdownMenuItem>
-            {canReview && status !== "Approved" && <DropdownMenuItem onSelect={() => setStatus("Approved")}>Approve</DropdownMenuItem>}
-            {canReview && status !== "Approved" && <DropdownMenuItem onSelect={() => setStatus("Changes requested")}>Request changes</DropdownMenuItem>}
-            {canReview && status === "Approved" && <DropdownMenuItem onSelect={() => setStatus(READY_FOR_REVIEW)}>Undo approval</DropdownMenuItem>}
-            {canEdit && <DropdownMenuItem onSelect={onDuplicate}>Duplicate</DropdownMenuItem>}
-            {canEdit && <DropdownMenuItem variant="destructive" onSelect={onDelete}>Delete</DropdownMenuItem>}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      )}
-    </div>
-  )
-}
-
 /** The chosen post in full: its picture, status and caption. */
 function PostPreview({ post }: { post: CampaignCreative }) {
   return (
-    <article className="min-w-0 rounded-2xl border border-border p-4">
+    <article className="min-w-0">
       {post.mediaUrl && (
         <div className="mb-4 overflow-hidden rounded-xl bg-muted">
           {post.mediaType === "video" ? (
@@ -498,11 +461,8 @@ function MediaLibrary({ files, scope, canEdit }: { files: CampaignCreative[]; sc
   const browsedItems = activeFolderId
     ? media.filter((item) => item.folderId === activeFolderId)
     : [...folders, ...media.filter((item) => !item.folderId)]
-  const { query, setQuery, results } = useListSearch(browsedItems, (item) => [item.title, item.type])
-  const shownFolders = results.filter((item) => item.type === "folder")
-  const shownMedia = results.filter((item) => item.type !== "folder")
-  // Pictures and videos open in the lightbox, stepping through what's shown; links still open in a new tab.
-  const viewable = shownMedia.filter((item) => item.type === "image" || item.type === "video")
+  // Pictures and videos open in the lightbox, stepping through this folder; links still open in a new tab.
+  const viewable = browsedItems.filter((item) => item.type === "image" || item.type === "video")
   const [viewingId, setViewingId] = useState<string | null>(null)
   const open = (creative: CampaignCreative) => (creative.type === "link" ? window.open(creative.url, "_blank", "noopener,noreferrer") : setViewingId(creative.id))
 
@@ -560,6 +520,60 @@ function MediaLibrary({ files, scope, canEdit }: { files: CampaignCreative[]; sc
     }
   }
 
+  function folderCountLabel(folder: CampaignCreative) {
+    const count = media.filter((item) => item.folderId === folder.id).length
+    return `${count} ${count === 1 ? "item" : "items"}`
+  }
+
+  function folderCard(folder: CampaignCreative) {
+    return {
+      icon: <Folder className="size-4 text-muted-foreground" aria-hidden="true" />,
+      title: folder.title,
+      subtitle: folderCountLabel(folder),
+      placeholder: <Folder className="size-10 text-muted-foreground" aria-hidden="true" />,
+      onClick: () => setActiveFolderId(folder.id),
+      ariaLabel: `Open ${folder.title}`,
+      menuLabel: `Options for ${folder.title}`,
+      menu: canEdit ? (
+        <>
+          <DropdownMenuItem onSelect={() => setFolderDialog(folder)}><Pencil className="size-4" aria-hidden="true" />Rename</DropdownMenuItem>
+          <DropdownMenuItem variant="destructive" onSelect={() => setDeletingFolder(folder)}>Delete folder</DropdownMenuItem>
+        </>
+      ) : undefined,
+    }
+  }
+
+  function mediaCard(creative: CampaignCreative) {
+    return {
+      title: creative.title,
+      subtitle: creative.type === "video" ? "Video" : creative.type === "link" ? "Link" : "Image",
+      icon: creative.type === "video" ? <Video className="size-4 text-muted-foreground" aria-hidden="true" /> : creative.type === "link" ? <Link2 className="size-4 text-muted-foreground" aria-hidden="true" /> : <ImageIcon className="size-4 text-muted-foreground" aria-hidden="true" />,
+      imageUrl: creative.type === "image" ? creative.url : undefined,
+      preview: creative.type === "video" ? <video src={creative.url} muted playsInline preload="metadata" className="size-full object-cover" /> : undefined,
+      placeholder: <ExternalLink className="size-8 text-muted-foreground" aria-hidden="true" />,
+      onClick: () => open(creative),
+      ariaLabel: `Open ${creative.title}`,
+      menuLabel: `Options for ${creative.title}`,
+      menu: canEdit ? (
+        <>
+          <DropdownMenuItem onSelect={() => open(creative)}>Open</DropdownMenuItem>
+          {folders.length > 0 && (
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger><FolderInput className="size-4" aria-hidden="true" />Move to</DropdownMenuSubTrigger>
+              <DropdownMenuSubContent>
+                <DropdownMenuItem disabled={!creative.folderId} onSelect={() => void moveMedia(creative.id, "")}>All media</DropdownMenuItem>
+                {folders.filter((folder) => folder.id !== creative.folderId).map((folder) => (
+                  <DropdownMenuItem key={folder.id} onSelect={() => void moveMedia(creative.id, folder.id)}>{folder.title}</DropdownMenuItem>
+                ))}
+              </DropdownMenuSubContent>
+            </DropdownMenuSub>
+          )}
+          <DropdownMenuItem variant="destructive" onSelect={() => void removeCreative(creative.id)}>Delete</DropdownMenuItem>
+        </>
+      ) : undefined,
+    }
+  }
+
   return (
     <section
       className={cn("relative rounded-2xl transition-colors", dragging && "bg-muted/60 ring-2 ring-ring ring-offset-4 ring-offset-background")}
@@ -567,129 +581,56 @@ function MediaLibrary({ files, scope, canEdit }: { files: CampaignCreative[]; sc
       onDragLeave={canEdit ? (event) => { if (event.currentTarget === event.target) setDragging(false) } : undefined}
       onDrop={canEdit ? (event) => { event.preventDefault(); setDragging(false); void handleFiles(event.dataTransfer.files) } : undefined}
     >
-      <ListToolbar
-        query={query}
-        onQueryChange={setQuery}
-        placeholder={activeFolder ? `Search ${activeFolder.title}` : "Search media"}
+      <input ref={fileInput} type="file" accept="image/*,video/*" multiple hidden onChange={(event) => { void handleFiles(event.target.files); event.target.value = "" }} />
+      <CollectionView
+        key={activeFolderId ?? "all"}
+        className=""
+        items={browsedItems}
+        getKey={(item) => item.id}
+        searchFields={(item) => [item.title, item.type]}
+        searchPlaceholder={activeFolder ? `Search ${activeFolder.title}` : "Search media"}
+        viewKey="campaign-media"
         actions={canEdit ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <SectionAddButton label="New media" disabled={Boolean(uploading)} />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onSelect={() => setFolderDialog("new")}><Folder className="size-4" aria-hidden="true" />New folder</DropdownMenuItem>
+              {!activeFolder && <DropdownMenuItem onSelect={() => setFolderDialog("new")}><Folder className="size-4" aria-hidden="true" />New folder</DropdownMenuItem>}
               <DropdownMenuItem onSelect={() => fileInput.current?.click()}><ImagePlus className="size-4" aria-hidden="true" />Upload images or videos</DropdownMenuItem>
               <DropdownMenuItem onSelect={() => setLinking(true)}><Link2 className="size-4" aria-hidden="true" />Add link</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         ) : undefined}
-      />
-      <input ref={fileInput} type="file" accept="image/*,video/*" multiple hidden onChange={(event) => { void handleFiles(event.target.files); event.target.value = "" }} />
-
-      {activeFolder && (
-        <div className="mt-3 flex min-w-0 items-center gap-2 text-sm">
-          <button type="button" onClick={() => { setActiveFolderId(null); setQuery("") }} className="flex shrink-0 items-center gap-1 rounded-md px-2 py-1.5 text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring">
-            <ChevronLeft className="size-4" aria-hidden="true" />
-            All media
-          </button>
-          <span className="text-muted-foreground/50">/</span>
-          <span className="min-w-0 truncate font-medium text-foreground">{activeFolder.title}</span>
-        </div>
-      )}
-
-      {files.length === 0 ? (
-        <button
-          type="button"
-          disabled={!canEdit}
-          onClick={() => fileInput.current?.click()}
-          className="mt-4 flex w-full flex-col items-center gap-2 rounded-2xl border border-dashed border-border px-6 py-14 text-center outline-none transition-colors enabled:hover:bg-muted/40 focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          <Images className="size-6 text-muted-foreground" aria-hidden="true" />
-          <span className="text-sm text-muted-foreground">{canEdit ? "Create a folder or drop images and videos here" : "No media yet."}</span>
-        </button>
-      ) : results.length === 0 ? (
-        query ? (
-          <p className="py-8 text-center text-sm text-muted-foreground">Nothing matches your search.</p>
-        ) : (
-          <button
-            type="button"
-            disabled={!canEdit}
-            onClick={() => fileInput.current?.click()}
-            className="mt-4 flex w-full flex-col items-center gap-2 rounded-2xl border border-dashed border-border px-6 py-12 text-center outline-none transition-colors enabled:hover:bg-muted/40 focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <Folder className="size-6 text-muted-foreground" aria-hidden="true" />
-            <span className="text-sm text-muted-foreground">{canEdit ? "This folder is empty. Drop media here or click to upload." : "This folder is empty."}</span>
-          </button>
-        )
-      ) : (
-        <div className="mt-4 space-y-5">
-          {shownFolders.length > 0 && (
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
-              {shownFolders.map((folder) => {
-                const count = media.filter((item) => item.folderId === folder.id).length
-                return (
-                  <div key={folder.id} className="relative flex min-h-20 items-center gap-3 rounded-xl bg-muted/60 px-4 py-3 transition-colors hover:bg-muted">
-                    <button type="button" onClick={() => { setActiveFolderId(folder.id); setQuery("") }} aria-label={`Open ${folder.title}`} className="absolute inset-0 rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ring" />
-                    <Folder className="pointer-events-none relative size-5 shrink-0 text-muted-foreground" aria-hidden="true" />
-                    <div className="pointer-events-none relative min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium text-foreground">{folder.title}</p>
-                      <p className="mt-0.5 text-xs text-muted-foreground">{count} {count === 1 ? "item" : "items"}</p>
-                    </div>
-                    {canEdit && (
-                      <DropdownMenu modal={false}>
-                        <DropdownMenuTrigger asChild>
-                          <button type="button" aria-label={`Options for ${folder.title}`} className="relative z-10 flex size-8 shrink-0 items-center justify-center rounded-full outline-none transition-colors hover:bg-background/70 focus-visible:ring-2 focus-visible:ring-ring">
-                            <MoreVertical className="size-4" aria-hidden="true" />
-                          </button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onSelect={() => setFolderDialog(folder)}><Pencil className="size-4" aria-hidden="true" />Rename</DropdownMenuItem>
-                          <DropdownMenuItem variant="destructive" onSelect={() => setDeletingFolder(folder)}>Delete folder</DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    )}
-                  </div>
-                )
-              })}
+        before={<>
+          {activeFolder && (
+            <div className="mt-3 flex min-w-0 items-center gap-2 text-sm">
+              <button type="button" onClick={() => setActiveFolderId(null)} className="flex shrink-0 items-center gap-1 rounded-md px-2 py-1.5 text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring">
+                <ChevronLeft className="size-4" aria-hidden="true" />
+                All media
+              </button>
+              <span className="text-muted-foreground/50">/</span>
+              <span className="min-w-0 truncate font-medium text-foreground">{activeFolder.title}</span>
             </div>
           )}
-
-          {shownMedia.length > 0 && (
-            <GridCardList>
-              {shownMedia.map((creative) => (
-                <GridCard
-                  key={creative.id}
-                  title={creative.title}
-                  icon={creative.type === "video" ? <Video className="size-4 text-muted-foreground" aria-hidden="true" /> : creative.type === "link" ? <Link2 className="size-4 text-muted-foreground" aria-hidden="true" /> : <ImageIcon className="size-4 text-muted-foreground" aria-hidden="true" />}
-                  imageUrl={creative.type === "image" ? creative.url : undefined}
-                  preview={creative.type === "video" ? <video src={creative.url} muted playsInline preload="metadata" className="size-full object-cover" /> : undefined}
-                  placeholder={<ExternalLink className="size-8 text-muted-foreground" aria-hidden="true" />}
-                  onClick={() => open(creative)}
-                  ariaLabel={`Open ${creative.title}`}
-                  menuLabel={`Options for ${creative.title}`}
-                  menu={canEdit ? (
-                    <>
-                      <DropdownMenuItem onSelect={() => open(creative)}>Open</DropdownMenuItem>
-                      {folders.length > 0 && (
-                        <DropdownMenuSub>
-                          <DropdownMenuSubTrigger><FolderInput className="size-4" aria-hidden="true" />Move to</DropdownMenuSubTrigger>
-                          <DropdownMenuSubContent>
-                            <DropdownMenuItem disabled={!creative.folderId} onSelect={() => void moveMedia(creative.id, "")}>All media</DropdownMenuItem>
-                            {folders.filter((folder) => folder.id !== creative.folderId).map((folder) => (
-                              <DropdownMenuItem key={folder.id} onSelect={() => void moveMedia(creative.id, folder.id)}>{folder.title}</DropdownMenuItem>
-                            ))}
-                          </DropdownMenuSubContent>
-                        </DropdownMenuSub>
-                      )}
-                      <DropdownMenuItem variant="destructive" onSelect={() => void removeCreative(creative.id)}>Delete</DropdownMenuItem>
-                    </>
-                  ) : undefined}
-                />
-              ))}
-            </GridCardList>
-          )}
-        </div>
-      )}
+          {uploading && <p className="mt-3 text-sm text-muted-foreground" role="status">Uploading {uploading}</p>}
+        </>}
+        empty={activeFolder ? {
+          icon: Folder,
+          title: "This folder is empty",
+          description: canEdit ? "Drop images and videos here, or upload them." : undefined,
+          action: canEdit ? <SectionAddButton label="Upload images or videos" onClick={() => fileInput.current?.click()} /> : undefined,
+        } : {
+          icon: Images,
+          title: "No media yet",
+          description: canEdit ? "Create a folder or drop images and videos here." : undefined,
+          action: canEdit ? <SectionAddButton label="Upload images or videos" onClick={() => fileInput.current?.click()} /> : undefined,
+        }}
+        card={(item) => item.type === "folder" ? folderCard(item) : mediaCard(item)}
+        row={(item) => item.type === "folder"
+          ? { subtitle: folderCountLabel(item) }
+          : { subtitle: item.type === "video" ? "Video" : item.type === "link" ? "Link" : "Image" }}
+      />
 
       <Lightbox items={viewable} activeId={viewingId} onChange={setViewingId} />
 

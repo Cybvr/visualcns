@@ -7,13 +7,10 @@ import { ChevronRight, House, ListTodo, Megaphone } from "lucide-react"
 import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
-import { CompanyEmptyState } from "@/components/company/empty-state"
 import { useCompanyPage } from "@/components/company/company-page-context"
 import { SectionAddButton } from "@/components/company/section-add-button"
 import { TaskDetailSheet } from "@/components/company/task-detail-sheet"
-import { GridCard, GridCardList } from "@/components/dashboard/grid-card"
-import { ListToolbar, useListSearch, useListView } from "@/components/dashboard/list-search"
-import { MobileDataCard } from "@/components/dashboard/mobile-data-card"
+import { CollectionView } from "@/components/dashboard/collection-view"
 import { NewProjectDialog } from "@/components/dashboard/new-project-dialog"
 import { CampaignGenerateButton } from "@/components/dashboard/campaign-generate"
 import { ProjectDetail } from "@/components/dashboard/project-detail"
@@ -53,8 +50,6 @@ export function ProjectsSection() {
     ...loadedProjects.map((project) => addedProjects.find((added) => added.id === project.id) ?? project),
   ].filter((project) => !removedProjectIds.includes(project.id))
   const searchParams = useSearchParams()
-  const [view, setView] = useListView("company-campaigns")
-  const { query, setQuery, results } = useListSearch(projects, (project) => [project.title, project.service, project.status, project.dueDate])
   const [selectedProject, setSelectedProject] = useState<Project | null>(null)
   const projectOpen = Boolean(selectedProject)
   useEffect(() => {
@@ -105,27 +100,26 @@ export function ProjectsSection() {
   }
 
   const jobTasks = selectedProject ? tasks.filter((task) => task.projectId === selectedProject.id) : []
-  const publicTasks = tasksLoading ? (
-    <p className="text-sm text-muted-foreground" role="status">Loading tasks…</p>
-  ) : jobTasks.length === 0 ? (
-    <CompanyEmptyState icon={ListTodo} title="No shared tasks yet" />
-  ) : (
-    <div>
-      {jobTasks.map((task) => (
-        <MobileDataCard
-          key={task.id}
-          surface="list"
-          variant="inline"
-          iconShape="circle"
-          icon={<ListTodo className="size-5 text-muted-foreground" aria-hidden="true" />}
-          title={task.name}
-          subtitle={task.dueDate ? `Due ${task.dueDate}` : undefined}
-          trailing={(taskStatusMeta[task.status] ?? taskStatusMeta.todo).label}
-          onClick={() => updateParams({ task: task.id })}
-          ariaLabel={`View task: ${task.name}`}
-        />
-      ))}
-    </div>
+  const publicTasks = (
+    <CollectionView
+      className=""
+      items={jobTasks}
+      loading={tasksLoading}
+      getKey={(task) => task.id}
+      searchFields={(task) => [task.name, (taskStatusMeta[task.status] ?? taskStatusMeta.todo).label, task.dueDate]}
+      searchPlaceholder="Search tasks"
+      viewKey="tasks"
+      empty={{ icon: ListTodo, title: "No shared tasks yet" }}
+      card={(task) => ({
+        icon: <ListTodo className="size-4 text-muted-foreground" aria-hidden="true" />,
+        title: task.name,
+        subtitle: task.dueDate ? `Due ${task.dueDate}` : undefined,
+        preview: <span className="text-lg font-semibold tracking-[-0.02em] text-foreground">{(taskStatusMeta[task.status] ?? taskStatusMeta.todo).label}</span>,
+        onClick: () => updateParams({ task: task.id }),
+        ariaLabel: `View task: ${task.name}`,
+      })}
+      row={(task) => ({ subtitle: task.dueDate ? `Due ${task.dueDate}` : undefined, trailing: (taskStatusMeta[task.status] ?? taskStatusMeta.todo).label })}
+    />
   )
   const [creatingProject, setCreatingProject] = useState(false)
   const [renamingProject, setRenamingProject] = useState<Project | null>(null)
@@ -272,61 +266,31 @@ export function ProjectsSection() {
       ) : (
         <>
           <h2 className="sr-only">Campaigns</h2>
-          <ListToolbar
-            query={query}
-            onQueryChange={setQuery}
-            placeholder="Search campaigns"
-            view={view}
-            onViewChange={setView}
+          <CollectionView
+            className=""
+            items={projects}
+            getKey={(project) => project.id}
+            searchFields={(project) => [project.title, project.service, project.status, project.dueDate]}
+            searchPlaceholder="Search campaigns"
+            viewKey="company-campaigns"
             actions={canCreate ? <SectionAddButton label="New campaign" onClick={() => setCreatingProject(true)} /> : undefined}
+            empty={{
+              icon: Megaphone,
+              title: canCreate ? "No campaigns yet" : emptyProjectsLabel ?? "No campaigns yet",
+              action: canCreate ? <SectionAddButton label="New campaign" onClick={() => setCreatingProject(true)} /> : undefined,
+            }}
+            card={(project) => ({
+              icon: <Megaphone className="size-4 text-amber-600 dark:text-amber-400" aria-hidden="true" />,
+              title: project.title,
+              subtitle: modifiedLabel(project),
+              preview: <ProjectCover project={project} />,
+              onClick: () => openCampaign(project),
+              ariaLabel: `Open ${project.title}`,
+              menuLabel: `Options for ${project.title}`,
+              menu: projectMenu(project),
+            })}
+            row={(project) => ({ subtitle: modifiedLabel(project), trailing: project.dueDate || undefined })}
           />
-
-          {projects.length === 0 ? (
-            <CompanyEmptyState
-              icon={Megaphone}
-              title={canCreate ? "No campaigns yet" : emptyProjectsLabel}
-              action={canCreate ? <SectionAddButton label="New campaign" onClick={() => setCreatingProject(true)} /> : undefined}
-            />
-          ) : results.length === 0 ? (
-            <p className="px-3 py-8 text-center text-sm text-muted-foreground">Nothing matches your search.</p>
-          ) : view === "card" ? (
-            <div className="mt-4">
-              <GridCardList>
-                {results.map((project) => (
-                  <GridCard
-                    key={project.id}
-                    onClick={() => openCampaign(project)}
-                    ariaLabel={`Open ${project.title}`}
-                    title={project.title}
-                    subtitle={modifiedLabel(project)}
-                    icon={<Megaphone className="size-4 text-amber-600 dark:text-amber-400" aria-hidden="true" />}
-                    preview={<ProjectCover project={project} />}
-                    menuLabel={`Options for ${project.title}`}
-                    menu={projectMenu(project)}
-                  />
-                ))}
-              </GridCardList>
-            </div>
-          ) : (
-            <div className="mt-4">
-              {results.map((project) => (
-                <MobileDataCard
-                  key={project.id}
-                  surface="list"
-                  variant="inline"
-                  iconShape="circle"
-                  title={project.title}
-                  subtitle={modifiedLabel(project)}
-                  icon={<Megaphone className="size-5 text-amber-600 dark:text-amber-400" aria-hidden="true" />}
-                  trailing={project.dueDate || undefined}
-                  onClick={() => openCampaign(project)}
-                  ariaLabel={`Open ${project.title}`}
-                  menuLabel={`Options for ${project.title}`}
-                  menu={projectMenu(project)}
-                />
-              ))}
-            </div>
-          )}
         </>
       )}
 

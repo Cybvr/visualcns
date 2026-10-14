@@ -1,12 +1,14 @@
 "use client"
 
-import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { DollarSign, Receipt, UserRound } from "lucide-react"
 import { toast } from "sonner"
 
-import type { Invoice } from "@/lib/billing"
+import { CollectionView } from "@/components/dashboard/collection-view"
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
+import { invoiceStatusMeta, type Invoice } from "@/lib/billing"
 import { formatPay, payCurrency, updateCampaignPerson, type CampaignPerson } from "@/lib/campaign-people"
 import { formatMoney } from "@/lib/money"
-import { cn } from "@/lib/utils"
 
 interface CampaignPaymentsProps {
   people: CampaignPerson[]
@@ -22,19 +24,16 @@ function sumByCurrency(people: CampaignPerson[]) {
   return totals.size ? [...totals].map(([currency, amount]) => formatPay(amount, currency)).join(" · ") : formatPay(0, "USD")
 }
 
-const invoiceTone: Record<string, string> = {
-  draft: "bg-muted text-muted-foreground",
-  sent: "bg-sky-500/15 text-sky-700 dark:text-sky-300",
-  paid: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300",
-  overdue: "bg-red-500/15 text-red-700 dark:text-red-300",
-  void: "bg-muted text-muted-foreground line-through",
-}
+type Entry =
+  | { key: string; kind: "creator"; title: string; status: string; amount: string; person: CampaignPerson }
+  | { key: string; kind: "invoice"; title: string; status: string; amount: string; invoice: Invoice }
 
-/** What the campaign pays its creators, and the invoices raised for it. */
+/** What the campaign pays its creators and the invoices raised for it, in one list. */
 export function CampaignPayments({ people, invoices, canEdit, invoiceHref }: CampaignPaymentsProps) {
+  const router = useRouter()
   const paidPeople = people.filter((person) => person.pay > 0)
 
-  async function togglePaid(person: CampaignPerson, paid: boolean) {
+  async function setPaid(person: CampaignPerson, paid: boolean) {
     try {
       await updateCampaignPerson(person.id, { paid })
     } catch (error) {
@@ -43,86 +42,83 @@ export function CampaignPayments({ people, invoices, canEdit, invoiceHref }: Cam
     }
   }
 
+  const entries: Entry[] = [
+    ...paidPeople.map((person) => ({
+      key: `creator-${person.id}`,
+      kind: "creator" as const,
+      title: person.handle,
+      status: person.paid ? "Paid" : "To pay",
+      amount: formatPay(person.pay, payCurrency(person)),
+      person,
+    })),
+    ...invoices.map((invoice) => ({
+      key: `invoice-${invoice.id}`,
+      kind: "invoice" as const,
+      title: invoice.title?.trim() || invoice.invoiceNumber || "Invoice",
+      status: invoiceStatusMeta[invoice.status]?.label ?? invoice.status,
+      amount: formatMoney(invoice.amount, invoice.currency),
+      invoice,
+    })),
+  ]
+
+  function open(entry: Entry) {
+    if (entry.kind === "invoice") {
+      const href = invoiceHref?.(entry.invoice)
+      if (href) router.push(href)
+    } else if (canEdit) {
+      void setPaid(entry.person, !entry.person.paid)
+    }
+  }
+
   return (
-    <div className="space-y-8">
-      <section>
-        <h3 className="text-lg font-semibold tracking-[-0.01em] text-foreground">Creators</h3>
-        <div className="mt-3 grid gap-3 sm:grid-cols-3">
-          <Tile label="Total" value={sumByCurrency(paidPeople)} />
+    <CollectionView
+      className=""
+      items={entries}
+      getKey={(entry) => entry.key}
+      searchFields={(entry) => [entry.title, entry.status, entry.amount, entry.kind === "creator" ? entry.person.app : "Invoice"]}
+      searchPlaceholder="Search payments"
+      viewKey="campaign-payments"
+      before={
+        <div className="mt-4 grid grid-cols-3 gap-3">
+          <Tile label="Creators total" value={sumByCurrency(paidPeople)} />
           <Tile label="Paid" value={sumByCurrency(paidPeople.filter((person) => person.paid))} />
           <Tile label="Still to pay" value={sumByCurrency(paidPeople.filter((person) => !person.paid))} />
         </div>
-
-        {paidPeople.length === 0 ? (
-          <p className="mt-4 text-sm text-muted-foreground">No one to pay yet.</p>
-        ) : (
-          <div className="mt-4 overflow-x-auto">
-            <table className="w-full min-w-[480px] text-left text-sm">
-              <thead className="border-b border-border text-xs text-muted-foreground">
-                <tr>
-                  <th scope="col" className="px-3 py-3 font-medium">Handle</th>
-                  <th scope="col" className="px-3 py-3 font-medium">App</th>
-                  <th scope="col" className="px-3 py-3 font-medium">Status</th>
-                  <th scope="col" className="px-3 py-3 text-right font-medium">Pay</th>
-                  <th scope="col" className="w-20 px-3 py-3 text-center font-medium">Paid</th>
-                </tr>
-              </thead>
-              <tbody>
-                {paidPeople.map((person) => (
-                  <tr key={person.id} className="border-b border-border last:border-0">
-                    <td className="px-3 py-3 font-medium">{person.handle}</td>
-                    <td className="px-3 py-3">{person.app}</td>
-                    <td className="px-3 py-3">{person.status}</td>
-                    <td className="px-3 py-3 text-right tabular-nums">{formatPay(person.pay, payCurrency(person))}</td>
-                    <td className="px-3 py-3 text-center">
-                      {canEdit ? (
-                        <input type="checkbox" checked={person.paid} onChange={(event) => void togglePaid(person, event.target.checked)} aria-label={`Paid ${person.handle}`} className="size-4 accent-foreground" />
-                      ) : person.paid ? "Yes" : "No"}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
-
-      <section>
-        <h3 className="text-lg font-semibold tracking-[-0.01em] text-foreground">Invoices</h3>
-        {invoices.length === 0 ? (
-          <p className="mt-3 text-sm text-muted-foreground">No invoices yet.</p>
-        ) : (
-          <div className="mt-3 divide-y divide-border border-y border-border">
-            {invoices.map((invoice) => {
-              const content = (
-                <>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate font-medium text-foreground">{invoice.title || invoice.invoiceNumber || "Invoice"}</p>
-                    {invoice.invoiceNumber && invoice.title && <p className="text-xs text-muted-foreground">{invoice.invoiceNumber}</p>}
-                  </div>
-                  <span className={cn("rounded-full px-2.5 py-0.5 text-xs font-medium capitalize", invoiceTone[invoice.status] ?? invoiceTone.draft)}>{invoice.status}</span>
-                  <span className="w-32 text-right tabular-nums text-foreground">{formatMoney(invoice.amount, invoice.currency)}</span>
-                </>
-              )
-              const href = invoiceHref?.(invoice)
-              return href ? (
-                <Link key={invoice.id} href={href} className="flex items-center gap-3 py-3 text-sm outline-none transition-colors hover:text-foreground focus-visible:bg-muted/50">{content}</Link>
-              ) : (
-                <div key={invoice.id} className="flex items-center gap-3 py-3 text-sm">{content}</div>
-              )
-            })}
-          </div>
-        )}
-      </section>
-    </div>
+      }
+      empty={{ icon: DollarSign, title: "No payments yet", description: "Creator pay and invoices for this campaign will appear here." }}
+      card={(entry) => {
+        const Icon = entry.kind === "creator" ? UserRound : Receipt
+        const kindLabel = entry.kind === "creator" ? "Creator" : "Invoice"
+        return {
+          icon: <Icon className={entry.kind === "creator" ? "size-4 text-muted-foreground" : "size-4 text-emerald-600 dark:text-emerald-400"} aria-hidden="true" />,
+          title: entry.title,
+          subtitle: `${kindLabel} · ${entry.status}`,
+          preview: (
+            <div className="flex size-full flex-col items-center justify-center gap-3 p-4 text-center">
+              <Icon className="size-10 text-muted-foreground" aria-hidden="true" />
+              <p className="text-lg font-semibold tabular-nums tracking-[-0.02em] text-foreground">{entry.amount}</p>
+            </div>
+          ),
+          onClick: entry.kind === "invoice" ? (invoiceHref ? () => open(entry) : undefined) : undefined,
+          ariaLabel: `Open ${entry.title}`,
+          menuLabel: `Options for ${entry.title}`,
+          menu: entry.kind === "creator" && canEdit ? (
+            <DropdownMenuItem onSelect={() => open(entry)}>{entry.person.paid ? "Mark as not paid" : "Mark as paid"}</DropdownMenuItem>
+          ) : entry.kind === "invoice" && invoiceHref ? (
+            <DropdownMenuItem onSelect={() => open(entry)}>Open invoice</DropdownMenuItem>
+          ) : undefined,
+        }
+      }}
+      row={(entry) => ({ subtitle: `${entry.kind === "creator" ? "Creator" : "Invoice"} · ${entry.status}`, trailing: entry.amount })}
+    />
   )
 }
 
 function Tile({ label, value }: { label: string; value: string }) {
   return (
-    <div className="py-1">
-      <p className="text-xs text-muted-foreground">{label}</p>
-      <p className="mt-1 text-lg font-semibold tabular-nums tracking-[-0.02em] text-foreground">{value}</p>
+    <div className="min-w-0 py-1">
+      <p className="truncate text-xs text-muted-foreground">{label}</p>
+      <p className="mt-1 truncate text-base font-semibold tabular-nums tracking-[-0.02em] text-foreground sm:text-lg">{value}</p>
     </div>
   )
 }

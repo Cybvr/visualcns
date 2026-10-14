@@ -1,10 +1,9 @@
 import { useState } from "react"
-import { ListTodo, Plus } from "lucide-react"
+import { ListTodo } from "lucide-react"
 import { toast } from "sonner"
 
-import { CompactListRow, CompactListSkeleton, MOBILE_LIST_CARD } from "@/components/dashboard/compact-list-row"
-import { MobileCardsSkeleton } from "@/components/dashboard/collection-skeletons"
-import { MobileDataCard } from "@/components/dashboard/mobile-data-card"
+import { SectionAddButton } from "@/components/company/section-add-button"
+import { CollectionView } from "@/components/dashboard/collection-view"
 import { TaskEditorSheet } from "@/components/dashboard/task-editor-sheet"
 import { useTaskEmail } from "@/components/dashboard/use-task-email"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
@@ -67,72 +66,53 @@ export function TasksView({ tasks, companyId, clientName, canDuplicate = true, l
   }
 
   return (
-    <section id="tasks" className="mt-4 scroll-mt-20">
-      <div className="flex items-center justify-between gap-4">
-        <h2 className="text-lg font-semibold tracking-tight">Tasks</h2>
-        <button type="button" onClick={openAdd} className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground">
-          <Plus className="size-4" aria-hidden="true" />
-          New task
-        </button>
-      </div>
-
-      <div className="mt-3 sm:hidden">
-        {loading ? <CompactListSkeleton /> : tasks.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-border px-4 py-10 text-center">
-            <ListTodo className="mx-auto mb-2 size-6 text-muted-foreground/60" aria-hidden="true" />
-            <p className="font-bold">No tasks yet</p>
-            <p className="mt-1 text-xs text-muted-foreground">Add a task to start tracking work.</p>
-          </div>
-        ) : (
-          <ul className={MOBILE_LIST_CARD}>
-            {tasks.map((task) => {
-              return (
-                <li key={task.id}>
-                  <CompactListRow
-                    title={task.name || "Untitled task"}
-                    meta={(taskStatusMeta[task.status] ?? taskStatusMeta.todo).label}
-                    subtitle={[task.project, task.dueDate ? `Due ${task.dueDate}` : formatTimestamp(task.updatedAt ?? task.createdAt)].filter(Boolean).join(" · ")}
-                    onClick={() => openEdit(task.id)}
-                    ariaLabel={`Open ${task.name || "task"}`}
-                    menuLabel={`Options for ${task.name}`}
-                    menu={<><DropdownMenuItem disabled={emailingId !== null} onSelect={() => emailCompanyTask(task)}>Email task</DropdownMenuItem><DropdownMenuItem onSelect={() => openEdit(task.id)}>Edit task</DropdownMenuItem>{canDuplicate && <DropdownMenuItem disabled={duplicatingId !== null} onSelect={() => void handleDuplicate(task)}>Duplicate task</DropdownMenuItem>}<DropdownMenuItem variant="destructive" onSelect={() => setMobileDeleteTarget(task)}>Delete task</DropdownMenuItem></>}
-                  />
-                </li>
-              )
-            })}
-          </ul>
-        )}
-      </div>
-
-      <div className="mt-3 hidden sm:block">
-        {loading ? <MobileCardsSkeleton /> : tasks.length === 0 ? (
-          <div className="px-4 py-10 text-center">
-            <ListTodo className="mx-auto mb-2 size-6 text-muted-foreground/60" aria-hidden="true" />
-            <p className="font-bold">No tasks yet</p>
-            <p className="mt-1 text-xs text-muted-foreground">Add a task to start tracking work.</p>
-          </div>
-        ) : <div className="space-y-2">
-          {tasks.map((task) => (
-            <MobileDataCard
-              key={task.id}
-              surface="muted"
-              icon={<ListTodo className="size-5 text-muted-foreground" aria-hidden="true" />}
-              title={task.name || "Untitled task"}
-              subtitle={task.project || "No project"}
-              description={[(taskStatusMeta[task.status] ?? taskStatusMeta.todo).label, (taskPriorityMeta[task.priority] ?? taskPriorityMeta.medium).label, task.dueDate && `Due ${task.dueDate}`].filter(Boolean).join(" · ")}
-              onClick={() => openEdit(task.id)}
-              ariaLabel={`Open ${task.name || "task"}`}
-              menuLabel={`Options for ${task.name || "task"}`}
-              menu={<>
+    <div id="tasks" className="scroll-mt-20">
+      <CollectionView
+        className=""
+        items={tasks}
+        loading={loading}
+        getKey={(task) => task.id}
+        searchFields={(task) => [task.name, task.project, (taskStatusMeta[task.status] ?? taskStatusMeta.todo).label, task.dueDate]}
+        searchPlaceholder="Search tasks"
+        viewKey="tasks"
+        actions={<SectionAddButton label="New task" onClick={openAdd} />}
+        empty={{
+          icon: ListTodo,
+          title: "No tasks yet",
+          description: "Add a task to start tracking work.",
+          action: <SectionAddButton label="New task" onClick={openAdd} />,
+        }}
+        card={(task) => {
+          const status = (taskStatusMeta[task.status] ?? taskStatusMeta.todo).label
+          const priority = (taskPriorityMeta[task.priority] ?? taskPriorityMeta.medium).label
+          return {
+            icon: <ListTodo className="size-4 text-muted-foreground" aria-hidden="true" />,
+            title: task.name || "Untitled task",
+            subtitle: task.dueDate ? `Due ${task.dueDate}` : formatTimestamp(task.updatedAt ?? task.createdAt),
+            preview: (
+              <div className="flex size-full flex-col items-center justify-center gap-1 p-4 text-center">
+                <span className="text-lg font-semibold tracking-[-0.02em] text-foreground">{status}</span>
+                <span className="text-xs text-muted-foreground">{priority} priority</span>
+              </div>
+            ),
+            onClick: () => openEdit(task.id),
+            ariaLabel: `Open ${task.name || "task"}`,
+            menuLabel: `Options for ${task.name || "task"}`,
+            menu: (
+              <>
                 <DropdownMenuItem disabled={emailingId !== null} onSelect={() => emailCompanyTask(task)}>Email task</DropdownMenuItem>
                 <DropdownMenuItem onSelect={() => openEdit(task.id)}>Edit task</DropdownMenuItem>
                 {canDuplicate && <DropdownMenuItem disabled={duplicatingId !== null} onSelect={() => void handleDuplicate(task)}>Duplicate task</DropdownMenuItem>}
                 <DropdownMenuItem variant="destructive" disabled={deleting === task.id} onSelect={() => setMobileDeleteTarget(task)}>Delete task</DropdownMenuItem>
-              </>}
-            />
-          ))}
-        </div>}
-      </div>
+              </>
+            ),
+          }
+        }}
+        row={(task) => ({
+          subtitle: [(taskStatusMeta[task.status] ?? taskStatusMeta.todo).label, task.project].filter(Boolean).join(" · "),
+          trailing: task.dueDate ? `Due ${task.dueDate}` : undefined,
+        })}
+      />
 
       {emailDialog}
 
@@ -150,6 +130,6 @@ export function TasksView({ tasks, companyId, clientName, canDuplicate = true, l
       </AlertDialog>
 
       <TaskEditorSheet open={editingId !== null || adding !== null} task={editingTask} companyId={companyId} clientName={clientName} defaults={adding ?? undefined} onClose={closeForm} onSaved={onSaved} />
-    </section>
+    </div>
   )
 }

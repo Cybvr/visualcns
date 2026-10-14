@@ -1,11 +1,11 @@
 "use client"
 
 import { useRef, useState, type FormEvent, type ReactNode } from "react"
-import { Pencil, Trash2, X } from "lucide-react"
+import { UserRound, Users } from "lucide-react"
 import { toast } from "sonner"
 
 import { SectionAddButton } from "@/components/company/section-add-button"
-import { ListToolbar, useListSearch } from "@/components/dashboard/list-search"
+import { CollectionView } from "@/components/dashboard/collection-view"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
@@ -20,7 +20,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { Textarea } from "@/components/ui/textarea"
 import {
   addCampaignPeople,
@@ -58,8 +58,8 @@ interface CampaignPeopleProps {
 const fieldClass = "h-9 w-full min-w-0 rounded-md border border-input bg-transparent px-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
 
 /**
- * The Creators tab: one table of everyone on the campaign. The agency adds
- * creators in the row above the table or by Import, and opens any of them to change the rest.
+ * The Creators tab: everyone on the campaign as cards or a list. The agency adds
+ * creators in the row above the list or by Import, and opens any of them to change the rest.
  */
 export function CampaignPeople({ people, agencyId, companyId, projectId, canEdit, canReview = false }: CampaignPeopleProps) {
   const [openId, setOpenId] = useState<string | null>(null)
@@ -69,7 +69,6 @@ export function CampaignPeople({ people, agencyId, companyId, projectId, canEdit
   const open = people.find((person) => person.id === openId) ?? null
   // Added creators first, then suggestions, each by best match.
   const sorted = [...people].sort((a, b) => Number(onRoster(b)) - Number(onRoster(a)) || (b.overlap ?? 0) - (a.overlap ?? 0))
-  const { query, setQuery, results } = useListSearch(sorted, (person) => [person.handle, person.app, person.category, person.status])
 
   async function addToRoster(person: CampaignPerson) {
     try {
@@ -90,105 +89,87 @@ export function CampaignPeople({ people, agencyId, companyId, projectId, canEdit
     }
   }
 
-  function rowActions(person: CampaignPerson) {
+  function payLabel(person: CampaignPerson) {
+    return person.source === "ngai" && !person.pay ? "Pay unknown" : person.pay ? formatPay(person.pay, payCurrency(person)) : "Free"
+  }
+
+  function menuFor(person: CampaignPerson) {
+    const href = profileUrl(person)
+    const canAdd = !onRoster(person) && (canEdit || canReview)
+    if (!href && !canAdd && !canEdit) return undefined
     return (
-      <div className="flex shrink-0 items-center justify-end gap-1">
-        {!onRoster(person) && (canEdit || canReview) && (
-          <Button type="button" size="sm" onClick={() => void addToRoster(person)}>Add</Button>
-        )}
-        {canEdit && (
-          <>
-            <Button type="button" variant="ghost" size="icon" className="size-8" onClick={() => setOpenId(person.id)} aria-label={`Edit ${person.handle}`} title="Edit">
-              <Pencil className="size-4" aria-hidden="true" />
-            </Button>
-            <Button type="button" variant="ghost" size="icon" className="size-8" onClick={() => setDeleting(person)} aria-label={`Delete ${person.handle}`} title="Delete">
-              <Trash2 className="size-4" aria-hidden="true" />
-            </Button>
-          </>
-        )}
-      </div>
+      <>
+        {canAdd && <DropdownMenuItem onSelect={() => void addToRoster(person)}>Add to campaign</DropdownMenuItem>}
+        {href && <DropdownMenuItem onSelect={() => window.open(href, "_blank", "noopener,noreferrer")}>Open profile</DropdownMenuItem>}
+        {canEdit && <DropdownMenuItem onSelect={() => setOpenId(person.id)}>Edit</DropdownMenuItem>}
+        {canEdit && <DropdownMenuItem variant="destructive" onSelect={() => setDeleting(person)}>Delete</DropdownMenuItem>}
+      </>
     )
   }
 
+  function openPerson(person: CampaignPerson) {
+    if (canEdit) return setOpenId(person.id)
+    const href = profileUrl(person)
+    if (href) window.open(href, "_blank", "noopener,noreferrer")
+  }
+
   return (
-    <div className="space-y-4">
-      <ListToolbar
-        query={query}
-        onQueryChange={setQuery}
-        placeholder="Search creators"
+    <div>
+      <CollectionView
+        className=""
+        items={sorted}
+        getKey={(person) => person.id}
+        searchFields={(person) => [person.handle, person.app, person.category, person.status]}
+        searchPlaceholder="Search creators"
+        viewKey="campaign-creators"
         actions={
           <>
-            {canEdit && <Button type="button" variant="ghost" onClick={() => setImporting(true)}>Import</Button>}
-            {people.length > 0 && <Button type="button" variant="ghost" onClick={() => downloadCsv(people.filter(onRoster))}>Download</Button>}
+            {canEdit && <Button type="button" variant="ghost" className="max-sm:hidden" onClick={() => setImporting(true)}>Import</Button>}
+            {people.length > 0 && <Button type="button" variant="ghost" className="max-sm:hidden" onClick={() => downloadCsv(people.filter(onRoster))}>Download</Button>}
             {canEdit && <SectionAddButton label="New creator" disabled={adding} onClick={() => setAdding(true)} />}
           </>
         }
-      />
-
-      {canEdit && adding && (
-        <AddCreatorRow
-          scope={{ agencyId, companyId, projectId }}
-          onDone={() => setAdding(false)}
-          onCancel={() => setAdding(false)}
-        />
-      )}
-
-      {/* Phones get a stacked list instead of the table, so nothing scrolls sideways. */}
-      <div className="divide-y divide-border xl:hidden">
-        {results.map((person) => (
-          <div key={person.id} className="flex items-start gap-3 py-3">
-            <div className="min-w-0 flex-1 text-sm">
-              <CreatorName person={person} />
-              <p className="truncate text-muted-foreground">{[person.app, person.category, `${compactCount(person.followers)} followers`].filter(Boolean).join(" · ")}</p>
-              <p className="truncate text-muted-foreground">{person.status} · {person.source === "ngai" && !person.pay ? "Pay unknown" : person.pay ? formatPay(person.pay, payCurrency(person)) : "Free"}</p>
-            </div>
-            {rowActions(person)}
+        before={canEdit && adding ? (
+          <div className="mt-4">
+            <AddCreatorRow scope={{ agencyId, companyId, projectId }} onDone={() => setAdding(false)} onCancel={() => setAdding(false)} />
           </div>
-        ))}
-        {results.length === 0 && <p className="py-4 text-sm text-muted-foreground">{people.length === 0 ? "No creators yet." : "Nothing matches your search."}</p>}
-      </div>
-
-      <div className="hidden xl:block">
-      <Table className="table-fixed">
-        <Columns />
-        <TableHeader>
-          <TableRow>
-            <TableHead className="overflow-hidden text-ellipsis">Creator</TableHead>
-            <TableHead className="overflow-hidden text-ellipsis">App</TableHead>
-            <TableHead className="overflow-hidden text-ellipsis">Category</TableHead>
-            <TableHead className="overflow-hidden text-ellipsis">Followers</TableHead>
-            <TableHead className="overflow-hidden text-ellipsis">Status</TableHead>
-            <TableHead className="overflow-hidden text-ellipsis">Pay</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {results.map((person) => {
-            const suggested = !onRoster(person)
-            return (
-              <TableRow key={person.id}>
-                <TableCell className="overflow-hidden"><CreatorName person={person} /></TableCell>
-                <TableCell className="overflow-hidden text-ellipsis" title={person.app}>{person.app}</TableCell>
-                <TableCell className="overflow-hidden">
-                  <span className="block truncate" title={person.category || undefined}>{person.category || "—"}</span>
-                </TableCell>
-                <TableCell className="overflow-hidden text-ellipsis">{compactCount(person.followers)}</TableCell>
-                <TableCell className="overflow-hidden text-ellipsis">{suggested ? "Suggested" : person.status}</TableCell>
-                <TableCell className="overflow-hidden text-ellipsis">{person.source === "ngai" && !person.pay ? "—" : person.pay ? formatPay(person.pay, payCurrency(person)) : "Free"}</TableCell>
-                <TableCell>{rowActions(person)}</TableCell>
-              </TableRow>
-            )
-          })}
-          {results.length === 0 && (
-            <TableRow>
-              <TableCell colSpan={7} className="text-muted-foreground">
-                {people.length === 0 ? "No creators yet." : "Nothing matches your search."}
-              </TableCell>
-            </TableRow>
-          )}
-        </TableBody>
-      </Table>
-      </div>
+        ) : undefined}
+        empty={{
+          icon: Users,
+          title: "No creators yet",
+          description: "Add creators one by one or import a list.",
+          action: canEdit ? (
+            <div className="flex items-center gap-2">
+              <Button type="button" variant="ghost" onClick={() => setImporting(true)}>Import</Button>
+              <SectionAddButton label="New creator" onClick={() => setAdding(true)} />
+            </div>
+          ) : undefined,
+        }}
+        card={(person) => {
+          const suggested = !onRoster(person)
+          return {
+            icon: <UserRound className="size-4 text-muted-foreground" aria-hidden="true" />,
+            title: person.handle,
+            subtitle: [suggested ? "Suggested" : person.status, payLabel(person)].join(" · "),
+            preview: (
+              <div className="flex size-full flex-col items-center justify-center gap-1 p-4 text-center">
+                <span className="text-3xl font-semibold tabular-nums tracking-[-0.03em] text-foreground">{compactCount(person.followers)}</span>
+                <span className="text-xs text-muted-foreground">{person.app} followers</span>
+                {person.category && <span className="mt-1 max-w-full truncate text-xs text-muted-foreground">{person.category}</span>}
+              </div>
+            ),
+            onClick: canEdit || profileUrl(person) ? () => openPerson(person) : undefined,
+            ariaLabel: canEdit ? `Edit ${person.handle}` : `Open ${person.handle}`,
+            menuLabel: `Options for ${person.handle}`,
+            menu: menuFor(person),
+          }
+        }}
+        row={(person) => ({
+          subtitle: [person.app, person.category, `${compactCount(person.followers)} followers`].filter(Boolean).join(" · "),
+          description: onRoster(person) ? person.status : "Suggested",
+          trailing: payLabel(person),
+        })}
+      />
 
       {canEdit && <ImportDialog open={importing} onOpenChange={setImporting} scope={{ agencyId, companyId, projectId }} />}
       {canEdit && <CreatorDialog person={open} onClose={() => setOpenId(null)} />}
@@ -221,13 +202,7 @@ async function saveCreators(scope: Scope, rows: CampaignPersonInput[]) {
   }
 }
 
-/** Column widths shared by the add row and the table under it, so each box sits over its column. */
-function Columns() {
-  const widths = ["19%", "11%", "24%", "10%", "12%", "8%", "16%"]
-  return <colgroup>{widths.map((width, index) => <col key={index} style={{ width }} />)}</colgroup>
-}
-
-/** A row of boxes above the table, one per column, to add a creator. */
+/** A row of boxes above the list to add a creator. */
 function AddCreatorRow({ scope, onDone, onCancel }: { scope: Scope; onDone: () => void; onCancel: () => void }) {
   const [handle, setHandle] = useState("")
   const [app, setApp] = useState<string>(PERSON_APPS[0])
@@ -259,50 +234,17 @@ function AddCreatorRow({ scope, onDone, onCancel }: { scope: Scope; onDone: () =
   }
 
   return (
-    <form onSubmit={handleAdd}>
-      {/* Phones: the same boxes stacked two to a row. */}
-      <div className="grid grid-cols-2 gap-2 xl:hidden">
-        <input value={handle} onChange={(event) => setHandle(event.target.value)} placeholder="@handle" aria-label="Handle" className={cn(fieldClass, "col-span-2")} />
-        <Pick label="App" value={app} options={PERSON_APPS} onChange={setApp} />
-        <Pick label="Category" placeholder="Category" value={category} options={PERSON_CATEGORIES} onChange={setCategory} />
-        <input value={followers} onChange={(event) => setFollowers(event.target.value)} placeholder="Followers" inputMode="numeric" aria-label="Followers" className={fieldClass} />
-        <div className="flex gap-1">
-          <Pick label="Currency" value={currency} options={PAY_CURRENCIES} onChange={setCurrency} className="w-20 shrink-0" />
-          <input value={pay} onChange={(event) => setPay(event.target.value)} placeholder="Pay" inputMode="numeric" aria-label="Pay" className={fieldClass} />
-        </div>
-        <Button type="button" variant="ghost" onClick={onCancel} disabled={busy}>Cancel</Button>
-        <Button type="submit" disabled={busy || !normalizeHandle(handle)}>Add creator</Button>
+    <form onSubmit={handleAdd} className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+      <input value={handle} onChange={(event) => setHandle(event.target.value)} placeholder="@handle" aria-label="Handle" className={cn(fieldClass, "col-span-2")} />
+      <Pick label="App" value={app} options={PERSON_APPS} onChange={setApp} />
+      <Pick label="Category" placeholder="Category" value={category} options={PERSON_CATEGORIES} onChange={setCategory} />
+      <input value={followers} onChange={(event) => setFollowers(event.target.value)} placeholder="Followers" inputMode="numeric" aria-label="Followers" className={fieldClass} />
+      <div className="flex gap-1">
+        <Pick label="Currency" value={currency} options={PAY_CURRENCIES} onChange={setCurrency} className="w-20 shrink-0" />
+        <input value={pay} onChange={(event) => setPay(event.target.value)} placeholder="Pay" inputMode="numeric" aria-label="Pay" className={fieldClass} />
       </div>
-      <div className="hidden xl:block">
-      <Table className="table-fixed">
-        <Columns />
-        <TableBody>
-          <TableRow className="border-0 hover:bg-transparent">
-            <TableCell><input value={handle} onChange={(event) => setHandle(event.target.value)} placeholder="@handle" aria-label="Handle" className={fieldClass} /></TableCell>
-            <TableCell>
-              <Pick label="App" value={app} options={PERSON_APPS} onChange={setApp} />
-            </TableCell>
-            <TableCell><Pick label="Category" placeholder="Category" value={category} options={PERSON_CATEGORIES} onChange={setCategory} /></TableCell>
-            <TableCell><input value={followers} onChange={(event) => setFollowers(event.target.value)} placeholder="Followers" inputMode="numeric" aria-label="Followers" className={fieldClass} /></TableCell>
-            <TableCell />
-            <TableCell>
-              <div className="flex gap-1">
-                <Pick label="Currency" value={currency} options={PAY_CURRENCIES} onChange={setCurrency} className="w-20 shrink-0" />
-                <input value={pay} onChange={(event) => setPay(event.target.value)} placeholder="Pay" inputMode="numeric" aria-label="Pay" className={fieldClass} />
-              </div>
-            </TableCell>
-            <TableCell>
-              <div className="flex items-center justify-end gap-1">
-                <Button type="button" variant="ghost" size="icon" className="size-8" onClick={onCancel} disabled={busy} aria-label="Cancel" title="Cancel">
-                  <X className="size-4" aria-hidden="true" />
-                </Button>
-                <Button type="submit" size="sm" disabled={busy || !normalizeHandle(handle)}>Add</Button>
-              </div>
-            </TableCell>
-          </TableRow>
-        </TableBody>
-      </Table>
-      </div>
+      <Button type="button" variant="ghost" onClick={onCancel} disabled={busy}>Cancel</Button>
+      <Button type="submit" disabled={busy || !normalizeHandle(handle)}>Add creator</Button>
     </form>
   )
 }
@@ -543,12 +485,4 @@ function Pick({
       </SelectContent>
     </Select>
   )
-}
-
-/** The creator's handle, linked to their profile when we know the app. */
-function CreatorName({ person }: { person: CampaignPerson }) {
-  const href = profileUrl(person)
-  return href
-    ? <a href={href} target="_blank" rel="noreferrer" className="block truncate font-medium text-foreground hover:underline" title={person.handle}>{person.handle}</a>
-    : <span className="block truncate font-medium text-foreground" title={person.handle}>{person.handle}</span>
 }

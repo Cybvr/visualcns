@@ -8,9 +8,7 @@ import { useAuth } from "@/components/auth-provider"
 import { useCompanyPage } from "@/components/company/company-page-context"
 import { CompanyEmptyState } from "@/components/company/empty-state"
 import { SectionAddButton } from "@/components/company/section-add-button"
-import { GridCard, GridCardList } from "@/components/dashboard/grid-card"
-import { ListSkeleton, ListToolbar, useListSearch, useListView } from "@/components/dashboard/list-search"
-import { MobileDataCard } from "@/components/dashboard/mobile-data-card"
+import { CollectionView } from "@/components/dashboard/collection-view"
 import { RichTextEditor } from "@/components/dashboard/rich-text-editor"
 import {
   AlertDialog,
@@ -97,8 +95,6 @@ export function NotesSection() {
   const pending = useRef<{ id: string; title: string; body: string } | null>(null)
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const loadedId = useRef("")
-  const { query, setQuery, results } = useListSearch(notes ?? [], (note) => [noteTitle(note), notePreview(note)])
-  const [view, setView] = useListView("company-notes")
 
   useEffect(() => {
     if (!user || !visitorAgencyId) {
@@ -198,74 +194,44 @@ export function NotesSection() {
     }
   }
 
-  if (authLoading || notes === null) return <ListSkeleton view={view} label="Loading notes" />
-  if (!user) return <CompanyEmptyState icon={StickyNote} title="Sign in to view notes" description="Company notes are available to signed-in team members." />
+  if (!authLoading && !user) return <CompanyEmptyState icon={StickyNote} title="Sign in to view notes" description="Company notes are available to signed-in team members." />
   if (error) return <p className="mt-8 text-sm text-destructive" role="alert">Notes are unavailable. Refresh to try again.</p>
 
-  return (
-    <section className="mt-5">
-      <ListToolbar
-        query={query}
-        onQueryChange={setQuery}
-        placeholder="Search notes"
-        view={view}
-        onViewChange={setView}
-        actions={<SectionAddButton label="New note" onClick={() => void add()} />}
-      />
+  const noteMenu = (note: Note) => (
+    <>
+      <DropdownMenuItem onSelect={() => { void flush().then(() => load(note)) }}>Open note</DropdownMenuItem>
+      <DropdownMenuItem variant="destructive" onSelect={() => setPendingDelete(note)}>Delete note</DropdownMenuItem>
+    </>
+  )
 
-      {notes.length === 0 ? (
-        <CompanyEmptyState
-          icon={StickyNote}
-          title="No notes yet"
-          description="Keep shared ideas, reminders, and working details here."
-          action={<SectionAddButton label="New note" onClick={() => void add()} />}
-        />
-      ) : results.length === 0 ? (
-        <p className="px-3 py-8 text-center text-sm text-muted-foreground">Nothing matches your search.</p>
-      ) : view === "card" ? (
-        <div className="mt-4">
-          <GridCardList>
-            {results.map((note) => (
-              <GridCard
-                key={note.id}
-                icon={<StickyNote className="size-4 text-amber-600 dark:text-amber-400" aria-hidden="true" />}
-                title={noteTitle(note)}
-                subtitle={editedAt(note.updatedAt)}
-                preview={<p className="line-clamp-6 size-full p-4 text-left text-sm leading-6 text-muted-foreground">{notePreview(note)}</p>}
-                onClick={() => { void flush().then(() => load(note)) }}
-                ariaLabel={`Open note: ${noteTitle(note)}`}
-                menuLabel={`Options for ${noteTitle(note)}`}
-                menu={<>
-                  <DropdownMenuItem onSelect={() => { void flush().then(() => load(note)) }}>Open note</DropdownMenuItem>
-                  <DropdownMenuItem variant="destructive" onSelect={() => setPendingDelete(note)}>Delete note</DropdownMenuItem>
-                </>}
-              />
-            ))}
-          </GridCardList>
-        </div>
-      ) : (
-        <div className="mt-4">
-          {results.map((note) => (
-            <MobileDataCard
-              key={note.id}
-              surface="list"
-              variant="inline"
-              iconShape="circle"
-              icon={<StickyNote className="size-5 text-amber-600 dark:text-amber-400" aria-hidden="true" />}
-              title={noteTitle(note)}
-              subtitle={notePreview(note)}
-              trailing={editedAt(note.updatedAt)}
-              onClick={() => { void flush().then(() => load(note)) }}
-              ariaLabel={`Open note: ${noteTitle(note)}`}
-              menuLabel={`Options for ${noteTitle(note)}`}
-              menu={<>
-                <DropdownMenuItem onSelect={() => { void flush().then(() => load(note)) }}>Open note</DropdownMenuItem>
-                <DropdownMenuItem variant="destructive" onSelect={() => setPendingDelete(note)}>Delete note</DropdownMenuItem>
-              </>}
-            />
-          ))}
-        </div>
-      )}
+  return (
+    <>
+      <CollectionView
+        items={notes ?? []}
+        loading={authLoading || notes === null}
+        getKey={(note) => note.id}
+        searchFields={(note) => [noteTitle(note), notePreview(note)]}
+        searchPlaceholder="Search notes"
+        viewKey="company-notes"
+        actions={<SectionAddButton label="New note" onClick={() => void add()} />}
+        empty={{
+          icon: StickyNote,
+          title: "No notes yet",
+          description: "Keep shared ideas, reminders, and working details here.",
+          action: <SectionAddButton label="New note" onClick={() => void add()} />,
+        }}
+        card={(note) => ({
+          icon: <StickyNote className="size-4 text-amber-600 dark:text-amber-400" aria-hidden="true" />,
+          title: noteTitle(note),
+          subtitle: editedAt(note.updatedAt),
+          preview: <p className="line-clamp-6 size-full p-4 text-left text-sm leading-6 text-muted-foreground">{notePreview(note)}</p>,
+          onClick: () => { void flush().then(() => load(note)) },
+          ariaLabel: `Open note: ${noteTitle(note)}`,
+          menuLabel: `Options for ${noteTitle(note)}`,
+          menu: noteMenu(note),
+        })}
+        row={(note) => ({ subtitle: notePreview(note), trailing: editedAt(note.updatedAt) })}
+      />
 
       <Sheet open={Boolean(openId)} onOpenChange={(open) => { if (!open) close() }}>
         <SheetContent side="right" className="w-full gap-0 overflow-hidden p-0 sm:max-w-xl">
@@ -282,7 +248,7 @@ export function NotesSection() {
               />
               <span className="shrink-0 text-xs text-muted-foreground" aria-live="polite">{saving ? "Saving…" : "Saved"}</span>
               <Button type="button" variant="ghost" size="icon" className="size-8 text-muted-foreground hover:text-destructive" onClick={() => {
-                const note = notes.find((item) => item.id === openId)
+                const note = notes?.find((item) => item.id === openId)
                 if (note) setPendingDelete({ ...note, title, body })
               }} aria-label="Delete note">
                 <Trash2 className="size-4" aria-hidden="true" />
@@ -313,6 +279,6 @@ export function NotesSection() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </section>
+    </>
   )
 }

@@ -7,7 +7,7 @@ import { useEffect, useRef, type MouseEvent, type PointerEvent, type ReactNode }
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
 
-type MobileDataCardProps = {
+export type MobileDataCardProps = {
   title: ReactNode
   subtitle?: ReactNode
   description?: ReactNode

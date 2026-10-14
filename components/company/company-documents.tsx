@@ -11,10 +11,7 @@ import {
   type Invoice,
 } from "@/lib/billing"
 import { companyDocumentKindMeta, companyDocumentStatusMeta, type CompanyDocument } from "@/lib/company-documents"
-import { CompanyEmptyState } from "@/components/company/empty-state"
-import { ListToolbar, useListSearch, useListView } from "@/components/dashboard/list-search"
-import { GridCard, GridCardList } from "@/components/dashboard/grid-card"
-import { MobileDataCard } from "@/components/dashboard/mobile-data-card"
+import { CollectionView } from "@/components/dashboard/collection-view"
 import { SectionAddButton } from "@/components/company/section-add-button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 
@@ -67,7 +64,6 @@ export function CompanyDocuments({
   onUpload?: () => void
   uploading?: boolean
 }) {
-  const count = invoices.length + contracts.length + estimates.length + documents.length + mediaCount
 
   const entries: Entry[] = [
     ...documents.map((document) => ({
@@ -110,95 +106,56 @@ export function CompanyDocuments({
     })),
   ]
 
-  const { query, setQuery, results } = useListSearch(entries, (entry) => [entry.title, entry.kindLabel, entry.statusLabel, entry.amount])
-  const [view, setView] = useListView(`company-${heading.toLowerCase()}`)
-
   function menuFor(entry: Entry) {
     if (!onEdit) return undefined
     return <DropdownMenuItem onSelect={() => onEdit(entry.kind, entry.id)}>Edit {entry.kind}</DropdownMenuItem>
   }
 
   return (
-    <section className="mt-4" aria-labelledby="company-documents-heading">
-      <h2 id="company-documents-heading" className="sr-only">{heading}</h2>
-      <ListToolbar
-        query={query}
-        onQueryChange={setQuery}
-        placeholder={`Search ${heading.toLowerCase()}`}
-        view={view}
-        onViewChange={setView}
-        actions={canAdd && onAdd ? (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <SectionAddButton label={heading === "Payments" ? "New invoice, estimate or contract" : "New document"} disabled={uploading} />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {onUpload && <DropdownMenuItem onSelect={onUpload}>Upload files</DropdownMenuItem>}
-              {addKinds.includes("document") && <DropdownMenuItem onSelect={() => onAdd("document")}>Document</DropdownMenuItem>}
-              {addKinds.includes("invoice") && <DropdownMenuItem onSelect={() => onAdd("invoice")}>Invoice</DropdownMenuItem>}
-              {addKinds.includes("contract") && <DropdownMenuItem onSelect={() => onAdd("contract")}>Contract</DropdownMenuItem>}
-              {addKinds.includes("estimate") && <DropdownMenuItem onSelect={() => onAdd("estimate")}>Estimate / quote</DropdownMenuItem>}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        ) : undefined}
-      />
-
-      {count === 0 ? (
-        <CompanyEmptyState
-          icon={FileText}
-          title={heading === "Drive" ? "Nothing in Drive yet" : `No ${heading.toLowerCase()} yet`}
-          description={emptyDescription}
-        />
-      ) : view === "list" ? (
-        <div className="mt-4">
-          {results.length === 0 ? (
-            <p className="px-3 py-8 text-center text-sm text-muted-foreground">Nothing matches your search.</p>
-          ) : results.map((entry) => (
-            <MobileDataCard
-              key={entry.key}
-              surface="list"
-              variant="inline"
-              iconShape="circle"
-              title={entry.title}
-              subtitle={`${entry.kindLabel} · ${entry.statusLabel}`}
-              icon={entry.icon}
-              trailing={entry.amount}
-              onClick={() => onSelect(entry.kind, entry.id)}
-              ariaLabel={`Open ${entry.title}`}
-              menuLabel={`Options for ${entry.title}`}
-              menu={menuFor(entry)}
-            />
-          ))}
-        </div>
-      ) : (
-        <div className="mt-4">
-          {results.length === 0 && mediaCount === 0 ? (
-            <p className="px-3 py-8 text-center text-sm text-muted-foreground">Nothing matches your search.</p>
-          ) : (
-            <GridCardList>
-              {results.map((entry) => (
-                <GridCard
-                  key={entry.key}
-                  icon={<span className="flex [&_svg]:size-4">{entry.icon}</span>}
-                  title={entry.title}
-                  subtitle={`${entry.kindLabel} · ${entry.statusLabel}`}
-                  preview={
-                    <div className="flex size-full flex-col items-center justify-center gap-3 p-4 text-center">
-                      <span className="flex [&_svg]:size-10">{entry.icon}</span>
-                      {entry.amount && <p className="text-lg font-semibold tabular-nums tracking-[-0.02em] text-foreground">{entry.amount}</p>}
-                    </div>
-                  }
-                  ariaLabel={`Open ${entry.title}`}
-                  menuLabel={`Options for ${entry.title}`}
-                  menu={menuFor(entry)}
-                  onClick={() => onSelect(entry.kind, entry.id)}
-                />
-              ))}
-              {media?.(query)}
-            </GridCardList>
-          )}
-        </div>
-      )}
-    </section>
+    <CollectionView
+      className="mt-4"
+      items={entries}
+      getKey={(entry) => entry.key}
+      searchFields={(entry) => [entry.title, entry.kindLabel, entry.statusLabel, entry.amount]}
+      searchPlaceholder={`Search ${heading.toLowerCase()}`}
+      viewKey={`company-${heading.toLowerCase()}`}
+      actions={canAdd && onAdd ? (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <SectionAddButton label={heading === "Payments" ? "New invoice, estimate or contract" : "New document"} disabled={uploading} />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            {onUpload && <DropdownMenuItem onSelect={onUpload}>Upload files</DropdownMenuItem>}
+            {addKinds.includes("document") && <DropdownMenuItem onSelect={() => onAdd("document")}>Document</DropdownMenuItem>}
+            {addKinds.includes("invoice") && <DropdownMenuItem onSelect={() => onAdd("invoice")}>Invoice</DropdownMenuItem>}
+            {addKinds.includes("contract") && <DropdownMenuItem onSelect={() => onAdd("contract")}>Contract</DropdownMenuItem>}
+            {addKinds.includes("estimate") && <DropdownMenuItem onSelect={() => onAdd("estimate")}>Estimate / quote</DropdownMenuItem>}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ) : undefined}
+      empty={{
+        icon: FileText,
+        title: heading === "Drive" ? "Nothing in Drive yet" : `No ${heading.toLowerCase()} yet`,
+        description: emptyDescription,
+      }}
+      card={(entry) => ({
+        icon: <span className="flex [&_svg]:size-4">{entry.icon}</span>,
+        title: entry.title,
+        subtitle: `${entry.kindLabel} · ${entry.statusLabel}`,
+        preview: (
+          <div className="flex size-full flex-col items-center justify-center gap-3 p-4 text-center">
+            <span className="flex [&_svg]:size-10">{entry.icon}</span>
+            {entry.amount && <p className="text-lg font-semibold tabular-nums tracking-[-0.02em] text-foreground">{entry.amount}</p>}
+          </div>
+        ),
+        onClick: () => onSelect(entry.kind, entry.id),
+        ariaLabel: `Open ${entry.title}`,
+        menuLabel: `Options for ${entry.title}`,
+        menu: menuFor(entry),
+      })}
+      row={(entry) => ({ subtitle: `${entry.kindLabel} · ${entry.statusLabel}`, trailing: entry.amount })}
+      cardsAfter={media}
+      hasExtraCards={mediaCount > 0}
+    />
   )
 }
