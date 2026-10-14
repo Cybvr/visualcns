@@ -94,7 +94,7 @@ export function GridCard({
   )
 }
 
-/** The grid that holds GridCards: two across on phones, more on wider screens. */
-export function GridCardList({ children }: { children: ReactNode }) {
-  return <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">{children}</div>
+/** The grid that holds GridCards: two across on phones (or one, with `single`), more on wider screens. */
+export function GridCardList({ children, single = false }: { children: ReactNode; single?: boolean }) {
+  return <div className={cn("grid gap-3 sm:grid-cols-3 lg:grid-cols-4", single ? "grid-cols-1" : "grid-cols-2")}>{children}</div>
 }

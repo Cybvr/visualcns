@@ -6,6 +6,7 @@ import { Building2 } from "lucide-react"
 import type { Timestamp } from "firebase/firestore"
 
 import { useAuth } from "@/components/auth-provider"
+import { cn } from "@/lib/utils"
 import { ClientPreview } from "@/components/dashboard/client-preview"
 import { CompactListRow, InitialAvatar, shortListDate } from "@/components/dashboard/compact-list-row"
 import { CompanyCreateSheet } from "@/components/dashboard/company-create-sheet"
@@ -221,7 +222,7 @@ export default function CompaniesPage() {
   )
 
   return (
-    <main className="mx-auto w-full max-w-6xl px-4 pb-12 pt-4 sm:px-6">
+    <main className={cn("mx-auto w-full max-w-6xl px-4 pb-12 pt-4 sm:px-6", selected && "max-sm:pt-0")}>
       {error && (
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
           <p>{error}</p>

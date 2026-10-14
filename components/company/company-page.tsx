@@ -126,7 +126,7 @@ function DashboardCompanyView({ embedded = false, onBack }: { embedded?: boolean
     <main className={embedded ? "w-full min-w-0" : "mx-auto min-h-screen w-full max-w-7xl max-md:bg-page px-4 pb-[calc(7rem+env(safe-area-inset-bottom))] pt-4 sm:px-6 sm:pb-16 sm:pt-6"}>
       {/* Tabs stick under the header while scrolling. In the clients pane the pane itself scrolls, so they stick to its top. */}
       <div className={cn(campaignOpen && "max-sm:hidden", embedded
-        ? "sticky top-0 z-30 border-b border-border bg-background print:hidden"
+        ? "sticky top-0 z-30 border-b border-border bg-background print:hidden max-sm:-mx-4"
         : "sticky top-14 z-30 -mx-4 -mt-4 border-b border-border bg-background print:hidden sm:-mx-6 sm:-mt-6 md:static md:mx-0 md:mt-0")}
       >
         <SectionNav sections={sections} active={section} href={sectionHref} phoneVisible={3} />

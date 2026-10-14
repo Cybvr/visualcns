@@ -53,7 +53,7 @@ function HomeCampaigns() {
         <p className="mt-2 text-sm text-muted-foreground">No campaigns yet.</p>
       ) : (
         <div className="mt-3">
-          <GridCardList>
+          <GridCardList single>
             {recent.map((project) => (
               <GridCard
                 key={project.id}
