@@ -15,7 +15,7 @@ import { HeaderTeam } from "@/components/company/header-team"
 import { CompanyProfileHeader } from "@/components/company/company-profile-header"
 import { SectionNav } from "@/components/company/section-nav"
 import { CompanySection } from "@/components/company/sections/company-section"
-import { usePageHeaderActions } from "@/components/dashboard/page-title-context"
+import { useClientOpen, usePageHeaderActions } from "@/components/dashboard/page-title-context"
 import { ImageDropzone } from "@/components/image-dropzone"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -88,6 +88,7 @@ function DashboardCompanyView({ embedded = false }: { embedded?: boolean }) {
   ) : null, [sharePath, shareUrl, teamKey, canManageTeam, company.id, company.name, recipientEmail, recipientName])
 
   usePageHeaderActions(headerActions)
+  useClientOpen(Boolean(sharePath))
 
   return (
     <main className={embedded ? "w-full min-w-0" : "mx-auto min-h-screen w-full max-w-7xl max-md:bg-page px-4 pb-[calc(7rem+env(safe-area-inset-bottom))] pt-4 sm:px-6 sm:pb-16 sm:pt-6"}>
@@ -96,7 +97,7 @@ function DashboardCompanyView({ embedded = false }: { embedded?: boolean }) {
         ? "sticky top-0 z-30 border-b border-border bg-background print:hidden"
         : "sticky top-14 z-30 -mx-4 -mt-4 border-b border-border bg-background print:hidden sm:-mx-6 sm:-mt-6 md:static md:mx-0 md:mt-0"}
       >
-        <SectionNav sections={sections} active={section} href={sectionHref} />
+        <SectionNav sections={sections} active={section} href={sectionHref} phoneVisible={3} />
       </div>
 
       {section === "activity" && (

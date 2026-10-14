@@ -38,6 +38,9 @@ interface PageTitleContextValue {
   /** When set, phones show a Back button in the header in place of the menu button. */
   backAction: { label: string; onClick: () => void } | null
   setBackAction: Dispatch<SetStateAction<{ label: string; onClick: () => void } | null>>
+  /** A client page is open with its own Share, so the header hides the workspace Share and Create. */
+  clientOpen: boolean
+  setClientOpen: Dispatch<SetStateAction<boolean>>
 }
 
 const PageTitleContext = createContext<PageTitleContextValue | null>(null)
@@ -52,9 +55,10 @@ export function PageTitleProvider({ children }: { children: ReactNode }) {
   const [hideMobileFooter, setHideMobileFooter] = useState(false)
   const [recordTitle, setRecordTitle] = useState<string | null>(null)
   const [backAction, setBackAction] = useState<{ label: string; onClick: () => void } | null>(null)
+  const [clientOpen, setClientOpen] = useState(false)
   const value = useMemo(
-    () => ({ override, setOverride, titleNode, setTitleNode, headerSearch, setHeaderSearch, actions, setActions, replacesMobileDefaults, setReplacesMobileDefaults, headerSlot, setHeaderSlot, hideMobileFooter, setHideMobileFooter, recordTitle, setRecordTitle, backAction, setBackAction }),
-    [override, titleNode, headerSearch, actions, replacesMobileDefaults, headerSlot, hideMobileFooter, recordTitle, backAction],
+    () => ({ override, setOverride, titleNode, setTitleNode, headerSearch, setHeaderSearch, actions, setActions, replacesMobileDefaults, setReplacesMobileDefaults, headerSlot, setHeaderSlot, hideMobileFooter, setHideMobileFooter, recordTitle, setRecordTitle, backAction, setBackAction, clientOpen, setClientOpen }),
+    [override, titleNode, headerSearch, actions, replacesMobileDefaults, headerSlot, hideMobileFooter, recordTitle, backAction, clientOpen],
   )
   return <PageTitleContext.Provider value={value}>{children}</PageTitleContext.Provider>
 }
@@ -141,4 +145,14 @@ export function useHideMobileFooter(hidden: boolean) {
     setHideMobileFooter(hidden)
     return () => setHideMobileFooter(false)
   }, [hidden, setHideMobileFooter])
+}
+
+/** Marks a client page as open while the caller is mounted, see `clientOpen`. */
+export function useClientOpen(open: boolean) {
+  const { setClientOpen } = usePageHeaderOverride()
+
+  useEffect(() => {
+    setClientOpen(open)
+    return () => setClientOpen(false)
+  }, [open, setClientOpen])
 }

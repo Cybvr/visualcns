@@ -11,7 +11,7 @@ import { CompactListRow, InitialAvatar, shortListDate } from "@/components/dashb
 import { CompanyCreateSheet } from "@/components/dashboard/company-create-sheet"
 import { DocumentSplitPane } from "@/components/dashboard/document-split-pane"
 import { FirstRunState } from "@/components/dashboard/empty-state"
-import { useRecordTitle } from "@/components/dashboard/page-title-context"
+import { usePageHeaderBack, usePageTitle, useRecordTitle } from "@/components/dashboard/page-title-context"
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import {
   AlertDialog,
@@ -186,6 +186,14 @@ export default function CompaniesPage() {
   // ?client= holds the slug, but an old link may carry the raw workspace id.
   const selected = selectedRef ? companies.find((row) => companyRefOf(row) === selectedRef || row.id === selectedRef) ?? null : null
   useRecordTitle(selected?.name ?? null)
+  // On phones an open client shows its name in the dashboard header, with Back in place of the menu.
+  usePageTitle(selected?.name ?? null)
+  const selectedOpen = Boolean(selected)
+  const headerBack = useMemo(
+    () => selectedOpen ? { label: "Back to clients", onClick: () => setSelectedRef(null, { clear: ["tab"] }) } : null,
+    [selectedOpen, setSelectedRef],
+  )
+  usePageHeaderBack(headerBack)
 
   async function handleDelete(row: CompanyRow) {
     if (deleting) return
@@ -247,6 +255,7 @@ export default function CompaniesPage() {
           selectedId={selected ? companyRefOf(selected) : null}
           onClearSelection={() => setSelectedRef(null, { clear: ["tab"] })}
           sectionLabel="Clients"
+          phoneHeaderInShell
           filter={clientFilter}
           emptySearchLabel="No clients match your search."
           getKey={companyRefOf}

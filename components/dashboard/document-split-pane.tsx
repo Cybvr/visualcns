@@ -22,6 +22,7 @@ export function DocumentSplitPane<T>({
   selectedTitle,
   headerActions,
   content,
+  phoneHeaderInShell = false,
 }: {
   visibleItems: T[]
   selectedId: string | null
@@ -36,6 +37,8 @@ export function DocumentSplitPane<T>({
   selectedTitle?: string
   headerActions?: ReactNode
   content: ReactNode
+  /** The page puts its back button and title in the dashboard header on phones, so the pane hides its own. */
+  phoneHeaderInShell?: boolean
 }) {
   return (
     <div className="flex flex-col lg:grid lg:grid-cols-[minmax(18rem,0.7fr)_minmax(0,1.3fr)] lg:items-start lg:gap-6">
@@ -61,7 +64,7 @@ export function DocumentSplitPane<T>({
       )}>
         {selectedId ? (
           <div className="flex min-h-[70svh] flex-1 flex-col lg:min-h-0">
-            <div className="flex h-16 items-center justify-between gap-3 border-b border-border py-0">
+            <div className={cn("flex h-16 items-center justify-between gap-3 border-b border-border py-0", phoneHeaderInShell && "max-sm:hidden")}>
               <div className="flex min-w-0 items-center gap-2">
                 <Button type="button" variant="ghost" size="sm" className="-ml-2 shrink-0 sm:hidden" onClick={onClearSelection}>
                   <ArrowLeft className="size-4" aria-hidden="true" /> {sectionLabel}

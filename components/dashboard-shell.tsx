@@ -127,7 +127,7 @@ export function DashboardShell({
   const { open: agentOpen } = useAgent()
   const { agency } = useAuth()
   const unreadEmailCount = useUnreadEmailCount()
-  const { override: titleOverride, titleNode, headerSearch, actions: headerActions, replacesMobileDefaults, setHeaderSlot, hideMobileFooter, backAction } = usePageHeaderOverride()
+  const { override: titleOverride, titleNode, headerSearch, actions: headerActions, replacesMobileDefaults, setHeaderSlot, hideMobileFooter, backAction, clientOpen } = usePageHeaderOverride()
   const { open: searchOpen, setOpen: setSearchOpen, openSearch, results: searchResults, loading: searchLoading } = useDashboardSearch()
   const [createItem, setCreateItem] = useState<(typeof QUICK_CREATE_LINKS)[number] | null>(null)
   const [createName, setCreateName] = useState("")
@@ -256,10 +256,10 @@ export function DashboardShell({
               {!isBackDetailRoute && <Button type="button" variant="ghost" size="icon" aria-label="Search workspace" onClick={openSearch} className={cn("size-10 md:hidden [&_svg]:size-5", replacesMobileDefaults && "max-sm:hidden")}><Search className="size-4" aria-hidden="true" /></Button>}
               <div ref={setHeaderSlot} className="contents" />
               {headerActions}
-              {!isCompanyDetailRoute && <DashboardHeaderTeam />}
+              {!isCompanyDetailRoute && !clientOpen && <DashboardHeaderTeam />}
               <AppSwitcher />
               <NgaiHeaderButton />
-              {!isCompanyDetailRoute && !isBackDetailRoute && (
+              {!isCompanyDetailRoute && !clientOpen && !isBackDetailRoute && (
                 <QuickCreateMenu
                   onSelect={selectQuickCreate}
                   trigger={

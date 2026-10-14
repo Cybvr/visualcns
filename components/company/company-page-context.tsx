@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
-import { Bell, House } from "lucide-react"
+import { Bell, House, Settings } from "lucide-react"
 import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
@@ -154,10 +154,13 @@ export function CompanyPageProvider({
       .filter((item) => !["visitors", "messages", "notes"].includes(item.key) || canSeeVisitors)
     if (mode !== "routes") {
       // Dashboard tabs open on Home: the company's activity, with its name and logo on top.
+      // About holds the client's editable details, so it's called Settings and goes last.
       const home = visible.find((item) => item.key === "activity")
+      const settings = visible.find((item) => item.key === "about")
       return [
         ...(home ? [{ ...home, label: "Home", icon: House }] : []),
-        ...visible.filter((item) => item.key !== "activity"),
+        ...visible.filter((item) => item.key !== "activity" && item.key !== "about"),
+        ...(settings ? [{ ...settings, label: "Settings", icon: Settings }] : []),
       ]
     }
     const about = visible.find((item) => item.key === "about")!

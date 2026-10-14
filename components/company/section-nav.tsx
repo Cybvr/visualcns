@@ -1,8 +1,9 @@
 "use client"
 
 import Link from "next/link"
-import type { LucideIcon } from "lucide-react"
+import { MoreHorizontal, type LucideIcon } from "lucide-react"
 
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
 
 export interface SectionNavItem<K extends string> {
@@ -17,10 +18,20 @@ interface SectionNavProps<K extends string> {
   /** Each section's URL. */
   href: (key: K) => string
   className?: string
+  /** On phones, show only this many tabs and put the rest under More. */
+  phoneVisible?: number
+}
+
+function tabClass(active: boolean) {
+  return `relative shrink-0 px-2.5 pb-3 pt-3.5 font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
+    active ? "text-foreground after:absolute after:inset-x-0 after:bottom-0 after:h-[2px] after:bg-foreground" : ""
+  }`
 }
 
 /** Plain text tab nav, shared by the company dashboard page and the public page on phones. */
-export function SectionNav<K extends string>({ sections, active, href, className }: SectionNavProps<K>) {
+export function SectionNav<K extends string>({ sections, active, href, className, phoneVisible }: SectionNavProps<K>) {
+  const overflow = phoneVisible !== undefined && sections.length > phoneVisible + 1 ? sections.slice(phoneVisible) : []
+  const overflowActive = overflow.find((s) => s.key === active)
   return (
     <nav className={cn("scrollbar-none flex items-end justify-start gap-1 overflow-x-auto px-2 text-sm md:px-4", className)}>
       {sections.map((s) => (
@@ -29,15 +40,28 @@ export function SectionNav<K extends string>({ sections, active, href, className
           href={href(s.key)}
           scroll={false}
           aria-current={active === s.key ? "page" : undefined}
-          className={`relative shrink-0 px-2.5 pb-3 pt-3.5 font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
-            active === s.key
-              ? "text-foreground after:absolute after:inset-x-0 after:bottom-0 after:h-[2px] after:bg-foreground"
-              : ""
-          }`}
+          className={cn(tabClass(active === s.key), overflow.includes(s) && "max-sm:hidden")}
         >
           {s.label}
         </Link>
       ))}
+      {overflow.length > 0 && (
+        <DropdownMenu>
+          <DropdownMenuTrigger className={cn(tabClass(Boolean(overflowActive)), "inline-flex items-center gap-1 sm:hidden")}>
+            {overflowActive?.label ?? "More"}
+            <MoreHorizontal className="size-4" aria-hidden="true" />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-48">
+            {overflow.map((s) => (
+              <DropdownMenuItem key={s.key} asChild>
+                <Link href={href(s.key)} scroll={false} aria-current={active === s.key ? "page" : undefined}>
+                  {s.label}
+                </Link>
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
     </nav>
   )
 }

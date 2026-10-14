@@ -101,7 +101,7 @@ export function dashboardPageTitle(pathname: string, searchParams?: SearchParams
     if (!clientRef) return "Clients"
     if (action === "edit") return "Edit Client"
     const tab = searchParams?.get("tab") || (searchParams?.get("campaign") || searchParams?.get("task") ? "projects" : null)
-    return tab === "activity" ? "Home" : companySectionTitle(tab, "Home")
+    return tab === "activity" ? "Home" : tab === "about" ? "Settings" : companySectionTitle(tab, "Home")
   }
   if (section === "contracts") return recordSection("Contracts", "Contract", record, action)
   if (section === "documents") return recordSection("Documents", "Document", record, action)
