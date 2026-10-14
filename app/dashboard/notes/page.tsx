@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useRef, useState } from "react"
-import { Trash2 } from "lucide-react"
+import { Share2, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
@@ -12,11 +12,13 @@ import { EmptySearchState, FirstRunState } from "@/components/dashboard/empty-st
 import { TableFilterBar } from "@/components/dashboard/table-filter-bar"
 import { useFilterBar } from "@/components/dashboard/filter-bar"
 import { RichTextEditor } from "@/components/dashboard/rich-text-editor"
+import { ShareLinkField } from "@/components/dashboard/share-link-field"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { getCurrentAgencyId } from "@/lib/agency-scope"
-import { createNote, deleteNote, updateNote, watchNotes, type Note } from "@/lib/notes"
+import { createNote, deleteNote, noteBodyHtml, setNoteShared, updateNote, watchNotes, type Note } from "@/lib/notes"
 import { cn } from "@/lib/utils"
 
 const SAVE_DELAY = 600
@@ -32,33 +34,6 @@ function bodyLines(body: string) {
     .split("\n")
     .map((line) => line.trim())
     .filter(Boolean)
-}
-
-const CHECK_LINE = /^\s*-\s*\[([ xX])\]\s?(.*)$/
-
-function escapeHtml(value: string) {
-  return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
-}
-
-/** Notes saved before the rich editor are plain text, with "- [ ] item" lines for checklists. */
-function bodyHtml(body: string) {
-  if (!body.trim() || /^\s*</.test(body)) return body
-  let html = ""
-  let open = false
-  for (const line of body.split("\n")) {
-    const match = line.match(CHECK_LINE)
-    if (match) {
-      if (!open) html += '<ul data-type="taskList">'
-      open = true
-      const checked = match[1].toLowerCase() === "x"
-      html += `<li data-type="taskItem" data-checked="${checked}"><label><input type="checkbox"${checked ? " checked" : ""}><span></span></label><div><p>${escapeHtml(match[2])}</p></div></li>`
-      continue
-    }
-    if (open) html += "</ul>"
-    open = false
-    if (line.trim()) html += `<p>${escapeHtml(line)}</p>`
-  }
-  return open ? html + "</ul>" : html
 }
 
 function noteTitle(note: Pick<Note, "title" | "body">) {
@@ -108,6 +83,9 @@ export default function NotesPage() {
   const [body, setBody] = useState("")
   const [saving, setSaving] = useState(false)
   const [pendingDelete, setPendingDelete] = useState<{ id: string; title: string } | null>(null)
+  const [shareOpen, setShareOpen] = useState(false)
+  const [shareEnabled, setShareEnabled] = useState(false)
+  const [shareSaving, setShareSaving] = useState(false)
   const pending = useRef<{ id: string; title: string; body: string } | null>(null)
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
   // Which note the editor fields currently hold, so a note opened from the URL loads once.
@@ -234,6 +212,23 @@ export default function NotesPage() {
     setPendingDelete({ id: openId, title: noteTitle({ title, body }) })
   }
 
+  function openShare() {
+    setShareEnabled(Boolean(notes?.find((note) => note.id === openId)?.shareEnabled))
+    setShareOpen(true)
+  }
+
+  async function saveSharing() {
+    setShareSaving(true)
+    try {
+      await setNoteShared(openId, shareEnabled)
+      setShareOpen(false)
+    } catch {
+      toast.error("Couldn't update sharing for this note.")
+    } finally {
+      setShareSaving(false)
+    }
+  }
+
   async function removeFromList(id: string) {
     if (id === openId) {
       await remove()
@@ -247,8 +242,8 @@ export default function NotesPage() {
   }
 
   // Header nodes are memoized (they go through context); handlers are read from a ref so they stay current.
-  const latest = useRef({ edit, close, askDelete })
-  latest.current = { edit, close, askDelete }
+  const latest = useRef({ edit, close, askDelete, openShare })
+  latest.current = { edit, close, askDelete, openShare }
 
   const headerBack = useMemo(
     () => (headerOpen ? { label: "Back to notes", onClick: () => latest.current.close() } : null),
@@ -269,6 +264,9 @@ export default function NotesPage() {
   const headerActions = useMemo(
     () => headerOpen ? (
       <>
+        <Button type="button" variant="ghost" size="icon" className="size-10 text-muted-foreground [&_svg]:size-5" onClick={() => latest.current.openShare()} aria-label="Share note">
+          <Share2 aria-hidden="true" />
+        </Button>
         <Button type="button" variant="ghost" size="icon" className="size-10 text-muted-foreground hover:text-destructive [&_svg]:size-5" onClick={() => latest.current.askDelete()} aria-label="Delete note">
           <Trash2 aria-hidden="true" />
         </Button>
@@ -365,6 +363,9 @@ export default function NotesPage() {
                   />
                   <div className="flex shrink-0 items-center gap-2">
                     <span className="text-xs text-muted-foreground" aria-live="polite">{saving ? "Saving…" : "Saved"}</span>
+                    <Button type="button" variant="ghost" size="icon" className="size-8 text-muted-foreground" onClick={openShare} aria-label="Share note">
+                      <Share2 className="size-4" aria-hidden="true" />
+                    </Button>
                     <Button type="button" variant="ghost" size="icon" className="size-8 text-muted-foreground hover:text-destructive" onClick={askDelete} aria-label="Delete note">
                       <Trash2 className="size-4" aria-hidden="true" />
                     </Button>
@@ -372,7 +373,7 @@ export default function NotesPage() {
                 </div>
                 <RichTextEditor
                   key={openId}
-                  value={bodyHtml(body)}
+                  value={noteBodyHtml(body)}
                   onChange={(html) => edit({ body: html })}
                   placeholder="Start writing"
                   scrollable
@@ -386,6 +387,22 @@ export default function NotesPage() {
           </section>
         </div>
       )}
+      <Dialog open={shareOpen} onOpenChange={setShareOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Share note</DialogTitle>
+            <DialogDescription>Anyone with the public link can read this note. They cannot edit it.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <ShareLinkField enabled={shareEnabled} onEnabledChange={setShareEnabled} path={openId ? `/share/notes/${encodeURIComponent(openId)}` : undefined} />
+            <div className="flex justify-end border-t border-border pt-4">
+              <Button onClick={() => void saveSharing()} disabled={shareSaving}>
+                {shareSaving ? "Saving" : "Save sharing"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
       <AlertDialog open={pendingDelete !== null} onOpenChange={(open) => !open && setPendingDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>

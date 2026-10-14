@@ -7,9 +7,10 @@ import { ChevronDown, DollarSign, FileText, House, Images, ListTodo, Mail, MoreV
 import { AnalyticsSkeleton, AnalyticsView } from "@/components/company/analytics-view"
 import { CampaignBrief } from "@/components/dashboard/campaign-brief"
 import { CampaignCreatives } from "@/components/dashboard/campaign-creatives"
-import { CampaignHome, type CampaignTab } from "@/components/dashboard/campaign-home"
+import { CampaignHome, type CampaignQuickAction, type CampaignTab } from "@/components/dashboard/campaign-home"
 import { CampaignPeople } from "@/components/dashboard/campaign-people"
 import { CampaignPayments } from "@/components/dashboard/campaign-payments"
+import { CampaignGenerateButton } from "@/components/dashboard/campaign-generate"
 import { CampaignSettings } from "@/components/dashboard/campaign-settings"
 import { CaseStudyForm } from "@/components/dashboard/case-study-form"
 import { ProjectShareButton } from "@/components/dashboard/project-share-button"
@@ -112,9 +113,20 @@ export function ProjectDetail({
   const campaignMedia = creatives.filter((item) => item.type !== "text")
   const mediaItems = campaignMedia.filter((item) => item.type !== "folder")
   const [shareOpen, setShareOpen] = useState(false)
+  const [quickAction, setQuickAction] = useState<Exclude<CampaignQuickAction, "run"> | null>(null)
+  const [runCampaignOpen, setRunCampaignOpen] = useState(false)
   const [titleDraft, setTitleDraft] = useState(project.title)
   const [titleEditing, setTitleEditing] = useState(false)
   const [titleSaving, setTitleSaving] = useState(false)
+
+  function startQuickAction(action: CampaignQuickAction) {
+    if (action === "run") {
+      setRunCampaignOpen(true)
+      return
+    }
+    setQuickAction(action)
+    setTab(action === "creator" ? "people" : action === "post" ? "creatives" : "media")
+  }
 
   useEffect(() => {
     setTitleDraft(project.title)
@@ -367,12 +379,26 @@ export function ProjectDetail({
 
           <div className="min-w-0 flex-1 md:pb-6">
             {tab === "home" ? (
-              <CampaignHome
-                people={roster}
-                content={contentItems}
-                canReview={canReview}
-                onOpen={setTab}
-              />
+              <>
+                <CampaignHome
+                  people={roster}
+                  content={contentItems}
+                  canReview={canReview}
+                  canEdit={canEditCampaign}
+                  onOpen={setTab}
+                  onAction={startQuickAction}
+                />
+                {canEditCampaign && (
+                  <CampaignGenerateButton
+                    project={project}
+                    companyName={project.client || clientName}
+                    onPatched={onProjectPatched}
+                    open={runCampaignOpen}
+                    onOpenChange={setRunCampaignOpen}
+                    hideTrigger
+                  />
+                )}
+              </>
             ) : tab === "analytics" ? (
               peopleLoaded && creativesLoaded ? (
                 <AnalyticsView scope={{ type: "campaign", campaignId: project.id }} people={roster} content={contentItems} invoices={invoices} />
@@ -389,6 +415,8 @@ export function ProjectDetail({
                 projectId={project.id}
                 canEdit={canEditCampaign}
                 canReview={canReview}
+                startNew={quickAction === "creator"}
+                onActionHandled={() => setQuickAction(null)}
               />
             ) : tab === "creatives" || tab === "media" ? (
               <CampaignCreatives
@@ -401,6 +429,8 @@ export function ProjectDetail({
                 projectId={project.id}
                 canEdit={canEditCampaign}
                 canReview={canReview}
+                startNew={quickAction === "post" || quickAction === "media"}
+                onActionHandled={() => setQuickAction(null)}
               />
             ) : tab === "payments" ? (
               <CampaignPayments

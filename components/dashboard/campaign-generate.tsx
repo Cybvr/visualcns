@@ -32,16 +32,22 @@ const PARTS: { key: PartKey; label: string }[] = [
  * unticked, and it works down the list one part at a time. Clients without an
  * active plan get the upgrade window instead.
  */
-export function CampaignGenerateButton({ project, companyName, onPatched }: { project: Project; companyName: string; onPatched?: (patch: Partial<Project>) => void }) {
+export function CampaignGenerateButton({ project, companyName, onPatched, open: controlledOpen, onOpenChange, hideTrigger = false }: { project: Project; companyName: string; onPatched?: (patch: Partial<Project>) => void; open?: boolean; onOpenChange?: (open: boolean) => void; hideTrigger?: boolean }) {
   const { user } = useAuth()
   const { tasks } = useCompanyPage()
   const billing = useSubscription(project.companyId)
-  const [open, setOpen] = useState(false)
+  const [internalOpen, setInternalOpen] = useState(false)
   const [posts, setPosts] = useState<CampaignCreative[]>([])
   const [steps, setSteps] = useState<Partial<Record<PartKey, Step>>>({})
   const [running, setRunning] = useState(false)
   const [upgradeOpen, setUpgradeOpen] = useState(false)
   const hasAbout = Boolean(project.about?.trim())
+  const open = controlledOpen ?? internalOpen
+
+  function setOpen(next: boolean) {
+    if (controlledOpen === undefined) setInternalOpen(next)
+    onOpenChange?.(next)
+  }
 
   useEffect(() => (open ? watchCampaignCreatives(project.id, setPosts, () => setPosts([])) : undefined), [open, project.id])
 
@@ -102,10 +108,12 @@ export function CampaignGenerateButton({ project, companyName, onPatched }: { pr
 
   return (
     <>
-      <Button type="button" variant="ghost" onClick={openDialog}>
-        <Image src="/ngai-logo.png" alt="" width={16} height={16} className="rounded-full" />
-        <span className="underline underline-offset-4">Build with Ngai</span>
-      </Button>
+      {!hideTrigger && (
+        <Button type="button" variant="ghost" onClick={openDialog}>
+          <Image src="/ngai-logo.png" alt="" width={16} height={16} className="rounded-full" />
+          <span className="underline underline-offset-4">Build with Ngai</span>
+        </Button>
+      )}
 
       <Dialog open={open} onOpenChange={(next) => { if (!running) setOpen(next) }}>
         <DialogContent className="sm:max-w-sm">

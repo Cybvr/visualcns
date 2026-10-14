@@ -146,6 +146,7 @@ export function CompanyProfileShell({ children }: { children: ReactNode }) {
 
   type SectionItem = (typeof sections)[number]
   const sidebarSections = sections.filter((item) => item.key !== "activity")
+  const overduePayments = invoices.filter((invoice) => invoice.status === "overdue").length
 
   function renderItem(item: SectionItem) {
     const Icon = item.icon
@@ -168,6 +169,15 @@ export function CompanyProfileShell({ children }: { children: ReactNode }) {
             {item.key === "projects" && (
               <span className="ml-auto inline-flex size-5 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-semibold tabular-nums text-primary-foreground group-data-[collapsible=icon]:hidden">
                 {projects.length}
+              </span>
+            )}
+            {item.key === "finance" && overduePayments > 0 && (
+              <span
+                className="ml-auto inline-flex min-w-5 shrink-0 items-center justify-center rounded-full bg-destructive/10 px-1.5 text-[10px] font-semibold leading-5 tabular-nums text-destructive group-data-[collapsible=icon]:hidden"
+                aria-label={`${overduePayments} overdue payment${overduePayments === 1 ? "" : "s"}`}
+                title={`${overduePayments} overdue payment${overduePayments === 1 ? "" : "s"}`}
+              >
+                {overduePayments > 99 ? "99+" : overduePayments}
               </span>
             )}
           </CompanySidebarLink>

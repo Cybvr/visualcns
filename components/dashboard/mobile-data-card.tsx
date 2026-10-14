@@ -100,7 +100,10 @@ export function MobileDataCard({
       {variant === "inline" ? (
         <div className="flex min-w-0 flex-1 items-baseline gap-3">
           <p className="w-32 max-w-[38%] shrink-0 truncate text-sm text-foreground lg:w-40">{title}</p>
-          <div className="flex min-w-0 flex-1 items-baseline gap-1">
+          <div className={cn(
+            "flex min-w-0 items-baseline gap-1",
+            trailing !== undefined ? "w-[min(28rem,42vw)] shrink-0 max-sm:w-auto max-sm:flex-1" : "flex-1",
+          )}>
             {subtitle !== undefined && <span className="max-w-[70%] shrink-0 truncate text-sm text-foreground">{subtitle}</span>}
             {description !== undefined && <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">— {description}</span>}
           </div>
@@ -165,7 +168,14 @@ export function MobileDataCard({
           className={cn("absolute inset-0 z-0 rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-ring", surface === "muted" && "rounded-xl", surface === "list" && "rounded-none")}
         />
       ) : null}
-      <div className="pointer-events-none relative z-0 flex min-w-0 flex-1 items-center gap-3">{content}</div>
+      <div
+        className={cn(
+          "pointer-events-none relative z-0 flex min-w-0 items-center gap-3",
+          variant === "inline" && trailing !== undefined ? "flex-[0_1_auto] max-w-full max-sm:flex-1" : "flex-1",
+        )}
+      >
+        {content}
+      </div>
       {trailing !== undefined && (
         <div className="relative z-0 shrink-0 text-right text-xs text-muted-foreground">{trailing}</div>
       )}
@@ -176,7 +186,10 @@ export function MobileDataCard({
               type="button"
               aria-label={menuLabel}
               title={menuLabel}
-              className="relative z-10 flex size-8 shrink-0 items-center justify-center rounded-full bg-transparent text-foreground outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring"
+              className={cn(
+                "relative z-10 flex size-8 shrink-0 items-center justify-center rounded-full bg-transparent text-foreground outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring",
+                variant === "inline" && trailing !== undefined && "ml-auto",
+              )}
             >
               <EllipsisVertical className="size-5" aria-hidden="true" />
             </button>

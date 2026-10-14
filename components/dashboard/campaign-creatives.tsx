@@ -48,6 +48,9 @@ interface CampaignCreativesProps {
   kind?: "content" | "media"
   /** The campaign's Media files, to pick a post's picture from. */
   library?: CampaignCreative[]
+  /** Opens the relevant create flow when the campaign home quick action is used. */
+  startNew?: boolean
+  onActionHandled?: () => void
 }
 
 // Images are shrunk before upload; these match what the storage rules accept.
@@ -69,7 +72,7 @@ export function StatusPill({ status }: { status: string }) {
  * A campaign's Content (written posts and hooks to approve) or its Media
  * (images, videos and links kept with it).
  */
-export function CampaignCreatives({ creatives, agencyId, companyId, projectId, canEdit, canReview = false, kind = "content", library = [] }: CampaignCreativesProps) {
+export function CampaignCreatives({ creatives, agencyId, companyId, projectId, canEdit, canReview = false, kind = "content", library = [], startNew = false, onActionHandled }: CampaignCreativesProps) {
   const scope = { agencyId, companyId, projectId }
   // Posts read in the order they were written, so the announcement leads.
   const posts = kind === "content" ? creatives.filter((item) => item.type === "text").reverse() : []
@@ -78,6 +81,12 @@ export function CampaignCreatives({ creatives, agencyId, companyId, projectId, c
   const [deleting, setDeleting] = useState<CampaignCreative | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const selected = posts.find((post) => post.id === selectedId) ?? null
+
+  useEffect(() => {
+    if (!startNew || (kind !== "content" && kind !== "media")) return
+    if (kind === "content") setEditing("new")
+    onActionHandled?.()
+  }, [kind, onActionHandled, startNew])
 
   // The copy starts as a draft so it goes through review again.
   async function duplicatePost(post: CampaignCreative) {
@@ -141,8 +150,11 @@ export function CampaignCreatives({ creatives, agencyId, companyId, projectId, c
                 ? <video src={post.mediaUrl} muted playsInline preload="metadata" className="size-full object-cover" />
                 // eslint-disable-next-line @next/next/no-img-element
                 : <img src={post.mediaUrl} alt="" loading="lazy" className="size-full object-cover" />
-            ) : (
-              <p className="line-clamp-6 size-full p-4 text-left text-sm leading-6 text-muted-foreground">{post.body?.trim() || "No caption yet."}</p>
+            ) : undefined,
+            placeholder: (
+              <div className="flex size-full items-center justify-center bg-muted/30" aria-label="No thumbnail available">
+                <ImageIcon className="size-10 text-muted-foreground/45" aria-hidden="true" />
+              </div>
             ),
             onClick: () => setSelectedId(post.id),
             ariaLabel: `Preview ${post.title}`,
@@ -199,7 +211,7 @@ export function CampaignCreatives({ creatives, agencyId, companyId, projectId, c
     )
   }
 
-  return <MediaLibrary files={files} scope={scope} canEdit={canEdit} />
+  return <MediaLibrary files={files} scope={scope} canEdit={canEdit} startNew={startNew} onActionHandled={onActionHandled} />
 }
 
 async function saveCreative(id: string, patch: Partial<Pick<CampaignCreative, "title" | "status" | "body" | "postedBy" | "mediaUrl" | "mediaType">>) {
@@ -447,7 +459,7 @@ const STATUS_SHORT: Record<(typeof CREATIVE_STATUSES)[number], string> = {
  * The Media tab: search, Add link and Upload in the toolbar, then the files.
  * Files can also be dropped anywhere on the tab.
  */
-function MediaLibrary({ files, scope, canEdit }: { files: CampaignCreative[]; scope: { agencyId?: string; companyId: string; projectId: string }; canEdit: boolean }) {
+function MediaLibrary({ files, scope, canEdit, startNew = false, onActionHandled }: { files: CampaignCreative[]; scope: { agencyId?: string; companyId: string; projectId: string }; canEdit: boolean; startNew?: boolean; onActionHandled?: () => void }) {
   const fileInput = useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = useState<string | null>(null)
   const [dragging, setDragging] = useState(false)
@@ -455,6 +467,7 @@ function MediaLibrary({ files, scope, canEdit }: { files: CampaignCreative[]; sc
   const [activeFolderId, setActiveFolderId] = useState<string | null>(null)
   const [folderDialog, setFolderDialog] = useState<CampaignCreative | "new" | null>(null)
   const [deletingFolder, setDeletingFolder] = useState<CampaignCreative | null>(null)
+  const [newMediaMenuOpen, setNewMediaMenuOpen] = useState(false)
   const folders = files.filter((item) => item.type === "folder")
   const media = files.filter((item) => item.type !== "folder")
   const activeFolder = folders.find((item) => item.id === activeFolderId) ?? null
@@ -465,6 +478,12 @@ function MediaLibrary({ files, scope, canEdit }: { files: CampaignCreative[]; sc
   const viewable = browsedItems.filter((item) => item.type === "image" || item.type === "video")
   const [viewingId, setViewingId] = useState<string | null>(null)
   const open = (creative: CampaignCreative) => (creative.type === "link" ? window.open(creative.url, "_blank", "noopener,noreferrer") : setViewingId(creative.id))
+
+  useEffect(() => {
+    if (!canEdit || !startNew) return
+    setNewMediaMenuOpen(true)
+    onActionHandled?.()
+  }, [canEdit, onActionHandled, startNew])
 
   useEffect(() => {
     if (activeFolderId && files.length > 0 && !folders.some((item) => item.id === activeFolderId)) setActiveFolderId(null)
@@ -591,7 +610,7 @@ function MediaLibrary({ files, scope, canEdit }: { files: CampaignCreative[]; sc
         searchPlaceholder={activeFolder ? `Search ${activeFolder.title}` : "Search media"}
         viewKey="campaign-media"
         actions={canEdit ? (
-          <DropdownMenu>
+          <DropdownMenu open={newMediaMenuOpen} onOpenChange={setNewMediaMenuOpen}>
             <DropdownMenuTrigger asChild>
               <SectionAddButton label="New media" disabled={Boolean(uploading)} />
             </DropdownMenuTrigger>

@@ -38,8 +38,8 @@ const consultingNavItems = [
 
 const bookNowHref = "/contact"
 
-// Rendered after the Resources dropdown so the order reads:
-// Customers, Products, Solutions, Resources, Pricing.
+// Rendered after the Help dropdown so the order reads:
+// Customers, Products, Solutions, Help, Pricing.
 const trailingNavItems = [
   { name: "Pricing", href: "/pricing" },
 ]
@@ -50,14 +50,11 @@ const serviceNavItems = capabilities.map((service) => ({
   description: service.description,
 }))
 
-const resourceNavItems = [
-  { name: "Company", href: "/about", description: "Our story, values, and team." },
-  { name: "Templates", href: "/templates", description: "Ready-to-use starting points." },
-  { name: "News", href: "/blog", description: "Updates, guides, and announcements." },
-  { name: "VisualHQ", href: "/visualhq", description: "Who we are and what we do." },
-  { name: "Industries", href: "/industries", description: "See the markets VisualHQ builds for." },
-  { name: "Help", href: "/help", description: "Ask Ngai, or read the FAQs." },
-  { name: "Careers", href: "https://pasive.co/jobs", description: "Open roles across the team." },
+const helpNavItems = [
+  { name: "Ask Ngai", href: "/help" },
+  { name: "FAQs", href: "/help?tab=faqs" },
+  { name: "Resources", href: "/help?tab=resources" },
+  { name: "Workflows", href: "/help?tab=workflows" },
 ]
 
 type MenuRow =
@@ -71,7 +68,7 @@ const MENU_ROWS: MenuRow[] = [
 
 const num = (i: number) => String(i + 1).padStart(2, "0")
 
-// Customers, Products, Solutions, and Resources open the same full-width overlay as More,
+// Customers, Products, Solutions, and Help open the same full-width overlay as More,
 // with their items rendered as the same big numbered rows.
 const customerRows: MenuRow[] = customerNavItems.map((customer, i) => ({
   number: num(i),
@@ -83,26 +80,26 @@ const solutionsRows: MenuRow[] = [
   { number: "01", title: "All Solutions", href: "/capabilities" },
   ...serviceNavItems.map((service, i) => ({ number: num(i + 1), title: service.name, href: service.href })),
 ]
-const resourcesRows: MenuRow[] = resourceNavItems.map((resource, i) => ({ number: num(i), title: resource.name, href: resource.href }))
+const helpRows: MenuRow[] = helpNavItems.map((item, i) => ({ number: num(i), title: item.name, href: item.href }))
 
-// On mobile there's no separate Customers/Products/Solutions/Resources/Pricing button (they're
+// On mobile there's no separate Customers/Products/Solutions/Help/Pricing button (they're
 // hidden below lg), so the "More" overlay folds them in alongside Consulting.
 const mobileMoreRows: MenuRow[] = [
   { number: num(0), title: "Customers", items: customerNavItems },
   { number: num(1), title: "Products", items: productNavItems },
   { number: num(2), title: "Solutions", items: solutionsRows.map(({ title, href }) => ({ name: title, href: href as string })) },
-  { number: num(3), title: "Resources", items: resourceNavItems },
+  { number: num(3), title: "Help", items: helpNavItems },
   { number: num(4), title: "Pricing", href: "/pricing" },
   ...MENU_ROWS.map((row, i) => ({ ...row, number: num(i + 5) }) as MenuRow),
 ]
 
-type MenuKind = "more" | "customers" | "products" | "solutions" | "resources"
+type MenuKind = "more" | "customers" | "products" | "solutions" | "help"
 const MENU_TITLES: Record<MenuKind, string> = {
   more: "More",
   customers: "Customers",
   products: "Products",
   solutions: "Solutions",
-  resources: "Resources",
+  help: "Help",
 }
 
 const MONO_LABEL = "font-mono text-[0.6875rem] uppercase tracking-[0.24em]"
@@ -276,7 +273,7 @@ export function Header() {
                 <ChevronDown className={`size-3.5 transition-transform ${activeMenu === "products" ? "rotate-180" : ""}`} aria-hidden="true" />
               </button>
 
-              {/* Products, Solutions and Resources open the same full-width overlay as More. */}
+              {/* Products, Solutions and Help open the same full-width overlay as More. */}
               <button
                 type="button"
                 onClick={() => toggleMenu("solutions")}
@@ -292,15 +289,15 @@ export function Header() {
 
               <button
                 type="button"
-                onClick={() => toggleMenu("resources")}
-                aria-expanded={activeMenu === "resources"}
+                onClick={() => toggleMenu("help")}
+                aria-expanded={activeMenu === "help"}
                 aria-controls="site-menu"
                 className={`inline-flex items-center gap-1 outline-none transition-colors hover:text-accent focus-visible:text-accent ${NAV_LABEL} ${
-                  activeMenu === "resources" ? "text-accent" : ""
+                  activeMenu === "help" || isCurrent("/help") ? "text-accent" : ""
                 }`}
               >
-                Resources
-                <ChevronDown className={`size-3.5 transition-transform ${activeMenu === "resources" ? "rotate-180" : ""}`} aria-hidden="true" />
+                Help
+                <ChevronDown className={`size-3.5 transition-transform ${activeMenu === "help" ? "rotate-180" : ""}`} aria-hidden="true" />
               </button>
 
               {trailingNavItems.map((item) => (
@@ -382,7 +379,7 @@ export function Header() {
           <div className="mx-auto max-w-7xl px-4 pb-20 pt-6 sm:px-8 md:px-20 md:pt-10">
             {activeMenu === "more" ? (
               <>
-                {/* Mobile: Customers/Products/Solutions/Resources/Pricing have no other entry point, so fold them in here. */}
+                {/* Mobile: Customers/Products/Solutions/Help/Pricing have no other entry point, so fold them in here. */}
                 <ul className="lg:hidden">{renderRows(mobileMoreRows)}</ul>
                 <ul className="hidden lg:block">{renderRows(MENU_ROWS)}</ul>
               </>
@@ -395,7 +392,7 @@ export function Header() {
                       ? productRows
                       : activeMenu === "solutions"
                         ? solutionsRows
-                        : resourcesRows,
+                        : helpRows,
                 )}
               </ul>
             )}

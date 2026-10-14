@@ -206,7 +206,9 @@ service cloud.firestore {
 
     // Notes without a companyId are shared across the agency. Company notes are
     // limited to that company's people and the agency admins who manage them.
+    // A shared note can be opened by anyone with its link, read only.
     match /notes/{id} {
+      allow get: if resource.data.get('shareEnabled', false) == true;
       allow read, delete: if sameAgency(resource.data)
         && (resource.data.get('companyId', '') == '' || agencyAdmin(resource.data) || owns(resource.data));
       allow create: if sameAgency(request.resource.data)

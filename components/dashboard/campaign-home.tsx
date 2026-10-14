@@ -1,23 +1,30 @@
 "use client"
 
+import { Images, Megaphone, PenLine, UserPlus } from "lucide-react"
+
 import { Button } from "@/components/ui/button"
 import { creativeStatus, READY_FOR_REVIEW, updateCampaignCreative, type CampaignCreative } from "@/lib/campaign-creatives"
 import type { CampaignPerson } from "@/lib/campaign-people"
 import { toast } from "sonner"
 
 export type CampaignTab = "home" | "analytics" | "about" | "people" | "creatives" | "media" | "payments" | "tasks" | "settings"
+export type CampaignQuickAction = "run" | "creator" | "post" | "media"
 
 /** A campaign at a glance: where it stands and what's waiting on you. */
 export function CampaignHome({
   people,
   content,
   canReview,
+  canEdit,
   onOpen,
+  onAction,
 }: {
   people: CampaignPerson[]
   content: CampaignCreative[]
   canReview: boolean
+  canEdit: boolean
   onOpen: (tab: CampaignTab) => void
+  onAction: (action: CampaignQuickAction) => void
 }) {
   const posts = content.filter((item) => item.type === "text")
   const approved = posts.filter((post) => creativeStatus(post) === "Approved").length
@@ -77,6 +84,30 @@ export function CampaignHome({
           </div>
         ))}
       </div>
+
+      {canEdit && (
+        <section aria-label="Campaign actions" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {[
+            { action: "run" as const, label: "Run Campaign", description: "Build the strategy, posts and tasks.", icon: Megaphone },
+            { action: "creator" as const, label: "New Creator", description: "Add someone to the campaign roster.", icon: UserPlus },
+            { action: "post" as const, label: "New Post", description: "Write a post for review or approval.", icon: PenLine },
+            { action: "media" as const, label: "New Media", description: "Upload a file or add a useful link.", icon: Images },
+          ].map(({ action, label, description, icon: Icon }) => (
+            <button
+              key={action}
+              type="button"
+              onClick={() => onAction(action)}
+              className="group flex min-h-28 flex-col items-start justify-between rounded-2xl border border-border bg-card p-5 text-left outline-none transition-colors hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <Icon className="size-5 text-muted-foreground transition-colors group-hover:text-foreground" aria-hidden="true" />
+              <span>
+                <span className="block text-sm font-semibold text-foreground">{label}</span>
+                <span className="mt-1 block text-xs leading-5 text-muted-foreground">{description}</span>
+              </span>
+            </button>
+          ))}
+        </section>
+      )}
 
       <section>
         <h3 className="text-lg font-semibold tracking-[-0.01em] text-foreground">To review</h3>

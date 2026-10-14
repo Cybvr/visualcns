@@ -25,17 +25,16 @@ const footerGroups = [
       { name: "Careers", href: "https://pasive.co/jobs" },
       { name: "Contact", href: "/contact" },
       { name: "Pricing", href: "/pricing" },
-      { name: "Help", href: "/help" },
     ],
   },
   {
     number: "03",
-    title: "Resources",
+    title: "Help",
     links: [
-      { name: "Blog", href: "/blog" },
-      { name: "Templates", href: "/templates" },
-      { name: "Capabilities", href: "/capabilities" },
-      { name: "Industries", href: "/industries" },
+      { name: "Ask Ngai", href: "/help" },
+      { name: "FAQs", href: "/help?tab=faqs" },
+      { name: "Resources", href: "/help?tab=resources" },
+      { name: "Workflows", href: "/help?tab=workflows" },
     ],
   },
 ]

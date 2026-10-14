@@ -1,11 +1,12 @@
 "use client"
 
-import { useRef, useState, type FormEvent, type ReactNode } from "react"
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react"
 import { UserRound, Users } from "lucide-react"
 import { toast } from "sonner"
 
 import { SectionAddButton } from "@/components/company/section-add-button"
 import { CollectionView } from "@/components/dashboard/collection-view"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
@@ -53,6 +54,9 @@ interface CampaignPeopleProps {
   canEdit: boolean
   /** The client's own people: can add a suggested creator. */
   canReview?: boolean
+  /** Opens the add form when the campaign home quick action is used. */
+  startNew?: boolean
+  onActionHandled?: () => void
 }
 
 const fieldClass = "h-9 w-full min-w-0 rounded-md border border-input bg-transparent px-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
@@ -61,7 +65,7 @@ const fieldClass = "h-9 w-full min-w-0 rounded-md border border-input bg-transpa
  * The Creators tab: everyone on the campaign as cards or a list. The agency adds
  * creators in the row above the list or by Import, and opens any of them to change the rest.
  */
-export function CampaignPeople({ people, agencyId, companyId, projectId, canEdit, canReview = false }: CampaignPeopleProps) {
+export function CampaignPeople({ people, agencyId, companyId, projectId, canEdit, canReview = false, startNew = false, onActionHandled }: CampaignPeopleProps) {
   const [openId, setOpenId] = useState<string | null>(null)
   const [adding, setAdding] = useState(false)
   const [importing, setImporting] = useState(false)
@@ -69,6 +73,12 @@ export function CampaignPeople({ people, agencyId, companyId, projectId, canEdit
   const open = people.find((person) => person.id === openId) ?? null
   // Added creators first, then suggestions, each by best match.
   const sorted = [...people].sort((a, b) => Number(onRoster(b)) - Number(onRoster(a)) || (b.overlap ?? 0) - (a.overlap ?? 0))
+
+  useEffect(() => {
+    if (!canEdit || !startNew) return
+    setAdding(true)
+    onActionHandled?.()
+  }, [canEdit, onActionHandled, startNew])
 
   async function addToRoster(person: CampaignPerson) {
     try {
@@ -147,10 +157,16 @@ export function CampaignPeople({ people, agencyId, companyId, projectId, canEdit
         }}
         card={(person) => {
           const suggested = !onRoster(person)
+          const status = suggested ? "Suggested" : person.status
           return {
             icon: <UserRound className="size-4 text-muted-foreground" aria-hidden="true" />,
             title: person.handle,
-            subtitle: [suggested ? "Suggested" : person.status, payLabel(person)].join(" · "),
+            subtitle: (
+              <span className="inline-flex min-w-0 items-center gap-2">
+                <Badge variant="secondary" className="rounded-full">{status}</Badge>
+                <span className="truncate">{payLabel(person)}</span>
+              </span>
+            ),
             preview: <CreatorThumbnail person={person} />,
             onClick: canEdit || profileUrl(person) ? () => openPerson(person) : undefined,
             ariaLabel: canEdit ? `Edit ${person.handle}` : `Open ${person.handle}`,
@@ -158,11 +174,18 @@ export function CampaignPeople({ people, agencyId, companyId, projectId, canEdit
             menu: menuFor(person),
           }
         }}
-        row={(person) => ({
-          subtitle: [person.app, person.category, `${compactCount(person.followers)} followers`].filter(Boolean).join(" · "),
-          description: onRoster(person) ? person.status : "Suggested",
-          trailing: payLabel(person),
-        })}
+        row={(person) => {
+          const status = onRoster(person) ? person.status : "Suggested"
+          return {
+            subtitle: [person.app, person.category, `${compactCount(person.followers)} followers`].filter(Boolean).join(" · "),
+            trailing: (
+              <span className="grid w-56 max-w-[42vw] grid-cols-[minmax(0,1fr)_auto] items-center gap-3 max-sm:w-auto max-sm:max-w-none">
+                <Badge variant="secondary" className="max-w-full justify-self-start rounded-full">{status}</Badge>
+                <span className="whitespace-nowrap">{payLabel(person)}</span>
+              </span>
+            ),
+          }
+        }}
       />
 
       {canEdit && <ImportDialog open={importing} onOpenChange={setImporting} scope={{ agencyId, companyId, projectId }} />}
