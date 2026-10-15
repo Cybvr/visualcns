@@ -14,6 +14,7 @@ import { CampaignGenerateButton } from "@/components/dashboard/campaign-generate
 import { CampaignSettings } from "@/components/dashboard/campaign-settings"
 import { CaseStudyForm } from "@/components/dashboard/case-study-form"
 import { CompanyNgaiChat } from "@/components/company/sections/ngai-section"
+import { ShareDialog } from "@/components/dashboard/share-dialog"
 import { ProjectShareButton } from "@/components/dashboard/project-share-button"
 import { ProjectTeamPicker } from "@/components/dashboard/project-team-picker"
 import { TasksView } from "@/components/dashboard/tasks-view"
@@ -37,6 +38,8 @@ interface ProjectDetailProps {
   isAdmin: boolean
   publicView?: boolean
   companyId?: string
+  /** Public company URL segment used for shareable campaign and post links. */
+  companySlug?: string
   clientName?: string
   /** The client's logo, shown as the poster on campaign posts. */
   clientLogoUrl?: string
@@ -64,6 +67,7 @@ export function ProjectDetail({
   isAdmin,
   publicView = false,
   companyId = "",
+  companySlug,
   clientName = "",
   clientLogoUrl,
   embedded = false,
@@ -116,6 +120,9 @@ export function ProjectDetail({
   const contentItems = creatives.filter((item) => item.type === "text")
   const campaignMedia = creatives.filter((item) => item.type !== "text")
   const mediaItems = campaignMedia.filter((item) => item.type !== "folder")
+  const publicCompanyRef = companySlug || project.companyId || companyId
+  const campaignSharePath = `/${encodeURIComponent(publicCompanyRef)}/projects?campaign=${encodeURIComponent(project.id)}`
+  const postSharePath = (post: CampaignCreative) => `${campaignSharePath}&view=content&post=${encodeURIComponent(post.id)}`
   const [shareOpen, setShareOpen] = useState(false)
   const [quickAction, setQuickAction] = useState<Exclude<CampaignQuickAction, "run"> | null>(null)
   const [runCampaignOpen, setRunCampaignOpen] = useState(false)
@@ -240,6 +247,11 @@ export function ProjectDetail({
 
     return (
       <div className="flex items-center gap-1">
+        <ShareDialog
+          path={campaignSharePath}
+          title={`Share ${project.title}`}
+          shareText={`See the ${project.title} campaign`}
+        />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button
@@ -290,7 +302,7 @@ export function ProjectDetail({
         )}
       </div>
     )
-  }, [clientName, companyId, fetchTasks, isAdmin, project, publicView, shareOpen, tasks.length])
+  }, [campaignSharePath, clientName, companyId, fetchTasks, isAdmin, project, publicView, shareOpen, tasks.length])
 
   usePageHeaderActions(embedded ? null : headerActions)
 
@@ -437,6 +449,7 @@ export function ProjectDetail({
                 projectId={project.id}
                 canEdit={canEditCampaign}
                 canReview={canReview}
+                sharePath={canEditCampaign ? postSharePath : undefined}
                 startNew={quickAction === "post" || quickAction === "media"}
                 onActionHandled={() => setQuickAction(null)}
               />

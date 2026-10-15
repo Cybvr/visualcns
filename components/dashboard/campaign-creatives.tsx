@@ -1,7 +1,8 @@
 "use client"
 
 import { createContext, useContext, useEffect, useRef, useState, type FormEvent } from "react"
-import { Bookmark, ChevronLeft, ChevronRight, ExternalLink, Folder, FolderInput, Heart, Image as ImageIcon, Images, ImagePlus, Link2, MessageCircle, MoreHorizontal, Palette, Pencil, Repeat2, Send, Video, VolumeX, X } from "lucide-react"
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
+import { Bookmark, ChevronLeft, ChevronRight, ExternalLink, Folder, FolderInput, Heart, Image as ImageIcon, Images, ImagePlus, Link2, MessageCircle, MoreHorizontal, Palette, Pencil, Repeat2, Send, Share2, Video, VolumeX, X } from "lucide-react"
 import { toast } from "sonner"
 
 import {
@@ -19,6 +20,7 @@ import { SectionAddButton } from "@/components/company/section-add-button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { CollectionView } from "@/components/dashboard/collection-view"
+import { ShareDialog } from "@/components/dashboard/share-dialog"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
@@ -51,6 +53,8 @@ interface CampaignCreativesProps {
   /** Opens the relevant create flow when the campaign home quick action is used. */
   startNew?: boolean
   onActionHandled?: () => void
+  /** Builds a public deep link for an individual content post. */
+  sharePath?: (post: CampaignCreative) => string
 }
 
 // Images are shrunk before upload; these match what the storage rules accept.
@@ -72,7 +76,7 @@ export function StatusPill({ status }: { status: string }) {
  * A campaign's Content (written posts and hooks to approve) or its Media
  * (images, videos and links kept with it).
  */
-export function CampaignCreatives({ creatives, agencyId, companyId, projectId, canEdit, canReview = false, kind = "content", library = [], startNew = false, onActionHandled }: CampaignCreativesProps) {
+export function CampaignCreatives({ creatives, agencyId, companyId, projectId, canEdit, canReview = false, kind = "content", library = [], startNew = false, onActionHandled, sharePath }: CampaignCreativesProps) {
   const scope = { agencyId, companyId, projectId }
   // Newest post first; the list arrives sorted that way.
   const posts = kind === "content" ? creatives.filter((item) => item.type === "text") : []
@@ -80,7 +84,16 @@ export function CampaignCreatives({ creatives, agencyId, companyId, projectId, c
   const [editing, setEditing] = useState<CampaignCreative | "new" | null>(null)
   const [deleting, setDeleting] = useState<CampaignCreative | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [shareOpen, setShareOpen] = useState(false)
   const selected = posts.find((post) => post.id === selectedId) ?? null
+  const pathname = usePathname()
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const linkedPostId = searchParams.get("post")
+
+  useEffect(() => {
+    if (linkedPostId && posts.some((post) => post.id === linkedPostId)) setSelectedId(linkedPostId)
+  }, [linkedPostId, posts])
 
   useEffect(() => {
     if (!startNew || (kind !== "content" && kind !== "media")) return
@@ -107,13 +120,31 @@ export function CampaignCreatives({ creatives, agencyId, companyId, projectId, c
     }
   }
 
+  function openPost(post: CampaignCreative) {
+    setSelectedId(post.id)
+    const params = new URLSearchParams(searchParams.toString())
+    params.set("post", post.id)
+    router.push(`${pathname}?${params.toString()}`, { scroll: false })
+  }
+
+  function closePost() {
+    setSelectedId(null)
+    setShareOpen(false)
+    if (!linkedPostId) return
+    const params = new URLSearchParams(searchParams.toString())
+    params.delete("post")
+    const query = params.toString()
+    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false })
+  }
+
   function postMenu(post: CampaignCreative) {
-    if (!canEdit && !canReview) return undefined
+    if (!canEdit && !canReview && !sharePath) return undefined
     const status = creativeStatus(post)
     const setStatus = (next: string) => void saveCreative(post.id, { status: next })
     return (
       <>
-        <DropdownMenuItem onSelect={() => setEditing(post)}>{canEdit ? "Edit" : "Edit text"}</DropdownMenuItem>
+        {sharePath && <DropdownMenuItem onSelect={() => { openPost(post); setShareOpen(true) }}>Share</DropdownMenuItem>}
+        {(canEdit || canReview) && <DropdownMenuItem onSelect={() => setEditing(post)}>{canEdit ? "Edit" : "Edit text"}</DropdownMenuItem>}
         {canReview && status !== "Approved" && <DropdownMenuItem onSelect={() => setStatus("Approved")}>Approve</DropdownMenuItem>}
         {canReview && status !== "Approved" && <DropdownMenuItem onSelect={() => setStatus("Changes requested")}>Request changes</DropdownMenuItem>}
         {canReview && status === "Approved" && <DropdownMenuItem onSelect={() => setStatus(READY_FOR_REVIEW)}>Undo approval</DropdownMenuItem>}
@@ -156,7 +187,7 @@ export function CampaignCreatives({ creatives, agencyId, companyId, projectId, c
                 <ImageIcon className="size-10 text-muted-foreground/45" aria-hidden="true" />
               </div>
             ),
-            onClick: () => setSelectedId(post.id),
+            onClick: () => openPost(post),
             ariaLabel: `Preview ${post.title}`,
             menuLabel: `Options for ${post.title}`,
             menu: postMenu(post),
@@ -167,12 +198,24 @@ export function CampaignCreatives({ creatives, agencyId, companyId, projectId, c
         <CampaignPostViewDialog
           post={selected}
           open={Boolean(selected)}
-          onClose={() => setSelectedId(null)}
+          onClose={closePost}
           canEdit={canEdit}
           canReview={canReview}
           posts={posts}
-          onNavigate={(post) => setSelectedId(post.id)}
+          onNavigate={openPost}
+          onShare={sharePath ? () => setShareOpen(true) : undefined}
         />
+
+        {sharePath && selected && (
+          <ShareDialog
+            path={sharePath(selected)}
+            title={`Share ${selected.title || "post"}`}
+            shareText={`See ${selected.title || "this post"}`}
+            open={shareOpen}
+            onOpenChange={setShareOpen}
+            showTrigger={false}
+          />
+        )}
 
         <PostDialog
           post={editing === "new" ? null : editing}
@@ -261,6 +304,7 @@ export function CampaignPostViewDialog({
   canReview = false,
   posts = [],
   onNavigate,
+  onShare,
 }: {
   post: CampaignCreative | null
   open: boolean
@@ -269,6 +313,7 @@ export function CampaignPostViewDialog({
   canReview?: boolean
   posts?: CampaignCreative[]
   onNavigate?: (post: CampaignCreative) => void
+  onShare?: () => void
 }) {
   const brand = useContext(CampaignBrandContext)
   const currentIndex = post ? posts.findIndex((item) => item.id === post.id) : -1
@@ -374,7 +419,11 @@ export function CampaignPostViewDialog({
                 <Heart className="size-7" aria-hidden="true" />
                 <MessageCircle className="size-7" aria-hidden="true" />
                 <Repeat2 className="size-7" aria-hidden="true" />
-                <Send className="size-7" aria-hidden="true" />
+                {onShare ? (
+                  <Button type="button" variant="ghost" size="icon" className="size-8 text-foreground" onClick={onShare} aria-label="Share post" title="Share post">
+                    <Share2 className="size-6" aria-hidden="true" />
+                  </Button>
+                ) : <Send className="size-7" aria-hidden="true" />}
               </div>
               <Bookmark className="size-7" aria-hidden="true" />
             </div>
@@ -445,7 +494,11 @@ export function CampaignPostViewDialog({
                     <Heart className="size-6" aria-hidden="true" />
                     <MessageCircle className="size-6" aria-hidden="true" />
                     <Repeat2 className="size-6" aria-hidden="true" />
-                    <Send className="size-6" aria-hidden="true" />
+                    {onShare ? (
+                      <Button type="button" variant="ghost" size="icon" className="size-8 text-foreground" onClick={onShare} aria-label="Share post" title="Share post">
+                        <Share2 className="size-5" aria-hidden="true" />
+                      </Button>
+                    ) : <Send className="size-6" aria-hidden="true" />}
                   </div>
                   <Bookmark className="size-6" aria-hidden="true" />
                 </div>

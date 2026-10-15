@@ -38,6 +38,7 @@ export default function ProjectDetailPage() {
   const [project, setProject] = useState<Project | null>(null)
   const [invoices, setInvoices] = useState<Invoice[]>([])
   const [clientLogoUrl, setClientLogoUrl] = useState<string>()
+  const [companySlug, setCompanySlug] = useState<string>()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
 
@@ -49,7 +50,11 @@ export default function ProjectDetailPage() {
     if (!projectCompanyId) return
     let active = true
     getOrganization(projectCompanyId)
-      .then((organization) => { if (active) setClientLogoUrl(organization?.logoUrl || undefined) })
+      .then((organization) => {
+        if (!active) return
+        setClientLogoUrl(organization?.logoUrl || undefined)
+        setCompanySlug(organization?.slug || undefined)
+      })
       .catch(() => {})
     return () => { active = false }
   }, [projectCompanyId])
@@ -117,6 +122,7 @@ export default function ProjectDetailPage() {
         project={project}
         isAdmin={isAdmin}
         companyId={companyId}
+        companySlug={companySlug}
         clientName={clientName}
         clientLogoUrl={clientLogoUrl}
         invoices={invoices}
