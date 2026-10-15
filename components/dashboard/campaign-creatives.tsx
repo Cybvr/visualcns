@@ -306,7 +306,9 @@ export function CampaignPostViewDialog({
   }, [open, post])
 
   const [editing, setEditing] = useState(false)
-  useEffect(() => setEditing(false), [open, post?.id])
+  const [captionOpen, setCaptionOpen] = useState(false)
+  const swipeStart = useRef<number | null>(null)
+  useEffect(() => { setEditing(false); setCaptionOpen(false) }, [open, post?.id])
 
   if (!open || !post) return null
 
@@ -316,24 +318,90 @@ export function CampaignPostViewDialog({
       role="presentation"
       onMouseDown={(event) => { if (event.target === event.currentTarget) onClose() }}
     >
-      <button type="button" aria-label="Close post preview" onClick={onClose} className="fixed right-4 top-4 z-[102] grid size-10 place-items-center rounded-full text-white outline-none transition-colors hover:bg-white/15 focus-visible:ring-2 focus-visible:ring-white/80">
+      <button type="button" aria-label="Close post preview" onClick={onClose} className="fixed right-4 top-4 z-[102] grid size-10 place-items-center rounded-full text-white outline-none max-md:right-3 max-md:top-3 max-md:bg-black/40 transition-colors hover:bg-white/15 focus-visible:ring-2 focus-visible:ring-white/80">
         <X className="size-7" aria-hidden="true" />
       </button>
       {onNavigate && posts.length > 1 && (
-        <>
+        <div className="max-md:hidden">
           <button type="button" aria-label="Previous post" disabled={!previous} onClick={() => previous && onNavigate(previous)} className="fixed left-3 top-1/2 z-[102] grid size-10 -translate-y-1/2 place-items-center rounded-full bg-background text-foreground shadow-lg outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-35 sm:left-6">
             <ChevronLeft className="size-5" aria-hidden="true" />
           </button>
           <button type="button" aria-label="Next post" disabled={!next} onClick={() => next && onNavigate(next)} className="fixed right-3 top-1/2 z-[102] grid size-10 -translate-y-1/2 place-items-center rounded-full bg-background text-foreground shadow-lg outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-35 sm:right-6">
             <ChevronRight className="size-5" aria-hidden="true" />
           </button>
-        </>
+        </div>
       )}
+      {/* Phones: laid out like an Instagram post, picture edge to edge, then the actions and caption. */}
+      <section
+        role="dialog"
+        aria-modal="true"
+        aria-label={post.title || "Post"}
+        className="fixed inset-0 z-[101] overflow-y-auto overscroll-contain bg-background md:hidden"
+      >
+        <div
+          className="relative bg-black"
+          onTouchStart={(event) => { swipeStart.current = event.touches[0]?.clientX ?? null }}
+          onTouchEnd={(event) => {
+            const start = swipeStart.current
+            swipeStart.current = null
+            const end = event.changedTouches[0]?.clientX
+            if (start === null || end === undefined || !onNavigate || Math.abs(end - start) < 50) return
+            const target = end < start ? next : previous
+            if (target) onNavigate(target)
+          }}
+        >
+          {post.mediaUrl ? (
+            post.mediaType === "video" ? (
+              <video key={post.mediaUrl} src={post.mediaUrl} controls playsInline className="max-h-[80svh] w-full object-contain" />
+            ) : (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={post.mediaUrl} alt="" className="max-h-[80svh] w-full object-contain" />
+            )
+          ) : (
+            <div className="flex aspect-[4/5] items-center justify-center" aria-label="No media attached">
+              <ImageIcon className="size-8 text-white/40" aria-hidden="true" />
+            </div>
+          )}
+          <BrandAvatar className="absolute bottom-3 left-3 size-9 shadow-md" />
+        </div>
+
+        {editing ? (
+          <InlinePostEditor post={post} canEdit={canEdit} canReview={canReview} onCancel={() => setEditing(false)} onSaved={() => setEditing(false)} />
+        ) : (
+          <div className="px-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-3">
+            <div className="flex items-center justify-between text-foreground">
+              <div className="flex items-center gap-5">
+                <Heart className="size-7" aria-hidden="true" />
+                <MessageCircle className="size-7" aria-hidden="true" />
+                <Repeat2 className="size-7" aria-hidden="true" />
+                <Send className="size-7" aria-hidden="true" />
+              </div>
+              <Bookmark className="size-7" aria-hidden="true" />
+            </div>
+            <p className={cn("mt-3 whitespace-pre-wrap break-words text-[15px] leading-6 text-foreground", !captionOpen && "line-clamp-3")}>
+              <span className="font-semibold">{post.postedBy === "Roster" ? "Creators" : brand.name || "Post"}</span>{" "}
+              {post.body?.trim() || <span className="text-muted-foreground">No caption yet.</span>}
+            </p>
+            {!captionOpen && (post.body?.trim().length ?? 0) > 120 && (
+              <button type="button" onClick={() => setCaptionOpen(true)} className="mt-0.5 text-[15px] text-muted-foreground outline-none">more</button>
+            )}
+            <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
+              <span className="min-w-0 truncate">{post.title || "Post"}</span>
+              <StatusPill status={creativeStatus(post)} />
+              <span className="shrink-0">{postDate(post)}</span>
+            </div>
+            {(canEdit || canReview) && (
+              <Button type="button" size="sm" className="mt-4" onClick={() => setEditing(true)}>Edit post</Button>
+            )}
+          </div>
+        )}
+      </section>
+
       <section
         role="dialog"
         aria-modal="true"
         aria-labelledby={`post-view-title-${post.id}`}
-        className="relative flex max-h-[90svh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl bg-background shadow-2xl md:grid md:grid-cols-[minmax(0,1.15fr)_minmax(18rem,0.85fr)]"
+        className="relative hidden max-h-[90svh] w-full max-w-5xl overflow-hidden rounded-2xl bg-background shadow-2xl md:grid md:grid-cols-[minmax(0,1.15fr)_minmax(18rem,0.85fr)]"
       >
         <div className="relative flex max-h-[45svh] min-h-64 shrink-0 items-center justify-center bg-black md:max-h-none md:min-h-0">
             {post.mediaUrl ? (
