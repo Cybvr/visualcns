@@ -84,6 +84,7 @@ export default function NotesPage() {
   const [saving, setSaving] = useState(false)
   const [pendingDelete, setPendingDelete] = useState<{ id: string; title: string } | null>(null)
   const [shareOpen, setShareOpen] = useState(false)
+  const [sharingId, setSharingId] = useState("")
   const [shareEnabled, setShareEnabled] = useState(false)
   const [shareSaving, setShareSaving] = useState(false)
   const pending = useRef<{ id: string; title: string; body: string } | null>(null)
@@ -212,15 +213,16 @@ export default function NotesPage() {
     setPendingDelete({ id: openId, title: noteTitle({ title, body }) })
   }
 
-  function openShare() {
-    setShareEnabled(Boolean(notes?.find((note) => note.id === openId)?.shareEnabled))
+  function openShare(noteId = openId) {
+    setSharingId(noteId)
+    setShareEnabled(Boolean(notes?.find((note) => note.id === noteId)?.shareEnabled))
     setShareOpen(true)
   }
 
   async function saveSharing() {
     setShareSaving(true)
     try {
-      await setNoteShared(openId, shareEnabled)
+      await setNoteShared(sharingId || openId, shareEnabled)
       setShareOpen(false)
     } catch {
       toast.error("Couldn't update sharing for this note.")
@@ -337,6 +339,7 @@ export default function NotesPage() {
                         menuLabel={`Options for ${noteTitle(shown)}`}
                         menu={<>
                           <DropdownMenuItem onSelect={() => void open(note)}>Open note</DropdownMenuItem>
+                          <DropdownMenuItem onSelect={() => openShare(note.id)}>Share note</DropdownMenuItem>
                           <DropdownMenuItem variant="destructive" onSelect={() => setPendingDelete({ id: note.id, title: noteTitle(note) })}>Delete note</DropdownMenuItem>
                         </>}
                       />
@@ -363,7 +366,7 @@ export default function NotesPage() {
                   />
                   <div className="flex shrink-0 items-center gap-2">
                     <span className="text-xs text-muted-foreground" aria-live="polite">{saving ? "Saving…" : "Saved"}</span>
-                    <Button type="button" variant="ghost" size="icon" className="size-8 text-muted-foreground" onClick={openShare} aria-label="Share note">
+                    <Button type="button" variant="ghost" size="icon" className="size-8 text-muted-foreground" onClick={() => openShare()} aria-label="Share note">
                        <Send className="size-4" aria-hidden="true" />
                     </Button>
                     <Button type="button" variant="ghost" size="icon" className="size-8 text-muted-foreground hover:text-destructive" onClick={askDelete} aria-label="Delete note">
@@ -394,7 +397,7 @@ export default function NotesPage() {
             <DialogDescription>Anyone with the public link can read this note. They cannot edit it.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <ShareLinkField enabled={shareEnabled} onEnabledChange={setShareEnabled} path={openId ? `/share/notes/${encodeURIComponent(openId)}` : undefined} />
+            <ShareLinkField enabled={shareEnabled} onEnabledChange={setShareEnabled} path={(sharingId || openId) ? `/share/notes/${encodeURIComponent(sharingId || openId)}` : undefined} />
             <div className="flex justify-end border-t border-border pt-4">
               <Button onClick={() => void saveSharing()} disabled={shareSaving}>
                 {shareSaving ? "Saving" : "Save sharing"}

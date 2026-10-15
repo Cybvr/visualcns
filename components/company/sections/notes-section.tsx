@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { StickyNote, Trash2, X } from "lucide-react"
+import { Send, StickyNote, Trash2, X } from "lucide-react"
 import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
@@ -10,6 +10,7 @@ import { CompanyEmptyState } from "@/components/company/empty-state"
 import { SectionAddButton } from "@/components/company/section-add-button"
 import { CollectionView } from "@/components/dashboard/collection-view"
 import { RichTextEditor } from "@/components/dashboard/rich-text-editor"
+import { ShareLinkField } from "@/components/dashboard/share-link-field"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,11 +22,12 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { Sheet, SheetClose, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { useUrlSelection } from "@/hooks/use-url-selection"
 import { formatMarkdownParagraphs } from "@/lib/markdown"
-import { createNote, deleteNote, updateNote, watchCompanyNotes, type Note } from "@/lib/notes"
+import { createNote, deleteNote, setNoteShared, updateNote, watchCompanyNotes, type Note } from "@/lib/notes"
 
 const SAVE_DELAY = 600
 const ENTITIES: Record<string, string> = { "&nbsp;": " ", "&amp;": "&", "&lt;": "<", "&gt;": ">", "&quot;": '"', "&#39;": "'" }
@@ -95,6 +97,10 @@ export function NotesSection() {
   const [body, setBody] = useState("")
   const [saving, setSaving] = useState(false)
   const [pendingDelete, setPendingDelete] = useState<Note | null>(null)
+  const [sharingNote, setSharingNote] = useState<Note | null>(null)
+  const [shareOpen, setShareOpen] = useState(false)
+  const [shareEnabled, setShareEnabled] = useState(false)
+  const [shareSaving, setShareSaving] = useState(false)
   const pending = useRef<{ id: string; title: string; body: string } | null>(null)
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const loadedId = useRef("")
@@ -180,6 +186,26 @@ export function NotesSection() {
     select(null)
   }
 
+  function openShare(note: Note) {
+    setSharingNote(note)
+    setShareEnabled(note.shareEnabled === true)
+    setShareOpen(true)
+  }
+
+  async function saveSharing() {
+    if (!sharingNote) return
+    setShareSaving(true)
+    try {
+      const id = sharingNote.id
+      await setNoteShared(id, shareEnabled)
+      setShareOpen(false)
+    } catch {
+      toast.error("Couldn't update sharing for this note.")
+    } finally {
+      setShareSaving(false)
+    }
+  }
+
   async function remove(note: Note) {
     if (note.id === openId) {
       if (timer.current) clearTimeout(timer.current)
@@ -203,6 +229,7 @@ export function NotesSection() {
   const noteMenu = (note: Note) => (
     <>
       <DropdownMenuItem onSelect={() => { void flush().then(() => load(note)) }}>Open note</DropdownMenuItem>
+      <DropdownMenuItem onSelect={() => openShare(note)}>Share note</DropdownMenuItem>
       <DropdownMenuItem variant="destructive" onSelect={() => setPendingDelete(note)}>Delete note</DropdownMenuItem>
     </>
   )
@@ -227,7 +254,11 @@ export function NotesSection() {
           icon: <StickyNote className="size-4 text-amber-600 dark:text-amber-400" aria-hidden="true" />,
           title: noteTitle(note),
           subtitle: editedAt(note.updatedAt),
-          preview: <p className="line-clamp-6 size-full p-4 text-left text-sm leading-6 text-muted-foreground">{notePreview(note)}</p>,
+          placeholder: (
+            <div className="flex size-full items-center justify-center bg-muted/30" aria-label="Note thumbnail">
+              <StickyNote className="size-12 text-amber-600/60 dark:text-amber-400/60" aria-hidden="true" />
+            </div>
+          ),
           onClick: () => { void flush().then(() => load(note)) },
           ariaLabel: `Open note: ${noteTitle(note)}`,
           menuLabel: `Options for ${noteTitle(note)}`,
@@ -250,6 +281,12 @@ export function NotesSection() {
                 className="min-w-0 flex-1 bg-transparent text-lg font-medium outline-none placeholder:text-muted-foreground"
               />
               <span className="shrink-0 text-xs text-muted-foreground" aria-live="polite">{saving ? "Saving…" : "Saved"}</span>
+              <Button type="button" variant="ghost" size="icon" className="size-8 text-muted-foreground" onClick={() => {
+                const note = notes?.find((item) => item.id === openId)
+                if (note) openShare(note)
+              }} aria-label="Share note">
+                <Send className="size-4" aria-hidden="true" />
+              </Button>
               <Button type="button" variant="ghost" size="icon" className="size-8 text-muted-foreground hover:text-destructive" onClick={() => {
                 const note = notes?.find((item) => item.id === openId)
                 if (note) setPendingDelete({ ...note, title, body })
@@ -274,6 +311,23 @@ export function NotesSection() {
           />
         </SheetContent>
       </Sheet>
+
+      <Dialog open={shareOpen} onOpenChange={setShareOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Share note</DialogTitle>
+            <DialogDescription>Anyone with the public link can read this note. They cannot edit it.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <ShareLinkField enabled={shareEnabled} onEnabledChange={setShareEnabled} path={sharingNote ? `/share/notes/${encodeURIComponent(sharingNote.id)}` : undefined} />
+            <div className="flex justify-end border-t border-border pt-4">
+              <Button onClick={() => void saveSharing()} disabled={shareSaving}>
+                {shareSaving ? "Saving" : "Save sharing"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <AlertDialog open={pendingDelete !== null} onOpenChange={(open) => { if (!open) setPendingDelete(null) }}>
         <AlertDialogContent>

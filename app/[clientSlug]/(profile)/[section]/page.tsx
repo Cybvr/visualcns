@@ -1,7 +1,27 @@
+import type { Metadata } from "next"
+import { headers } from "next/headers"
 import { redirect } from "next/navigation"
 
 import { CompanySection } from "@/components/company/sections/company-section"
 import { isCompanySection } from "@/components/company/company-sections"
+import { publicProjectsMetadata } from "@/lib/server/page-metadata"
+
+// The layout can't see the query string, so shared campaign and post links get their preview here.
+export async function generateMetadata({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ clientSlug: string; section: string }>
+  searchParams: Promise<{ campaign?: string | string[]; post?: string | string[] }>
+}): Promise<Metadata> {
+  const { clientSlug, section } = await params
+  if (section !== "projects") return {}
+  const { campaign, post } = await searchParams
+  const first = (value?: string | string[]) => (Array.isArray(value) ? value[0] : value)
+  const path = `/${encodeURIComponent(clientSlug)}/projects`
+  const requestHeaders = await headers()
+  return publicProjectsMetadata(clientSlug, section, path, { campaign: first(campaign), post: first(post) }, requestHeaders.get("x-agency-subdomain") || "")
+}
 
 export default async function CompanySectionPage({ params, searchParams }: { params: Promise<{ clientSlug: string; section: string }>; searchParams: Promise<{ doc?: string; task?: string }> }) {
   const { clientSlug, section } = await params
