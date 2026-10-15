@@ -1,7 +1,7 @@
 "use client"
 
-import { useEffect, useRef, useState, type FormEvent } from "react"
-import { Bookmark, ChevronLeft, ChevronRight, CircleUserRound, ExternalLink, Folder, FolderInput, Heart, Image as ImageIcon, Images, ImagePlus, Link2, MessageCircle, MoreHorizontal, Palette, Pencil, Repeat2, Send, Video, VolumeX, X } from "lucide-react"
+import { createContext, useContext, useEffect, useRef, useState, type FormEvent } from "react"
+import { Bookmark, ChevronLeft, ChevronRight, ExternalLink, Folder, FolderInput, Heart, Image as ImageIcon, Images, ImagePlus, Link2, MessageCircle, MoreHorizontal, Palette, Pencil, Repeat2, Send, Video, VolumeX, X } from "lucide-react"
 import { toast } from "sonner"
 
 import {
@@ -224,6 +224,26 @@ async function removeCreative(id: string) {
   }
 }
 
+/** The client whose campaign this is, so a post shows their name and logo as the poster. */
+export const CampaignBrandContext = createContext<{ name: string; logoUrl?: string }>({ name: "" })
+
+/** The client's logo in a circle, or their initials when there is none. */
+function BrandAvatar({ className }: { className?: string }) {
+  const { name, logoUrl } = useContext(CampaignBrandContext)
+  const initials = name.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join("")
+  return (
+    <span className={cn("grid shrink-0 place-items-center overflow-hidden rounded-full border border-border bg-white", className)}>
+      {logoUrl ? (
+        // Company logos can be hosted outside the configured image domains.
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={logoUrl} alt="" className="size-[70%] object-contain" />
+      ) : (
+        <span className="text-xs font-semibold text-[#16181D]">{initials || "?"}</span>
+      )}
+    </span>
+  )
+}
+
 // Stored as Founder or Roster; shown in plain words.
 const POSTED_BY = [{ value: "Founder", label: "You" }, { value: "Roster", label: "Creators" }] as const
 
@@ -250,6 +270,7 @@ export function CampaignPostViewDialog({
   posts?: CampaignCreative[]
   onNavigate?: (post: CampaignCreative) => void
 }) {
+  const brand = useContext(CampaignBrandContext)
   const currentIndex = post ? posts.findIndex((item) => item.id === post.id) : -1
   const previous = currentIndex > 0 ? posts[currentIndex - 1] : null
   const next = currentIndex >= 0 && currentIndex < posts.length - 1 ? posts[currentIndex + 1] : null
@@ -330,7 +351,7 @@ export function CampaignPostViewDialog({
         </div>
         <div className="flex min-h-0 flex-1 flex-col bg-background">
           <header className="relative flex items-center gap-3 border-b border-border px-5 py-4 pr-14">
-            <span className="grid size-9 shrink-0 place-items-center rounded-full bg-muted"><CircleUserRound className="size-5 text-muted-foreground" aria-hidden="true" /></span>
+            <BrandAvatar className="size-9" />
             <div className="min-w-0 flex-1">
               <h2 id={`post-view-title-${post.id}`} className="flex min-w-0 items-center gap-2 text-sm font-semibold">
                 <span className="min-w-0 truncate">{post.title || "Post"}</span>
@@ -346,8 +367,8 @@ export function CampaignPostViewDialog({
             <>
               <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5">
                 <div className="flex gap-3 text-sm leading-6 text-foreground">
-                  <CircleUserRound className="mt-1 size-5 shrink-0 text-muted-foreground" aria-hidden="true" />
-                  <p className="min-w-0 whitespace-pre-wrap break-words"><span className="font-semibold">{post.postedBy === "Roster" ? "Creators" : "Post"}</span>{" "}{post.body?.trim() || <span className="text-muted-foreground">No caption yet.</span>}</p>
+                  <BrandAvatar className="mt-0.5 size-6" />
+                  <p className="min-w-0 whitespace-pre-wrap break-words"><span className="font-semibold">{post.postedBy === "Roster" ? "Creators" : brand.name || "Post"}</span>{" "}{post.body?.trim() || <span className="text-muted-foreground">No caption yet.</span>}</p>
                 </div>
               </div>
               <footer className="border-t border-border px-5 py-4">

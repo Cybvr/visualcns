@@ -9,6 +9,7 @@ import { DashboardPageSkeleton } from "@/components/dashboard/dashboard-page-ske
 import { ProjectDetail } from "@/components/dashboard/project-detail"
 import { usePageTitle } from "@/components/dashboard/page-title-context"
 import { getInvoicesByCompanyId, getPublicInvoicesByCompanyId, type Invoice } from "@/lib/billing"
+import { getOrganization } from "@/lib/organizations"
 import { getProjectBySlug, type Project } from "@/lib/projects"
 
 /** Goes back a step in history, falling back to the dashboard on a cold open. */
@@ -36,10 +37,22 @@ export default function ProjectDetailPage() {
 
   const [project, setProject] = useState<Project | null>(null)
   const [invoices, setInvoices] = useState<Invoice[]>([])
+  const [clientLogoUrl, setClientLogoUrl] = useState<string>()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
 
   usePageTitle(project?.title ?? null)
+
+  // The client's logo, shown as the poster on the campaign's posts.
+  const projectCompanyId = project?.companyId
+  useEffect(() => {
+    if (!projectCompanyId) return
+    let active = true
+    getOrganization(projectCompanyId)
+      .then((organization) => { if (active) setClientLogoUrl(organization?.logoUrl || undefined) })
+      .catch(() => {})
+    return () => { active = false }
+  }, [projectCompanyId])
 
   const fetchProject = useCallback(async () => {
     if (!slug) return
@@ -105,6 +118,7 @@ export default function ProjectDetailPage() {
         isAdmin={isAdmin}
         companyId={companyId}
         clientName={clientName}
+        clientLogoUrl={clientLogoUrl}
         invoices={invoices}
         onProjectPatched={handleProjectPatched}
         onProjectDeleted={() => router.push("/dashboard/projects")}

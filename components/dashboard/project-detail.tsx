@@ -6,7 +6,7 @@ import { ChevronDown, DollarSign, FileText, House, Images, ListTodo, Mail, MoreV
 
 import { AnalyticsSkeleton, AnalyticsView } from "@/components/company/analytics-view"
 import { CampaignBrief } from "@/components/dashboard/campaign-brief"
-import { CampaignCreatives } from "@/components/dashboard/campaign-creatives"
+import { CampaignBrandContext, CampaignCreatives } from "@/components/dashboard/campaign-creatives"
 import { CampaignHome, type CampaignQuickAction, type CampaignTab } from "@/components/dashboard/campaign-home"
 import { CampaignPeople } from "@/components/dashboard/campaign-people"
 import { CampaignPayments } from "@/components/dashboard/campaign-payments"
@@ -38,6 +38,8 @@ interface ProjectDetailProps {
   publicView?: boolean
   companyId?: string
   clientName?: string
+  /** The client's logo, shown as the poster on campaign posts. */
+  clientLogoUrl?: string
   embedded?: boolean
   onProjectPatched?: (patch: Partial<Project>) => void
   onProjectDeleted?: () => void | Promise<void>
@@ -63,6 +65,7 @@ export function ProjectDetail({
   publicView = false,
   companyId = "",
   clientName = "",
+  clientLogoUrl,
   embedded = false,
   onProjectPatched,
   onProjectDeleted,
@@ -318,7 +321,10 @@ export function ProjectDetail({
     ...(canEditCampaign ? [{ key: "settings", label: "Settings", icon: Settings }] : []),
   ] as { key: CampaignTab; label: string; count?: number; icon: LucideIcon }[]
 
+  const brand = useMemo(() => ({ name: project.client || clientName, logoUrl: clientLogoUrl }), [clientLogoUrl, clientName, project.client])
+
   return (
+    <CampaignBrandContext.Provider value={brand}>
     <div className="space-y-2 md:space-y-4">
       {isAdmin || publicView ? (
         <div className="flex flex-col gap-2 md:-mb-6 md:flex-row md:gap-8">
@@ -460,5 +466,6 @@ export function ProjectDetail({
         <div className="min-w-0">{tasksPanel}</div>
       )}
     </div>
+    </CampaignBrandContext.Provider>
   )
 }

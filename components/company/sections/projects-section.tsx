@@ -245,6 +245,7 @@ export function ProjectsSection() {
               embedded
               companyId={company.id}
               clientName={company.name}
+              clientLogoUrl={company.logoUrl}
               publicTasks={admin ? undefined : publicTasks}
               /* The agency writes and manages; only the client approves. */
               canEditCampaign={canCreate}
