@@ -312,9 +312,9 @@ export function CampaignPostViewDialog({
         role="dialog"
         aria-modal="true"
         aria-labelledby={`post-view-title-${post.id}`}
-        className="relative grid max-h-[90svh] w-full max-w-5xl overflow-hidden rounded-2xl bg-background shadow-2xl md:grid-cols-[minmax(0,1.15fr)_minmax(18rem,0.85fr)]"
+        className="relative flex max-h-[90svh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl bg-background shadow-2xl md:grid md:grid-cols-[minmax(0,1.15fr)_minmax(18rem,0.85fr)]"
       >
-        <div className="relative flex max-h-[45svh] min-h-64 items-center justify-center bg-black md:max-h-none md:min-h-0">
+        <div className="relative flex max-h-[45svh] min-h-64 shrink-0 items-center justify-center bg-black md:max-h-none md:min-h-0">
             {post.mediaUrl ? (
               post.mediaType === "video" ? (
                 <video key={post.mediaUrl} src={post.mediaUrl} controls playsInline className="max-h-[45svh] max-w-full object-contain md:max-h-[90svh]" />
@@ -328,7 +328,7 @@ export function CampaignPostViewDialog({
               </div>
             )}
         </div>
-        <div className="flex min-h-0 flex-col bg-background">
+        <div className="flex min-h-0 flex-1 flex-col bg-background">
           <header className="relative flex items-center gap-3 border-b border-border px-5 py-4 pr-14">
             <span className="grid size-9 shrink-0 place-items-center rounded-full bg-muted"><CircleUserRound className="size-5 text-muted-foreground" aria-hidden="true" /></span>
             <div className="min-w-0 flex-1">
@@ -347,7 +347,7 @@ export function CampaignPostViewDialog({
               <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5">
                 <div className="flex gap-3 text-sm leading-6 text-foreground">
                   <CircleUserRound className="mt-1 size-5 shrink-0 text-muted-foreground" aria-hidden="true" />
-                  <p><span className="font-semibold">{post.postedBy === "Roster" ? "Creators" : "Post"}</span>{" "}{post.body?.trim() || <span className="text-muted-foreground">No caption yet.</span>}</p>
+                  <p className="min-w-0 whitespace-pre-wrap break-words"><span className="font-semibold">{post.postedBy === "Roster" ? "Creators" : "Post"}</span>{" "}{post.body?.trim() || <span className="text-muted-foreground">No caption yet.</span>}</p>
                 </div>
               </div>
               <footer className="border-t border-border px-5 py-4">
