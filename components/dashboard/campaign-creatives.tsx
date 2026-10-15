@@ -74,8 +74,8 @@ export function StatusPill({ status }: { status: string }) {
  */
 export function CampaignCreatives({ creatives, agencyId, companyId, projectId, canEdit, canReview = false, kind = "content", library = [], startNew = false, onActionHandled }: CampaignCreativesProps) {
   const scope = { agencyId, companyId, projectId }
-  // Posts read in the order they were written, so the announcement leads.
-  const posts = kind === "content" ? creatives.filter((item) => item.type === "text").reverse() : []
+  // Newest post first; the list arrives sorted that way.
+  const posts = kind === "content" ? creatives.filter((item) => item.type === "text") : []
   const files = creatives.filter((item) => item.type !== "text")
   const [editing, setEditing] = useState<CampaignCreative | "new" | null>(null)
   const [deleting, setDeleting] = useState<CampaignCreative | null>(null)
