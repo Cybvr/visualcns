@@ -8,7 +8,7 @@ import StarterKit from "@tiptap/starter-kit"
 import { TaskItem, TaskList } from "@tiptap/extension-list"
 import { TableKit } from "@tiptap/extension-table"
 
-import { looksLikeMarkdown, markdownToHtml } from "@/lib/markdown"
+import { formatMarkdownParagraphs, looksLikeMarkdown, markdownToHtml } from "@/lib/markdown"
 import {
   Bold,
   Code2,
@@ -186,11 +186,19 @@ export function RichTextEditor({
     // Next renders this on the server first, and tiptap needs the DOM.
     immediatelyRender: false,
     editorProps: {
-      // Pasted plain text that is really Markdown arrives as literal #, * and |,
-      // so format it before it lands. Rich (text/html) pastes are left untouched.
+      // Pasted text that is really Markdown arrives as literal #, * and |,
+      // so format it before it lands. Rich pastes with real structure are left untouched.
       handlePaste: (_view, event) => {
         const clipboard = event.clipboardData
-        if (!clipboard || clipboard.getData("text/html")) return false
+        if (!clipboard) return false
+        const pastedHtml = clipboard.getData("text/html")
+        if (pastedHtml) {
+          // Some apps copy Markdown as plain paragraphs, so tables arrive as "| a | b |" lines.
+          const formatted = formatMarkdownParagraphs(pastedHtml)
+          if (!formatted) return false
+          editorRef.current?.chain().focus().insertContent(formatted).run()
+          return true
+        }
         const text = clipboard.getData("text/plain")
         if (!text || !looksLikeMarkdown(text)) return false
         editorRef.current?.chain().focus().insertContent(markdownToHtml(text)).run()

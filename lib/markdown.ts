@@ -135,3 +135,30 @@ export function markdownToHtml(markdown: string) {
   closeList()
   return html.join("\n")
 }
+
+const HTML_ENTITIES: Record<string, string> = { "&nbsp;": " ", "&amp;": "&", "&lt;": "<", "&gt;": ">", "&quot;": '"', "&#39;": "'" }
+const MARKDOWN_ROW = /^\s*(\||[-*+]\s|\d+[.)]\s)/
+
+/**
+ * HTML that is only plain paragraphs whose text is really Markdown, as when a
+ * chat answer is copied and its tables arrive as "| a | b |" lines. Returns it
+ * formatted, or null when the HTML already has structure or isn't Markdown.
+ */
+export function formatMarkdownParagraphs(html: string): string | null {
+  if (/<(table|h[1-6]|ul|ol|pre|blockquote)\b/i.test(html)) return null
+  const lines = html
+    .replace(/<\/(p|div|li|tr)>|<br\s*\/?>/gi, "\n")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&(nbsp|amp|lt|gt|quot|#39);/g, (entity) => HTML_ENTITIES[entity] ?? entity)
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+  const text = lines.join("\n")
+  if (!looksLikeMarkdown(text)) return null
+  // Each paragraph is its own block, but table rows and list items stay together.
+  const markdown = lines
+    .map((line, index) => (index > 0 && MARKDOWN_ROW.test(line) && MARKDOWN_ROW.test(lines[index - 1]) && line.trim()[0] === lines[index - 1].trim()[0] ? "\n" : "\n\n") + line)
+    .join("")
+    .trim()
+  return markdownToHtml(markdown)
+}

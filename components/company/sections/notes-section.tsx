@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { StickyNote, Trash2 } from "lucide-react"
+import { StickyNote, Trash2, X } from "lucide-react"
 import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
@@ -22,8 +22,9 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
+import { Sheet, SheetClose, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { useUrlSelection } from "@/hooks/use-url-selection"
+import { formatMarkdownParagraphs } from "@/lib/markdown"
 import { createNote, deleteNote, updateNote, watchCompanyNotes, type Note } from "@/lib/notes"
 
 const SAVE_DELAY = 600
@@ -45,7 +46,9 @@ function escapeHtml(value: string) {
 }
 
 function bodyHtml(body: string) {
-  if (!body.trim() || /^\s*</.test(body)) return body
+  if (!body.trim()) return body
+  // Notes saved with Markdown left as plain paragraphs (raw "| a | b |" tables) open formatted.
+  if (/^\s*</.test(body)) return formatMarkdownParagraphs(body) ?? body
   let html = ""
   let checklistOpen = false
   for (const line of body.split("\n")) {
@@ -234,8 +237,8 @@ export function NotesSection() {
       />
 
       <Sheet open={Boolean(openId)} onOpenChange={(open) => { if (!open) close() }}>
-        <SheetContent side="right" className="w-full gap-0 overflow-hidden p-0 sm:max-w-xl">
-          <SheetHeader className="border-b border-border px-5 py-4 pr-12">
+        <SheetContent side="right" showClose={false} className="w-full gap-0 overflow-hidden p-0 sm:max-w-xl">
+          <SheetHeader className="border-b border-border px-5 py-3">
             <SheetTitle className="sr-only">Edit note</SheetTitle>
             <SheetDescription className="sr-only">Edit this company note. Changes save automatically.</SheetDescription>
             <div className="flex items-center gap-3">
@@ -253,6 +256,11 @@ export function NotesSection() {
               }} aria-label="Delete note">
                 <Trash2 className="size-4" aria-hidden="true" />
               </Button>
+              <SheetClose asChild>
+                <Button type="button" variant="ghost" size="icon" className="-mr-2 size-8 text-muted-foreground" aria-label="Close">
+                  <X className="size-4" aria-hidden="true" />
+                </Button>
+              </SheetClose>
             </div>
           </SheetHeader>
           <RichTextEditor
