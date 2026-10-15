@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useRef, useState, type FormEvent } from "react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
-import { Bookmark, ChevronLeft, ChevronRight, ExternalLink, Folder, FolderInput, Heart, Image as ImageIcon, Images, ImagePlus, Link2, MessageCircle, MoreHorizontal, Palette, Pencil, Repeat2, Send, Share2, Video, VolumeX, X } from "lucide-react"
+import { Bookmark, ChevronLeft, ChevronRight, ExternalLink, Folder, FolderInput, Heart, Image as ImageIcon, Images, ImagePlus, Link2, MessageCircle, MoreHorizontal, Palette, Pencil, Repeat2, Send, Video, VolumeX, X } from "lucide-react"
 import { toast } from "sonner"
 
 import {
@@ -20,6 +20,7 @@ import { SectionAddButton } from "@/components/company/section-add-button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { CollectionView } from "@/components/dashboard/collection-view"
+import { filterBySearch } from "@/components/dashboard/list-search"
 import { ShareDialog } from "@/components/dashboard/share-dialog"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -85,15 +86,27 @@ export function CampaignCreatives({ creatives, agencyId, companyId, projectId, c
   const [deleting, setDeleting] = useState<CampaignCreative | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [shareOpen, setShareOpen] = useState(false)
+  const [postQuery, setPostQuery] = useState("")
   const selected = posts.find((post) => post.id === selectedId) ?? null
+  // The viewer's arrows step through what the search shows, in the same order.
+  const visiblePosts = filterBySearch(posts, postSearchFields, postQuery)
+  const postIds = posts.map((post) => post.id).join(" ")
   const pathname = usePathname()
   const router = useRouter()
   const searchParams = useSearchParams()
   const linkedPostId = searchParams.get("post")
+  // The ?post= value we last wrote. The address catches up a moment after the
+  // viewer moves, so values on the way there are ignored rather than shown.
+  const pendingPostParam = useRef<string | null | undefined>(undefined)
 
   useEffect(() => {
-    if (linkedPostId && posts.some((post) => post.id === linkedPostId)) setSelectedId(linkedPostId)
-  }, [linkedPostId, posts])
+    if (pendingPostParam.current !== undefined) {
+      if (linkedPostId === pendingPostParam.current) pendingPostParam.current = undefined
+      return
+    }
+    if (!linkedPostId) setSelectedId(null)
+    else if (postIds.split(" ").includes(linkedPostId)) setSelectedId(linkedPostId)
+  }, [linkedPostId, postIds])
 
   useEffect(() => {
     if (!startNew || (kind !== "content" && kind !== "media")) return
@@ -120,21 +133,26 @@ export function CampaignCreatives({ creatives, agencyId, companyId, projectId, c
     }
   }
 
+  // Replaced rather than pushed, so Back leaves the page instead of stepping through every post viewed.
+  function setPostParam(id: string | null) {
+    const params = new URLSearchParams(searchParams.toString())
+    if (id) params.set("post", id)
+    else params.delete("post")
+    if (params.get("post") === linkedPostId) return
+    pendingPostParam.current = id
+    const query = params.toString()
+    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false })
+  }
+
   function openPost(post: CampaignCreative) {
     setSelectedId(post.id)
-    const params = new URLSearchParams(searchParams.toString())
-    params.set("post", post.id)
-    router.push(`${pathname}?${params.toString()}`, { scroll: false })
+    setPostParam(post.id)
   }
 
   function closePost() {
     setSelectedId(null)
     setShareOpen(false)
-    if (!linkedPostId) return
-    const params = new URLSearchParams(searchParams.toString())
-    params.delete("post")
-    const query = params.toString()
-    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false })
+    setPostParam(null)
   }
 
   function postMenu(post: CampaignCreative) {
@@ -162,7 +180,8 @@ export function CampaignCreatives({ creatives, agencyId, companyId, projectId, c
           className=""
           items={posts}
           getKey={(post) => post.id}
-          searchFields={(post) => [post.title, post.body, creativeStatus(post)]}
+          searchFields={postSearchFields}
+          onSearch={setPostQuery}
           searchPlaceholder="Search content"
           viewKey="campaign-content"
           actions={canEdit || canReview ? <SectionAddButton label={canEdit ? "New post" : "Suggest a post"} onClick={() => setEditing("new")} /> : undefined}
@@ -201,7 +220,7 @@ export function CampaignCreatives({ creatives, agencyId, companyId, projectId, c
           onClose={closePost}
           canEdit={canEdit}
           canReview={canReview}
-          posts={posts}
+          posts={visiblePosts}
           onNavigate={openPost}
           onShare={sharePath ? () => setShareOpen(true) : undefined}
         />
@@ -214,6 +233,7 @@ export function CampaignCreatives({ creatives, agencyId, companyId, projectId, c
             open={shareOpen}
             onOpenChange={setShareOpen}
             showTrigger={false}
+            contentClassName={VIEWER_POPOVER}
           />
         )}
 
@@ -249,6 +269,8 @@ export function CampaignCreatives({ creatives, agencyId, companyId, projectId, c
   return <MediaLibrary files={files} scope={scope} canEdit={canEdit} startNew={startNew} onActionHandled={onActionHandled} />
 }
 
+const postSearchFields = (post: CampaignCreative) => [post.title, post.body, creativeStatus(post)]
+
 async function saveCreative(id: string, patch: Partial<Pick<CampaignCreative, "title" | "status" | "body" | "postedBy" | "mediaUrl" | "mediaType">>) {
   try {
     await updateCampaignCreative(id, patch)
@@ -279,7 +301,7 @@ function BrandAvatar({ className }: { className?: string }) {
       {logoUrl ? (
         // Company logos can be hosted outside the configured image domains.
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={logoUrl} alt="" className="size-[70%] object-contain" />
+        <img src={logoUrl} alt="" className="size-full object-cover" />
       ) : (
         <span className="text-xs font-semibold text-[#16181D]">{initials || "?"}</span>
       )}
@@ -293,6 +315,38 @@ const POSTED_BY = [{ value: "Founder", label: "You" }, { value: "Roster", label:
 function postDate(post: CampaignCreative) {
   const ms = (post.createdAt ?? post.updatedAt)?.toMillis()
   return ms ? new Date(ms).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : ""
+}
+
+// The post viewer sits at z-[100], above the usual z-50 popover layer, so anything it opens goes higher.
+const VIEWER_POPOVER = "z-[110]"
+
+/** The poster's name, then the caption with a gap between its lines, the way Instagram spaces a caption. */
+function PostCaption({ name, body }: { name: string; body?: string }) {
+  const paragraphs = (body ?? "").split(/\r?\n/).map((line) => line.trim()).filter(Boolean)
+  if (paragraphs.length === 0) return <p><span className="font-semibold">{name}</span> <span className="text-muted-foreground">No caption yet.</span></p>
+  return (
+    <div className="space-y-3">
+      {paragraphs.map((paragraph, index) => (
+        <p key={index}>{index === 0 && <><span className="font-semibold">{name}</span>{" "}</>}{paragraph}</p>
+      ))}
+    </div>
+  )
+}
+
+function PostContextMenu({ canEdit, canReview, onEdit, className }: { canEdit: boolean; canReview: boolean; onEdit: () => void; className?: string }) {
+  if (!canEdit && !canReview) return <MoreHorizontal className={cn("size-5 text-muted-foreground", className)} aria-hidden="true" />
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button type="button" variant="ghost" size="icon" className={cn("size-8 text-muted-foreground", className)} aria-label="Post options" title="Post options">
+          <MoreHorizontal className="size-5" aria-hidden="true" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className={VIEWER_POPOVER}>
+        <DropdownMenuItem onSelect={onEdit}>{canEdit ? "Edit post" : "Edit text"}</DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
 }
 
 /** Shared read-only view for posts opened from Content or campaign Home. */
@@ -319,17 +373,28 @@ export function CampaignPostViewDialog({
   const currentIndex = post ? posts.findIndex((item) => item.id === post.id) : -1
   const previous = currentIndex > 0 ? posts[currentIndex - 1] : null
   const next = currentIndex >= 0 && currentIndex < posts.length - 1 ? posts[currentIndex + 1] : null
+  const [editing, setEditing] = useState(false)
+  const [captionOpen, setCaptionOpen] = useState(false)
+  const swipeStart = useRef<number | null>(null)
+  useEffect(() => { setEditing(false); setCaptionOpen(false) }, [open, post?.id])
 
   useEffect(() => {
     if (!open || !post) return
     const handleKeyDown = (event: KeyboardEvent) => {
+      // Menus and dialogs on top (Share, post options, the select) handle their own keys first.
+      if (event.defaultPrevented) return
+      const target = event.target as HTMLElement | null
+      const layer = target?.closest("[role=\"dialog\"], [role=\"alertdialog\"], [role=\"menu\"], [role=\"listbox\"]")
+      if (layer && !layer.hasAttribute("data-post-viewer")) return
       if (event.key === "Escape") {
         event.preventDefault()
-        onClose()
+        // Escape leaves the editor first, so a half-written caption isn't lost with the viewer.
+        if (editing) setEditing(false)
+        else onClose()
         return
       }
-      if (!onNavigate || posts.length < 2) return
-      const target = event.target as HTMLElement | null
+      if (editing || !onNavigate || posts.length < 2) return
+      if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return
       if (target?.matches("input, textarea, select, [contenteditable=\"true\"]") || target?.tagName === "VIDEO") return
       if (event.key === "ArrowLeft" && previous) {
         event.preventDefault()
@@ -341,7 +406,7 @@ export function CampaignPostViewDialog({
     }
     window.addEventListener("keydown", handleKeyDown)
     return () => window.removeEventListener("keydown", handleKeyDown)
-  }, [next, onClose, onNavigate, open, post, posts.length, previous])
+  }, [editing, next, onClose, onNavigate, open, post, posts.length, previous])
 
   useEffect(() => {
     if (!open || !post) return
@@ -349,11 +414,6 @@ export function CampaignPostViewDialog({
     document.body.style.overflow = "hidden"
     return () => { document.body.style.overflow = previousOverflow }
   }, [open, post])
-
-  const [editing, setEditing] = useState(false)
-  const [captionOpen, setCaptionOpen] = useState(false)
-  const swipeStart = useRef<number | null>(null)
-  useEffect(() => { setEditing(false); setCaptionOpen(false) }, [open, post?.id])
 
   if (!open || !post) return null
 
@@ -366,7 +426,7 @@ export function CampaignPostViewDialog({
       <button type="button" aria-label="Close post preview" onClick={onClose} className="fixed right-4 top-4 z-[102] grid size-10 place-items-center rounded-full text-white outline-none max-md:right-3 max-md:top-3 max-md:bg-black/40 transition-colors hover:bg-white/15 focus-visible:ring-2 focus-visible:ring-white/80">
         <X className="size-7" aria-hidden="true" />
       </button>
-      {onNavigate && posts.length > 1 && (
+      {onNavigate && posts.length > 1 && !editing && (
         <div className="max-md:hidden">
           <button type="button" aria-label="Previous post" disabled={!previous} onClick={() => previous && onNavigate(previous)} className="fixed left-3 top-1/2 z-[102] grid size-10 -translate-y-1/2 place-items-center rounded-full bg-background text-foreground shadow-lg outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-35 sm:left-6">
             <ChevronLeft className="size-5" aria-hidden="true" />
@@ -380,17 +440,21 @@ export function CampaignPostViewDialog({
       <section
         role="dialog"
         aria-modal="true"
+        data-post-viewer=""
         aria-label={post.title || "Post"}
         className="fixed inset-0 z-[101] overflow-y-auto overscroll-contain bg-background md:hidden"
       >
         <div
           className="relative bg-black"
-          onTouchStart={(event) => { swipeStart.current = event.touches[0]?.clientX ?? null }}
+          onTouchStart={(event) => {
+            // Dragging along a video's scrubber is not a swipe to the next post.
+            swipeStart.current = (event.target as HTMLElement).tagName === "VIDEO" ? null : event.touches[0]?.clientX ?? null
+          }}
           onTouchEnd={(event) => {
             const start = swipeStart.current
             swipeStart.current = null
             const end = event.changedTouches[0]?.clientX
-            if (start === null || end === undefined || !onNavigate || Math.abs(end - start) < 50) return
+            if (start === null || end === undefined || !onNavigate || editing || Math.abs(end - start) < 50) return
             const target = end < start ? next : previous
             if (target) onNavigate(target)
           }}
@@ -408,6 +472,7 @@ export function CampaignPostViewDialog({
             </div>
           )}
           <BrandAvatar className="absolute bottom-3 left-3 size-9 shadow-md" />
+          <PostContextMenu canEdit={canEdit} canReview={canReview} onEdit={() => setEditing(true)} className="absolute right-14 top-3 text-white hover:bg-white/15 hover:text-white" />
         </div>
 
         {editing ? (
@@ -416,21 +481,20 @@ export function CampaignPostViewDialog({
           <div className="px-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-3">
             <div className="flex items-center justify-between text-foreground">
               <div className="flex items-center gap-5">
-                <Heart className="size-7" aria-hidden="true" />
-                <MessageCircle className="size-7" aria-hidden="true" />
-                <Repeat2 className="size-7" aria-hidden="true" />
+                <Heart className="size-7 shrink-0 text-foreground" strokeWidth={2} aria-hidden="true" />
+                <MessageCircle className="size-7 shrink-0 text-foreground" strokeWidth={2} aria-hidden="true" />
+                <Repeat2 className="size-7 shrink-0 text-foreground" strokeWidth={2} aria-hidden="true" />
                 {onShare ? (
                   <Button type="button" variant="ghost" size="icon" className="size-8 text-foreground" onClick={onShare} aria-label="Share post" title="Share post">
-                    <Share2 className="size-6" aria-hidden="true" />
+                    <Send className="size-6 shrink-0" strokeWidth={2} aria-hidden="true" />
                   </Button>
-                ) : <Send className="size-7" aria-hidden="true" />}
+                ) : <Send className="size-7 shrink-0 text-foreground" strokeWidth={2} aria-hidden="true" />}
               </div>
-              <Bookmark className="size-7" aria-hidden="true" />
+              <Bookmark className="size-7 shrink-0 text-foreground" strokeWidth={2} aria-hidden="true" />
             </div>
-            <p className={cn("mt-3 whitespace-pre-wrap break-words text-[15px] leading-6 text-foreground", !captionOpen && "line-clamp-3")}>
-              <span className="font-semibold">{post.postedBy === "Roster" ? "Creators" : brand.name || "Post"}</span>{" "}
-              {post.body?.trim() || <span className="text-muted-foreground">No caption yet.</span>}
-            </p>
+            <div className={cn("mt-3 break-words text-sm leading-5 text-foreground", !captionOpen && "line-clamp-3")}>
+              <PostCaption name={post.postedBy === "Roster" ? "Creators" : brand.name || "Post"} body={post.body} />
+            </div>
             {!captionOpen && (post.body?.trim().length ?? 0) > 120 && (
               <button type="button" onClick={() => setCaptionOpen(true)} className="mt-0.5 text-[15px] text-muted-foreground outline-none">more</button>
             )}
@@ -439,9 +503,6 @@ export function CampaignPostViewDialog({
               <StatusPill status={creativeStatus(post)} />
               <span className="shrink-0">{postDate(post)}</span>
             </div>
-            {(canEdit || canReview) && (
-              <Button type="button" size="sm" className="mt-4" onClick={() => setEditing(true)}>Edit post</Button>
-            )}
           </div>
         )}
       </section>
@@ -449,62 +510,59 @@ export function CampaignPostViewDialog({
       <section
         role="dialog"
         aria-modal="true"
+        data-post-viewer=""
         aria-labelledby={`post-view-title-${post.id}`}
-        className="relative hidden max-h-[90svh] w-full max-w-5xl overflow-hidden rounded-2xl bg-background shadow-2xl md:grid md:grid-cols-[minmax(0,1.15fr)_minmax(18rem,0.85fr)]"
+        className="relative hidden h-[min(90svh,52rem)] min-h-0 w-full max-w-5xl overflow-hidden rounded-2xl bg-background shadow-2xl md:grid md:grid-rows-1 md:grid-cols-[minmax(0,1.15fr)_minmax(18rem,0.85fr)]"
       >
-        <div className="relative flex max-h-[45svh] min-h-64 shrink-0 items-center justify-center bg-black md:max-h-none md:min-h-0">
+        <div className="relative flex min-h-0 shrink-0 items-center justify-center overflow-hidden bg-black">
             {post.mediaUrl ? (
               post.mediaType === "video" ? (
-                <video key={post.mediaUrl} src={post.mediaUrl} controls playsInline className="max-h-[45svh] max-w-full object-contain md:max-h-[90svh]" />
+                <video key={post.mediaUrl} src={post.mediaUrl} controls playsInline className="size-full object-contain" />
               ) : (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={post.mediaUrl} alt="" className="max-h-[45svh] max-w-full object-contain md:max-h-[90svh]" />
+                <img src={post.mediaUrl} alt="" className="size-full object-contain" />
               )
             ) : (
-              <div className="flex min-h-64 items-center justify-center" aria-label="No media attached">
+              <div className="flex size-full min-h-64 items-center justify-center" aria-label="No media attached">
                 <ImageIcon className="size-8 text-muted-foreground/50" aria-hidden="true" />
               </div>
             )}
         </div>
-        <div className="flex min-h-0 flex-1 flex-col bg-background">
-          <header className="relative flex items-center gap-3 border-b border-border px-5 py-4 pr-14">
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-background">
+          <header className="relative flex shrink-0 items-center gap-3 border-b border-border px-5 py-4">
             <BrandAvatar className="size-9" />
             <div className="min-w-0 flex-1">
               <h2 id={`post-view-title-${post.id}`} className="flex min-w-0 items-center gap-2 text-sm font-semibold">
                 <span className="min-w-0 truncate">{post.title || "Post"}</span>
                 <StatusPill status={creativeStatus(post)} />
               </h2>
-              <p className="text-xs text-muted-foreground">Original post · {postDate(post) || "Campaign"}</p>
+              <p className="text-xs text-muted-foreground">{postDate(post) || "Campaign"}</p>
             </div>
-            <MoreHorizontal className="size-5 text-muted-foreground" aria-hidden="true" />
+            <PostContextMenu canEdit={canEdit} canReview={canReview} onEdit={() => setEditing(true)} className="-mr-1.5" />
           </header>
           {editing ? (
             <InlinePostEditor post={post} canEdit={canEdit} canReview={canReview} onCancel={() => setEditing(false)} onSaved={() => setEditing(false)} />
           ) : (
             <>
-              <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5">
+              <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-5">
                 <div className="flex gap-3 text-sm leading-6 text-foreground">
                   <BrandAvatar className="mt-0.5 size-6" />
-                  <p className="min-w-0 whitespace-pre-wrap break-words"><span className="font-semibold">{post.postedBy === "Roster" ? "Creators" : brand.name || "Post"}</span>{" "}{post.body?.trim() || <span className="text-muted-foreground">No caption yet.</span>}</p>
+                  <div className="min-w-0 break-words text-sm leading-5"><PostCaption name={post.postedBy === "Roster" ? "Creators" : brand.name || "Post"} body={post.body} /></div>
                 </div>
               </div>
-              <footer className="border-t border-border px-5 py-4">
-                <div className="mb-3 flex items-center justify-between text-foreground">
+              <footer className="shrink-0 border-t border-border px-5 py-4">
+                <div className="flex items-center justify-between text-foreground">
                   <div className="flex items-center gap-4">
-                    <Heart className="size-6" aria-hidden="true" />
-                    <MessageCircle className="size-6" aria-hidden="true" />
-                    <Repeat2 className="size-6" aria-hidden="true" />
+                    <Heart className="size-6 shrink-0 text-foreground" strokeWidth={2} aria-hidden="true" />
+                    <MessageCircle className="size-6 shrink-0 text-foreground" strokeWidth={2} aria-hidden="true" />
+                    <Repeat2 className="size-6 shrink-0 text-foreground" strokeWidth={2} aria-hidden="true" />
                     {onShare ? (
                       <Button type="button" variant="ghost" size="icon" className="size-8 text-foreground" onClick={onShare} aria-label="Share post" title="Share post">
-                        <Share2 className="size-5" aria-hidden="true" />
+                        <Send className="size-5 shrink-0" strokeWidth={2} aria-hidden="true" />
                       </Button>
-                    ) : <Send className="size-6" aria-hidden="true" />}
+                    ) : <Send className="size-6 shrink-0 text-foreground" strokeWidth={2} aria-hidden="true" />}
                   </div>
-                  <Bookmark className="size-6" aria-hidden="true" />
-                </div>
-                <div className="flex items-center justify-between gap-3">
-                <div />
-                {(canEdit || canReview) && <Button type="button" size="sm" onClick={() => setEditing(true)}>Edit post</Button>}
+                  <Bookmark className="size-6 shrink-0 text-foreground" strokeWidth={2} aria-hidden="true" />
                 </div>
               </footer>
             </>
@@ -545,7 +603,7 @@ function InlinePostEditor({ post, canEdit, canReview, onCancel, onSaved }: { pos
           <Input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Title" aria-label="Title" />
           <Select value={postedBy} onValueChange={setPostedBy}>
             <SelectTrigger aria-label="Assigned to"><SelectValue /></SelectTrigger>
-            <SelectContent>{POSTED_BY.map((item) => <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>)}</SelectContent>
+            <SelectContent className={VIEWER_POPOVER}>{POSTED_BY.map((item) => <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>)}</SelectContent>
           </Select>
         </div>
       )}

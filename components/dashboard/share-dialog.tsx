@@ -1,6 +1,6 @@
 "use client"
 
-import { Share2 } from "lucide-react"
+import { Send } from "lucide-react"
 
 import { ShareLinkActions } from "@/components/dashboard/share-link-actions"
 import { Button } from "@/components/ui/button"
@@ -16,6 +16,8 @@ type ShareDialogProps = {
   open?: boolean
   onOpenChange?: (open: boolean) => void
   showTrigger?: boolean
+  /** For opening over something that sits above the usual dialog layer, like the post viewer. */
+  contentClassName?: string
 }
 
 /** The shared share modal for company, campaign, and post links. */
@@ -28,6 +30,7 @@ export function ShareDialog({
   open,
   onOpenChange,
   showTrigger = true,
+  contentClassName,
 }: ShareDialogProps) {
   const url = typeof window !== "undefined" ? `${window.location.origin}${path}` : path
 
@@ -36,12 +39,12 @@ export function ShareDialog({
       {showTrigger && (
         <DialogTrigger asChild>
           <Button type="button" variant="outline" size="sm" className={cn("shrink-0", triggerClassName)}>
-            <Share2 className="size-4" aria-hidden="true" />
+            <Send className="size-4" aria-hidden="true" />
             {triggerLabel}
           </Button>
         </DialogTrigger>
       )}
-      <DialogContent className="max-w-md">
+      <DialogContent className={cn("max-w-md", contentClassName)}>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription className="sr-only">Copy the link or share it on another platform.</DialogDescription>

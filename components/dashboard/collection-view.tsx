@@ -32,6 +32,7 @@ export function CollectionView<T>({
   hasExtraCards = false,
   initialView = "card",
   className = "mt-5",
+  onSearch,
 }: {
   items: T[]
   getKey: (item: T) => string
@@ -58,6 +59,8 @@ export function CollectionView<T>({
   hasExtraCards?: boolean
   initialView?: ListView
   className?: string
+  /** Hears the search text, for tabs that step through the matching items elsewhere. */
+  onSearch?: (query: string) => void
 }) {
   const [view, setView] = useListView(viewKey, initialView)
   const { query, setQuery, results } = useListSearch(items, searchFields)
@@ -65,7 +68,7 @@ export function CollectionView<T>({
 
   return (
     <section className={className}>
-      <ListToolbar query={query} onQueryChange={setQuery} placeholder={searchPlaceholder} view={view} onViewChange={setView} actions={actions} />
+      <ListToolbar query={query} onQueryChange={(next) => { setQuery(next); onSearch?.(next) }}placeholder={searchPlaceholder} view={view} onViewChange={setView} actions={actions} />
       {before}
       {loading ? (
         <ListSkeleton view={view} count={4} toolbar={false} label={`Loading ${searchPlaceholder.replace(/^Search /, "")}`} />

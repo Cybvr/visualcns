@@ -17,15 +17,21 @@ export function CampaignHome({
   canEdit,
   onOpen,
   onAction,
+  bannerImage: campaignImage,
 }: {
   content: CampaignCreative[]
   canEdit: boolean
   onOpen: (tab: CampaignTab) => void
   onAction: (action: CampaignQuickAction) => void
+  /** The campaign cover/logo/media image, when one has been attached. */
+  bannerImage?: string
 }) {
   const posts = content.filter((item) => item.type === "text")
-  const [viewingPost, setViewingPost] = useState<CampaignCreative | null>(null)
-  const bannerImage = posts.find((post) => post.mediaUrl && post.mediaType !== "video")?.mediaUrl
+  // Held by id so the open post picks up edits made in the viewer.
+  const [viewingId, setViewingId] = useState<string | null>(null)
+  const viewingPost = posts.find((post) => post.id === viewingId) ?? null
+  const setViewingPost = (post: CampaignCreative | null) => setViewingId(post?.id ?? null)
+  const bannerImage = campaignImage || posts.find((post) => post.mediaUrl && post.mediaType !== "video")?.mediaUrl
 
   const postDate = (post: CampaignCreative) => {
     const ms = (post.createdAt ?? post.updatedAt)?.toMillis()

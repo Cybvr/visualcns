@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react"
-import { ChevronDown, DollarSign, FileText, House, Images, ListTodo, Mail, MoreVertical, Palette, Settings, Share2, Sparkles, TrendingUp, Users, type LucideIcon } from "lucide-react"
+import { ChevronDown, DollarSign, FileText, House, Images, ListTodo, Mail, MoreVertical, Palette, Send, Settings, Sparkles, TrendingUp, Users, type LucideIcon } from "lucide-react"
 
 import { AnalyticsSkeleton, AnalyticsView } from "@/components/company/analytics-view"
 import { CampaignBrief } from "@/components/dashboard/campaign-brief"
@@ -120,6 +120,14 @@ export function ProjectDetail({
   const contentItems = creatives.filter((item) => item.type === "text")
   const campaignMedia = creatives.filter((item) => item.type !== "text")
   const mediaItems = campaignMedia.filter((item) => item.type !== "folder")
+  const campaignImage = [
+    project.imageUrl,
+    project.thumbnailUrl,
+    project.gallery?.[0],
+    project.logoUrl,
+    ...mediaItems.filter((item) => item.type === "image").map((item) => item.url),
+    ...contentItems.filter((item) => item.mediaType !== "video").map((item) => item.mediaUrl),
+  ].find((url): url is string => Boolean(url))
   const publicCompanyRef = companySlug || project.companyId || companyId
   const campaignSharePath = `/${encodeURIComponent(publicCompanyRef)}/projects?campaign=${encodeURIComponent(project.id)}`
   const postSharePath = (post: CampaignCreative) => `${campaignSharePath}&view=content&post=${encodeURIComponent(post.id)}`
@@ -284,7 +292,7 @@ export function ProjectDetail({
             </DropdownMenuItem>
             {!publicView && (
               <DropdownMenuItem onSelect={() => setShareOpen(true)}>
-                <Share2 className="size-4" aria-hidden="true" />
+                  <Send className="size-4" aria-hidden="true" />
                 {project.isPublic ? "Update sharing" : "Share project"}
               </DropdownMenuItem>
             )}
@@ -333,7 +341,7 @@ export function ProjectDetail({
     ...(canEditCampaign ? [{ key: "settings", label: "Settings", icon: Settings }] : []),
   ] as { key: CampaignTab; label: string; count?: number; icon: LucideIcon }[]
 
-  const brand = useMemo(() => ({ name: project.client || clientName, logoUrl: clientLogoUrl }), [clientLogoUrl, clientName, project.client])
+  const brand = useMemo(() => ({ name: project.client || clientName, logoUrl: project.logoUrl || clientLogoUrl }), [clientLogoUrl, clientName, project.client, project.logoUrl])
 
   return (
     <CampaignBrandContext.Provider value={brand}>
@@ -405,6 +413,7 @@ export function ProjectDetail({
                   canEdit={canEditCampaign}
                   onOpen={setTab}
                   onAction={startQuickAction}
+                  bannerImage={campaignImage}
                 />
                 {canEditCampaign && (
                   <CampaignGenerateButton

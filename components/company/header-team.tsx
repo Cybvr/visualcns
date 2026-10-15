@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Share2 } from "lucide-react"
+import { Send } from "lucide-react"
 
 import { TeamInvitePanel, useTeamSeats } from "@/components/company/team-seats"
 import { ShareLinkActions } from "@/components/dashboard/share-link-actions"
@@ -38,7 +38,7 @@ export function HeaderTeam({ company, people, canManageTeam, shareUrl, className
   return (
     <div className={cn("flex shrink-0 items-center gap-2 print:hidden", className)}>
       <Button type="button" variant="ghost" className="h-9 gap-2 rounded-full px-3 bg-sidebar-accent text-sm font-semibold text-sidebar-accent-foreground hover:bg-sidebar-accent/80 active:bg-sidebar-accent/80 [&>svg]:size-[18px]" onClick={() => setShareOpen(true)}>
-        <Share2 className="size-4" aria-hidden="true" />
+        <Send className="size-4" aria-hidden="true" />
         <span className="max-sm:hidden">Share</span>
       </Button>
 

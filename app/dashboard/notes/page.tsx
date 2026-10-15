@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useRef, useState } from "react"
-import { Share2, Trash2 } from "lucide-react"
+import { Send, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
@@ -265,7 +265,7 @@ export default function NotesPage() {
     () => headerOpen ? (
       <>
         <Button type="button" variant="ghost" size="icon" className="size-10 text-muted-foreground [&_svg]:size-5" onClick={() => latest.current.openShare()} aria-label="Share note">
-          <Share2 aria-hidden="true" />
+           <Send aria-hidden="true" />
         </Button>
         <Button type="button" variant="ghost" size="icon" className="size-10 text-muted-foreground hover:text-destructive [&_svg]:size-5" onClick={() => latest.current.askDelete()} aria-label="Delete note">
           <Trash2 aria-hidden="true" />
@@ -364,7 +364,7 @@ export default function NotesPage() {
                   <div className="flex shrink-0 items-center gap-2">
                     <span className="text-xs text-muted-foreground" aria-live="polite">{saving ? "Saving…" : "Saved"}</span>
                     <Button type="button" variant="ghost" size="icon" className="size-8 text-muted-foreground" onClick={openShare} aria-label="Share note">
-                      <Share2 className="size-4" aria-hidden="true" />
+                       <Send className="size-4" aria-hidden="true" />
                     </Button>
                     <Button type="button" variant="ghost" size="icon" className="size-8 text-muted-foreground hover:text-destructive" onClick={askDelete} aria-label="Delete note">
                       <Trash2 className="size-4" aria-hidden="true" />

@@ -24,6 +24,7 @@ import {
   ChevronRight,
   Copy,
   Download,
+  ExternalLink,
   File,
   FileText,
   HardDrive,
@@ -34,7 +35,7 @@ import {
   MoreVertical,
   Play,
   Plus,
-  Share2,
+  Send,
   Trash2,
   Upload,
   X,
@@ -479,7 +480,7 @@ export function DriveView() {
   const documentMenuItems = (d: SharedDocument) => (
     <>
       <DropdownMenuItem className="h-11 rounded-lg px-3 text-sm" asChild>
-        <a href={d.url} target="_blank" rel="noopener noreferrer"><Share2 />Open</a>
+        <a href={d.url} target="_blank" rel="noopener noreferrer"><ExternalLink />Open</a>
       </DropdownMenuItem>
       <DropdownMenuItem className="h-11 rounded-lg px-3 text-sm" asChild>
         <a href={d.url} download><Download />Download</a>
@@ -491,7 +492,7 @@ export function DriveView() {
         <>
           <DropdownMenuSeparator className="my-2" />
           <DropdownMenuItem className="h-11 rounded-lg px-3 text-sm" onSelect={() => openShareDialog(d)}>
-            <Share2 />Share
+            <Send />Share
           </DropdownMenuItem>
           <DropdownMenuItem className="h-11 rounded-lg px-3 text-sm" onSelect={() => setSelectedId(d.id)}>
             <Info />File information
@@ -548,7 +549,7 @@ export function DriveView() {
           <span className="mr-5 text-base font-medium">1 selected</span>
           <Button variant="ghost" size="icon" className="rounded-full" asChild aria-label="Download file"><a href={selectedDocument.url} download><Download className="h-5 w-5" /></a></Button>
           {adminView && (
-            <Button variant="ghost" size="icon" className="rounded-full" onClick={() => openShareDialog(selectedDocument)} aria-label="Share file"><Share2 className="h-5 w-5" /></Button>
+            <Button variant="ghost" size="icon" className="rounded-full" onClick={() => openShareDialog(selectedDocument)} aria-label="Share file"><Send className="h-5 w-5" /></Button>
           )}
           <Button variant="ghost" size="icon" className="rounded-full" onClick={() => navigator.clipboard.writeText(selectedDocument.url)} aria-label="Copy link"><Link2 className="h-5 w-5" /></Button>
           <MoreVertical className="ml-1 h-5 w-5" />

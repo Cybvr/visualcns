@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, type FormEvent } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { ChevronDown, ChevronLeft, Eye, Loader2, MoreVertical, Share2, Trash2 } from "lucide-react"
+import { ChevronDown, ChevronLeft, Eye, Loader2, MoreVertical, Send, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 
 import { RichTextEditor } from "@/components/dashboard/rich-text-editor"
@@ -169,7 +169,7 @@ export function CompanyDocumentBuilder({ document: record }: { document: Company
           title="Share document"
           className="inline-flex size-10 shrink-0 items-center justify-center rounded-full text-foreground outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring"
         >
-          <Share2 className="size-5" aria-hidden="true" />
+            <Send className="size-5" aria-hidden="true" />
         </button>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

@@ -2,7 +2,7 @@
 
 import {
   Folder,
-  Forward,
+  Send,
   MoreHorizontal,
   Trash2,
   type LucideIcon,
@@ -65,7 +65,7 @@ export function NavProjects({
                   <span>View Project</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem>
-                  <Forward className="text-muted-foreground" />
+                  <Send className="text-muted-foreground" />
                   <span>Share Project</span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />

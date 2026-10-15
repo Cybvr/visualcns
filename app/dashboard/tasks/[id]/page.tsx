@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
-import { ArrowLeft, Copy, ExternalLink, Mail, Share2 } from "lucide-react"
+import { ArrowLeft, Copy, ExternalLink, Mail, Send } from "lucide-react"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
@@ -117,7 +117,7 @@ export default function TaskEditPage() {
             </Button>
           )}
           <Button variant="outline" size="sm" onClick={openShare}>
-            <Share2 className="mr-2 size-4" aria-hidden="true" />
+              <Send className="mr-2 size-4" aria-hidden="true" />
             Share
           </Button>
           {task.shareEnabled && (

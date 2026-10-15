@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, type ReactNode } from "react"
 import Image from "next/image"
-import { ChevronRight, Download, Eye, Loader2, Mail, Printer, Share2, Trash2 } from "lucide-react"
+import { ChevronRight, Download, Eye, Loader2, Mail, Printer, Send, Trash2 } from "lucide-react"
 
 import {
   AlertDialog,
@@ -78,7 +78,7 @@ export function EditorHeader({
           </button>
           {onShare && (
             <button type="button" onClick={onShare} title={`Share ${kind.toLowerCase()}`} aria-label={`Share ${kind.toLowerCase()}`} className={round}>
-              <Share2 className="size-4" aria-hidden="true" />
+                <Send className="size-4" aria-hidden="true" />
             </button>
           )}
         </div>

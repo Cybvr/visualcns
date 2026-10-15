@@ -1,7 +1,7 @@
 "use client"
 
 import { useSearchParams } from "next/navigation"
-import { Share2 } from "lucide-react"
+import { Send } from "lucide-react"
 import { toast } from "sonner"
 
 import { useCompanyPage } from "@/components/company/company-page-context"
@@ -44,7 +44,7 @@ export function TaskDetailSheet() {
             aria-label="Copy task link"
             title="Copy task link"
           >
-            <Share2 className="size-4" aria-hidden="true" />
+            <Send className="size-4" aria-hidden="true" />
           </Button>
         )}
         <SheetHeader className="border-b border-border px-5 py-4 pr-20">

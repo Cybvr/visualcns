@@ -1,6 +1,6 @@
 "use client"
 
-import { ExternalLink, Mail, Share2 } from "lucide-react"
+import { ExternalLink, Mail, Send } from "lucide-react"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
@@ -64,7 +64,7 @@ export function DocumentActions({
         <span className={iconOnly ? "sr-only" : "sr-only sm:not-sr-only"}>Email</span>
       </Button>
       <Button type="button" variant="outline" size="icon" onClick={onShare ?? (() => void handleShare())} aria-label="Share document" title="Share document" className={iconOnly ? "size-9 p-0" : "sm:size-auto sm:px-3"}>
-        <Share2 className="size-3.5" aria-hidden="true" />
+          <Send className="size-3.5" aria-hidden="true" />
         <span className={iconOnly ? "sr-only" : "sr-only sm:not-sr-only"}>Share</span>
       </Button>
     </div>

@@ -20,7 +20,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
-import { ArrowLeft, GripVertical, Loader2, Plus, Printer, Share2, X } from "lucide-react"
+import { ArrowLeft, GripVertical, Loader2, Plus, Printer, Send, X } from "lucide-react"
 
 import {
   DepartmentField,
@@ -441,7 +441,7 @@ export function EstimateBuilder({ estimate, initialCompanyId, onSaved, onDeleted
         </Link>
         <span className="flex-1" />
         <Button type="button" variant="ghost" size="icon" title="Share estimate" aria-label="Share estimate" onClick={() => setShareOpen(true)}>
-          <Share2 className="size-4" aria-hidden="true" />
+            <Send className="size-4" aria-hidden="true" />
         </Button>
       </div>
 

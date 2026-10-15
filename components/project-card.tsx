@@ -18,11 +18,12 @@ function hueFor(seed: string) {
 }
 
 /**
- * The cover on a project card. The banner wins, then the profile image; otherwise
+ * The cover on a project card. A legacy case-study image wins, then the banner
+ * and profile image; otherwise
  * a generated tile carrying the workflow icon, or the first letter of the title.
  */
 export function ProjectCover({ project, className = "" }: { project: Project; className?: string }) {
-  const image = project.thumbnailUrl || project.logoUrl
+  const image = project.imageUrl || project.thumbnailUrl || project.logoUrl
   if (image) {
     return (
       // Thumbnails are arbitrary stored URLs, so this stays a plain img rather

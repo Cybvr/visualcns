@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Loader2, Share2 } from "lucide-react"
+import { Loader2, Send } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -83,7 +83,7 @@ export function ProjectShareButton({
       {showTrigger && (
         <DialogTrigger asChild>
           <Button variant="outline" size="sm" className="shrink-0">
-            <Share2 className="size-4" aria-hidden="true" />
+            <Send className="size-4" aria-hidden="true" />
             {project.isPublic ? "Shared" : "Share"}
           </Button>
         </DialogTrigger>
