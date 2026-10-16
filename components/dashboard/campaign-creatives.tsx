@@ -1,5 +1,6 @@
 "use client"
 
+import { VideoThumbnail } from "@/components/ui/video-thumbnail"
 import { createContext, useContext, useEffect, useRef, useState, type FormEvent } from "react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { Bookmark, ChevronLeft, ChevronRight, ExternalLink, Folder, FolderInput, Heart, Image as ImageIcon, Images, ImagePlus, Link2, MessageCircle, MoreHorizontal, Palette, Repeat2, Send, Video, VolumeX, X } from "lucide-react"
@@ -26,6 +27,7 @@ import {
   type CampaignCreative,
 } from "@/lib/campaign-creatives"
 import { uploadFileToStorage } from "@/lib/documents"
+import { mediaKindForFile, mediaKindForUrl } from "@/lib/media"
 import { cn } from "@/lib/utils"
 
 interface CampaignCreativesProps {
@@ -51,6 +53,10 @@ interface CampaignCreativesProps {
 // Images are shrunk before upload; these match what the storage rules accept.
 const MAX_IMAGE_BYTES = 12 * 1024 * 1024
 const MAX_VIDEO_BYTES = 20 * 1024 * 1024
+
+function postMediaType(post: Pick<CampaignCreative, "mediaUrl" | "mediaType">): "image" | "video" {
+  return post.mediaType === "video" || mediaKindForUrl(post.mediaUrl ?? "") === "video" ? "video" : "image"
+}
 
 export const statusTone: Record<string, string> = {
   Draft: "bg-muted text-muted-foreground",
@@ -114,7 +120,7 @@ export function CampaignCreatives({ creatives, agencyId, companyId, projectId, c
         body: post.body ?? "",
         postedBy: post.postedBy || "Founder",
         status: "Draft",
-        ...(post.mediaUrl ? { mediaUrl: post.mediaUrl, mediaType: post.mediaType ?? "image" } : {}),
+        ...(post.mediaUrl ? { mediaUrl: post.mediaUrl, mediaType: postMediaType(post) } : {}),
       })
     } catch (error) {
       console.error("Error duplicating post:", error)
@@ -183,7 +189,7 @@ export function CampaignCreatives({ creatives, agencyId, companyId, projectId, c
             title: post.title || "Post",
             preview: post.mediaUrl ? (
               post.mediaType === "video"
-                ? <video src={post.mediaUrl} muted playsInline preload="metadata" className="size-full object-cover" />
+                ? <VideoThumbnail src={post.mediaUrl} />
                 // eslint-disable-next-line @next/next/no-img-element
                 : <img src={post.mediaUrl} alt="" loading="lazy" className="size-full object-cover" />
             ) : undefined,
@@ -218,6 +224,7 @@ export function CampaignCreatives({ creatives, agencyId, companyId, projectId, c
           posts={visiblePosts}
           onNavigate={openPost}
           onShare={sharePath ? () => setShareOpen(true) : undefined}
+          library={library.filter((item) => item.type === "image" || item.type === "video")}
         />
 
         {sharePath && selected && (
@@ -337,6 +344,7 @@ export function CampaignPostViewDialog({
   posts = [],
   onNavigate,
   onShare,
+  library = [],
 }: {
   post: CampaignCreative | null
   open: boolean
@@ -346,6 +354,8 @@ export function CampaignPostViewDialog({
   posts?: CampaignCreative[]
   onNavigate?: (post: CampaignCreative) => void
   onShare?: () => void
+  /** The campaign's images and videos, to pick from when editing the post. */
+  library?: CampaignCreative[]
 }) {
   const brand = useContext(CampaignBrandContext)
   const currentIndex = post ? posts.findIndex((item) => item.id === post.id) : -1
@@ -355,6 +365,12 @@ export function CampaignPostViewDialog({
   const [captionOpen, setCaptionOpen] = useState(false)
   const swipeStart = useRef<number | null>(null)
   useEffect(() => { setEditing(false); setCaptionOpen(false) }, [open, post?.id])
+  // While editing, the big preview shows the picture or video chosen in the editor, before it is saved.
+  const [draftMedia, setDraftMedia] = useState<{ url: string; type: "image" | "video" } | null | undefined>(undefined)
+  useEffect(() => { if (!editing) setDraftMedia(undefined) }, [editing, post?.id])
+  const shownMedia = editing && draftMedia !== undefined
+    ? draftMedia
+    : post?.mediaUrl ? { url: post.mediaUrl, type: postMediaType(post) } : null
 
   useEffect(() => {
     if (!open || !post) return
@@ -437,12 +453,12 @@ export function CampaignPostViewDialog({
             if (target) onNavigate(target)
           }}
         >
-          {post.mediaUrl ? (
-            post.mediaType === "video" ? (
-              <video key={post.mediaUrl} src={post.mediaUrl} controls playsInline className="max-h-[80svh] w-full object-contain" />
+          {shownMedia ? (
+            shownMedia.type === "video" ? (
+              <video key={shownMedia.url} src={shownMedia.url} controls playsInline className="max-h-[80svh] w-full object-contain" />
             ) : (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={post.mediaUrl} alt="" className="max-h-[80svh] w-full object-contain" />
+              <img src={shownMedia.url} alt="" className="max-h-[80svh] w-full object-contain" />
             )
           ) : (
             <div className="flex aspect-[4/5] items-center justify-center" aria-label="No media attached">
@@ -454,7 +470,7 @@ export function CampaignPostViewDialog({
         </div>
 
         {editing ? (
-          <InlinePostEditor post={post} canEdit={canEdit} canReview={canReview} onCancel={() => setEditing(false)} onSaved={() => setEditing(false)} />
+          <InlinePostEditor post={post} canEdit={canEdit} canReview={canReview} library={library} onMediaChange={setDraftMedia} onCancel={() => setEditing(false)} onSaved={() => setEditing(false)} />
         ) : (
           <div className="px-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-3">
             <div className="flex items-center justify-between text-foreground">
@@ -493,12 +509,12 @@ export function CampaignPostViewDialog({
         className="relative hidden h-[min(90svh,52rem)] min-h-0 w-full max-w-5xl overflow-hidden rounded-2xl bg-background shadow-2xl md:grid md:grid-rows-1 md:grid-cols-[minmax(0,1.15fr)_minmax(18rem,0.85fr)]"
       >
         <div className="relative flex min-h-0 shrink-0 items-center justify-center overflow-hidden bg-black">
-            {post.mediaUrl ? (
-              post.mediaType === "video" ? (
-                <video key={post.mediaUrl} src={post.mediaUrl} controls playsInline className="size-full object-contain" />
+            {shownMedia ? (
+              shownMedia.type === "video" ? (
+                <video key={shownMedia.url} src={shownMedia.url} controls playsInline className="size-full object-contain" />
               ) : (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={post.mediaUrl} alt="" className="size-full object-contain" />
+                <img src={shownMedia.url} alt="" className="size-full object-contain" />
               )
             ) : (
               <div className="flex size-full min-h-64 items-center justify-center" aria-label="No media attached">
@@ -519,7 +535,7 @@ export function CampaignPostViewDialog({
             <PostContextMenu canEdit={canEdit} canReview={canReview} onEdit={() => setEditing(true)} className="-mr-1.5" />
           </header>
           {editing ? (
-            <InlinePostEditor post={post} canEdit={canEdit} canReview={canReview} onCancel={() => setEditing(false)} onSaved={() => setEditing(false)} />
+            <InlinePostEditor post={post} canEdit={canEdit} canReview={canReview} library={library} onMediaChange={setDraftMedia} onCancel={() => setEditing(false)} onSaved={() => setEditing(false)} />
           ) : (
             <>
               <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-5">
@@ -551,19 +567,72 @@ export function CampaignPostViewDialog({
   )
 }
 
-function InlinePostEditor({ post, canEdit, canReview, onCancel, onSaved }: { post: CampaignCreative; canEdit: boolean; canReview: boolean; onCancel: () => void; onSaved: () => void }) {
+/** The campaign's images and videos as small tiles; clicking one uses it for the post. Shared by New post and the post editor. */
+function MediaLibraryStrip({ library, selectedUrl, onPick }: { library: CampaignCreative[]; selectedUrl?: string; onPick: (media: { url: string; type: "image" | "video" }) => void }) {
+  if (library.length === 0) return null
+  return (
+    <div className="grid grid-cols-5 gap-1">
+      {library.slice(0, 10).map((item) => (
+        <button
+          key={item.id}
+          type="button"
+          onClick={() => onPick({ url: item.url, type: item.type === "video" ? "video" : "image" })}
+          aria-label={`Use ${item.title}`}
+          title={item.title}
+          className={cn("aspect-square overflow-hidden rounded-md bg-muted outline-none focus-visible:ring-2 focus-visible:ring-ring", selectedUrl === item.url ? "ring-2 ring-foreground" : "opacity-70 hover:opacity-100")}
+        >
+          {item.type === "video" ? (
+            <VideoThumbnail src={item.url} />
+          ) : (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={item.url} alt="" loading="lazy" className="size-full object-cover" />
+          )}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+function InlinePostEditor({ post, canEdit, canReview, library = [], onMediaChange, onCancel, onSaved }: { post: CampaignCreative; canEdit: boolean; canReview: boolean; library?: CampaignCreative[]; onMediaChange?: (media: { url: string; type: "image" | "video" } | null) => void; onCancel: () => void; onSaved: () => void }) {
   const [title, setTitle] = useState(post.title)
   const [postedBy, setPostedBy] = useState(post.postedBy || "Founder")
   const [body, setBody] = useState(post.body ?? "")
   const [status, setStatus] = useState(creativeStatus(post))
+  const [media, setMedia] = useState<{ url: string; type: "image" | "video" } | null>(post.mediaUrl ? { url: post.mediaUrl, type: postMediaType(post) } : null)
+  const [uploading, setUploading] = useState(false)
   const [saving, setSaving] = useState(false)
+  const fileInput = useRef<HTMLInputElement>(null)
+  // The big preview beside the editor follows whatever is picked here.
+  const reportMedia = useRef(onMediaChange)
+  reportMedia.current = onMediaChange
+  useEffect(() => { reportMedia.current?.(media) }, [media])
+
+  // The same checks as the New post form: images and videos only, within the storage limits.
+  async function upload(file: File | undefined) {
+    if (!file) return
+    const kind = mediaKindForFile(file)
+    if (!kind) return toast.error("Choose an image or video.")
+    const isVideo = kind === "video"
+    if (file.size > (isVideo ? MAX_VIDEO_BYTES : MAX_IMAGE_BYTES)) return toast.error("That file is too big. Images up to 12 MB, videos up to 20 MB.")
+    setUploading(true)
+    try {
+      setMedia({ url: await uploadFileToStorage(file), type: isVideo ? "video" : "image" })
+    } catch (error) {
+      console.error("Error uploading post media:", error)
+      toast.error("It didn't upload.")
+    } finally {
+      setUploading(false)
+    }
+  }
 
   async function save(event: FormEvent) {
     event.preventDefault()
-    if (saving) return
+    if (saving || uploading) return
     setSaving(true)
     try {
-      await updateCampaignCreative(post.id, canEdit ? { title: title.trim() || post.title, postedBy, body, status } : { body })
+      await updateCampaignCreative(post.id, canEdit
+        ? { title: title.trim() || post.title, postedBy, body, status, mediaUrl: media?.url ?? "", ...(media ? { mediaType: media.type } : {}) }
+        : { body })
       toast.success("Saved")
       onSaved()
     } catch (error) {
@@ -585,6 +654,17 @@ function InlinePostEditor({ post, canEdit, canReview, onCancel, onSaved }: { pos
           </Select>
         </div>
       )}
+      {canEdit && (
+        <div className="flex items-center gap-3">
+          <input ref={fileInput} type="file" accept="image/*,video/*" hidden onChange={(event) => { void upload(event.target.files?.[0]); event.target.value = "" }} />
+          <Button type="button" variant="outline" onClick={() => fileInput.current?.click()} disabled={uploading}>
+            <ImagePlus className="size-4" aria-hidden="true" />
+            {uploading ? "Uploading…" : media ? "Replace picture or video" : "Add picture or video"}
+          </Button>
+          {media && !uploading && <Button type="button" variant="ghost" onClick={() => setMedia(null)}>Remove</Button>}
+        </div>
+      )}
+      {canEdit && <MediaLibraryStrip library={library} selectedUrl={media?.url} onPick={setMedia} />}
       <Textarea value={body} onChange={(event) => setBody(event.target.value)} rows={10} maxLength={CAPTION_MAX} placeholder="Caption" aria-label="Caption" className="min-h-48 flex-1 resize-none text-sm leading-6" />
       {canEdit && (
         <div role="radiogroup" aria-label="Status" className="grid grid-cols-4 gap-1 rounded-lg bg-muted p-1">
@@ -597,7 +677,7 @@ function InlinePostEditor({ post, canEdit, canReview, onCancel, onSaved }: { pos
       )}
       <div className="mt-auto flex justify-end gap-2 border-t border-border pt-4">
         <Button type="button" variant="ghost" onClick={onCancel}>Cancel</Button>
-        <Button type="submit" disabled={saving}>{saving ? "Saving…" : "Save"}</Button>
+        <Button type="submit" disabled={saving || uploading}>{saving ? "Saving…" : "Save"}</Button>
       </div>
     </form>
   )
@@ -640,15 +720,16 @@ function PostForm({ post, scope, canEdit, library, onDone }: { post: CampaignCre
   const [postedBy, setPostedBy] = useState(post?.postedBy || "Founder")
   const [body, setBody] = useState(post?.body ?? "")
   const [status, setStatus] = useState(post ? creativeStatus(post) : "Draft")
-  const [media, setMedia] = useState<{ url: string; type: "image" | "video" } | null>(post?.mediaUrl ? { url: post.mediaUrl, type: post.mediaType ?? "image" } : null)
+  const [media, setMedia] = useState<{ url: string; type: "image" | "video" } | null>(post?.mediaUrl ? { url: post.mediaUrl, type: postMediaType(post) } : null)
   const [uploading, setUploading] = useState(false)
   const [saving, setSaving] = useState(false)
   const fileInput = useRef<HTMLInputElement>(null)
 
   async function upload(file: File | undefined) {
     if (!file) return
-    const isVideo = file.type.startsWith("video/")
-    if (!isVideo && !file.type.startsWith("image/")) return toast.error("Choose an image or video.")
+    const kind = mediaKindForFile(file)
+    if (!kind) return toast.error("Choose an image or video.")
+    const isVideo = kind === "video"
     if (file.size > (isVideo ? MAX_VIDEO_BYTES : MAX_IMAGE_BYTES)) return toast.error("That file is too big. Images up to 12 MB, videos up to 20 MB.")
     setUploading(true)
     try {
@@ -744,41 +825,23 @@ function PostForm({ post, scope, canEdit, library, onDone }: { post: CampaignCre
               className="flex size-full flex-col items-center justify-center gap-1.5 text-xs text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring enabled:hover:bg-muted/70"
             >
               {canEdit ? <ImagePlus className="size-5" aria-hidden="true" /> : <ImageIcon className="size-6" aria-hidden="true" />}
-              {canEdit && (uploading ? "Uploading…" : "Upload")}
+              {canEdit && (uploading ? "Uploading…" : "Upload image or video")}
             </button>
           )}
-          {media && canEdit && (
-            <div className="absolute right-2 top-2 flex gap-1">
-              <button type="button" onClick={() => fileInput.current?.click()} aria-label="Replace" title="Replace" className="grid size-7 place-items-center rounded-full bg-black/70 text-white outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                <ImagePlus className="size-3.5" aria-hidden="true" />
-              </button>
-              <button type="button" onClick={() => setMedia(null)} aria-label="Remove" title="Remove" className="grid size-7 place-items-center rounded-full bg-black/70 text-white outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                <X className="size-3.5" aria-hidden="true" />
-              </button>
-            </div>
-          )}
         </div>
-        {canEdit && library.length > 0 && (
-          <div className="grid grid-cols-5 gap-1">
-            {library.slice(0, 10).map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => setMedia({ url: item.url, type: item.type === "video" ? "video" : "image" })}
-                aria-label={`Use ${item.title}`}
-                title={item.title}
-                className={cn("aspect-square overflow-hidden rounded-md bg-muted outline-none focus-visible:ring-2 focus-visible:ring-ring", media?.url === item.url ? "ring-2 ring-foreground" : "opacity-70 hover:opacity-100")}
-              >
-                {item.type === "video" ? (
-                  <video src={item.url} muted playsInline preload="metadata" className="size-full object-cover" />
-                ) : (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={item.url} alt="" loading="lazy" className="size-full object-cover" />
-                )}
-              </button>
-            ))}
+        {media && canEdit && (
+          <div className="flex gap-2">
+            <Button type="button" variant="outline" size="sm" onClick={() => fileInput.current?.click()} disabled={uploading}>
+              <ImagePlus className="size-4" aria-hidden="true" />
+              {uploading ? "Uploading…" : "Replace media"}
+            </Button>
+            <Button type="button" variant="ghost" size="sm" onClick={() => setMedia(null)} disabled={uploading}>
+              <X className="size-4" aria-hidden="true" />
+              Remove
+            </Button>
           </div>
         )}
+        {canEdit && <MediaLibraryStrip library={library} selectedUrl={media?.url} onPick={setMedia} />}
         <input ref={fileInput} type="file" accept="image/*,video/*" hidden onChange={(event) => { void upload(event.target.files?.[0]); event.target.value = "" }} />
       </div>
 
@@ -835,11 +898,12 @@ function MediaLibrary({ files, scope, canEdit, startNew = false, onActionHandled
   async function handleFiles(list: FileList | null) {
     if (!list?.length) return
     for (const file of Array.from(list)) {
-      const isVideo = file.type.startsWith("video/")
-      if (!isVideo && !file.type.startsWith("image/")) {
+      const kind = mediaKindForFile(file)
+      if (!kind) {
         toast.error(`${file.name} isn't an image or video.`)
         continue
       }
+      const isVideo = kind === "video"
       if (file.size > (isVideo ? MAX_VIDEO_BYTES : MAX_IMAGE_BYTES)) {
         toast.error(`${file.name} is too big. Images up to 12 MB, videos up to 20 MB.`)
         continue
@@ -852,7 +916,7 @@ function MediaLibrary({ files, scope, canEdit, startNew = false, onActionHandled
           url,
           type: isVideo ? "video" : "image",
           kind: "media",
-          folderId: activeFolderId || undefined,
+          ...(activeFolderId ? { folderId: activeFolderId } : {}),
         })
       } catch (error) {
         console.error("Error uploading file:", error)
@@ -904,7 +968,7 @@ function MediaLibrary({ files, scope, canEdit, startNew = false, onActionHandled
       subtitle: creative.type === "video" ? "Video" : creative.type === "link" ? "Link" : "Image",
       icon: creative.type === "video" ? <Video className="size-4 text-muted-foreground" aria-hidden="true" /> : creative.type === "link" ? <Link2 className="size-4 text-muted-foreground" aria-hidden="true" /> : <ImageIcon className="size-4 text-muted-foreground" aria-hidden="true" />,
       imageUrl: creative.type === "image" ? creative.url : undefined,
-      preview: creative.type === "video" ? <video src={creative.url} muted playsInline preload="metadata" className="size-full object-cover" /> : undefined,
+      preview: creative.type === "video" ? <VideoThumbnail src={creative.url} /> : undefined,
       placeholder: <ExternalLink className="size-8 text-muted-foreground" aria-hidden="true" />,
       onClick: () => open(creative),
       ariaLabel: `Open ${creative.title}`,

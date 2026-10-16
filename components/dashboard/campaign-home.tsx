@@ -1,5 +1,6 @@
 "use client"
 
+import { VideoThumbnail } from "@/components/ui/video-thumbnail"
 import { useState } from "react"
 import { Image as ImageIcon, Images, Megaphone, Palette, PenLine, UserPlus } from "lucide-react"
 
@@ -54,7 +55,7 @@ export function CampaignHome({
       </div>
 
       {canEdit && (
-        <section aria-label="Campaign actions" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <section aria-label="Campaign actions" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           {[
             { action: "run" as const, label: "Run Campaign", icon: Megaphone },
             { action: "creator" as const, label: "New Creator", icon: UserPlus },
@@ -90,7 +91,7 @@ export function CampaignHome({
                 menu={<CollectionItemMenu actions={{ noun: "post", name: post.title || "Post", onOpen: () => setViewingPost(post) }} />}
                 preview={post.mediaUrl ? (
                   post.mediaType === "video"
-                    ? <video src={post.mediaUrl} muted playsInline preload="metadata" className="size-full object-cover" />
+                    ? <VideoThumbnail src={post.mediaUrl} />
                     // eslint-disable-next-line @next/next/no-img-element
                     : <img src={post.mediaUrl} alt="" loading="lazy" className="size-full object-cover" />
                 ) : undefined}

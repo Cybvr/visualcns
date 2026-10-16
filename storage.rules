@@ -19,12 +19,16 @@ service firebase.storage {
         && request.resource.contentType.matches('image/.*');
     }
 
-    // Media uploads use the documents path and allow videos up to the
-    // 20 MB limit enforced by the dashboard.
+    // Campaign media uses the documents path. Keep these limits aligned with
+    // the dashboard: images up to 12 MB and videos up to 20 MB.
     match /documents/{fileName} {
-      allow create, update: if request.auth != null
-        && request.resource.size <= 20 * 1024 * 1024
-        && request.resource.contentType.matches('video/.*');
+      allow read: if true;
+      allow create, update: if request.auth != null && (
+        (request.resource.contentType.matches('image/.*')
+          && request.resource.size <= 12 * 1024 * 1024)
+        || (request.resource.contentType.matches('video/.*')
+          && request.resource.size <= 20 * 1024 * 1024)
+      );
     }
   }
 }

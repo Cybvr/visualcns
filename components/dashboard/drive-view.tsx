@@ -1,5 +1,6 @@
 "use client"
 
+import { VideoThumbnail } from "@/components/ui/video-thumbnail"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 import { useAuth } from "@/components/auth-provider"
@@ -93,7 +94,7 @@ function FileIcon({ doc }: { doc: SharedDocument }) {
   if ((doc.type === "video" || /\.(mp4|webm|ogg|mov|m4v)(\?|$)/i.test(doc.url)) && doc.url) {
     return (
       <div className="relative h-full w-full overflow-hidden bg-black">
-        <video src={doc.url} muted playsInline preload="metadata" className="h-full w-full object-cover" />
+        <VideoThumbnail src={doc.url} />
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="flex h-10 w-10 items-center justify-center rounded-full bg-black/55">
             <Play className="h-5 w-5 text-white" />

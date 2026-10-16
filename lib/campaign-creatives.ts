@@ -73,12 +73,14 @@ export async function addCampaignCreative(
   creative: Pick<CampaignCreative, "title" | "url" | "type"> & { kind: "content" | "media"; folderId?: string; body?: string; status?: string; postedBy?: string; mediaUrl?: string; mediaType?: "image" | "video" },
 ) {
   const now = Timestamp.now()
+  // Firestore refuses undefined values, e.g. no folder for a file in All media, so leave those fields out.
+  const fields = Object.fromEntries(Object.entries(creative).filter(([, value]) => value !== undefined))
   await addDoc(collection(db, COLLECTION_NAME), {
     agencyId: scope.agencyId || await getCurrentAgencyId(),
     companyId: scope.companyId,
     projectId: scope.projectId,
     status: "Draft",
-    ...creative,
+    ...fields,
     createdAt: now,
     updatedAt: now,
   })

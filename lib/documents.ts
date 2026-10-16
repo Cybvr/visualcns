@@ -14,6 +14,7 @@ import { db, storage } from "./firebase"
 import { getCurrentAgencyId } from "./agency-scope"
 import type { Contract } from "./billing"
 import { prepareImageForUpload } from "./image-upload"
+import { mediaKindForFile } from "./media"
 
 export interface SharedDocument {
   id: string
@@ -38,8 +39,12 @@ export async function uploadFileToStorage(
   const preparedFile = await prepareImageForUpload(file)
   const path = `documents/${Date.now()}_${preparedFile.name}`
   const storageRef = ref(storage, path)
+  const kind = mediaKindForFile(file)
+  const contentType = preparedFile.type || file.type || (kind === "video" ? "video/mp4" : kind === "image" ? "image/jpeg" : "application/octet-stream")
   return new Promise((resolve, reject) => {
-    const task = uploadBytesResumable(storageRef, preparedFile)
+    const task = uploadBytesResumable(storageRef, preparedFile, {
+      contentType,
+    })
     task.on(
       "state_changed",
       (snap) => onProgress?.(Math.round((snap.bytesTransferred / snap.totalBytes) * 100)),

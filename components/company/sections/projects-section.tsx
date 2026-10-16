@@ -163,11 +163,6 @@ export function ProjectsSection() {
     <div className={selectedProject ? "mt-0" : "mt-5"}>
       {selectedProject ? (
         <div>
-          {(selectedProject.campaignImageUrl || selectedProject.thumbnailUrl) && (
-            <div className="mb-2 aspect-[4/1] w-full overflow-hidden rounded-2xl bg-muted">
-              <ProjectCover project={selectedProject} />
-            </div>
-          )}
           <div className="flex items-center justify-between gap-3 max-sm:justify-end">
           <nav aria-label="Campaign breadcrumb" className="min-w-0 max-sm:hidden">
             <ol className="flex min-w-0 items-center gap-1 text-sm">

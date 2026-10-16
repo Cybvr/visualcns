@@ -1,5 +1,6 @@
 "use client"
 
+import { VideoThumbnail } from "@/components/ui/video-thumbnail"
 import { useRef, useState } from "react"
 import { Loader2, Play, Upload, X } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -230,7 +231,7 @@ export function GalleryDropzone({ value, onChange, acceptVideos = false }: Galle
             <div key={i} className="relative group aspect-square">
               {mediaKindForUrl(url) === "video" ? (
                 <>
-                  <video src={url} muted playsInline preload="metadata" className="h-full w-full rounded object-cover" />
+                  <VideoThumbnail src={url} />
                   <span className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/15 text-white">
                     <Play className="size-5 fill-current" aria-hidden="true" />
                   </span>
