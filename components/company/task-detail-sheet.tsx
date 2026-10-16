@@ -1,21 +1,43 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import { useSearchParams } from "next/navigation"
 import { Send } from "lucide-react"
 import { toast } from "sonner"
 
 import { useCompanyPage } from "@/components/company/company-page-context"
+import { StatusHistory } from "@/components/dashboard/status-history"
 import { TaskContent } from "@/components/dashboard/task-content"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
+import { getStatusHistory, type StatusEvent } from "@/lib/status-history"
 import { taskStatusMeta } from "@/lib/tasks"
+import { useAuth } from "@/components/auth-provider"
 
 /** Keeps task details in the current company surface instead of routing away. */
 export function TaskDetailSheet() {
-  const { tasks, sectionHref, updateParams, absoluteUrl } = useCompanyPage()
+  const { tasks, sectionHref, updateParams, absoluteUrl, isAdmin } = useCompanyPage()
+  const { user } = useAuth()
   const searchParams = useSearchParams()
   const viewingTaskId = searchParams.get("task")
   const viewingTask = viewingTaskId ? tasks.find((task) => task.id === viewingTaskId) ?? null : null
+  const [history, setHistory] = useState<StatusEvent[]>([])
+  const [historyLoading, setHistoryLoading] = useState(false)
+
+  useEffect(() => {
+    if (!isAdmin || !user || !viewingTask?.id) {
+      setHistory([])
+      setHistoryLoading(false)
+      return
+    }
+    let active = true
+    setHistoryLoading(true)
+    void getStatusHistory("task", viewingTask.id)
+      .then((events) => { if (active) setHistory(events) })
+      .catch(() => { if (active) setHistory([]) })
+      .finally(() => { if (active) setHistoryLoading(false) })
+    return () => { active = false }
+  }, [isAdmin, user, viewingTask?.id])
 
   function taskHref(id: string) {
     return sectionHref("projects", { task: id })
@@ -71,6 +93,7 @@ export function TaskDetailSheet() {
               <h3 className="text-sm font-medium text-foreground">Content</h3>
               <TaskContent value={viewingTask.content || ""} className="mt-2" />
             </section>
+            {isAdmin && <StatusHistory events={history} loading={historyLoading} labels={Object.fromEntries(Object.entries(taskStatusMeta).map(([key, meta]) => [key, meta.label]))} />}
           </div>
         )}
       </SheetContent>

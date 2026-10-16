@@ -74,6 +74,8 @@ export interface Project {
   category?: string[]
   location?: string
   imageUrl?: string
+  /** Newest image found in this campaign's media, used as the default cover. */
+  campaignImageUrl?: string
   logoUrl?: string
   gallery?: string[]
   clientValuation?: string
@@ -98,29 +100,58 @@ export const projectStatusMeta: Record<ProjectStatus, { label: string; className
 
 const COLLECTION_NAME = "projects"
 
+function mediaImageUrl(data: Record<string, unknown>) {
+  if (data.type === "image" && typeof data.url === "string" && data.url) return data.url
+  if (data.mediaType === "image" && typeof data.mediaUrl === "string" && data.mediaUrl) return data.mediaUrl
+  return ""
+}
+
+/** Attach the newest usable image from each campaign's media collection. */
+async function withCampaignImages(projects: Project[], field: "agencyId" | "companyId", value: string): Promise<Project[]> {
+  if (!projects.length || !value) return projects
+  const snapshot = await getDocs(query(collection(db, "campaignCreatives"), where(field, "==", value)))
+  const images = new Map<string, { url: string; at: number }>()
+  for (const item of snapshot.docs) {
+    const data = item.data() as Record<string, unknown>
+    const projectId = typeof data.projectId === "string" ? data.projectId : ""
+    const url = mediaImageUrl(data)
+    if (!projectId || !url) continue
+    const at = Math.max(tsToMillis(data.updatedAt), tsToMillis(data.createdAt))
+    const current = images.get(projectId)
+    if (!current || at >= current.at) images.set(projectId, { url, at })
+  }
+  return projects.map((project) => ({ ...project, campaignImageUrl: images.get(project.id)?.url ?? project.campaignImageUrl }))
+}
+
 export async function getProjects(): Promise<Project[]> {
   const agencyId = await getCurrentAgencyId()
   const snapshot = await getDocs(query(collection(db, COLLECTION_NAME), where("agencyId", "==", agencyId)))
-  return snapshot.docs.map((d) => ({ ...(d.data() as object), id: d.id })) as Project[]
+  const projects = snapshot.docs.map((d) => ({ ...(d.data() as object), id: d.id })) as Project[]
+  return withCampaignImages(projects, "agencyId", agencyId)
 }
 
 export async function getProjectsByCompanyId(companyId: string): Promise<Project[]> {
   if (!companyId) return []
-  const snapshot = await getDocs(query(collection(db, COLLECTION_NAME), where("agencyId", "==", await getCurrentAgencyId()), where("companyId", "==", companyId)))
-  return snapshot.docs.map((d) => ({ ...(d.data() as object), id: d.id })) as Project[]
+  const agencyId = await getCurrentAgencyId()
+  const snapshot = await getDocs(query(collection(db, COLLECTION_NAME), where("agencyId", "==", agencyId), where("companyId", "==", companyId)))
+  const projects = snapshot.docs.map((d) => ({ ...(d.data() as object), id: d.id })) as Project[]
+  return withCampaignImages(projects, "companyId", companyId)
 }
 
 /** Every project for a company, readable on the public company page. */
 export async function getPublicProjectsByCompanyId(companyId: string): Promise<Project[]> {
   if (!companyId) return []
   const snapshot = await getDocs(query(collection(db, COLLECTION_NAME), where("companyId", "==", companyId)))
-  return snapshot.docs.map((d) => ({ ...(d.data() as object), id: d.id })) as Project[]
+  const projects = snapshot.docs.map((d) => ({ ...(d.data() as object), id: d.id })) as Project[]
+  return withCampaignImages(projects, "companyId", companyId)
 }
 
 export async function getProject(id: string): Promise<Project | null> {
   const snapshot = await getDoc(doc(db, COLLECTION_NAME, id))
   if (!snapshot.exists()) return null
-  return { ...(snapshot.data() as object), id: snapshot.id } as Project
+  const project = { ...(snapshot.data() as object), id: snapshot.id } as Project
+  const projects = await withCampaignImages([project], "companyId", project.companyId)
+  return projects[0] ?? project
 }
 
 export { slugify }

@@ -223,9 +223,9 @@ export default function ProjectsAdminPage() {
                           active={checked}
                           avatar={checked ? (
                             <CheckAvatar />
-                          ) : p.thumbnailUrl ? (
+                          ) : (p.campaignImageUrl || p.thumbnailUrl) ? (
                             // eslint-disable-next-line @next/next/no-img-element
-                            <img src={p.thumbnailUrl} alt="" loading="lazy" className="size-12 rounded-full object-cover" />
+                            <img src={p.campaignImageUrl || p.thumbnailUrl} alt="" loading="lazy" className="size-12 rounded-full object-cover" />
                           ) : (
                             <InitialAvatar text={p.title} />
                           )}
@@ -267,8 +267,8 @@ export default function ProjectsAdminPage() {
                     key={p.id}
                     surface="muted"
                     iconShape="circle"
-                    imageUrl={p.thumbnailUrl || undefined}
-                    icon={!p.thumbnailUrl ? <InitialAvatar text={p.title} className="size-11" /> : undefined}
+                    imageUrl={p.campaignImageUrl || p.thumbnailUrl || undefined}
+                    icon={!(p.campaignImageUrl || p.thumbnailUrl) ? <InitialAvatar text={p.title} className="size-11" /> : undefined}
                     title={<>{p.title}{p.isCaseStudy && <span className="ml-2 text-xs text-violet-700 dark:text-violet-200">Case study</span>}</>}
                     subtitle={[p.client || p.companyId, p.service].filter(Boolean).join(" · ") || "No details"}
                     description={`${meta.label} · ${p.progress}% done${p.dueDate ? ` · Due ${p.dueDate}` : ""}`}

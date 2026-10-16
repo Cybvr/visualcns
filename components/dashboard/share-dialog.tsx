@@ -38,9 +38,9 @@ export function ShareDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       {showTrigger && (
         <DialogTrigger asChild>
-          <Button type="button" variant="outline" size="sm" className={cn("shrink-0", triggerClassName)}>
-            <Send className="size-4" aria-hidden="true" />
-            {triggerLabel}
+          {/* An icon button, like the other header actions; the label is for screen readers and the tooltip. */}
+          <Button type="button" variant="ghost" size="icon" aria-label={triggerLabel} title={triggerLabel} className={cn("shrink-0 rounded-full text-foreground hover:bg-muted/50", triggerClassName)}>
+            <Send className="size-[18px]" aria-hidden="true" />
           </Button>
         </DialogTrigger>
       )}

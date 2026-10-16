@@ -1,8 +1,9 @@
-import { collection, deleteDoc, doc, onSnapshot, query, setDoc, updateDoc, where, writeBatch } from "firebase/firestore"
+import { collection, deleteDoc, doc, onSnapshot, query, setDoc, where, writeBatch } from "firebase/firestore"
 
 import { db } from "./firebase"
 import { getCurrentAgencyId } from "./agency-scope"
 import { tsToMillis } from "./tasks"
+import { updateWithStatusEvent } from "./status-history"
 
 const COLLECTION_NAME = "leads"
 
@@ -176,7 +177,14 @@ export async function importLeads(uid: string, rows: LeadFields[], updates: Arra
 }
 
 export async function updateLead(id: string, changes: Partial<LeadFields>): Promise<void> {
-  await updateDoc(doc(db, COLLECTION_NAME, id), { ...changes, updatedAt: new Date().toISOString() })
+  await updateWithStatusEvent({
+    collectionName: COLLECTION_NAME,
+    id,
+    entityType: "lead",
+    changes,
+    getStatus: (current) => typeof current.stage === "string" ? current.stage : "new",
+    getNextStatus: (next) => typeof next.stage === "string" ? next.stage : undefined,
+  })
 }
 
 export async function deleteLead(id: string): Promise<void> {

@@ -163,7 +163,7 @@ export function ProjectsSection() {
     <div className={selectedProject ? "mt-0" : "mt-5"}>
       {selectedProject ? (
         <div>
-          {selectedProject.thumbnailUrl && (
+          {(selectedProject.campaignImageUrl || selectedProject.thumbnailUrl) && (
             <div className="mb-2 aspect-[4/1] w-full overflow-hidden rounded-2xl bg-muted">
               <ProjectCover project={selectedProject} />
             </div>

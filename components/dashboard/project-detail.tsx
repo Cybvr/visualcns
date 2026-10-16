@@ -21,7 +21,6 @@ import { TasksView } from "@/components/dashboard/tasks-view"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { useOptionalSidebar } from "@/components/ui/sidebar"
 import { useSidebarTakeover } from "@/components/company/sidebar-takeover"
-import { usePageHeaderActions, usePageHeaderTitle } from "@/components/dashboard/page-title-context"
 import { watchCampaignCreatives, type CampaignCreative } from "@/lib/campaign-creatives"
 import { onRoster, watchCampaignPeople, type CampaignPerson } from "@/lib/campaign-people"
 import type { Invoice } from "@/lib/billing"
@@ -217,7 +216,7 @@ export function ProjectDetail({
     [project.title, saveTitle, titleDraft, titleEditing, titleSaving],
   )
 
-  usePageHeaderTitle(!embedded && isAdmin ? titleNode : null)
+  // The title, Share and the ⋮ menu sit at the top of the page itself, not in the window header.
 
   const fetchTasks = useCallback(async () => {
     if (publicView) {
@@ -277,7 +276,7 @@ export function ProjectDetail({
               type="button"
               aria-label="More actions"
               title="More actions"
-              className="flex size-10 items-center justify-center rounded-xl text-current outline-none transition-colors hover:bg-black/5 focus-visible:ring-2 focus-visible:ring-ring"
+              className="flex size-9 items-center justify-center rounded-full text-foreground outline-none transition-colors hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring"
             >
               <MoreVertical className="size-5" aria-hidden="true" />
             </button>
@@ -323,7 +322,7 @@ export function ProjectDetail({
     )
   }, [campaignSharePath, clientName, companyId, fetchTasks, isAdmin, project, publicView, shareOpen, tasks.length])
 
-  usePageHeaderActions(embedded ? null : headerActions)
+
 
   const tasksPanel = (
     <TasksView
@@ -367,6 +366,12 @@ export function ProjectDetail({
   return (
     <CampaignBrandContext.Provider value={brand}>
     <div className={cn("space-y-2 md:space-y-4", tab === "build" && embedded && canEditCampaign && "md:flex md:h-full md:min-h-0 md:flex-col md:space-y-0")}>
+      {!embedded && isAdmin && (
+        <div className="flex min-w-0 items-center gap-2">
+          <h1 className="surface-record-title min-w-0 flex-1 truncate">{titleNode}</h1>
+          {headerActions}
+        </div>
+      )}
       {isAdmin || publicView ? (
         <div className={cn("flex flex-col gap-2 md:-mb-6 md:flex-row md:gap-8", tab === "build" && embedded && canEditCampaign && "md:min-h-0 md:flex-1")}>
           {/* The row reaches into the card's bottom padding (the content keeps it instead), so the sticky menu isn't pushed up at the end of a long page. */}

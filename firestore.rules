@@ -230,6 +230,18 @@ service cloud.firestore {
         && request.resource.data.createdBy == resource.data.createdBy;
     }
 
+    // Immutable audit entries for task and lead status transitions.
+    match /statusEvents/{id} {
+      allow read: if agencyAdmin(resource.data);
+      allow create: if isAdmin() && sameAgency(request.resource.data)
+        && request.resource.data.changedBy == request.auth.uid
+        && request.resource.data.entityType in ['task', 'lead']
+        && request.resource.data.entityId is string
+        && request.resource.data.fromStatus is string
+        && request.resource.data.toStatus is string;
+      allow update, delete: if false;
+    }
+
     match /hiddenReceivedEmails/{id} {
       allow read: if agencyAdmin(resource.data) || owns(resource.data);
       allow create: if (isAdmin() && sameAgency(request.resource.data))

@@ -24,6 +24,7 @@ import { MobileDataCard } from "@/components/dashboard/mobile-data-card"
 import { TableFilterBar } from "@/components/dashboard/table-filter-bar"
 import { useFilterBar } from "@/components/dashboard/filter-bar"
 import { ImportLeadsDialog } from "@/components/dashboard/import-leads-dialog"
+import { StatusHistory } from "@/components/dashboard/status-history"
 import { QuickEmailComposer } from "@/components/dashboard/email/quick-email-composer"
 import { TableBulkBar } from "@/components/dashboard/table-bulk-bar"
 import { useViewMode, type ViewMode } from "@/components/dashboard/view-toggle"
@@ -39,6 +40,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Textarea } from "@/components/ui/textarea"
 import { getCurrentAgencyId } from "@/lib/agency-scope"
 import { createLead, deleteLead, LEAD_STAGES, updateLead, watchLeads, type Lead, type LeadFields, type LeadStage } from "@/lib/leads"
+import { getStatusHistory, type StatusEvent } from "@/lib/status-history"
 import { cn } from "@/lib/utils"
 import { useRowSelection } from "@/hooks/use-row-selection"
 
@@ -509,6 +511,8 @@ function LeadCard({ lead, dragging = false, onOpen, onEmail }: { lead: Lead; dra
 function LeadSheet({ lead, onClose, onSave, onDelete }: { lead: Lead | "new" | null; onClose: () => void; onSave: (fields: LeadFields) => Promise<void>; onDelete: (lead: Lead) => void }) {
   const [form, setForm] = useState<LeadFields>(EMPTY_FORM)
   const [saving, setSaving] = useState(false)
+  const [history, setHistory] = useState<StatusEvent[]>([])
+  const [historyLoading, setHistoryLoading] = useState(false)
 
   useEffect(() => {
     if (!lead) return
@@ -517,6 +521,21 @@ function LeadSheet({ lead, onClose, onSave, onDelete }: { lead: Lead | "new" | n
       const { id: _id, agencyId: _agencyId, createdBy: _createdBy, createdAt: _createdAt, updatedAt: _updatedAt, ...fields } = lead
       setForm(fields)
     }
+  }, [lead])
+
+  useEffect(() => {
+    if (!lead || lead === "new") {
+      setHistory([])
+      setHistoryLoading(false)
+      return
+    }
+    let active = true
+    setHistoryLoading(true)
+    void getStatusHistory("lead", lead.id)
+      .then((events) => { if (active) setHistory(events) })
+      .catch(() => { if (active) setHistory([]) })
+      .finally(() => { if (active) setHistoryLoading(false) })
+    return () => { active = false }
   }, [lead])
 
   function set<K extends keyof LeadFields>(key: K, value: LeadFields[K]) {
@@ -613,6 +632,7 @@ function LeadSheet({ lead, onClose, onSave, onDelete }: { lead: Lead | "new" | n
               Won? <Link href="/dashboard/clients" className="text-foreground underline-offset-4 hover:underline">Add them as a client</Link> to start work.
             </p>
           )}
+          {lead && lead !== "new" && <StatusHistory events={history} loading={historyLoading} labels={Object.fromEntries(LEAD_STAGES.map((stage) => [stage.value, stage.label]))} />}
           <div className={cn("flex flex-col-reverse gap-2 sm:flex-row sm:justify-end", lead !== "new" && "sm:justify-between")}>
             {lead && lead !== "new" && (
               <Button type="button" variant="ghost" className="text-destructive hover:text-destructive" onClick={() => onDelete(lead)}>Delete</Button>

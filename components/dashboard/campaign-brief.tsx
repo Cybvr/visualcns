@@ -87,16 +87,16 @@ export function CampaignBrief({
   return (
     <form onSubmit={save} className="space-y-8">
       <Section title="About the event">
-        <Field canEdit={canEdit} value={draft.about} onChange={set("about")} rows={5} label="About the event" />
+        <Field canEdit={canEdit} value={draft.about} onChange={set("about")} rows={12} label="About the event" placeholder={ABOUT_PLACEHOLDER} />
       </Section>
       <Section title="Narrative and angle">
-        <Field canEdit={canEdit} value={draft.angle} onChange={set("angle")} singleLine label="Narrative and angle" />
+        <Field canEdit={canEdit} value={draft.angle} onChange={set("angle")} singleLine label="Narrative and angle" placeholder="The one line the whole campaign hangs on, e.g. “Lagos executives step into the ring for one night”" />
       </Section>
       <Section title="Strategy">
-        <Field canEdit={canEdit} value={draft.strategy} onChange={set("strategy")} rows={5} label="Strategy" />
+        <Field canEdit={canEdit} value={draft.strategy} onChange={set("strategy")} rows={5} label="Strategy" placeholder="How you'll get there: which creators, which platforms, what they post and when, and what counts as a win." />
       </Section>
       <Section title="Announcement post">
-        <Field canEdit={canWriteAnnouncement} value={draft.announcement} onChange={set("announcement")} rows={7} label="Announcement post" />
+        <Field canEdit={canWriteAnnouncement} value={draft.announcement} onChange={set("announcement")} rows={7} label="Announcement post" placeholder="The first post people will see: the hook, what's happening, when and where, and what to do next." />
         {post && (
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <StatusPill status={status} />
@@ -126,6 +126,21 @@ export function CampaignBrief({
   )
 }
 
+/** Shown in the empty About box, so whoever fills it in knows what to cover. */
+const ABOUT_PLACEHOLDER = [
+  "What is it? Name the event, launch or product in a sentence.",
+  "",
+  "When and where: the date, the time and the venue or city.",
+  "",
+  "Who it's for: the people you want to show up, buy or talk about it.",
+  "",
+  "What makes it worth talking about: the headline act, the offer or the story behind it.",
+  "",
+  "What people should do: buy a ticket, sign up, visit, or follow along.",
+  "",
+  "Anything creators must mention or avoid: hashtags, tags, dos and don'ts.",
+].join("\n")
+
 function Section({ title, action, children }: { title: string; action?: ReactNode; children: ReactNode }) {
   return (
     <section>
@@ -139,9 +154,9 @@ function Section({ title, action, children }: { title: string; action?: ReactNod
 }
 
 /** A box to write in, or plain text for people who can't change it. */
-function Field({ canEdit, value, onChange, label, singleLine = false, rows = 4 }: { canEdit: boolean; value: string; onChange: (value: string) => void; label: string; singleLine?: boolean; rows?: number }) {
+function Field({ canEdit, value, onChange, label, singleLine = false, rows = 4, placeholder }: { canEdit: boolean; value: string; onChange: (value: string) => void; label: string; singleLine?: boolean; rows?: number; placeholder?: string }) {
   if (!canEdit) return <p className="whitespace-pre-wrap text-[15px] leading-7 text-foreground">{value || <span className="text-muted-foreground">Not written yet.</span>}</p>
   return singleLine
-    ? <Input value={value} onChange={(event) => onChange(event.target.value)} aria-label={label} className="h-11 text-[15px]" />
-    : <Textarea value={value} onChange={(event) => onChange(event.target.value)} rows={rows} aria-label={label} className="text-[15px] leading-7" />
+    ? <Input value={value} onChange={(event) => onChange(event.target.value)} aria-label={label} placeholder={placeholder} className="h-11 text-[15px]" />
+    : <Textarea value={value} onChange={(event) => onChange(event.target.value)} rows={rows} aria-label={label} placeholder={placeholder} className="text-[15px] leading-7" />
 }

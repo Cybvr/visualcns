@@ -1,6 +1,6 @@
 "use client"
 
-import { SidebarTakeoverProvider } from "@/components/company/sidebar-takeover"
+import { SidebarTakeoverProvider, useSidebarTakeoverState } from "@/components/company/sidebar-takeover"
 import { useNavCounts } from "@/components/dashboard/use-nav-counts"
 import dynamic from "next/dynamic"
 import { useEffect, useState, type FormEvent, type ReactNode } from "react"
@@ -91,6 +91,11 @@ function DashboardMobileFooterNav({ unreadEmailCount }: { unreadEmailCount: numb
   ]
 
   return <MobileFooterNav items={items} />
+}
+
+/** Phones: the menu button while a campaign has taken over the sidebar (its sheet holds the way back), otherwise whatever the page normally shows. */
+function TakeoverMenuButton({ children }: { children: ReactNode }) {
+  return useSidebarTakeoverState() ? <SidebarTrigger className="-ml-1" /> : <>{children}</>
 }
 
 /**
@@ -196,6 +201,8 @@ export function DashboardShell({
             )}
           >
             <div className="flex shrink-0 items-center gap-2 md:hidden">
+              {/* While a campaign has taken over the sidebar, its back link lives in the sheet, so phones get the menu button. */}
+              <TakeoverMenuButton>
               {isBackDetailRoute ? (
                 <button
                   type="button"
@@ -225,6 +232,7 @@ export function DashboardShell({
               ) : (
                 <SidebarTrigger className="-ml-1" />
               )}
+              </TakeoverMenuButton>
               {!isProjectDetailRoute && !backAction && <Separator orientation="vertical" className="data-[orientation=vertical]:h-4 max-md:data-[orientation=vertical]:h-6" />}
             </div>
             <div className={cn("flex min-w-0 items-center gap-1 md:gap-3", titleNode && "flex-1")}>
@@ -260,7 +268,8 @@ export function DashboardShell({
               {!isBackDetailRoute && <Button type="button" variant="ghost" size="icon" aria-label="Search workspace" onClick={openSearch} className={cn("size-10 md:hidden [&_svg]:size-5", replacesMobileDefaults && "max-sm:hidden")}><Search className="size-4" aria-hidden="true" /></Button>}
               <div ref={setHeaderSlot} className="contents" />
               {headerActions}
-              {!isCompanyDetailRoute && !clientOpen && <DashboardHeaderTeam />}
+              {/* The team control is for the workspace; on a campaign the campaign's own Share is enough. */}
+              {!isCompanyDetailRoute && !clientOpen && !isProjectDetailRoute && <DashboardHeaderTeam />}
               <AppSwitcher />
               {!isCompanyDetailRoute && !clientOpen && !isBackDetailRoute && (
                 <QuickCreateMenu

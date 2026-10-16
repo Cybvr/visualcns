@@ -3,7 +3,6 @@ import {
   getDocs,
   getDoc,
   addDoc,
-  updateDoc,
   deleteDoc,
   doc,
   query,
@@ -12,6 +11,7 @@ import {
 } from "firebase/firestore"
 import { db } from "./firebase"
 import { getCurrentAgencyId } from "./agency-scope"
+import { updateWithStatusEvent } from "./status-history"
 
 export type TaskStatus = "todo" | "in-progress" | "review" | "done"
 export type TaskPriority = "low" | "medium" | "high"
@@ -194,7 +194,18 @@ export async function duplicateTask(task: Task, companyId = task.companyId, clie
 }
 
 export async function updateTask(id: string, data: Partial<Omit<Task, "id" | "createdAt">>): Promise<void> {
-  await updateDoc(doc(db, COLLECTION_NAME, id), { ...data, updatedAt: Timestamp.now() })
+  await updateWithStatusEvent({
+    collectionName: COLLECTION_NAME,
+    id,
+    entityType: "task",
+    changes: data,
+    getStatus: (current) => typeof current.status === "string" ? current.status : "todo",
+    getNextStatus: (changes) => typeof changes.status === "string" ? changes.status : undefined,
+    eventData: {
+      ...(typeof data.companyId === "string" ? { companyId: data.companyId } : {}),
+      ...(typeof data.projectId === "string" ? { projectId: data.projectId } : {}),
+    },
+  })
 }
 
 export async function deleteTask(id: string): Promise<void> {
