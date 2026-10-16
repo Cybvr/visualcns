@@ -50,6 +50,8 @@ interface ProjectDetailProps {
   onProjectDeleted?: () => void | Promise<void>
   /** Closes the campaign. On the company page its sections then take over the sidebar, with this as the way back. */
   onBack?: () => void
+  /** What the sidebar's back link says. */
+  backLabel?: string
   /** Signed-in agency admins on the public page, who can manage people and creatives without the admin view. */
   canEditCampaign?: boolean
   /** The client's own signed-in people, who can edit post text and approve it. */
@@ -78,6 +80,7 @@ export function ProjectDetail({
   onProjectPatched,
   onProjectDeleted,
   onBack,
+  backLabel = "Campaigns",
   publicTasks,
   canEditCampaign = isAdmin,
   canReview = false,
@@ -352,7 +355,7 @@ export function ProjectDetail({
   // On the company page the campaign's sections replace the sidebar menu, with a way back to Campaigns.
   const inSidebar = useSidebarTakeover(onBack ? {
     title: project.title,
-    backLabel: "Campaigns",
+    backLabel,
     onBack,
     items: sections,
     active: tab,

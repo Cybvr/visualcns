@@ -4,13 +4,13 @@ import { useCallback, useMemo, useState, type ComponentProps, type ReactNode } f
 import Image from "next/image"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { ChevronLeft, LogIn, Search, Sparkles } from "lucide-react"
+import { LogIn, Search, Sparkles } from "lucide-react"
 
 import { useAuth } from "@/components/auth-provider"
 import { BrandLockup } from "@/components/brand-lockup"
 import { useCompanyPage } from "@/components/company/company-page-context"
 import { NgaiWidget } from "@/components/company/ngai-widget"
-import { SidebarTakeoverProvider, useSidebarTakeoverState } from "@/components/company/sidebar-takeover"
+import { SidebarTakeoverMenu, SidebarTakeoverProvider } from "@/components/company/sidebar-takeover"
 import { AppSwitcher } from "@/components/dashboard/app-switcher"
 import { useSubscription } from "@/components/company/company-plan"
 import { UpgradeModal } from "@/components/company/upgrade-modal"
@@ -50,45 +50,6 @@ function CompanySidebarLink({ onClick, ...props }: ComponentProps<typeof Link>) 
     />
   )
 }
-
-const SIDEBAR_ITEM_CLASS = "h-9 gap-2 px-2 max-md:h-12 max-md:min-h-12 max-md:gap-3 max-md:px-3 [&>svg]:size-[18px] [&>svg]:max-md:size-5"
-
-/**
- * The sidebar's menu: the company's sections, or, while a campaign is open,
- * a way back to Campaigns and that campaign's own sections.
- */
-function CompanySidebarMenu({ sections }: { sections: ReactNode }) {
-  const takeover = useSidebarTakeoverState()
-  const { setOpenMobile } = useSidebar()
-  if (!takeover) return <>{sections}</>
-  return (
-    <>
-      <SidebarMenuItem>
-        <SidebarMenuButton type="button" tooltip={`Back to ${takeover.backLabel}`} onClick={() => { setOpenMobile(false); takeover.onBack() }} className={cn(SIDEBAR_ITEM_CLASS, "text-muted-foreground")}>
-          <ChevronLeft className="h-4 w-4" aria-hidden="true" />
-          <span className="sidebar-nav-label">{takeover.backLabel}</span>
-        </SidebarMenuButton>
-      </SidebarMenuItem>
-      <li className="truncate px-2 pb-1 pt-3 text-sm font-semibold text-foreground group-data-[collapsible=icon]:hidden max-md:px-3">{takeover.title}</li>
-      {takeover.items.map((item) => (
-        <SidebarMenuItem key={item.key}>
-          <SidebarMenuButton
-            type="button"
-            isActive={takeover.active === item.key}
-            tooltip={item.label}
-            onClick={() => { setOpenMobile(false); takeover.onSelect(item.key) }}
-            className={SIDEBAR_ITEM_CLASS}
-          >
-            <item.icon className="h-4 w-4" aria-hidden="true" />
-            <span className="sidebar-nav-label">{item.label}</span>
-            {item.count ? <span className="ml-auto text-xs tabular-nums text-muted-foreground group-data-[collapsible=icon]:hidden">{item.count}</span> : null}
-          </SidebarMenuButton>
-        </SidebarMenuItem>
-      ))}
-    </>
-  )
-}
-
 
 function CompanyIdentity() {
   const { company } = useCompanyPage()
@@ -242,7 +203,7 @@ export function CompanyProfileShell({ children }: { children: ReactNode }) {
             <SidebarContent>
               <SidebarGroup className="group-data-[collapsible=icon]:p-1">
                 <SidebarMenu className="gap-0.5 max-md:gap-1.5">
-                  <CompanySidebarMenu sections={<>{sidebarSections.map(renderItem)}<UpgradeNavItem /></>} />
+                  <SidebarTakeoverMenu sections={<>{sidebarSections.map(renderItem)}<UpgradeNavItem /></>} />
                 </SidebarMenu>
               </SidebarGroup>
             </SidebarContent>

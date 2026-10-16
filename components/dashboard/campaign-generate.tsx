@@ -6,13 +6,17 @@ import { Check, Loader2, X } from "lucide-react"
 import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
-import { useCompanyPage } from "@/components/company/company-page-context"
+import { useOptionalCompanyPage } from "@/components/company/company-page-context"
 import { useSubscription } from "@/components/company/company-plan"
 import { UpgradeModal } from "@/components/company/upgrade-modal"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { watchCampaignCreatives, type CampaignCreative } from "@/lib/campaign-creatives"
 import type { Project } from "@/lib/projects"
+import type { Task } from "@/lib/tasks"
+
+/** Stable, so the memo below doesn't rerun every render when there is no task list. */
+const EMPTY_TASKS: Task[] = []
 
 type PartKey = "angle" | "strategy" | "announcement" | "hooks" | "rosterTarget" | "creatorSuggestions" | "tasks"
 type Step = "idle" | "queued" | "working" | "done" | "failed"
@@ -34,7 +38,8 @@ const PARTS: { key: PartKey; label: string }[] = [
  */
 export function CampaignGenerateButton({ project, companyName, onPatched, open: controlledOpen, onOpenChange, hideTrigger = false }: { project: Project; companyName: string; onPatched?: (patch: Partial<Project>) => void; open?: boolean; onOpenChange?: (open: boolean) => void; hideTrigger?: boolean }) {
   const { user } = useAuth()
-  const { tasks } = useCompanyPage()
+  // Outside a company page (the dashboard campaign page) there is no shared task list, so start from none.
+  const tasks = useOptionalCompanyPage()?.tasks ?? EMPTY_TASKS
   const billing = useSubscription(project.companyId)
   const [internalOpen, setInternalOpen] = useState(false)
   const [posts, setPosts] = useState<CampaignCreative[]>([])

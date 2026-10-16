@@ -1,7 +1,10 @@
 "use client"
 
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react"
-import type { LucideIcon } from "lucide-react"
+import { ChevronLeft, type LucideIcon } from "lucide-react"
+
+import { SidebarMenuButton, SidebarMenuItem, useSidebar } from "@/components/ui/sidebar"
+import { cn } from "@/lib/utils"
 
 /** A record's own sections, shown in the company sidebar in place of the company's while it is open. */
 export type SidebarTakeover = {
@@ -63,3 +66,43 @@ export function useSidebarTakeover(takeover: SidebarTakeover | null) {
 
   return Boolean(set && takeover)
 }
+
+const SIDEBAR_ITEM_CLASS = "h-9 gap-2 px-2 max-md:h-12 max-md:min-h-12 max-md:gap-3 max-md:px-3 [&>svg]:size-[18px] [&>svg]:max-md:size-5"
+
+/**
+ * The sidebar menu: the page's own links, or, while a record such as a campaign is open,
+ * a way back and that record's own sections. Shared by the company and dashboard sidebars.
+ */
+export function SidebarTakeoverMenu({ sections }: { sections: ReactNode }) {
+  const takeover = useSidebarTakeoverState()
+  const { setOpenMobile } = useSidebar()
+  if (!takeover) return <>{sections}</>
+  return (
+    <>
+      <SidebarMenuItem>
+        <SidebarMenuButton type="button" tooltip={`Back to ${takeover.backLabel}`} onClick={() => { setOpenMobile(false); takeover.onBack() }} className={cn(SIDEBAR_ITEM_CLASS, "text-muted-foreground")}>
+          <ChevronLeft className="h-4 w-4" aria-hidden="true" />
+          <span className="sidebar-nav-label">{takeover.backLabel}</span>
+        </SidebarMenuButton>
+      </SidebarMenuItem>
+      <li className="truncate px-2 pb-1 pt-3 text-sm font-semibold text-foreground group-data-[collapsible=icon]:hidden max-md:px-3">{takeover.title}</li>
+      {takeover.items.map((item) => (
+        <SidebarMenuItem key={item.key}>
+          <SidebarMenuButton
+            type="button"
+            isActive={takeover.active === item.key}
+            tooltip={item.label}
+            onClick={() => { setOpenMobile(false); takeover.onSelect(item.key) }}
+            className={SIDEBAR_ITEM_CLASS}
+          >
+            <item.icon className="h-4 w-4" aria-hidden="true" />
+            <span className="sidebar-nav-label">{item.label}</span>
+            {item.count ? <span className="ml-auto text-xs tabular-nums text-muted-foreground group-data-[collapsible=icon]:hidden">{item.count}</span> : null}
+          </SidebarMenuButton>
+        </SidebarMenuItem>
+      ))}
+    </>
+  )
+}
+
+

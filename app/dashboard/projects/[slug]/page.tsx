@@ -128,6 +128,9 @@ export default function ProjectDetailPage() {
         invoices={invoices}
         onProjectPatched={handleProjectPatched}
         onProjectDeleted={() => router.push("/dashboard/projects")}
+        // One step back, wherever the campaign was opened from; the campaigns list on a cold open.
+        onBack={() => (window.history.length > 1 ? router.back() : router.push("/dashboard/projects"))}
+        backLabel="Back"
       />
     </main>
   )

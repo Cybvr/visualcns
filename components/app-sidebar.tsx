@@ -1,5 +1,6 @@
 "use client"
 
+import { SidebarTakeoverMenu } from "@/components/company/sidebar-takeover"
 import * as React from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
@@ -123,7 +124,8 @@ export function AppSidebar({
         <SidebarContent>
           <SidebarGroup className="group-data-[collapsible=icon]:p-1">
               <SidebarMenu className="gap-0.5 max-md:gap-1.5">
-              {navLinks.map((link) => (
+              {/* While a campaign is open its sections replace these links, with a way back. */}
+              <SidebarTakeoverMenu sections={navLinks.map((link) => (
                 <React.Fragment key={link.href}>
                   {link.groupStart && <SidebarMenuItem aria-hidden="true" className="h-3 max-md:h-2 group-data-[collapsible=icon]:h-2" />}
                   {link.sectionLabel && (
@@ -209,7 +211,7 @@ export function AppSidebar({
                   </SidebarMenuItem>
                 )}
                 </React.Fragment>
-              ))}
+              ))} />
             </SidebarMenu>
             {navExtra && <div className="mt-2 group-data-[collapsible=icon]:hidden">{navExtra}</div>}
           </SidebarGroup>
