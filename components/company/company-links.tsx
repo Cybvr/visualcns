@@ -54,7 +54,7 @@ export function CompanyLinks({
   return (
     <section className="py-2" aria-labelledby="company-links-heading">
       <div className="flex items-center justify-between gap-3">
-        <h2 id="company-links-heading" className="text-xl font-semibold tracking-[-0.02em] text-foreground">Links</h2>
+        <h2 id="company-links-heading" className="surface-section-label">Links</h2>
         {onSave && !adding && (
           <Button type="button" variant="ghost" size="sm" onClick={() => setAdding(true)}>
             <Plus className="size-4" aria-hidden="true" />

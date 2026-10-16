@@ -1,5 +1,10 @@
 import { AboutSection } from "@/components/company/sections/about-section"
+import { CompanySettingsLayout } from "@/components/company/company-settings-layout"
 
 export default function CompanySettingsPage() {
-  return <AboutSection singleColumn formStyle />
+  return (
+    <CompanySettingsLayout includeProfile={false}>
+      <AboutSection singleColumn formStyle />
+    </CompanySettingsLayout>
+  )
 }

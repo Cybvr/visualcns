@@ -260,7 +260,7 @@ export function ProjectsSection() {
               canEditCampaign={canCreate}
               canReview={!admin && appUser?.companyId === company.id}
               invoices={invoices.filter((invoice) => invoice.projectId === selectedProject.id)}
-              invoiceHref={(invoice) => sectionHref("finance", { doc: `invoice:${invoice.id}` })}
+              invoiceHref={(invoice) => sectionHref("documents", { doc: `invoice:${invoice.id}` })}
               onProjectPatched={patchSelected}
               onProjectDeleted={admin ? async () => {
                 await admin.reload()

@@ -1,21 +1,25 @@
 "use client"
 
-import { useEffect, useState, type ReactNode } from "react"
+import { useEffect, useState, type FormEvent, type ReactNode } from "react"
 import { X } from "lucide-react"
+import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
 import { CompanyBookings } from "@/components/company/company-bookings"
 import { CompanyLinks } from "@/components/company/company-links"
 import { useCompanyPage } from "@/components/company/company-page-context"
 import { CompanyDetails, type CompanyDetailsPatch } from "@/components/company/company-sidebar"
+import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
+import { COMPANY_SIZES } from "@/lib/organizations"
 
 function ProfileCard({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section className="py-2">
-      <h2 className="text-xl font-semibold tracking-[-0.02em] text-foreground">{title}</h2>
+      <h2 className="surface-section-label">{title}</h2>
       <div className="mt-5">{children}</div>
     </section>
   )
@@ -47,6 +51,80 @@ function ReadOnlyFormField({ id, label, value, multiline = false }: { id: string
   )
 }
 
+const FORM_FIELDS = ["description", "website", "industry", "location", "address", "companySize", "source", "linkedIn"] as const
+type FormField = (typeof FORM_FIELDS)[number]
+type FormValues = Record<FormField, string>
+
+/** The settings page's About and Details as one form, saved with its Save button. */
+function CompanySettingsForm({ company, onSave }: { company: Partial<FormValues> & { id: string }; onSave: (patch: CompanyDetailsPatch) => Promise<void> }) {
+  const initial = Object.fromEntries(FORM_FIELDS.map((field) => [field, company[field] ?? ""])) as FormValues
+  const [values, setValues] = useState(initial)
+  const [saving, setSaving] = useState(false)
+  const initialKey = JSON.stringify(initial)
+  const dirty = FORM_FIELDS.some((field) => values[field].trim() !== initial[field])
+
+  // Takes in changes saved elsewhere, as long as nothing is being typed here.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { if (!dirty) setValues(initial) }, [initialKey])
+
+  const set = (field: FormField) => (value: string) => setValues((current) => ({ ...current, [field]: value }))
+  const field = (name: FormField, label: string, placeholder: string, multiline = false) => (
+    <div className="space-y-2">
+      <Label htmlFor={`company-${name}-${company.id}`}>{label}</Label>
+      {multiline ? (
+        <Textarea id={`company-${name}-${company.id}`} value={values[name]} onChange={(event) => set(name)(event.target.value)} placeholder={placeholder} rows={4} className="min-h-28 resize-y" />
+      ) : (
+        <Input id={`company-${name}-${company.id}`} value={values[name]} onChange={(event) => set(name)(event.target.value)} placeholder={placeholder} />
+      )}
+    </div>
+  )
+
+  async function save(event: FormEvent) {
+    event.preventDefault()
+    const patch: CompanyDetailsPatch = {}
+    for (const name of FORM_FIELDS) {
+      const next = values[name].trim()
+      if (next !== initial[name]) patch[name] = next
+    }
+    setSaving(true)
+    try {
+      await onSave(patch)
+      toast.success("Saved")
+    } catch {
+      toast.error("Couldn't save the company details.")
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <form onSubmit={save} className="space-y-8">
+      <div id="company-settings-about"><ProfileCard title="About">{field("description", "Description", "Add a description", true)}</ProfileCard></div>
+      <div id="company-settings-details"><ProfileCard title="Details">
+        <div className="space-y-5">
+          {field("website", "Domain", "Add domain")}
+          {field("industry", "Industry", "Add industry")}
+          {field("location", "Location", "Add location")}
+          {field("address", "Address", "Add the billing address", true)}
+          <div className="space-y-2">
+            <Label htmlFor={`company-companySize-${company.id}`}>Company size</Label>
+            <Select value={values.companySize} onValueChange={set("companySize")}>
+              <SelectTrigger id={`company-companySize-${company.id}`} className="w-full"><SelectValue placeholder="Select company size" /></SelectTrigger>
+              <SelectContent>{COMPANY_SIZES.map((size) => <SelectItem key={size} value={size}>{size} employees</SelectItem>)}</SelectContent>
+            </Select>
+          </div>
+          {field("source", "Source", "Add source")}
+          {field("linkedIn", "LinkedIn", "Add LinkedIn")}
+        </div>
+      </ProfileCard></div>
+      <div className="flex justify-end gap-2">
+        <Button type="button" variant="ghost" onClick={() => setValues(initial)} disabled={!dirty || saving}>Cancel</Button>
+        <Button type="submit" disabled={!dirty || saving}>{saving ? "Saving…" : "Save"}</Button>
+      </div>
+    </form>
+  )
+}
+
 function CompanyAboutCard({ description, onSave }: { description?: string; onSave?: (patch: CompanyDetailsPatch) => Promise<void> }) {
   const [draft, setDraft] = useState(description ?? "")
 
@@ -63,7 +141,7 @@ function CompanyAboutCard({ description, onSave }: { description?: string; onSav
             if (next !== (description ?? "")) void onSave({ description: next })
           }}
           placeholder="Add a description"
-          className="min-h-28 resize-y border-transparent bg-transparent px-0 text-sm leading-6 shadow-none focus-visible:border-transparent focus-visible:ring-0"
+          className="min-h-28 resize-y rounded-md border border-input bg-background px-3 py-2 text-sm leading-6 shadow-none focus-visible:ring-2"
           aria-label="Company description"
         />
       ) : (
@@ -163,7 +241,7 @@ export function AboutSection({ singleColumn = false, formStyle = false }: { sing
   const about = <CompanyAboutCard description={company.description} onSave={admin?.onUpdateCompany} />
   const details = (
     <ProfileCard title="Details">
-      <CompanyDetails company={profile} onSave={admin?.onUpdateCompany} hideTags hideDescription />
+      <CompanyDetails company={profile} onSave={admin?.onUpdateCompany} hideTags hideDescription formStyle={singleColumn} />
     </ProfileCard>
   )
   const settings = admin?.profileSettings ? <ProfileCard title="Profile">{admin.profileSettings}</ProfileCard> : null
@@ -174,29 +252,48 @@ export function AboutSection({ singleColumn = false, formStyle = false }: { sing
   if (formStyle) {
     return (
       <div className="mt-5 w-full max-w-2xl space-y-8">
-        <ProfileCard title="About">
-          <ReadOnlyFormField id={`company-about-${company.id}`} label="Description" value={company.description} multiline />
-        </ProfileCard>
-        <ProfileCard title="Details">
-          <div className="space-y-5">
-            <ReadOnlyFormField id={`company-domain-${company.id}`} label="Domain" value={company.website} />
-            <ReadOnlyFormField id={`company-industry-${company.id}`} label="Industry" value={company.industry} />
-            <ReadOnlyFormField id={`company-location-${company.id}`} label="Location" value={company.location} />
-            <ReadOnlyFormField id={`company-address-${company.id}`} label="Address" value={company.address} multiline />
-            <ReadOnlyFormField id={`company-size-${company.id}`} label="Company size" value={company.companySize ? `${company.companySize} employees` : undefined} />
-            <ReadOnlyFormField id={`company-source-${company.id}`} label="Source" value={company.source} />
-            <ReadOnlyFormField id={`company-linkedin-${company.id}`} label="LinkedIn" value={company.linkedIn} />
-          </div>
-        </ProfileCard>
-        {tags}
-        {links}
-        {bookings}
+        {admin ? (
+          <CompanySettingsForm company={profile} onSave={admin.onUpdateCompany} />
+        ) : (
+        <>
+        <div id="company-settings-about">
+          <ProfileCard title="About">
+            <ReadOnlyFormField id={`company-about-${company.id}`} label="Description" value={company.description} multiline />
+          </ProfileCard>
+        </div>
+        <div id="company-settings-details">
+          <ProfileCard title="Details">
+            <div className="space-y-5">
+              <ReadOnlyFormField id={`company-domain-${company.id}`} label="Domain" value={company.website} />
+              <ReadOnlyFormField id={`company-industry-${company.id}`} label="Industry" value={company.industry} />
+              <ReadOnlyFormField id={`company-location-${company.id}`} label="Location" value={company.location} />
+              <ReadOnlyFormField id={`company-address-${company.id}`} label="Address" value={company.address} multiline />
+              <ReadOnlyFormField id={`company-size-${company.id}`} label="Company size" value={company.companySize ? `${company.companySize} employees` : undefined} />
+              <ReadOnlyFormField id={`company-source-${company.id}`} label="Source" value={company.source} />
+              <ReadOnlyFormField id={`company-linkedin-${company.id}`} label="LinkedIn" value={company.linkedIn} />
+            </div>
+          </ProfileCard>
+        </div>
+        </>
+        )}
+        <div id="company-settings-tags">{tags}</div>
+        <div id="company-settings-links">{links}</div>
+        <div id="company-settings-bookings">{bookings}</div>
       </div>
     )
   }
 
   if (singleColumn) {
-    return <div className="mt-5 min-w-0 space-y-6">{settings}{about}{details}{tags}{links}{bookings}</div>
+    return (
+      <div className="mt-5 min-w-0 space-y-6">
+        <div id="company-settings-profile">{settings}</div>
+        <div id="company-settings-about">{about}</div>
+        <div id="company-settings-details">{details}</div>
+        <div id="company-settings-tags">{tags}</div>
+        <div id="company-settings-links">{links}</div>
+        <div id="company-settings-bookings">{bookings}</div>
+      </div>
+    )
   }
 
   return (

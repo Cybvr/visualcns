@@ -149,9 +149,9 @@ export function CompanyPageProvider({
   const sections = useMemo(() => {
     // Tasks and media live inside each campaign, so they have no menu entry of their own.
     const visible = COMPANY_SECTIONS
-      .filter((item) => item.key !== "tasks" && item.key !== "drive")
+      .filter((item) => item.key !== "tasks")
       .filter((item) => mode === "routes" || item.key !== "ngai")
-      .filter((item) => !["visitors", "messages", "notes"].includes(item.key) || canSeeVisitors)
+      .filter((item) => !["visitors", "messages"].includes(item.key) || canSeeVisitors)
     if (mode !== "routes") {
       // Dashboard tabs open on Home: the company's activity, with its name and logo on top.
       // About holds the client's editable details, so it's called Settings and goes last.
@@ -160,7 +160,7 @@ export function CompanyPageProvider({
       return [
         ...(home ? [{ ...home, label: "Home", icon: House }] : []),
         ...visible.filter((item) => item.key !== "activity" && item.key !== "about"),
-        ...(settings ? [{ ...settings, label: "Settings", icon: Settings }] : []),
+        ...(settings ? [{ ...settings, label: "Account", icon: Settings }] : []),
       ]
     }
     const about = visible.find((item) => item.key === "about")!
@@ -169,10 +169,10 @@ export function CompanyPageProvider({
     const order = [
       { ...about, label: "Home", icon: House },
       find("projects"),
-      find("finance"),
+      find("documents"),
+      find("billings"),
       find("pulse"),
       find("visitors"),
-      find("notes"),
       find("ngai"),
       find("analytics"),
       activity && { ...activity, label: "Notifications", icon: Bell },
@@ -183,19 +183,29 @@ export function CompanyPageProvider({
   const basePath = mode === "routes" ? `/${pathname.split("/")[1] ?? ""}` : pathname
   const requested = mode === "routes" ? pathname.split("/")[2] : searchParams.get("tab")
   // "brand-health" is Pulse's old key; keep links that still use it working.
-  const requestedSection = requested === "brand-health" ? "pulse" : requested === "tasks" || requested === "drive" ? "projects" : mode === "routes" && requested === "notifications" ? "activity" : requested
+  const requestedSection = requested === "brand-health"
+    ? "pulse"
+    : requested === "tasks" || requested === "drive"
+      ? "projects"
+      : requested === "documents" || requested === "media" || requested === "notes" || requested === "finance"
+        ? "documents"
+      : requested === "settings"
+        ? "about"
+        : mode === "routes" && requested === "notifications"
+            ? "activity"
+            : requested
   const section: CompanySectionKey = sections.some((s) => s.key === requestedSection)
     ? (requestedSection as CompanySectionKey)
     : mode === "routes" ? "about" : searchParams.get("task") || searchParams.get("campaign") ? "projects" : "activity"
 
   function sectionHref(section: CompanySectionKey, query: Record<string, string> = {}) {
-    const key = section === "tasks" || section === "drive" ? "projects" : section
+    const key = section === "tasks" ? "projects" : section
     const params = new URLSearchParams({ ...data.keepParams, ...query })
     let path = basePath
     if (mode === "routes") {
       if (key !== "about") path = `${basePath}/${key === "activity" ? "notifications" : key}`
     } else if (key !== "activity") {
-      params.set("tab", key)
+      params.set("tab", key === "about" ? "settings" : key)
     }
     const search = params.toString()
     return search ? `${path}?${search}` : path

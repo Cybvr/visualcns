@@ -5,8 +5,8 @@ import Link from "next/link"
 import { Megaphone } from "lucide-react"
 
 import { Pulse } from "@/components/company/pulse"
-import { CompanyMessages } from "@/components/company/company-messages"
-import { CompanyPlan, useSubscription } from "@/components/company/company-plan"
+import { CompanySettingsLayout } from "@/components/company/company-settings-layout"
+import { CompanyBillings } from "@/components/company/company-billings"
 import { useCompanyPage, type CompanySectionKey } from "@/components/company/company-page-context"
 import { CompanyVisitors } from "@/components/company/company-visitors"
 import { AboutSection } from "@/components/company/sections/about-section"
@@ -14,7 +14,6 @@ import { ActivitySection } from "@/components/company/sections/activity-section"
 import { AnalyticsSection } from "@/components/company/sections/analytics-section"
 import { DocumentsSection } from "@/components/company/sections/documents-section"
 import { ProjectsSection } from "@/components/company/sections/projects-section"
-import { NotesSection } from "@/components/company/sections/notes-section"
 import { NgaiSection } from "@/components/company/sections/ngai-section"
 import { TeamSection } from "@/components/company/sections/team-section"
 import { GridCard, GridCardList } from "@/components/dashboard/grid-card"
@@ -26,9 +25,9 @@ function DriveSection() {
   return <DocumentsSection />
 }
 
-/** Invoices, estimates and contracts. */
-function FinanceSection() {
-  return <DocumentsSection scope="finance" />
+/** The company's VisualCNS subscription and plan billing. */
+function BillingsSection() {
+  return <CompanyBillings />
 }
 
 const HOME_CAMPAIGN_LIMIT = 4
@@ -53,7 +52,7 @@ function HomeCampaigns() {
         <p className="mt-2 text-sm text-muted-foreground">No campaigns yet.</p>
       ) : (
         <div className="mt-3">
-          <GridCardList single>
+          <GridCardList>
             {recent.map((project) => (
               <GridCard
                 key={project.id}
@@ -89,19 +88,20 @@ function VisitorsSection() {
   return <CompanyVisitors agencyId={visitorAgencyId} companyId={company.id} slug={company.slug || company.id} />
 }
 
-/** Shown to the company's own people and the agency, so they can see and change their plan. */
-function PlanPanel() {
-  const { company } = useCompanyPage()
-  const billing = useSubscription(company.id)
-  return <CompanyPlan companyId={company.id} billing={billing} className="mt-5" />
-}
-
-/** About, called Settings on the dashboard, where the plan sits too. On the public page the plan lives behind Upgrade in the sidebar. */
+/** About, called Settings on the dashboard. The plan lives on Billings. */
 function SettingsSection() {
-  const { canManageTeam, mode } = useCompanyPage()
+  const { mode } = useCompanyPage()
+  if (mode === "tabs") {
+    return (
+      <CompanySettingsLayout>
+        <div className="min-w-0 max-w-xl">
+          <AboutSection singleColumn />
+        </div>
+      </CompanySettingsLayout>
+    )
+  }
   return (
     <>
-      {canManageTeam && mode !== "routes" && <PlanPanel />}
       <AboutSection />
     </>
   )
@@ -133,14 +133,12 @@ const SECTION_COMPONENTS: Record<CompanySectionKey, ComponentType> = {
   ngai: NgaiSection,
   analytics: AnalyticsSection,
   tasks: ProjectsSection,
-  notes: NotesSection,
   about: SettingsSection,
   team: TeamSection,
   activity: HomeActivitySection,
   pulse: PulseSection,
-  drive: DriveSection,
-  finance: FinanceSection,
-  messages: CompanyMessages,
+  documents: DriveSection,
+  billings: BillingsSection,
   visitors: VisitorsSection,
 }
 

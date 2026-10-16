@@ -381,6 +381,8 @@ export default function NotesPage() {
                   placeholder="Start writing"
                   scrollable
                   borderless
+                  documentLayout
+                  showRuler
                   className="min-h-0 flex-1 max-sm:min-h-[55svh] max-sm:flex-none"
                 />
               </div>

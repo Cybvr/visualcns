@@ -4,12 +4,12 @@ import { useCallback, useMemo, useState, type ComponentProps, type ReactNode } f
 import Image from "next/image"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Bell, LogIn, Search, Settings, Sparkles } from "lucide-react"
+import { LogIn, Search, Sparkles } from "lucide-react"
 
 import { useAuth } from "@/components/auth-provider"
 import { BrandLockup } from "@/components/brand-lockup"
 import { useCompanyPage } from "@/components/company/company-page-context"
-import { NgaiCompanyHeaderButton, NgaiWidget } from "@/components/company/ngai-widget"
+import { NgaiWidget } from "@/components/company/ngai-widget"
 import { AppSwitcher } from "@/components/dashboard/app-switcher"
 import { useSubscription } from "@/components/company/company-plan"
 import { UpgradeModal } from "@/components/company/upgrade-modal"
@@ -101,14 +101,15 @@ function UpgradeNavItem() {
 }
 
 /** The dashboard's account menu when signed in, a sign-in button for visitors. */
-function SidebarAccount() {
+function SidebarAccount({ header = false }: { header?: boolean }) {
   const { company } = useCompanyPage()
   const { user } = useAuth()
 
-  if (user) return <NavUser />
+  // On a company page, My Account opens that company's own account page rather than the dashboard's.
+  if (user) return <NavUser variant={header ? "header" : "sidebar"} accountLabel="My Account" accountHref={`/${encodeURIComponent(company.slug || company.id)}/settings`} />
   if (!company.slug) return null
   return (
-    <Button asChild className="w-full group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:p-0">
+    <Button asChild className={header ? "h-9" : "w-full group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:p-0"}>
       <Link href={`/${encodeURIComponent(company.slug)}/sign-in`} aria-label="Sign in">
         <LogIn className="hidden size-4 group-data-[collapsible=icon]:block" aria-hidden="true" />
         <span className="group-data-[collapsible=icon]:hidden">Sign in</span>
@@ -128,8 +129,7 @@ export function CompanyProfileShell({ children }: { children: ReactNode }) {
   const pathname = usePathname()
   const isSettingsPage = pathname.split("/").filter(Boolean)[1] === "settings"
   const sectionLabel = sections.find((item) => item.key === section)?.label
-  const pageLabel = isSettingsPage ? "Settings" : sectionLabel
-  const settingsHref = `/${encodeURIComponent(company.slug || company.id)}/settings`
+  const pageLabel = isSettingsPage ? "Account" : sectionLabel
   const [searchOpen, setSearchOpen] = useState(false)
   const openSearch = useCallback(() => setSearchOpen(true), [])
   useSearchHotkey(openSearch)
@@ -137,16 +137,17 @@ export function CompanyProfileShell({ children }: { children: ReactNode }) {
   const searchResults = useMemo<SearchResult[]>(() => [
     ...sections.map((item) => ({ id: `section-${item.key}`, group: "Pages", label: item.label, href: sectionHref(item.key) })),
     ...projects.map((project) => ({ id: `project-${project.id}`, group: "Campaigns", label: project.title, sublabel: project.service || undefined, href: sectionHref("projects") })),
-    ...documents.map((doc) => ({ id: `document-${doc.id}`, group: "Documents", label: doc.title || "Document", href: sectionHref("drive", { doc: `document:${doc.id}` }) })),
-    ...invoices.map((invoice) => ({ id: `invoice-${invoice.id}`, group: "Payments", label: invoice.invoiceNumber || invoice.title || "Invoice", href: sectionHref("finance", { doc: `invoice:${invoice.id}` }) })),
-    ...estimates.map((estimate) => ({ id: `estimate-${estimate.id}`, group: "Payments", label: estimate.estimateNumber || estimate.title || "Estimate", href: sectionHref("finance", { doc: `estimate:${estimate.id}` }) })),
-    ...contracts.map((contract) => ({ id: `contract-${contract.id}`, group: "Payments", label: contract.title || "Contract", href: sectionHref("finance", { doc: `contract:${contract.id}` }) })),
+    ...documents.map((doc) => ({ id: `document-${doc.id}`, group: "Documents", label: doc.title || "Document", href: sectionHref("documents", { doc: `document:${doc.id}` }) })),
+    ...invoices.map((invoice) => ({ id: `invoice-${invoice.id}`, group: "Documents", label: invoice.invoiceNumber || invoice.title || "Invoice", href: sectionHref("documents", { doc: `invoice:${invoice.id}` }) })),
+    ...estimates.map((estimate) => ({ id: `estimate-${estimate.id}`, group: "Documents", label: estimate.estimateNumber || estimate.title || "Estimate", href: sectionHref("documents", { doc: `estimate:${estimate.id}` }) })),
+    ...contracts.map((contract) => ({ id: `contract-${contract.id}`, group: "Documents", label: contract.title || "Contract", href: sectionHref("documents", { doc: `contract:${contract.id}` }) })),
     // eslint-disable-next-line react-hooks/exhaustive-deps
   ], [sections, projects, documents, invoices, estimates, contracts])
 
   type SectionItem = (typeof sections)[number]
-  const sidebarSections = sections.filter((item) => item.key !== "activity")
-  const overduePayments = invoices.filter((invoice) => invoice.status === "overdue").length
+  const sidebarSections = sections.filter((item) => item.key !== "activity" && item.key !== "ngai")
+  // Ngai sits at the bottom of the sidebar, apart from the sections.
+  const ngaiSection = sections.find((item) => item.key === "ngai")
 
   function renderItem(item: SectionItem) {
     const Icon = item.icon
@@ -169,15 +170,6 @@ export function CompanyProfileShell({ children }: { children: ReactNode }) {
             {item.key === "projects" && (
               <span className="ml-auto inline-flex size-5 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-semibold tabular-nums text-primary-foreground group-data-[collapsible=icon]:hidden">
                 {projects.length}
-              </span>
-            )}
-            {item.key === "finance" && overduePayments > 0 && (
-              <span
-                className="ml-auto inline-flex min-w-5 shrink-0 items-center justify-center rounded-full bg-destructive/10 px-1.5 text-[10px] font-semibold leading-5 tabular-nums text-destructive group-data-[collapsible=icon]:hidden"
-                aria-label={`${overduePayments} overdue payment${overduePayments === 1 ? "" : "s"}`}
-                title={`${overduePayments} overdue payment${overduePayments === 1 ? "" : "s"}`}
-              >
-                {overduePayments > 99 ? "99+" : overduePayments}
               </span>
             )}
           </CompanySidebarLink>
@@ -207,9 +199,11 @@ export function CompanyProfileShell({ children }: { children: ReactNode }) {
                 </SidebarMenu>
               </SidebarGroup>
             </SidebarContent>
-            <SidebarFooter className="group-data-[collapsible=icon]:p-1">
-              <SidebarAccount />
-            </SidebarFooter>
+            {ngaiSection && (
+              <SidebarFooter className="pb-4 group-data-[collapsible=icon]:p-1 group-data-[collapsible=icon]:pb-3">
+                <SidebarMenu className="gap-0.5 max-md:gap-1.5">{renderItem(ngaiSection)}</SidebarMenu>
+              </SidebarFooter>
+            )}
           </div>
           <SidebarRail />
         </Sidebar>
@@ -243,15 +237,7 @@ export function CompanyProfileShell({ children }: { children: ReactNode }) {
                 shareUrl={absoluteUrl(`/${encodeURIComponent(company.slug || company.id)}`)}
               />
               <AppSwitcher />
-              <NgaiCompanyHeaderButton />
-              <Button asChild variant="ghost" size="icon" className={cn("rounded-full text-foreground hover:bg-muted/50 active:bg-muted/50", isSettingsPage && "bg-muted/50")}>
-                <Link href={settingsHref} aria-label="Settings" title="Settings" aria-current={isSettingsPage ? "page" : undefined}>
-                  <Settings className="size-[18px]" aria-hidden="true" />
-                </Link>
-              </Button>
-              <Button type="button" variant="ghost" size="icon" className="hidden rounded-full text-foreground hover:bg-muted/50 active:bg-muted/50 sm:inline-flex" aria-label="Notifications">
-                <Bell className="size-[18px]" aria-hidden="true" />
-              </Button>
+              <SidebarAccount header />
             </div>
           </header>
           <main className={cn(
@@ -262,7 +248,7 @@ export function CompanyProfileShell({ children }: { children: ReactNode }) {
           )}>
             {(isSettingsPage || section !== "about") && pageLabel && !recordOpen && (
               <div className="mb-0.5 flex items-center justify-between gap-3">
-                <h2 className="min-w-0 truncate text-[18px] tracking-[-0.02em] text-foreground max-md:hidden md:text-[23px]">{pageLabel}</h2>
+                <h2 className="surface-record-title min-w-0 truncate max-md:hidden">{pageLabel}</h2>
                 {/* Pages portal their own action buttons here, opposite the title. */}
                 <div id="company-title-actions" className="ml-auto flex shrink-0 items-center gap-2" />
               </div>

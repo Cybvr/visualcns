@@ -2,24 +2,21 @@
 
 import { useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
-import { useRouter, useSearchParams } from "next/navigation"
-import { ExternalLink, LogOut, Mail, MoreVertical } from "lucide-react"
+import { useSearchParams } from "next/navigation"
+import { Eye, ExternalLink, Mail, MoreVertical } from "lucide-react"
 
-import { useAuth } from "@/components/auth-provider"
 import {
   CompanyPageProvider,
   useCompanyPage,
   type CompanyPageData,
 } from "@/components/company/company-page-context"
 import { HeaderTeam } from "@/components/company/header-team"
-import { CompanyProfileHeader } from "@/components/company/company-profile-header"
 import { SectionNav } from "@/components/company/section-nav"
 import { CompanySection } from "@/components/company/sections/company-section"
 import { useClientOpen, usePageHeaderActions, usePageHeaderBack, usePageHeaderTitle } from "@/components/dashboard/page-title-context"
-import { ImageDropzone } from "@/components/image-dropzone"
 import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb"
 import { buildEmailComposeHref } from "@/lib/email-composer"
 import { cn } from "@/lib/utils"
 
@@ -39,10 +36,7 @@ export type { CompanyPageAdmin, CompanyPageCompany, CompanyPagePerson } from "@/
 
 function DashboardCompanyView({ embedded = false, onBack }: { embedded?: boolean; onBack?: () => void }) {
   const { company, people, admin, sections, section, sectionHref, absoluteUrl, projects, updateParams } = useCompanyPage()
-  const { user, signOut } = useAuth()
-  const router = useRouter()
   const searchParams = useSearchParams()
-  const [logoEditOpen, setLogoEditOpen] = useState(false)
 
   // On phones an open campaign takes the whole pane: the client's tabs hide and the
   // header shows the campaign's name, with Back closing it. Otherwise the header
@@ -123,61 +117,48 @@ function DashboardCompanyView({ embedded = false, onBack }: { embedded?: boolean
   useClientOpen(Boolean(sharePath))
 
   return (
-    <main className={embedded ? "w-full min-w-0" : "mx-auto min-h-screen w-full max-w-7xl max-md:bg-page px-4 pb-[calc(7rem+env(safe-area-inset-bottom))] pt-4 sm:px-6 sm:pb-16 sm:pt-6 md:pt-0"}>
-      {/* Tabs stick under the header while scrolling. In the clients pane the pane itself scrolls, so they stick to its top. */}
-      <div className={cn(campaignOpen && "max-sm:hidden", embedded
-        ? "sticky top-0 z-30 border-b border-border bg-background print:hidden max-sm:-mx-4"
-        : "sticky top-14 z-30 -mx-4 -mt-4 border-b border-border bg-background print:hidden sm:-mx-6 sm:-mt-6 md:static md:mx-0 md:mt-0")}
-      >
-        <SectionNav sections={sections} active={section} href={sectionHref} phoneVisible={3} />
-      </div>
-
-      {section === "activity" && (
-        <CompanyProfileHeader
-          name={company.name}
-          handle={company.slug || admin?.sharePath.split("/").filter(Boolean).pop()}
-          logoUrl={company.logoUrl}
-          publicPath={admin?.sharePath}
-          onChangeLogo={admin ? () => setLogoEditOpen(true) : undefined}
-          accountAction={!admin && user ? (
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              className="h-9 rounded-[9px] px-3"
-              onClick={() => { void signOut().then(() => router.replace("/login")) }}
-            >
-              <LogOut className="size-4" aria-hidden="true" />
-              Log out
+    <main className={embedded ? "w-full min-w-0" : "mx-auto min-h-screen w-full max-w-7xl max-md:bg-page px-4 pb-[calc(7rem+env(safe-area-inset-bottom))] pt-6 sm:px-6 sm:pb-16 sm:pt-8 md:pt-6"}>
+      {!embedded && (
+        <div className="mb-4 flex min-w-0 items-center justify-between gap-4">
+          <Breadcrumb className="min-w-0">
+            <BreadcrumbList className="flex-nowrap">
+              <BreadcrumbItem>
+                <BreadcrumbLink asChild>
+                  <Link href="/dashboard/clients">Clients</Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem className="min-w-0">
+                <BreadcrumbPage className="truncate">{company.name}</BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
+          {sharePath && (
+            <Button asChild variant="ghost" size="sm" className="shrink-0">
+              <Link href={sharePath}>
+                <Eye className="size-4" aria-hidden="true" />
+                Visit
+              </Link>
             </Button>
-          ) : undefined}
-        />
+          )}
+        </div>
       )}
-
-      <div className="min-w-0">
-        <CompanySection section={section} />
+      <div className="md:grid md:grid-cols-[8rem_minmax(0,1fr)] md:items-start md:gap-6">
+        <aside className="hidden md:sticky md:top-6 md:block">
+          <SectionNav sections={sections} active={section} href={sectionHref} vertical />
+        </aside>
+        <div className="min-w-0">
+          {/* Keep the phone navigation horizontal; desktop uses the vertical rail. */}
+          <div className={cn(campaignOpen && "max-sm:hidden", embedded
+            ? "sticky top-0 z-30 border-b border-border bg-background print:hidden max-sm:-mx-4 md:hidden"
+            : "sticky top-14 z-30 -mx-4 -mt-4 border-b border-border bg-background print:hidden sm:-mx-6 sm:-mt-6 md:hidden")}
+          >
+            <SectionNav sections={sections} active={section} href={sectionHref} phoneVisible={3} />
+          </div>
+          <CompanySection section={section} />
+        </div>
       </div>
 
-      {admin && (
-        <>
-          <Dialog open={logoEditOpen} onOpenChange={setLogoEditOpen}>
-            <DialogContent className="max-w-sm">
-              <DialogHeader>
-                <DialogTitle>Company image</DialogTitle>
-                <DialogDescription>Choose the image shown beside the company name.</DialogDescription>
-              </DialogHeader>
-              <ImageDropzone
-                compact
-                label="Logo"
-                value={company.logoUrl || ""}
-                onChange={(url) => {
-                  void admin.onUpdateCompany({ logoUrl: url }).then(() => setLogoEditOpen(false))
-                }}
-              />
-            </DialogContent>
-          </Dialog>
-        </>
-      )}
       {admin && !embedded && <div className="h-[calc(4.5rem+env(safe-area-inset-bottom))] md:hidden" aria-hidden="true" />}
     </main>
   )

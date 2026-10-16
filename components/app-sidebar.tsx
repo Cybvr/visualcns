@@ -9,14 +9,12 @@ import type { ComponentType, ReactNode } from "react"
 import { useAuth } from "@/components/auth-provider"
 import { useAgent } from "@/components/agent/agent-context"
 import { BrandLockup } from "@/components/brand-lockup"
-import { NavUser } from "@/components/nav-user"
 import { cn } from "@/lib/utils"
 import { ReactIcon } from "@/components/react-icon"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import {
   Sidebar,
   SidebarContent,
-  SidebarFooter,
   SidebarGroup,
   SidebarHeader,
   SidebarMenu,
@@ -207,9 +205,6 @@ export function AppSidebar({
             {navExtra && <div className="mt-2 group-data-[collapsible=icon]:hidden">{navExtra}</div>}
           </SidebarGroup>
         </SidebarContent>
-        <SidebarFooter className="group-data-[collapsible=icon]:p-1">
-          <NavUser />
-        </SidebarFooter>
       </div>
       <SidebarRail />
     </Sidebar>

@@ -776,6 +776,14 @@
     font-weight: 700 !important;
   }
 
+  .surface-metric {
+    color: var(--foreground) !important;
+    font-size: 1.875rem !important;
+    line-height: 2.25rem !important;
+    font-weight: 600 !important;
+    letter-spacing: -0.03em;
+  }
+
   .surface-body {
     color: var(--muted-foreground) !important;
     font-size: var(--surface-body-size) !important;

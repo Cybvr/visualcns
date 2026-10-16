@@ -35,6 +35,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { SectionAddButton } from "@/components/company/section-add-button"
 import { CollectionView } from "@/components/dashboard/collection-view"
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { useCompanyPage } from "@/components/company/company-page-context"
 import { useUrlSelection } from "@/hooks/use-url-selection"
 import { cn } from "@/lib/utils"
@@ -1007,6 +1008,8 @@ export function Pulse({
           ),
           onClick: () => select(item.id),
           ariaLabel: `Open report from ${reportDate(item.scannedAt)}`,
+          menuLabel: `Options for report from ${reportDate(item.scannedAt)}`,
+          menu: <DropdownMenuItem onSelect={() => select(item.id)}>Open report</DropdownMenuItem>,
         })}
         row={(item) => ({ subtitle: `Score ${item.score}`, description: `${item.attention} need attention · ${item.opportunities} opportunities`, trailing: timeAgo(item.scannedAt) })}
       />

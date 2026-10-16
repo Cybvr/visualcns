@@ -38,7 +38,7 @@ export function ActivitySection({ heading, prominent = false, listLayout = "defa
   return (
     <div className={preview ? "min-w-0" : "mt-5 min-w-0"}>
       <div className="flex items-center justify-between gap-3">
-        <h2 className={prominent ? "py-2 text-xl font-semibold tracking-[-0.02em] text-foreground" : "sidebar-nav-label text-muted-foreground"}>{title}</h2>
+        <h2 className={prominent ? "surface-section-label py-2" : "sidebar-nav-label text-muted-foreground"}>{title}</h2>
         {preview && activity.length > 0 && (
           <Link href={sectionHref("activity")} className="shrink-0 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
             View all

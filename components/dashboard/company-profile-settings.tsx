@@ -80,12 +80,13 @@ export function CompanyProfileSettings() {
     <div className="space-y-5">
       <ImageDropzone
         label="Logo"
+        compact
         value={organization?.logoUrl || client.photoURL || ""}
         onChange={(url) => void save(() => updateOrganization(workspaceId, { logoUrl: url.trim() }))}
       />
       <div className="space-y-1.5">
         <Label htmlFor="company-name">Name</Label>
-        <Input id="company-name" value={name} onChange={(event) => setName(event.target.value)} onBlur={saveName} />
+        <Input id="company-name" value={name} onChange={(event) => setName(event.target.value)} onBlur={saveName} className="h-10 rounded-md border border-input bg-background px-3" />
       </div>
       <div className="space-y-1.5">
         <Label htmlFor="company-slug">Public URL</Label>
@@ -97,7 +98,7 @@ export function CompanyProfileSettings() {
             onChange={(event) => setSlug(event.target.value)}
             onBlur={saveSlug}
             placeholder="company-name"
-            className="font-mono"
+            className="h-10 rounded-md border border-input bg-background px-3 font-mono"
           />
         </div>
         <p className="text-xs text-muted-foreground">Changing it moves the public page to the new address.</p>

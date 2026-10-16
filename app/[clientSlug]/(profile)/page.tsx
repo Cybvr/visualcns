@@ -22,7 +22,13 @@ export default function CompanyHomePage() {
   // Task links intentionally stay on this page so TaskDetailSheet can open in place.
   const tab = searchParams.get("tab")
   const legacySettings = tab === "about"
-  const legacySection = tab === "media" || tab === "documents" ? (searchParams.get("doc") && !searchParams.get("doc")?.startsWith("document:") ? "finance" : "drive") : isCompanySection(tab) && tab !== "about" ? tab : searchParams.get("doc") ? (searchParams.get("doc")?.startsWith("document:") ? "drive" : "finance") : null
+  const legacySection = tab === "media" || tab === "documents" || tab === "finance" || tab === "drive" || tab === "notes"
+    ? "documents"
+    : isCompanySection(tab) && tab !== "about"
+      ? tab
+      : searchParams.get("doc")
+        ? "documents"
+        : null
 
   useEffect(() => {
     if ((!legacySection && !legacySettings) || redirected.current) return
@@ -43,7 +49,7 @@ export default function CompanyHomePage() {
   return (
     <>
       <HomeBanner coverUrl={company.media?.find((url) => url && url !== company.logoUrl)} />
-      <h1 className="mt-2 mb-4 truncate text-[18px] tracking-[-0.02em] text-foreground md:text-[23px]">
+      <h1 className="surface-record-title mt-2 mb-4 truncate">
         {firstName ? `Welcome back, ${firstName}` : `Welcome to ${company.name}`}
       </h1>
       <div className="grid gap-8 lg:grid-cols-2">
@@ -80,7 +86,7 @@ function CampaignColumn() {
   return (
     <section className="min-w-0">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="py-2 text-xl font-semibold tracking-[-0.02em] text-foreground">Campaigns</h2>
+        <h2 className="surface-section-label py-2">Campaigns</h2>
         {sorted.length > 0 && (
           <Link href={sectionHref("projects")} className="shrink-0 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
             View all

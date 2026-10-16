@@ -1,14 +1,12 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState, type ReactNode } from "react"
 import { Send, StickyNote, Trash2, X } from "lucide-react"
 import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
+import type { ExtraDocumentEntry } from "@/components/company/company-documents"
 import { useCompanyPage } from "@/components/company/company-page-context"
-import { CompanyEmptyState } from "@/components/company/empty-state"
-import { SectionAddButton } from "@/components/company/section-add-button"
-import { CollectionView } from "@/components/dashboard/collection-view"
 import { RichTextEditor } from "@/components/dashboard/rich-text-editor"
 import { ShareLinkField } from "@/components/dashboard/share-link-field"
 import {
@@ -78,15 +76,12 @@ function notePreview(note: Pick<Note, "title" | "body">) {
   return (note.title.trim() ? lines : lines.slice(1)).join(" ") || "No additional text"
 }
 
-function editedAt(iso: string) {
-  const date = new Date(iso)
-  if (Number.isNaN(date.getTime())) return "No date"
-  return date.toDateString() === new Date().toDateString()
-    ? date.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })
-    : date.toLocaleDateString(undefined, { day: "numeric", month: "short" })
-}
-
-export function NotesSection() {
+/**
+ * The company's notes as cards for the Documents list, plus the "Note" entry for
+ * its New menu and the editor, share and delete dialogs to render beside it.
+ * Notes are for signed-in members only, so visitors get none.
+ */
+export function useCompanyNotes(): { entries: ExtraDocumentEntry[]; addItem: ReactNode; dialogs: ReactNode } {
   const { user, loading: authLoading } = useAuth()
   const { company, visitorAgencyId } = useCompanyPage()
   const [notes, setNotes] = useState<Note[] | null>(null)
@@ -223,50 +218,32 @@ export function NotesSection() {
     }
   }
 
-  if (!authLoading && !user) return <CompanyEmptyState icon={StickyNote} title="Sign in to view notes" description="Company notes are available to signed-in team members." />
-  if (error) return <p className="mt-8 text-sm text-destructive" role="alert">Notes are unavailable. Refresh to try again.</p>
+  useEffect(() => {
+    if (error) toast.error("Notes are unavailable. Refresh to try again.")
+  }, [error])
 
-  const noteMenu = (note: Note) => (
+  const open = (note: Note) => { void flush().then(() => load(note)) }
+  const entries: ExtraDocumentEntry[] = (user ? notes ?? [] : []).map((note) => ({
+    key: `note-${note.id}`,
+    title: noteTitle(note),
+    kindLabel: "Note",
+    statusLabel: note.shareEnabled ? "Shared" : "Private",
+    updatedMs: Date.parse(note.updatedAt) || 0,
+    searchText: [notePreview(note)],
+    icon: <StickyNote className="size-5 text-amber-600 dark:text-amber-400" aria-hidden="true" />,
+    onOpen: () => open(note),
+    menu: (
+      <>
+        <DropdownMenuItem onSelect={() => open(note)}>Open note</DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => openShare(note)}>Share note</DropdownMenuItem>
+        <DropdownMenuItem variant="destructive" onSelect={() => setPendingDelete(note)}>Delete note</DropdownMenuItem>
+      </>
+    ),
+  }))
+  const addItem = user ? <DropdownMenuItem onSelect={() => void add()}>Note</DropdownMenuItem> : null
+
+  const dialogs = (
     <>
-      <DropdownMenuItem onSelect={() => { void flush().then(() => load(note)) }}>Open note</DropdownMenuItem>
-      <DropdownMenuItem onSelect={() => openShare(note)}>Share note</DropdownMenuItem>
-      <DropdownMenuItem variant="destructive" onSelect={() => setPendingDelete(note)}>Delete note</DropdownMenuItem>
-    </>
-  )
-
-  return (
-    <>
-      <CollectionView
-        items={notes ?? []}
-        loading={authLoading || notes === null}
-        getKey={(note) => note.id}
-        searchFields={(note) => [noteTitle(note), notePreview(note)]}
-        searchPlaceholder="Search notes"
-        viewKey="company-notes"
-        actions={<SectionAddButton label="New note" onClick={() => void add()} />}
-        empty={{
-          icon: StickyNote,
-          title: "No notes yet",
-          description: "Keep shared ideas, reminders, and working details here.",
-          action: <SectionAddButton label="New note" onClick={() => void add()} />,
-        }}
-        card={(note) => ({
-          icon: <StickyNote className="size-4 text-amber-600 dark:text-amber-400" aria-hidden="true" />,
-          title: noteTitle(note),
-          subtitle: editedAt(note.updatedAt),
-          placeholder: (
-            <div className="flex size-full items-center justify-center bg-muted/30" aria-label="Note thumbnail">
-              <StickyNote className="size-12 text-amber-600/60 dark:text-amber-400/60" aria-hidden="true" />
-            </div>
-          ),
-          onClick: () => { void flush().then(() => load(note)) },
-          ariaLabel: `Open note: ${noteTitle(note)}`,
-          menuLabel: `Options for ${noteTitle(note)}`,
-          menu: noteMenu(note),
-        })}
-        row={(note) => ({ subtitle: notePreview(note), trailing: editedAt(note.updatedAt) })}
-      />
-
       <Sheet open={Boolean(openId)} onOpenChange={(open) => { if (!open) close() }}>
         <SheetContent side="right" showClose={false} className="w-full gap-0 overflow-hidden p-0 sm:max-w-xl">
           <SheetHeader className="border-b border-border px-5 py-3">
@@ -307,6 +284,8 @@ export function NotesSection() {
             placeholder="Start writing"
             scrollable
             borderless
+            documentLayout
+            showRuler
             className="min-h-0 flex-1"
           />
         </SheetContent>
@@ -343,4 +322,6 @@ export function NotesSection() {
       </AlertDialog>
     </>
   )
+
+  return { entries, addItem, dialogs }
 }

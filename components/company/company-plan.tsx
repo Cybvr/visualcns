@@ -2,12 +2,14 @@
 
 import { useEffect, useState } from "react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
-import { Check, CreditCard, Loader2 } from "lucide-react"
+import { Check, Loader2 } from "lucide-react"
 import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { daysLeft, GRACE_DAYS, isPlanInterval, isPlanKey, naira, PLAN_KEYS, PLANS, planAccess, planPrice, staffLabel, TRIAL_DAYS, type PlanInterval, type PlanKey, type Subscription } from "@/lib/subscription"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { currentPlan, daysLeft, GRACE_DAYS, isPlanInterval, isPlanKey, naira, PLAN_KEYS, PLANS, planAccess, planPrice, staffLabel, TRIAL_DAYS, type PlanInterval, type PlanKey, type Subscription } from "@/lib/subscription"
 import { watchSubscription } from "@/lib/visitors"
 import { cn } from "@/lib/utils"
 
@@ -72,7 +74,7 @@ export function usePaymentReturn(companyId: string, setBusy?: (busy: boolean) =>
  * The company's VisualCNS plan: trial, paid or paused, with the three tiers
  * monthly or yearly. Also confirms a payment when Paystack sends the payer back.
  */
-export function CompanyPlan({ companyId, billing, seats = null, className, expanded = false }: { companyId: string; billing: Subscription | null | undefined; seats?: number | null; className?: string; /** Shows the plans straight away with no toggle, for use inside a modal. */ expanded?: boolean }) {
+export function CompanyPlan({ companyId, billing, seats = null, className, expanded = false, showSummary = true, showPlans = true }: { companyId: string; billing: Subscription | null | undefined; seats?: number | null; className?: string; /** Shows the plans straight away with no toggle, for use inside a modal. */ expanded?: boolean; /** Hides the current-plan summary when the plan picker is displayed separately. */ showSummary?: boolean; /** Hides the plan picker when only the current-plan summary is needed. */ showPlans?: boolean }) {
   const call = usePlanBilling(companyId)
   const pathname = usePathname() ?? ""
   const searchParams = useSearchParams()
@@ -127,61 +129,122 @@ export function CompanyPlan({ companyId, billing, seats = null, className, expan
 
   const choosePlan = !access || access.state === "trial" || access.state === "paused" || cancelled || (access.state === "grace" && !subscribed)
   const upgrades = plan ? PLAN_KEYS.slice(PLAN_KEYS.indexOf(plan) + 1) : []
-  const plansToShow: PlanKey[] = choosePlan ? PLAN_KEYS : access?.state === "active" ? upgrades : []
+  const plansToShow: PlanKey[] = expanded ? PLAN_KEYS : choosePlan ? PLAN_KEYS : access?.state === "active" ? upgrades : []
+  const currentPaidPlan = access && (access.state === "active" || access.state === "grace") ? plan : null
+  const appliedPlan = currentPlan(billing)
+  const paidPlan = currentPaidPlan ? PLANS[appliedPlan] : null
+  const expandedPlanName = access?.state === "trial" ? "Free trial" : paidPlan?.name ?? "No active plan"
+  const expandedPrice = paidPlan ? naira(planPrice(appliedPlan, paidInterval)) : "Free"
+  const expandedCycle = paidPlan ? (paidInterval === "yearly" ? "Yearly" : "Monthly") : "Trial"
+  const expandedDateLabel = access?.state === "trial" ? `Ends ${shortDate(access.endsAt)}` : paidPlan ? `Next charge ${shortDate(billing?.nextPaymentAt?.toMillis?.() ?? access?.endsAt ?? Date.now())}` : "Choose a plan to continue"
+  const seatLimit = PLANS[appliedPlan].staff
+  const seatPercent = seats !== null && Number.isFinite(seatLimit) ? Math.min(100, Math.round((seats / seatLimit) * 100)) : 0
   const showManage = subscribed && !(cancelled && access?.state === "paused")
 
   return (
     <div className={cn(!expanded && "border-t border-border pt-4", className)}>
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="min-w-0">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Your plan</p>
-          <p className={`text-sm font-semibold ${tone}`}>{title}</p>
-          <p className="mt-0.5 text-sm text-muted-foreground">{detail}</p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          {plansToShow.length > 0 && !expanded && (
-            <Button type="button" variant="ghost" size="sm" onClick={() => setPlansOpen((open) => !open)} aria-expanded={plansOpen}>
-              {plansOpen ? "Hide plans" : choosePlan ? "View plans" : "Upgrade plan"}
-            </Button>
-          )}
-          {showManage && (
-            <Button type="button" variant="outline" size="sm" onClick={() => void openPaystack("manage")} disabled={busy}>Manage billing</Button>
-          )}
-        </div>
-      </div>
-      {(plansOpen || expanded) && plansToShow.length > 0 && (
-        <div className="mt-3 space-y-3">
-          <div className="inline-flex rounded-full border border-border bg-muted p-[3px] text-xs font-semibold">
-            {(["monthly", "yearly"] as const).map((option) => (
-              <button key={option} type="button" onClick={() => setInterval(option)} aria-pressed={interval === option} className={cn("rounded-full px-3 py-1.5", interval === option ? "bg-background text-foreground shadow-sm" : "text-muted-foreground")}>
-                {option === "monthly" ? "Monthly" : "Yearly · 2 months free"}
-              </button>
-            ))}
+      {showSummary && (
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="surface-caption uppercase">Current plan</p>
+            {expanded ? (
+              <>
+                <p className="surface-record-title mt-1">{expandedPlanName}</p>
+                <p className="surface-metric mt-3">{expandedPrice}{paidPlan && <span className="surface-body ml-1 font-normal">/ {paidInterval === "yearly" ? "year" : "month"}</span>}</p>
+                <p className={`surface-body mt-2 font-medium ${tone}`}>{title}</p>
+                <p className="surface-body mt-1">{detail}</p>
+              </>
+            ) : (
+              <>
+                <p className={`surface-body font-semibold ${tone}`}>{title}</p>
+                <p className="surface-body mt-0.5">{detail}</p>
+              </>
+            )}
           </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {plansToShow.length > 0 && !expanded && (
+              <Button type="button" variant="ghost" size="sm" onClick={() => setPlansOpen((open) => !open)} aria-expanded={plansOpen}>
+                {plansOpen ? "Hide plans" : choosePlan ? "View plans" : "Upgrade plan"}
+              </Button>
+            )}
+            {showManage && (
+              <Button type="button" variant="outline" size={expanded ? "default" : "sm"} onClick={() => void openPaystack("manage")} disabled={busy}>Manage billing</Button>
+            )}
+          </div>
+        </div>
+      )}
+      {showSummary && expanded && (
+        <>
+          <div className="mt-6 grid grid-cols-2 gap-4 border-y border-border py-4 sm:grid-cols-3">
+            <div>
+              <p className="surface-caption uppercase">Status date</p>
+              <p className="surface-body mt-1 font-medium text-foreground">{expandedDateLabel}</p>
+            </div>
+            <div>
+              <p className="surface-caption uppercase">Billing cycle</p>
+              <p className="surface-body mt-1 font-medium text-foreground">{expandedCycle}</p>
+            </div>
+            <div>
+              <p className="surface-caption uppercase">Team seats</p>
+              <p className="surface-body mt-1 font-medium text-foreground">{seats === null ? "—" : `${seats} of ${staffLabel(seatLimit).replace(/^Up to /, "")}`}</p>
+            </div>
+          </div>
+          {seats !== null && Number.isFinite(seatLimit) && (
+            <div className="mt-5">
+              <div className="surface-body flex items-center justify-between gap-3">
+                <span className="font-medium text-foreground">Team members in use</span>
+                <span className="tabular-nums">{seats} of {seatLimit}</span>
+              </div>
+              <div className="mt-2 h-2 overflow-hidden rounded-full bg-muted" role="progressbar" aria-label="Team members in use" aria-valuemin={0} aria-valuemax={seatLimit} aria-valuenow={seats}>
+                <div className="h-full rounded-full bg-primary transition-[width]" style={{ width: `${seatPercent}%` }} />
+              </div>
+            </div>
+          )}
+        </>
+      )}
+      {showPlans && (plansOpen || expanded) && plansToShow.length > 0 && (
+        <div className="mt-5 space-y-3">
+          {expanded && showSummary && (
+            <div>
+              <h3 className="surface-body font-semibold text-foreground">Plans</h3>
+              <p className="surface-body mt-1">Upgrade or downgrade any time. Changes take effect on your next charge.</p>
+            </div>
+          )}
+          <Tabs value={interval} onValueChange={(value) => setInterval(value as typeof interval)}>
+            <TabsList>
+              <TabsTrigger value="monthly">Monthly</TabsTrigger>
+              <TabsTrigger value="yearly">Yearly · 2 months free</TabsTrigger>
+            </TabsList>
+          </Tabs>
           <div className="grid gap-2 sm:grid-cols-3">
             {plansToShow.map((key) => {
               const option = PLANS[key]
               const tooSmall = seats !== null && seats > option.staff
+              const isCurrentPlan = expanded && currentPaidPlan === key
               return (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() => void openPaystack("subscribe", key)}
-                  disabled={busy || tooSmall}
-                  className="flex flex-col gap-2 rounded-xl border border-border p-3 text-left outline-none transition-colors hover:border-foreground/40 focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  <span className="flex items-center justify-between gap-2">
-                    <span className="text-sm font-semibold text-foreground">{option.name}</span>
-                    {busy ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <CreditCard className="size-4 text-muted-foreground" aria-hidden="true" />}
-                  </span>
-                  <span className="text-sm font-medium text-foreground">{naira(planPrice(key, interval))}<span className="font-normal text-muted-foreground">/{interval === "yearly" ? "yr" : "mo"}</span></span>
-                  <span className="text-xs text-muted-foreground">{tooSmall ? `You have ${seats} staff` : `VisualCNS Pass for ${staffLabel(option.staff).toLowerCase()}`}</span>
-                  <ul className="space-y-1 text-xs text-muted-foreground">
+                <div key={key} className={cn("flex h-full flex-col gap-2 rounded-xl border p-3", isCurrentPlan ? "border-primary bg-primary/5" : "border-border", tooSmall && "opacity-50")}>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="surface-body font-semibold text-foreground">{option.name}</span>
+                    {isCurrentPlan && <Badge variant="secondary">Current</Badge>}
+                  </div>
+                  <span className="surface-body font-medium text-foreground">{naira(planPrice(key, interval))}<span className="font-normal text-muted-foreground">/{interval === "yearly" ? "yr" : "mo"}</span></span>
+                  <span className="surface-body">{tooSmall ? `You have ${seats} staff` : `VisualCNS Pass for ${staffLabel(option.staff).toLowerCase()}`}</span>
+                  <ul className="surface-body space-y-1">
                     {option.features.slice(1).map((feature) => (
                       <li key={feature} className="flex gap-1.5"><Check className="mt-0.5 size-3 shrink-0" aria-hidden="true" />{feature}</li>
                     ))}
                   </ul>
-                </button>
+                  <Button
+                    type="button"
+                    variant={isCurrentPlan ? "secondary" : "outline"}
+                    className="mt-auto w-full"
+                    onClick={() => void openPaystack("subscribe", key)}
+                    disabled={busy || tooSmall || isCurrentPlan}
+                  >
+                    {busy && !isCurrentPlan && <Loader2 className="size-4 animate-spin" aria-hidden="true" />}
+                    {isCurrentPlan ? "Your plan" : currentPaidPlan && PLAN_KEYS.indexOf(key) < PLAN_KEYS.indexOf(currentPaidPlan) ? "Downgrade" : currentPaidPlan ? "Upgrade" : "Choose plan"}
+                  </Button>
+                </div>
               )
             })}
           </div>

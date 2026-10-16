@@ -20,27 +20,33 @@ interface SectionNavProps<K extends string> {
   className?: string
   /** On phones, show only this many tabs and put the rest under More. */
   phoneVisible?: number
+  vertical?: boolean
 }
 
-function tabClass(active: boolean) {
+function tabClass(active: boolean, vertical = false) {
+  if (vertical) {
+    return `flex w-full items-center rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
+      active ? "bg-muted text-foreground" : ""
+    }`
+  }
   return `relative shrink-0 px-2.5 pb-3 pt-3.5 font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
     active ? "text-foreground after:absolute after:inset-x-0 after:bottom-0 after:h-[2px] after:bg-foreground" : ""
   }`
 }
 
 /** Plain text tab nav, shared by the company dashboard page and the public page on phones. */
-export function SectionNav<K extends string>({ sections, active, href, className, phoneVisible }: SectionNavProps<K>) {
+export function SectionNav<K extends string>({ sections, active, href, className, phoneVisible, vertical = false }: SectionNavProps<K>) {
   const overflow = phoneVisible !== undefined && sections.length > phoneVisible + 1 ? sections.slice(phoneVisible) : []
   const overflowActive = overflow.find((s) => s.key === active)
   return (
-    <nav className={cn("scrollbar-none flex items-end justify-start gap-1 overflow-x-auto px-2 text-sm md:px-4", className)}>
+    <nav className={cn(vertical ? "flex flex-col gap-1" : "scrollbar-none flex items-end justify-start gap-1 overflow-x-auto px-2 text-sm md:px-4", className)}>
       {sections.map((s) => (
         <Link
           key={s.key}
           href={href(s.key)}
           scroll={false}
           aria-current={active === s.key ? "page" : undefined}
-          className={cn(tabClass(active === s.key), overflow.includes(s) && "max-sm:hidden")}
+          className={cn(tabClass(active === s.key, vertical), overflow.includes(s) && "max-sm:hidden")}
         >
           {s.label}
         </Link>

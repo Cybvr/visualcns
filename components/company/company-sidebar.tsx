@@ -3,6 +3,7 @@
 import { useState, type ReactNode } from "react"
 import { X } from "lucide-react"
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import {
   Select,
@@ -100,11 +101,13 @@ export function CompanyDetails({
   onSave,
   hideTags = false,
   hideDescription = false,
+  formStyle = false,
 }: {
   company: CompanySidebarCompany
   onSave?: (patch: CompanyDetailsPatch) => Promise<void>
   hideTags?: boolean
   hideDescription?: boolean
+  formStyle?: boolean
 }) {
   const [addingTag, setAddingTag] = useState(false)
   const [tagDraft, setTagDraft] = useState("")
@@ -144,6 +147,49 @@ export function CompanyDetails({
 
   function removeTag(tag: string) {
     void commitTags((company.tags ?? []).filter((t) => t !== tag))
+  }
+
+  if (onSave && formStyle) {
+    const fieldClass = "h-10 rounded-md border border-input bg-background px-3"
+    const selectClass = "h-10 w-full rounded-md border border-input bg-background px-3"
+    return (
+      <div className="space-y-5">
+        <div className="space-y-1.5">
+          <Label htmlFor={`company-domain-${company.id}`}>Domain</Label>
+          <Input id={`company-domain-${company.id}`} key={company.website ?? ""} defaultValue={company.website ?? ""} onBlur={(event) => void commitField("website", event.target.value)} placeholder="acme.com" className={fieldClass} />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor={`company-industry-${company.id}`}>Industry</Label>
+          <Select value={company.industry ?? ""} onValueChange={(value) => void commitField("industry", value)}>
+            <SelectTrigger id={`company-industry-${company.id}`} className={selectClass}><SelectValue placeholder="Select industry" /></SelectTrigger>
+            <SelectContent>{INDUSTRIES.map((industry) => <SelectItem key={industry} value={industry}>{industry}</SelectItem>)}</SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor={`company-location-${company.id}`}>Location</Label>
+          <Input id={`company-location-${company.id}`} key={company.location ?? ""} defaultValue={company.location ?? ""} onBlur={(event) => void commitField("location", event.target.value)} placeholder="Add location" className={fieldClass} />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor={`company-address-${company.id}`}>Address</Label>
+          <Textarea id={`company-address-${company.id}`} key={company.address ?? ""} defaultValue={company.address ?? ""} onBlur={(event) => void commitField("address", event.target.value)} placeholder="Add the billing address" rows={3} className="min-h-24 resize-y rounded-md border border-input bg-background px-3 py-2" />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor={`company-size-${company.id}`}>Company size</Label>
+          <Select value={company.companySize ?? ""} onValueChange={(value) => void commitField("companySize", value)}>
+            <SelectTrigger id={`company-size-${company.id}`} className={selectClass}><SelectValue placeholder="Select company size" /></SelectTrigger>
+            <SelectContent>{COMPANY_SIZES.map((size) => <SelectItem key={size} value={size}>{size} employees</SelectItem>)}</SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor={`company-source-${company.id}`}>Source</Label>
+          <Input id={`company-source-${company.id}`} key={company.source ?? ""} defaultValue={company.source ?? ""} onBlur={(event) => void commitField("source", event.target.value)} placeholder="Add source" className={fieldClass} />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor={`company-linkedin-${company.id}`}>LinkedIn</Label>
+          <Input id={`company-linkedin-${company.id}`} key={company.linkedIn ?? ""} defaultValue={company.linkedIn ?? ""} onBlur={(event) => void commitField("linkedIn", event.target.value)} placeholder="Add LinkedIn" className={fieldClass} />
+        </div>
+      </div>
+    )
   }
 
   return (

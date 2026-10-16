@@ -4,7 +4,7 @@ import dynamic from "next/dynamic"
 import { useEffect, useState, type FormEvent, type ReactNode } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { ArrowLeft, Bell, Briefcase, Building2, FileText, Home, ListTodo, Plus, Receipt, ScrollText, Search, Users, X } from "lucide-react"
+import { ArrowLeft, Briefcase, Building2, FileText, Home, ListTodo, Plus, Receipt, ScrollText, Search, Users, X } from "lucide-react"
 import { FiCheckSquare, FiMail, FiUser } from "react-icons/fi"
 
 import { useAgent } from "@/components/agent/agent-context"
@@ -12,6 +12,7 @@ import { AppSidebar, type NavLink } from "@/components/app-sidebar"
 import { MobileFooterNav, type MobileFooterNavItem } from "@/components/mobile-footer-nav"
 import { useDashboardSearch } from "@/components/dashboard/sidebar-search"
 import { DashboardHeaderTeam } from "@/components/dashboard/dashboard-header-team"
+import { NavUser } from "@/components/nav-user"
 import { GlobalSearchDialog } from "@/components/search/global-search"
 import { useUnreadEmailCount } from "@/components/dashboard/email/use-unread-email-count"
 import { NewDocumentDialog } from "@/components/dashboard/new-document-dialog"
@@ -43,7 +44,6 @@ import {
 } from "@/components/ui/dropdown-menu"
 
 import { AppSwitcher } from "@/components/dashboard/app-switcher"
-import { NgaiHeaderButton } from "@/components/agent/agent-header-button"
 
 const NgaiSidePanel = dynamic(() => import("@/components/agent/ngai-side-panel").then((module) => module.NgaiSidePanel), { ssr: false })
 
@@ -258,7 +258,6 @@ export function DashboardShell({
               {headerActions}
               {!isCompanyDetailRoute && !clientOpen && <DashboardHeaderTeam />}
               <AppSwitcher />
-              <NgaiHeaderButton />
               {!isCompanyDetailRoute && !clientOpen && !isBackDetailRoute && (
                 <QuickCreateMenu
                   onSelect={selectQuickCreate}
@@ -276,9 +275,7 @@ export function DashboardShell({
                   }
                 />
               )}
-              <Button type="button" variant="ghost" size="icon" className="hidden rounded-full text-foreground hover:bg-muted/50 active:bg-muted/50 sm:inline-flex" aria-label="Notifications">
-                <Bell className="size-[18px]" aria-hidden="true" />
-              </Button>
+              <NavUser variant="header" />
             </div>
           </header>
           <div className={cn(

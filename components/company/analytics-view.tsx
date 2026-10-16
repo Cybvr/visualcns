@@ -335,7 +335,7 @@ export function AnalyticsView({
         filters
       ) : (
         <div className="space-y-3">
-          <h2 className="text-xl font-semibold tracking-[-0.02em] text-foreground">Campaign analytics</h2>
+          <h2 className="surface-section-label">Campaign analytics</h2>
           {filters}
         </div>
       )}
@@ -352,7 +352,7 @@ export function AnalyticsView({
       <div className="grid gap-4 xl:grid-cols-2">
         {isCompany && (
           <section className="rounded-2xl border border-border p-5 sm:p-6 xl:col-span-2">
-            <h3 className="font-semibold tracking-[-0.01em] text-foreground">Campaign activity</h3>
+          <h3 className="surface-section-label">Campaign activity</h3>
             <p className="mt-1 text-sm text-muted-foreground">Rostered creators and written posts across campaigns.</p>
             {campaignData.length === 0 ? (
               <EmptyChart>{term && (allScopedPeople.length || allScopedContent.length) ? "No campaign activity matches your search." : hasActivityOutsideRange ? "No campaign activity in this period." : "Add campaigns to compare activity."}</EmptyChart>
@@ -385,7 +385,7 @@ export function AnalyticsView({
         )}
 
         <section className="rounded-2xl border border-border p-5 sm:p-6">
-          <h3 className="font-semibold tracking-[-0.01em] text-foreground">Creator pipeline</h3>
+          <h3 className="surface-section-label">Creator pipeline</h3>
           <p className="mt-1 text-sm text-muted-foreground">
             {isCompany ? "Where rostered creators are across campaigns." : "Where rostered creators are in the campaign."}
           </p>
@@ -407,7 +407,7 @@ export function AnalyticsView({
         </section>
 
         <section className="rounded-2xl border border-border p-5 sm:p-6">
-          <h3 className="font-semibold tracking-[-0.01em] text-foreground">Content pipeline</h3>
+          <h3 className="surface-section-label">Content pipeline</h3>
           <p className="mt-1 text-sm text-muted-foreground">
             {isCompany ? "How campaign posts are moving through review." : "How this campaign's posts are moving through review."}
           </p>
@@ -429,7 +429,7 @@ export function AnalyticsView({
         </section>
 
         <section className="rounded-2xl border border-border p-5 sm:p-6 xl:col-span-2">
-          <h3 className="font-semibold tracking-[-0.01em] text-foreground">Billing by campaign</h3>
+          <h3 className="surface-section-label">Billing by campaign</h3>
           <p className="mt-1 text-sm text-muted-foreground">Invoice value by campaign and status.</p>
           {billingData.length === 0 ? (
             <EmptyChart>{term && allScopedInvoices.length ? "No invoices match your search." : hasInvoicesOutsideRange ? "No invoices in this period." : "No invoices yet."}</EmptyChart>
@@ -477,7 +477,7 @@ export function AnalyticsView({
         </section>
 
         <section className="rounded-2xl border border-border p-5 sm:p-6 xl:col-span-2">
-          <h3 className="font-semibold tracking-[-0.01em] text-foreground">Creator payments</h3>
+          <h3 className="surface-section-label">Creator payments</h3>
           <p className="mt-1 text-sm text-muted-foreground">Creators paid and awaiting payment by campaign.</p>
           {creatorPaymentData.length === 0 ? (
             <EmptyChart>{term && allScopedPeople.some((person) => Math.max(0, person.pay || 0) > 0) ? "No payments match your search." : hasCreatorPaymentsOutsideRange ? "No creator payments in this period." : "Add creator fees to track payments."}</EmptyChart>
@@ -509,7 +509,7 @@ export function AnalyticsView({
         </section>
 
         <section className="rounded-2xl border border-border p-5 sm:p-6 xl:col-span-2">
-          <h3 className="font-semibold tracking-[-0.01em] text-foreground">Creators by platform</h3>
+          <h3 className="surface-section-label">Creators by platform</h3>
           <p className="mt-1 text-sm text-muted-foreground">Rostered creators grouped by their social platform.</p>
           {platformData.length === 0 ? (
             <EmptyChart>{term && allScopedPeople.length ? "No platforms match your search." : hasPeopleOutsideRange ? "No creators in this period." : "Add creators to compare platforms."}</EmptyChart>

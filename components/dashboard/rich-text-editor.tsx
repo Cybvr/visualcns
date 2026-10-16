@@ -44,6 +44,35 @@ type ToolbarButton = {
   run: (editor: Editor) => void
 }
 
+const RULER_TICKS = Array.from({ length: 65 }, (_, index) => index)
+
+function DocumentRuler() {
+  return (
+    <div
+      aria-hidden="true"
+      className="relative h-8 w-full border-b border-border/80 bg-muted/40 text-muted-foreground"
+    >
+      <div className="absolute inset-x-0 bottom-0 h-3">
+        {RULER_TICKS.map((tick) => (
+          <span
+            key={tick}
+            className="absolute bottom-0 w-px bg-border/80"
+            style={{
+              left: `${(tick / 64) * 100}%`,
+              height: tick % 8 === 0 ? "0.75rem" : tick % 4 === 0 ? "0.5rem" : "0.3rem",
+            }}
+          />
+        ))}
+      </div>
+      <div className="pointer-events-none absolute inset-x-0 top-1 flex justify-between px-1 text-[9px] font-medium leading-none">
+        {[0, 1, 2, 3, 4, 5, 6, 7, 8].map((inch) => (
+          <span key={inch}>{inch}</span>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 const BUTTONS: ToolbarButton[][] = [
   [
     {
@@ -147,6 +176,7 @@ export function RichTextEditor({
   contentHeader,
   contentFooter,
   documentLayout = false,
+  showRuler = false,
   aboveContent,
 }: {
   value: string
@@ -165,6 +195,8 @@ export function RichTextEditor({
    * the text on a white card. Used by the document editor.
    */
   documentLayout?: boolean
+  /** Add a Google Docs-style ruler and bounded paper surface. */
+  showRuler?: boolean
   aboveContent?: ReactNode
 }) {
   // Referenced inside handlePaste, which runs long after the editor is built.
@@ -418,14 +450,39 @@ export function RichTextEditor({
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
+        {showRuler && (
+          <div className="border-b border-border bg-background px-3 sm:px-6">
+            <div className="mx-auto w-full max-w-[8.5in]">
+              <DocumentRuler />
+            </div>
+          </div>
+        )}
         <ImagePickerDialog open={imageDialogOpen} onOpenChange={setImageDialogOpen} onSelect={handleImageSelected} />
         {linkDialog}
-        <div className="space-y-3 bg-card px-3 py-4 sm:px-6">
+        <div className={cn(
+          "space-y-3 px-3 py-4 sm:px-6",
+          showRuler ? "bg-muted/30" : "bg-card",
+          scrollable && "min-h-0 flex-1 overflow-y-auto",
+        )}>
           {aboveContent}
-          <div className="overflow-x-auto rounded-2xl border border-border bg-background">
-            {contentHeader}
-            <EditorContent editor={editor} />
-            {contentFooter}
+          <div className={cn(
+            showRuler
+              ? "overflow-x-auto"
+              : "overflow-x-auto rounded-2xl border border-border bg-background",
+          )}>
+            {showRuler ? (
+              <div className="mx-auto w-full max-w-[8.5in] overflow-hidden border-x border-t border-border bg-background shadow-sm">
+                {contentHeader}
+                <EditorContent editor={editor} />
+                {contentFooter}
+              </div>
+            ) : (
+              <>
+                {contentHeader}
+                <EditorContent editor={editor} />
+                {contentFooter}
+              </>
+            )}
           </div>
         </div>
       </div>

@@ -51,7 +51,7 @@ export function CompanyProfileHeader({
         </div>
 
         <div className="min-w-0 flex-1">
-          <h1 className="m-0 truncate text-[17px] tracking-[-0.02em] text-foreground md:text-[20px]">{name}</h1>
+          <h1 className="surface-record-title m-0 truncate">{name}</h1>
           {handle && (
             <div className="truncate text-sm text-muted-foreground">
               {publicPath ? (

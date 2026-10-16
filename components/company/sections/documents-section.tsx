@@ -7,6 +7,7 @@ import { ArrowLeft, Pencil } from "lucide-react"
 
 import { CompanyDocuments, type CompanyDocumentKind } from "@/components/company/company-documents"
 import { useCompanyPage } from "@/components/company/company-page-context"
+import { useCompanyNotes } from "@/components/company/sections/notes-section"
 import { CompanyDocumentView } from "@/components/dashboard/company-document-view"
 import { ContractDocument } from "@/components/dashboard/contract-document"
 import { DocumentActions } from "@/components/dashboard/document-actions"
@@ -29,13 +30,14 @@ function editHref(kind: CompanyDocumentKind, id: string) {
   return `/dashboard/${kind}s/${encodeURIComponent(id)}/edit`
 }
 
-export function DocumentsSection({ scope = "drive" }: { scope?: "drive" | "finance" }) {
-  const finance = scope === "finance"
+export function DocumentsSection() {
   const { company, invoices, contracts, estimates, documents, admin, isAdmin, canEditDocuments, updateParams } = useCompanyPage()
   const router = useRouter()
   const searchParams = useSearchParams()
   const [issuer, setIssuer] = useState<BusinessProfile | null>(null)
   const [creatingDocument, setCreatingDocument] = useState(false)
+  // Notes sit in the same list as the documents and open in their own editor.
+  const notes = useCompanyNotes()
 
   // The open document is ?doc={kind}:{id}, so it can be linked to directly.
   const [docKind, docId] = (searchParams.get("doc") ?? "").split(":")
@@ -78,7 +80,7 @@ export function DocumentsSection({ scope = "drive" }: { scope?: "drive" | "finan
               className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
             >
               <ArrowLeft className="size-4" aria-hidden="true" />
-              Back to {finance ? "Payments" : "Drive"}
+              Back to Documents
             </button>
             {canEditDocuments ? (
               <Button asChild variant="outline" size="sm">
@@ -106,19 +108,23 @@ export function DocumentsSection({ scope = "drive" }: { scope?: "drive" | "finan
         </div>
       ) : (
         <CompanyDocuments
-          invoices={finance ? invoices : []}
-          contracts={finance ? contracts : []}
-          estimates={finance ? estimates : []}
-          documents={finance ? [] : documents}
-          heading={finance ? "Payments" : "Drive"}
-          addKinds={finance ? ["invoice", "contract", "estimate"] : ["document"]}
-          emptyDescription={finance ? "Invoices, estimates and contracts will appear here." : "Documents will appear here. Images and videos live in each campaign."}
+          invoices={invoices}
+          contracts={contracts}
+          estimates={estimates}
+          documents={documents}
+          heading="Documents"
+          addKinds={["document", "invoice", "contract", "estimate"]}
+          emptyDescription="Documents, invoices, estimates and contracts will appear here. Images and videos live in each campaign."
           onSelect={(kind, id) => updateParams({ doc: `${kind}:${id}` })}
           onEdit={canEditDocuments ? (kind, id) => router.push(editHref(kind, id)) : undefined}
           canAdd={Boolean(admin)}
           onAdd={handleAdd}
+          extraEntries={notes.entries}
+          extraAddItems={notes.addItem}
         />
       )}
+
+      {notes.dialogs}
 
       {admin && (
         <NewDocumentDialog
