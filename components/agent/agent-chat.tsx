@@ -790,14 +790,14 @@ export function AgentChat({
         </div>
       )}
 
-      <div className={cn("shrink-0", compact ? "bg-transparent px-4 pb-2 pt-2" : "px-4 pb-2 pt-2 sm:px-6 sm:pb-3 sm:pt-3")}>
+      <div className={cn("sticky bottom-0 z-10 shrink-0", compact ? "border-t border-border/60 bg-background/95 px-4 supports-[backdrop-filter]:backdrop-blur-sm pb-[calc(0.5rem+env(safe-area-inset-bottom))] pt-2" : "px-2 pb-[calc(0.25rem+env(safe-area-inset-bottom))] pt-1 sm:px-3")}>
         <form
           onSubmit={submit}
           className={cn(
             "mx-auto flex w-full flex-col gap-2",
             compact
               ? "rounded-[16px] bg-sidebar-accent/25 p-2 shadow-[0_8px_24px_rgba(15,23,42,0.08)]"
-              : "max-w-3xl rounded-[16px] bg-sidebar-accent/25 p-2.5",
+              : "max-w-3xl rounded-[16px] bg-sidebar-accent/25 p-1.5",
           )}
         >
           {(attachments.length > 0 || uploading) && (
@@ -893,7 +893,7 @@ export function AgentChat({
               aria-expanded={campaignMentions ? Boolean(mentionTrigger) : undefined}
               aria-controls={mentionTrigger ? "ngai-campaign-mentions" : undefined}
               aria-activedescendant={mentionTrigger && matchingCampaigns[activeMentionIndex] ? `ngai-campaign-${matchingCampaigns[activeMentionIndex].id}` : undefined}
-              className="agent-composer-input h-auto min-h-0 max-h-40 w-full resize-none overflow-y-auto rounded-lg border-0 bg-transparent! px-2 py-2 text-sm !text-foreground placeholder:!text-foreground font-medium shadow-none outline-none focus:border-transparent focus-visible:border-transparent focus:ring-0 focus-visible:ring-0"
+              className="agent-composer-input h-auto min-h-0 max-h-40 w-full resize-none overflow-y-auto rounded-lg border-0 bg-transparent! px-2 py-1 text-sm !text-foreground placeholder:!text-foreground font-medium shadow-none outline-none focus:border-transparent focus-visible:border-transparent focus:ring-0 focus-visible:ring-0"
             />
             <div className="flex items-center justify-between">
             {allowAttachments ? (
@@ -904,7 +904,7 @@ export function AgentChat({
                 aria-label="Attach file"
                 disabled={uploading || streaming}
                 onClick={() => fileInput.current?.click()}
-                className="size-10 shrink-0 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
+                className="size-8 shrink-0 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
               >
                 <Plus className="size-5" aria-hidden="true" />
               </Button>
@@ -920,7 +920,7 @@ export function AgentChat({
                 disabled={streaming}
                 onClick={toggleVoice}
                 className={cn(
-                  "size-10 shrink-0 rounded-full hover:bg-muted hover:text-foreground",
+                  "size-8 shrink-0 rounded-full hover:bg-muted hover:text-foreground",
                   listening ? "text-destructive" : "text-muted-foreground",
                 )}
               >
@@ -932,7 +932,7 @@ export function AgentChat({
               size="icon"
               aria-label="Send message"
               disabled={!canSend}
-              className="size-10 shrink-0 rounded-full bg-accent text-accent-foreground hover:bg-accent/90"
+              className="size-8 shrink-0 rounded-full bg-accent text-accent-foreground hover:bg-accent/90"
             >
               <ArrowUp className="size-4" aria-hidden="true" />
             </Button>

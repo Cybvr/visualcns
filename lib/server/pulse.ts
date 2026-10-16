@@ -4,7 +4,7 @@ import OpenAI from "openai"
 
 import type { PulseAction, PulseAnswer, PulseBadgeTone, PulseHue, PulseIcon, PulseItem, PulseLevel, PulseReport } from "@/lib/pulse"
 
-const MODEL = process.env.OPENAI_MODEL || "gpt-5.6-luna"
+const MODEL = process.env.OPENAI_MODEL || "gpt-6-luna"
 
 export type CompanyFacts = {
   name: string

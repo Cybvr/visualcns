@@ -118,6 +118,11 @@ interface CompanyPageValue extends CompanyPageData {
 
 const CompanyPageContext = createContext<CompanyPageValue | null>(null)
 
+/** The company page's data when inside one, otherwise null. */
+export function useOptionalCompanyPage() {
+  return useContext(CompanyPageContext)
+}
+
 export function useCompanyPage() {
   const value = useContext(CompanyPageContext)
   if (!value) throw new Error("useCompanyPage must be used inside CompanyPageProvider")

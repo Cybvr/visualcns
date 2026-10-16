@@ -10,7 +10,7 @@ import { agencyKnowledge, KNOWLEDGE_RULES } from "@/lib/server/agency-knowledge"
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
-const MODEL = process.env.OPENAI_MODEL || "gpt-5.6-luna"
+const MODEL = process.env.OPENAI_MODEL || "gpt-6-luna"
 /** Questions one visitor can ask an hour. Anyone can use this page, so it's capped. */
 const HOURLY_LIMIT = 30
 const MAX_MESSAGES = 20

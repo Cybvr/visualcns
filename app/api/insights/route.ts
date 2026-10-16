@@ -8,7 +8,7 @@ import { getAgencySecret, recordAgencyUsage } from "@/lib/server/agency-secrets"
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
-const MODEL = process.env.OPENAI_MODEL || "gpt-5.6-luna"
+const MODEL = process.env.OPENAI_MODEL || "gpt-6-luna"
 
 // How long a saved set stays fresh before it is regenerated on the next open.
 const FRESH_FOR_MS = 7 * 24 * 60 * 60 * 1000

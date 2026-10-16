@@ -13,7 +13,7 @@ export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 export const maxDuration = 120
 
-const MODEL = process.env.OPENAI_MODEL || "gpt-5.6-luna"
+const MODEL = process.env.OPENAI_MODEL || "gpt-6-luna"
 const CREATOR_APPS = ["Instagram", "TikTok", "YouTube"] as const
 
 type CreatorApp = (typeof CREATOR_APPS)[number]
@@ -242,7 +242,18 @@ export async function POST(request: Request) {
   if (result.creatorSuggestions) {
     const grounded = new Set(creatorEvidence.map((creator) => `${creator.app}:${creator.handle.toLowerCase()}`))
     result.creatorSuggestions = result.creatorSuggestions.filter((creator) => grounded.has(`${creator.app}:${creator.handle.toLowerCase()}`))
-    if (!result.creatorSuggestions.length) return json({ error: "Creator research returned no verified profiles. Add more audience and location detail to About, then try again." }, 502)
+    // The model may reject otherwise valid evidence when it cannot confidently
+    // rank it. Keep the research grounded by using the verified evidence as a
+    // conservative fallback instead of failing the whole campaign build.
+    if (!result.creatorSuggestions.length) {
+      result.creatorSuggestions = creatorEvidence.slice(0, 12).map((creator) => ({
+        handle: creator.handle,
+        app: creator.app,
+        followers: publicFollowerCount(creator),
+        category: "Relevant creator",
+        overlap: 50,
+      }))
+    }
   }
 
   const now = FieldValue.serverTimestamp()

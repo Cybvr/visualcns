@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import type { ComponentType } from "react"
-import { ArrowLeft, Bell, BookOpen, ChevronRight, Database, Link2, LogOut, Palette, Server, Sparkles, UserRound, Users } from "lucide-react"
+import { Activity, ArrowLeft, Bell, BookOpen, ChevronRight, Database, Link2, LogOut, Palette, Server, Sparkles, UserRound, Users } from "lucide-react"
 
 import { useAuth } from "@/components/auth-provider"
 
@@ -11,6 +11,7 @@ const LINKS: { label: string; href: string; icon: ComponentType<{ className?: st
   { label: "Profile Settings", href: "/dashboard/account/profile", icon: UserRound },
   { label: "Agency Settings", href: "/dashboard/account/agency", icon: Sparkles, adminOnly: true },
   { label: "Ngai Knowledge", href: "/dashboard/account/knowledge", icon: BookOpen, adminOnly: true },
+  { label: "Ngai Operations", href: "/dashboard/account/agent-operations", icon: Activity, adminOnly: true },
   { label: "Integrations", href: "/dashboard/account/integrations", icon: Link2, adminOnly: true },
   { label: "Agency Management", href: "/dashboard/admin/agencies", icon: Server, superAdminOnly: true },
   { label: "Team", href: "/dashboard/account/team", icon: Users, adminOnly: true },

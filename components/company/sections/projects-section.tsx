@@ -14,7 +14,6 @@ import { CollectionView } from "@/components/dashboard/collection-view"
 import { NewProjectDialog } from "@/components/dashboard/new-project-dialog"
 import { ProjectDetail } from "@/components/dashboard/project-detail"
 import { ProjectCover } from "@/components/project-card"
-import { ShareDialog } from "@/components/dashboard/share-dialog"
 import { deleteProjectWithTasks, duplicateProject, getProject, renameProject, type Project } from "@/lib/projects"
 import { taskStatusMeta, tsToMillis } from "@/lib/tasks"
 
@@ -198,13 +197,6 @@ export function ProjectsSection() {
               </li>
             </ol>
           </nav>
-          {canCreate && (
-            <ShareDialog
-              path={`/${encodeURIComponent(company.slug || company.id)}/projects?campaign=${encodeURIComponent(selectedProject.id)}`}
-              title={`Share ${selectedProject.title}`}
-              shareText={`See the ${selectedProject.title} campaign`}
-            />
-          )}
           </div>
           <div className="mt-0 sm:mt-2">
             <ProjectDetail
@@ -223,6 +215,7 @@ export function ProjectsSection() {
               invoices={invoices.filter((invoice) => invoice.projectId === selectedProject.id)}
               invoiceHref={(invoice) => sectionHref("documents", { doc: `invoice:${invoice.id}` })}
               onProjectPatched={patchSelected}
+              onBack={closeCampaign}
               onProjectDeleted={admin ? async () => {
                 await admin.reload()
                 closeCampaign()

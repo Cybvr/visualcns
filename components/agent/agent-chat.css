@@ -15,6 +15,10 @@
   min-height: 0 !important;
   max-height: 10rem !important;
 }
+.agent-chat-root.agent-embedded-chat {
+  height: 100% !important;
+  min-height: 0 !important;
+}
 .dashboard-body.agent-chat-root .agent-composer-input::placeholder {
   color: var(--foreground) !important;
   opacity: 1;

@@ -13,6 +13,7 @@ import {
 import { HeaderTeam } from "@/components/company/header-team"
 import { SectionNav } from "@/components/company/section-nav"
 import { CompanySection } from "@/components/company/sections/company-section"
+import { ShareDialog } from "@/components/dashboard/share-dialog"
 import { useClientOpen, usePageHeaderActions, usePageHeaderBack, usePageHeaderTitle } from "@/components/dashboard/page-title-context"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
@@ -66,52 +67,67 @@ function DashboardCompanyView({ embedded = false, onBack }: { embedded?: boolean
   const recipientName = primaryContact?.adminUser?.displayName || primaryContact?.name
 
   const shareUrl = sharePath ? absoluteUrl(sharePath) : ""
+  const campaignSharePath = campaignId
+    ? `/${encodeURIComponent(company.slug || company.id)}/projects?campaign=${encodeURIComponent(campaignId)}`
+    : ""
   const teamKey = JSON.stringify(people.map((person) => ({ id: person.id, name: person.name, email: person.email, photoUrl: person.photoUrl })))
   const canManageTeam = Boolean(admin)
 
-  const headerActions = useMemo(() => sharePath ? (
-    <div className="flex items-center gap-2">
-    <HeaderTeam
-      company={{ id: company.id, name: company.name }}
-      people={JSON.parse(teamKey)}
-      canManageTeam={canManageTeam}
-      shareUrl={shareUrl}
-    />
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <button
-          type="button"
-          aria-label="More actions"
-          title="More actions"
-          className="flex size-10 items-center justify-center rounded-full bg-transparent text-current outline-none transition-colors hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          <MoreVertical className="size-5" aria-hidden="true" />
-        </button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-56">
-        <DropdownMenuItem asChild>
-          <Link href={buildEmailComposeHref({
-            companyId: company.id,
-            companyName: company.name,
-            recipientEmail,
-            recipientName,
-            ctaText: "Open your company page",
-            ctaUrl: sharePath,
-          })}>
-            <Mail className="size-4" aria-hidden="true" />
-            Email
-          </Link>
-        </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <Link href={sharePath} target="_blank" rel="noreferrer">
-            <ExternalLink className="size-4" aria-hidden="true" />
-            Open page
-          </Link>
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
-    </div>
-  ) : null, [sharePath, shareUrl, teamKey, canManageTeam, company.id, company.name, recipientEmail, recipientName])
+  const headerActions = useMemo(() => {
+    if (campaignId && campaignTitle && campaignSharePath) {
+      return (
+        <ShareDialog
+          path={campaignSharePath}
+          title={`Share ${campaignTitle}`}
+          shareText={`See the ${campaignTitle} campaign`}
+        />
+      )
+    }
+    if (!sharePath) return null
+    return (
+      <div className="flex items-center gap-2">
+        <HeaderTeam
+          company={{ id: company.id, name: company.name }}
+          people={JSON.parse(teamKey)}
+          canManageTeam={canManageTeam}
+          shareUrl={shareUrl}
+        />
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              type="button"
+              aria-label="More actions"
+              title="More actions"
+              className="flex size-10 items-center justify-center rounded-full bg-transparent text-current outline-none transition-colors hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <MoreVertical className="size-5" aria-hidden="true" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuItem asChild>
+              <Link href={buildEmailComposeHref({
+                companyId: company.id,
+                companyName: company.name,
+                recipientEmail,
+                recipientName,
+                ctaText: "Open your company page",
+                ctaUrl: sharePath,
+              })}>
+                <Mail className="size-4" aria-hidden="true" />
+                Email
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href={sharePath} target="_blank" rel="noreferrer">
+                <ExternalLink className="size-4" aria-hidden="true" />
+                Open page
+              </Link>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+    )
+  }, [campaignId, campaignSharePath, campaignTitle, sharePath, shareUrl, teamKey, canManageTeam, company.id, company.name, recipientEmail, recipientName])
 
   usePageHeaderActions(headerActions)
   useClientOpen(Boolean(sharePath))

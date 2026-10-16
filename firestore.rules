@@ -257,6 +257,21 @@ service cloud.firestore {
     match /invites/{id} { allow read, write: if false; }
     match /agencySecrets/{id} { allow read, write: if false; }
     match /agencyUsage/{id} { allow read, write: if false; }
+    // Agent operations are surfaced through server routes so raw prompts and
+    // tool metadata never become browser-readable by default.
+    match /agentRuns/{id} {
+      allow read: if agencyAdmin(resource.data);
+      allow write: if false;
+      match /events/{eventId} { allow read: if agencyAdmin(get(/databases/$(database)/documents/agentRuns/$(id)).data); allow write: if false; }
+    }
+    match /agentAdoptionEvents/{id} { allow read, write: if false; }
+    match /agentJobs/{id} { allow read, write: if false; }
+    match /agentMemories/{id} {
+      allow read: if agencyAdmin(resource.data);
+      allow create: if isAdmin() && sameAgency(request.resource.data);
+      allow update: if agencyAdmin(resource.data) && sameAgency(request.resource.data);
+      allow delete: if agencyAdmin(resource.data);
+    }
 
     // Keep legacy single-document links. Anonymous collection browsing is closed.
     match /invoices/{id} {

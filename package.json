@@ -5,6 +5,7 @@
   "scripts": {
     "build": "next build",
     "dev": "next dev -p 3069",
+    "test:agent": "node scripts/agent-eval.mjs",
     "lint": "eslint .",
     "seed:danne-outreach": "node scripts/seed-danne-institute-outreach.mjs",
     "start": "next start"

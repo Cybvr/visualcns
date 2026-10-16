@@ -150,10 +150,13 @@ export function AgentProvider({
   children,
   surface = "agency_dashboard",
   companyContext,
+  campaignContext,
 }: {
   children: ReactNode
   surface?: "agency_dashboard" | "client_portal"
   companyContext?: { id: string; name: string }
+  /** Opened inside one campaign, so "this campaign" means that one. */
+  campaignContext?: { id: string; title: string }
 }) {
   const { appUser, user } = useAuth()
   const [open, setOpen] = useState(false)
@@ -236,6 +239,19 @@ export function AgentProvider({
   const displayName = appUser?.displayName || appUser?.company || user?.displayName || "there"
   const firstName = displayName.split(" ")[0]
 
+  const trackEvent = useCallback((type: "agent_opened" | "message_sent" | "record_opened" | "human_handoff", metadata?: Record<string, unknown>) => {
+    if (!user) return
+    void user.getIdToken().then((token) => fetch("/api/agent/events", {
+      method: "POST",
+      headers: { "content-type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ type, surface, metadata }),
+    })).catch(() => undefined)
+  }, [surface, user])
+
+  useEffect(() => {
+    if (open) trackEvent("agent_opened")
+  }, [open, trackEvent])
+
   const persistConversation = useCallback(
     (conversation: AgentConversation) => {
       if (!user?.uid) return
@@ -265,6 +281,7 @@ export function AgentProvider({
       const selectedMentions = validMentions(mentions)
       const currentUser = user
       if ((!content && !attachments.length && !fileAttachments.length) || sending || !currentUser) return
+      trackEvent("message_sent", { hasAttachments: attachments.length > 0 || fileAttachments.length > 0 })
 
       const userMessage: AgentMessage = {
         id: messageId(nextId),
@@ -301,7 +318,7 @@ export function AgentProvider({
           const response = await fetch("/api/agent", {
             method: "POST",
             headers: { "content-type": "application/json", Authorization: `Bearer ${await currentUser.getIdToken()}` },
-            body: JSON.stringify({ messages: payload, firstName, surface, companyContext }),
+            body: JSON.stringify({ messages: payload, firstName, surface, companyContext, campaignContext, conversationId }),
           })
 
           if (!response.ok || !response.body) {
@@ -344,7 +361,7 @@ export function AgentProvider({
         }
       })()
     },
-    [messages, sending, firstName, activeConversationId, conversations, rememberConversation, user, surface, companyContext],
+    [messages, sending, firstName, activeConversationId, conversations, rememberConversation, user, surface, companyContext, campaignContext, trackEvent],
   )
 
   const reset = useCallback(() => {

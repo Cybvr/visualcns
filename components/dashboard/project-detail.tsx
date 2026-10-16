@@ -13,13 +13,14 @@ import { CampaignPayments } from "@/components/dashboard/campaign-payments"
 import { CampaignGenerateButton } from "@/components/dashboard/campaign-generate"
 import { CampaignSettings } from "@/components/dashboard/campaign-settings"
 import { CaseStudyForm } from "@/components/dashboard/case-study-form"
-import { CompanyNgaiChat } from "@/components/company/sections/ngai-section"
+import { Ngai } from "@/components/agent/ngai"
 import { ShareDialog } from "@/components/dashboard/share-dialog"
 import { ProjectShareButton } from "@/components/dashboard/project-share-button"
 import { ProjectTeamPicker } from "@/components/dashboard/project-team-picker"
 import { TasksView } from "@/components/dashboard/tasks-view"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { useOptionalSidebar } from "@/components/ui/sidebar"
+import { useSidebarTakeover } from "@/components/company/sidebar-takeover"
 import { usePageHeaderActions, usePageHeaderTitle } from "@/components/dashboard/page-title-context"
 import { watchCampaignCreatives, type CampaignCreative } from "@/lib/campaign-creatives"
 import { onRoster, watchCampaignPeople, type CampaignPerson } from "@/lib/campaign-people"
@@ -29,6 +30,7 @@ import { deleteProjectWithTasks, renameProject, slugify, type Project } from "@/
 import { deleteTask, getTasksByCompanyId, tsToMillis, updateTask, type Task } from "@/lib/tasks"
 import { companyPath } from "@/lib/navigation"
 import { useUrlSelection } from "@/hooks/use-url-selection"
+import { cn } from "@/lib/utils"
 
 const VIEW_FROM_TAB: Record<CampaignTab, string> = { home: "", build: "build", analytics: "analytics", about: "brief", people: "creators", creatives: "content", media: "media", payments: "payments", tasks: "tasks", settings: "settings" }
 const TAB_FROM_VIEW: Record<string, CampaignTab> = Object.fromEntries(Object.entries(VIEW_FROM_TAB).map(([tab, view]) => [view, tab as CampaignTab]))
@@ -46,6 +48,8 @@ interface ProjectDetailProps {
   embedded?: boolean
   onProjectPatched?: (patch: Partial<Project>) => void
   onProjectDeleted?: () => void | Promise<void>
+  /** Closes the campaign. On the company page its sections then take over the sidebar, with this as the way back. */
+  onBack?: () => void
   /** Signed-in agency admins on the public page, who can manage people and creatives without the admin view. */
   canEditCampaign?: boolean
   /** The client's own signed-in people, who can edit post text and approve it. */
@@ -73,6 +77,7 @@ export function ProjectDetail({
   embedded = false,
   onProjectPatched,
   onProjectDeleted,
+  onBack,
   publicTasks,
   canEditCampaign = isAdmin,
   canReview = false,
@@ -85,14 +90,17 @@ export function ProjectDetail({
   const [view, setView] = useUrlSelection("view")
   const tab = TAB_FROM_VIEW[view ?? ""] ?? "home"
   const setTab = (next: CampaignTab) => setView(next === "home" ? null : VIEW_FROM_TAB[next])
-  // The campaign has its own section nav, so the app menu folds to its icon rail while it is open.
+  // Where the campaign keeps its own section menu, the app menu folds to its icon rail while it is open.
+  // On the company page the sections move into the sidebar instead, so it stays open.
   const sidebar = useOptionalSidebar()
   const setSidebarOpen = useRef(sidebar?.setOpen)
   setSidebarOpen.current = sidebar?.setOpen
+  const foldsSidebar = !onBack
   useEffect(() => {
+    if (!foldsSidebar) return
     setSidebarOpen.current?.(false)
     return () => setSidebarOpen.current?.(true)
-  }, [])
+  }, [foldsSidebar])
   const [people, setPeople] = useState<CampaignPerson[]>([])
   const [peopleLoaded, setPeopleLoaded] = useState(false)
 
@@ -341,15 +349,26 @@ export function ProjectDetail({
     ...(canEditCampaign ? [{ key: "settings", label: "Settings", icon: Settings }] : []),
   ] as { key: CampaignTab; label: string; count?: number; icon: LucideIcon }[]
 
+  // On the company page the campaign's sections replace the sidebar menu, with a way back to Campaigns.
+  const inSidebar = useSidebarTakeover(onBack ? {
+    title: project.title,
+    backLabel: "Campaigns",
+    onBack,
+    items: sections,
+    active: tab,
+    onSelect: (key) => setTab(key as CampaignTab),
+  } : null)
+
   const brand = useMemo(() => ({ name: project.client || clientName, logoUrl: project.logoUrl || clientLogoUrl }), [clientLogoUrl, clientName, project.client, project.logoUrl])
 
   return (
     <CampaignBrandContext.Provider value={brand}>
-    <div className="space-y-2 md:space-y-4">
+    <div className={cn("space-y-2 md:space-y-4", tab === "build" && embedded && canEditCampaign && "md:flex md:h-full md:min-h-0 md:flex-col md:space-y-0")}>
       {isAdmin || publicView ? (
-        <div className="flex flex-col gap-2 md:-mb-6 md:flex-row md:gap-8">
+        <div className={cn("flex flex-col gap-2 md:-mb-6 md:flex-row md:gap-8", tab === "build" && embedded && canEditCampaign && "md:min-h-0 md:flex-1")}>
           {/* The row reaches into the card's bottom padding (the content keeps it instead), so the sticky menu isn't pushed up at the end of a long page. */}
-          {/* Phones: three main tabs, the rest under More. */}
+          {/* Phones: three main tabs, the rest under More, unless the sidebar already shows them. */}
+          {!inSidebar && (
           <nav className="sticky top-0 z-10 flex items-center gap-4 border-b border-border bg-card md:hidden" aria-label="Campaign sections">
             {sections.slice(0, 3).map((item) => (
               <button
@@ -386,7 +405,10 @@ export function ProjectDetail({
               </DropdownMenuContent>
             </DropdownMenu>
           </nav>
+          )}
 
+          {/* Desktop: the sidebar shows these instead when the campaign has taken it over. */}
+          {!inSidebar && (
           <nav className="sticky top-[calc(var(--shell-header-h,0px)+1rem)] z-10 flex w-48 shrink-0 flex-col gap-1 self-start max-md:hidden" aria-label="Campaign sections">
             {sections.map((item) => (
               <button
@@ -404,8 +426,9 @@ export function ProjectDetail({
               </button>
             ))}
           </nav>
+          )}
 
-          <div className="min-w-0 flex-1 md:pb-6">
+          <div className={cn("min-w-0 flex-1 md:pb-6", tab === "build" && embedded && canEditCampaign && "md:min-h-0 md:overflow-hidden md:pb-0")}>
             {tab === "home" ? (
               <>
                 <CampaignHome
@@ -435,7 +458,7 @@ export function ProjectDetail({
             ) : tab === "about" ? (
               <CampaignBrief project={project} content={contentItems} canEdit={canEditCampaign} canReview={canReview} onPatched={onProjectPatched} />
             ) : tab === "build" && embedded && canEditCampaign ? (
-              <CompanyNgaiChat surface="agency_dashboard" />
+              <Ngai scope={{ kind: "campaign", campaign: { id: project.id, title: project.title } }} />
             ) : tab === "people" ? (
               <CampaignPeople
                 people={people}
