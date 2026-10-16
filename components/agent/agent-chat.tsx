@@ -4,7 +4,8 @@ import Image from "next/image"
 import { useEffect, useRef, useState, type ChangeEvent, type ClipboardEvent, type DragEvent, type FormEvent, type KeyboardEvent, type ReactNode } from "react"
 import { ArrowUp, Check, ChevronDown, ChevronRight, FileText, ListChecks, Loader2, Megaphone, MessageSquare, Mic, Plus, UploadCloud, X } from "lucide-react"
 
-import type { AgentConversation, AgentFile, AgentForm, AgentMention, AgentMessage, AgentPlan } from "@/components/agent/agent-context"
+import type { AgentArtifact, AgentConversation, AgentFile, AgentForm, AgentMention, AgentMessage, AgentPlan } from "@/components/agent/agent-context"
+import { ArtifactCard } from "@/components/dashboard/document-artifact"
 import { uploadFileToStorage } from "@/lib/documents"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -394,6 +395,8 @@ export function AgentChat({
   allowAttachments = true,
   welcome,
   campaignMentions,
+  onOpenArtifact,
+  activeArtifactId,
 }: {
   messages: AgentMessage[]
   conversations: AgentConversation[]
@@ -413,6 +416,10 @@ export function AgentChat({
   welcome?: string
   /** Campaigns available to the @ mention picker. Omit to disable campaign mentions. */
   campaignMentions?: AgentMention[]
+  /** Opens a document Ngai made, beside the chat. Omit to hide the cards. */
+  onOpenArtifact?: (artifact: AgentArtifact) => void
+  /** The document open now, so its card shows as open. */
+  activeArtifactId?: string
 }) {
   const recentChats = conversations.filter((conversation) => conversation.messages.length > 0).slice(0, 3)
   const [input, setInput] = useState("")
@@ -782,6 +789,18 @@ export function AgentChat({
                   {message.plan && (
                     <AgentPlanCard plan={message.plan} active={messageIndex === messages.length - 1} disabled={sending} onSubmit={onSend} />
                   )}
+                  {message.artifacts?.length && onOpenArtifact ? (
+                    <div className="mt-3 flex flex-col gap-2">
+                      {message.artifacts.map((artifact) => (
+                        <ArtifactCard
+                          key={`${artifact.kind}-${artifact.id}`}
+                          artifact={artifact}
+                          active={activeArtifactId === artifact.id}
+                          onOpen={() => onOpenArtifact(artifact)}
+                        />
+                      ))}
+                    </div>
+                  ) : null}
                 </div>
               )}
             </div>

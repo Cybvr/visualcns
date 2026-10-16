@@ -20,10 +20,10 @@ import { NavUser } from "@/components/nav-user"
 import { GlobalSearchDialog, useSearchHotkey, type SearchResult } from "@/components/search/global-search"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
+import { invoiceIsOverdue } from "@/lib/invoice-reminders"
 import {
   Sidebar,
   SidebarContent,
-  SidebarFooter,
   SidebarGroup,
   SidebarHeader,
   SidebarInset,
@@ -170,6 +170,7 @@ export function CompanyProfileShell({ children }: { children: ReactNode }) {
   const isSettingsPage = pathname.split("/").filter(Boolean)[1] === "settings"
   const sectionLabel = sections.find((item) => item.key === section)?.label
   const pageLabel = isSettingsPage ? "Account" : sectionLabel
+  const overdueInvoiceCount = invoices.filter((invoice) => invoiceIsOverdue(invoice)).length
   const [searchOpen, setSearchOpen] = useState(false)
   const openSearch = useCallback(() => setSearchOpen(true), [])
   useSearchHotkey(openSearch)
@@ -185,9 +186,7 @@ export function CompanyProfileShell({ children }: { children: ReactNode }) {
   ], [sections, projects, documents, invoices, estimates, contracts])
 
   type SectionItem = (typeof sections)[number]
-  const sidebarSections = sections.filter((item) => item.key !== "activity" && item.key !== "ngai")
-  // Ngai sits at the bottom of the sidebar, apart from the sections.
-  const ngaiSection = sections.find((item) => item.key === "ngai")
+  const sidebarSections = sections.filter((item) => item.key !== "activity")
 
   function renderItem(item: SectionItem) {
     const Icon = item.icon
@@ -210,6 +209,14 @@ export function CompanyProfileShell({ children }: { children: ReactNode }) {
             {item.key === "projects" && (
               <span className="ml-auto inline-flex size-5 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-semibold tabular-nums text-primary-foreground group-data-[collapsible=icon]:hidden">
                 {projects.length}
+              </span>
+            )}
+            {item.key === "billings" && overdueInvoiceCount > 0 && (
+              <span
+                className="ml-auto inline-flex min-w-5 shrink-0 items-center justify-center rounded-full bg-destructive px-1.5 text-[10px] font-semibold leading-5 tabular-nums text-destructive-foreground group-data-[collapsible=icon]:hidden"
+                aria-label={`${overdueInvoiceCount} overdue invoice${overdueInvoiceCount === 1 ? "" : "s"}`}
+              >
+                {overdueInvoiceCount > 99 ? "99+" : overdueInvoiceCount}
               </span>
             )}
           </CompanySidebarLink>
@@ -239,11 +246,6 @@ export function CompanyProfileShell({ children }: { children: ReactNode }) {
                 </SidebarMenu>
               </SidebarGroup>
             </SidebarContent>
-            {ngaiSection && (
-              <SidebarFooter className="pb-4 group-data-[collapsible=icon]:p-1 group-data-[collapsible=icon]:pb-3">
-                <SidebarMenu className="gap-0.5 max-md:gap-1.5">{renderItem(ngaiSection)}</SidebarMenu>
-              </SidebarFooter>
-            )}
           </div>
           <SidebarRail />
         </Sidebar>
@@ -280,21 +282,30 @@ export function CompanyProfileShell({ children }: { children: ReactNode }) {
               <SidebarAccount header />
             </div>
           </header>
-          <main className={cn(
-            "min-w-0 flex-1 bg-card px-3 sm:px-6 md:m-3 md:mt-0 md:rounded-2xl md:shadow-[0_6px_24px_rgba(15,23,42,0.04)] lg:px-8",
-            // Ngai, as a page or a campaign tab, runs its composer down to the bottom edge; other pages keep room below.
-            section === "ngai" ? "pb-1 md:pb-1" : "pb-16 md:pb-6 has-[[data-ngai-page]]:pb-1 md:has-[[data-ngai-page]]:pb-1",
-            recordOpen ? "pt-0 sm:pt-0" : "pt-1 sm:pt-6",
-          )}>
-            {(isSettingsPage || section !== "about") && pageLabel && !recordOpen && (
-              <div className="mb-0.5 flex items-center justify-between gap-3">
-                <h2 className="surface-record-title min-w-0 truncate max-md:hidden">{pageLabel}</h2>
-                {/* Pages portal their own action buttons here, opposite the title. */}
-                <div id="company-title-actions" className="ml-auto flex shrink-0 items-center gap-2" />
-              </div>
-            )}
-            {children}
-          </main>
+          {/* Content, then an open document (an artifact) beside it, both under the header like Claude. */}
+          <div className="flex min-w-0 flex-1">
+            <main className={cn(
+              "min-w-0 flex-1 bg-card px-3 sm:px-6 md:m-3 md:mt-0 md:rounded-2xl md:shadow-[0_6px_24px_rgba(15,23,42,0.04)] lg:px-8",
+              // Ngai, as a page or a campaign tab, runs its composer down to the bottom edge; other pages keep room below.
+              section === "ngai" ? "pb-1 md:pb-1" : "pb-16 md:pb-6 has-[[data-ngai-page]]:pb-1 md:has-[[data-ngai-page]]:pb-1",
+              recordOpen ? "pt-0 sm:pt-0" : "pt-1 sm:pt-6",
+            )}>
+              {(isSettingsPage || section !== "about") && pageLabel && !recordOpen && (
+                <div className="mb-0.5 flex items-center justify-between gap-3">
+                  <h2 className="surface-record-title min-w-0 truncate max-md:hidden">{pageLabel}</h2>
+                  {/* Pages portal their own action buttons here, opposite the title. */}
+                  <div id="company-title-actions" className="ml-auto flex shrink-0 items-center gap-2" />
+                </div>
+              )}
+              {children}
+            </main>
+            {/* The open document is portalled here. It stays in view while the content scrolls,
+                takes no room when empty, and covers the screen on a phone. */}
+            <div
+              id="company-artifact-slot"
+              className="empty:hidden max-md:fixed max-md:inset-0 max-md:z-50 md:sticky md:top-[var(--shell-header-h,72px)] md:h-[calc(100svh-var(--shell-header-h,72px)-0.75rem)] md:w-[min(48rem,45vw)] md:shrink-0 md:self-start"
+            />
+          </div>
         </SidebarInset>
 
         <GlobalSearchDialog open={searchOpen} onOpenChange={setSearchOpen} results={searchResults} placeholder={`Search ${company.name}…`} />

@@ -28,6 +28,16 @@ export function invoiceIsOpen(invoice: Invoice): boolean {
   return (invoice.status === "sent" || invoice.status === "overdue") && invoiceBalance(invoice) > 0
 }
 
+/** An open invoice is overdue either when the daily job has marked it or when
+ * its due date has already passed but the job has not run yet. */
+export function invoiceIsOverdue(invoice: Invoice, today = todayIso()): boolean {
+  if (!invoiceIsOpen(invoice)) return false
+  if (invoice.status === "overdue") return true
+  if (!invoice.dueOn) return false
+  const days = daysUntilDue(invoice.dueOn, today)
+  return days !== null && days < 0
+}
+
 /**
  * Which automatic reminder is due today, if any. Each stage covers a window so a
  * missed day still sends it, and only the current stage is sent, never a backlog.

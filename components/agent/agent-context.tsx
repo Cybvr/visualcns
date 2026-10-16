@@ -52,7 +52,12 @@ export type AgentMessage = {
   plan?: AgentPlan
   /** What the agent did while working, e.g. "Reading Falcon's records". */
   steps?: string[]
+  /** Documents the agent made in this reply, opened beside the chat. */
+  artifacts?: AgentArtifact[]
 }
+
+/** A document Ngai made, which opens beside the chat like an artifact. */
+export type AgentArtifact = { kind: "document" | "invoice" | "estimate" | "contract"; id: string; title: string }
 
 export type AgentPlan = {
   title: string
@@ -66,6 +71,24 @@ const FORM_MARKER = "\n␞::ngai-form::"
 const PLAN_MARKER = "\n␞::ngai-plan::"
 const STEP_MARKER = "␞::ngai-step::"
 const ANSWER_MARKER = "␞::ngai-answer::"
+const ARTIFACT_MARKER = "\n␞::ngai-artifacts::"
+const ARTIFACT_KINDS = ["document", "invoice", "estimate", "contract"]
+
+/** Takes the list of documents made this turn off the end of the reply. */
+function splitArtifacts(raw: string): { rest: string; artifacts?: AgentArtifact[] } {
+  const at = raw.indexOf(ARTIFACT_MARKER)
+  if (at === -1) return { rest: raw }
+  try {
+    const list: unknown = JSON.parse(raw.slice(at + ARTIFACT_MARKER.length))
+    const artifacts = Array.isArray(list)
+      ? list.filter((item): item is AgentArtifact => Boolean(item) && ARTIFACT_KINDS.includes(item.kind) && typeof item.id === "string")
+      : []
+    return { rest: raw.slice(0, at), artifacts: artifacts.length ? artifacts : undefined }
+  } catch {
+    // Still streaming, or cut short: hide the list until it is whole.
+    return { rest: raw.slice(0, at) }
+  }
+}
 
 /** Splits the assistant's reply into its visible text and any trailing form or plan spec. */
 function splitForm(raw: string): { text: string; form?: AgentForm; plan?: AgentPlan } {
@@ -305,9 +328,13 @@ export function AgentProvider({
       setSending(true)
 
       // A plan lives outside the text, so spell it out for the model to follow on "go ahead".
-      const payload = history.map(({ role, content: c, images: im, files: fl, mentions: mn, plan }) => ({
+      // Documents it made are named too, so "change that document" finds the right one.
+      const payload = history.map(({ role, content: c, images: im, files: fl, mentions: mn, plan, artifacts: made }) => ({
         role,
-        content: plan ? `${c}\n\nProposed plan: ${plan.title}\n${plan.steps.map((item, index) => `${index + 1}. ${item}`).join("\n")}` : c,
+        content: [
+          plan ? `${c}\n\nProposed plan: ${plan.title}\n${plan.steps.map((item, index) => `${index + 1}. ${item}`).join("\n")}` : c,
+          made?.length ? `Created: ${made.map((item) => `${item.kind} "${item.title}" (id ${item.id})`).join(", ")}` : "",
+        ].filter(Boolean).join("\n\n"),
         ...(im?.length ? { images: im } : {}),
         ...(fl?.length ? { files: fl } : {}),
         ...(mn?.length ? { mentions: mn } : {}),
@@ -341,15 +368,16 @@ export function AgentProvider({
             acc += decoder.decode(value, { stream: true })
             // Show progress lines as they land, and hide any trailing form or plan spec.
             const live = splitStream(acc)
-            const visible = splitForm(live.answer).text
+            const visible = splitForm(splitArtifacts(live.answer).rest).text
             setMessages((current) =>
               current.map((m) => (m.id === assistantId ? { ...m, content: visible, steps: live.steps } : m)),
             )
           }
           const { steps, answer } = splitStream(acc)
-          const { text, form, plan } = splitForm(answer)
+          const { rest, artifacts } = splitArtifacts(answer)
+          const { text, form, plan } = splitForm(rest)
           acc = text.trim() ? text : plan ? "Here's what I'll do." : "I did not catch that. Could you rephrase?"
-          const completed = [...history, { id: assistantId, role: "assistant" as const, content: acc, ...(steps.length ? { steps } : {}), ...(form ? { form } : {}), ...(plan ? { plan } : {}) }]
+          const completed = [...history, { id: assistantId, role: "assistant" as const, content: acc, ...(steps.length ? { steps } : {}), ...(form ? { form } : {}), ...(plan ? { plan } : {}), ...(artifacts ? { artifacts } : {}) }]
           setMessages(completed)
           rememberConversation({ id: conversationId, title, messages: completed })
         } catch {

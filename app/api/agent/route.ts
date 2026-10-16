@@ -651,6 +651,9 @@ const PLAN_MARKER = "\n␞::ngai-plan::"
 /** Each progress line streamed while Ngai works, then the answer itself. */
 const STEP_MARKER = "␞::ngai-step::"
 const ANSWER_MARKER = "␞::ngai-answer::"
+/** Documents a tool made this turn, so the chat can open them beside the conversation. */
+const ARTIFACT_MARKER = "\n␞::ngai-artifacts::"
+const ARTIFACT_KINDS = ["document", "invoice", "estimate", "contract"]
 
 const READABLE_COLLECTIONS = [
   "organizations",
@@ -1642,14 +1645,15 @@ export async function POST(request: Request) {
         const write = (value: string) => controller.enqueue(encoder.encode(value))
         const step = (label: string) => write(`${STEP_MARKER}${label.replace(/\n/g, " ")}\n`)
         let closed = false
-        const finish = (value: string, outcome: AgentOutcome = "answered") => {
+        const artifacts: { kind: string; id: string; title: string }[] = []
+        const finish =(value: string, outcome: AgentOutcome = "answered") => {
           if (closed) return
           closed = true
           if (runId) {
             void finishAgentRun(runId, { status: outcome === "failed" ? "failed" : "succeeded", outcome }).catch((error) => console.error("Agent telemetry finish failed", error))
             void recordAdoptionEvent({ agencyId, userId: uid, type: outcome === "failed" ? "run_failed" : "run_completed", surface: portal ? "client_portal" : "agency_dashboard", runId, metadata: { outcome, durationMs: Date.now() - startedAt } }).catch(() => undefined)
           }
-          write(`${ANSWER_MARKER}${value}`)
+          write(`${ANSWER_MARKER}${value}${artifacts.length ? `${ARTIFACT_MARKER}${JSON.stringify(artifacts)}` : ""}`)
           controller.close()
         }
 
@@ -1734,6 +1738,10 @@ export async function POST(request: Request) {
               }
               if (runId) {
                 void recordAgentToolEvent(runId, { toolName, durationMs: Date.now() - toolStartedAt, ok: toolOk, error: toolError || undefined, skill: AGENT_TOOL_MANIFEST[toolName]?.skill }).catch((error) => console.error("Agent tool telemetry failed", error))
+              }
+              const made = result as { type?: unknown; id?: unknown; title?: unknown } | null
+              if (toolOk && made && typeof made.type === "string" && ARTIFACT_KINDS.includes(made.type) && typeof made.id === "string") {
+                artifacts.push({ kind: made.type, id: made.id, title: typeof made.title === "string" ? made.title : "" })
               }
               if (result && typeof result === "object" && "__attach" in result) {
                 const { __attach, ...rest } = result as { __attach: ToolAttachment }

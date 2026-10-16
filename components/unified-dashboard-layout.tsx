@@ -4,7 +4,7 @@ import dynamic from "next/dynamic"
 import { Suspense, useEffect, type ReactNode } from "react"
 import Image from "next/image"
 import { usePathname, useRouter } from "next/navigation"
-import { ClipboardList, Eye, FileText, LogOut, Pencil, Receipt, StickyNote } from "lucide-react"
+import { Bot, ClipboardList, Eye, FileText, House, LogOut, Receipt, StickyNote } from "lucide-react"
 import { FiBriefcase, FiCheckSquare, FiFileText, FiImage, FiMail, FiTrendingUp, FiUsers } from "react-icons/fi"
 import { AuthProvider, useAuth } from "@/components/auth-provider"
 import { AgentProvider } from "@/components/agent/agent-context"
@@ -18,7 +18,8 @@ import { DashboardPageSkeleton } from "@/components/dashboard/dashboard-page-ske
 const AgentDock = dynamic(() => import("@/components/agent/agent-dock").then((module) => module.AgentDock), { ssr: false })
 
 const DASHBOARD_NAV: NavLink[] = [
-  { label: "New", href: "/dashboard/agent", icon: Pencil, startsNewChat: true },
+  { label: "Home", href: "/dashboard", icon: House },
+  { label: "Ngai", href: "/dashboard/agent", icon: Bot, startsNewChat: true },
   // Workspace
   { label: "Tasks", href: "/dashboard/tasks", icon: FiCheckSquare, groupStart: true },
   { label: "Notes", href: "/dashboard/notes", icon: StickyNote },

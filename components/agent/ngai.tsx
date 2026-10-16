@@ -1,6 +1,6 @@
 "use client"
 
-import { useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react"
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react"
 import Image from "next/image"
 import { History, LogIn, Plus, X } from "lucide-react"
 
@@ -8,6 +8,7 @@ import { AgentChat } from "@/components/agent/agent-chat"
 import { AgentProvider, useAgent } from "@/components/agent/agent-context"
 import { useAuth } from "@/components/auth-provider"
 import { useOptionalCompanyPage } from "@/components/company/company-page-context"
+import { DocumentArtifact, type ArtifactRef } from "@/components/dashboard/document-artifact"
 import { NgaiLoginDialog } from "@/components/company/ngai-login-dialog"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
@@ -90,9 +91,25 @@ function NgaiHeader({ layout, onClose }: { layout: NgaiLayout; onClose?: () => v
   )
 }
 
-function NgaiConversation({ layout, startingOptions }: { layout: NgaiLayout; startingOptions?: string[] }) {
+function NgaiConversation({ layout, startingOptions, onOpenArtifact, activeArtifactId }: { layout: NgaiLayout; startingOptions?: string[]; onOpenArtifact: (artifact: ArtifactRef) => void; activeArtifactId?: string }) {
   const { messages, conversations, activeConversationId, sending, firstName, send, reset, selectConversation } = useAgent()
   const page = useOptionalCompanyPage()
+
+  // A document Ngai has just made opens by itself; documents in older chats wait to be clicked.
+  // The reply being written while `sending` is the one whose documents may open.
+  const streaming = useRef<string | null>(null)
+  useEffect(() => {
+    const last = messages.at(-1)
+    if (sending) {
+      if (last?.role === "assistant") streaming.current = last.id
+      return
+    }
+    if (!last || last.id !== streaming.current) return
+    streaming.current = null
+    const latest = last.artifacts?.at(-1)
+    if (latest) onOpenArtifact(latest)
+  }, [messages, sending, onOpenArtifact])
+
   // On a company page, any of its campaigns can be picked with @.
   const campaignMentions = useMemo(() => page ? [...page.projects]
     .sort((a, b) => a.title.localeCompare(b.title))
@@ -105,7 +122,7 @@ function NgaiConversation({ layout, startingOptions }: { layout: NgaiLayout; sta
 
   return (
     <AgentChat
-      className={cn("min-h-0 flex-1", layout === "page" && "mx-auto w-full max-w-4xl")}
+      className={cn("h-0 min-h-0 flex-1", layout === "page" && "mx-auto w-full max-w-4xl")}
       messages={messages}
       conversations={conversations}
       activeConversationId={activeConversationId}
@@ -116,6 +133,8 @@ function NgaiConversation({ layout, startingOptions }: { layout: NgaiLayout; sta
       onNewChat={reset}
       startingOptions={startingOptions}
       campaignMentions={campaignMentions}
+      onOpenArtifact={onOpenArtifact}
+      activeArtifactId={activeArtifactId}
       compact={layout === "panel"}
     />
   )
@@ -182,14 +201,32 @@ export function Ngai({ scope, layout = "page", onClose, className }: { scope: Ng
   useLayoutEffect(() => {
     const element = pageRef.current
     if (layout !== "page" || !element) return
+    const scroller = element.closest("[data-slot=sidebar-inset]")
     const fit = () => {
-      const top = element.getBoundingClientRect().top + (element.closest("[data-slot=sidebar-inset]")?.scrollTop ?? 0)
-      element.style.height = `${Math.max(416, window.innerHeight - top - 8)}px`
+      const top = element.getBoundingClientRect().top + (scroller?.scrollTop ?? window.scrollY)
+      // The page's own bottom margin and padding sit below the frame.
+      const main = element.closest("main:not([data-slot])")
+      const below = main ? parseFloat(getComputedStyle(main).paddingBottom) + parseFloat(getComputedStyle(main).marginBottom) : 0
+      // Never taller than the room left, however short the window.
+      element.style.height = `${Math.max(200, Math.floor(window.innerHeight - top - below - 4))}px`
     }
     fit()
+    // Headers, fonts and covers above can settle after the first paint, so fit again whenever the layout moves.
+    const frameId = requestAnimationFrame(fit)
+    const observer = new ResizeObserver(fit)
+    observer.observe(document.body)
+    if (element.parentElement) observer.observe(element.parentElement)
     window.addEventListener("resize", fit)
-    return () => window.removeEventListener("resize", fit)
+    return () => {
+      cancelAnimationFrame(frameId)
+      observer.disconnect()
+      window.removeEventListener("resize", fit)
+    }
   }, [layout, access.allowed])
+
+  const [artifact, setArtifact] = useState<ArtifactRef | null>(null)
+  const { role } = useAuth()
+  const isAgency = role === "admin" || role === "superadmin"
 
   const frame = (body: ReactNode) => (
     // A page takes the colour of the page it sits on; a panel is its own card.
@@ -198,14 +235,28 @@ export function Ngai({ scope, layout = "page", onClose, className }: { scope: Ng
     </div>
   )
 
-  if (scope.kind === "app") {
-    return frame(
-      <>
+  // The chat, and beside it any document Ngai made, like an artifact in Claude or ChatGPT.
+  // On a wide page they sit side by side; in a narrow panel or on a phone the document
+  // takes the space, and closing it goes back to the chat.
+  const chat = (startingOptions?: string[]) => (
+    <div className="flex min-h-0 flex-1 gap-4">
+      <div className={cn("flex min-w-0 flex-1 flex-col", artifact && (layout === "panel" ? "hidden" : "max-md:hidden"))}>
         <NgaiHeader layout={layout} onClose={onClose} />
-        <NgaiConversation layout={layout} />
-      </>,
-    )
-  }
+        <NgaiConversation layout={layout} startingOptions={startingOptions} onOpenArtifact={setArtifact} activeArtifactId={artifact?.id} />
+      </div>
+      {artifact && (
+        <DocumentArtifact
+          artifact={artifact}
+          canEdit={isAgency}
+          fullHref={isAgency ? `/dashboard/${artifact.kind}s/${encodeURIComponent(artifact.id)}` : undefined}
+          onClose={() => setArtifact(null)}
+          className={cn("w-full shrink-0", layout === "page" && "md:w-[min(48rem,55%)] md:border-l md:border-border")}
+        />
+      )}
+    </div>
+  )
+
+  if (scope.kind === "app") return frame(chat())
 
   if (!access.page) throw new Error("A company or campaign Ngai needs a company page around it.")
   const { company } = access.page
@@ -225,12 +276,7 @@ export function Ngai({ scope, layout = "page", onClose, className }: { scope: Ng
       companyContext={{ id: company.id, name: company.name }}
       campaignContext={scope.kind === "campaign" ? scope.campaign : undefined}
     >
-      {frame(
-        <>
-          <NgaiHeader layout={layout} onClose={onClose} />
-          <NgaiConversation layout={layout} startingOptions={STARTING_OPTIONS[scope.kind]} />
-        </>,
-      )}
+      {frame(chat(STARTING_OPTIONS[scope.kind]))}
     </AgentProvider>
   )
 }

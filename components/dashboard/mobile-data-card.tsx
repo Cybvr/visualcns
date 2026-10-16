@@ -98,13 +98,15 @@ export function MobileDataCard({
         )}
       </span>
       {variant === "inline" ? (
-        <div className="flex min-w-0 flex-1 items-baseline gap-3">
-          <p className="w-32 max-w-[38%] shrink-0 truncate text-sm text-foreground lg:w-40">{title}</p>
+        // Rows size to the space they have, not the window: in a narrow list (beside an open document, or on a phone)
+        // the title and details stack instead of running into the date.
+        <div className="flex min-w-0 flex-1 items-baseline gap-3 @max-xl/row:flex-col @max-xl/row:items-start @max-xl/row:gap-0.5">
+          <p className="w-32 max-w-[38%] shrink-0 truncate text-sm text-foreground lg:w-40 @max-xl/row:w-full @max-xl/row:max-w-full">{title}</p>
           <div className={cn(
             "flex min-w-0 items-baseline gap-1",
-            trailing !== undefined ? "w-[min(28rem,42vw)] shrink-0 max-sm:w-auto max-sm:flex-1" : "flex-1",
+            trailing !== undefined ? "w-[min(28rem,42vw)] shrink-0 @max-xl/row:w-full" : "flex-1",
           )}>
-            {subtitle !== undefined && <span className="max-w-[70%] shrink-0 truncate text-sm text-foreground">{subtitle}</span>}
+            {subtitle !== undefined && <span className="max-w-[70%] shrink-0 truncate text-sm text-foreground @max-xl/row:max-w-full @max-xl/row:text-xs @max-xl/row:text-muted-foreground">{subtitle}</span>}
             {description !== undefined && <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">— {description}</span>}
           </div>
         </div>
@@ -128,7 +130,7 @@ export function MobileDataCard({
   )
 
   const cardClassName = cn(
-    "relative flex items-center gap-2 rounded-sm p-3 transition-colors",
+    "@container/row relative flex items-center gap-2 rounded-sm p-3 transition-colors",
     surface === "muted" && "rounded-xl",
     surface === "list" && "rounded-none border-b border-border",
     variant === "inline" && "gap-3 px-3 py-2",
@@ -171,7 +173,7 @@ export function MobileDataCard({
       <div
         className={cn(
           "pointer-events-none relative z-0 flex min-w-0 items-center gap-3",
-          variant === "inline" && trailing !== undefined ? "flex-[0_1_auto] max-w-full max-sm:flex-1" : "flex-1",
+          variant === "inline" && trailing !== undefined ? "flex-[0_1_auto] max-w-full @max-xl/row:flex-1" : "flex-1",
         )}
       >
         {content}
