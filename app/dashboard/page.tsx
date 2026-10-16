@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { Receipt } from "lucide-react"
+import { Megaphone, Receipt } from "lucide-react"
 
 import { useAuth } from "@/components/auth-provider"
 import { DashboardPageSkeleton } from "@/components/dashboard/dashboard-page-skeleton"
@@ -15,7 +15,8 @@ import { getCurrentAgencyId } from "@/lib/agency-scope"
 import { formatMoney, getInvoices, invoiceStatusMeta, type Invoice } from "@/lib/billing"
 import { invoiceIsOpen, invoiceIsOverdue } from "@/lib/invoice-reminders"
 import { watchLeads, type Lead } from "@/lib/leads"
-import { getProjects, type Project } from "@/lib/projects"
+import { getProjects, projectSlug, type Project } from "@/lib/projects"
+import { ProjectCover } from "@/components/project-card"
 import { formatTimestamp, tsToMillis } from "@/lib/tasks"
 import { cn } from "@/lib/utils"
 
@@ -147,6 +148,11 @@ export default function DashboardPage() {
     [invoices],
   )
   const outstandingInvoiceCount = useMemo(() => invoices.filter(invoiceIsOpen).length, [invoices])
+  // The three campaigns changed most recently.
+  const latestCampaigns = useMemo(
+    () => [...projects].sort((a, b) => (tsToMillis(b.updatedAt) || tsToMillis(b.createdAt)) - (tsToMillis(a.updatedAt) || tsToMillis(a.createdAt))).slice(0, 3),
+    [projects],
+  )
   const firstName = (appUser?.displayName || user?.displayName || user?.email?.split("@")[0] || "there").trim().split(/\s+/)[0]
 
   if (!user) return null
@@ -170,6 +176,34 @@ export default function DashboardPage() {
           <Metric label="Outstanding invoices" value={outstandingInvoiceCount} href="/dashboard/invoices" />
         </div>
       </section>
+
+      {latestCampaigns.length > 0 && (
+        <section aria-labelledby="latest-campaigns-heading" className="mt-8">
+          <div className="flex items-center justify-between gap-3">
+            <h2 id="latest-campaigns-heading" className="text-lg font-semibold tracking-tight text-foreground">Latest campaigns</h2>
+            <Link href="/dashboard/projects" className="shrink-0 text-sm font-medium text-foreground underline-offset-4 hover:underline">View all</Link>
+          </div>
+          <div className="mt-4">
+            <GridCardList>
+              {latestCampaigns.map((project) => {
+                const href = `/dashboard/projects/${encodeURIComponent(projectSlug(project))}`
+                return (
+                  <GridCard
+                    key={project.id}
+                    title={project.title || "Untitled campaign"}
+                    icon={<Megaphone className="size-4 text-amber-600 dark:text-amber-400" aria-hidden="true" />}
+                    preview={<ProjectCover project={project} />}
+                    href={href}
+                    ariaLabel={`Open ${project.title || "campaign"}`}
+                    menuLabel={`Options for ${project.title || "campaign"}`}
+                    menu={<DropdownMenuItem asChild><Link href={href}>Open campaign</Link></DropdownMenuItem>}
+                  />
+                )
+              })}
+            </GridCardList>
+          </div>
+        </section>
+      )}
 
       <section aria-labelledby="outstanding-invoices-heading" className="mt-8">
         <div className="flex items-center justify-between gap-3">
