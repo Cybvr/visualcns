@@ -68,6 +68,7 @@ import { markdownToHtml } from "@/lib/markdown"
 import { createUser, getUsers } from "@/lib/users"
 import { TRIAL_DAYS } from "@/lib/subscription"
 import { cn } from "@/lib/utils"
+import { useSidebarTakeover } from "@/components/company/sidebar-takeover"
 import { useIsMobile } from "@/hooks/use-mobile"
 import {
   escapeHtml,
@@ -629,6 +630,15 @@ export default function EmailPage() {
     { key: "lists", label: "Lists", icon: List, count: () => lists.length },
     { key: "bin", label: "Bin", icon: Trash2, count: () => binItems.length },
   ]
+  // The folders replace the dashboard sidebar links while Email is open, with a way back.
+  const inSidebar = useSidebarTakeover({
+    title: "Email",
+    backLabel: "Back",
+    onBack: () => (window.history.length > 1 ? router.back() : router.push("/dashboard")),
+    items: EMAIL_FOLDERS.map((folder) => ({ key: folder.key, label: folder.label, icon: folder.icon, count: folder.count() })),
+    active: tab,
+    onSelect: (key) => setTab(key as EmailTab),
+  })
   const selectedReceived = activeReceivedMessages.find((message) => message.id === selectedReceivedId) || null
   const selectedSent = messages.find((message) => message.id === selectedSentId) || null
   const selectedContactName = contacts.find((contact) => recipientEmail(contact.email) === recipientEmail(to))?.name
@@ -2022,7 +2032,7 @@ export default function EmailPage() {
 
   return (
     <main className="mx-auto flex min-h-0 w-full min-w-0 max-w-6xl flex-1 flex-col overflow-visible px-3 pt-3 pb-5 sm:px-6 sm:pt-4 sm:pb-6 lg:flex-row lg:gap-6 lg:overflow-hidden">
-      <nav className="dashboard-sidebar hidden shrink-0 text-foreground lg:flex lg:w-52 lg:flex-col" aria-label="Email folders">
+      <nav className={cn("dashboard-sidebar hidden shrink-0 text-foreground lg:w-52 lg:flex-col", !inSidebar && "lg:flex")} aria-label="Email folders">
         <Button type="button" size="lg" className="mb-3 w-fit justify-start gap-2 rounded-full px-4 shadow-none" onClick={() => openCompose(true)}>
           <Plus aria-hidden="true" />Compose
         </Button>
@@ -2046,6 +2056,12 @@ export default function EmailPage() {
       </nav>
 
       <div className="flex h-full min-h-0 w-full min-w-0 flex-1 flex-col">
+        {/* With the folders in the sidebar, only Compose stays here, above the list. */}
+        {inSidebar && (
+          <Button type="button" size="lg" className="mb-3 hidden w-fit justify-start gap-2 rounded-full px-4 shadow-none lg:inline-flex" onClick={() => openCompose(true)}>
+            <Plus aria-hidden="true" />Compose
+          </Button>
+        )}
         {/* Mobile: search with a create button beside it, then pill folders, hidden while reading a message. */}
         {!mobileReaderOpen && (
           <div className="sm:hidden">
@@ -2104,7 +2120,7 @@ export default function EmailPage() {
             </>
           }
         />
-        <div className={cn("scrollbar-none mb-2 flex w-full items-center gap-1 overflow-x-auto rounded-md bg-muted/50 p-0.5 max-sm:-mx-3 max-sm:mb-4 max-sm:w-auto max-sm:gap-2 max-sm:rounded-none max-sm:bg-transparent max-sm:px-3 lg:hidden", mobileReaderOpen && "max-sm:hidden")} role="tablist" aria-label="Email">
+        <div className={cn("scrollbar-none mb-2 flex w-full items-center gap-1 overflow-x-auto rounded-md bg-muted/50 p-0.5 max-sm:-mx-3 max-sm:mb-4 max-sm:w-auto max-sm:gap-2 max-sm:rounded-none max-sm:bg-transparent max-sm:px-3 lg:hidden", mobileReaderOpen && "max-sm:hidden", inSidebar && "hidden")} role="tablist" aria-label="Email">
           {EMAIL_FOLDERS.map((folder) => (
             <button
               key={folder.key}

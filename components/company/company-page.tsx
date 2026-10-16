@@ -2,8 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
-import { useSearchParams } from "next/navigation"
-import { Eye, ExternalLink, Mail, MoreVertical } from "lucide-react"
+import { useRouter, useSearchParams } from "next/navigation"
+import { Building2, Eye, ExternalLink, Mail, MoreVertical } from "lucide-react"
 
 import {
   CompanyPageProvider,
@@ -12,6 +12,7 @@ import {
 } from "@/components/company/company-page-context"
 import { HeaderTeam } from "@/components/company/header-team"
 import { SectionNav } from "@/components/company/section-nav"
+import { useSidebarTakeover } from "@/components/company/sidebar-takeover"
 import { CompanySection } from "@/components/company/sections/company-section"
 import { ShareDialog } from "@/components/dashboard/share-dialog"
 import { useClientOpen, usePageHeaderActions, usePageHeaderBack, usePageHeaderTitle } from "@/components/dashboard/page-title-context"
@@ -56,6 +57,18 @@ function DashboardCompanyView({ embedded = false, onBack }: { embedded?: boolean
   }, [phone, campaignOpen, onBack])
   usePageHeaderTitle(useMemo(() => headerTitle ? <span className="block truncate">{headerTitle}</span> : null, [headerTitle]))
   usePageHeaderBack(headerBack)
+
+  // The client's sections replace the dashboard sidebar links, with a way back to Clients.
+  const router = useRouter()
+  const inSidebar = useSidebarTakeover({
+    title: company.name,
+    backLabel: "Clients",
+    onBack: () => (latest.current.onBack ? latest.current.onBack() : router.push("/dashboard/clients")),
+    items: sections.map((item) => ({ key: item.key, label: item.label, icon: item.icon ?? Building2 })),
+    active: section,
+    onSelect: (key) => router.push(sectionHref(key as typeof section), { scroll: false }),
+    level: 1,
+  })
 
   const primaryContact = people.find((person) => person.adminUser?.uid === company.primaryContactId)
     || people.find((person) => person.adminUser?.email)
@@ -159,13 +172,13 @@ function DashboardCompanyView({ embedded = false, onBack }: { embedded?: boolean
           )}
         </div>
       )}
-      <div className="md:grid md:grid-cols-[8rem_minmax(0,1fr)] md:items-start md:gap-6">
-        <aside className="hidden md:sticky md:top-6 md:block">
+      <div className={cn(!inSidebar && "md:grid md:grid-cols-[8rem_minmax(0,1fr)] md:items-start md:gap-6")}>
+        <aside className={cn("hidden md:sticky md:top-6", !inSidebar && "md:block")}>
           <SectionNav sections={sections} active={section} href={sectionHref} vertical />
         </aside>
         <div className="min-w-0">
           {/* Keep the phone navigation horizontal; desktop uses the vertical rail. */}
-          <div className={cn(campaignOpen && "max-sm:hidden", embedded
+          <div className={cn((campaignOpen || inSidebar) && "hidden", embedded
             ? "sticky top-0 z-30 border-b border-border bg-background print:hidden max-sm:-mx-4 md:hidden"
             : "sticky top-14 z-30 -mx-4 -mt-4 border-b border-border bg-background print:hidden sm:-mx-6 sm:-mt-6 md:hidden")}
           >

@@ -359,6 +359,8 @@ export function ProjectDetail({
     items: sections,
     active: tab,
     onSelect: (key) => setTab(key as CampaignTab),
+    // A campaign sits inside a client page, so it wins the sidebar while open.
+    level: 2,
   } : null)
 
   const brand = useMemo(() => ({ name: project.client || clientName, logoUrl: project.logoUrl || clientLogoUrl }), [clientLogoUrl, clientName, project.client, project.logoUrl])

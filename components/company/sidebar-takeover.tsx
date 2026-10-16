@@ -1,70 +1,96 @@
 "use client"
 
-import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react"
+import { createContext, useCallback, useContext, useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react"
 import { ChevronLeft, type LucideIcon } from "lucide-react"
 
 import { SidebarMenuButton, SidebarMenuItem, useSidebar } from "@/components/ui/sidebar"
 import { cn } from "@/lib/utils"
 
-/** A record's own sections, shown in the company sidebar in place of the company's while it is open. */
+/** A page's own sections (a client, a campaign, email folders), shown in the sidebar in place of its links while it is open. */
 export type SidebarTakeover = {
-  /** The open record's name, under the back link. */
+  /** The open page's name, under the back link. */
   title: string
-  /** Where the back link goes, e.g. "Campaigns". */
+  /** What the back link says, e.g. "Back" or "Campaigns". */
   backLabel: string
   onBack: () => void
   items: { key: string; label: string; icon: LucideIcon; count?: number }[]
   active: string
   onSelect: (key: string) => void
+  /**
+   * Deeper pages win when two are open at once: a campaign (2) inside a client page (1).
+   * Closing the deeper one hands the sidebar back to the one underneath.
+   */
+  level?: number
 }
 
-const SidebarTakeoverContext = createContext<{ takeover: SidebarTakeover | null; set: (takeover: SidebarTakeover | null) => void } | null>(null)
+type Entry = { id: string; order: number; takeover: SidebarTakeover }
+
+const SidebarTakeoverContext = createContext<{
+  takeover: SidebarTakeover | null
+  register: (id: string, takeover: SidebarTakeover | null) => void
+} | null>(null)
 
 export function SidebarTakeoverProvider({ children }: { children: ReactNode }) {
-  const [takeover, set] = useState<SidebarTakeover | null>(null)
-  return <SidebarTakeoverContext.Provider value={{ takeover, set }}>{children}</SidebarTakeoverContext.Provider>
+  const [entries, setEntries] = useState<Entry[]>([])
+  const counter = useRef(0)
+  const register = useCallback((id: string, takeover: SidebarTakeover | null) => {
+    setEntries((current) => {
+      if (!takeover) return current.filter((entry) => entry.id !== id)
+      const existing = current.find((entry) => entry.id === id)
+      if (existing) return current.map((entry) => (entry.id === id ? { ...entry, takeover } : entry))
+      return [...current, { id, order: counter.current++, takeover }]
+    })
+  }, [])
+  // The deepest page wins; between equals, the one opened last.
+  const takeover = useMemo(
+    () => [...entries].sort((a, b) => (a.takeover.level ?? 1) - (b.takeover.level ?? 1) || a.order - b.order).at(-1)?.takeover ?? null,
+    [entries],
+  )
+  const value = useMemo(() => ({ takeover, register }), [takeover, register])
+  return <SidebarTakeoverContext.Provider value={value}>{children}</SidebarTakeoverContext.Provider>
 }
 
-/** What the sidebar should show instead of the company's sections, if anything. */
+/** What the sidebar should show instead of its own links, if anything. */
 export function useSidebarTakeoverState() {
   return useContext(SidebarTakeoverContext)?.takeover ?? null
 }
 
 /**
- * Puts a record's sections in the company sidebar while the calling component
- * is mounted. Returns false outside a company page, where there is no sidebar
- * to take over, so the caller keeps its own menu.
+ * Puts a page's sections in the sidebar while the calling component is
+ * mounted. Returns false where there is no sidebar to take over, so the
+ * caller keeps its own menu.
  */
 export function useSidebarTakeover(takeover: SidebarTakeover | null) {
   const context = useContext(SidebarTakeoverContext)
-  const set = context?.set
+  const register = context?.register
+  const id = useId()
   // Callbacks change every render; the sidebar calls the latest through these.
   const latest = useRef(takeover)
   latest.current = takeover
   const key = takeover
-    ? JSON.stringify([takeover.title, takeover.backLabel, takeover.active, takeover.items.map((item) => [item.key, item.label, item.count ?? 0])])
+    ? JSON.stringify([takeover.title, takeover.backLabel, takeover.active, takeover.level ?? 1, takeover.items.map((item) => [item.key, item.label, item.count ?? 0])])
     : ""
 
   useEffect(() => {
-    if (!set) return
+    if (!register) return
     const current = latest.current
     if (!key || !current) {
-      set(null)
+      register(id, null)
       return
     }
-    set({
+    register(id, {
       ...current,
       onBack: () => latest.current?.onBack(),
       onSelect: (next) => latest.current?.onSelect(next),
     })
-  }, [key, set])
+  }, [id, key, register])
 
   useEffect(() => {
-    if (!set) return
-    return () => set(null)
-  }, [set])
+    if (!register) return
+    return () => register(id, null)
+  }, [id, register])
 
-  return Boolean(set && takeover)
+  return Boolean(register && takeover)
 }
 
 const SIDEBAR_ITEM_CLASS = "h-9 gap-2 px-2 max-md:h-12 max-md:min-h-12 max-md:gap-3 max-md:px-3 [&>svg]:size-[18px] [&>svg]:max-md:size-5"
