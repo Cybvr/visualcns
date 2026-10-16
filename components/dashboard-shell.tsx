@@ -1,5 +1,6 @@
 "use client"
 
+import { useNavCounts } from "@/components/dashboard/use-nav-counts"
 import dynamic from "next/dynamic"
 import { useEffect, useState, type FormEvent, type ReactNode } from "react"
 import Link from "next/link"
@@ -127,6 +128,7 @@ export function DashboardShell({
   const { open: agentOpen } = useAgent()
   const { agency } = useAuth()
   const unreadEmailCount = useUnreadEmailCount()
+  const navCounts = useNavCounts()
   const { override: titleOverride, titleNode, headerSearch, actions: headerActions, replacesMobileDefaults, setHeaderSlot, hideMobileFooter, backAction, clientOpen } = usePageHeaderOverride()
   const { open: searchOpen, setOpen: setSearchOpen, openSearch, results: searchResults, loading: searchLoading } = useDashboardSearch()
   const [createItem, setCreateItem] = useState<(typeof QUICK_CREATE_LINKS)[number] | null>(null)
@@ -173,7 +175,7 @@ export function DashboardShell({
           banner && "[&_[data-slot=sidebar-container]]:top-10 [&_[data-slot=sidebar-container]]:h-[calc(100svh-2.5rem)]"
         )}
       >
-        <AppSidebar navLinks={navLinks} rootHref={rootHref} navExtra={navExtra} brandName={agency?.name} brandLogoUrl={agency?.logoUrl} unreadEmailCount={unreadEmailCount} />
+        <AppSidebar navLinks={navLinks} rootHref={rootHref} navExtra={navExtra} brandName={agency?.name} brandLogoUrl={agency?.logoUrl} unreadEmailCount={unreadEmailCount} navCounts={navCounts} />
         {/* overflow-y-auto: this column is the scroll container, not the body */}
         <SidebarInset
           className={cn(

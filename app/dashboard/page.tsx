@@ -22,7 +22,7 @@ import { cn } from "@/lib/utils"
 
 function Metric({ label, value, href }: { label: string; value: number; href: string }) {
   return (
-    <Link href={href} className="block rounded-xl border border-border bg-card p-5 outline-none transition-colors hover:bg-muted/40 focus-visible:ring-2 focus-visible:ring-ring sm:p-6">
+    <Link href={href} className="block rounded-xl border border-border bg-card p-5 max-sm:w-[78%] max-sm:shrink-0 max-sm:snap-start outline-none transition-colors hover:bg-muted/40 focus-visible:ring-2 focus-visible:ring-ring sm:p-6">
       <p className="text-sm text-muted-foreground">{label}</p>
       {/* div, not p: the dashboard-body rule forces p to inherit its font size. Same size as the greeting. */}
       <div className="mt-6 text-2xl font-semibold leading-none tracking-tight text-foreground tabular-nums sm:text-3xl">{value.toLocaleString()}</div>
@@ -169,7 +169,8 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {/* Phones: one swipeable row of tiles, each snapping into place, with the next one peeking in. */}
+        <div className="scrollbar-none mt-5 grid gap-3 max-sm:-mx-4 max-sm:flex max-sm:snap-x max-sm:snap-mandatory max-sm:scroll-px-4 max-sm:overflow-x-auto max-sm:px-4 sm:grid-cols-2 lg:grid-cols-4">
           <Metric label="Leads" value={leads?.length ?? 0} href="/dashboard/leads" />
           <Metric label="Reached out" value={reachedOut} href="/dashboard/leads" />
           <Metric label="Client campaigns" value={projects.length} href="/dashboard/projects" />

@@ -1,5 +1,6 @@
 "use client"
 
+import { RouteTabs, DOCUMENT_TABS } from "@/components/dashboard/route-tabs"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { Send, Trash2 } from "lucide-react"
 import { toast } from "sonner"
@@ -296,6 +297,7 @@ export default function NotesPage() {
 
   return (
     <main className="notes-page mx-auto w-full max-w-6xl px-4 pt-4 pb-12 sm:px-6">
+      <RouteTabs tabs={DOCUMENT_TABS} />
       {error ? (
         <p role="alert" className="mt-10 text-sm text-destructive">Notes unavailable. Refresh to try again.</p>
       ) : notes === null ? (

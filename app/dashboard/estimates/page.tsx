@@ -1,5 +1,6 @@
 "use client"
 
+import { RouteTabs, BILLING_TABS } from "@/components/dashboard/route-tabs"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useCallback, useEffect, useMemo, useState } from "react"
@@ -118,6 +119,7 @@ export default function EstimatesPage() {
 
   return (
     <main className="mx-auto w-full max-w-6xl px-4 pt-4 pb-12 sm:px-6">
+      <RouteTabs tabs={BILLING_TABS} />
       {error ? <p className="mt-10 text-sm text-destructive">Couldn’t load estimates right now.</p> : !loading && estimates.length === 0 ? (
         <>
           <div className="lg:max-w-[30rem]">{estimateFilter}</div>

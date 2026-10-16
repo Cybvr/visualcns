@@ -50,11 +50,14 @@ export type NavLink = {
   opensAgent?: boolean
   /** Clears the current conversation before opening the full Agent page. */
   startsNewChat?: boolean
+  /** Other paths that light this item up too, e.g. a page shown as one of its tabs. */
+  alsoActive?: string[]
   /** When present the item is a collapsible dropdown and href is only its default destination. */
   items?: Array<{ label: string; href: string; icon: ComponentType<{ className?: string }>; adminOnly?: boolean }>
 }
 
-function isActive(pathname: string, href: string, rootHref: string) {
+function isActive(pathname: string, href: string, rootHref: string, alsoActive: string[] = []) {
+  if (alsoActive.some((path) => pathname.startsWith(path))) return true
   return href === rootHref ? pathname === rootHref : pathname.startsWith(href)
 }
 
@@ -65,6 +68,7 @@ export function AppSidebar({
   brandName,
   brandLogoUrl,
   unreadEmailCount = 0,
+  navCounts = {},
   className,
   ...props
 }: React.ComponentProps<typeof Sidebar> & {
@@ -74,6 +78,8 @@ export function AppSidebar({
   brandName?: string
   brandLogoUrl?: string
   unreadEmailCount?: number
+  /** How many records each link holds, shown beside it, keyed by href. */
+  navCounts?: Record<string, number>
 }) {
   const pathname = usePathname()
   const router = useRouter()
@@ -161,7 +167,7 @@ export function AppSidebar({
                     {link.startsNewChat ? (
                       <SidebarMenuButton
                         type="button"
-                        isActive={isActive(pathname, link.href, rootHref)}
+                        isActive={isActive(pathname, link.href, rootHref, link.alsoActive)}
                         tooltip={link.label}
                         className={cn(mobileNavButton, "h-11 !w-fit !rounded-sm bg-card pr-4 font-medium shadow-xs hover:bg-card/80 group-data-[collapsible=icon]:!w-8 [&_.sidebar-nav-label]:!text-base [&>svg]:size-5")}
                         onClick={() => {
@@ -185,7 +191,7 @@ export function AppSidebar({
                         <span className="sidebar-nav-label">{link.label}</span>
                       </SidebarMenuButton>
                     ) : (
-                      <SidebarMenuButton asChild isActive={isActive(pathname, link.href, rootHref)} tooltip={link.label} className={mobileNavButton}>
+                      <SidebarMenuButton asChild isActive={isActive(pathname, link.href, rootHref, link.alsoActive)} tooltip={link.label} className={mobileNavButton}>
                         <Link href={link.href} onClick={() => handleNavigate(link.adminOnly)} className={link.href === "/dashboard/email" ? "relative" : undefined} aria-label={link.href === "/dashboard/email" && unreadEmailCount > 0 ? `${link.label}, ${unreadEmailCount} unread` : undefined}>
                           <link.icon className="h-4 w-4" />
                           <span className={cn("sidebar-nav-label", link.href === "/dashboard/email" && unreadEmailCount > 0 && "font-semibold")}>{link.label}</span>
@@ -193,6 +199,9 @@ export function AppSidebar({
                             <span className="ml-auto rounded-full bg-button px-1.5 py-0.5 text-[10px] font-bold leading-none tabular-nums text-button-foreground group-data-[collapsible=icon]:absolute group-data-[collapsible=icon]:-right-1 group-data-[collapsible=icon]:-top-1" aria-hidden="true">
                               {unreadEmailCount > 99 ? "99+" : unreadEmailCount}
                             </span>
+                          )}
+                          {navCounts[link.href] !== undefined && (
+                            <span className="ml-auto text-xs tabular-nums text-muted-foreground group-data-[collapsible=icon]:hidden">{navCounts[link.href].toLocaleString()}</span>
                           )}
                         </Link>
                       </SidebarMenuButton>

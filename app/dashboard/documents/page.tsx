@@ -1,5 +1,6 @@
 "use client"
 
+import { RouteTabs, DOCUMENT_TABS } from "@/components/dashboard/route-tabs"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useCallback, useEffect, useMemo, useState } from "react"
@@ -157,6 +158,7 @@ export default function DocumentsPage() {
 
   return (
     <main className="mx-auto w-full max-w-6xl px-4 pt-4 pb-12 sm:px-6">
+      <RouteTabs tabs={DOCUMENT_TABS} />
       {error ? <p className="mt-10 text-sm text-destructive">Couldn’t load documents right now.</p> : !loading && rows.length === 0 ? (
         <>
           <div className="lg:max-w-[30rem]">{documentFilter}</div>
