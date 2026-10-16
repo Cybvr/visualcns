@@ -241,6 +241,7 @@ export function useCompanyNotes(): { entries: ExtraDocumentEntry[]; addItem: Rea
     updatedMs: Date.parse(note.updatedAt) || 0,
     searchText: [notePreview(note)],
     icon: <StickyNote className="size-5 text-amber-600 dark:text-amber-400" aria-hidden="true" />,
+    thumbnail: StickyNote,
     actions: {
       noun: "note",
       name: noteTitle(note),

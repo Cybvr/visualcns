@@ -34,6 +34,7 @@ import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { SectionAddButton } from "@/components/company/section-add-button"
 import { CollectionView } from "@/components/dashboard/collection-view"
+import { thumbnailIcon } from "@/components/dashboard/grid-card"
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
 import { useCompanyPage } from "@/components/company/company-page-context"
 import { useUrlSelection } from "@/hooks/use-url-selection"
@@ -998,12 +999,7 @@ export function Pulse({
         card={(item) => ({
           icon: <ChartColumn className="size-4 text-muted-foreground" aria-hidden="true" />,
           title: reportDate(item.scannedAt),
-          preview: (
-            <div className="flex flex-col items-center justify-center">
-              <span className="text-4xl font-semibold tabular-nums tracking-[-0.03em] text-foreground">{item.score}</span>
-              <span className="text-xs text-muted-foreground">out of 100</span>
-            </div>
-          ),
+          placeholder: thumbnailIcon(ChartColumn),
           onClick: () => select(item.id),
           ariaLabel: `Open report from ${reportDate(item.scannedAt)}`,
           menuLabel: `Options for report from ${reportDate(item.scannedAt)}`,

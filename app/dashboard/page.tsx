@@ -2,12 +2,15 @@
 
 import Link from "next/link"
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { BriefcaseBusiness, Receipt, Send, TrendingUp } from "lucide-react"
+import { Receipt } from "lucide-react"
 
 import { useAuth } from "@/components/auth-provider"
-import { CollectionView } from "@/components/dashboard/collection-view"
 import { DashboardPageSkeleton } from "@/components/dashboard/dashboard-page-skeleton"
+import { GridCard, GridCardList, thumbnailIcon } from "@/components/dashboard/grid-card"
+import { MobileDataCard } from "@/components/dashboard/mobile-data-card"
+import { useListView, ViewToggle } from "@/components/dashboard/list-search"
 import { Card, CardContent } from "@/components/ui/card"
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { getCurrentAgencyId } from "@/lib/agency-scope"
 import { formatMoney, getInvoices, invoiceStatusMeta, type Invoice } from "@/lib/billing"
 import { invoiceIsOpen, invoiceIsOverdue } from "@/lib/invoice-reminders"
@@ -16,16 +19,20 @@ import { getProjects, type Project } from "@/lib/projects"
 import { formatTimestamp, tsToMillis } from "@/lib/tasks"
 import { cn } from "@/lib/utils"
 
-function Metric({ label, value, href, icon: Icon }: { label: string; value: number; href: string; icon: typeof TrendingUp }) {
+function Metric({ label, value, href }: { label: string; value: number; href: string }) {
   return (
-    <Link href={href} className="block rounded-xl border border-border bg-card p-4 outline-none transition-colors hover:bg-muted/40 focus-visible:ring-2 focus-visible:ring-ring">
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-sm text-muted-foreground">{label}</p>
-        <Icon className="size-4 text-muted-foreground" aria-hidden="true" />
-      </div>
-      <p className="mt-3 text-3xl font-semibold tracking-tight text-foreground">{value.toLocaleString()}</p>
+    <Link href={href} className="block rounded-xl border border-border bg-card p-5 outline-none transition-colors hover:bg-muted/40 focus-visible:ring-2 focus-visible:ring-ring sm:p-6">
+      <p className="text-sm text-muted-foreground">{label}</p>
+      {/* div, not p: the dashboard-body rule forces p to inherit its font size. Same size as the greeting. */}
+      <div className="mt-6 text-2xl font-semibold leading-none tracking-tight text-foreground tabular-nums sm:text-3xl">{value.toLocaleString()}</div>
     </Link>
   )
+}
+
+function greetingForHour(hour: number) {
+  if (hour < 12) return "Good morning"
+  if (hour < 18) return "Good afternoon"
+  return "Good evening"
 }
 
 function invoiceTitle(invoice: Invoice) {
@@ -42,35 +49,31 @@ function invoiceStatus(invoice: Invoice) {
 
 function invoiceCard(invoice: Invoice) {
   const status = invoiceStatus(invoice)
-  const statusMeta = invoiceStatusMeta[status]
   const title = invoiceTitle(invoice)
+  const href = `/dashboard/invoices?invoice=${encodeURIComponent(invoice.id)}`
+  // The same card as every other list. With no picture, the thumbnail is just the icon; amount and status are in the list row.
   return {
     title,
-    subtitle: invoice.client || invoice.companyId,
     icon: <Receipt className={cn("size-4", status === "overdue" ? "text-destructive" : "text-emerald-600 dark:text-emerald-400")} aria-hidden="true" />,
-    preview: (
-      <div className="flex size-full flex-col justify-between bg-muted/30 p-4">
-        <div className="flex items-start justify-between gap-2">
-          <Receipt className="size-8 text-muted-foreground/60" aria-hidden="true" />
-          <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-medium", statusMeta.className)}>{statusMeta.label}</span>
-        </div>
-        <p className="truncate text-lg font-semibold text-foreground">{formatMoney(invoice.amount, invoice.currency)}</p>
-      </div>
-    ),
-    href: `/dashboard/invoices?invoice=${encodeURIComponent(invoice.id)}`,
+    placeholder: thumbnailIcon(Receipt),
+    menuLabel: `Options for ${title}`,
+    menu: <DropdownMenuItem asChild><Link href={href}>Open invoice</Link></DropdownMenuItem>,
+    href,
     ariaLabel: `Open ${title}`,
   }
 }
 
 /** Agency home: the useful numbers first, then the invoices that need attention. */
 export default function DashboardPage() {
-  const { user } = useAuth()
+  const { user, appUser } = useAuth()
   const [leads, setLeads] = useState<Lead[] | null>(null)
   const [projects, setProjects] = useState<Project[]>([])
   const [invoices, setInvoices] = useState<Invoice[]>([])
   const [loading, setLoading] = useState(true)
   const [leadsLoading, setLeadsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [greeting, setGreeting] = useState("Good morning")
+  const [invoiceView, setInvoiceView] = useListView("dashboard-outstanding-invoices", "card")
 
   const fetchData = useCallback(async () => {
     setError(null)
@@ -90,6 +93,10 @@ export default function DashboardPage() {
     if (!user) return
     void fetchData()
   }, [fetchData, user])
+
+  useEffect(() => {
+    setGreeting(greetingForHour(new Date().getHours()))
+  }, [])
 
   useEffect(() => {
     if (!user) return
@@ -139,6 +146,8 @@ export default function DashboardPage() {
     () => invoices.filter(invoiceIsOpen).sort((a, b) => invoiceDate(b) - invoiceDate(a)).slice(0, 3),
     [invoices],
   )
+  const outstandingInvoiceCount = useMemo(() => invoices.filter(invoiceIsOpen).length, [invoices])
+  const firstName = (appUser?.displayName || user?.displayName || user?.email?.split("@")[0] || "there").trim().split(/\s+/)[0]
 
   if (!user) return null
   if (loading && leadsLoading) return <main className="mx-auto w-full max-w-6xl px-4 pb-12 pt-4 sm:px-6"><DashboardPageSkeleton variant="home" rows={4} /></main>
@@ -147,46 +156,63 @@ export default function DashboardPage() {
     <main className="mx-auto w-full max-w-6xl px-4 pb-12 pt-4 sm:px-6">
       {error && <p className="mb-5 text-sm text-destructive" role="alert">{error}</p>}
 
-      <section aria-labelledby="dashboard-overview-heading">
+      <section aria-labelledby="dashboard-greeting-heading">
         <div className="flex items-end justify-between gap-3">
           <div>
-            <h1 id="dashboard-overview-heading" className="text-xl font-semibold tracking-tight text-foreground">Overview</h1>
-            <p className="mt-1 text-sm text-muted-foreground">Your agency at a glance.</p>
+            <h1 id="dashboard-greeting-heading" className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">{greeting}, {firstName}</h1>
           </div>
         </div>
 
         <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <Metric label="Leads" value={leads?.length ?? 0} href="/dashboard/leads" icon={TrendingUp} />
-          <Metric label="Reached out" value={reachedOut} href="/dashboard/leads" icon={Send} />
-          <Metric label="Client campaigns" value={projects.length} href="/dashboard/projects" icon={BriefcaseBusiness} />
-          <Metric label="Outstanding invoices" value={invoices.filter(invoiceIsOpen).length} href="/dashboard/invoices" icon={Receipt} />
+          <Metric label="Leads" value={leads?.length ?? 0} href="/dashboard/leads" />
+          <Metric label="Reached out" value={reachedOut} href="/dashboard/leads" />
+          <Metric label="Client campaigns" value={projects.length} href="/dashboard/projects" />
+          <Metric label="Outstanding invoices" value={outstandingInvoiceCount} href="/dashboard/invoices" />
         </div>
       </section>
 
       <section aria-labelledby="outstanding-invoices-heading" className="mt-8">
         <div className="flex items-center justify-between gap-3">
-          <div>
-            <h2 id="outstanding-invoices-heading" className="text-lg font-semibold tracking-tight text-foreground">Outstanding invoices</h2>
-          </div>
+          <h2 id="outstanding-invoices-heading" className="text-lg font-semibold tracking-tight text-foreground">Outstanding invoices</h2>
+          <ViewToggle value={invoiceView} onChange={setInvoiceView} />
           <Link href="/dashboard/invoices" className="shrink-0 text-sm font-medium text-foreground underline-offset-4 hover:underline">View all</Link>
         </div>
 
-        <CollectionView
-          items={outstandingInvoices}
-          getKey={(invoice) => invoice.id}
-          searchFields={(invoice) => [invoiceTitle(invoice), invoice.client, invoice.invoiceNumber, invoice.project, invoiceStatusMeta[invoiceStatus(invoice)]?.label]}
-          searchPlaceholder="Search outstanding invoices"
-          viewKey="dashboard-outstanding-invoices"
-          initialView="card"
-          className="mt-3"
-          empty={{ icon: Receipt, title: "No outstanding invoices", description: "Invoices waiting for payment will appear here." }}
-          card={invoiceCard}
-          row={(invoice) => ({
-            subtitle: invoice.client || invoice.companyId,
-            description: `${invoiceStatusMeta[invoiceStatus(invoice)]?.label ?? invoice.status} · ${formatMoney(invoice.amount, invoice.currency)}`,
-            trailing: formatTimestamp(invoice.updatedAt ?? invoice.createdAt),
-          })}
-        />
+        {outstandingInvoices.length === 0 ? (
+          <Card className="mt-4">
+            <CardContent className="py-8 text-center text-sm text-muted-foreground">No outstanding invoices.</CardContent>
+          </Card>
+        ) : invoiceView === "card" ? (
+          <div className="mt-4">
+            <GridCardList>
+              {outstandingInvoices.map((invoice) => <GridCard key={invoice.id} {...invoiceCard(invoice)} />)}
+            </GridCardList>
+          </div>
+        ) : (
+          <div className="mt-4">
+            {outstandingInvoices.map((invoice) => {
+              const card = invoiceCard(invoice)
+              const status = invoiceStatus(invoice)
+              return (
+                <MobileDataCard
+                  key={invoice.id}
+                  surface="list"
+                  variant="inline"
+                  iconShape="circle"
+                  icon={card.icon}
+                  title={card.title}
+                  subtitle={invoice.client || invoice.companyId}
+                  description={`${invoiceStatusMeta[status]?.label ?? invoice.status} · ${formatMoney(invoice.amount, invoice.currency)}`}
+                  trailing={formatTimestamp(invoice.updatedAt ?? invoice.createdAt)}
+                  href={card.href}
+                  ariaLabel={card.ariaLabel}
+                  menu={card.menu}
+                  menuLabel={card.menuLabel}
+                />
+              )
+            })}
+          </div>
+        )}
       </section>
 
       {!loading && !leadsLoading && !error && projects.length === 0 && invoices.length === 0 && !leads?.length && (

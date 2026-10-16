@@ -4,6 +4,7 @@ import { toast } from "sonner"
 
 import { SectionAddButton } from "@/components/company/section-add-button"
 import { CollectionView } from "@/components/dashboard/collection-view"
+import { thumbnailIcon } from "@/components/dashboard/grid-card"
 import { TaskEditorSheet } from "@/components/dashboard/task-editor-sheet"
 import { useTaskEmail } from "@/components/dashboard/use-task-email"
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
@@ -80,23 +81,14 @@ export function TasksView({ tasks, companyId, clientName, canDuplicate = true, l
           description: "Add a task to start tracking work.",
           action: <SectionAddButton label="New task" onClick={openAdd} />,
         }}
-        card={(task) => {
-          const status = (taskStatusMeta[task.status] ?? taskStatusMeta.todo).label
-          const priority = (taskPriorityMeta[task.priority] ?? taskPriorityMeta.medium).label
-          return {
-            icon: <ListTodo className="size-4 text-muted-foreground" aria-hidden="true" />,
-            title: task.name || "Untitled task",
-            preview: (
-              <div className="flex size-full flex-col items-center justify-center gap-1 p-4 text-center">
-                <span className="text-lg font-semibold tracking-[-0.02em] text-foreground">{status}</span>
-                <span className="text-xs text-muted-foreground">{priority} priority</span>
-              </div>
-            ),
-            onClick: () => openEdit(task.id),
-            ariaLabel: `Open ${task.name || "task"}`,
-            menuLabel: `Options for ${task.name || "task"}`,
-          }
-        }}
+        card={(task) => ({
+          icon: <ListTodo className="size-4 text-muted-foreground" aria-hidden="true" />,
+          title: task.name || "Untitled task",
+          placeholder: thumbnailIcon(ListTodo),
+          onClick: () => openEdit(task.id),
+          ariaLabel: `Open ${task.name || "task"}`,
+          menuLabel: `Options for ${task.name || "task"}`,
+        })}
         date={(task) => task.updatedAt ?? task.createdAt}
         itemActions={(task) => ({
           noun: "task",
@@ -115,7 +107,7 @@ export function TasksView({ tasks, companyId, clientName, canDuplicate = true, l
           onDelete: deleting === task.id ? undefined : () => onDelete(task.id),
         })}
         row={(task) => ({
-          subtitle: [(taskStatusMeta[task.status] ?? taskStatusMeta.todo).label, task.project, task.dueDate ? `Due ${task.dueDate}` : ""].filter(Boolean).join(" · "),
+          subtitle: [(taskStatusMeta[task.status] ?? taskStatusMeta.todo).label, `${(taskPriorityMeta[task.priority] ?? taskPriorityMeta.medium).label} priority`, task.project, task.dueDate ? `Due ${task.dueDate}` : ""].filter(Boolean).join(" · "),
         })}
       />
 

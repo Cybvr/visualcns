@@ -1,4 +1,4 @@
-import type { ReactNode } from "react"
+import type { ComponentType, ReactNode } from "react"
 import { ClipboardList, FileSignature, FileText, Receipt } from "lucide-react"
 import { toast } from "sonner"
 
@@ -31,6 +31,7 @@ import {
   type CompanyDocument,
 } from "@/lib/company-documents"
 import { CollectionView, type CollectionItemActions } from "@/components/dashboard/collection-view"
+import { thumbnailIcon } from "@/components/dashboard/grid-card"
 import { SectionAddButton } from "@/components/company/section-add-button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 
@@ -43,6 +44,8 @@ type Entry = {
   statusLabel: string
   amount?: string
   icon: ReactNode
+  /** The big icon for its thumbnail. */
+  thumbnail: ComponentType<{ className?: string }>
   /** When it was last changed, for sorting and the date on its card and row. */
   updatedMs: number
   searchText?: string[]
@@ -133,6 +136,7 @@ export function CompanyDocuments({
       kindLabel: companyDocumentKindMeta[document.kind]?.label ?? "Document",
       statusLabel: (companyDocumentStatusMeta[document.status] ?? companyDocumentStatusMeta.draft).label,
       icon: <FileText className="size-5 text-blue-600 dark:text-blue-400" aria-hidden="true" />,
+      thumbnail: FileText,
       actions: {
         noun: "document",
         name: document.title || "Document",
@@ -151,6 +155,7 @@ export function CompanyDocuments({
       statusLabel: invoiceStatusMeta[invoice.status].label,
       amount: formatMoney(invoice.amount, invoice.currency),
       icon: <Receipt className="size-5 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />,
+      thumbnail: Receipt,
       actions: {
         noun: "invoice",
         name: invoice.title?.trim() || invoice.invoiceNumber || "Invoice",
@@ -168,6 +173,7 @@ export function CompanyDocuments({
       kindLabel: "Contract",
       statusLabel: contractStatusMeta[contract.status].label,
       icon: <FileSignature className="size-5 text-indigo-600 dark:text-indigo-400" aria-hidden="true" />,
+      thumbnail: FileSignature,
       actions: {
         noun: "contract",
         name: contract.title || "Contract",
@@ -186,6 +192,7 @@ export function CompanyDocuments({
       statusLabel: estimateStatusMeta[estimate.status].label,
       amount: formatMoney(estimate.amount, estimate.currency),
       icon: <ClipboardList className="size-5 text-amber-600 dark:text-amber-400" aria-hidden="true" />,
+      thumbnail: ClipboardList,
       actions: {
         noun: "estimate",
         name: estimate.title || estimate.estimateNumber || "Estimate",
@@ -238,12 +245,7 @@ export function CompanyDocuments({
       card={(entry) => ({
         icon: <span className="flex [&_svg]:size-4">{entry.icon}</span>,
         title: entry.title,
-        preview: (
-          <div className="flex size-full flex-col items-center justify-center gap-3 p-4 text-center">
-            <span className="flex [&_svg]:size-10">{entry.icon}</span>
-            {entry.amount && <p className="text-lg font-semibold tabular-nums tracking-[-0.02em] text-foreground">{entry.amount}</p>}
-          </div>
-        ),
+        placeholder: thumbnailIcon(entry.thumbnail),
         onClick: () => entry.actions.onOpen?.(),
         ariaLabel: `Open ${entry.title}`,
         menuLabel: `Options for ${entry.title}`,

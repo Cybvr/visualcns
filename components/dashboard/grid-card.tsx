@@ -1,6 +1,6 @@
 import Link from "next/link"
 import { EllipsisVertical } from "lucide-react"
-import type { ReactNode } from "react"
+import type { ComponentType, ReactNode } from "react"
 
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
@@ -97,4 +97,17 @@ export function GridCard({
 /** The grid that holds GridCards: two across on phones (or one, with `single`), more on wider screens. */
 export function GridCardList({ children, single = false }: { children: ReactNode; single?: boolean }) {
   return <div className={cn("grid gap-3 sm:grid-cols-3 lg:grid-cols-4", single ? "grid-cols-1" : "grid-cols-2")}>{children}</div>
+}
+
+/**
+ * The thumbnail for something with no picture: just its icon, the way a post
+ * without an image looks. Never text — names, amounts and statuses belong in
+ * the title and the list row.
+ */
+export function thumbnailIcon(Icon: ComponentType<{ className?: string }>) {
+  return (
+    <div className="flex size-full items-center justify-center bg-muted/30" aria-hidden="true">
+      <Icon className="size-10 text-muted-foreground/45" />
+    </div>
+  )
 }

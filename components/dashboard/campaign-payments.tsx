@@ -5,6 +5,7 @@ import { DollarSign, Receipt, UserRound } from "lucide-react"
 import { toast } from "sonner"
 
 import { CollectionView } from "@/components/dashboard/collection-view"
+import { thumbnailIcon } from "@/components/dashboard/grid-card"
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { invoiceStatusMeta, type Invoice } from "@/lib/billing"
 import { formatPay, payCurrency, updateCampaignPerson, type CampaignPerson } from "@/lib/campaign-people"
@@ -91,12 +92,7 @@ export function CampaignPayments({ people, invoices, canEdit, invoiceHref }: Cam
         return {
           icon: <Icon className={entry.kind === "creator" ? "size-4 text-muted-foreground" : "size-4 text-emerald-600 dark:text-emerald-400"} aria-hidden="true" />,
           title: entry.title,
-          preview: (
-            <div className="flex size-full flex-col items-center justify-center gap-3 p-4 text-center">
-              <Icon className="size-10 text-muted-foreground" aria-hidden="true" />
-              <p className="text-lg font-semibold tabular-nums tracking-[-0.02em] text-foreground">{entry.amount}</p>
-            </div>
-          ),
+          placeholder: thumbnailIcon(Icon),
           onClick: entry.kind === "invoice" ? (invoiceHref ? () => open(entry) : undefined) : undefined,
           ariaLabel: `Open ${entry.title}`,
           menuLabel: `Options for ${entry.title}`,
