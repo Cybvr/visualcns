@@ -6,9 +6,8 @@ import { SectionAddButton } from "@/components/company/section-add-button"
 import { CollectionView } from "@/components/dashboard/collection-view"
 import { TaskEditorSheet } from "@/components/dashboard/task-editor-sheet"
 import { useTaskEmail } from "@/components/dashboard/use-task-email"
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
-import { duplicateTask, formatTimestamp, taskPriorityMeta, taskStatusMeta, type Task, type TaskStatus } from "@/lib/tasks"
+import { duplicateTask, taskPriorityMeta, taskStatusMeta, updateTask, type Task, type TaskStatus } from "@/lib/tasks"
 import { type Project } from "@/lib/projects"
 
 interface TasksViewProps {
@@ -28,7 +27,6 @@ export function TasksView({ tasks, companyId, clientName, canDuplicate = true, l
   const { emailTask, emailDialog, emailingId } = useTaskEmail()
   const [editingId, setEditingId] = useState<string | null>(null)
   const [adding, setAdding] = useState<{ status?: TaskStatus } | null>(null)
-  const [mobileDeleteTarget, setMobileDeleteTarget] = useState<Task | null>(null)
   const [duplicatingId, setDuplicatingId] = useState<string | null>(null)
   const editingTask = editingId ? tasks.find((task) => task.id === editingId) ?? null : null
 
@@ -88,7 +86,6 @@ export function TasksView({ tasks, companyId, clientName, canDuplicate = true, l
           return {
             icon: <ListTodo className="size-4 text-muted-foreground" aria-hidden="true" />,
             title: task.name || "Untitled task",
-            subtitle: task.dueDate ? `Due ${task.dueDate}` : formatTimestamp(task.updatedAt ?? task.createdAt),
             preview: (
               <div className="flex size-full flex-col items-center justify-center gap-1 p-4 text-center">
                 <span className="text-lg font-semibold tracking-[-0.02em] text-foreground">{status}</span>
@@ -98,36 +95,31 @@ export function TasksView({ tasks, companyId, clientName, canDuplicate = true, l
             onClick: () => openEdit(task.id),
             ariaLabel: `Open ${task.name || "task"}`,
             menuLabel: `Options for ${task.name || "task"}`,
-            menu: (
-              <>
-                <DropdownMenuItem disabled={emailingId !== null} onSelect={() => emailCompanyTask(task)}>Email task</DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => openEdit(task.id)}>Edit task</DropdownMenuItem>
-                {canDuplicate && <DropdownMenuItem disabled={duplicatingId !== null} onSelect={() => void handleDuplicate(task)}>Duplicate task</DropdownMenuItem>}
-                <DropdownMenuItem variant="destructive" disabled={deleting === task.id} onSelect={() => setMobileDeleteTarget(task)}>Delete task</DropdownMenuItem>
-              </>
-            ),
           }
         }}
+        date={(task) => task.updatedAt ?? task.createdAt}
+        itemActions={(task) => ({
+          noun: "task",
+          name: task.name || "Untitled task",
+          onOpen: () => openEdit(task.id),
+          onRename: async (name) => {
+            try {
+              await updateTask(task.id, { name })
+              await onSaved()
+            } catch {
+              toast.error("Couldn’t rename the task. Try again.")
+            }
+          },
+          onDuplicate: canDuplicate && duplicatingId === null ? () => handleDuplicate(task) : undefined,
+          extra: <DropdownMenuItem disabled={emailingId !== null} onSelect={() => emailCompanyTask(task)}>Email task</DropdownMenuItem>,
+          onDelete: deleting === task.id ? undefined : () => onDelete(task.id),
+        })}
         row={(task) => ({
-          subtitle: [(taskStatusMeta[task.status] ?? taskStatusMeta.todo).label, task.project].filter(Boolean).join(" · "),
-          trailing: task.dueDate ? `Due ${task.dueDate}` : undefined,
+          subtitle: [(taskStatusMeta[task.status] ?? taskStatusMeta.todo).label, task.project, task.dueDate ? `Due ${task.dueDate}` : ""].filter(Boolean).join(" · "),
         })}
       />
 
       {emailDialog}
-
-      <AlertDialog open={mobileDeleteTarget !== null} onOpenChange={(open) => !open && setMobileDeleteTarget(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete task?</AlertDialogTitle>
-            <AlertDialogDescription>This permanently deletes &quot;{mobileDeleteTarget?.name}&quot;. This cannot be undone.</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={() => { if (mobileDeleteTarget) onDelete(mobileDeleteTarget.id); setMobileDeleteTarget(null) }} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
 
       <TaskEditorSheet open={editingId !== null || adding !== null} task={editingTask} companyId={companyId} clientName={clientName} defaults={adding ?? undefined} onClose={closeForm} onSaved={onSaved} />
     </div>

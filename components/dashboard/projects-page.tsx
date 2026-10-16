@@ -14,7 +14,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
+import { DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Loader2 } from "lucide-react"
 import { FaFolderOpen } from "react-icons/fa"
@@ -190,7 +190,8 @@ export default function ProjectsAdminPage() {
                     menu={
                       <>
                         <DropdownMenuItem onSelect={() => router.push(`/dashboard/projects/${projectSlug(p)}`)}>Open project</DropdownMenuItem>
-                        <DropdownMenuItem variant="destructive" onSelect={() => setPendingDelete(p)}>Delete project</DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem variant="destructive" onSelect={() => setPendingDelete(p)}>Delete</DropdownMenuItem>
                       </>
                     }
                   />
@@ -235,7 +236,8 @@ export default function ProjectsAdminPage() {
                             <>
                               <DropdownMenuItem onSelect={() => router.push(href)}>Open project</DropdownMenuItem>
                               <DropdownMenuItem onSelect={() => selection.toggle(p.id)}>Select</DropdownMenuItem>
-                              <DropdownMenuItem variant="destructive" onSelect={() => setPendingDelete(p)}>Delete project</DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem variant="destructive" onSelect={() => setPendingDelete(p)}>Delete</DropdownMenuItem>
                             </>
                           )}
                           title={p.title}
@@ -278,7 +280,8 @@ export default function ProjectsAdminPage() {
                     menu={<>
                       <DropdownMenuItem onSelect={() => router.push(href)}>Open project</DropdownMenuItem>
                       <DropdownMenuItem onSelect={() => selection.toggle(p.id)}>{selected ? "Deselect" : "Select"}</DropdownMenuItem>
-                      <DropdownMenuItem variant="destructive" onSelect={() => setPendingDelete(p)}>Delete project</DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem variant="destructive" onSelect={() => setPendingDelete(p)}>Delete</DropdownMenuItem>
                     </>}
                   />
                 })}

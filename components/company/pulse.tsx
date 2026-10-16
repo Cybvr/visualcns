@@ -35,7 +35,6 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { SectionAddButton } from "@/components/company/section-add-button"
 import { CollectionView } from "@/components/dashboard/collection-view"
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
-import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { useCompanyPage } from "@/components/company/company-page-context"
 import { useUrlSelection } from "@/hooks/use-url-selection"
 import { cn } from "@/lib/utils"
@@ -999,7 +998,6 @@ export function Pulse({
         card={(item) => ({
           icon: <ChartColumn className="size-4 text-muted-foreground" aria-hidden="true" />,
           title: reportDate(item.scannedAt),
-          subtitle: `${item.attention} need attention · ${item.opportunities} opportunities`,
           preview: (
             <div className="flex flex-col items-center justify-center">
               <span className="text-4xl font-semibold tabular-nums tracking-[-0.03em] text-foreground">{item.score}</span>
@@ -1009,9 +1007,10 @@ export function Pulse({
           onClick: () => select(item.id),
           ariaLabel: `Open report from ${reportDate(item.scannedAt)}`,
           menuLabel: `Options for report from ${reportDate(item.scannedAt)}`,
-          menu: <DropdownMenuItem onSelect={() => select(item.id)}>Open report</DropdownMenuItem>,
         })}
-        row={(item) => ({ subtitle: `Score ${item.score}`, description: `${item.attention} need attention · ${item.opportunities} opportunities`, trailing: timeAgo(item.scannedAt) })}
+        date={(item) => item.scannedAt}
+        itemActions={(item) => ({ noun: "report", name: reportDate(item.scannedAt), onOpen: () => select(item.id) })}
+        row={(item) => ({ subtitle: `Score ${item.score} · ${item.attention} need attention · ${item.opportunities} opportunities` })}
       />
       <Dialog open={introOpen} onOpenChange={(open) => { if (!scanning) setIntroOpen(open) }}>
         <DialogContent className="max-h-[90svh] max-w-lg overflow-y-auto p-0">

@@ -121,6 +121,8 @@ export function DocumentsSection() {
           onAdd={handleAdd}
           extraEntries={notes.entries}
           extraAddItems={notes.addItem}
+          canManage={canEditDocuments}
+          onChanged={admin?.reload}
         />
       )}
 

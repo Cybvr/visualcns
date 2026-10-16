@@ -2,6 +2,7 @@
 
 import type { ComponentType } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { Megaphone } from "lucide-react"
 
 import { Pulse } from "@/components/company/pulse"
@@ -16,9 +17,10 @@ import { DocumentsSection } from "@/components/company/sections/documents-sectio
 import { ProjectsSection } from "@/components/company/sections/projects-section"
 import { NgaiSection } from "@/components/company/sections/ngai-section"
 import { TeamSection } from "@/components/company/sections/team-section"
+import { CollectionItemMenu } from "@/components/dashboard/collection-view"
 import { GridCard, GridCardList } from "@/components/dashboard/grid-card"
 import { ProjectCover } from "@/components/project-card"
-import { formatTimestamp, tsToMillis } from "@/lib/tasks"
+import { tsToMillis } from "@/lib/tasks"
 
 /** Documents and media in one grid. An open document takes the whole page. */
 function DriveSection() {
@@ -35,6 +37,7 @@ const HOME_CAMPAIGN_LIMIT = 4
 /** The latest campaigns as cards, at the top of the dashboard Home tab. */
 function HomeCampaigns() {
   const { projects, sectionHref } = useCompanyPage()
+  const router = useRouter()
   const modified = (project: (typeof projects)[number]) => tsToMillis(project.updatedAt) || tsToMillis(project.createdAt)
   const recent = [...projects].sort((a, b) => modified(b) - modified(a)).slice(0, HOME_CAMPAIGN_LIMIT)
 
@@ -59,7 +62,8 @@ function HomeCampaigns() {
                 href={sectionHref("projects", { campaign: project.id })}
                 ariaLabel={`Open ${project.title}`}
                 title={project.title}
-                subtitle={modified(project) ? formatTimestamp(modified(project)) : undefined}
+                menuLabel={`Options for ${project.title}`}
+                menu={<CollectionItemMenu actions={{ noun: "campaign", name: project.title, onOpen: () => router.push(sectionHref("projects", { campaign: project.id })) }} />}
                 icon={<Megaphone className="size-4 text-amber-600 dark:text-amber-400" aria-hidden="true" />}
                 preview={<ProjectCover project={project} />}
               />

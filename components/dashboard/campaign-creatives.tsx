@@ -2,24 +2,14 @@
 
 import { createContext, useContext, useEffect, useRef, useState, type FormEvent } from "react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
-import { Bookmark, ChevronLeft, ChevronRight, ExternalLink, Folder, FolderInput, Heart, Image as ImageIcon, Images, ImagePlus, Link2, MessageCircle, MoreHorizontal, Palette, Pencil, Repeat2, Send, Video, VolumeX, X } from "lucide-react"
+import { Bookmark, ChevronLeft, ChevronRight, ExternalLink, Folder, FolderInput, Heart, Image as ImageIcon, Images, ImagePlus, Link2, MessageCircle, MoreHorizontal, Palette, Repeat2, Send, Video, VolumeX, X } from "lucide-react"
 import { toast } from "sonner"
 
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
 import { SectionAddButton } from "@/components/company/section-add-button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { CollectionView } from "@/components/dashboard/collection-view"
+import { CollectionView, type CollectionItemActions } from "@/components/dashboard/collection-view"
 import { filterBySearch } from "@/components/dashboard/list-search"
 import { ShareDialog } from "@/components/dashboard/share-dialog"
 import { Input } from "@/components/ui/input"
@@ -83,7 +73,6 @@ export function CampaignCreatives({ creatives, agencyId, companyId, projectId, c
   const posts = kind === "content" ? creatives.filter((item) => item.type === "text") : []
   const files = creatives.filter((item) => item.type !== "text")
   const [editing, setEditing] = useState<CampaignCreative | "new" | null>(null)
-  const [deleting, setDeleting] = useState<CampaignCreative | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [shareOpen, setShareOpen] = useState(false)
   const [postQuery, setPostQuery] = useState("")
@@ -155,19 +144,17 @@ export function CampaignCreatives({ creatives, agencyId, companyId, projectId, c
     setPostParam(null)
   }
 
-  function postMenu(post: CampaignCreative) {
-    if (!canEdit && !canReview && !sharePath) return undefined
+  // The post's own actions, which go between Duplicate and Delete in the shared menu.
+  function postExtra(post: CampaignCreative) {
     const status = creativeStatus(post)
     const setStatus = (next: string) => void saveCreative(post.id, { status: next })
     return (
       <>
-        {sharePath && <DropdownMenuItem onSelect={() => { openPost(post); setShareOpen(true) }}>Share</DropdownMenuItem>}
         {(canEdit || canReview) && <DropdownMenuItem onSelect={() => setEditing(post)}>{canEdit ? "Edit" : "Edit text"}</DropdownMenuItem>}
+        {sharePath && <DropdownMenuItem onSelect={() => { openPost(post); setShareOpen(true) }}>Share</DropdownMenuItem>}
         {canReview && status !== "Approved" && <DropdownMenuItem onSelect={() => setStatus("Approved")}>Approve</DropdownMenuItem>}
         {canReview && status !== "Approved" && <DropdownMenuItem onSelect={() => setStatus("Changes requested")}>Request changes</DropdownMenuItem>}
         {canReview && status === "Approved" && <DropdownMenuItem onSelect={() => setStatus(READY_FOR_REVIEW)}>Undo approval</DropdownMenuItem>}
-        {canEdit && <DropdownMenuItem onSelect={() => void duplicatePost(post)}>Duplicate</DropdownMenuItem>}
-        {canEdit && <DropdownMenuItem variant="destructive" onSelect={() => setDeleting(post)}>Delete</DropdownMenuItem>}
       </>
     )
   }
@@ -194,7 +181,6 @@ export function CampaignCreatives({ creatives, agencyId, companyId, projectId, c
           card={(post) => ({
             icon: <Palette className="size-4 text-muted-foreground" aria-hidden="true" />,
             title: post.title || "Post",
-            subtitle: [creativeStatus(post), postDate(post)].filter(Boolean).join(" · "),
             preview: post.mediaUrl ? (
               post.mediaType === "video"
                 ? <video src={post.mediaUrl} muted playsInline preload="metadata" className="size-full object-cover" />
@@ -209,9 +195,18 @@ export function CampaignCreatives({ creatives, agencyId, companyId, projectId, c
             onClick: () => openPost(post),
             ariaLabel: `Preview ${post.title}`,
             menuLabel: `Options for ${post.title}`,
-            menu: postMenu(post),
           })}
-          row={(post) => ({ subtitle: post.body?.trim() || post.title, description: creativeStatus(post), trailing: postDate(post) })}
+          date={(post) => post.updatedAt ?? post.createdAt}
+          itemActions={(post) => ({
+            noun: "post",
+            name: post.title || "Post",
+            onOpen: () => openPost(post),
+            onRename: canEdit ? (title) => saveCreative(post.id, { title }) : undefined,
+            onDuplicate: canEdit ? () => duplicatePost(post) : undefined,
+            extra: postExtra(post),
+            onDelete: canEdit ? () => removeCreative(post.id) : undefined,
+          })}
+          row={(post) => ({ subtitle: post.body?.trim() || post.title, description: creativeStatus(post) })}
         />
 
         <CampaignPostViewDialog
@@ -245,23 +240,6 @@ export function CampaignCreatives({ creatives, agencyId, companyId, projectId, c
           canEdit={canEdit}
           library={library.filter((item) => item.type === "image" || item.type === "video")}
         />
-        <AlertDialog open={Boolean(deleting)} onOpenChange={(next) => { if (!next) setDeleting(null) }}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Delete this post?</AlertDialogTitle>
-              <AlertDialogDescription>{deleting?.title || "This post"} will be removed for good.</AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                onClick={() => { if (deleting) void removeCreative(deleting.id); setDeleting(null) }}
-              >
-                Delete
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
       </section>
     )
   }
@@ -832,7 +810,6 @@ function MediaLibrary({ files, scope, canEdit, startNew = false, onActionHandled
   const [linking, setLinking] = useState(false)
   const [activeFolderId, setActiveFolderId] = useState<string | null>(null)
   const [folderDialog, setFolderDialog] = useState<CampaignCreative | "new" | null>(null)
-  const [deletingFolder, setDeletingFolder] = useState<CampaignCreative | null>(null)
   const [newMediaMenuOpen, setNewMediaMenuOpen] = useState(false)
   const folders = files.filter((item) => item.type === "folder")
   const media = files.filter((item) => item.type !== "folder")
@@ -895,7 +872,6 @@ function MediaLibrary({ files, scope, canEdit, startNew = false, onActionHandled
   }
 
   async function removeFolder(folder: CampaignCreative) {
-    setDeletingFolder(null)
     if (activeFolderId === folder.id) setActiveFolderId(null)
     try {
       await deleteCampaignMediaFolder(scope.projectId, folder.id)
@@ -919,12 +895,6 @@ function MediaLibrary({ files, scope, canEdit, startNew = false, onActionHandled
       onClick: () => setActiveFolderId(folder.id),
       ariaLabel: `Open ${folder.title}`,
       menuLabel: `Options for ${folder.title}`,
-      menu: canEdit ? (
-        <>
-          <DropdownMenuItem onSelect={() => setFolderDialog(folder)}><Pencil className="size-4" aria-hidden="true" />Rename</DropdownMenuItem>
-          <DropdownMenuItem variant="destructive" onSelect={() => setDeletingFolder(folder)}>Delete folder</DropdownMenuItem>
-        </>
-      ) : undefined,
     }
   }
 
@@ -939,23 +909,47 @@ function MediaLibrary({ files, scope, canEdit, startNew = false, onActionHandled
       onClick: () => open(creative),
       ariaLabel: `Open ${creative.title}`,
       menuLabel: `Options for ${creative.title}`,
-      menu: canEdit ? (
-        <>
-          <DropdownMenuItem onSelect={() => open(creative)}>Open</DropdownMenuItem>
-          {folders.length > 0 && (
-            <DropdownMenuSub>
-              <DropdownMenuSubTrigger><FolderInput className="size-4" aria-hidden="true" />Move to</DropdownMenuSubTrigger>
-              <DropdownMenuSubContent>
-                <DropdownMenuItem disabled={!creative.folderId} onSelect={() => void moveMedia(creative.id, "")}>All media</DropdownMenuItem>
-                {folders.filter((folder) => folder.id !== creative.folderId).map((folder) => (
-                  <DropdownMenuItem key={folder.id} onSelect={() => void moveMedia(creative.id, folder.id)}>{folder.title}</DropdownMenuItem>
-                ))}
-              </DropdownMenuSubContent>
-            </DropdownMenuSub>
-          )}
-          <DropdownMenuItem variant="destructive" onSelect={() => void removeCreative(creative.id)}>Delete</DropdownMenuItem>
-        </>
+    }
+  }
+
+  async function duplicateMedia(creative: CampaignCreative) {
+    try {
+      await addCampaignCreative(scope, { title: `${creative.title} (Copy)`, url: creative.url, type: creative.type, kind: "media", folderId: creative.folderId })
+    } catch (error) {
+      console.error("Error duplicating media:", error)
+      toast.error("Couldn't duplicate that media.")
+    }
+  }
+
+  function itemActions(item: CampaignCreative): CollectionItemActions {
+    if (item.type === "folder") {
+      return {
+        noun: "folder",
+        name: item.title,
+        onOpen: () => setActiveFolderId(item.id),
+        onRename: canEdit ? (title) => saveCreative(item.id, { title }) : undefined,
+        onDelete: canEdit ? () => removeFolder(item) : undefined,
+        deleteMessage: `The media inside ${item.title || "this folder"} will move back to All media.`,
+      }
+    }
+    return {
+      noun: item.type === "link" ? "link" : item.type === "video" ? "video" : "image",
+      name: item.title,
+      onOpen: () => open(item),
+      onRename: canEdit ? (title) => saveCreative(item.id, { title }) : undefined,
+      onDuplicate: canEdit ? () => duplicateMedia(item) : undefined,
+      extra: canEdit && folders.length > 0 ? (
+        <DropdownMenuSub>
+          <DropdownMenuSubTrigger><FolderInput className="size-4" aria-hidden="true" />Move to</DropdownMenuSubTrigger>
+          <DropdownMenuSubContent>
+            <DropdownMenuItem disabled={!item.folderId} onSelect={() => void moveMedia(item.id, "")}>All media</DropdownMenuItem>
+            {folders.filter((folder) => folder.id !== item.folderId).map((folder) => (
+              <DropdownMenuItem key={folder.id} onSelect={() => void moveMedia(item.id, folder.id)}>{folder.title}</DropdownMenuItem>
+            ))}
+          </DropdownMenuSubContent>
+        </DropdownMenuSub>
       ) : undefined,
+      onDelete: canEdit ? () => removeCreative(item.id) : undefined,
     }
   }
 
@@ -1012,6 +1006,8 @@ function MediaLibrary({ files, scope, canEdit, startNew = false, onActionHandled
           action: canEdit ? <SectionAddButton label="Upload images or videos" onClick={() => fileInput.current?.click()} /> : undefined,
         }}
         card={(item) => item.type === "folder" ? folderCard(item) : mediaCard(item)}
+        itemActions={itemActions}
+        date={(item) => item.updatedAt ?? item.createdAt}
         row={(item) => item.type === "folder"
           ? { subtitle: folderCountLabel(item) }
           : { subtitle: item.type === "video" ? "Video" : item.type === "link" ? "Link" : "Image" }}
@@ -1028,18 +1024,6 @@ function MediaLibrary({ files, scope, canEdit, startNew = false, onActionHandled
             scope={scope}
           />
           <AddLinkDialog open={linking} onOpenChange={setLinking} scope={scope} folderId={activeFolderId || undefined} />
-          <AlertDialog open={Boolean(deletingFolder)} onOpenChange={(open) => { if (!open) setDeletingFolder(null) }}>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Delete this folder?</AlertDialogTitle>
-                <AlertDialogDescription>The media inside {deletingFolder?.title || "this folder"} will move back to All media.</AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => { if (deletingFolder) void removeFolder(deletingFolder) }}>Delete folder</AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
         </>
       )}
     </section>

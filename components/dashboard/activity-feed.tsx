@@ -5,6 +5,7 @@ import Link from "next/link"
 import { ClipboardList, FileSignature, FileText, FolderOpen, ListTodo, Paperclip, Receipt } from "lucide-react"
 
 import type { ActivityItem, ActivityKind } from "@/lib/activity"
+import { collectionDate } from "@/components/dashboard/collection-view"
 import { MobileDataCard } from "@/components/dashboard/mobile-data-card"
 import { cn } from "@/lib/utils"
 
@@ -28,17 +29,8 @@ const KIND_ICON_COLOR: Record<ActivityKind, string> = {
   file: "text-slate-600 dark:text-slate-400",
 }
 
-function timeAgo(ms: number): string {
-  const diff = Date.now() - ms
-  if (diff < 60_000) return "just now"
-  const mins = Math.floor(diff / 60_000)
-  if (mins < 60) return `${mins}m ago`
-  const hours = Math.floor(mins / 60)
-  if (hours < 24) return `${hours}h ago`
-  const days = Math.floor(hours / 24)
-  if (days < 7) return `${days}d ago`
-  return new Date(ms).toLocaleDateString("en-US", { month: "short", day: "numeric" })
-}
+// The same plain date every list shows on the right.
+const activityDate = (ms: number) => collectionDate(ms) ?? ""
 
 /** A newest-first list of what happened across a workspace. */
 export function ActivityFeed({
@@ -84,7 +76,7 @@ export function ActivityFeed({
               title={item.title}
               subtitle={item.subtitle}
               icon={<Icon className={cn("size-5", KIND_ICON_COLOR[item.kind])} aria-hidden="true" />}
-              trailing={timeAgo(item.at)}
+              trailing={activityDate(item.at)}
               href={href}
               onClick={clickable ? () => onItemClick?.(item) : undefined}
               ariaLabel={`Open ${item.title}`}
@@ -116,7 +108,8 @@ export function ActivityFeed({
                 <MobileDataCard
                   key={item.id}
                   title={item.title}
-                  subtitle={[item.subtitle, timeAgo(item.at)].filter(Boolean).join(" · ")}
+                  subtitle={item.subtitle}
+                  trailing={activityDate(item.at)}
                   icon={<Icon className="size-5 text-muted-foreground" aria-hidden="true" />}
                   href={href}
                   onClick={clickable ? () => onItemClick?.(item) : undefined}
@@ -139,7 +132,7 @@ export function ActivityFeed({
                   <p className="truncate text-sm font-medium">{item.title}</p>
                   <p className="mt-0.5 truncate text-xs text-muted-foreground">{item.subtitle}</p>
                 </div>
-                <span className="shrink-0 text-xs tabular-nums text-muted-foreground">{timeAgo(item.at)}</span>
+                <span className="shrink-0 text-xs tabular-nums text-muted-foreground">{activityDate(item.at)}</span>
               </div>
             )
             return (

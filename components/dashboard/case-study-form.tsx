@@ -4,7 +4,7 @@ import type React from "react"
 import { useEffect, useState } from "react"
 import { Check, Loader2, Trash2 } from "lucide-react"
 
-import { GalleryDropzone, ImageDropzone } from "@/components/image-dropzone"
+import { GalleryDropzone } from "@/components/image-dropzone"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -71,8 +71,6 @@ type FormState = {
   description: string
   category: string
   projectUrl: string
-  imageUrl: string
-  logoUrl: string
   gallery: string[]
   technologies: string
   tags: string
@@ -91,8 +89,6 @@ function formStateFrom(project: Project): FormState {
     description: project.description ?? "",
     category: listToText(project.category),
     projectUrl: project.projectUrl ?? "",
-    imageUrl: project.imageUrl || project.thumbnailUrl || "",
-    logoUrl: project.logoUrl ?? "",
     gallery: project.gallery ?? [],
     technologies: listToText(project.technologies),
     tags: listToText(project.tags),
@@ -151,15 +147,12 @@ export function CaseStudyForm({
         description: form.description.trim(),
         category: textToList(form.category),
         projectUrl: form.projectUrl.trim(),
-        imageUrl: form.imageUrl.trim(),
-        logoUrl: form.logoUrl.trim(),
+        // The cover and logo are set in the campaign settings above; the marketing grid reads the cover as imageUrl.
+        imageUrl: project.thumbnailUrl || project.imageUrl || "",
         gallery: form.gallery,
         technologies: textToList(form.technologies),
         tags: textToList(form.tags),
       }
-      // The marketing grid reads imageUrl and the dashboard cards read
-      // thumbnailUrl, so the cover keeps both in step.
-      if (patch.imageUrl) patch.thumbnailUrl = patch.imageUrl
       await updateProject(project.id, patch)
       setForm((current) => ({ ...current, slug: patch.slug ?? current.slug }))
       setSaved(true)
@@ -266,10 +259,6 @@ export function CaseStudyForm({
 
           <div className="space-y-4">
             <h3 className="text-sm font-medium">Media</h3>
-            <div className="grid gap-5 sm:grid-cols-2">
-              <ImageDropzone label="Cover" value={form.imageUrl} onChange={(url) => set("imageUrl", url)} />
-              <ImageDropzone label="Client logo" value={form.logoUrl} onChange={(url) => set("logoUrl", url)} />
-            </div>
             <div className="space-y-1.5">
               <p className="text-sm font-medium leading-none">Gallery</p>
               <GalleryDropzone value={form.gallery} onChange={(urls) => set("gallery", urls)} />

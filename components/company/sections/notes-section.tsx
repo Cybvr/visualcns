@@ -175,6 +175,16 @@ export function useCompanyNotes(): { entries: ExtraDocumentEntry[]; addItem: Rea
     }
   }
 
+  async function duplicate(note: Note) {
+    if (!user) return
+    try {
+      const id = await createNote(user.uid, company.id)
+      await updateNote(id, { title: `${noteTitle(note)} (Copy)`, body: note.body })
+    } catch {
+      toast.error("Couldn't duplicate the note.")
+    }
+  }
+
   function close() {
     void flush()
     loadedId.current = ""
@@ -231,14 +241,21 @@ export function useCompanyNotes(): { entries: ExtraDocumentEntry[]; addItem: Rea
     updatedMs: Date.parse(note.updatedAt) || 0,
     searchText: [notePreview(note)],
     icon: <StickyNote className="size-5 text-amber-600 dark:text-amber-400" aria-hidden="true" />,
-    onOpen: () => open(note),
-    menu: (
-      <>
-        <DropdownMenuItem onSelect={() => open(note)}>Open note</DropdownMenuItem>
-        <DropdownMenuItem onSelect={() => openShare(note)}>Share note</DropdownMenuItem>
-        <DropdownMenuItem variant="destructive" onSelect={() => setPendingDelete(note)}>Delete note</DropdownMenuItem>
-      </>
-    ),
+    actions: {
+      noun: "note",
+      name: noteTitle(note),
+      onOpen: () => open(note),
+      onRename: async (nextTitle: string) => {
+        try {
+          await updateNote(note.id, { title: nextTitle, body: note.body })
+        } catch {
+          toast.error("Couldn't rename the note.")
+        }
+      },
+      onDuplicate: () => duplicate(note),
+      extra: <DropdownMenuItem onSelect={() => openShare(note)}>Share</DropdownMenuItem>,
+      onDelete: () => remove(note),
+    },
   }))
   const addItem = user ? <DropdownMenuItem onSelect={() => void add()}>Note</DropdownMenuItem> : null
 

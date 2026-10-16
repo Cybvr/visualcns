@@ -1,17 +1,36 @@
 import type { ReactNode } from "react"
 import { ClipboardList, FileSignature, FileText, Receipt } from "lucide-react"
+import { toast } from "sonner"
 
 import {
   contractStatusMeta,
+  createContract,
+  createEstimate,
+  createInvoice,
+  deleteContract,
+  deleteEstimate,
+  deleteInvoice,
   estimateStatusMeta,
   formatMoney,
   invoiceStatusMeta,
+  nextEstimateNumber,
+  nextInvoiceNumber,
+  updateContract,
+  updateEstimate,
+  updateInvoice,
   type Contract,
   type Estimate,
   type Invoice,
 } from "@/lib/billing"
-import { companyDocumentKindMeta, companyDocumentStatusMeta, type CompanyDocument } from "@/lib/company-documents"
-import { CollectionView } from "@/components/dashboard/collection-view"
+import {
+  companyDocumentKindMeta,
+  companyDocumentStatusMeta,
+  createCompanyDocument,
+  deleteCompanyDocument,
+  updateCompanyDocument,
+  type CompanyDocument,
+} from "@/lib/company-documents"
+import { CollectionView, type CollectionItemActions } from "@/components/dashboard/collection-view"
 import { SectionAddButton } from "@/components/company/section-add-button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 
@@ -19,34 +38,41 @@ export type CompanyDocumentKind = "invoice" | "contract" | "estimate" | "documen
 
 type Entry = {
   key: string
-  kind?: CompanyDocumentKind
-  id?: string
   title: string
   kindLabel: string
   statusLabel: string
   amount?: string
   icon: ReactNode
-  /** When it was last changed, for sorting and the card's date line. */
+  /** When it was last changed, for sorting and the date on its card and row. */
   updatedMs: number
   searchText?: string[]
-  onOpen?: () => void
-  menu?: ReactNode
+  actions: CollectionItemActions
 }
+
+/** Something else kept with the documents, like a note, with its own menu actions. */
+export type ExtraDocumentEntry = Entry
 
 function modifiedMs(row: { createdAt?: { toMillis(): number }; updatedAt?: { toMillis(): number } }) {
   return Math.max(row.updatedAt?.toMillis() ?? 0, row.createdAt?.toMillis() ?? 0)
 }
 
-/** "Updated 3:40 PM" today, "Updated 12 Oct" before that. */
-export function lastUpdated(ms: number) {
-  if (!ms) return "No date"
-  const date = new Date(ms)
-  const sameDay = date.toDateString() === new Date().toDateString()
-  return `Updated ${sameDay ? date.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" }) : date.toLocaleDateString(undefined, { day: "numeric", month: "short" })}`
+/** Runs a change from the menu, says so if it fails, then lets the page reload. */
+async function run(change: () => Promise<unknown>, failure: string, onChanged?: () => void | Promise<void>) {
+  try {
+    await change()
+    await onChanged?.()
+  } catch (error) {
+    console.error(failure, error)
+    toast.error(failure)
+  }
 }
 
-/** Something else kept with the documents, like a note, that opens and has a menu of its own. */
-export type ExtraDocumentEntry = Omit<Entry, "kind" | "id" | "amount"> & { onOpen: () => void; menu: ReactNode }
+// Copies stay with the same client and campaign and start as drafts, the same as on the dashboard pages.
+function strip<T extends { id: string; createdAt?: unknown; updatedAt?: unknown }>(row: T) {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { id: _id, createdAt: _createdAt, updatedAt: _updatedAt, ...rest } = row
+  return rest
+}
 
 export function CompanyDocuments({
   invoices,
@@ -66,6 +92,8 @@ export function CompanyDocuments({
   uploading = false,
   extraEntries = [],
   extraAddItems,
+  canManage = false,
+  onChanged,
 }: {
   invoices: Invoice[]
   contracts: Contract[]
@@ -85,74 +113,93 @@ export function CompanyDocuments({
   /** Adds an "Upload files" entry to the add menu. */
   onUpload?: () => void
   uploading?: boolean
-  /** Shown in the same list, after the documents. */
+  /** Shown in the same list as the documents. */
   extraEntries?: ExtraDocumentEntry[]
   /** More entries for the New menu, offered even to people who can't add documents. */
   extraAddItems?: ReactNode
+  /** Offers Rename, Duplicate and Delete on each document. */
+  canManage?: boolean
+  /** Called after a rename, copy or delete, so the page can reload. */
+  onChanged?: () => void | Promise<void>
 }) {
+  const manage = <T,>(fn: T) => (canManage ? fn : undefined)
+  const editItem = (kind: CompanyDocumentKind, id: string) => (onEdit ? <DropdownMenuItem onSelect={() => onEdit(kind, id)}>Edit {kind}</DropdownMenuItem> : undefined)
 
   const entries: Entry[] = [
-    ...documents.map((document) => ({
+    ...documents.map((document): Entry => ({
       key: `document-${document.id}`,
       updatedMs: modifiedMs(document),
-      kind: "document" as const,
-      id: document.id,
       title: document.title || "Document",
       kindLabel: companyDocumentKindMeta[document.kind]?.label ?? "Document",
       statusLabel: (companyDocumentStatusMeta[document.status] ?? companyDocumentStatusMeta.draft).label,
       icon: <FileText className="size-5 text-blue-600 dark:text-blue-400" aria-hidden="true" />,
+      actions: {
+        noun: "document",
+        name: document.title || "Document",
+        onOpen: () => onSelect("document", document.id),
+        onRename: manage((title: string) => run(() => updateCompanyDocument(document.id, { title }), "Couldn't rename the document.", onChanged)),
+        onDuplicate: manage(() => run(() => createCompanyDocument({ ...strip(document), title: `${document.title || "Document"} (Copy)`, status: "draft", shareEnabled: false }), "Couldn't duplicate the document.", onChanged)),
+        extra: editItem("document", document.id),
+        onDelete: manage(() => run(() => deleteCompanyDocument(document.id), "Couldn't delete the document.", onChanged)),
+      },
     })),
-    ...invoices.map((invoice) => ({
+    ...invoices.map((invoice): Entry => ({
       key: `invoice-${invoice.id}`,
       updatedMs: modifiedMs(invoice),
-      kind: "invoice" as const,
-      id: invoice.id,
       title: invoice.title?.trim() || invoice.invoiceNumber || "Invoice",
       kindLabel: "Invoice",
       statusLabel: invoiceStatusMeta[invoice.status].label,
       amount: formatMoney(invoice.amount, invoice.currency),
       icon: <Receipt className="size-5 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />,
+      actions: {
+        noun: "invoice",
+        name: invoice.title?.trim() || invoice.invoiceNumber || "Invoice",
+        onOpen: () => onSelect("invoice", invoice.id),
+        onRename: manage((title: string) => run(() => updateInvoice(invoice.id, { title }), "Couldn't rename the invoice.", onChanged)),
+        onDuplicate: manage(() => run(async () => createInvoice({ ...strip(invoice), invoiceNumber: await nextInvoiceNumber(), status: "draft", shareEnabled: false }), "Couldn't duplicate the invoice.", onChanged)),
+        extra: editItem("invoice", invoice.id),
+        onDelete: manage(() => run(() => deleteInvoice(invoice.id), "Couldn't delete the invoice.", onChanged)),
+      },
     })),
-    ...contracts.map((contract) => ({
+    ...contracts.map((contract): Entry => ({
       key: `contract-${contract.id}`,
       updatedMs: modifiedMs(contract),
-      kind: "contract" as const,
-      id: contract.id,
       title: contract.title || "Contract",
       kindLabel: "Contract",
       statusLabel: contractStatusMeta[contract.status].label,
       icon: <FileSignature className="size-5 text-indigo-600 dark:text-indigo-400" aria-hidden="true" />,
+      actions: {
+        noun: "contract",
+        name: contract.title || "Contract",
+        onOpen: () => onSelect("contract", contract.id),
+        onRename: manage((title: string) => run(() => updateContract(contract.id, { title }), "Couldn't rename the contract.", onChanged)),
+        onDuplicate: manage(() => run(() => createContract({ ...strip(contract), title: `${contract.title} (Copy)`, status: "draft", signedOn: "", shareEnabled: false }), "Couldn't duplicate the contract.", onChanged)),
+        extra: editItem("contract", contract.id),
+        onDelete: manage(() => run(() => deleteContract(contract.id), "Couldn't delete the contract.", onChanged)),
+      },
     })),
-    ...estimates.map((estimate) => ({
+    ...estimates.map((estimate): Entry => ({
       key: `estimate-${estimate.id}`,
       updatedMs: modifiedMs(estimate),
-      kind: "estimate" as const,
-      id: estimate.id,
       title: estimate.estimateNumber || estimate.title || "Estimate",
       kindLabel: "Estimate",
       statusLabel: estimateStatusMeta[estimate.status].label,
       amount: formatMoney(estimate.amount, estimate.currency),
       icon: <ClipboardList className="size-5 text-amber-600 dark:text-amber-400" aria-hidden="true" />,
+      actions: {
+        noun: "estimate",
+        name: estimate.title || estimate.estimateNumber || "Estimate",
+        onOpen: () => onSelect("estimate", estimate.id),
+        onRename: manage((title: string) => run(() => updateEstimate(estimate.id, { title }), "Couldn't rename the estimate.", onChanged)),
+        onDuplicate: manage(() => run(async () => createEstimate({ ...strip(estimate), estimateNumber: await nextEstimateNumber(), status: "draft", shareEnabled: false }), "Couldn't duplicate the estimate.", onChanged)),
+        extra: editItem("estimate", estimate.id),
+        onDelete: manage(() => run(() => deleteEstimate(estimate.id), "Couldn't delete the estimate.", onChanged)),
+      },
     })),
     ...extraEntries,
   ].sort((a, b) => b.updatedMs - a.updatedMs)
 
-  const open = (entry: Entry) => {
-    if (entry.onOpen) entry.onOpen()
-    else if (entry.kind && entry.id) onSelect(entry.kind, entry.id)
-  }
   const canAddDocuments = canAdd && Boolean(onAdd)
-
-  function menuFor(entry: Entry) {
-    if (entry.menu || !entry.kind || !entry.id) return entry.menu
-    const { kind, id } = entry
-    return (
-      <>
-        <DropdownMenuItem onSelect={() => onSelect(kind, id)}>Open {kind}</DropdownMenuItem>
-        {onEdit && <DropdownMenuItem onSelect={() => onEdit(kind, id)}>Edit {kind}</DropdownMenuItem>}
-      </>
-    )
-  }
 
   return (
     <CollectionView
@@ -186,22 +233,23 @@ export function CompanyDocuments({
         title: `No ${heading.toLowerCase()} yet`,
         description: emptyDescription,
       }}
+      date={(entry) => entry.updatedMs}
+      itemActions={(entry) => entry.actions}
       card={(entry) => ({
         icon: <span className="flex [&_svg]:size-4">{entry.icon}</span>,
         title: entry.title,
-        subtitle: lastUpdated(entry.updatedMs),
         preview: (
           <div className="flex size-full flex-col items-center justify-center gap-3 p-4 text-center">
             <span className="flex [&_svg]:size-10">{entry.icon}</span>
             {entry.amount && <p className="text-lg font-semibold tabular-nums tracking-[-0.02em] text-foreground">{entry.amount}</p>}
           </div>
         ),
-        onClick: () => open(entry),
+        onClick: () => entry.actions.onOpen?.(),
         ariaLabel: `Open ${entry.title}`,
         menuLabel: `Options for ${entry.title}`,
-        menu: menuFor(entry),
       })}
-      row={(entry) => ({ subtitle: `${entry.kindLabel} · ${entry.statusLabel}`, trailing: entry.amount ?? lastUpdated(entry.updatedMs) })}
+      // The amount goes with the kind and status, so the right side is always the date.
+      row={(entry) => ({ subtitle: [entry.kindLabel, entry.statusLabel, entry.amount].filter(Boolean).join(" · ") })}
       cardsAfter={media}
       hasExtraCards={mediaCount > 0}
     />

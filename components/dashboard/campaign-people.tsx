@@ -23,7 +23,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import {
   addCampaignPeople,
   compactCount,
@@ -109,10 +109,16 @@ export function CampaignPeople({ people, agencyId, companyId, projectId, canEdit
     if (!href && !canAdd && !canEdit) return undefined
     return (
       <>
-        {canAdd && <DropdownMenuItem onSelect={() => void addToRoster(person)}>Add to campaign</DropdownMenuItem>}
+        {/* The shared order: Open first, the tab's own actions, then Delete last. */}
         {href && <DropdownMenuItem onSelect={() => window.open(href, "_blank", "noopener,noreferrer")}>Open profile</DropdownMenuItem>}
         {canEdit && <DropdownMenuItem onSelect={() => setOpenId(person.id)}>Edit</DropdownMenuItem>}
-        {canEdit && <DropdownMenuItem variant="destructive" onSelect={() => setDeleting(person)}>Delete</DropdownMenuItem>}
+        {canAdd && <DropdownMenuItem onSelect={() => void addToRoster(person)}>Add to campaign</DropdownMenuItem>}
+        {canEdit && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem variant="destructive" onSelect={() => setDeleting(person)}>Delete</DropdownMenuItem>
+          </>
+        )}
       </>
     )
   }

@@ -19,7 +19,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
+import { DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import {
@@ -151,9 +151,10 @@ export function ProjectsView({
                 menuLabel={`Options for ${project.title}`}
                 menu={onChanged ? (
                   <>
-                    <DropdownMenuItem onSelect={() => openTaskPreview(project)}>Preview tasks</DropdownMenuItem>
                     <DropdownMenuItem onSelect={() => { setTitle(project.title); setError(null); setRenaming(project) }}>Rename</DropdownMenuItem>
                     <DropdownMenuItem onSelect={(event) => { event.preventDefault(); run(() => duplicateProject(project), "The project could not be duplicated.") }}>Duplicate</DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => openTaskPreview(project)}>Preview tasks</DropdownMenuItem>
+                    <DropdownMenuSeparator />
                     <DropdownMenuItem variant="destructive" onSelect={() => { setError(null); setDeleting(project) }}>Delete</DropdownMenuItem>
                   </>
                 ) : undefined}

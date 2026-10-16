@@ -4,6 +4,7 @@ import { useState } from "react"
 import { Image as ImageIcon, Images, Megaphone, Palette, PenLine, UserPlus } from "lucide-react"
 
 import { CampaignPostViewDialog } from "@/components/dashboard/campaign-creatives"
+import { CollectionItemMenu } from "@/components/dashboard/collection-view"
 import { Button } from "@/components/ui/button"
 import type { CampaignCreative } from "@/lib/campaign-creatives"
 import { GridCard, GridCardList } from "@/components/dashboard/grid-card"
@@ -32,11 +33,6 @@ export function CampaignHome({
   const viewingPost = posts.find((post) => post.id === viewingId) ?? null
   const setViewingPost = (post: CampaignCreative | null) => setViewingId(post?.id ?? null)
   const bannerImage = campaignImage || posts.find((post) => post.mediaUrl && post.mediaType !== "video")?.mediaUrl
-
-  const postDate = (post: CampaignCreative) => {
-    const ms = (post.createdAt ?? post.updatedAt)?.toMillis()
-    return ms ? new Date(ms).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : ""
-  }
 
   return (
     <div className="space-y-5">
@@ -90,7 +86,8 @@ export function CampaignHome({
                 key={post.id}
                 icon={<Palette className="size-4 text-muted-foreground" aria-hidden="true" />}
                 title={post.title || "Post"}
-                subtitle={postDate(post)}
+                menuLabel={`Options for ${post.title || "post"}`}
+                menu={<CollectionItemMenu actions={{ noun: "post", name: post.title || "Post", onOpen: () => setViewingPost(post) }} />}
                 preview={post.mediaUrl ? (
                   post.mediaType === "video"
                     ? <video src={post.mediaUrl} muted playsInline preload="metadata" className="size-full object-cover" />

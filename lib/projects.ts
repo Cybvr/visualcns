@@ -171,26 +171,30 @@ export async function deleteProject(id: string): Promise<void> {
 }
 
 /**
- * Copies a project and its tasks inside the same workspace. The copy starts
- * over: back to the backlog at zero progress, unpublished, and with a slug of
- * its own so it never collides with the original.
+ * Copies a campaign with everything in it: its brief and settings, tasks,
+ * posts, media and folders, and its creators. The copy starts over at zero
+ * progress, unpublished, with a slug of its own, and its posts go back to Draft
+ * so they are reviewed again.
  */
 export async function duplicateProject(project: Project): Promise<string> {
+  /* eslint-disable @typescript-eslint/no-unused-vars */
+  const {
+    id: _id, createdAt: _createdAt, updatedAt: _updatedAt, agencyId: _agencyId,
+    isCaseStudy: _isCaseStudy, caseStudyStatus: _caseStudyStatus, featured: _featured, order: _order, legacyPortfolioId: _legacyPortfolioId,
+    ...fields
+  } = project
+  /* eslint-enable @typescript-eslint/no-unused-vars */
+  const copyTitle = `${project.title} copy`
   const copyId = await createProject({
-    companyId: project.companyId,
-    client: project.client,
-    title: `${project.title} copy`,
-    service: project.service,
+    ...fields,
+    title: copyTitle,
     status: "in-progress",
     progress: 0,
-    dueDate: project.dueDate,
     slug: `${slugify(project.title)}-copy-${Date.now()}`,
-    thumbnailUrl: project.thumbnailUrl ?? "",
-    summary: project.summary ?? "",
-    tools: project.tools ?? [],
-    icon: project.icon ?? "",
     isPublic: false,
   })
+
+  await duplicateCampaignContent(project.id, copyId)
 
   const tasks = await getTasksByProjectId(project.id)
   // Sequential so createdAt increments and the original task order survives.
@@ -200,7 +204,7 @@ export async function duplicateProject(project: Project): Promise<string> {
       companyId: project.companyId,
       client: project.client,
       projectId: copyId,
-      project: `${project.title} copy`,
+      project: copyTitle,
       status: task.status,
       priority: task.priority,
       dueDate: task.dueDate,
@@ -210,6 +214,52 @@ export async function duplicateProject(project: Project): Promise<string> {
   }
 
   return copyId
+}
+
+/** Rows of a campaign collection, oldest first, without their ids and dates. */
+async function campaignRows(collectionName: string, projectId: string) {
+  const snapshot = await getDocs(query(collection(db, collectionName), where("projectId", "==", projectId)))
+  return snapshot.docs
+    .map((row) => ({ id: row.id, data: row.data() as Record<string, unknown> }))
+    .sort((a, b) => tsToMillis(a.data.createdAt as Timestamp | undefined) - tsToMillis(b.data.createdAt as Timestamp | undefined))
+}
+
+function withoutDates(data: Record<string, unknown>) {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { createdAt: _createdAt, updatedAt: _updatedAt, ...rest } = data
+  return rest
+}
+
+/**
+ * Copies a campaign's posts, media, folders and creators onto another campaign.
+ * Written one at a time, oldest first, so each list keeps its order.
+ */
+async function duplicateCampaignContent(fromProjectId: string, toProjectId: string) {
+  const creatives = await campaignRows("campaignCreatives", fromProjectId)
+  // Folders first, so the files inside them can point at the copied folder.
+  const folderIds = new Map<string, string>()
+  for (const { id, data } of creatives.filter((row) => row.data.type === "folder")) {
+    const now = Timestamp.now()
+    const copy = await addDoc(collection(db, "campaignCreatives"), { ...withoutDates(data), projectId: toProjectId, createdAt: now, updatedAt: now })
+    folderIds.set(id, copy.id)
+  }
+  for (const { data } of creatives.filter((row) => row.data.type !== "folder")) {
+    const now = Timestamp.now()
+    const folderId = typeof data.folderId === "string" && data.folderId ? folderIds.get(data.folderId) ?? "" : data.folderId
+    await addDoc(collection(db, "campaignCreatives"), {
+      ...withoutDates(data),
+      projectId: toProjectId,
+      ...(folderId !== undefined ? { folderId } : {}),
+      ...(data.type === "text" ? { status: "Draft" } : {}),
+      createdAt: now,
+      updatedAt: now,
+    })
+  }
+
+  for (const { data } of await campaignRows("campaignPeople", fromProjectId)) {
+    const now = Timestamp.now()
+    await addDoc(collection(db, "campaignPeople"), { ...withoutDates(data), projectId: toProjectId, createdAt: now, updatedAt: now })
+  }
 }
 
 /** Deletes a project along with every task filed under it. */

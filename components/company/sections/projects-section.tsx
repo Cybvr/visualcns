@@ -15,22 +15,8 @@ import { NewProjectDialog } from "@/components/dashboard/new-project-dialog"
 import { ProjectDetail } from "@/components/dashboard/project-detail"
 import { ProjectCover } from "@/components/project-card"
 import { ShareDialog } from "@/components/dashboard/share-dialog"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
-import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
-import { Input } from "@/components/ui/input"
 import { deleteProjectWithTasks, duplicateProject, getProject, renameProject, type Project } from "@/lib/projects"
-import { formatTimestamp, taskStatusMeta, tsToMillis } from "@/lib/tasks"
+import { taskStatusMeta, tsToMillis } from "@/lib/tasks"
 
 export function ProjectsSection() {
   const { company, projects: loadedProjects, admin, emptyProjectsLabel, tasks, tasksLoading, updateParams, setRecordOpen, invoices, sectionHref } = useCompanyPage()
@@ -48,7 +34,10 @@ export function ProjectsSection() {
   const projects = [
     ...addedProjects.filter((added) => !loadedProjects.some((project) => project.id === added.id)),
     ...loadedProjects.map((project) => addedProjects.find((added) => added.id === project.id) ?? project),
-  ].filter((project) => !removedProjectIds.includes(project.id))
+  ]
+    .filter((project) => !removedProjectIds.includes(project.id))
+    // Most recently changed first, the way the Home tab lists them.
+    .sort((a, b) => (tsToMillis(b.updatedAt) || tsToMillis(b.createdAt)) - (tsToMillis(a.updatedAt) || tsToMillis(a.createdAt)))
   const searchParams = useSearchParams()
   const [selectedProject, setSelectedProject] = useState<Project | null>(null)
   const projectOpen = Boolean(selectedProject)
@@ -94,11 +83,6 @@ export function ProjectsSection() {
     setAddedProjects((list) => [patched, ...list.filter((project) => project.id !== patched.id)])
   }
 
-  function modifiedLabel(project: Project) {
-    const millis = tsToMillis(project.updatedAt) || tsToMillis(project.createdAt)
-    return millis ? formatTimestamp(millis) : undefined
-  }
-
   const jobTasks = selectedProject ? tasks.filter((task) => task.projectId === selectedProject.id) : []
   const publicTasks = (
     <CollectionView
@@ -122,9 +106,6 @@ export function ProjectsSection() {
     />
   )
   const [creatingProject, setCreatingProject] = useState(false)
-  const [renamingProject, setRenamingProject] = useState<Project | null>(null)
-  const [titleDraft, setTitleDraft] = useState("")
-  const [deletingProject, setDeletingProject] = useState<Project | null>(null)
   const [busy, setBusy] = useState(false)
 
   async function handleDuplicate(project: Project) {
@@ -146,58 +127,38 @@ export function ProjectsSection() {
     }
   }
 
-  async function handleRename() {
-    if (!canManageCampaigns || !renamingProject || busy) return
-    const title = titleDraft.trim()
-    if (!title || title === renamingProject.title) return
-    setBusy(true)
+  async function handleRename(project: Project, title: string) {
+    if (!canManageCampaigns || title === project.title) return
     try {
-      await renameProject(renamingProject.id, title)
-      if (!admin) {
-        const renamed = { ...renamingProject, title }
-        setAddedProjects((current) => [renamed, ...current.filter((project) => project.id !== renamed.id)])
-      }
-      setRenamingProject(null)
+      await renameProject(project.id, title)
       if (admin) await admin.reload()
+      else {
+        const renamed = { ...project, title }
+        setAddedProjects((current) => [renamed, ...current.filter((item) => item.id !== renamed.id)])
+      }
       toast.success("Campaign renamed")
     } catch (renameError) {
       console.error("Error renaming campaign:", renameError)
       toast.error("The campaign could not be renamed.")
-    } finally {
-      setBusy(false)
     }
   }
 
-  async function handleDelete() {
-    if (!canDeleteCampaigns || !deletingProject || busy) return
-    setBusy(true)
+  async function handleDelete(project: Project) {
+    if (!canDeleteCampaigns) return
     try {
-      await deleteProjectWithTasks(deletingProject.id)
-      if (!admin) {
-        setRemovedProjectIds((current) => [...current, deletingProject.id])
-        setAddedProjects((current) => current.filter((project) => project.id !== deletingProject.id))
-      }
-      setDeletingProject(null)
+      await deleteProjectWithTasks(project.id)
       if (admin) await admin.reload()
+      else {
+        setRemovedProjectIds((current) => [...current, project.id])
+        setAddedProjects((current) => current.filter((item) => item.id !== project.id))
+      }
       toast.success("Campaign deleted")
     } catch (deleteError) {
       console.error("Error deleting campaign:", deleteError)
       toast.error("The campaign could not be deleted.")
-    } finally {
-      setBusy(false)
     }
   }
 
-  function projectMenu(project: Project) {
-    if (!canManageCampaigns) return undefined
-    return (
-      <>
-        <DropdownMenuItem onSelect={() => { setTitleDraft(project.title); setRenamingProject(project) }}>Rename</DropdownMenuItem>
-        <DropdownMenuItem onSelect={() => void handleDuplicate(project)}>Duplicate</DropdownMenuItem>
-        {canDeleteCampaigns && <DropdownMenuItem variant="destructive" onSelect={() => setDeletingProject(project)}>Delete</DropdownMenuItem>}
-      </>
-    )
-  }
 
   return (
     <div className={selectedProject ? "mt-0" : "mt-5"}>
@@ -285,84 +246,29 @@ export function ProjectsSection() {
               title: canCreate ? "No campaigns yet" : emptyProjectsLabel ?? "No campaigns yet",
               action: canCreate ? <SectionAddButton label="New campaign" onClick={() => setCreatingProject(true)} /> : undefined,
             }}
+            date={(project) => tsToMillis(project.updatedAt) || tsToMillis(project.createdAt)}
+            itemActions={(project) => ({
+              noun: "campaign",
+              name: project.title,
+              onOpen: () => openCampaign(project),
+              onRename: canManageCampaigns ? (title) => handleRename(project, title) : undefined,
+              onDuplicate: canManageCampaigns ? () => handleDuplicate(project) : undefined,
+              onDelete: canDeleteCampaigns ? () => handleDelete(project) : undefined,
+            })}
             card={(project) => ({
               icon: <Megaphone className="size-4 text-amber-600 dark:text-amber-400" aria-hidden="true" />,
               title: project.title,
-              subtitle: modifiedLabel(project),
               preview: <ProjectCover project={project} />,
               onClick: () => openCampaign(project),
               ariaLabel: `Open ${project.title}`,
               menuLabel: `Options for ${project.title}`,
-              menu: projectMenu(project),
             })}
-            row={(project) => ({ subtitle: modifiedLabel(project), trailing: project.dueDate || undefined })}
+            row={(project) => ({ subtitle: project.service || undefined })}
           />
         </>
       )}
 
       {!admin && <TaskDetailSheet />}
-
-      {canManageCampaigns && (
-        <>
-          <Dialog
-            open={Boolean(renamingProject)}
-            onOpenChange={(open) => !open && !busy && setRenamingProject(null)}
-          >
-            <DialogContent className="max-w-sm">
-              <DialogHeader>
-                <DialogTitle>Rename campaign</DialogTitle>
-                <DialogDescription>Choose a new name for {renamingProject?.title}.</DialogDescription>
-              </DialogHeader>
-              <Input
-                value={titleDraft}
-                onChange={(event) => setTitleDraft(event.target.value)}
-                maxLength={120}
-                autoFocus
-                aria-label="Project name"
-              />
-              <DialogFooter>
-                <Button type="button" variant="ghost" onClick={() => setRenamingProject(null)} disabled={busy}>
-                  Cancel
-                </Button>
-                <Button
-                  type="button"
-                  onClick={() => void handleRename()}
-                  disabled={busy || !titleDraft.trim() || titleDraft.trim() === renamingProject?.title}
-                >
-                  {busy ? "Saving…" : "Save"}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-
-          <AlertDialog
-            open={Boolean(deletingProject)}
-            onOpenChange={(open) => !open && !busy && setDeletingProject(null)}
-          >
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Delete {deletingProject?.title}?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  This removes the campaign and every task filed under it. This cannot be undone.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel disabled={busy}>Cancel</AlertDialogCancel>
-                <AlertDialogAction
-                  disabled={busy}
-                  onClick={(event) => {
-                    event.preventDefault()
-                    void handleDelete()
-                  }}
-                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                >
-                  {busy ? "Deleting…" : "Delete campaign"}
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        </>
-      )}
 
       {canCreate && (
         <NewProjectDialog

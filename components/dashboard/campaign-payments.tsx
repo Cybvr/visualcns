@@ -88,11 +88,9 @@ export function CampaignPayments({ people, invoices, canEdit, invoiceHref }: Cam
       empty={{ icon: DollarSign, title: "No payments yet", description: "Creator pay and invoices for this campaign will appear here." }}
       card={(entry) => {
         const Icon = entry.kind === "creator" ? UserRound : Receipt
-        const kindLabel = entry.kind === "creator" ? "Creator" : "Invoice"
         return {
           icon: <Icon className={entry.kind === "creator" ? "size-4 text-muted-foreground" : "size-4 text-emerald-600 dark:text-emerald-400"} aria-hidden="true" />,
           title: entry.title,
-          subtitle: `${kindLabel} · ${entry.status}`,
           preview: (
             <div className="flex size-full flex-col items-center justify-center gap-3 p-4 text-center">
               <Icon className="size-10 text-muted-foreground" aria-hidden="true" />
@@ -102,14 +100,18 @@ export function CampaignPayments({ people, invoices, canEdit, invoiceHref }: Cam
           onClick: entry.kind === "invoice" ? (invoiceHref ? () => open(entry) : undefined) : undefined,
           ariaLabel: `Open ${entry.title}`,
           menuLabel: `Options for ${entry.title}`,
-          menu: entry.kind === "creator" && canEdit ? (
-            <DropdownMenuItem onSelect={() => open(entry)}>{entry.person.paid ? "Mark as not paid" : "Mark as paid"}</DropdownMenuItem>
-          ) : entry.kind === "invoice" && invoiceHref ? (
-            <DropdownMenuItem onSelect={() => open(entry)}>Open invoice</DropdownMenuItem>
-          ) : undefined,
         }
       }}
-      row={(entry) => ({ subtitle: `${entry.kind === "creator" ? "Creator" : "Invoice"} · ${entry.status}`, trailing: entry.amount })}
+      date={(entry) => entry.kind === "creator" ? entry.person.updatedAt ?? entry.person.createdAt : entry.invoice.updatedAt ?? entry.invoice.createdAt}
+      itemActions={(entry) => entry.kind === "creator"
+        ? {
+          noun: "creator",
+          name: entry.title,
+          extra: canEdit ? <DropdownMenuItem onSelect={() => open(entry)}>{entry.person.paid ? "Mark as not paid" : "Mark as paid"}</DropdownMenuItem> : undefined,
+        }
+        : { noun: "invoice", name: entry.title, onOpen: invoiceHref ? () => open(entry) : undefined }}
+      // The amount goes with the kind and status, so the right side is always the date.
+      row={(entry) => ({ subtitle: `${entry.kind === "creator" ? "Creator" : "Invoice"} · ${entry.status} · ${entry.amount}` })}
     />
   )
 }
