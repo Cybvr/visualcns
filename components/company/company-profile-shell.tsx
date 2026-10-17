@@ -215,7 +215,7 @@ export function CompanyProfileShell({ children }: { children: ReactNode }) {
             so its scrollbar is the window's. The header sits on the tinted background and
             sticky strips in that colour hide content passing the card's edges. */}
         <SidebarInset className="min-h-0 overflow-y-auto bg-card dark:bg-background [--shell-header-h:3.5rem] md:[--shell-header-h:72px] md:!m-0 md:!rounded-none md:bg-background md:!shadow-none">
-          <header className="surface-nav sticky top-0 z-40 flex h-14 shrink-0 items-center gap-2 bg-card px-4 text-foreground max-md:border-b max-md:border-border md:h-[72px] md:bg-background md:px-7 print:hidden">
+          <header className="surface-nav sticky top-0 z-40 flex h-14 shrink-0 items-center gap-2 bg-card dark:bg-background px-4 text-foreground max-md:border-b max-md:border-border md:h-[72px] md:bg-background md:px-7 print:hidden">
             <div className="flex shrink-0 items-center gap-2 md:hidden">
               <SidebarTrigger className="-ml-1" />
               <Separator orientation="vertical" className="data-[orientation=vertical]:h-4 max-md:data-[orientation=vertical]:h-6" />
@@ -246,7 +246,7 @@ export function CompanyProfileShell({ children }: { children: ReactNode }) {
           {/* Content, then an open document (an artifact) beside it, both under the header like Claude. */}
           <div className="flex min-w-0 flex-1">
             <main className={cn(
-              "min-w-0 flex-1 bg-card px-3 sm:px-6 md:m-3 md:mt-0 md:rounded-2xl md:shadow-[0_6px_24px_rgba(15,23,42,0.04)] lg:px-8",
+              "min-w-0 flex-1 bg-card dark:bg-background px-3 sm:px-6 md:m-3 md:mt-0 md:rounded-2xl md:shadow-[0_6px_24px_rgba(15,23,42,0.04)] lg:px-8",
               // Ngai, as a page or a campaign tab, runs its composer down to the bottom edge; other pages keep room below.
               section === "ngai" ? "pb-1 md:pb-1" : "pb-16 md:pb-6 has-[[data-ngai-page]]:pb-1 md:has-[[data-ngai-page]]:pb-1",
               recordOpen ? "pt-0 sm:pt-0" : "pt-1 sm:pt-6",

@@ -198,7 +198,7 @@ export function DashboardShell({
         >
           <header
             className={cn(
-              "surface-nav sticky top-0 z-40 flex h-14 shrink-0 md:h-[72px] items-center gap-2 bg-card px-4 text-foreground max-md:border-b max-md:border-border md:bg-background md:px-7",
+              "surface-nav sticky top-0 z-40 flex h-14 shrink-0 md:h-[72px] items-center gap-2 bg-card dark:bg-background px-4 text-foreground max-md:border-b max-md:border-border md:bg-background md:px-7",
               hideHeader && "md:hidden",
             )}
           >
@@ -294,7 +294,7 @@ export function DashboardShell({
             </div>
           </header>
           <div className={cn(
-            "flex min-h-0 flex-1 flex-col bg-card md:m-3 md:mt-0 md:rounded-2xl md:shadow-[0_6px_24px_rgba(15,23,42,0.04)]",
+            "flex min-h-0 flex-1 flex-col bg-card dark:bg-background md:m-3 md:mt-0 md:rounded-2xl md:shadow-[0_6px_24px_rgba(15,23,42,0.04)]",
             // The card stays fitted to the screen and its content scrolls inside it. Chat and email manage their own scrolling.
             !isAgentRoute && !isEmailRoute && "md:overflow-y-auto md:pb-6",
             (isAgentRoute || isEmailRoute) && "lg:overflow-hidden",
