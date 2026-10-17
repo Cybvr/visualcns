@@ -189,10 +189,10 @@ export function DashboardShell({
         <SidebarInset
           className={cn(
             // --shell-header-h lets sticky content sit below the sticky header.
-            "min-h-0 bg-card [--shell-header-h:3.5rem] md:!m-0 md:!rounded-none md:bg-background md:!shadow-none md:[--shell-header-h:72px]",
+            "min-h-0 bg-card dark:bg-background [--shell-header-h:3.5rem] md:!m-0 md:!rounded-none md:bg-background md:!shadow-none md:[--shell-header-h:72px]",
             hideHeader && "md:[--shell-header-h:0px]",
             isAgentRoute ? "overflow-y-auto md:overflow-hidden" : "overflow-y-auto",
-            !hideMobileFooter && "max-md:pb-[calc(3.5rem+env(safe-area-inset-bottom))]",
+            !hideMobileFooter && "max-md:pb-[calc(4.5rem+env(safe-area-inset-bottom))]",
             isEmailRoute && "lg:overflow-hidden",
           )}
         >

@@ -2316,7 +2316,7 @@ export default function EmailPage() {
           type="button"
           size="lg"
           onClick={() => openCompose(true)}
-          className="fixed right-4 bottom-[calc(5rem+env(safe-area-inset-bottom))] z-30 h-14 gap-2 rounded-full px-6 text-base shadow-lg sm:hidden"
+          className="fixed right-4 bottom-[calc(6rem+env(safe-area-inset-bottom))] z-30 h-14 gap-2 rounded-full px-6 text-base shadow-lg sm:hidden"
         >
           <Plus className="size-5" aria-hidden="true" />Write
         </Button>
@@ -2405,7 +2405,7 @@ export default function EmailPage() {
 
       {/* Send confirmation toast (shown once the composer closes) */}
       {!composeOpen && sendNotice && (
-        <div className="fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom))] left-1/2 z-40 -translate-x-1/2 sm:left-6 sm:translate-x-0 md:bottom-4">
+        <div className="fixed bottom-[calc(5.5rem+env(safe-area-inset-bottom))] left-1/2 z-40 -translate-x-1/2 sm:left-6 sm:translate-x-0 md:bottom-4">
           <div className={cn(
             "flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm shadow-lg",
             sendNotice.tone === "success" ? "bg-neutral-800 text-white dark:bg-neutral-900" : "bg-destructive text-destructive-foreground",

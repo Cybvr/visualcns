@@ -69,14 +69,14 @@
 
 .dark {
   --radius: 0.5rem;
-  --background: #282a36;
-  --page: #282a36;
+  --background: #161616;
+  --page: #161616;
   --foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --popover: #262733;
+  --muted: #292929;
+  --muted-foreground: #a8a8a8;
+  --popover: #1f1f1f;
   --popover-foreground: oklch(0.985 0 0);
-  --card: #262733;
+  --card: #1f1f1f;
   --card-foreground: oklch(0.985 0 0);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
@@ -84,9 +84,9 @@
   --primary-foreground: oklch(0.985 0 0);
   --button: #d3e3fd;
   --button-foreground: #1f2937;
-  --secondary: oklch(0.269 0 0);
+  --secondary: #292929;
   --secondary-foreground: oklch(0.985 0 0);
-  --accent: oklch(0.269 0 0);
+  --accent: #292929;
   --accent-foreground: oklch(0.985 0 0);
   --destructive: oklch(0.704 0.191 22.216);
   --destructive-foreground: oklch(0.985 0 0);
@@ -100,7 +100,7 @@
   --sidebar-foreground: oklch(0.985 0 0);
   --sidebar-primary: var(--primary);
   --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: #363741;
+  --sidebar-accent: #292929;
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: var(--primary);

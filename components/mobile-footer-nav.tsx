@@ -21,7 +21,7 @@ export type MobileFooterNavItem = {
   render?: (props: { className: string }) => ReactNode
 }
 
-/** Bottom tab bar shown on mobile only, replacing the floating Ngai composer. */
+/** Floating pill tab bar shown on mobile only, replacing the floating Ngai composer. */
 export function MobileFooterNav({ items, className }: { items: MobileFooterNavItem[]; className?: string }) {
   const pathname = usePathname()
 
@@ -29,13 +29,13 @@ export function MobileFooterNav({ items, className }: { items: MobileFooterNavIt
     <nav
       aria-label="Primary"
       className={cn(
-        // Exactly 3.5rem tall, the same space the dashboard reserves for it, so sticky footers sit flush on top.
-        "fixed inset-x-0 bottom-0 z-40 flex h-[calc(3.5rem+env(safe-area-inset-bottom))] border-t border-border bg-background pb-[env(safe-area-inset-bottom)] md:hidden",
+        // 4rem tall plus a 0.5rem gap below: 4.5rem total, the space the dashboard reserves for it, so sticky footers sit flush on top.
+        "fixed inset-x-4 bottom-[calc(0.5rem+env(safe-area-inset-bottom))] z-40 mx-auto flex h-16 max-w-md gap-1 rounded-full border border-border bg-background p-1.5 shadow-lg md:hidden",
         className,
       )}
     >
       {items.map((item) => {
-        const sharedClassName = "flex flex-1 flex-col items-center justify-center gap-0.5 py-2 outline-none transition-colors focus-visible:bg-muted"
+        const sharedClassName = "flex flex-1 flex-col items-center justify-center gap-0.5 rounded-full outline-none transition-colors focus-visible:bg-muted"
 
         if (item.render) {
           return <Fragment key={item.key}>{item.render({ className: sharedClassName })}</Fragment>
@@ -56,11 +56,11 @@ export function MobileFooterNav({ items, className }: { items: MobileFooterNavIt
         )
 
         return item.href ? (
-          <Link key={item.key} href={item.href} onClick={item.onClick} aria-label={item.badge && item.badge > 0 ? `${item.ariaLabel ?? item.label}, ${item.badge} unread` : item.ariaLabel ?? item.label} className={sharedClassName}>
+          <Link key={item.key} href={item.href} onClick={item.onClick} aria-label={item.badge && item.badge > 0 ? `${item.ariaLabel ?? item.label}, ${item.badge} unread` : item.ariaLabel ?? item.label} className={cn(sharedClassName, active && "bg-muted")}>
             {body}
           </Link>
         ) : (
-          <button key={item.key} type="button" onClick={item.onClick} aria-label={item.ariaLabel ?? item.label} className={sharedClassName}>
+          <button key={item.key} type="button" onClick={item.onClick} aria-label={item.ariaLabel ?? item.label} className={cn(sharedClassName, active && "bg-muted")}>
             {body}
           </button>
         )

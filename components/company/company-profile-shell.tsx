@@ -214,7 +214,7 @@ export function CompanyProfileShell({ children }: { children: ReactNode }) {
         {/* The inset itself is the full-height scroller, flush to the window's right edge,
             so its scrollbar is the window's. The header sits on the tinted background and
             sticky strips in that colour hide content passing the card's edges. */}
-        <SidebarInset className="min-h-0 overflow-y-auto bg-card [--shell-header-h:3.5rem] md:[--shell-header-h:72px] md:!m-0 md:!rounded-none md:bg-background md:!shadow-none">
+        <SidebarInset className="min-h-0 overflow-y-auto bg-card dark:bg-background [--shell-header-h:3.5rem] md:[--shell-header-h:72px] md:!m-0 md:!rounded-none md:bg-background md:!shadow-none">
           <header className="surface-nav sticky top-0 z-40 flex h-14 shrink-0 items-center gap-2 bg-card px-4 text-foreground max-md:border-b max-md:border-border md:h-[72px] md:bg-background md:px-7 print:hidden">
             <div className="flex shrink-0 items-center gap-2 md:hidden">
               <SidebarTrigger className="-ml-1" />
