@@ -74,9 +74,9 @@
   --foreground: oklch(0.985 0 0);
   --muted: #292929;
   --muted-foreground: #a8a8a8;
-  --popover: #1f1f1f;
+  --popover: #292929;
   --popover-foreground: oklch(0.985 0 0);
-  --card: #1f1f1f;
+  --card: #292929;
   --card-foreground: oklch(0.985 0 0);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
@@ -86,7 +86,7 @@
   --button-foreground: #1f2937;
   --secondary: #292929;
   --secondary-foreground: oklch(0.985 0 0);
-  --accent: #292929;
+  --accent: #333333;
   --accent-foreground: oklch(0.985 0 0);
   --destructive: oklch(0.704 0.191 22.216);
   --destructive-foreground: oklch(0.985 0 0);
@@ -104,6 +104,11 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: var(--primary);
+}
+
+/* Dark mode cards are flat filled tiles on the near-black page, no outline. */
+.dark .bg-card.border {
+  border-color: transparent;
 }
 
 @theme inline {
