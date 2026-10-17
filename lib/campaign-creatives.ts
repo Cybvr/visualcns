@@ -68,6 +68,15 @@ export function watchCompanyCampaignCreatives(companyId: string, onChange: (crea
   )
 }
 
+/** The agency's newest written posts across every campaign, newest first. */
+export async function getLatestCampaignPosts(count = 4): Promise<CampaignCreative[]> {
+  const snapshot = await getDocs(query(collection(db, COLLECTION_NAME), where("agencyId", "==", await getCurrentAgencyId()), where("type", "==", "text")))
+  return snapshot.docs
+    .map((d) => ({ ...(d.data() as Omit<CampaignCreative, "id">), id: d.id }))
+    .sort((a, b) => (tsToMillis(b.updatedAt) || tsToMillis(b.createdAt)) - (tsToMillis(a.updatedAt) || tsToMillis(a.createdAt)))
+    .slice(0, count)
+}
+
 export async function addCampaignCreative(
   scope: { agencyId?: string; companyId: string; projectId: string },
   creative: Pick<CampaignCreative, "title" | "url" | "type"> & { kind: "content" | "media"; folderId?: string; body?: string; status?: string; postedBy?: string; mediaUrl?: string; mediaType?: "image" | "video" },

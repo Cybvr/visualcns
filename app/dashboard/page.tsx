@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { Megaphone, Receipt } from "lucide-react"
+import { Image as ImageIcon, Megaphone, Palette, Receipt } from "lucide-react"
 
 import { useAuth } from "@/components/auth-provider"
 import { DashboardPageSkeleton } from "@/components/dashboard/dashboard-page-skeleton"
@@ -17,6 +17,9 @@ import { invoiceIsOpen, invoiceIsOverdue } from "@/lib/invoice-reminders"
 import { watchLeads, type Lead } from "@/lib/leads"
 import { getProjects, projectSlug, type Project } from "@/lib/projects"
 import { ProjectCover } from "@/components/project-card"
+import { VideoThumbnail } from "@/components/ui/video-thumbnail"
+import { getLatestCampaignPosts, type CampaignCreative } from "@/lib/campaign-creatives"
+import { postMediaType } from "@/components/dashboard/campaign-creatives"
 import { formatTimestamp, tsToMillis } from "@/lib/tasks"
 import { cn } from "@/lib/utils"
 
@@ -69,6 +72,7 @@ export default function DashboardPage() {
   const { user, appUser } = useAuth()
   const [leads, setLeads] = useState<Lead[] | null>(null)
   const [projects, setProjects] = useState<Project[]>([])
+  const [latestPosts, setLatestPosts] = useState<CampaignCreative[]>([])
   const [invoices, setInvoices] = useState<Invoice[]>([])
   const [loading, setLoading] = useState(true)
   const [leadsLoading, setLeadsLoading] = useState(true)
@@ -79,9 +83,10 @@ export default function DashboardPage() {
   const fetchData = useCallback(async () => {
     setError(null)
     try {
-      const [nextProjects, nextInvoices] = await Promise.all([getProjects(), getInvoices()])
+      const [nextProjects, nextInvoices, nextPosts] = await Promise.all([getProjects(), getInvoices(), getLatestCampaignPosts(4).catch(() => [])])
       setProjects(nextProjects)
       setInvoices(nextInvoices)
+      setLatestPosts(nextPosts)
     } catch (caughtError) {
       console.error("Error loading dashboard data:", caughtError)
       setError("Couldn’t load the dashboard right now. Please try again shortly.")
@@ -198,6 +203,40 @@ export default function DashboardPage() {
                     ariaLabel={`Open ${project.title || "campaign"}`}
                     menuLabel={`Options for ${project.title || "campaign"}`}
                     menu={<DropdownMenuItem asChild><Link href={href}>Open campaign</Link></DropdownMenuItem>}
+                  />
+                )
+              })}
+            </GridCardList>
+          </div>
+        </section>
+      )}
+
+      {latestPosts.length > 0 && (
+        <section aria-labelledby="latest-posts-heading" className="mt-8">
+          <h2 id="latest-posts-heading" className="text-lg font-semibold tracking-tight text-foreground">Latest posts</h2>
+          <div className="mt-4">
+            <GridCardList>
+              {latestPosts.map((post) => {
+                const project = projects.find((item) => item.id === post.projectId)
+                // Opens the post in its campaign's Content tab.
+                const href = project ? `/dashboard/projects/${encodeURIComponent(projectSlug(project))}?view=content&post=${encodeURIComponent(post.id)}` : undefined
+                const title = post.title || "Post"
+                return (
+                  <GridCard
+                    key={post.id}
+                    title={title}
+                    icon={<Palette className="size-4 text-muted-foreground" aria-hidden="true" />}
+                    preview={post.mediaUrl ? (
+                      postMediaType(post) === "video"
+                        ? <VideoThumbnail src={post.mediaUrl} />
+                        // eslint-disable-next-line @next/next/no-img-element
+                        : <img src={post.mediaUrl} alt="" loading="lazy" className="size-full object-cover" />
+                    ) : undefined}
+                    placeholder={thumbnailIcon(ImageIcon)}
+                    href={href}
+                    ariaLabel={`Open ${title}`}
+                    menuLabel={href ? `Options for ${title}` : undefined}
+                    menu={href ? <DropdownMenuItem asChild><Link href={href}>Open post</Link></DropdownMenuItem> : undefined}
                   />
                 )
               })}

@@ -7,7 +7,7 @@ import { useEffect, useState, type FormEvent, type ReactNode } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { ArrowLeft, Briefcase, Building2, FileText, Home, ListTodo, Plus, Receipt, ScrollText, Search, Users, X } from "lucide-react"
-import { FiCheckSquare, FiMail, FiUser } from "react-icons/fi"
+import { FiMail, FiUser } from "react-icons/fi"
 
 import { useAgent } from "@/components/agent/agent-context"
 import { AppSidebar, type NavLink } from "@/components/app-sidebar"
@@ -82,8 +82,10 @@ function QuickCreateMenu({ trigger, onSelect }: { trigger: ReactNode; onSelect: 
 
 /** Bottom tab bar for mobile. Must render inside SidebarProvider. */
 function DashboardMobileFooterNav({ unreadEmailCount }: { unreadEmailCount: number }) {
+  const pathname = usePathname()
   const items: MobileFooterNavItem[] = [
-    { key: "tasks", label: "Tasks", icon: FiCheckSquare, href: "/dashboard/tasks" },
+    // Home only lights up on the home page itself, not on every page under /dashboard.
+    { key: "home", label: "Home", icon: Home, href: "/dashboard", isActive: pathname === "/dashboard" },
     { key: "email", label: "Emails", icon: FiMail, href: "/dashboard/email", badge: unreadEmailCount },
     { key: "clients", label: "Clients", icon: Building2, href: "/dashboard/clients" },
     { key: "invoices", label: "Invoices", icon: Receipt, href: "/dashboard/invoices" },

@@ -54,7 +54,7 @@ interface CampaignCreativesProps {
 const MAX_IMAGE_BYTES = 12 * 1024 * 1024
 const MAX_VIDEO_BYTES = 20 * 1024 * 1024
 
-function postMediaType(post: Pick<CampaignCreative, "mediaUrl" | "mediaType">): "image" | "video" {
+export function postMediaType(post: Pick<CampaignCreative, "mediaUrl" | "mediaType">): "image" | "video" {
   return post.mediaType === "video" || mediaKindForUrl(post.mediaUrl ?? "") === "video" ? "video" : "image"
 }
 
