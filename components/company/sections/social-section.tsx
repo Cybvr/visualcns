@@ -7,6 +7,7 @@ import { toast } from "sonner"
 
 import { useCompanyPage } from "@/components/company/company-page-context"
 import { formatWhen, PublishPostDialog, publishTone } from "@/components/company/publish-post-dialog"
+import { SocialOverview } from "@/components/company/social-overview"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { watchCompanyCampaignCreatives, type CampaignCreative } from "@/lib/campaign-creatives"
@@ -15,18 +16,23 @@ import { useSocialRequest } from "@/lib/social-client"
 import { cn } from "@/lib/utils"
 
 const VIEWS = [
+  { key: "overview", label: "Posts" },
   { key: "calendar", label: "Calendar" },
   { key: "inbox", label: "Inbox" },
 ] as const
 
+type View = (typeof VIEWS)[number]["key"]
+
 /**
- * The company's social side: a calendar of scheduled and posted content, and
- * one inbox for DMs, comments, Google reviews and mentions.
+ * The company's social side: followers, a New post button and every post
+ * with its numbers; a calendar of what's going out; and one inbox for DMs,
+ * comments, Google reviews and mentions.
  */
 export function SocialSection() {
   const { updateParams } = useCompanyPage()
   const searchParams = useSearchParams()
-  const view = searchParams.get("view") === "inbox" ? "inbox" : "calendar"
+  const requested = searchParams.get("view")
+  const view: View = VIEWS.some((item) => item.key === requested) ? requested as View : "overview"
 
   return (
     <div className="mt-5 min-w-0">
@@ -37,14 +43,14 @@ export function SocialSection() {
             type="button"
             role="tab"
             aria-selected={view === item.key}
-            onClick={() => updateParams({ view: item.key === "calendar" ? null : item.key }, true)}
+            onClick={() => updateParams({ view: item.key === "overview" ? null : item.key }, true)}
             className="h-8 rounded-md px-3 text-sm text-muted-foreground outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring aria-selected:bg-background aria-selected:font-medium aria-selected:text-foreground aria-selected:shadow-sm"
           >
             {item.label}
           </button>
         ))}
       </div>
-      <div className="mt-5">{view === "inbox" ? <SocialInbox /> : <SocialCalendar />}</div>
+      <div className="mt-5">{view === "inbox" ? <SocialInbox /> : view === "calendar" ? <SocialCalendar /> : <SocialOverview />}</div>
     </div>
   )
 }

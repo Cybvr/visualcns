@@ -9,7 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import type { CampaignCreative } from "@/lib/campaign-creatives"
+import { updateCampaignCreative, type CampaignCreative } from "@/lib/campaign-creatives"
 import { platformInfo, platformLabel, PUBLISH_LABELS, type SocialAccount } from "@/lib/social"
 import { useSocialAccounts } from "@/lib/social-client"
 import { cn } from "@/lib/utils"
@@ -52,11 +52,16 @@ export function PublishPostDialog({ post, companyId, open, onOpenChange }: { pos
   const [at, setAt] = useState("")
   const [busy, setBusy] = useState(false)
 
+  // A post the client wrote comes with the accounts and time they asked for.
+  const requested = post?.request
   useEffect(() => {
     if (!open) return
-    setSelected([])
-    setWhen("later")
-    setAt(localInputValue(new Date(Date.now() + 60 * 60 * 1000)))
+    setSelected(requested?.accountIds ?? [])
+    const asked = requested?.scheduledAt ? new Date(requested.scheduledAt) : null
+    const later = asked && asked.getTime() > Date.now() + 60_000
+    setWhen(requested && !requested.scheduledAt ? "now" : "later")
+    setAt(localInputValue(later ? asked : new Date(Date.now() + 60 * 60 * 1000)))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, post?.id])
 
   const accounts = (info?.accounts ?? []).filter((account) => account.status !== "disconnected")
@@ -75,6 +80,18 @@ export function PublishPostDialog({ post, companyId, open, onOpenChange }: { pos
       onOpenChange(false)
     } catch (caught) {
       toast.error(caught instanceof Error ? caught.message : "Couldn't send the post.")
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function approve() {
+    if (!post) return
+    setBusy(true)
+    try {
+      await updateCampaignCreative(post.id, { status: "Approved" })
+    } catch (caught) {
+      toast.error(caught instanceof Error ? caught.message : "Couldn't approve.")
     } finally {
       setBusy(false)
     }
@@ -153,11 +170,26 @@ export function PublishPostDialog({ post, companyId, open, onOpenChange }: { pos
         ) : !info ? (
           <p className="text-sm text-muted-foreground">{error || "Couldn't load social accounts."}</p>
         ) : post.status !== "Approved" ? (
-          <p className="text-sm text-muted-foreground">Approve this post first, then it can be scheduled.</p>
+          info.role === "agency" ? (
+            <div className="space-y-4">
+              {post.body && <p className="whitespace-pre-wrap break-words rounded-lg bg-muted/50 px-3 py-2 text-sm">{post.body}</p>}
+              <p className="text-sm text-muted-foreground">{requested ? "The client wrote this and is waiting for you to approve it." : "Approve this post, then pick where and when it goes."}</p>
+              <DialogFooter>
+                <Button type="button" disabled={busy} onClick={() => void approve()}>
+                  {busy && <Loader2 className="size-4 animate-spin" aria-hidden="true" />}
+                  Approve
+                </Button>
+              </DialogFooter>
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">{requested ? "Sent to your agency. It goes out once they approve it." : "Approve this post first, then it can be scheduled."}</p>
+          )
         ) : !info.canPublish ? (
           <p className="text-sm text-muted-foreground">Your agency schedules approved posts for you.</p>
+        ) : !info.configured ? (
+          <p className="text-sm text-muted-foreground">{info.role === "agency" ? "Add your SocialAPI key in Agency settings, then connect the client's accounts." : "Posting to your accounts isn't switched on yet."}</p>
         ) : !accounts.length ? (
-          <p className="text-sm text-muted-foreground">No social accounts connected yet. Connect them on the Account page.</p>
+          <p className="text-sm text-muted-foreground">No social accounts connected yet. Connect them on the Social page.</p>
         ) : (
           <form onSubmit={submit} className="space-y-5">
             {publish?.state === "failed" && (
@@ -208,7 +240,7 @@ export function PublishPostDialog({ post, companyId, open, onOpenChange }: { pos
 }
 
 /** How the post reads on each chosen platform: cut at its length limit, with a warning when it needs a picture or video. */
-function PlatformPreviews({ post, accounts }: { post: CampaignCreative; accounts: SocialAccount[] }) {
+export function PlatformPreviews({ post, accounts }: { post: Pick<CampaignCreative, "body" | "mediaUrl" | "mediaType">; accounts: SocialAccount[] }) {
   const platforms = [...new Set(accounts.map((account) => account.platform))]
   const body = post.body?.trim() ?? ""
   return (

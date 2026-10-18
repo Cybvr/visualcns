@@ -113,7 +113,8 @@ export function HomeOverview() {
                         : <img src={post.mediaUrl} alt="" loading="lazy" className="size-full object-cover" />
                     ) : undefined}
                     placeholder={thumbnailIcon(ImageIcon)}
-                    href={campaignHref(post.projectId, { view: "content", post: post.id })}
+                    // Posts written on the Social page belong to no campaign.
+                    href={post.projectId ? campaignHref(post.projectId, { view: "content", post: post.id }) : sectionHref("social")}
                     ariaLabel={`Open ${title}`}
                   />
                 )

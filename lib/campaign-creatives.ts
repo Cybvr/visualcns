@@ -41,6 +41,8 @@ export interface CampaignCreative {
   status: string
   /** Set by the server once an approved post is scheduled or posted to social accounts. */
   publish?: PostPublish
+  /** A post the client wrote on the Social page, waiting for the agency: where and when they asked for it to go. */
+  request?: { accountIds: string[]; scheduledAt?: string; by?: string }
   createdAt?: Timestamp
   updatedAt?: Timestamp
 }
