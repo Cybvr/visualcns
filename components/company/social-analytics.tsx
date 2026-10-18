@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 
+import { SocialIcon } from "@/components/company/social-icon"
 import { platformLabel } from "@/lib/social"
 import { useSocialRequest } from "@/lib/social-client"
 
@@ -54,7 +55,7 @@ export function SocialAnalytics({ companyId }: { companyId: string }) {
       <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {data.accounts.map((account) => (
           <div key={account.id} className="rounded-lg border border-border p-4">
-            <p className="text-sm font-medium">{platformLabel(account.platform)}</p>
+            <p className="flex items-center gap-2 text-sm font-medium"><SocialIcon platform={account.platform} />{platformLabel(account.platform)}</p>
             {account.available ? (
               <div className="mt-3 grid grid-cols-2 gap-3">
                 <Stat label="Followers" value={account.followers} />

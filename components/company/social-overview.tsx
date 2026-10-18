@@ -8,6 +8,7 @@ import { toast } from "sonner"
 import { useCompanyPage } from "@/components/company/company-page-context"
 import { formatWhen, PlatformPreviews, PublishPill, PublishPostDialog } from "@/components/company/publish-post-dialog"
 import { SocialAccounts } from "@/components/company/social-accounts"
+import { SocialIcon } from "@/components/company/social-icon"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
@@ -21,7 +22,7 @@ import { platformLabel, type SocialAccount, type SocialAccountsInfo } from "@/li
 import { useSocialAccounts } from "@/lib/social-client"
 import { tsToMillis } from "@/lib/tasks"
 
-type AccountNumbers = { id: string; followers?: number | null; followerChange?: number | null }
+type AccountNumbers = { id: string; followers?: number | null; posts?: number | null; following?: number | null; followerChange?: number | null; problem?: string }
 type PostNumbers = { creativeId: string; likes: number; comments: number; shares: number; saves: number }
 
 const compact = new Intl.NumberFormat(undefined, { notation: "compact", maximumFractionDigits: 1 })
@@ -93,16 +94,26 @@ export function SocialOverview() {
       ) : null}
 
       {accounts.length > 0 && (
-        <section aria-label="Followers" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <section aria-label="Accounts" className="grid gap-3 sm:grid-cols-2">
           {accounts.map((account) => {
             const found = accountNumbers.get(account.id)
+            const stat = (value: number | null | undefined, label: string) => (
+              <div>
+                <p className="text-xl font-semibold tabular-nums" title={value == null ? found?.problem : undefined}>{typeof value === "number" ? compact.format(value) : "—"}</p>
+                <p className="text-sm text-muted-foreground">{label}</p>
+              </div>
+            )
             return (
               <div key={account.id} className="rounded-xl border border-border p-4">
-                <p className="truncate text-sm text-muted-foreground">{platformLabel(account.platform)}{account.username ? ` · @${account.username.replace(/^@/, "")}` : ""}</p>
-                <p className="mt-3 text-2xl font-semibold tabular-nums">{typeof found?.followers === "number" ? compact.format(found.followers) : "—"}</p>
-                <p className="text-xs text-muted-foreground">
-                  followers{typeof found?.followerChange === "number" && found.followerChange !== 0 ? ` · ${found.followerChange > 0 ? "+" : ""}${compact.format(found.followerChange)} in 30 days` : ""}
+                <p className="flex min-w-0 items-center gap-2 text-sm font-medium">
+                  <SocialIcon platform={account.platform} />
+                  <span className="truncate">{account.username ? `@${account.username.replace(/^@/, "")}` : account.name || platformLabel(account.platform)}</span>
                 </p>
+                <div className="mt-4 grid grid-cols-3 gap-2">
+                  {stat(found?.posts, "posts")}
+                  {stat(found?.followers, "followers")}
+                  {stat(found?.following, "following")}
+                </div>
               </div>
             )
           })}

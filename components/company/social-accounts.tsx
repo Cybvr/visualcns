@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
+import { SocialIcon } from "@/components/company/social-icon"
 import { platformLabel, SOCIAL_PLATFORMS } from "@/lib/social"
 import { useSocialAccounts, useSocialRequest } from "@/lib/social-client"
 
@@ -95,6 +96,7 @@ export function SocialAccounts({ companyId, companyName }: { companyId: string; 
               <ul className="divide-y divide-border rounded-lg border border-border">
                 {info.accounts.map((account) => (
                   <li key={account.id} className="flex items-center gap-3 px-4 py-3">
+                    <SocialIcon platform={account.platform} className="size-5" />
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-medium">{account.name || account.username || platformLabel(account.platform)}</p>
                       <p className="truncate text-xs text-muted-foreground">
