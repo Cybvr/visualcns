@@ -153,9 +153,9 @@ export default function DashboardPage() {
     [invoices],
   )
   const outstandingInvoiceCount = useMemo(() => invoices.filter(invoiceIsOpen).length, [invoices])
-  // The three campaigns changed most recently.
+  // The four campaigns changed most recently.
   const latestCampaigns = useMemo(
-    () => [...projects].sort((a, b) => (tsToMillis(b.updatedAt) || tsToMillis(b.createdAt)) - (tsToMillis(a.updatedAt) || tsToMillis(a.createdAt))).slice(0, 3),
+    () => [...projects].sort((a, b) => (tsToMillis(b.updatedAt) || tsToMillis(b.createdAt)) - (tsToMillis(a.updatedAt) || tsToMillis(a.createdAt))).slice(0, 4),
     [projects],
   )
   const firstName = (appUser?.displayName || user?.displayName || user?.email?.split("@")[0] || "there").trim().split(/\s+/)[0]

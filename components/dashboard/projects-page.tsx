@@ -15,16 +15,14 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Loader2 } from "lucide-react"
-import { FaFolderOpen } from "react-icons/fa"
-import { getProjects, deleteProject, projectSlug, projectStatusMeta, type Project } from "@/lib/projects"
+import { toast } from "sonner"
+import { getProjects, deleteProject, duplicateProject, getProject, isProjectArchived, projectLastActivity, projectSlug, projectStatusMeta, renameProject, setProjectArchived, type Project } from "@/lib/projects"
 import { NewProjectDialog } from "@/components/dashboard/new-project-dialog"
+import { campaignGridCardProps } from "@/components/dashboard/campaign-grid-card"
 import { CompactListSkeleton, InitialAvatar, MOBILE_LIST_CARD, MobileListRow, CheckAvatar } from "@/components/dashboard/compact-list-row"
 import { GridCardsSkeleton, MobileCardsSkeleton } from "@/components/dashboard/collection-skeletons"
 import { MobileDataCard } from "@/components/dashboard/mobile-data-card"
-import { ReactIcon } from "@/components/react-icon"
-import { ProjectCover } from "@/components/project-card"
 import { GridCard, GridCardList } from "@/components/dashboard/grid-card"
 import { ViewToggle, useViewMode } from "@/components/dashboard/view-toggle"
 import { EmptySearchState, FirstRunState } from "@/components/dashboard/empty-state"
@@ -32,11 +30,15 @@ import { TableFilterBar } from "@/components/dashboard/table-filter-bar"
 import { useFilterBar, type SortOption } from "@/components/dashboard/filter-bar"
 import { TableBulkBar } from "@/components/dashboard/table-bulk-bar"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
 import { useRowSelection } from "@/hooks/use-row-selection"
 import { cn } from "@/lib/utils"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { tsToMillis } from "@/lib/tasks"
 
 const PROJECT_SORTS: SortOption<Project>[] = [
-  { value: "title", label: "Project", get: (p) => p.title, ascLabel: "A–Z", descLabel: "Z–A" },
+  { value: "title", label: "Campaign", get: (p) => p.title, ascLabel: "A–Z", descLabel: "Z–A" },
   { value: "client", label: "Client", get: (p) => p.client || p.companyId, ascLabel: "A–Z", descLabel: "Z–A" },
   {
     value: "status",
@@ -47,6 +49,7 @@ const PROJECT_SORTS: SortOption<Project>[] = [
   },
   { value: "progress", label: "Progress", get: (p) => p.progress, ascLabel: "Lowest", descLabel: "Highest" },
   { value: "dueDate", label: "Due date", get: (p) => p.dueDate, ascLabel: "Soonest", descLabel: "Latest" },
+  { value: "updatedAt", label: "Most recent", get: projectLastActivity, ascLabel: "Oldest", descLabel: "Newest" },
 ]
 
 function searchProject(p: Project) {
@@ -62,21 +65,22 @@ export default function ProjectsAdminPage() {
   const [deleting, setDeleting] = useState<string | null>(null)
   const [bulkDeleting, setBulkDeleting] = useState(false)
   const [pendingDelete, setPendingDelete] = useState<Project | null>(null)
+  const [renaming, setRenaming] = useState<Project | null>(null)
+  const [renameTitle, setRenameTitle] = useState("")
+  const [renameBusy, setRenameBusy] = useState(false)
+  const [duplicateBusy, setDuplicateBusy] = useState(false)
   const [creating, setCreating] = useState(false)
-  const [companyFilter, setCompanyFilter] = useState("all")
-
-  const companyOptions = Array.from(
-    new Set(projects.map((p) => p.client || p.companyId).filter(Boolean)),
-  ).sort((a, b) => a.localeCompare(b))
-
-  const companyFilteredProjects =
-    companyFilter === "all" ? projects : projects.filter((p) => (p.client || p.companyId) === companyFilter)
-
+  const [campaignTab, setCampaignTab] = useState<"active" | "archive">("active")
+  const isCampaignActive = (project: Project) => !isProjectArchived(project)
+  const activeProjects = projects.filter(isCampaignActive)
+  const archivedProjects = projects.filter((project) => !isCampaignActive(project))
+  const tabProjects = campaignTab === "active" ? activeProjects : archivedProjects
   const { results: visibleProjects, bar } = useFilterBar({
-    items: companyFilteredProjects,
+    items: tabProjects,
     search: searchProject,
     sorts: PROJECT_SORTS,
-    defaultSort: "title",
+    defaultSort: "updatedAt",
+    defaultDirection: "desc",
   })
 
   const selection = useRowSelection(visibleProjects, (p) => p.id)
@@ -111,6 +115,50 @@ export default function ProjectsAdminPage() {
     }
   }
 
+  async function handleRename() {
+    const title = renameTitle.trim()
+    if (!renaming || !title || title === renaming.title || renameBusy) return
+    setRenameBusy(true)
+    try {
+      await renameProject(renaming.id, title)
+      setProjects((current) => current.map((project) => project.id === renaming.id ? { ...project, title } : project))
+      setRenaming(null)
+      toast.success("Campaign renamed")
+    } catch (error) {
+      console.error("Error renaming campaign:", error)
+      toast.error("The campaign could not be renamed.")
+    } finally {
+      setRenameBusy(false)
+    }
+  }
+
+  async function handleDuplicate(project: Project) {
+    if (duplicateBusy) return
+    setDuplicateBusy(true)
+    try {
+      const copyId = await duplicateProject(project)
+      const copy = await getProject(copyId)
+      if (copy) setProjects((current) => [copy, ...current])
+      toast.success("Campaign duplicated")
+    } catch (error) {
+      console.error("Error duplicating campaign:", error)
+      toast.error("The campaign could not be duplicated.")
+    } finally {
+      setDuplicateBusy(false)
+    }
+  }
+
+  async function handleArchive(project: Project, isArchived: boolean) {
+    try {
+      const updatedAt = await setProjectArchived(project.id, isArchived)
+      setProjects((current) => current.map((item) => item.id === project.id ? { ...item, isArchived, updatedAt } : item))
+      toast.success(isArchived ? "Campaign archived" : "Campaign restored")
+    } catch (error) {
+      console.error(`Error ${isArchived ? "archiving" : "restoring"} campaign:`, error)
+      toast.error(`The campaign could not be ${isArchived ? "archived" : "restored"}.`)
+    }
+  }
+
   async function handleBulkDelete() {
     const ids = selection.selectedIds
     if (ids.length === 0 || bulkDeleting) return
@@ -130,30 +178,20 @@ export default function ProjectsAdminPage() {
 
   return (
     <main className="mx-auto w-full max-w-6xl px-4 pt-4 pb-12 sm:px-6">
+      <Tabs value={campaignTab} onValueChange={(value) => setCampaignTab(value as "active" | "archive")} className="mb-4">
+        <TabsList>
+          <TabsTrigger value="active">Active <span className="ml-1 text-xs text-muted-foreground">{activeProjects.length}</span></TabsTrigger>
+          <TabsTrigger value="archive">Archive <span className="ml-1 text-xs text-muted-foreground">{archivedProjects.length}</span></TabsTrigger>
+        </TabsList>
+      </Tabs>
       <TableFilterBar
         {...bar}
         mobileVariant="drawer"
         headerOnMobile
-        placeholder="Search projects"
+        placeholder="Search campaigns"
         controls={<ViewToggle view={view} onChange={setView} />}
-        createAction={{ label: "New project", onClick: () => setCreating(true) }}
-      >
-        {companyOptions.length > 0 && (
-          <Select value={companyFilter} onValueChange={setCompanyFilter}>
-            <SelectTrigger className="w-[170px]" aria-label="Filter by company">
-              <SelectValue placeholder="Company" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All companies</SelectItem>
-              {companyOptions.map((company) => (
-                <SelectItem key={company} value={company}>
-                  {company}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        )}
-      </TableFilterBar>
+        createAction={{ label: "New campaign", onClick: () => setCreating(true) }}
+      />
 
       {loading ? (
         view === "grid" ? <GridCardsSkeleton /> : <>
@@ -166,34 +204,31 @@ export default function ProjectsAdminPage() {
         </Card>
       ) : projects.length === 0 ? (
         <FirstRunState
-          label="Project"
-          title="Let's set up your first project"
-          description="A project holds the work you do for one client: the tasks, the progress, and whatever you choose to share with them in their portal."
-          action={<Button onClick={() => setCreating(true)}>New Project</Button>}
+          label="Campaign"
+          title="Let's set up your first campaign"
+          description="A campaign holds the work you do for one client: the tasks, the progress, and whatever you choose to share with them in their portal."
+          action={<Button onClick={() => setCreating(true)}>New Campaign</Button>}
         />
       ) : (
         <>
           {visibleProjects.length === 0 ? (
-            <EmptySearchState label="No projects match your search." />
+            <EmptySearchState label={tabProjects.length === 0 ? `No campaigns in ${campaignTab === "active" ? "Active" : "Archive"}.` : "No campaigns match your search."} />
           ) : view === "grid" ? (
             <GridCardList>
               {visibleProjects.map((p) => {
                 return (
                   <GridCard
                     key={p.id}
-                    href={`/dashboard/projects/${projectSlug(p)}`}
-                    ariaLabel={`Open ${p.title}`}
-                    title={p.title}
-                    icon={<ReactIcon icon={FaFolderOpen} className="size-4 text-amber-600 dark:text-amber-400" aria-hidden="true" />}
-                    preview={<ProjectCover project={p} />}
-                    menuLabel={`Options for ${p.title}`}
-                    menu={
-                      <>
-                        <DropdownMenuItem onSelect={() => router.push(`/dashboard/projects/${projectSlug(p)}`)}>Open project</DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem variant="destructive" onSelect={() => setPendingDelete(p)}>Delete</DropdownMenuItem>
-                      </>
-                    }
+                    {...campaignGridCardProps(p, {
+                      href: `/dashboard/projects/${projectSlug(p)}`,
+                      onOpen: () => router.push(`/dashboard/projects/${projectSlug(p)}`),
+                      onRenameRequest: () => { setRenameTitle(p.title); setRenaming(p) },
+                      onDuplicate: () => void handleDuplicate(p),
+                      archived: !isCampaignActive(p),
+                      onArchive: isCampaignActive(p) ? () => void handleArchive(p, true) : undefined,
+                      onRestore: !isCampaignActive(p) ? () => void handleArchive(p, false) : undefined,
+                      onDeleteRequest: () => setPendingDelete(p),
+                    })}
                   />
                 )
               })}
@@ -203,7 +238,7 @@ export default function ProjectsAdminPage() {
               <div className="sm:hidden">
                 <TableBulkBar
                   count={selection.selectedCount}
-                  noun="project"
+                  noun="campaign"
                   deleting={bulkDeleting}
                   onClear={selection.clear}
                   onDelete={handleBulkDelete}
@@ -234,7 +269,11 @@ export default function ProjectsAdminPage() {
                           avatarLabel={selecting ? `${checked ? "Deselect" : "Select"} ${p.title}` : `Options for ${p.title}`}
                           avatarMenu={selecting ? undefined : (
                             <>
-                              <DropdownMenuItem onSelect={() => router.push(href)}>Open project</DropdownMenuItem>
+                              <DropdownMenuItem onSelect={() => { setRenameTitle(p.title); setRenaming(p) }}>Rename</DropdownMenuItem>
+                              <DropdownMenuItem onSelect={() => void handleDuplicate(p)}>Duplicate</DropdownMenuItem>
+                              {!isCampaignActive(p)
+                                ? <DropdownMenuItem onSelect={() => void handleArchive(p, false)}>Restore</DropdownMenuItem>
+                                : <DropdownMenuItem onSelect={() => void handleArchive(p, true)}>Archive</DropdownMenuItem>}
                               <DropdownMenuItem onSelect={() => selection.toggle(p.id)}>Select</DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem variant="destructive" onSelect={() => setPendingDelete(p)}>Delete</DropdownMenuItem>
@@ -254,10 +293,10 @@ export default function ProjectsAdminPage() {
               </div>
 
               <div className="hidden space-y-2 sm:block">
-                <TableBulkBar count={selection.selectedCount} noun="project" deleting={bulkDeleting} onClear={selection.clear} onDelete={handleBulkDelete} />
+                <TableBulkBar count={selection.selectedCount} noun="campaign" deleting={bulkDeleting} onClear={selection.clear} onDelete={handleBulkDelete} />
                 <label className="flex items-center gap-2 py-1 text-sm text-muted-foreground">
-                  <Checkbox aria-label="Select all projects" checked={selection.allSelected} indeterminate={selection.someSelected} onChange={selection.toggleAll} />
-                  Select all projects
+                  <Checkbox aria-label="Select all campaigns" checked={selection.allSelected} indeterminate={selection.someSelected} onChange={selection.toggleAll} />
+                  Select all campaigns
                 </label>
                 {visibleProjects.map((p) => {
                   const meta = projectStatusMeta[p.status] ?? projectStatusMeta["in-progress"]
@@ -278,7 +317,11 @@ export default function ProjectsAdminPage() {
                     ariaLabel={`Open ${p.title}`}
                     menuLabel={`Options for ${p.title}`}
                     menu={<>
-                      <DropdownMenuItem onSelect={() => router.push(href)}>Open project</DropdownMenuItem>
+                      <DropdownMenuItem onSelect={() => { setRenameTitle(p.title); setRenaming(p) }}>Rename</DropdownMenuItem>
+                      <DropdownMenuItem onSelect={() => void handleDuplicate(p)}>Duplicate</DropdownMenuItem>
+                      {!isCampaignActive(p)
+                        ? <DropdownMenuItem onSelect={() => void handleArchive(p, false)}>Restore</DropdownMenuItem>
+                        : <DropdownMenuItem onSelect={() => void handleArchive(p, true)}>Archive</DropdownMenuItem>}
                       <DropdownMenuItem onSelect={() => selection.toggle(p.id)}>{selected ? "Deselect" : "Select"}</DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem variant="destructive" onSelect={() => setPendingDelete(p)}>Delete</DropdownMenuItem>
@@ -294,7 +337,7 @@ export default function ProjectsAdminPage() {
       <AlertDialog open={Boolean(pendingDelete)} onOpenChange={(open) => !open && !deleting && setPendingDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete project?</AlertDialogTitle>
+            <AlertDialogTitle>Delete campaign?</AlertDialogTitle>
             <AlertDialogDescription>
               This permanently deletes &quot;{pendingDelete?.title}&quot;. Tasks under it are not deleted
               automatically. This cannot be undone.
@@ -313,7 +356,23 @@ export default function ProjectsAdminPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      <NewProjectDialog open={creating} onOpenChange={setCreating} />
+      <Dialog open={renaming !== null} onOpenChange={(open) => { if (!open && !renameBusy) setRenaming(null) }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Rename campaign</DialogTitle>
+            <DialogDescription>Choose a new name for this campaign.</DialogDescription>
+          </DialogHeader>
+          <Input value={renameTitle} onChange={(event) => setRenameTitle(event.target.value)} maxLength={120} aria-label="Campaign name" autoFocus />
+          <DialogFooter>
+            <Button type="button" variant="ghost" onClick={() => setRenaming(null)} disabled={renameBusy}>Cancel</Button>
+            <Button type="button" onClick={() => void handleRename()} disabled={renameBusy || !renameTitle.trim() || renameTitle.trim() === renaming?.title}>
+              {renameBusy ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : "Save"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <NewProjectDialog open={creating} onOpenChange={setCreating} entityLabel="campaign" />
     </main>
   )
 }

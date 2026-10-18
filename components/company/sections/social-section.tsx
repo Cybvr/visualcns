@@ -63,7 +63,7 @@ function dayKey(date: Date) {
 
 /** When a post shows on the calendar: when it went out, or when it is due to. */
 function postTime(post: CampaignCreative) {
-  const iso = post.publish?.publishedAt || post.publish?.scheduledAt
+  const iso = post.publish?.publishedAt || post.publish?.scheduledAt || post.request?.scheduledAt
   const time = iso ? Date.parse(iso) : NaN
   return Number.isNaN(time) ? null : new Date(time)
 }

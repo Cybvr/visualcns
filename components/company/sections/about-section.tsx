@@ -17,6 +17,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea"
 import { COMPANY_SIZES } from "@/lib/organizations"
 
+/** A titled block on the Account page, one per link in its side menu (Profile, Social, Team). */
+export function SettingsGroup({ id, title, children }: { id: string; title: string; children: ReactNode }) {
+  return (
+    <section id={id} aria-labelledby={`${id}-title`} className="scroll-mt-6 space-y-6">
+      <h2 id={`${id}-title`} className="text-lg font-semibold tracking-tight text-foreground">{title}</h2>
+      {children}
+    </section>
+  )
+}
+
 function ProfileCard({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section className="py-2">
@@ -281,7 +291,7 @@ export function AboutSection({ singleColumn = false, formStyle = false }: { sing
         )}
         <div id="company-settings-tags">{tags}</div>
         <div id="company-settings-links">{links}</div>
-        <div id="company-settings-social" className="empty:hidden">{social}</div>
+        {social && <SettingsGroup id="company-settings-social" title="Social">{social}</SettingsGroup>}
         <div id="company-settings-bookings">{bookings}</div>
       </div>
     )
@@ -289,14 +299,16 @@ export function AboutSection({ singleColumn = false, formStyle = false }: { sing
 
   if (singleColumn) {
     return (
-      <div className="mt-5 min-w-0 space-y-6">
-        <div id="company-settings-profile">{settings}</div>
-        <div id="company-settings-about">{about}</div>
-        <div id="company-settings-details">{details}</div>
-        <div id="company-settings-tags">{tags}</div>
-        <div id="company-settings-links">{links}</div>
-        <div id="company-settings-social" className="empty:hidden">{social}</div>
-        <div id="company-settings-bookings">{bookings}</div>
+      <div className="mt-5 min-w-0 space-y-10">
+        <SettingsGroup id="company-settings-profile" title="Profile">
+          {admin?.profileSettings ? <div>{admin.profileSettings}</div> : null}
+          <div id="company-settings-about">{about}</div>
+          <div id="company-settings-details">{details}</div>
+          <div id="company-settings-tags">{tags}</div>
+          <div id="company-settings-links">{links}</div>
+        </SettingsGroup>
+        {social && <SettingsGroup id="company-settings-social" title="Social">{social}</SettingsGroup>}
+        <div id="company-settings-bookings" className="empty:hidden">{bookings}</div>
       </div>
     )
   }

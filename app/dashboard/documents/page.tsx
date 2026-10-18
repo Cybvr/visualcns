@@ -4,7 +4,7 @@ import { RouteTabs, DOCUMENT_TABS } from "@/components/dashboard/route-tabs"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { ExternalLink, FileUp, Mail, Pencil } from "lucide-react"
+import { ExternalLink, FileText, FileUp, Mail, Pencil } from "lucide-react"
 import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
@@ -12,12 +12,13 @@ import { CompanyDocumentView } from "@/components/dashboard/company-document-vie
 import { CompanyDocumentBuilder } from "@/components/dashboard/company-document-builder"
 import { CompactListRow, shortListDate } from "@/components/dashboard/compact-list-row"
 import { DocumentSplitPane } from "@/components/dashboard/document-split-pane"
+import { GridCard, thumbnailIcon } from "@/components/dashboard/grid-card"
 import { DuplicateDocumentDialog, type DuplicateSelection } from "@/components/dashboard/duplicate-document-dialog"
 import { FirstRunState } from "@/components/dashboard/empty-state"
 import { ImportWordDocumentDialog } from "@/components/dashboard/import-word-document-dialog"
 import { NewDocumentDialog } from "@/components/dashboard/new-document-dialog"
 import { TableFilterBar } from "@/components/dashboard/table-filter-bar"
-import { useFilterBar } from "@/components/dashboard/filter-bar"
+import { useFilterBar, type SortOption } from "@/components/dashboard/filter-bar"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
@@ -28,6 +29,7 @@ import { companyDocumentEmailContext } from "@/lib/document-emails"
 import { companyDocumentKindMeta, companyDocumentStatusMeta, createCompanyDocument, deleteCompanyDocument, getCompanyDocuments, getCompanyDocumentsByCompanyId, type CompanyDocument, type CompanyDocumentKind } from "@/lib/company-documents"
 import { getOrganizations, organizationRef, type Organization } from "@/lib/organizations"
 import { formatTimestamp, tsToMillis } from "@/lib/tasks"
+import { useViewMode, ViewToggle } from "@/components/dashboard/view-toggle"
 
 interface DocumentRow {
   id: string
@@ -58,6 +60,13 @@ function companyDocToRow(document: CompanyDocument, adminView: boolean): Documen
   }
 }
 
+const DOCUMENT_SORTS: SortOption<DocumentRow>[] = [
+  { value: "updatedAt", label: "Last modified", get: (row) => row.updatedAtMs, ascLabel: "Oldest", descLabel: "Newest" },
+  { value: "title", label: "Title", get: (row) => row.title, ascLabel: "A–Z", descLabel: "Z–A" },
+  { value: "company", label: "Company", get: (row) => row.company, ascLabel: "A–Z", descLabel: "Z–A" },
+  { value: "status", label: "Status", get: (row) => row.statusLabel, ascLabel: "A–Z", descLabel: "Z–A" },
+]
+
 
 export default function DocumentsPage() {
   const router = useRouter()
@@ -78,6 +87,7 @@ export default function DocumentsPage() {
   const [duplicateTarget, setDuplicateTarget] = useState<DocumentRow | null>(null)
   const [duplicating, setDuplicating] = useState(false)
   const [organizations, setOrganizations] = useState<Organization[]>([])
+  const [view, setView] = useViewMode("documents", "grid")
 
   const fetchData = useCallback(async () => {
     setError(false)
@@ -103,7 +113,7 @@ export default function DocumentsPage() {
 
   const organizationRefById = useMemo(() => new Map(organizations.map((organization) => [organization.id, organizationRef(organization)])), [organizations])
   const companyRefFor = (id: string) => organizationRefById.get(id) ?? id
-  const { results: visibleRows, bar } = useFilterBar({ items: rows, search: (row) => [row.title, row.company, row.statusLabel, companyDocumentKindMeta[row.kind]?.label], sorts: [] })
+  const { results: visibleRows, bar } = useFilterBar({ items: rows, search: (row) => [row.title, row.company, row.statusLabel, companyDocumentKindMeta[row.kind]?.label], sorts: DOCUMENT_SORTS, defaultSort: "updatedAt", defaultDirection: "desc" })
   const selectedRow = selectedId ? rows.find((row) => row.id === selectedId) ?? null : null
   useRecordTitle(selectedRow?.title || null)
 
@@ -147,6 +157,7 @@ export default function DocumentsPage() {
     <TableFilterBar
       {...bar}
       placeholder="Search documents"
+      controls={<ViewToggle view={view} onChange={setView} />}
       createAction={adminView ? { label: "New document", onClick: () => setCreating(true) } : undefined}
       actions={adminView && (
         <>
@@ -161,7 +172,7 @@ export default function DocumentsPage() {
       <RouteTabs tabs={DOCUMENT_TABS} />
       {error ? <p className="mt-10 text-sm text-destructive">Couldn’t load documents right now.</p> : !loading && rows.length === 0 ? (
         <>
-          <div className="lg:max-w-[30rem]">{documentFilter}</div>
+          {documentFilter}
           <FirstRunState label="Document" title={adminView ? "Let's create your first document" : "Nothing here yet"} description={adminView ? "Proposals and other documents you create for clients will show up here." : "Documents your agency shares with you will show up here."} action={adminView ? <Button onClick={() => setCreating(true)}>New document</Button> : undefined} />
         </>
       ) : (
@@ -183,6 +194,27 @@ export default function DocumentsPage() {
             </>
           )}
           content={selectedRow ? (adminView ? <CompanyDocumentBuilder document={selectedRow.source} /> : <CompanyDocumentView document={selectedRow.source} />) : null}
+          singlePane
+          view={view}
+          renderGridItem={(row) => (
+            <GridCard
+              title={row.title || "Untitled document"}
+              icon={<FileText className="size-4 text-muted-foreground" aria-hidden="true" />}
+              placeholder={thumbnailIcon(FileText)}
+              subtitle={row.statusLabel || companyDocumentKindMeta[row.kind]?.label || "Document"}
+              onClick={() => setSelectedId(row.id)}
+              ariaLabel={`Open ${row.title || "document"}`}
+              menuLabel={`Options for ${row.title || "document"}`}
+              menu={<>
+                <DropdownMenuItem onSelect={() => setSelectedId(row.id)}>Open document</DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => router.push(row.viewHref)}>View document</DropdownMenuItem>
+                {adminView && row.editHref && <DropdownMenuItem onSelect={() => router.push(row.editHref!)}>Edit document</DropdownMenuItem>}
+                {adminView && <DropdownMenuItem onSelect={() => router.push(buildEmailComposeHref(companyDocumentEmailContext(row.source, companyRefFor(row.companyId))))}>Email document</DropdownMenuItem>}
+                {adminView && <DropdownMenuItem onSelect={() => setDuplicateTarget(row)}>Duplicate document</DropdownMenuItem>}
+                {adminView && <DropdownMenuItem variant="destructive" onSelect={() => setConfirmDelete(row)}>Delete document</DropdownMenuItem>}
+              </>}
+            />
+          )}
           renderItem={(row, active) => (
             <CompactListRow
               title={row.title || "Untitled document"}

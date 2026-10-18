@@ -45,13 +45,16 @@ const EMPTY_FORM: FormState = {
 
 interface ClientProjectFormProps {
   project?: Project | null
+  entityLabel?: "project" | "campaign"
   initialCompanyId?: string
   onSaved: (id: string) => void
   onCancel: () => void
 }
 
-export function ClientProjectForm({ project, initialCompanyId, onSaved, onCancel }: ClientProjectFormProps) {
+export function ClientProjectForm({ project, entityLabel = "project", initialCompanyId, onSaved, onCancel }: ClientProjectFormProps) {
   const isEdit = Boolean(project)
+  const entityName = entityLabel
+  const entityNameTitle = entityName.charAt(0).toUpperCase() + entityName.slice(1)
   // When the caller already knows the client (e.g. opened from that company's
   // own page), there's nothing to pick — skip the field instead of asking.
   const showCompanyField = isEdit || !initialCompanyId
@@ -126,11 +129,11 @@ export function ClientProjectForm({ project, initialCompanyId, onSaved, onCancel
     setError(null)
 
     if (!form.companyId) {
-      setError("Pick which client this project belongs to.")
+      setError(`Pick which client this ${entityName} belongs to.`)
       return
     }
     if (!form.title.trim()) {
-      setError("Project title is required.")
+      setError(`${entityNameTitle} title is required.`)
       return
     }
 
@@ -158,7 +161,7 @@ export function ClientProjectForm({ project, initialCompanyId, onSaved, onCancel
       }
     } catch (err) {
       console.error("Error saving project:", err)
-      setError(err instanceof Error ? err.message : "Failed to save project.")
+      setError(err instanceof Error ? err.message : `Failed to save ${entityName}.`)
     } finally {
       setSaving(false)
     }
@@ -212,7 +215,7 @@ export function ClientProjectForm({ project, initialCompanyId, onSaved, onCancel
           rows={3}
           value={form.description}
           onChange={(e) => set("description", e.target.value)}
-          placeholder="What's this project about?"
+          placeholder={`What's this ${entityName} about?`}
         />
       </div>
 
@@ -249,7 +252,7 @@ export function ClientProjectForm({ project, initialCompanyId, onSaved, onCancel
         </Button>
         <Button type="submit" disabled={saving}>
           {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          {isEdit ? "Save Changes" : "Create Project"}
+          {isEdit ? "Save Changes" : `Create ${entityNameTitle}`}
         </Button>
       </div>
     </form>

@@ -122,7 +122,7 @@ export default function EstimatesPage() {
       <RouteTabs tabs={BILLING_TABS} />
       {error ? <p className="mt-10 text-sm text-destructive">Couldn’t load estimates right now.</p> : !loading && estimates.length === 0 ? (
         <>
-          <div className="lg:max-w-[30rem]">{estimateFilter}</div>
+          {estimateFilter}
           <FirstRunState label="Estimate" title={adminView ? "Let's create your first estimate" : "No estimates yet"} description={adminView ? "Price and scope work before it becomes an invoice." : "Estimates sent to you will show up here."} action={adminView ? <Button asChild><Link href="/dashboard/estimates/new">New estimate</Link></Button> : undefined} />
         </>
       ) : (

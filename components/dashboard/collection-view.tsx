@@ -38,6 +38,9 @@ export type CollectionItemActions = {
   onOpen?: () => void
   onRename?: (name: string) => Promise<void> | void
   onDuplicate?: () => Promise<void> | void
+  /** Reversible visibility action, shown between Duplicate and Delete. */
+  onArchive?: () => Promise<void> | void
+  onRestore?: () => Promise<void> | void
   /** The tab's own actions, shown between Duplicate and Delete. */
   extra?: ReactNode
   onDelete?: () => Promise<void> | void
@@ -59,6 +62,8 @@ export function CollectionItemMenu({ actions, onRename = () => {}, onDelete = ()
       {actions.onOpen && <DropdownMenuItem onSelect={actions.onOpen}>Open {noun}</DropdownMenuItem>}
       {actions.onRename && <DropdownMenuItem onSelect={onRename}>Rename</DropdownMenuItem>}
       {actions.onDuplicate && <DropdownMenuItem onSelect={() => void actions.onDuplicate?.()}>Duplicate</DropdownMenuItem>}
+      {actions.onArchive && <DropdownMenuItem onSelect={() => void actions.onArchive?.()}>Archive</DropdownMenuItem>}
+      {actions.onRestore && <DropdownMenuItem onSelect={() => void actions.onRestore?.()}>Restore</DropdownMenuItem>}
       {actions.extra}
       {actions.onDelete && (
         <>
@@ -91,6 +96,8 @@ export function CollectionView<T>({
   cardsAfter,
   hasExtraCards = false,
   initialView = "card",
+  fixedView,
+  hideToolbar = false,
   className = "mt-5",
   onSearch,
   date,
@@ -120,6 +127,10 @@ export function CollectionView<T>({
   /** True when `cardsAfter` has anything, so the tab doesn't count as empty. */
   hasExtraCards?: boolean
   initialView?: ListView
+  /** Use one layout without allowing a toolbar toggle to change it. */
+  fixedView?: ListView
+  /** Hide the search and view toolbar while retaining the shared collection section. */
+  hideToolbar?: boolean
   className?: string
   /** Hears the search text, for tabs that step through the matching items elsewhere. */
   onSearch?: (query: string) => void
@@ -128,7 +139,8 @@ export function CollectionView<T>({
   /** The item's menu, built in the standard order. Used in place of the card's own `menu`. */
   itemActions?: (item: T) => CollectionItemActions
 }) {
-  const [view, setView] = useListView(viewKey, initialView)
+  const [savedView, setSavedView] = useListView(viewKey, initialView)
+  const view = fixedView ?? savedView
   const { query, setQuery, results } = useListSearch(items, searchFields)
   const isEmpty = items.length === 0 && !hasExtraCards
   const [renaming, setRenaming] = useState<{ actions: CollectionItemActions; name: string } | null>(null)
@@ -139,7 +151,7 @@ export function CollectionView<T>({
     const base = card(item)
     const actions = itemActions?.(item)
     // No dots at all when the item has nothing to offer.
-    const menuActions = actions && (actions.onOpen || actions.onRename || actions.onDuplicate || actions.extra || actions.onDelete) ? actions : undefined
+    const menuActions = actions && (actions.onOpen || actions.onRename || actions.onDuplicate || actions.onArchive || actions.onRestore || actions.extra || actions.onDelete) ? actions : undefined
     return {
       ...base,
       // Cards show no date line when the tab has dates; the date is for list rows.
@@ -176,7 +188,7 @@ export function CollectionView<T>({
 
   return (
     <section className={className}>
-      <ListToolbar query={query} onQueryChange={(next) => { setQuery(next); onSearch?.(next) }} placeholder={searchPlaceholder} view={view} onViewChange={setView} actions={actions} />
+      {!hideToolbar && <ListToolbar query={query} onQueryChange={(next) => { setQuery(next); onSearch?.(next) }} placeholder={searchPlaceholder} view={view} onViewChange={setSavedView} actions={actions} />}
       {before}
       {loading ? (
         <ListSkeleton view={view} count={4} toolbar={false} label={`Loading ${searchPlaceholder.replace(/^Search /, "")}`} />

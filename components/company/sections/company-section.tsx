@@ -8,7 +8,7 @@ import { CompanyBillings } from "@/components/company/company-billings"
 import { useCompanyPage, type CompanySectionKey } from "@/components/company/company-page-context"
 import { CompanyVisitors } from "@/components/company/company-visitors"
 import { HomeOverview } from "@/components/company/home-overview"
-import { AboutSection } from "@/components/company/sections/about-section"
+import { AboutSection, SettingsGroup } from "@/components/company/sections/about-section"
 import { ActivitySection } from "@/components/company/sections/activity-section"
 import { AnalyticsSection } from "@/components/company/sections/analytics-section"
 import { DocumentsSection } from "@/components/company/sections/documents-section"
@@ -43,14 +43,19 @@ function VisitorsSection() {
   return <CompanyVisitors agencyId={visitorAgencyId} companyId={company.id} slug={company.slug || company.id} />
 }
 
-/** About, called Settings on the dashboard. The plan lives on Billings. */
+/** About, called Account on the dashboard, with the team under it. The plan lives on Billings. */
 function SettingsSection() {
   const { mode } = useCompanyPage()
   if (mode === "tabs") {
     return (
-      <CompanySettingsLayout>
+      <CompanySettingsLayout includeTeam>
         <div className="min-w-0 max-w-xl">
           <AboutSection singleColumn />
+          <div className="relative mt-10">
+            <SettingsGroup id="company-settings-team" title="Team">
+              <TeamSection />
+            </SettingsGroup>
+          </div>
         </div>
       </CompanySettingsLayout>
     )

@@ -57,9 +57,13 @@ export function PublishPostDialog({ post, companyId, open, onOpenChange }: { pos
   useEffect(() => {
     if (!open) return
     setSelected(requested?.accountIds ?? [])
-    const asked = requested?.scheduledAt ? new Date(requested.scheduledAt) : null
+    const asked = requested?.scheduledAt
+      ? new Date(requested.scheduledAt)
+      : post?.plannedPublishAt
+        ? new Date(post.plannedPublishAt)
+        : null
     const later = asked && asked.getTime() > Date.now() + 60_000
-    setWhen(requested && !requested.scheduledAt ? "now" : "later")
+    setWhen(requested && !requested.scheduledAt && !post?.plannedPublishAt ? "now" : "later")
     setAt(localInputValue(later ? asked : new Date(Date.now() + 60 * 60 * 1000)))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, post?.id])

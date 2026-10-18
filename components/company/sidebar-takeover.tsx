@@ -102,11 +102,40 @@ const SIDEBAR_ITEM_CLASS = "h-9 gap-2 px-2 max-md:h-12 max-md:min-h-12 max-md:ga
 export function SidebarTakeoverMenu({ sections }: { sections: ReactNode }) {
   const takeover = useSidebarTakeoverState()
   const { setOpenMobile } = useSidebar()
-  if (!takeover) return <>{sections}</>
+  // Going deeper slides the new menu in from the right, going back slides it in from the left.
+  const depth = takeover ? takeover.level ?? 1 : 0
+  const previousDepth = useRef(depth)
+  const deeper = depth >= previousDepth.current
+  // Not on first load, only when the menu changes underneath you.
+  const mounted = useRef(false)
+  const animate = mounted.current
+  useEffect(() => {
+    mounted.current = true
+    previousDepth.current = depth
+  }, [depth])
+  const panelKey = takeover ? `${depth}:${takeover.title}` : "root"
+
+  return (
+    <li className="-mx-0.5 list-none overflow-x-clip px-0.5">
+      <ul
+        key={panelKey}
+        className={cn(
+          "flex w-full min-w-0 flex-col gap-0.5 max-md:gap-1.5",
+          animate && "duration-200 ease-out animate-in fade-in motion-reduce:animate-none",
+          animate && (deeper ? "slide-in-from-right-6" : "slide-in-from-left-6"),
+        )}
+      >
+        {takeover ? <TakeoverItems takeover={takeover} closeMobile={() => setOpenMobile(false)} /> : sections}
+      </ul>
+    </li>
+  )
+}
+
+function TakeoverItems({ takeover, closeMobile }: { takeover: SidebarTakeover; closeMobile: () => void }) {
   return (
     <>
       <SidebarMenuItem>
-        <SidebarMenuButton type="button" tooltip={`Back to ${takeover.backLabel}`} onClick={() => { setOpenMobile(false); takeover.onBack() }} className={cn(SIDEBAR_ITEM_CLASS, "text-muted-foreground")}>
+        <SidebarMenuButton type="button" tooltip={`Back to ${takeover.backLabel}`} onClick={() => { closeMobile(); takeover.onBack() }} className={cn(SIDEBAR_ITEM_CLASS, "text-muted-foreground")}>
           <ChevronLeft className="h-4 w-4" aria-hidden="true" />
           <span className="sidebar-nav-label">{takeover.backLabel}</span>
         </SidebarMenuButton>
@@ -118,7 +147,7 @@ export function SidebarTakeoverMenu({ sections }: { sections: ReactNode }) {
             type="button"
             isActive={takeover.active === item.key}
             tooltip={item.label}
-            onClick={() => { setOpenMobile(false); takeover.onSelect(item.key) }}
+            onClick={() => { closeMobile(); takeover.onSelect(item.key) }}
             className={SIDEBAR_ITEM_CLASS}
           >
             <item.icon className="h-4 w-4" aria-hidden="true" />

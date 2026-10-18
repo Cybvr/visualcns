@@ -33,6 +33,8 @@ export interface Project {
   title: string
   service: string
   status: ProjectStatus
+  /** Archived campaigns stay available in the agency's Archive view. */
+  isArchived?: boolean
   progress: number
   dueDate: string
   /** Client team member ids assigned to this project. */
@@ -89,6 +91,15 @@ export interface Project {
   technologies?: string[]
   createdAt?: Timestamp
   updatedAt?: Timestamp
+}
+
+export function projectLastActivity(project: Pick<Project, "updatedAt" | "createdAt">): number {
+  return Math.max(tsToMillis(project.updatedAt), tsToMillis(project.createdAt))
+}
+
+/** Projects are active for 30 days after creation or their latest update. */
+export function isProjectArchived(project: Project, now = Date.now()): boolean {
+  return Boolean(project.isArchived) || projectLastActivity(project) < now - 30 * 24 * 60 * 60 * 1000
 }
 
 export const projectStatusMeta: Record<ProjectStatus, { label: string; className: string }> = {
@@ -197,6 +208,12 @@ export async function updateProject(id: string, data: Partial<Omit<Project, "id"
   await updateDoc(doc(db, COLLECTION_NAME, id), { ...data, updatedAt: Timestamp.now() })
 }
 
+export async function setProjectArchived(id: string, isArchived: boolean): Promise<Timestamp> {
+  const updatedAt = Timestamp.now()
+  await updateDoc(doc(db, COLLECTION_NAME, id), { isArchived, updatedAt })
+  return updatedAt
+}
+
 export async function deleteProject(id: string): Promise<void> {
   await deleteDoc(doc(db, COLLECTION_NAME, id))
 }
@@ -220,6 +237,7 @@ export async function duplicateProject(project: Project): Promise<string> {
     ...fields,
     title: copyTitle,
     status: "in-progress",
+    isArchived: false,
     progress: 0,
     slug: `${slugify(project.title)}-copy-${Date.now()}`,
     isPublic: false,

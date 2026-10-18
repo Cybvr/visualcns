@@ -4,8 +4,8 @@ import dynamic from "next/dynamic"
 import { Suspense, useEffect, type ReactNode } from "react"
 import Image from "next/image"
 import { usePathname, useRouter } from "next/navigation"
-import { Bot, Eye, FileText, House, LogOut, Receipt } from "lucide-react"
-import { FiBriefcase, FiCheckSquare, FiMail, FiTrendingUp, FiUsers } from "react-icons/fi"
+import { Bot, Eye, FileText, House, LogOut, Megaphone, Receipt } from "lucide-react"
+import { FiBriefcase, FiMail, FiTrendingUp, FiUsers } from "react-icons/fi"
 import { AuthProvider, useAuth } from "@/components/auth-provider"
 import { AgentProvider } from "@/components/agent/agent-context"
 import { Button } from "@/components/ui/button"
@@ -19,15 +19,15 @@ const AgentDock = dynamic(() => import("@/components/agent/agent-dock").then((mo
 
 const DASHBOARD_NAV: NavLink[] = [
   { label: "Home", href: "/dashboard", icon: House },
-  { label: "Tasks", href: "/dashboard/tasks", icon: FiCheckSquare },
   { label: "Email", href: "/dashboard/email", icon: FiMail },
   { label: "Leads", href: "/dashboard/leads", icon: FiTrendingUp, adminOnly: true },
   { label: "Contacts", href: "/dashboard/users", icon: FiUsers, adminOnly: true },
   { label: "Clients", href: "/dashboard/clients", icon: FiBriefcase, adminOnly: true },
+  { label: "Campaigns", href: "/dashboard/projects", icon: Megaphone, adminOnly: true },
   // Estimates are a tab on Invoices, and Notes a tab on Documents.
   { label: "Invoices", href: "/dashboard/invoices", icon: Receipt, adminOnly: true, alsoActive: ["/dashboard/estimates"] },
   { label: "Documents", href: "/dashboard/documents", icon: FileText, adminOnly: true, alsoActive: ["/dashboard/notes"] },
-  { label: "Ngai", href: "/dashboard/agent", icon: Bot, startsNewChat: true },
+  { label: "Ngai", href: "/dashboard/agent", icon: Bot },
 ]
 
 function UnifiedDashboardShell({ children, requireAdmin = false }: { children: ReactNode; requireAdmin?: boolean }) {

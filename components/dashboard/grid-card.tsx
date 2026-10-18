@@ -19,6 +19,8 @@ export type GridCardProps = {
   placeholder?: ReactNode
   menu?: ReactNode
   menuLabel?: string
+  /** Keep the menu button visible even when the card is not hovered. */
+  menuAlwaysVisible?: boolean
   selected?: boolean
   href?: string
   onClick?: () => void
@@ -39,6 +41,7 @@ export function GridCard({
   placeholder,
   menu,
   menuLabel = "More options",
+  menuAlwaysVisible = false,
   selected = false,
   href,
   onClick,
@@ -70,7 +73,7 @@ export function GridCard({
                 type="button"
                 aria-label={menuLabel}
                 title={menuLabel}
-                className="relative z-10 -mr-1 flex size-8 shrink-0 items-center justify-center rounded-full text-foreground outline-none transition-colors hover:bg-background/60 focus-visible:ring-2 focus-visible:ring-ring"
+                className={`relative z-10 -mr-1 flex size-8 shrink-0 items-center justify-center rounded-full text-foreground outline-none transition-colors hover:bg-background/60 focus-visible:ring-2 focus-visible:ring-ring ${menuAlwaysVisible ? "!opacity-100" : ""}`}
               >
                 <EllipsisVertical className="size-5" aria-hidden="true" />
               </button>

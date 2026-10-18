@@ -60,6 +60,26 @@ export function postMediaType(post: Pick<CampaignCreative, "mediaUrl" | "mediaTy
   return post.mediaType === "video" || mediaKindForUrl(post.mediaUrl ?? "") === "video" ? "video" : "image"
 }
 
+function localDateTimeValue(value?: string) {
+  if (!value) return ""
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return ""
+  const pad = (part: number) => String(part).padStart(2, "0")
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
+}
+
+function isoFromLocalDateTime(value: string) {
+  if (!value) return ""
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? "" : date.toISOString()
+}
+
+function plannedDateLabel(value?: string) {
+  if (!value) return ""
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? "" : date.toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })
+}
+
 export const statusTone: Record<string, string> = {
   Draft: "bg-muted text-muted-foreground",
   [READY_FOR_REVIEW]: "bg-amber-500/15 text-amber-700 dark:text-amber-300",
@@ -192,15 +212,22 @@ export function CampaignCreatives({ creatives, agencyId, companyId, projectId, c
           card={(post) => ({
             icon: <Palette className="size-4 text-muted-foreground" aria-hidden="true" />,
             title: post.title || "Post",
-            preview: post.mediaUrl ? (
-              post.mediaType === "video"
-                ? <VideoThumbnail src={post.mediaUrl} />
-                // eslint-disable-next-line @next/next/no-img-element
-                : <img src={post.mediaUrl} alt="" loading="lazy" className="size-full object-cover" />
-            ) : undefined,
-            placeholder: (
-              <div className="flex size-full items-center justify-center bg-muted/30" aria-label="No thumbnail available">
-                <ImageIcon className="size-10 text-muted-foreground/45" aria-hidden="true" />
+            preview: (
+              <div className="relative size-full">
+                {post.mediaUrl ? (
+                  postMediaType(post) === "video"
+                    ? <VideoThumbnail src={post.mediaUrl} />
+                    // eslint-disable-next-line @next/next/no-img-element
+                    : <img src={post.mediaUrl} alt="" loading="lazy" className="size-full object-cover" />
+                ) : (
+                  <div className="flex size-full items-center justify-center bg-muted/30" aria-label="No thumbnail available">
+                    <ImageIcon className="size-10 text-muted-foreground/45" aria-hidden="true" />
+                  </div>
+                )}
+                <div className="absolute inset-x-2 bottom-2 flex items-center justify-between gap-2">
+                  <StatusPill status={creativeStatus(post)} />
+                  {plannedDateLabel(post.plannedPublishAt) && <span className="min-w-0 truncate rounded-full bg-black/65 px-2 py-0.5 text-[11px] font-medium text-white">Publishes {plannedDateLabel(post.plannedPublishAt)}</span>}
+                </div>
               </div>
             ),
             onClick: () => openPost(post),
@@ -217,7 +244,7 @@ export function CampaignCreatives({ creatives, agencyId, companyId, projectId, c
             extra: postExtra(post),
             onDelete: canEdit ? () => removeCreative(post.id) : undefined,
           })}
-          row={(post) => ({ subtitle: post.body?.trim() || post.title, description: post.publish ? `${creativeStatus(post)} · ${PUBLISH_LABELS[post.publish.state]}` : creativeStatus(post) })}
+          row={(post) => ({ subtitle: post.body?.trim() || post.title, description: `${post.publish ? `${creativeStatus(post)} · ${PUBLISH_LABELS[post.publish.state]}` : creativeStatus(post)}${plannedDateLabel(post.plannedPublishAt) ? ` · Publishes ${plannedDateLabel(post.plannedPublishAt)}` : ""}` })}
         />
 
         <CampaignPostViewDialog
@@ -268,7 +295,7 @@ export function CampaignCreatives({ creatives, agencyId, companyId, projectId, c
 
 const postSearchFields = (post: CampaignCreative) => [post.title, post.body, creativeStatus(post)]
 
-async function saveCreative(id: string, patch: Partial<Pick<CampaignCreative, "title" | "status" | "body" | "postedBy" | "mediaUrl" | "mediaType">>) {
+async function saveCreative(id: string, patch: Partial<Pick<CampaignCreative, "title" | "status" | "body" | "postedBy" | "mediaUrl" | "mediaType" | "plannedPublishAt">>) {
   try {
     await updateCampaignCreative(id, patch)
   } catch (error) {
@@ -508,6 +535,7 @@ export function CampaignPostViewDialog({
               <span className="min-w-0 truncate">{post.title || "Post"}</span>
               <StatusPill status={creativeStatus(post)} />
               <PublishPill post={post} />
+              {plannedDateLabel(post.plannedPublishAt) && <span className="shrink-0">Planned {plannedDateLabel(post.plannedPublishAt)}</span>}
               <span className="shrink-0">{postDate(post)}</span>
             </div>
           </div>
@@ -544,7 +572,7 @@ export function CampaignPostViewDialog({
                 <StatusPill status={creativeStatus(post)} />
                 <PublishPill post={post} />
               </h2>
-              <p className="text-xs text-muted-foreground">{postDate(post) || "Campaign"}</p>
+              <p className="text-xs text-muted-foreground">{post.plannedPublishAt ? `Planned for ${plannedDateLabel(post.plannedPublishAt)}` : postDate(post) || "Campaign"}</p>
             </div>
             <PostContextMenu canEdit={canEdit} canReview={canReview} onEdit={() => setEditing(true)} className="-mr-1.5" />
           </header>
@@ -612,6 +640,7 @@ function InlinePostEditor({ post, canEdit, canReview, library = [], onMediaChang
   const [postedBy, setPostedBy] = useState(post.postedBy || "Founder")
   const [body, setBody] = useState(post.body ?? "")
   const [status, setStatus] = useState(creativeStatus(post))
+  const [plannedPublishAt, setPlannedPublishAt] = useState(localDateTimeValue(post.plannedPublishAt))
   const [media, setMedia] = useState<{ url: string; type: "image" | "video" } | null>(post.mediaUrl ? { url: post.mediaUrl, type: postMediaType(post) } : null)
   const [uploading, setUploading] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -645,7 +674,7 @@ function InlinePostEditor({ post, canEdit, canReview, library = [], onMediaChang
     setSaving(true)
     try {
       await updateCampaignCreative(post.id, canEdit
-        ? { title: title.trim() || post.title, postedBy, body, status, mediaUrl: media?.url ?? "", ...(media ? { mediaType: media.type } : {}) }
+        ? { title: title.trim() || post.title, postedBy, body, status, plannedPublishAt: isoFromLocalDateTime(plannedPublishAt), mediaUrl: media?.url ?? "", ...(media ? { mediaType: media.type } : {}) }
         : { body })
       toast.success("Saved")
       onSaved()
@@ -687,6 +716,13 @@ function InlinePostEditor({ post, canEdit, canReview, library = [], onMediaChang
               {STATUS_SHORT[item]}
             </button>
           ))}
+        </div>
+      )}
+      {canEdit && (
+        <div className="space-y-1.5">
+          <label htmlFor={`planned-publish-${post.id}`} className="text-sm font-medium">Planned publish date</label>
+          <input id={`planned-publish-${post.id}`} type="datetime-local" value={plannedPublishAt} onChange={(event) => setPlannedPublishAt(event.target.value)} className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring" />
+          <p className="text-xs text-muted-foreground">Used as the default when this approved post is scheduled.</p>
         </div>
       )}
       <div className="mt-auto flex justify-end gap-2 border-t border-border pt-4">
@@ -734,6 +770,7 @@ function PostForm({ post, scope, canEdit, library, onDone }: { post: CampaignCre
   const [postedBy, setPostedBy] = useState(post?.postedBy || "Founder")
   const [body, setBody] = useState(post?.body ?? "")
   const [status, setStatus] = useState(post ? creativeStatus(post) : "Draft")
+  const [plannedPublishAt, setPlannedPublishAt] = useState(localDateTimeValue(post?.plannedPublishAt))
   const [media, setMedia] = useState<{ url: string; type: "image" | "video" } | null>(post?.mediaUrl ? { url: post.mediaUrl, type: postMediaType(post) } : null)
   const [uploading, setUploading] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -763,7 +800,7 @@ function PostForm({ post, scope, canEdit, library, onDone }: { post: CampaignCre
     try {
       if (post) {
         await updateCampaignCreative(post.id, canEdit
-          ? { title: title.trim() || post.title, postedBy, body, status, mediaUrl: media?.url ?? "", mediaType: media?.type ?? "image" }
+          ? { title: title.trim() || post.title, postedBy, body, status, plannedPublishAt: isoFromLocalDateTime(plannedPublishAt), mediaUrl: media?.url ?? "", mediaType: media?.type ?? "image" }
           : { body })
       } else {
         await addCampaignCreative(scope, {
@@ -774,6 +811,7 @@ function PostForm({ post, scope, canEdit, library, onDone }: { post: CampaignCre
           body,
           postedBy,
           status: canEdit ? status : "Draft",
+          ...(canEdit && plannedPublishAt ? { plannedPublishAt: isoFromLocalDateTime(plannedPublishAt) } : {}),
           ...(canEdit && media ? { mediaUrl: media.url, mediaType: media.type } : {}),
         })
       }
@@ -818,6 +856,13 @@ function PostForm({ post, scope, canEdit, library, onDone }: { post: CampaignCre
                 {STATUS_SHORT[item]}
               </button>
             ))}
+          </div>
+        )}
+        {canEdit && (
+          <div className="space-y-1.5">
+            <label htmlFor={`planned-publish-${post?.id ?? "new"}`} className="text-sm font-medium">Planned publish date</label>
+            <input id={`planned-publish-${post?.id ?? "new"}`} type="datetime-local" value={plannedPublishAt} onChange={(event) => setPlannedPublishAt(event.target.value)} className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring" />
+            <p className="text-xs text-muted-foreground">Used as the default when this approved post is scheduled.</p>
           </div>
         )}
       </div>

@@ -13,11 +13,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { Loader2, Mail, Trash2, User as UserIcon, UserPlus } from "lucide-react"
+import { Loader2, Mail, Trash2, User as UserIcon } from "lucide-react"
 import { getUsers, deleteUser, userRoleLabel, type AppUser } from "@/lib/users"
 import { getOrganizations } from "@/lib/organizations"
 import { CompactListRow, InitialAvatar } from "@/components/dashboard/compact-list-row"
 import { DocumentSplitPane } from "@/components/dashboard/document-split-pane"
+import { GridCard, thumbnailIcon } from "@/components/dashboard/grid-card"
 import { FirstRunState } from "@/components/dashboard/empty-state"
 import { UserForm } from "@/components/dashboard/user-form"
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
@@ -28,6 +29,7 @@ import { TableFilterBar } from "@/components/dashboard/table-filter-bar"
 import { useFilterBar, type SortOption } from "@/components/dashboard/filter-bar"
 import { formatTimestamp, tsToMillis } from "@/lib/tasks"
 import { buildEmailComposeHref } from "@/lib/email-composer"
+import { useViewMode, ViewToggle } from "@/components/dashboard/view-toggle"
 
 /** Contacts as a list on the left and the open contact's details on the right, like clients, tasks and notes. */
 export default function UsersAdminPage() {
@@ -40,7 +42,7 @@ export default function UsersAdminPage() {
   const [deleting, setDeleting] = useState<string | null>(null)
   const [pendingDelete, setPendingDelete] = useState<AppUser | null>(null)
   const [selectedId, setSelectedId] = useUrlSelection("contact")
-  const [inviting, setInviting] = useState(false)
+  const [view, setView] = useViewMode("contacts", "grid")
 
   // A contact's company lives on the linked organization, keyed by companyId;
   // the user doc's `company` string stays empty. Resolve the org name so the
@@ -115,20 +117,6 @@ export default function UsersAdminPage() {
     setSelectedId(uid, { replace: true })
   }
 
-  async function handleInvite() {
-    const email = window.prompt("Email address to invite")?.trim()
-    if (!email || !user || inviting) return
-    setInviting(true)
-    try {
-      const response = await fetch("/api/admin/invites", { method: "POST", headers: { Authorization: `Bearer ${await user.getIdToken()}`, "Content-Type": "application/json" }, body: JSON.stringify({ email }) })
-      const data = await response.json()
-      if (!response.ok) throw new Error(data.error || "Could not create invite")
-      await navigator.clipboard?.writeText(data.inviteUrl)
-      window.alert(`Invite created. The link was copied:\n\n${data.inviteUrl}`)
-    } catch (inviteError) { setError(inviteError instanceof Error ? inviteError.message : "Could not create invite") }
-    finally { setInviting(false) }
-  }
-
   function canViewAs(u: AppUser) {
     return (u.role === "client" && Boolean(u.companyId)) || ((u.role === "admin" || u.role === "superadmin") && Boolean(u.agencyId))
   }
@@ -148,6 +136,15 @@ export default function UsersAdminPage() {
     })
   }
 
+  function contactMenu(u: AppUser) {
+    return <>
+      <DropdownMenuItem onSelect={() => setSelectedId(u.uid)}>Open contact</DropdownMenuItem>
+      <DropdownMenuItem disabled={!u.email?.trim()} onSelect={() => router.push(emailHref(u))}>Email</DropdownMenuItem>
+      {canViewAs(u) && <DropdownMenuItem onSelect={() => handleViewAs(u)}>View as</DropdownMenuItem>}
+      <DropdownMenuItem variant="destructive" onSelect={() => setPendingDelete(u)}>Delete</DropdownMenuItem>
+    </>
+  }
+
   const { results: visibleUsers, bar } = useFilterBar({
     items: users,
     search: searchUser,
@@ -164,14 +161,8 @@ export default function UsersAdminPage() {
     <TableFilterBar
       {...bar}
       placeholder="Search contacts"
+      controls={<ViewToggle view={view} onChange={setView} />}
       createAction={{ label: "New contact", onClick: () => setSelectedId("new") }}
-      actions={
-        <>
-          <Button variant="ghost" size="icon" className="bg-transparent text-foreground hover:bg-transparent" disabled={inviting} onClick={() => void handleInvite()} aria-label="Invite contact" title="Invite contact">
-            {inviting ? <Loader2 className="size-4 animate-spin" /> : <UserPlus className="size-4" aria-hidden="true" />}
-          </Button>
-        </>
-      }
     />
   )
 
@@ -181,7 +172,7 @@ export default function UsersAdminPage() {
 
       {!loading && users.length === 0 && !isNew ? (
         <>
-          <div className="lg:max-w-[30rem]">{contactFilter}</div>
+          {contactFilter}
           <FirstRunState
             label="Contact"
             title="Let's add your first contact"
@@ -226,6 +217,22 @@ export default function UsersAdminPage() {
               onCancel={() => setSelectedId(null)}
             />
           )}
+          singlePane
+          view={view}
+          renderGridItem={(u) => (
+            <GridCard
+              title={u.displayName || u.email || "—"}
+              icon={<UserIcon className="size-4 text-muted-foreground" aria-hidden="true" />}
+              imageUrl={u.photoURL}
+              imageAlt=""
+              placeholder={thumbnailIcon(UserIcon)}
+              subtitle={u.role ? userRoleLabel(u.role) : "Contact"}
+              onClick={() => setSelectedId(u.uid)}
+              ariaLabel={`Open ${u.displayName || u.email || "contact"}`}
+              menuLabel={`Options for ${u.displayName || u.email || "contact"}`}
+              menu={contactMenu(u)}
+            />
+          )}
           renderItem={(u, active) => (
             <CompactListRow
               leading={u.photoURL ? (
@@ -245,12 +252,7 @@ export default function UsersAdminPage() {
               onClick={() => setSelectedId(u.uid)}
               ariaLabel={`Open ${u.displayName || u.email || "contact"}`}
               menuLabel={`Options for ${u.displayName || u.email || "contact"}`}
-              menu={<>
-                <DropdownMenuItem onSelect={() => setSelectedId(u.uid)}>Open contact</DropdownMenuItem>
-                <DropdownMenuItem disabled={!u.email?.trim()} onSelect={() => router.push(emailHref(u))}>Email</DropdownMenuItem>
-                {canViewAs(u) && <DropdownMenuItem onSelect={() => handleViewAs(u)}>View as</DropdownMenuItem>}
-                <DropdownMenuItem variant="destructive" onSelect={() => setPendingDelete(u)}>Delete</DropdownMenuItem>
-              </>}
+              menu={contactMenu(u)}
             />
           )}
         />

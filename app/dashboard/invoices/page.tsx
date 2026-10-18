@@ -4,7 +4,7 @@ import { RouteTabs, BILLING_TABS } from "@/components/dashboard/route-tabs"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { ExternalLink, Mail, MoreHorizontal } from "lucide-react"
+import { ExternalLink, FileText, Mail, MoreHorizontal } from "lucide-react"
 import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
@@ -12,6 +12,7 @@ import { useRecordTitle } from "@/components/dashboard/page-title-context"
 import { useUrlSelection } from "@/hooks/use-url-selection"
 import { CompactListRow } from "@/components/dashboard/compact-list-row"
 import { DocumentSplitPane } from "@/components/dashboard/document-split-pane"
+import { GridCard, thumbnailIcon } from "@/components/dashboard/grid-card"
 import { DuplicateDocumentDialog, type DuplicateSelection } from "@/components/dashboard/duplicate-document-dialog"
 import { FirstRunState } from "@/components/dashboard/empty-state"
 import { TableFilterBar } from "@/components/dashboard/table-filter-bar"
@@ -27,6 +28,7 @@ import { buildEmailComposeHref } from "@/lib/email-composer"
 import { getExchangeRate } from "@/lib/currency"
 import { getOrganizations, organizationRef, type Organization } from "@/lib/organizations"
 import { formatTimestamp, tsToMillis } from "@/lib/tasks"
+import { useViewMode, ViewToggle } from "@/components/dashboard/view-toggle"
 
 function OutstandingSummary({ invoices }: { invoices: Invoice[] }) {
   const unpaid = invoices.filter((invoice) => invoice.status === "sent" || invoice.status === "overdue")
@@ -85,6 +87,7 @@ export default function InvoicesPage() {
   const [deleting, setDeleting] = useState(false)
   const [duplicateTarget, setDuplicateTarget] = useState<Invoice | null>(null)
   const [duplicating, setDuplicating] = useState(false)
+  const [view, setView] = useViewMode("invoices", "list")
 
   const fetchData = useCallback(async () => {
     setError(false)
@@ -153,6 +156,7 @@ export default function InvoicesPage() {
     <TableFilterBar
       {...bar}
       placeholder="Search invoices"
+      controls={<ViewToggle view={view} onChange={setView} />}
       createAction={adminView ? { label: "New invoice", href: "/dashboard/invoices/new" } : undefined}
     />
   )
@@ -162,7 +166,7 @@ export default function InvoicesPage() {
       <RouteTabs tabs={BILLING_TABS} />
       {error ? <p className="mt-10 text-sm text-destructive">Couldn’t load invoices right now.</p> : !loading && invoices.length === 0 ? (
         <>
-          <div className="lg:max-w-[30rem]">{invoiceFilter}</div>
+          {invoiceFilter}
           <FirstRunState label="Invoice" title={adminView ? "Let's raise your first invoice" : "No invoices yet"} description={adminView ? "This is where you bill clients and track what’s outstanding." : "Invoices issued to you will show up here."} action={adminView ? <Button asChild><Link href="/dashboard/invoices/new">New invoice</Link></Button> : undefined} />
         </>
       ) : (
@@ -178,6 +182,25 @@ export default function InvoicesPage() {
             emptySearchLabel="No invoices match your search."
             getKey={(invoice) => invoice.id}
             selectedTitle={selectedInvoice?.title || selectedInvoice?.invoiceNumber || "Invoice"}
+            view={view}
+            renderGridItem={(invoice) => (
+              <GridCard
+                title={invoice.title || "Untitled invoice"}
+                icon={<FileText className="size-4 text-muted-foreground" aria-hidden="true" />}
+                placeholder={thumbnailIcon(FileText)}
+                subtitle={`${invoice.invoiceNumber || "Invoice"} · ${formatMoney(invoice.amount, invoice.currency)}`}
+                onClick={() => setSelectedId(invoice.id)}
+                ariaLabel={`Open ${invoice.title || invoice.invoiceNumber || "invoice"}`}
+                menuLabel={`Options for ${invoice.title || invoice.invoiceNumber || "invoice"}`}
+                menu={<>
+                  <DropdownMenuItem onSelect={() => setSelectedId(invoice.id)}>Open invoice</DropdownMenuItem>
+                  {adminView && <DropdownMenuItem onSelect={() => router.push(`/dashboard/invoices/${invoice.id}/edit`)}>Edit invoice</DropdownMenuItem>}
+                  {adminView && <DropdownMenuItem onSelect={() => router.push(buildEmailComposeHref(invoiceEmailContext(invoice, companyRefFor(invoice.companyId))))}>Email invoice</DropdownMenuItem>}
+                  {adminView && <DropdownMenuItem onSelect={() => setDuplicateTarget(invoice)}>Duplicate invoice</DropdownMenuItem>}
+                  {adminView && <DropdownMenuItem variant="destructive" onSelect={() => setConfirmDelete(invoice)}>Delete invoice</DropdownMenuItem>}
+                </>}
+              />
+            )}
             headerActions={selectedInvoice && (
               <>
                 {adminView && <DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="size-8 text-muted-foreground hover:text-foreground" aria-label="Invoice actions"><MoreHorizontal className="size-4" /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onSelect={() => setDuplicateTarget(selectedInvoice)}>Duplicate</DropdownMenuItem><DropdownMenuItem variant="destructive" onSelect={() => setConfirmDelete(selectedInvoice)}>Delete invoice</DropdownMenuItem></DropdownMenuContent></DropdownMenu>}
@@ -186,6 +209,7 @@ export default function InvoicesPage() {
               </>
             )}
             content={selectedInvoice ? (adminView ? <InvoiceBuilder key={selectedInvoice.id} invoice={selectedInvoice} onSaved={(saved) => setInvoices((current) => current.map((row) => row.id === saved.id ? saved : row))} onDeleted={(id) => { setInvoices((current) => current.filter((row) => row.id !== id)); setSelectedId(null) }} /> : <InvoiceDocument key={selectedInvoice.id} invoice={selectedInvoice} />) : null}
+            singlePane
             renderItem={(invoice, active) => {
               return <CompactListRow
                 title={invoice.title || "Untitled invoice"}

@@ -509,7 +509,7 @@ function hueFor(text: string) {
  * The creator's card picture: their profile photo when the app has a public one,
  * otherwise a made-up tile in a colour picked from their handle, with their initials.
  */
-function CreatorThumbnail({ person, compact = false }: { person: CampaignPerson; compact?: boolean }) {
+export function CreatorThumbnail({ person, compact = false, showMeta = true }: { person: CampaignPerson; compact?: boolean; showMeta?: boolean }) {
   const name = person.handle.replace(/^@+/, "")
   const provider = AVATAR_PROVIDERS[person.app]
   const [failed, setFailed] = useState(!provider || !name)
@@ -533,7 +533,7 @@ function CreatorThumbnail({ person, compact = false }: { person: CampaignPerson;
           className="absolute inset-0 size-full object-cover"
         />
       )}
-      {!compact && <span className="absolute bottom-2 left-2 rounded-full bg-black/45 px-2 py-0.5 text-[11px] font-medium text-white">
+      {!compact && showMeta && <span className="absolute bottom-2 left-2 rounded-full bg-black/45 px-2 py-0.5 text-[11px] font-medium text-white">
         {person.app}{person.followers ? ` · ${compactCount(person.followers)}` : ""}
       </span>}
     </div>

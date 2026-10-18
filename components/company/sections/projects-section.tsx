@@ -10,11 +10,11 @@ import { useAuth } from "@/components/auth-provider"
 import { useCompanyPage } from "@/components/company/company-page-context"
 import { SectionAddButton } from "@/components/company/section-add-button"
 import { TaskDetailSheet } from "@/components/company/task-detail-sheet"
+import { campaignGridCardProps } from "@/components/dashboard/campaign-grid-card"
 import { CollectionView } from "@/components/dashboard/collection-view"
 import { NewProjectDialog } from "@/components/dashboard/new-project-dialog"
 import { ProjectDetail } from "@/components/dashboard/project-detail"
-import { ProjectCover } from "@/components/project-card"
-import { deleteProjectWithTasks, duplicateProject, getProject, renameProject, type Project } from "@/lib/projects"
+import { deleteProjectWithTasks, duplicateProject, getProject, isProjectArchived, renameProject, setProjectArchived, type Project } from "@/lib/projects"
 import { taskStatusMeta, tsToMillis } from "@/lib/tasks"
 
 export function ProjectsSection() {
@@ -24,8 +24,7 @@ export function ProjectsSection() {
   const canCreate = Boolean(admin)
     || appUser?.role === "superadmin"
     || (appUser?.role === "admin" && Boolean(appUser.agencyId) && appUser.agencyId === company.agencyId)
-  const isCompanyUser = appUser?.companyId === company.id
-  const canManageCampaigns = canCreate || isCompanyUser
+  const canManageCampaigns = canCreate || appUser?.companyId === company.id
   const canDeleteCampaigns = canCreate
   const [addedProjects, setAddedProjects] = useState<Project[]>([])
   const [removedProjectIds, setRemovedProjectIds] = useState<string[]>([])
@@ -118,8 +117,8 @@ export function ProjectsSection() {
         if (copy) setAddedProjects((current) => [copy, ...current.filter((item) => item.id !== copy.id)])
       }
       toast.success("Campaign duplicated")
-    } catch (duplicateError) {
-      console.error("Error duplicating campaign:", duplicateError)
+    } catch (error) {
+      console.error("Error duplicating campaign:", error)
       toast.error("The campaign could not be duplicated.")
     } finally {
       setBusy(false)
@@ -136,8 +135,8 @@ export function ProjectsSection() {
         setAddedProjects((current) => [renamed, ...current.filter((item) => item.id !== renamed.id)])
       }
       toast.success("Campaign renamed")
-    } catch (renameError) {
-      console.error("Error renaming campaign:", renameError)
+    } catch (error) {
+      console.error("Error renaming campaign:", error)
       toast.error("The campaign could not be renamed.")
     }
   }
@@ -158,6 +157,21 @@ export function ProjectsSection() {
     }
   }
 
+  async function handleArchive(project: Project, isArchived: boolean) {
+    if (!canManageCampaigns) return
+    try {
+      const updatedAt = await setProjectArchived(project.id, isArchived)
+      if (admin) await admin.reload()
+      else {
+        const updated = { ...project, isArchived, updatedAt }
+        setAddedProjects((current) => [updated, ...current.filter((item) => item.id !== updated.id)])
+      }
+      toast.success(isArchived ? "Campaign archived" : "Campaign restored")
+    } catch (error) {
+      console.error(`Error ${isArchived ? "archiving" : "restoring"} campaign:`, error)
+      toast.error(`The campaign could not be ${isArchived ? "archived" : "restored"}.`)
+    }
+  }
 
   return (
     <div className={selectedProject ? "mt-0" : "mt-5"}>
@@ -238,19 +252,13 @@ export function ProjectsSection() {
             itemActions={(project) => ({
               noun: "campaign",
               name: project.title,
-              onOpen: () => openCampaign(project),
               onRename: canManageCampaigns ? (title) => handleRename(project, title) : undefined,
               onDuplicate: canManageCampaigns ? () => handleDuplicate(project) : undefined,
+              onArchive: canManageCampaigns && !isProjectArchived(project) ? () => handleArchive(project, true) : undefined,
+              onRestore: canManageCampaigns && isProjectArchived(project) ? () => handleArchive(project, false) : undefined,
               onDelete: canDeleteCampaigns ? () => handleDelete(project) : undefined,
             })}
-            card={(project) => ({
-              icon: <Megaphone className="size-4 text-amber-600 dark:text-amber-400" aria-hidden="true" />,
-              title: project.title,
-              preview: <ProjectCover project={project} />,
-              onClick: () => openCampaign(project),
-              ariaLabel: `Open ${project.title}`,
-              menuLabel: `Options for ${project.title}`,
-            })}
+            card={(project) => campaignGridCardProps(project, { onOpen: () => openCampaign(project) })}
             row={(project) => ({ subtitle: project.service || undefined })}
           />
         </>

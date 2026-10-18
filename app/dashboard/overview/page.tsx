@@ -1,7 +1,6 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
-import Image from "next/image"
 import { useAuth } from "@/components/auth-provider"
 import { ActivityFeed } from "@/components/dashboard/activity-feed"
 import { CompactListSkeleton } from "@/components/dashboard/compact-list-row"
@@ -100,15 +99,6 @@ export default function DashboardPage() {
               {loading ? <CompactListSkeleton rows={4} /> : <ActivityFeed items={activity} hrefFor={activityHref} showHeader={false} className="mt-0" />}
             </TabsContent>
           </Tabs>
-          <div className="mt-6 overflow-hidden rounded-lg bg-card">
-            <Image
-              src="/images/visualcns-blue-campaign-ad-v4.png"
-              alt="VisualCNS campaign artwork: Do something awesome for your brand"
-              width={1536}
-              height={1057}
-              className="h-auto w-full"
-            />
-          </div>
         </>
       )}
 

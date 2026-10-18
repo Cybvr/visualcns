@@ -18,9 +18,10 @@ export type TableFilterBarProps = FilterBarProps & {
 
 /** Clients-style toolbar shared by dashboard lists and tables. */
 export function TableFilterBar({ className, actions, createAction, ...props }: TableFilterBarProps) {
+  const desktopCreateClass = "h-9 gap-1 rounded-full bg-sidebar-accent px-3 text-sm font-semibold text-sidebar-accent-foreground hover:bg-sidebar-accent/80 active:bg-sidebar-accent/80 [&>svg]:size-[18px]"
   const createButton = createAction && (
     createAction.href ? (
-      <Button asChild variant="ghost" className="bg-transparent text-foreground hover:bg-transparent">
+      <Button asChild variant="ghost" className={desktopCreateClass}>
         <Link href={createAction.href} aria-label={createAction.label}>
           <Plus className="size-4" aria-hidden="true" />New
         </Link>
@@ -29,7 +30,7 @@ export function TableFilterBar({ className, actions, createAction, ...props }: T
       <Button
         type="button"
         variant="ghost"
-        className="bg-transparent text-foreground hover:bg-transparent"
+        className={desktopCreateClass}
         aria-label={createAction.label}
         disabled={createAction.disabled}
         onClick={createAction.onClick}
@@ -65,7 +66,7 @@ export function TableFilterBar({ className, actions, createAction, ...props }: T
   return (
     <FilterBar
       {...props}
-      className={cn("mb-0 min-h-16 border-b border-border", className)}
+      className={cn("mb-0 min-h-16", className)}
       actions={actions}
       desktopActions={createButton}
       mobileCreate={props.mobileCreate ?? mobileCreate}

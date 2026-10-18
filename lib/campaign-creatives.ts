@@ -39,6 +39,8 @@ export interface CampaignCreative {
   /** Content is work made for the campaign and reviewed; media is raw files kept with it. Older rows have no kind and count as content. */
   kind?: "content" | "media"
   status: string
+  /** The intended publish time, set while campaign content is being planned. */
+  plannedPublishAt?: string
   /** Set by the server once an approved post is scheduled or posted to social accounts. */
   publish?: PostPublish
   /** A post the client wrote on the Social page, waiting for the agency: where and when they asked for it to go. */
@@ -84,7 +86,7 @@ export async function getLatestCampaignPosts(count = 4): Promise<CampaignCreativ
 
 export async function addCampaignCreative(
   scope: { agencyId?: string; companyId: string; projectId: string },
-  creative: Pick<CampaignCreative, "title" | "url" | "type"> & { kind: "content" | "media"; folderId?: string; body?: string; status?: string; postedBy?: string; mediaUrl?: string; mediaType?: "image" | "video" },
+  creative: Pick<CampaignCreative, "title" | "url" | "type"> & { kind: "content" | "media"; folderId?: string; body?: string; status?: string; plannedPublishAt?: string; postedBy?: string; mediaUrl?: string; mediaType?: "image" | "video" },
 ) {
   const now = Timestamp.now()
   // Firestore refuses undefined values, e.g. no folder for a file in All media, so leave those fields out.
@@ -100,7 +102,7 @@ export async function addCampaignCreative(
   })
 }
 
-export async function updateCampaignCreative(id: string, patch: Partial<Pick<CampaignCreative, "title" | "status" | "body" | "postedBy" | "mediaUrl" | "mediaType" | "folderId">>) {
+export async function updateCampaignCreative(id: string, patch: Partial<Pick<CampaignCreative, "title" | "status" | "body" | "postedBy" | "mediaUrl" | "mediaType" | "folderId" | "plannedPublishAt">>) {
   await updateDoc(doc(db, COLLECTION_NAME, id), { ...patch, updatedAt: Timestamp.now() })
 }
 

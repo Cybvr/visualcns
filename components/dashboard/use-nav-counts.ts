@@ -7,12 +7,13 @@ import { getCurrentAgencyId } from "@/lib/agency-scope"
 import { getInvoices } from "@/lib/billing"
 import { watchLeads } from "@/lib/leads"
 import { getOrganizations } from "@/lib/organizations"
+import { getProjects } from "@/lib/projects"
 import { getUsers } from "@/lib/users"
 
 /**
- * How many leads, contacts, clients and invoices the agency has, keyed by the
- * sidebar link they belong to. Counted the way each page lists them. Only for
- * the agency's own staff; anyone else gets none.
+ * How many leads, contacts, clients, campaigns and invoices the agency has,
+ * keyed by the sidebar link they belong to. Campaigns includes archived items.
+ * Only for the agency's own staff; anyone else gets none.
  */
 export function useNavCounts(): Record<string, number> {
   const { user, role } = useAuth()
@@ -36,6 +37,9 @@ export function useNavCounts(): Record<string, number> {
       .catch(() => {})
     getInvoices()
       .then((rows) => set("/dashboard/invoices", rows.length))
+      .catch(() => {})
+    getProjects()
+      .then((rows) => set("/dashboard/projects", rows.length))
       .catch(() => {})
 
     let stopLeads = () => {}

@@ -7,6 +7,8 @@ import type { Timestamp } from "firebase/firestore"
 
 import { useAuth } from "@/components/auth-provider"
 import { CompactListRow, CompactListSkeleton, InitialAvatar, MOBILE_LIST_CARD, shortListDate } from "@/components/dashboard/compact-list-row"
+import { GridCard, GridCardList, thumbnailIcon } from "@/components/dashboard/grid-card"
+import { useViewMode, ViewToggle } from "@/components/dashboard/view-toggle"
 import { CompanyCreateSheet } from "@/components/dashboard/company-create-sheet"
 import { EmptySearchState, FirstRunState } from "@/components/dashboard/empty-state"
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
@@ -21,6 +23,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { TableFilterBar } from "@/components/dashboard/table-filter-bar"
 import { useFilterBar, type SortOption } from "@/components/dashboard/filter-bar"
 import { deleteOrganization, getOrganizations, type Organization } from "@/lib/organizations"
@@ -79,6 +82,8 @@ export default function CompaniesPage() {
   const [deleting, setDeleting] = useState<string | null>(null)
   const [pendingDelete, setPendingDelete] = useState<CompanyRow | null>(null)
   const [creating, setCreating] = useState(false)
+  const [view, setView] = useViewMode("clients", "list")
+  const [clientTab, setClientTab] = useState<"active" | "archived">("active")
 
   async function fetchCompanies() {
     setError(null)
@@ -170,8 +175,14 @@ export default function CompaniesPage() {
 
   const search = useMemo(() => (row: CompanyRow) => [row.name, row.label, row.slug, row.id], [])
 
+  const activeCutoff = Date.now() - 30 * 24 * 60 * 60 * 1000
+  const isActive = (row: CompanyRow) => row.projectCount > 0 && Math.max(tsToMillis(row.updatedAt), tsToMillis(row.createdAt)) >= activeCutoff
+  const activeCompanies = companies.filter(isActive)
+  const archivedCompanies = companies.filter((company) => !isActive(company))
+  const tabCompanies = clientTab === "active" ? activeCompanies : archivedCompanies
+
   const { results: visibleCompanies, bar } = useFilterBar({
-    items: companies,
+    items: tabCompanies,
     search,
     sorts,
     defaultSort: "updatedAt",
@@ -201,10 +212,19 @@ export default function CompaniesPage() {
     router.push(`/${encodeURIComponent(row.slug || row.user.companyId)}`)
   }
 
+  function clientMenu(row: CompanyRow) {
+    return <>
+      <DropdownMenuItem onSelect={() => router.push(companyHref(row))}>Open client</DropdownMenuItem>
+      {row.user && <DropdownMenuItem onSelect={() => handleViewWorkspace(row)}>View workspace</DropdownMenuItem>}
+      <DropdownMenuItem variant="destructive" onSelect={() => setPendingDelete(row)}>Remove client</DropdownMenuItem>
+    </>
+  }
+
   const clientFilter = (
     <TableFilterBar
       {...bar}
       placeholder="Search clients"
+      controls={<ViewToggle view={view} onChange={setView} />}
       createAction={{ label: "New client", onClick: () => setCreating(true) }}
     />
   )
@@ -220,9 +240,20 @@ export default function CompaniesPage() {
         </div>
       )}
 
+      <Tabs
+        value={clientTab}
+        onValueChange={(value) => setClientTab(value as "active" | "archived")}
+        className="mb-4"
+      >
+        <TabsList>
+          <TabsTrigger value="active">Active <span className="ml-1 text-xs text-muted-foreground">{activeCompanies.length}</span></TabsTrigger>
+          <TabsTrigger value="archived">Archived <span className="ml-1 text-xs text-muted-foreground">{archivedCompanies.length}</span></TabsTrigger>
+        </TabsList>
+      </Tabs>
+
       {!loading && companies.length === 0 ? (
         <>
-          <div className="lg:max-w-[30rem]">{clientFilter}</div>
+          {clientFilter}
           <FirstRunState
             label="Client"
             title="Let's add your first client"
@@ -236,7 +267,27 @@ export default function CompaniesPage() {
           {loading ? (
             <CompactListSkeleton />
           ) : visibleCompanies.length === 0 ? (
-            <EmptySearchState label="No clients match your search." />
+            <EmptySearchState label={tabCompanies.length === 0 ? `No ${clientTab} clients.` : "No clients match your search."} />
+          ) : view === "grid" ? (
+            <div className="mt-4">
+              <GridCardList>
+                {visibleCompanies.map((row) => (
+                  <GridCard
+                    key={companyRefOf(row)}
+                    title={row.name}
+                    icon={<Building2 className="size-4 text-muted-foreground" aria-hidden="true" />}
+                    imageUrl={row.logoUrl}
+                    imageAlt=""
+                    placeholder={thumbnailIcon(Building2)}
+                    subtitle={row.label || `${row.projectCount} project${row.projectCount === 1 ? "" : "s"}`}
+                    href={companyHref(row)}
+                    ariaLabel={`Open ${row.name}`}
+                    menuLabel={`Options for ${row.name}`}
+                    menu={clientMenu(row)}
+                  />
+                ))}
+              </GridCardList>
+            </div>
           ) : (
             <ul className={`mt-1 ${MOBILE_LIST_CARD}`}>
               {visibleCompanies.map((row) => (
@@ -258,11 +309,7 @@ export default function CompaniesPage() {
                     href={companyHref(row)}
                     ariaLabel={`Open ${row.name}`}
                     menuLabel={`Options for ${row.name}`}
-                    menu={<>
-                      <DropdownMenuItem onSelect={() => router.push(companyHref(row))}>Open client</DropdownMenuItem>
-                      {row.user && <DropdownMenuItem onSelect={() => handleViewWorkspace(row)}>View workspace</DropdownMenuItem>}
-                      <DropdownMenuItem variant="destructive" onSelect={() => setPendingDelete(row)}>Remove client</DropdownMenuItem>
-                    </>}
+                    menu={clientMenu(row)}
                   />
                 </li>
               ))}

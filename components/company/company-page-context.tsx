@@ -155,6 +155,8 @@ export function CompanyPageProvider({
     // Tasks and media live inside each campaign, so they have no menu entry of their own.
     const visible = COMPANY_SECTIONS
       .filter((item) => item.key !== "tasks")
+      // Team sits on Account in the dashboard tabs.
+      .filter((item) => mode === "routes" || item.key !== "team")
       .filter((item) => mode === "routes" || item.key !== "ngai")
       // Social holds private DMs and posting, so it follows the same rule as Visitors.
       .filter((item) => !["visitors", "messages", "social"].includes(item.key) || canSeeVisitors)

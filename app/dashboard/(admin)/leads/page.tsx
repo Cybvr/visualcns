@@ -15,19 +15,19 @@ import {
   type DragEndEvent,
   type DragStartEvent,
 } from "@dnd-kit/core"
-import { FileUp, Kanban, Mail, Phone, Rows3 } from "lucide-react"
+import { FileUp, Mail, Phone } from "lucide-react"
 import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
 import { CompactListSkeleton, InitialAvatar, MOBILE_LIST_CARD, MobileListRow, CheckAvatar } from "@/components/dashboard/compact-list-row"
 import { MobileDataCard } from "@/components/dashboard/mobile-data-card"
 import { TableFilterBar } from "@/components/dashboard/table-filter-bar"
-import { useFilterBar } from "@/components/dashboard/filter-bar"
+import { useFilterBar, type SortOption } from "@/components/dashboard/filter-bar"
 import { ImportLeadsDialog } from "@/components/dashboard/import-leads-dialog"
 import { StatusHistory } from "@/components/dashboard/status-history"
 import { QuickEmailComposer } from "@/components/dashboard/email/quick-email-composer"
 import { TableBulkBar } from "@/components/dashboard/table-bulk-bar"
-import { useViewMode, type ViewMode } from "@/components/dashboard/view-toggle"
+import { useViewMode, ViewToggle } from "@/components/dashboard/view-toggle"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -85,6 +85,13 @@ const leadId = (lead: Lead) => lead.id
 
 const STAGE_LABELS = new Map<string, string>(LEAD_STAGES.map((stage) => [stage.value, stage.label]))
 
+const LEAD_SORTS: SortOption<Lead>[] = [
+  { value: "updatedAt", label: "Last modified", get: (lead) => lead.updatedAt, ascLabel: "Oldest", descLabel: "Newest" },
+  { value: "name", label: "Name", get: (lead) => lead.name, ascLabel: "A–Z", descLabel: "Z–A" },
+  { value: "company", label: "Company", get: (lead) => lead.company, ascLabel: "A–Z", descLabel: "Z–A" },
+  { value: "value", label: "Value", get: (lead) => lead.value, ascLabel: "Lowest", descLabel: "Highest" },
+]
+
 function searchLead(lead: Lead) {
   return [lead.name, lead.title, lead.company, lead.email, lead.phone, lead.mobilePhone, lead.address, lead.city, lead.country, lead.category, lead.website, lead.keywords, lead.reviews, lead.source, lead.lists, lead.notes]
 }
@@ -133,7 +140,7 @@ export default function LeadsPage() {
     () => (leads ?? []).map((lead) => (pendingStages[lead.id] ? { ...lead, stage: pendingStages[lead.id] } : lead)),
     [leads, pendingStages],
   )
-  const { results: visibleLeads, bar } = useFilterBar({ items: shownLeads, search: searchLead, sorts: [] })
+  const { results: visibleLeads, bar } = useFilterBar({ items: shownLeads, search: searchLead, sorts: LEAD_SORTS, defaultSort: "updatedAt", defaultDirection: "desc" })
   const activeLead = activeId ? shownLeads.find((lead) => lead.id === activeId) ?? null : null
 
   async function moveLead(lead: Lead, stage: LeadStage) {
@@ -178,22 +185,20 @@ export default function LeadsPage() {
 
   return (
     <main className="mx-auto w-full max-w-6xl px-4 pt-4 pb-12 sm:px-6">
-      <div className="lg:max-w-[30rem]">
-        <TableFilterBar
-          {...bar}
-          placeholder="Search leads"
-          createAction={{ label: "New lead", onClick: () => setEditing("new") }}
-          actions={
-            <>
-              <LeadsViewToggle view={view} onChange={setView} />
-              <Button variant="ghost" className="bg-transparent text-foreground hover:bg-transparent" onClick={() => setImportOpen(true)} disabled={leads === null || error}>
-                <FileUp className="size-4" aria-hidden="true" />
-                Import CSV
-              </Button>
-            </>
-          }
-        />
-      </div>
+      <TableFilterBar
+        {...bar}
+        placeholder="Search leads"
+        controls={<ViewToggle view={view} onChange={setView} />}
+        createAction={{ label: "New lead", onClick: () => setEditing("new") }}
+        actions={
+          <>
+            <Button variant="ghost" className="bg-transparent text-foreground hover:bg-transparent" onClick={() => setImportOpen(true)} disabled={leads === null || error}>
+              <FileUp className="size-4" aria-hidden="true" />
+              Import CSV
+            </Button>
+          </>
+        }
+      />
 
       {error ? (
         <p role="alert" className="mt-10 text-sm text-destructive">Leads unavailable. Refresh to try again.</p>
@@ -265,34 +270,6 @@ export default function LeadsPage() {
         </AlertDialogContent>
       </AlertDialog>
     </main>
-  )
-}
-
-/** Board first, then table, as a pill switch like the one on Drive. */
-function LeadsViewToggle({ view, onChange }: { view: ViewMode; onChange: (view: ViewMode) => void }) {
-  const options = [
-    { value: "grid" as const, label: "Board", Icon: Kanban },
-    { value: "list" as const, label: "Cards", Icon: Rows3 },
-  ]
-  return (
-    <div role="group" aria-label="View" className="flex shrink-0 items-center rounded-full bg-muted p-0.5">
-      {options.map(({ value, label, Icon }) => (
-        <button
-          key={value}
-          type="button"
-          onClick={() => onChange(value)}
-          aria-label={label}
-          aria-pressed={view === value}
-          title={label}
-          className={cn(
-            "flex h-8 w-10 items-center justify-center rounded-full outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring",
-            view === value ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
-          )}
-        >
-          <Icon className="size-4" aria-hidden="true" />
-        </button>
-      ))}
-    </div>
   )
 }
 

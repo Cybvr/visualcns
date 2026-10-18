@@ -129,7 +129,7 @@ export function DashboardShell({
   const isBackDetailRoute = isProjectDetailRoute || isTaskDetailRoute
   const isCompanyDetailRoute = /^\/dashboard\/(?:companies|clients)\/[^/]+$/.test(pathname ?? "")
   // The dashboard home is Ngai too, so it gets the same full-height chat layout.
-  const isAgentRoute = pathname === "/dashboard" || /^\/dashboard\/agent(?:\/[^/]+)?$/.test(pathname ?? "")
+  const isAgentRoute = /^\/dashboard\/agent(?:\/[^/]+)?$/.test(pathname ?? "")
   const isEmailRoute = pathname === "/dashboard/email"
   const hideHeader = isDocumentRoute
   const [sidebarOpen, setSidebarOpen] = useState(!isDocumentRoute)

@@ -7,6 +7,7 @@ import { toast } from "sonner"
 
 import { useCompanyPage } from "@/components/company/company-page-context"
 import { formatWhen, PlatformPreviews, PublishPill, PublishPostDialog } from "@/components/company/publish-post-dialog"
+import { postMediaType, StatusPill } from "@/components/dashboard/campaign-creatives"
 import { SocialAccounts } from "@/components/company/social-accounts"
 import { SocialIcon } from "@/components/company/social-icon"
 import { Button } from "@/components/ui/button"
@@ -15,7 +16,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { VideoThumbnail } from "@/components/ui/video-thumbnail"
-import { watchCompanyCampaignCreatives, type CampaignCreative } from "@/lib/campaign-creatives"
+import { creativeStatus, watchCompanyCampaignCreatives, type CampaignCreative } from "@/lib/campaign-creatives"
 import { uploadFileToStorage } from "@/lib/documents"
 import { mediaKindForFile } from "@/lib/media"
 import { platformLabel, type SocialAccount, type SocialAccountsInfo } from "@/lib/social"
@@ -36,6 +37,11 @@ function isSocialPost(post: CampaignCreative) {
   return post.type === "text" && (Boolean(post.publish) || Boolean(post.request) || !post.projectId)
 }
 
+/** Campaign work that has not entered the social publishing flow yet. */
+function isCampaignContent(post: CampaignCreative) {
+  return post.type === "text" && Boolean(post.projectId) && !post.publish && !post.request
+}
+
 function postTime(post: CampaignCreative) {
   const iso = post.publish?.publishedAt || post.publish?.scheduledAt || post.request?.scheduledAt
   const parsed = iso ? Date.parse(iso) : NaN
@@ -47,14 +53,14 @@ function postTime(post: CampaignCreative) {
  * every post with where it stands and how it did.
  */
 export function SocialOverview() {
-  const { company } = useCompanyPage()
+  const { company, sectionHref } = useCompanyPage()
   const { info, loading, reload, request } = useSocialAccounts(company.id)
   const [numbers, setNumbers] = useState<{ accounts: AccountNumbers[]; posts: PostNumbers[] }>({ accounts: [], posts: [] })
   const [posts, setPosts] = useState<CampaignCreative[]>([])
   const [writing, setWriting] = useState(false)
   const [openId, setOpenId] = useState<string | null>(null)
 
-  useEffect(() => watchCompanyCampaignCreatives(company.id, (rows) => setPosts(rows.filter(isSocialPost)), () => setPosts([])), [company.id])
+  useEffect(() => watchCompanyCampaignCreatives(company.id, (rows) => setPosts(rows.filter((item) => item.type === "text")), () => setPosts([])), [company.id])
 
   const accountKey = info?.accounts.map((account) => account.id).join(",") ?? ""
   useEffect(() => {
@@ -66,7 +72,8 @@ export function SocialOverview() {
     return () => { active = false }
   }, [accountKey, company.id, request])
 
-  const sorted = useMemo(() => [...posts].sort((a, b) => postTime(b) - postTime(a)), [posts])
+  const sorted = useMemo(() => posts.filter(isSocialPost).sort((a, b) => postTime(b) - postTime(a)), [posts])
+  const campaignContent = useMemo(() => posts.filter(isCampaignContent).sort((a, b) => (tsToMillis(b.updatedAt) || tsToMillis(b.createdAt)) - (tsToMillis(a.updatedAt) || tsToMillis(a.createdAt))), [posts])
   const postNumbers = new Map(numbers.posts.map((item) => [item.creativeId, item]))
   const accountNumbers = new Map(numbers.accounts.map((item) => [item.id, item]))
   const accounts = (info?.accounts ?? []).filter((account) => account.status !== "disconnected")
@@ -120,6 +127,38 @@ export function SocialOverview() {
         </section>
       )}
 
+      {campaignContent.length > 0 && (
+        <section aria-label="Campaign content" className="space-y-3">
+          <div>
+            <h2 className="text-base font-semibold">Campaign content</h2>
+            <p className="mt-1 text-sm text-muted-foreground">Drafts and approved posts waiting to enter the social publishing flow.</p>
+          </div>
+          <ul className="divide-y divide-border rounded-lg border border-border">
+            {campaignContent.map((post) => (
+              <li key={post.id}>
+                <Link
+                  href={sectionHref("projects", { campaign: post.projectId, view: "content", post: post.id })}
+                  className="flex items-center gap-3 px-3 py-3 outline-none transition-colors hover:bg-muted/40 focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <div className="size-14 shrink-0 overflow-hidden rounded-md bg-muted">
+                    {post.mediaUrl && (postMediaType(post) === "video"
+                      ? <VideoThumbnail src={post.mediaUrl} />
+                      // eslint-disable-next-line @next/next/no-img-element
+                      : <img src={post.mediaUrl} alt="" loading="lazy" className="size-full object-cover" />)}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium">{post.title || "Post"}</p>
+                    <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{post.body?.trim() || "No caption yet."}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">{post.plannedPublishAt ? `Planned for ${formatWhen(post.plannedPublishAt)}` : "No publish date set"}</p>
+                  </div>
+                  <StatusPill status={creativeStatus(post)} />
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       <section aria-label="Posts">
         {loading && !info && !sorted.length ? (
           <p className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="size-4 animate-spin" aria-hidden="true" />Loading</p>
@@ -134,7 +173,7 @@ export function SocialOverview() {
                 <li key={post.id}>
                   <button type="button" onClick={() => setOpenId(post.id)} className="flex w-full items-center gap-3 px-3 py-3 text-left outline-none transition-colors hover:bg-muted/40 focus-visible:ring-2 focus-visible:ring-ring">
                     <div className="size-14 shrink-0 overflow-hidden rounded-md bg-muted">
-                      {post.mediaUrl && (post.mediaType === "video"
+                      {post.mediaUrl && (postMediaType(post) === "video"
                         ? <VideoThumbnail src={post.mediaUrl} />
                         // eslint-disable-next-line @next/next/no-img-element
                         : <img src={post.mediaUrl} alt="" loading="lazy" className="size-full object-cover" />)}
