@@ -78,7 +78,6 @@ export function TasksView({ tasks, companyId, clientName, canDuplicate = true, l
         empty={{
           icon: ListTodo,
           title: "No tasks yet",
-          description: "Add a task to start tracking work.",
           action: <SectionAddButton label="New task" onClick={openAdd} />,
         }}
         card={(task) => ({

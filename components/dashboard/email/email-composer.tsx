@@ -349,7 +349,7 @@ export function EmailComposer({
                           <Avatar className={cn("size-9 shrink-0", contactAvatarTone(contact.name || contact.email))}><AvatarFallback className="bg-transparent text-xs font-medium">{contactInitials(contact.name, contact.email)}</AvatarFallback></Avatar>
                           <span className="min-w-0"><span className="block truncate text-sm font-medium">{contact.name || "Unnamed contact"}</span><span className="block truncate text-xs text-muted-foreground">{contact.email}</span></span>
                         </button>
-                      )) : <p className="px-3 py-2 text-xs text-muted-foreground">No saved contact matches. You can still use this email address.</p>}
+                      )) : <p className="px-3 py-2 text-xs text-muted-foreground">No saved contact matches.</p>}
                     </div>
                   )}
                 </div>
@@ -415,7 +415,7 @@ export function EmailComposer({
                           <Avatar className={cn("size-9 shrink-0", contactAvatarTone(contact.name || contact.email))}><AvatarFallback className="bg-transparent text-xs font-medium">{contactInitials(contact.name, contact.email)}</AvatarFallback></Avatar>
                           <span className="min-w-0"><span className="block truncate text-sm font-medium">{contact.name || "Unnamed contact"}</span><span className="block truncate text-xs text-muted-foreground">{contact.email}</span></span>
                         </button>
-                      )) : <p className="px-3 py-2 text-xs text-muted-foreground">No saved contact matches. You can still use this email address.</p>}
+                      )) : <p className="px-3 py-2 text-xs text-muted-foreground">No saved contact matches.</p>}
                     </div>
                   )}
                 </div>

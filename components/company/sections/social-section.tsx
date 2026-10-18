@@ -152,7 +152,7 @@ function SocialCalendar() {
             ))}
           </ul>
         ) : (
-          <p className="mt-3 text-sm text-muted-foreground">Approved posts waiting to go out show here.</p>
+          <p className="mt-3 text-sm text-muted-foreground">Nothing waiting.</p>
         )}
       </section>
 

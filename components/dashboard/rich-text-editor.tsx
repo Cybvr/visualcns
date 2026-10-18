@@ -380,7 +380,7 @@ export function RichTextEditor({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{linkEditingExisting ? "Edit link" : "Insert link"}</DialogTitle>
-          <DialogDescription>{linkHasSelection || linkEditingExisting ? "Add a destination for the selected text." : "Add a destination and optional display text."}</DialogDescription>
+          <DialogDescription className="sr-only">{linkHasSelection || linkEditingExisting ? "Add a destination for the selected text." : "Add a destination and optional display text."}</DialogDescription>
         </DialogHeader>
         <form onSubmit={saveLink} className="space-y-4">
           <div className="space-y-1.5">

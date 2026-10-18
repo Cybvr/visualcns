@@ -309,7 +309,7 @@ export function CalendarPage() {
         <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-xl">
           <DialogHeader>
             <DialogTitle>{editing ? "Edit booking" : "New booking"}</DialogTitle>
-            <DialogDescription>Google Meet links are added automatically when Calendar is connected. Staff notes remain private.</DialogDescription>
+            <DialogDescription className="sr-only">Google Meet links are added automatically when Calendar is connected. Staff notes remain private.</DialogDescription>
           </DialogHeader>
           <form onSubmit={saveBooking} className="space-y-4">
             <div className="space-y-1.5"><Label htmlFor="booking-title">Title</Label><Input id="booking-title" value={draft.title} onChange={(event) => setDraft((current) => ({ ...current, title: event.target.value }))} required maxLength={140} /></div>

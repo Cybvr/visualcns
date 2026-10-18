@@ -18,7 +18,6 @@ export default function NotificationsPage() {
       <section className="mt-6 flex flex-wrap items-center justify-between gap-4 border-b border-border pb-6">
         <div className="max-w-md">
           <h2 className="text-sm font-medium">New email</h2>
-          <p className="mt-1 text-sm text-muted-foreground">Show a browser alert when new mail arrives while VisualCNS is open. This setting applies to this browser.</p>
         </div>
         <EmailNotificationControl workspaceId={workspaceId} />
       </section>

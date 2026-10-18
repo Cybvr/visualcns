@@ -63,7 +63,6 @@ export function ProjectTeamPicker({
   return (
     <div className="space-y-2">
       <Label>Team</Label>
-      <p className="text-sm text-muted-foreground">Select from this client&apos;s team members.</p>
       {users.length === 0 ? (
         <p className="text-sm text-muted-foreground">No client team members available yet.</p>
       ) : (

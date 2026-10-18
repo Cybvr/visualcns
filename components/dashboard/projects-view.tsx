@@ -196,7 +196,7 @@ export function ProjectsView({
             ) : previewTasks.length === 0 ? (
               <div className="py-10 text-center">
                 <p className="text-sm font-medium">No tasks yet</p>
-                <p className="mt-1 text-sm text-muted-foreground">Add tasks to build this project’s workflow.</p>
+                <p className="mt-1 text-sm text-muted-foreground">No tasks yet.</p>
               </div>
             ) : (
               <ol className="divide-y divide-border">

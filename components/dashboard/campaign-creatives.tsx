@@ -187,7 +187,6 @@ export function CampaignCreatives({ creatives, agencyId, companyId, projectId, c
           empty={{
             icon: Palette,
             title: "No posts yet",
-            description: "Write the posts and hooks for this campaign here.",
             action: canEdit || canReview ? <SectionAddButton label={canEdit ? "New post" : "Suggest a post"} onClick={() => setEditing("new")} /> : undefined,
           }}
           card={(post) => ({
@@ -1182,7 +1181,7 @@ function AddLinkDialog({ open, onOpenChange, scope, folderId }: { open: boolean;
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Add a link</DialogTitle>
-          <DialogDescription>Figma, Google Drive, Canva or any other link.</DialogDescription>
+          <DialogDescription className="sr-only">Figma, Google Drive, Canva or any other link.</DialogDescription>
         </DialogHeader>
         <form onSubmit={add} className="space-y-4">
           <Input value={link} onChange={(event) => setLink(event.target.value)} placeholder="https://" aria-label="Link" autoFocus />

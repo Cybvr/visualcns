@@ -33,7 +33,7 @@ export function NewProjectDialog({ open, onOpenChange, initialCompanyId, onCreat
       <DialogContent className="max-h-[85vh] max-w-lg overflow-y-auto">
         <DialogHeader>
           <DialogTitle>New project</DialogTitle>
-          <DialogDescription>Create a project for a client.</DialogDescription>
+          <DialogDescription className="sr-only">Create a project for a client.</DialogDescription>
         </DialogHeader>
         {open && (
           <ClientProjectForm

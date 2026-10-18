@@ -56,7 +56,6 @@ export default function AgentOperationsPage() {
   return (
     <main className="mx-auto w-full max-w-5xl px-4 py-9 sm:px-6">
       <AccountHeader title="Ngai operations" />
-      <p className="mt-2 max-w-2xl text-sm text-muted-foreground">Agent quality, cost, adoption and shared-memory controls. Token cost is estimated when the OpenAI pricing environment variables are configured.</p>
       {error && <p className="mt-5 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive" role="alert">{error}</p>}
       <section className="mt-7 grid gap-3 sm:grid-cols-2 lg:grid-cols-4" aria-label="Agent metrics">
         <Metric label="Runs" value={String(runStats?.total ?? "—")} help={`${runStats?.succeeded ?? 0} succeeded`} />
@@ -71,7 +70,6 @@ export default function AgentOperationsPage() {
 
       <section className="mt-10">
         <h2 className="text-base font-semibold">Shared memory review</h2>
-        <p className="mt-1 text-sm text-muted-foreground">Ngai can propose memories, but only approved memories are injected into future dashboard runs.</p>
         <div className="mt-4 divide-y divide-border rounded-xl border border-border bg-card">
           {memories.length === 0 && <p className="px-4 py-5 text-sm text-muted-foreground">No memories have been proposed yet.</p>}
           {memories.map((memory) => (

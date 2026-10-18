@@ -10,9 +10,6 @@ export default function SeoPage() {
             <TrendingUp className="size-5 text-muted-foreground" aria-hidden="true" />
           </span>
           <h2 className="text-sm font-medium">Nothing to report yet</h2>
-          <p className="max-w-sm text-sm leading-6 text-muted-foreground">
-            Once your site is connected to search reporting, rankings and page performance will show up here.
-          </p>
         </div>
       </div>
     </main>

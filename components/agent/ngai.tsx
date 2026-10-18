@@ -174,7 +174,6 @@ function NgaiSignIn({ companyName }: { companyName: string }) {
       ) : (
         <>
           <p className="mt-4 font-medium">Sign in to use Ngai</p>
-          <p className="mt-2 text-sm text-muted-foreground">Ask about your campaigns, invoices and anything about VisualCNS.</p>
           <Button type="button" className="mt-5" onClick={() => setLoginOpen(true)}>
             <LogIn className="size-4" aria-hidden="true" />
             Sign in

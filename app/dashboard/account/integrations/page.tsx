@@ -91,7 +91,6 @@ export default function IntegrationsPage() {
             </span>
             <div className="min-w-0">
               <h2 className="font-medium">Google account</h2>
-              <p className="mt-1 text-sm text-muted-foreground">Connect Gmail for email and Google Calendar to add Meet links to bookings.</p>
               <p className="mt-3 flex items-center gap-2 text-sm">
                 {googleConfigured ? <CheckCircle2 className="size-4 text-emerald-600" aria-hidden="true" /> : <span className="size-2 rounded-full bg-muted-foreground/50" aria-hidden="true" />}
                 <span className="text-muted-foreground">

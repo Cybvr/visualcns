@@ -102,7 +102,7 @@ export function ImportLeadsDialog({
       <DialogContent className="max-h-[90svh] overflow-y-auto sm:max-w-xl">
         <DialogHeader>
           <DialogTitle>Import leads</DialogTitle>
-          <DialogDescription>CSV, Excel or Markdown.</DialogDescription>
+          <DialogDescription className="sr-only">CSV, Excel or Markdown.</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-5 py-1">

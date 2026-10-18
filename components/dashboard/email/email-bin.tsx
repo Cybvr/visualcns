@@ -89,7 +89,7 @@ export function EmailBin({
             {items.length > 0 && <Button type="button" variant="ghost" size="sm" onClick={() => setDeleteTarget(items)} disabled={busy}><Trash2 className="size-4" aria-hidden="true" />Empty bin</Button>}
           </div>
           {items.length === 0 ? (
-            <div className="px-4 py-10 text-center"><Inbox className="mx-auto size-5 text-muted-foreground" aria-hidden="true" /><p className="mt-3 text-sm font-medium">Bin is empty</p><p className="mt-1 text-xs leading-5 text-muted-foreground">Deleted emails will appear here.</p></div>
+            <div className="px-4 py-10 text-center"><Inbox className="mx-auto size-5 text-muted-foreground" aria-hidden="true" /><p className="mt-3 text-sm font-medium">Bin is empty</p></div>
           ) : visibleItems.length === 0 ? (
             <div className="px-4 py-10 text-center text-sm text-muted-foreground">No emails match your search.</div>
           ) : (

@@ -143,7 +143,7 @@ export default function TaskEditPage() {
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Share task</DialogTitle>
-            <DialogDescription>Control access to this task with a public link.</DialogDescription>
+            <DialogDescription className="sr-only">Control access to this task with a public link.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <ShareLinkField enabled={shareEnabled} onEnabledChange={setShareEnabled} path={publicPath} />

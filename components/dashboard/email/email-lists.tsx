@@ -49,7 +49,7 @@ export function EmailLists({
           <div className="px-4 py-10 text-center">
             <List className="mx-auto size-5 text-muted-foreground" aria-hidden="true" />
             <p className="mt-3 text-sm font-medium">No lists yet</p>
-            <p className="mt-1 text-xs leading-5 text-muted-foreground">Create a list to group contacts for sending.</p>
+            <p className="mt-1 text-xs leading-5 text-muted-foreground">No lists yet.</p>
           </div>
         ) : (
           <>

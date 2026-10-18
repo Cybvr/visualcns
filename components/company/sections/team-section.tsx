@@ -131,7 +131,7 @@ export function TeamSection() {
           <DialogContent className="max-w-md">
             <DialogHeader>
               <DialogTitle>Add team members</DialogTitle>
-              <DialogDescription>Select one or more existing contacts to add to this client&apos;s team.</DialogDescription>
+              <DialogDescription className="sr-only">Select one or more existing contacts to add to this client&apos;s team.</DialogDescription>
             </DialogHeader>
 
             <div className="space-y-3">

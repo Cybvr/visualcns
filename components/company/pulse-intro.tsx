@@ -126,7 +126,6 @@ export function PulseIntro({
     }
   }
 
-  const missing = !details.website
 
   return (
     <section className="mt-4 rounded-2xl bg-gradient-to-br from-primary to-primary/75 p-4 text-primary-foreground sm:p-5">
@@ -159,7 +158,6 @@ export function PulseIntro({
       </ul>
 
       <div className="mt-4 flex flex-col-reverse gap-3 sm:flex-row sm:items-center">
-        {missing && <p className="text-sm text-primary-foreground/80">Add a website in Details for better results.</p>}
         <div className="flex gap-2 sm:ml-auto">
           {onBack && !scanning && (
             <Button type="button" variant="ghost" onClick={onBack} className="text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground">
@@ -178,7 +176,7 @@ export function PulseIntro({
         <DialogContent className="max-h-[85vh] max-w-lg overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Business details</DialogTitle>
-            <DialogDescription>We&apos;ll use this to understand your business.</DialogDescription>
+            <DialogDescription className="sr-only">We&apos;ll use this to understand your business.</DialogDescription>
           </DialogHeader>
           {onSave && !editing && (
             <button

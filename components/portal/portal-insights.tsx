@@ -112,9 +112,6 @@ export function PortalInsights() {
             <Sparkles className="size-5 text-muted-foreground" />
             Insights
           </h2>
-          <p className="mt-1 max-w-2xl text-sm leading-6 text-muted-foreground">
-            Suggestions for growing your business across your website, social media, brand, and content. Based on your account and the work we're doing together.
-          </p>
         </div>
         <div className="flex items-center gap-3">
           {payload?.generatedAt && !loading && (

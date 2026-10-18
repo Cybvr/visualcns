@@ -218,7 +218,6 @@ export function ClientProjectForm({ project, initialCompanyId, onSaved, onCancel
 
       <div className="space-y-2">
         <Label>Team</Label>
-        <p className="text-sm text-muted-foreground">Select client team members working on this project.</p>
         {teamMembers.length > 0 ? (
           <div className="grid gap-2 sm:grid-cols-2">
             {teamMembers.map((member) => (

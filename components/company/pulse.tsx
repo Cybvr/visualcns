@@ -461,9 +461,6 @@ function ReportView({
             <h2 data-weight="semibold" className="mt-1.5 text-xl font-semibold tracking-[-0.02em] text-foreground sm:text-3xl">
               AI intelligence for {companyName}
             </h2>
-            <p className="mt-1.5 text-sm leading-6 text-muted-foreground sm:text-base">
-              Discover what matters, fix issues, and find opportunities for growth.
-            </p>
           </div>
           <ScoreRing score={data.score} />
         </div>
@@ -993,7 +990,6 @@ export function Pulse({
         empty={{
           icon: ChartColumn,
           title: "No reports yet",
-          description: "Scan the business's website and the web to see what needs attention.",
           action: <SectionAddButton label="New scan" onClick={() => setIntroOpen(true)} disabled={scanning} />,
         }}
         card={(item) => ({

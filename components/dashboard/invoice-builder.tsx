@@ -848,7 +848,7 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate, onS
         <DialogContent className="w-[calc(100vw-0.5rem)] max-h-[calc(100vh-0.5rem)] max-w-5xl overflow-hidden p-2 print:hidden sm:p-6">
           <DialogHeader>
             <DialogTitle>Invoice preview</DialogTitle>
-            <DialogDescription>Preview the complete invoice with your current edits before saving or downloading.</DialogDescription>
+            <DialogDescription className="sr-only">Preview the complete invoice with your current edits before saving or downloading.</DialogDescription>
           </DialogHeader>
           <DocumentPreviewFrame>
             <InvoiceDocument invoice={draftInvoice} issuer={issuer ?? undefined} />
@@ -866,7 +866,7 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate, onS
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Share invoice</DialogTitle>
-            <DialogDescription>Control access to this invoice with a public link.</DialogDescription>
+            <DialogDescription className="sr-only">Control access to this invoice with a public link.</DialogDescription>
           </DialogHeader>
           <ShareLinkField
             enabled={shareEnabled}

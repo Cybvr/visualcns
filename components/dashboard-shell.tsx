@@ -319,7 +319,7 @@ export function DashboardShell({
         <DialogContent className="max-w-md gap-0 p-0">
           <DialogHeader className="border-b border-border px-5 py-4">
             <DialogTitle>Create {createItem?.label ?? "new"}</DialogTitle>
-            <DialogDescription>Add the basics, then continue to the {createItem?.label?.toLowerCase() ?? "new item"} page.</DialogDescription>
+            <DialogDescription className="sr-only">Add the basics, then continue to the {createItem?.label?.toLowerCase() ?? "new item"} page.</DialogDescription>
           </DialogHeader>
           {createItem && (
             <form onSubmit={createFromHeader} className="space-y-5 p-5">

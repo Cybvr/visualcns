@@ -80,7 +80,7 @@ export function CompanyLinks({
           ))}
         </div>
       ) : !adding ? (
-        <p className="mt-5 text-sm text-muted-foreground">Add websites, social profiles, or other useful links.</p>
+        <p className="mt-5 text-sm text-muted-foreground">No links yet.</p>
       ) : null}
 
       {adding && (

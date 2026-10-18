@@ -220,7 +220,7 @@ export default function LeadsPage() {
 
       {leads?.length === 0 && !error && (
         <p className="mt-2 text-sm text-muted-foreground">
-          Add people you&apos;re talking to here. Once a lead is won, add them as a <Link href="/dashboard/clients" className="text-foreground underline-offset-4 hover:underline">client</Link>.
+          No leads yet.
         </p>
       )}
 

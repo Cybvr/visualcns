@@ -55,7 +55,7 @@ export default function NgaiKnowledgePage() {
       <AccountNav />
       <header className="mt-7">
         <h1 className="text-lg font-semibold">Ngai knowledge</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Ngai answers client questions about your agency from this. Leave out anything clients shouldn&apos;t see.</p>
+        <p className="mt-1 text-sm text-muted-foreground">Clients can see this. Leave out anything private.</p>
       </header>
       {loading ? <DashboardPageSkeleton variant="form" rows={6} /> : (
         <div className="mt-6 space-y-6">

@@ -669,7 +669,6 @@ export function AgentChat({
           <div className="flex w-full max-w-sm flex-col items-center gap-3 rounded-[16px] border-2 border-dashed border-accent px-6 py-10 text-center">
             <UploadCloud className="size-8 text-accent" aria-hidden="true" />
             <p className="text-sm font-medium">Drop files or paste an image</p>
-            <p className="text-xs text-muted-foreground">PDFs and images can be read. Other files can be filed to a company.</p>
           </div>
         </div>
       )}

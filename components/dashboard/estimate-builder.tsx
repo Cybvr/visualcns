@@ -630,7 +630,7 @@ export function EstimateBuilder({ estimate, initialCompanyId, onSaved, onDeleted
       <DialogContent className="w-[calc(100vw-0.5rem)] max-h-[calc(100vh-0.5rem)] max-w-5xl overflow-hidden p-2 print:hidden sm:p-6">
         <DialogHeader>
           <DialogTitle>Estimate preview</DialogTitle>
-          <DialogDescription>Preview the complete estimate with your current edits before saving or downloading.</DialogDescription>
+          <DialogDescription className="sr-only">Preview the complete estimate with your current edits before saving or downloading.</DialogDescription>
         </DialogHeader>
         <DocumentPreviewFrame>
           <EstimateDocument estimate={draftEstimate} issuer={issuer ?? undefined} />
@@ -648,7 +648,7 @@ export function EstimateBuilder({ estimate, initialCompanyId, onSaved, onDeleted
       <DialogContent className="w-[calc(100vw-0.5rem)] max-w-md p-3 sm:p-6">
         <DialogHeader>
           <DialogTitle>Share estimate</DialogTitle>
-          <DialogDescription>Control access to this estimate with a public link.</DialogDescription>
+          <DialogDescription className="sr-only">Control access to this estimate with a public link.</DialogDescription>
         </DialogHeader>
         <ShareLinkField
           enabled={shareEnabled}

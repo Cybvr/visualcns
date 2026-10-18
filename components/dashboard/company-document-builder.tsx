@@ -286,7 +286,7 @@ export function CompanyDocumentBuilder({ document: record }: { document: Company
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Share document</DialogTitle>
-            <DialogDescription>Make this document available through its public link.</DialogDescription>
+            <DialogDescription className="sr-only">Make this document available through its public link.</DialogDescription>
           </DialogHeader>
           <div className="flex items-center justify-between gap-4 py-2">
             <Label htmlFor="share-toggle" className="text-sm font-medium">Public sharing</Label>

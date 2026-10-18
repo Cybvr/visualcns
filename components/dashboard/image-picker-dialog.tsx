@@ -151,7 +151,7 @@ export function ImagePickerDialog({
       <DialogContent className="max-w-2xl gap-0 overflow-hidden p-0">
         <DialogHeader className="border-b border-border px-5 py-4 pr-12">
           <DialogTitle>Choose an image</DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="sr-only">
             Pick an image from Drive or your company pages, or upload one. Uploads are resized to a 1600px maximum edge and compressed below 1 MB.
           </DialogDescription>
         </DialogHeader>
@@ -173,7 +173,6 @@ export function ImagePickerDialog({
             <div className="flex min-h-48 flex-col items-center justify-center text-center">
               <ImagePlus className="size-6 text-muted-foreground" aria-hidden="true" />
               <p className="mt-3 text-sm font-medium">{query ? "No matching images" : "No images yet"}</p>
-              <p className="mt-1 max-w-xs text-xs leading-5 text-muted-foreground">Upload an image here and it will also appear in the Drive page for reuse.</p>
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">

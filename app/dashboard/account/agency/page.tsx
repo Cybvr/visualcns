@@ -123,7 +123,7 @@ export default function AgencySettingsPage() {
           </section>
 
           <section className="space-y-5 border-t border-border pt-6">
-            <div><h2 className="font-medium">Business details</h2><p className="text-sm text-muted-foreground">Shown on invoices, estimates, and contracts.</p></div>
+            <div><h2 className="font-medium">Business details</h2></div>
             <div className="space-y-1.5"><Label htmlFor="agency-address">Company address</Label><Textarea id="agency-address" rows={2} value={form.address} onChange={(event) => set("address", event.target.value)} /></div>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-1.5"><Label htmlFor="agency-email">Business email</Label><Input id="agency-email" type="email" value={form.email} onChange={(event) => set("email", event.target.value)} /></div>
@@ -134,7 +134,7 @@ export default function AgencySettingsPage() {
           </section>
 
           <section className="space-y-5 border-t border-border pt-6">
-            <div><h2 className="font-medium">Document defaults</h2><p className="text-sm text-muted-foreground">Applied to new documents. You can still edit each document separately.</p></div>
+            <div><h2 className="font-medium">Document defaults</h2></div>
             <div className="space-y-1.5">
               <Label htmlFor="agency-invoice-terms">Invoice payment terms</Label>
               <Select value={form.invoicePaymentTermsDays} onValueChange={(value) => set("invoicePaymentTermsDays", value)}>
@@ -150,7 +150,6 @@ export default function AgencySettingsPage() {
             <div className="space-y-1.5">
               <Label htmlFor="agency-ngai-style">How Ngai should write</Label>
               <Textarea id="agency-ngai-style" rows={5} value={form.ngaiStyle} onChange={(event) => set("ngaiStyle", event.target.value)} placeholder={"Warm but direct. British spelling.\nSign off emails with \"Best, the VisualCNS team\".\nKeep documents short, with clear headings."} />
-              <p className="text-xs text-muted-foreground">Ngai follows these notes whenever it writes. You can also tell Ngai &quot;remember that…&quot; in chat and it adds to this list.</p>
             </div>
           </section>
 

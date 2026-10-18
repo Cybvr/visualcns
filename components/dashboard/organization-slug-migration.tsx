@@ -5,7 +5,7 @@ import { AlertTriangle, CheckCircle2, Database, Loader2 } from "lucide-react"
 
 import { useAuth } from "@/components/auth-provider"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
 type OrganizationMigration = { id: string; name: string; slug?: string }
 
@@ -50,7 +50,7 @@ export function OrganizationSlugMigration() {
     <Card className="mt-8 border-amber-200 bg-amber-50/50 dark:border-amber-900 dark:bg-amber-950/20">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base"><Database className="size-4" aria-hidden="true" />Company URL migration</CardTitle>
-        <CardDescription>Generate readable portal URLs from company names. Existing custom URLs are preserved.</CardDescription>
+        
       </CardHeader>
       <CardContent>
         <div className="flex flex-wrap items-center gap-3">

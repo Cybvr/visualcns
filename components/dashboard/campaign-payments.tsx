@@ -86,7 +86,7 @@ export function CampaignPayments({ people, invoices, canEdit, invoiceHref }: Cam
           <Tile label="Still to pay" value={sumByCurrency(paidPeople.filter((person) => !person.paid))} />
         </div>
       }
-      empty={{ icon: DollarSign, title: "No payments yet", description: "Creator pay and invoices for this campaign will appear here." }}
+      empty={{ icon: DollarSign, title: "No payments yet" }}
       card={(entry) => {
         const Icon = entry.kind === "creator" ? UserRound : Receipt
         return {

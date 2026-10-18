@@ -40,7 +40,7 @@ export function NewPersonDialog({
       <DialogContent className="max-h-[85vh] w-full gap-0 overflow-y-auto p-0 sm:max-w-md">
         <DialogHeader className="border-b border-border p-4">
           <DialogTitle>New {subjectLabel}</DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="sr-only">
             {joinWorkspaceId
               ? `Add someone to ${joinWorkspaceName || "this company"}.`
               : `Create a new ${subjectLabel}.`}

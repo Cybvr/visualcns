@@ -353,7 +353,6 @@ export function AnalyticsView({
         {isCompany && (
           <section className="rounded-2xl border border-border p-5 sm:p-6 xl:col-span-2">
           <h3 className="surface-section-label">Campaign activity</h3>
-            <p className="mt-1 text-sm text-muted-foreground">Rostered creators and written posts across campaigns.</p>
             {campaignData.length === 0 ? (
               <EmptyChart>{term && (allScopedPeople.length || allScopedContent.length) ? "No campaign activity matches your search." : hasActivityOutsideRange ? "No campaign activity in this period." : "Add campaigns to compare activity."}</EmptyChart>
             ) : (
@@ -478,7 +477,6 @@ export function AnalyticsView({
 
         <section className="rounded-2xl border border-border p-5 sm:p-6 xl:col-span-2">
           <h3 className="surface-section-label">Creator payments</h3>
-          <p className="mt-1 text-sm text-muted-foreground">Creators paid and awaiting payment by campaign.</p>
           {creatorPaymentData.length === 0 ? (
             <EmptyChart>{term && allScopedPeople.some((person) => Math.max(0, person.pay || 0) > 0) ? "No payments match your search." : hasCreatorPaymentsOutsideRange ? "No creator payments in this period." : "Add creator fees to track payments."}</EmptyChart>
           ) : (
@@ -510,7 +508,6 @@ export function AnalyticsView({
 
         <section className="rounded-2xl border border-border p-5 sm:p-6 xl:col-span-2">
           <h3 className="surface-section-label">Creators by platform</h3>
-          <p className="mt-1 text-sm text-muted-foreground">Rostered creators grouped by their social platform.</p>
           {platformData.length === 0 ? (
             <EmptyChart>{term && allScopedPeople.length ? "No platforms match your search." : hasPeopleOutsideRange ? "No creators in this period." : "Add creators to compare platforms."}</EmptyChart>
           ) : (

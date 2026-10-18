@@ -161,7 +161,7 @@ export function ImportWordDocumentDialog({
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>Import document</DialogTitle>
-          <DialogDescription>Bring one or more Word .docx or Markdown .md/.markdown files into Documents as editable drafts.</DialogDescription>
+          <DialogDescription className="sr-only">Bring one or more Word .docx or Markdown .md/.markdown files into Documents as editable drafts.</DialogDescription>
         </DialogHeader>
         <form onSubmit={submit} className="space-y-5">
           <div className="space-y-2">
@@ -178,12 +178,12 @@ export function ImportWordDocumentDialog({
               </div>
             )}
           </div>
-          {files.length <= 1
-            ? <div className="space-y-2">
+          {files.length <= 1 && (
+            <div className="space-y-2">
               <Label htmlFor="import-title">Title</Label>
               <Input id="import-title" value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Client proposal" required />
             </div>
-            : <p className="text-sm text-muted-foreground">Each imported document will use its filename as the title.</p>}
+          )}
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="import-kind">Type</Label>
