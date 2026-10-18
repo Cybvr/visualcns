@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { Loader2 } from "lucide-react"
 import { useAuth } from "@/components/auth-provider"
 import { AccountNav } from "@/components/account/account-nav"
+import { SocialApiSettings } from "@/components/company/social-accounts"
 import { DashboardPageSkeleton } from "@/components/dashboard/dashboard-page-skeleton"
 import { ImageDropzone } from "@/components/image-dropzone"
 import { Button } from "@/components/ui/button"
@@ -154,6 +155,11 @@ export default function AgencySettingsPage() {
           </section>
 
           <div className="flex items-center gap-3"><Button onClick={() => void save()} disabled={saving}>{saving && <Loader2 className="mr-2 size-4 animate-spin" />}Save</Button>{message && <span className="text-sm text-muted-foreground" role="status">{message}</span>}</div>
+
+          <section className="space-y-5 border-t border-border pt-6">
+            <div><h2 className="font-medium">Social accounts</h2><p className="text-sm text-muted-foreground">One key for every client.</p></div>
+            <SocialApiSettings />
+          </section>
         </div>
       )}
     </main>

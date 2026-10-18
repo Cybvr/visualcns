@@ -78,6 +78,9 @@ export function SocialAccounts({ companyId, companyName }: { companyId: string; 
     }
   }
 
+  // The SocialAPI key lives in Agency settings; until it's added there is nothing to connect.
+  if (info && !info.configured) return null
+
   return (
     <section className="py-2">
       <h2 className="surface-section-label">Social accounts</h2>
@@ -86,8 +89,6 @@ export function SocialAccounts({ companyId, companyName }: { companyId: string; 
           <p className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="size-4 animate-spin" aria-hidden="true" />Loading</p>
         ) : !info ? (
           <p className="text-sm text-muted-foreground">{error || "Couldn't load social accounts."}</p>
-        ) : !info.configured ? (
-          info.role === "agency" ? <SocialSetup onDone={reload} /> : <p className="text-sm text-muted-foreground">Your agency hasn&apos;t switched on social accounts yet.</p>
         ) : (
           <>
             <p className="text-sm text-muted-foreground">
@@ -142,11 +143,16 @@ export function SocialAccounts({ companyId, companyName }: { companyId: string; 
   )
 }
 
-/** First-time setup for the agency: its SocialAPI key, then live alerts. */
-function SocialSetup({ onDone }: { onDone: () => Promise<void> }) {
+/** The agency's SocialAPI key, set once in Agency settings. Saving it also turns on live alerts. */
+export function SocialApiSettings() {
   const request = useSocialRequest()
+  const [status, setStatus] = useState<{ configured: boolean; webhook: boolean; callbackUrl: string } | null>(null)
   const [apiKey, setApiKey] = useState("")
   const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    request<{ configured: boolean; webhook: boolean; callbackUrl: string }>("setup").then(setStatus).catch(() => setStatus(null))
+  }, [request])
 
   async function save(event: FormEvent) {
     event.preventDefault()
@@ -157,10 +163,9 @@ function SocialSetup({ onDone }: { onDone: () => Promise<void> }) {
       if (result.webhook) toast.success("Social accounts are on.")
       else toast.warning(`Key saved, but live alerts aren't on yet${result.webhookError ? `: ${result.webhookError}` : "."}`)
       setApiKey("")
-      await onDone()
+      setStatus((current) => (current ? { ...current, configured: true, webhook: result.webhook } : current))
     } catch (caught) {
       toast.error(caught instanceof Error ? caught.message : "Couldn't save the key.")
-      await onDone()
     } finally {
       setSaving(false)
     }
@@ -169,11 +174,12 @@ function SocialSetup({ onDone }: { onDone: () => Promise<void> }) {
   return (
     <form onSubmit={save} className="space-y-3">
       <p className="text-sm text-muted-foreground">
-        Add your SocialAPI key to let clients connect their accounts. In the SocialAPI dashboard, allow the callback address <code className="break-all text-foreground">/api/social/callback</code> on this site.
+        {status?.configured ? "Clients can connect their accounts from their settings page. Paste a new key to replace it." : "Add your SocialAPI key so clients can connect their accounts."}{" "}
+        In the SocialAPI dashboard, allow the callback address <code className="break-all text-foreground">{status?.callbackUrl || "/api/social/callback"}</code>.
       </p>
-      <div className="space-y-2">
+      <div className="space-y-1.5">
         <Label htmlFor="social-api-key">SocialAPI key</Label>
-        <Input id="social-api-key" type="password" autoComplete="off" placeholder="sapi_key_…" value={apiKey} onChange={(event) => setApiKey(event.target.value)} />
+        <Input id="social-api-key" type="password" autoComplete="off" placeholder={status?.configured ? "Saved" : "sapi_key_…"} value={apiKey} onChange={(event) => setApiKey(event.target.value)} />
       </div>
       <Button type="submit" size="sm" disabled={saving || !apiKey.trim()}>
         {saving && <Loader2 className="size-4 animate-spin" aria-hidden="true" />}
