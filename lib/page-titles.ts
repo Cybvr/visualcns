@@ -37,6 +37,7 @@ const COMPANY_SECTION_TITLES: Record<string, string> = {
   notes: "Documents",
   notifications: "Notifications",
   projects: "Campaigns",
+  social: "Social",
   pulse: "Reports",
   tasks: "Tasks",
   team: "Team",

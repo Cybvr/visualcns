@@ -7,6 +7,7 @@ import { toast } from "sonner"
 import { useAuth } from "@/components/auth-provider"
 import { CompanyBookings } from "@/components/company/company-bookings"
 import { CompanyLinks } from "@/components/company/company-links"
+import { SocialAccounts } from "@/components/company/social-accounts"
 import { useCompanyPage } from "@/components/company/company-page-context"
 import { CompanyDetails, type CompanyDetailsPatch } from "@/components/company/company-sidebar"
 import { Button } from "@/components/ui/button"
@@ -219,7 +220,7 @@ function CompanyTagsCard({ tags = [], onSave }: { tags?: string[]; onSave?: (pat
 }
 
 export function AboutSection({ singleColumn = false, formStyle = false }: { singleColumn?: boolean; formStyle?: boolean } = {}) {
-  const { company, admin } = useCompanyPage()
+  const { company, admin, canSeeVisitors } = useCompanyPage()
   const { user } = useAuth()
 
   const profile = {
@@ -248,6 +249,8 @@ export function AboutSection({ singleColumn = false, formStyle = false }: { sing
   const tags = <CompanyTagsCard tags={company.tags} onSave={admin?.onUpdateCompany} />
   const links = <CompanyLinks links={company.links} onSave={admin ? (next) => admin.onUpdateCompany({ links: next }) : undefined} />
   const bookings = user ? <CompanyBookings companyId={company.id} canCancel={!admin} /> : null
+  // The agency and the company's own people; same rule as the Social section.
+  const social = user && canSeeVisitors ? <SocialAccounts companyId={company.id} companyName={company.name} /> : null
 
   if (formStyle) {
     return (
@@ -278,6 +281,7 @@ export function AboutSection({ singleColumn = false, formStyle = false }: { sing
         )}
         <div id="company-settings-tags">{tags}</div>
         <div id="company-settings-links">{links}</div>
+        <div id="company-settings-social" className="empty:hidden">{social}</div>
         <div id="company-settings-bookings">{bookings}</div>
       </div>
     )
@@ -291,6 +295,7 @@ export function AboutSection({ singleColumn = false, formStyle = false }: { sing
         <div id="company-settings-details">{details}</div>
         <div id="company-settings-tags">{tags}</div>
         <div id="company-settings-links">{links}</div>
+        <div id="company-settings-social" className="empty:hidden">{social}</div>
         <div id="company-settings-bookings">{bookings}</div>
       </div>
     )
@@ -304,6 +309,7 @@ export function AboutSection({ singleColumn = false, formStyle = false }: { sing
         {details}
       </div>
       <div className="mt-6">{links}</div>
+      <div id="company-settings-social" className="mt-6 max-w-2xl empty:hidden">{social}</div>
       <div className="mt-6 empty:hidden">{bookings}</div>
     </div>
   )

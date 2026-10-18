@@ -269,6 +269,10 @@ service cloud.firestore {
     match /invites/{id} { allow read, write: if false; }
     match /agencySecrets/{id} { allow read, write: if false; }
     match /agencyUsage/{id} { allow read, write: if false; }
+    // Social accounts, inbox and webhook receipts go through /api/social only.
+    match /socialAccounts/{id} { allow read, write: if false; }
+    match /socialInbox/{id} { allow read, write: if false; }
+    match /socialWebhookDeliveries/{id} { allow read, write: if false; }
     // Agent operations are surfaced through server routes so raw prompts and
     // tool metadata never become browser-readable by default.
     match /agentRuns/{id} {

@@ -29,6 +29,8 @@ import {
 import { uploadFileToStorage } from "@/lib/documents"
 import { mediaKindForFile, mediaKindForUrl } from "@/lib/media"
 import { cn } from "@/lib/utils"
+import { PUBLISH_LABELS } from "@/lib/social"
+import { PublishPill, PublishPostDialog } from "@/components/company/publish-post-dialog"
 
 interface CampaignCreativesProps {
   creatives: CampaignCreative[]
@@ -81,6 +83,7 @@ export function CampaignCreatives({ creatives, agencyId, companyId, projectId, c
   const [editing, setEditing] = useState<CampaignCreative | "new" | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [shareOpen, setShareOpen] = useState(false)
+  const [publishingId, setPublishingId] = useState<string | null>(null)
   const [postQuery, setPostQuery] = useState("")
   const selected = posts.find((post) => post.id === selectedId) ?? null
   // The viewer's arrows step through what the search shows, in the same order.
@@ -160,7 +163,10 @@ export function CampaignCreatives({ creatives, agencyId, companyId, projectId, c
         {sharePath && <DropdownMenuItem onSelect={() => { openPost(post); setShareOpen(true) }}>Share</DropdownMenuItem>}
         {canReview && status !== "Approved" && <DropdownMenuItem onSelect={() => setStatus("Approved")}>Approve</DropdownMenuItem>}
         {canReview && status !== "Approved" && <DropdownMenuItem onSelect={() => setStatus("Changes requested")}>Request changes</DropdownMenuItem>}
-        {canReview && status === "Approved" && <DropdownMenuItem onSelect={() => setStatus(READY_FOR_REVIEW)}>Undo approval</DropdownMenuItem>}
+        {canReview && status === "Approved" && !post.publish && <DropdownMenuItem onSelect={() => setStatus(READY_FOR_REVIEW)}>Undo approval</DropdownMenuItem>}
+        {(canEdit || canReview) && (status === "Approved" || post.publish) && (
+          <DropdownMenuItem onSelect={() => setPublishingId(post.id)}>{post.publish && post.publish.state !== "failed" ? "Social post" : "Schedule post"}</DropdownMenuItem>
+        )}
       </>
     )
   }
@@ -212,7 +218,7 @@ export function CampaignCreatives({ creatives, agencyId, companyId, projectId, c
             extra: postExtra(post),
             onDelete: canEdit ? () => removeCreative(post.id) : undefined,
           })}
-          row={(post) => ({ subtitle: post.body?.trim() || post.title, description: creativeStatus(post) })}
+          row={(post) => ({ subtitle: post.body?.trim() || post.title, description: post.publish ? `${creativeStatus(post)} · ${PUBLISH_LABELS[post.publish.state]}` : creativeStatus(post) })}
         />
 
         <CampaignPostViewDialog
@@ -238,6 +244,13 @@ export function CampaignCreatives({ creatives, agencyId, companyId, projectId, c
             contentClassName={VIEWER_POPOVER}
           />
         )}
+
+        <PublishPostDialog
+          post={posts.find((post) => post.id === publishingId) ?? null}
+          companyId={companyId}
+          open={publishingId !== null}
+          onOpenChange={(open) => { if (!open) setPublishingId(null) }}
+        />
 
         <PostDialog
           post={editing === "new" ? null : editing}
@@ -495,6 +508,7 @@ export function CampaignPostViewDialog({
             <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
               <span className="min-w-0 truncate">{post.title || "Post"}</span>
               <StatusPill status={creativeStatus(post)} />
+              <PublishPill post={post} />
               <span className="shrink-0">{postDate(post)}</span>
             </div>
           </div>
@@ -529,6 +543,7 @@ export function CampaignPostViewDialog({
               <h2 id={`post-view-title-${post.id}`} className="flex min-w-0 items-center gap-2 text-sm font-semibold">
                 <span className="min-w-0 truncate">{post.title || "Post"}</span>
                 <StatusPill status={creativeStatus(post)} />
+                <PublishPill post={post} />
               </h2>
               <p className="text-xs text-muted-foreground">{postDate(post) || "Campaign"}</p>
             </div>

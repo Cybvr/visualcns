@@ -13,6 +13,7 @@ import { ActivitySection } from "@/components/company/sections/activity-section"
 import { AnalyticsSection } from "@/components/company/sections/analytics-section"
 import { DocumentsSection } from "@/components/company/sections/documents-section"
 import { ProjectsSection } from "@/components/company/sections/projects-section"
+import { SocialSection } from "@/components/company/sections/social-section"
 import { NgaiSection } from "@/components/company/sections/ngai-section"
 import { TeamSection } from "@/components/company/sections/team-section"
 
@@ -84,6 +85,7 @@ function PulseSection() {
 
 const SECTION_COMPONENTS: Record<CompanySectionKey, ComponentType> = {
   projects: ProjectsSection,
+  social: SocialSection,
   ngai: NgaiSection,
   analytics: AnalyticsSection,
   tasks: ProjectsSection,

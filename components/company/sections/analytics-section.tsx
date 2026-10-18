@@ -3,13 +3,16 @@
 import { useEffect, useState } from "react"
 
 import { AnalyticsSkeleton, AnalyticsView } from "@/components/company/analytics-view"
+import { useAuth } from "@/components/auth-provider"
 import { useCompanyPage } from "@/components/company/company-page-context"
+import { SocialAnalytics } from "@/components/company/social-analytics"
 import { watchCompanyCampaignCreatives, type CampaignCreative } from "@/lib/campaign-creatives"
 import { onRoster, watchCompanyCampaignPeople, type CampaignPerson } from "@/lib/campaign-people"
 
 /** Client-wide analytics at /{companySlug}/analytics. */
 export function AnalyticsSection() {
-  const { company, projects, invoices } = useCompanyPage()
+  const { company, projects, invoices, canSeeVisitors } = useCompanyPage()
+  const { user } = useAuth()
   const [people, setPeople] = useState<CampaignPerson[]>([])
   const [content, setContent] = useState<CampaignCreative[]>([])
   const [peopleLoaded, setPeopleLoaded] = useState(false)
@@ -39,6 +42,7 @@ export function AnalyticsSection() {
 
   return (
     <div className="mt-5">
+      {user && canSeeVisitors && <SocialAnalytics companyId={company.id} />}
       <AnalyticsView
         scope={{ type: "company", companyId: company.id }}
         people={people}

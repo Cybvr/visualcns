@@ -6,6 +6,7 @@ const SETTINGS_ITEMS = [
   ["company-settings-details", "Details"],
   ["company-settings-tags", "Tags"],
   ["company-settings-links", "Links"],
+  ["company-settings-social", "Social"],
 ] as const
 
 export function CompanySettingsLayout({ children, includeProfile = true }: { children: ReactNode; includeProfile?: boolean }) {

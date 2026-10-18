@@ -1,6 +1,7 @@
 import { addDoc, collection, deleteDoc, doc, getDocs, onSnapshot, query, Timestamp, updateDoc, where, writeBatch } from "firebase/firestore"
 
 import { db } from "./firebase"
+import type { PostPublish } from "./social"
 import { getCurrentAgencyId } from "./agency-scope"
 import { tsToMillis } from "./tasks"
 
@@ -38,6 +39,8 @@ export interface CampaignCreative {
   /** Content is work made for the campaign and reviewed; media is raw files kept with it. Older rows have no kind and count as content. */
   kind?: "content" | "media"
   status: string
+  /** Set by the server once an approved post is scheduled or posted to social accounts. */
+  publish?: PostPublish
   createdAt?: Timestamp
   updatedAt?: Timestamp
 }
