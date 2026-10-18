@@ -34,6 +34,7 @@ function DropdownMenuTrigger({
 function DropdownMenuContent({
   className,
   sideOffset = 4,
+  onFocusOutside,
   ...props
 }: React.ComponentProps<typeof DropdownMenuPrimitive.Content>) {
   return (
@@ -41,6 +42,13 @@ function DropdownMenuContent({
       <DropdownMenuPrimitive.Content
         data-slot="dropdown-menu-content"
         sideOffset={sideOffset}
+        // On phones, lifting the finger after the tap that opened a menu puts focus
+        // back on its button. Non-modal menus (modal={false}) took that as leaving and
+        // shut at once. A tap outside, Escape or a choice still closes them.
+        onFocusOutside={(event) => {
+          onFocusOutside?.(event)
+          event.preventDefault()
+        }}
         className={cn(
           // Portalled outside .dashboard-body, so re-apply the dashboard font here.
           "dashboard-body z-50 max-h-(--radix-dropdown-menu-content-available-height) min-w-[8rem] origin-(--radix-dropdown-menu-content-transform-origin) overflow-x-hidden overflow-y-auto rounded-md border bg-popover p-1 text-popover-foreground shadow-md data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95",
