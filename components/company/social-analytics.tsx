@@ -64,7 +64,7 @@ export function SocialAnalytics({ companyId }: { companyId: string }) {
                 <Stat label="Engagement (30 days)" value={account.interactions} />
               </div>
             ) : (
-              <p className="mt-2 text-xs text-muted-foreground">Account numbers aren&apos;t available for this platform yet. Post numbers are below.</p>
+              <p className="mt-2 text-xs text-muted-foreground">No numbers yet.</p>
             )}
           </div>
         ))}

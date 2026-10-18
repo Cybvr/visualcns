@@ -113,7 +113,7 @@ export function SocialOverview() {
         {loading && !info && !sorted.length ? (
           <p className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="size-4 animate-spin" aria-hidden="true" />Loading</p>
         ) : !sorted.length ? (
-          <p className="text-sm text-muted-foreground">No posts yet. Tap New post to write one.</p>
+          <p className="text-sm text-muted-foreground">No posts yet.</p>
         ) : (
           <ul className="divide-y divide-border rounded-lg border border-border">
             {sorted.map((post) => {
@@ -231,7 +231,7 @@ function NewPostDialog({ open, onOpenChange, info, accounts, onSent }: { open: b
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>New post</DialogTitle>
-          <DialogDescription>{sendsNow ? "Pick where and when it goes out." : "Your agency approves it before it goes out."}</DialogDescription>
+          <DialogDescription className="sr-only">Write a post</DialogDescription>
         </DialogHeader>
         <form onSubmit={submit} className="space-y-5">
           <div className="space-y-2">

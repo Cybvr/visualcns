@@ -91,10 +91,6 @@ export function SocialAccounts({ companyId, companyName }: { companyId: string; 
           <p className="text-sm text-muted-foreground">{error || "Couldn't load social accounts."}</p>
         ) : (
           <>
-            <p className="text-sm text-muted-foreground">
-              Connect accounts so posts can go out and messages come in here. You sign in on the platform itself; your password is never shared.
-            </p>
-
             {info.accounts.length > 0 && (
               <ul className="divide-y divide-border rounded-lg border border-border">
                 {info.accounts.map((account) => (
@@ -128,11 +124,8 @@ export function SocialAccounts({ companyId, companyName }: { companyId: string; 
             </div>
 
             {info.role === "agency" && (
-              <div className="flex items-start justify-between gap-4 rounded-lg border border-border px-4 py-3">
-                <Label htmlFor={`social-client-posting-${companyId}`} className="grid gap-1 text-sm font-normal">
-                  <span className="font-medium">Let {companyName} post on their own</span>
-                  <span className="text-muted-foreground">Off: they approve, your team posts. On: they can also schedule approved posts.</span>
-                </Label>
+              <div className="flex items-center justify-between gap-4 rounded-lg border border-border px-4 py-3">
+                <Label htmlFor={`social-client-posting-${companyId}`} className="text-sm font-medium">Let {companyName} post on their own</Label>
                 <Switch id={`social-client-posting-${companyId}`} checked={info.clientPosting} onCheckedChange={(checked) => void setClientPosting(checked)} />
               </div>
             )}
