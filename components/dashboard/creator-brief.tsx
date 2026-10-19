@@ -4,6 +4,7 @@ import { useEffect, useState, type ReactNode } from "react"
 import { X } from "lucide-react"
 import { toast } from "sonner"
 
+import { SocialIcon } from "@/components/company/social-icon"
 import { Button } from "@/components/ui/button"
 import { Combobox } from "@/components/ui/combobox"
 import { Input } from "@/components/ui/input"
@@ -199,8 +200,40 @@ function CreatorFields({ value, onChange, compact = false }: { value: CreatorBri
   )
 }
 
+const PLATFORM_HOSTS: Record<string, string[]> = {
+  instagram: ["instagram.com"],
+  facebook: ["facebook.com", "fb.com"],
+  tiktok: ["tiktok.com"],
+  youtube: ["youtube.com", "youtu.be"],
+}
+
+/** The brand's account on a platform, from its saved links: the URL and the @handle. */
+function brandAccount(platform: string, links: { url: string }[]) {
+  for (const link of links) {
+    try {
+      const url = new URL(/^https?:\/\//i.test(link.url) ? link.url : `https://${link.url}`)
+      const host = url.hostname.replace(/^www\./, "")
+      if (!PLATFORM_HOSTS[platform]?.some((domain) => host === domain || host.endsWith(`.${domain}`))) continue
+      const name = url.pathname.split("/").filter(Boolean)[0]
+      return { url: url.toString(), handle: name ? `@${name.replace(/^@/, "")}` : "" }
+    } catch {
+      continue
+    }
+  }
+  return null
+}
+
+function websiteHref(website: string) {
+  return /^https?:\/\//i.test(website) ? website : `https://${website}`
+}
+
 /** What creators and the client see: the brief as plain facts. */
-export function CreatorBriefSummary({ brief }: { brief: CreatorBrief }) {
+export function CreatorBriefSummary({ brief, brand }: {
+  brief: CreatorBrief
+  /** The client's links and website, so creators can find the brand's accounts. */
+  brand?: { links?: { url: string }[]; website?: string }
+}) {
+  const platforms = brief.platform.split(" and ").map((name) => name.trim())
   const content = contentSummary(brief)
   const who = creatorSummary(brief)
   const dates = brief.postFrom || brief.postTo
@@ -209,7 +242,29 @@ export function CreatorBriefSummary({ brief }: { brief: CreatorBrief }) {
   return (
     <div className="space-y-5">
       <dl className="grid gap-x-6 gap-y-4 sm:grid-cols-2">
-        <Fact label="Platform">{brief.platform}</Fact>
+        <Fact label="Platform">
+          <span className="flex flex-wrap gap-x-4 gap-y-1">
+            {platforms.map((name) => {
+              const key = name.toLowerCase()
+              const account = brandAccount(key, brand?.links ?? [])
+              return (
+                <span key={name} className="inline-flex items-center gap-1.5">
+                  <SocialIcon platform={key} />
+                  {account?.handle
+                    ? <a href={account.url} target="_blank" rel="noreferrer" className="hover:underline">{account.handle}</a>
+                    : name}
+                </span>
+              )
+            })}
+          </span>
+        </Fact>
+        {brand?.website && (
+          <Fact label="Website">
+            <a href={websiteHref(brand.website)} target="_blank" rel="noreferrer" className="break-all hover:underline">
+              {brand.website.replace(/^https?:\/\//i, "").replace(/\/$/, "")}
+            </a>
+          </Fact>
+        )}
         <Fact label="Goal">{goalLabel(brief.goal)}</Fact>
         {formatOffer(brief) && <Fact label="Offer">{formatOffer(brief)}</Fact>}
         {content && <Fact label="Content">{content}</Fact>}

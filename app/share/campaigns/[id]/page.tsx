@@ -136,7 +136,7 @@ export default function SharedCampaignPage() {
                 <h2 id="shared-brief-heading" className="text-sm font-semibold text-foreground">The brief</h2>
                 {formatOffer(brief) && <p className="text-sm font-semibold text-foreground">{formatOffer(brief)}</p>}
               </div>
-              <CreatorBriefSummary brief={brief} />
+              <CreatorBriefSummary brief={brief} brand={organization ?? undefined} />
               {samples.length > 0 && (
                 <div className="flex gap-2">
                   {samples.map((item) => (
