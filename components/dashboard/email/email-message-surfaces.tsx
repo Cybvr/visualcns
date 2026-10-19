@@ -292,12 +292,12 @@ export function EmailMessageSurfaces({
               {loadingReceivedId === selectedReceived.id ? <div className="space-y-4 p-6" role="status" aria-label="Loading message"><Skeleton className="h-6 w-2/3" /><Skeleton className="h-4 w-1/3" /><Skeleton className="h-32 w-full" /><Skeleton className="h-4 w-4/5" /><Skeleton className="h-4 w-3/5" /></div> : (
                 <>
                   <EmailContentFrame
-                    key={selectedReceived.id}
+                    key={`${selectedReceived.id}:body`}
                     title={`Received email: ${selectedReceived.subject}`}
                     srcDoc={receivedMessagePreview(selectedReceived)}
                     className={selectedReceived.attachments?.length ? "h-[42vh] min-h-80" : undefined}
                   />
-                  <ReceivedAttachmentGallery key={selectedReceived.id} message={selectedReceived} onDownload={onDownloadReceivedAttachment} downloadingAttachmentId={downloadingAttachmentId} />
+                  <ReceivedAttachmentGallery key={`${selectedReceived.id}:attachments`} message={selectedReceived} onDownload={onDownloadReceivedAttachment} downloadingAttachmentId={downloadingAttachmentId} />
                 </>
               )}
             </div>
