@@ -124,6 +124,12 @@ service cloud.firestore {
         || (owns(resource.data) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['onRoster', 'updatedAt']));
       allow delete: if agencyAdmin(resource.data);
     }
+    // What a creator sent when applying on the shared campaign page: contact details, so agency only.
+    // Written only by /api/campaigns/apply.
+    match /campaignApplications/{id} {
+      allow read, update, delete: if agencyAdmin(resource.data);
+      allow create: if false;
+    }
 
     // Posts, artwork, videos and links made for a campaign. Readable by anyone, like the campaign itself.
     // The client's own people can suggest a written post, edit post text and approve or send it back.

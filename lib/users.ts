@@ -14,11 +14,13 @@ import {
 import { db } from "./firebase"
 import { getCurrentAgencyId } from "./agency-scope"
 
-export type UserRole = "admin" | "client" | "superadmin"
+/** "creator": signed up by applying to a campaign from its shared page. */
+export type UserRole = "admin" | "client" | "superadmin" | "creator"
 
 export function userRoleLabel(role?: UserRole): string {
   if (role === "superadmin") return "Superadmin"
   if (role === "admin") return "Admin"
+  if (role === "creator") return "Creator"
   return "Client"
 }
 

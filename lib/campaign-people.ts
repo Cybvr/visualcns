@@ -1,4 +1,4 @@
-import { addDoc, collection, deleteDoc, doc, onSnapshot, query, Timestamp, updateDoc, where } from "firebase/firestore"
+import { addDoc, collection, deleteDoc, doc, getDoc, onSnapshot, query, Timestamp, updateDoc, where } from "firebase/firestore"
 
 import { db } from "./firebase"
 import { getCurrentAgencyId } from "./agency-scope"
@@ -8,7 +8,7 @@ const COLLECTION_NAME = "campaignPeople"
 
 export const PERSON_APPS = ["X", "Instagram", "TikTok", "YouTube", "Facebook", "Snapchat", "Threads", "LinkedIn"] as const
 export const PERSON_TIERS = ["Big account", "Mid account", "Small account"] as const
-export const PERSON_STATUSES = ["Prospect", "Contacted", "Agreed", "Posted", "Declined"] as const
+export const PERSON_STATUSES = ["Applied", "Prospect", "Contacted", "Agreed", "Posted", "Declined"] as const
 export const PERSON_WAVES = ["", "1", "2", "3", "4", "5"] as const
 
 /** One creator or account booked on a campaign. */
@@ -37,8 +37,8 @@ export interface CampaignPerson {
   overlap?: number
   /** False for a suggested creator the client hasn't added yet. Older rows have no value and are on the roster. */
   onRoster?: boolean
-  /** Ngai suggestions come from grounded Firecrawl search results. */
-  source?: "ngai"
+  /** "ngai": from grounded Firecrawl search results. "apply": the creator registered interest on the shared campaign page. */
+  source?: "ngai" | "apply"
   createdAt?: Timestamp
   updatedAt?: Timestamp
 }
@@ -111,6 +111,8 @@ export async function updateCampaignPerson(id: string, patch: Partial<Omit<Campa
 
 export async function deleteCampaignPerson(id: string) {
   await deleteDoc(doc(db, COLLECTION_NAME, id))
+  // An applicant's contact details go with them; most creators have none.
+  await deleteDoc(doc(db, "campaignApplications", id)).catch(() => undefined)
 }
 
 /** Reads numbers like "12,500", "12.5k" or "1.2m". */
@@ -181,4 +183,30 @@ const PROFILE_URLS: Record<string, (name: string) => string> = {
 export function profileUrl(person: Pick<CampaignPerson, "handle" | "app">) {
   const name = encodeURIComponent(person.handle.replace(/^@+/, ""))
   return name ? PROFILE_URLS[person.app]?.(name) ?? "" : ""
+}
+
+/** What a creator sent when they registered interest. Kept apart from campaignPeople, which anyone can read. */
+export interface CampaignApplication {
+  name: string
+  email: string
+  phone: string
+  note: string
+  /** Their own rate, in `currency`, when the campaign has no fixed offer. */
+  rate: number
+  currency: string
+}
+
+/** The application behind an applied creator, keyed by the creator's id. Agency only. */
+export async function getCampaignApplication(personId: string): Promise<CampaignApplication | null> {
+  const snapshot = await getDoc(doc(db, "campaignApplications", personId))
+  if (!snapshot.exists()) return null
+  const data = snapshot.data()
+  const text = (value: unknown) => (typeof value === "string" ? value : "")
+  return { name: text(data.name), email: text(data.email), phone: text(data.phone), note: text(data.note), rate: Number(data.rate) || 0, currency: text(data.currency) }
+}
+
+/** Every creator who applied is a suggestion until someone adds them; this is the badge they show meanwhile. */
+export function personStatusLabel(person: Pick<CampaignPerson, "onRoster" | "source" | "status">) {
+  if (onRoster(person)) return person.status
+  return person.source === "apply" ? "Applied" : "Suggested"
 }

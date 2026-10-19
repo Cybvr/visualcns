@@ -127,8 +127,7 @@ export function goalLabel(value: string) {
 }
 
 export function formatOffer(brief: Pick<CreatorBrief, "fixedOffer" | "offerAmount" | "currency">) {
-  if (!brief.fixedOffer) return "Send us your rate"
-  if (!brief.offerAmount) return "Fixed offer"
+  if (!brief.fixedOffer || !brief.offerAmount) return ""
   try {
     return new Intl.NumberFormat("en", { style: "currency", currency: brief.currency || "NGN", maximumFractionDigits: 0 }).format(brief.offerAmount)
   } catch {

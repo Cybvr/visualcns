@@ -21,7 +21,9 @@ import {
   deleteCampaignPerson,
   formatPay,
   normalizeHandle,
+  getCampaignApplication,
   onRoster,
+  personStatusLabel,
   parseCount,
   PAY_CURRENCIES,
   payCurrency,
@@ -32,6 +34,7 @@ import {
   PERSON_WAVES,
   profileUrl,
   updateCampaignPerson,
+  type CampaignApplication,
   type CampaignPerson,
   type CampaignPersonInput,
 } from "@/lib/campaign-people"
@@ -143,8 +146,7 @@ export function CampaignPeople({ people, agencyId, companyId, projectId, canEdit
           action: canEdit ? <SectionAddButton label="New creator" onClick={() => setAdding(true)} /> : undefined,
         }}
         card={(person) => {
-          const suggested = !onRoster(person)
-          const status = suggested ? "Suggested" : person.status
+          const status = personStatusLabel(person)
           return {
             icon: <CreatorThumbnail person={person} compact />,
             title: person.handle,
@@ -162,7 +164,7 @@ export function CampaignPeople({ people, agencyId, companyId, projectId, canEdit
         }}
         itemActions={actionsFor}
         row={(person) => {
-          const status = onRoster(person) ? person.status : "Suggested"
+          const status = personStatusLabel(person)
           return {
             subtitle: [person.app, person.category, `${compactCount(person.followers)} followers`].filter(Boolean).join(" · "),
             trailing: (
@@ -174,7 +176,7 @@ export function CampaignPeople({ people, agencyId, companyId, projectId, canEdit
           }
         }}
         listItem={(person) => {
-          const status = onRoster(person) ? person.status : "Suggested"
+          const status = personStatusLabel(person)
           return (
             <CreatorListRow
               key={person.id}
@@ -221,7 +223,7 @@ function CreatorListRow({
   actions?: ItemActions
 }) {
   const meta = [person.category, person.followers ? `${compactCount(person.followers)} followers` : undefined].filter(Boolean).join(" · ")
-  const isSuggested = status === "Suggested"
+  const isSuggested = status === "Suggested" || status === "Applied"
   const PlatformIcon = PLATFORM_ICONS[person.app]
 
   return (
@@ -333,6 +335,15 @@ function CreatorDialog({ person, onClose }: { person: CampaignPerson | null; onC
 }
 
 function CreatorForm({ person, onDone }: { person: CampaignPerson; onDone: () => void }) {
+  const [application, setApplication] = useState<CampaignApplication | null>(null)
+  useEffect(() => {
+    if (person.source !== "apply") return
+    let active = true
+    getCampaignApplication(person.id)
+      .then((found) => { if (active) setApplication(found) })
+      .catch(() => undefined)
+    return () => { active = false }
+  }, [person.id, person.source])
   const [draft, setDraft] = useState({
     handle: person.handle,
     app: person.app,
@@ -385,6 +396,7 @@ function CreatorForm({ person, onDone }: { person: CampaignPerson; onDone: () =>
 
   return (
     <form onSubmit={save} className="space-y-4">
+      {application && <ApplicationDetails application={application} />}
       <Field label="Handle"><Input value={draft.handle} onChange={(event) => set("handle", event.target.value)} /></Field>
       <div className="grid grid-cols-2 gap-3">
         <Field label="App"><Pick label="App" value={draft.app} options={PERSON_APPS} onChange={(value) => set("app", value)} /></Field>
@@ -511,6 +523,21 @@ export function CreatorThumbnail({ person, compact = false, showMeta = true }: {
       {!compact && showMeta && <span className="absolute bottom-2 left-2 rounded-full bg-black/45 px-2 py-0.5 text-[11px] font-medium text-white">
         {person.app}{person.followers ? ` · ${compactCount(person.followers)}` : ""}
       </span>}
+    </div>
+  )
+}
+
+/** Who applied and how to reach them, from the shared campaign page. */
+function ApplicationDetails({ application }: { application: CampaignApplication }) {
+  return (
+    <div className="space-y-1 rounded-lg bg-muted/60 p-3 text-sm">
+      <p className="font-medium text-foreground">{application.name}</p>
+      <p className="text-muted-foreground">
+        <a href={`mailto:${application.email}`} className="hover:underline">{application.email}</a>
+        {application.phone && <> · <a href={`tel:${application.phone}`} className="hover:underline">{application.phone}</a></>}
+      </p>
+      {application.rate > 0 && <p className="text-muted-foreground">Asks {formatPay(application.rate, application.currency || "NGN")}</p>}
+      {application.note && <p className="whitespace-pre-wrap pt-1 text-foreground">{application.note}</p>}
     </div>
   )
 }

@@ -164,7 +164,6 @@ function CampaignFields({ value, onChange }: { value: CreatorBrief; onChange: Pa
           maxLength={1000}
           value={value.contentDetails}
           onChange={(event) => onChange({ contentDetails: event.target.value })}
-          placeholder="What to film, what to say, what to avoid, and where to send people."
           className="text-[15px] leading-7"
         />
       </div>
@@ -212,14 +211,15 @@ export function CreatorBriefSummary({ brief }: { brief: CreatorBrief }) {
       <dl className="grid gap-x-6 gap-y-4 sm:grid-cols-2">
         <Fact label="Platform">{brief.platform}</Fact>
         <Fact label="Goal">{goalLabel(brief.goal)}</Fact>
-        <Fact label="Offer">{formatOffer(brief)}</Fact>
+        {formatOffer(brief) && <Fact label="Offer">{formatOffer(brief)}</Fact>}
         {content && <Fact label="Content">{content}</Fact>}
-        {brief.registerBy && <Fact label="Register interest by">{formatBriefDate(brief.registerBy)}</Fact>}
+        {brief.registerBy && <Fact label="Apply by">{formatBriefDate(brief.registerBy)}</Fact>}
         {dates && <Fact label="Post between">{dates}</Fact>}
-        <Fact label="Creators">{who || "Open to anyone"}</Fact>
-        <Fact label="Payment">{brief.paymentMethod}{brief.paidAds ? ". Content may run as a paid ad." : ""}</Fact>
+        {who && <Fact label="Creators">{who}</Fact>}
+        <Fact label="Payment">{brief.paymentMethod}</Fact>
+        {brief.paidAds && <Fact label="Paid ads">Yes</Fact>}
       </dl>
-      {brief.contentDetails && <p className="whitespace-pre-wrap text-[15px] leading-7 text-foreground">{brief.contentDetails}</p>}
+      {brief.contentDetails && <p className="whitespace-pre-wrap text-sm leading-7 text-foreground">{brief.contentDetails}</p>}
     </div>
   )
 }
@@ -228,7 +228,7 @@ function Fact({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div>
       <dt className="text-xs text-muted-foreground">{label}</dt>
-      <dd className="mt-0.5 text-[15px] text-foreground">{children}</dd>
+      <dd className="mt-0.5 text-sm text-foreground">{children}</dd>
     </div>
   )
 }
