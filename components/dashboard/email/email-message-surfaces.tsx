@@ -88,6 +88,8 @@ export type EmailMessageSurfacesProps = {
   formatListDate: (value: string) => string
   cleanSenderDisplay: (value: string) => string
   isScheduledPastDue: (message: SentMessage) => boolean
+  /** A routed email detail page shows the reader without its inbox list. */
+  detailOnly?: boolean
 }
 
 export function EmailMessageSurfaces({
@@ -152,6 +154,7 @@ export function EmailMessageSurfaces({
   formatListDate,
   cleanSenderDisplay,
   isScheduledPastDue,
+  detailOnly = false,
 }: EmailMessageSurfacesProps) {
   if (tab === "inbox" || tab === "updates") {
     const selectedReceivedIndex = selectedReceived ? visibleReceivedMessages.findIndex((message) => message.id === selectedReceived.id) : -1
@@ -173,7 +176,7 @@ export function EmailMessageSurfaces({
         )}
         <aside className={cn(
           "min-h-0 shrink-0 overflow-hidden",
-          mobileMessageView === "list" || !selectedReceived ? "block" : "hidden",
+          detailOnly && selectedReceived ? "hidden" : mobileMessageView === "list" || !selectedReceived ? "block" : "hidden",
         )}>
           <div className={cn("flex min-h-12 items-center gap-1 border-b border-border px-2 py-1.5", selectedReceivedIds.length === 0 && "max-sm:hidden")}>
             <input
@@ -241,16 +244,15 @@ export function EmailMessageSurfaces({
                   <Button type="button" variant="ghost" size="icon" className="size-9" onClick={() => onOpenReceived(visibleReceivedMessages[selectedReceivedIndex + 1])} disabled={selectedReceivedIndex < 0 || selectedReceivedIndex >= visibleReceivedMessages.length - 1} aria-label="Next message" title="Next message"><ChevronRight className="size-5" aria-hidden="true" /></Button>
                 </div>
               </div>
-              <div className="px-8 pb-6 pt-7">
+              <div className="px-6 pb-4 pt-5">
                 <div className="flex items-center gap-3">
                   <h2 className="min-w-0 text-2xl font-normal leading-tight tracking-tight">{selectedReceived.subject || "(No subject)"}</h2>
                   <span className="shrink-0 rounded bg-muted px-2 py-0.5 text-xs text-muted-foreground">{tab === "updates" ? "Updates" : "Inbox"}</span>
                 </div>
-                <div className="mt-7 flex items-start gap-3">
+                <div className="mt-4 flex items-start gap-3">
                   <span className={cn("flex size-10 shrink-0 items-center justify-center rounded-full text-sm font-semibold", contactAvatarTone(selectedReceived.from))} aria-hidden="true">{contactInitials(resolveName(selectedReceived.from), selectedReceived.from).slice(0, 1)}</span>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm"><span className="font-semibold">{resolveName(selectedReceived.from)}</span> <span className="text-muted-foreground">&lt;{senderAddress(selectedReceived.from)}&gt;</span></p>
-                    <p className="mt-0.5 truncate text-xs text-muted-foreground">to {selectedReceived.to.join(", ") || "hello@mail.visualcns.com"}</p>
+                    <p className="truncate text-sm"><span className="font-semibold">{resolveName(selectedReceived.from)}</span> <span className="text-muted-foreground">&lt;{senderAddress(selectedReceived.from)}&gt; · to {selectedReceived.to.join(", ") || "hello@mail.visualcns.com"}</span></p>
                   </div>
                   {selectedReceived.createdAt && <time dateTime={selectedReceived.createdAt} className="shrink-0 pt-0.5 text-xs text-muted-foreground">{formatMessageDate(selectedReceived.createdAt)}</time>}
                   <Button type="button" variant="ghost" size="icon" className="size-9 shrink-0" onClick={() => onReplyReceived(selectedReceived)} aria-label="Reply" title="Reply"><Reply className="size-5" aria-hidden="true" /></Button>

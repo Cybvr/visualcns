@@ -71,6 +71,14 @@ const VERTICALS: Item[] = [
     body: "Give guests a quick, friendly welcome and keep the front desk line short.",
   },
   {
+    title: "Events",
+    body: "Check guests in quickly, keep attendance accurate and see who is on site throughout the day.",
+  },
+  {
+    title: "Estates",
+    body: "Keep a clear record of residents' guests, contractors and deliveries at every gate.",
+  },
+  {
     title: "Data centres and tech sites",
     body: "Know who is on site, who they came to see and when they left.",
     soon: ["ID scanning, face matching and watchlists"],
@@ -81,7 +89,6 @@ const VERTICALS: Item[] = [
     soon: ["ITAR, CMMC and SOC 2 compliance"],
   },
 ]
-
 const STEPS: Item[] = [
   { title: "Add your staff", body: "Add your hosts and turn on Slack or Teams alerts if you use them." },
   {
@@ -243,8 +250,8 @@ export default function PassPage() {
 
         {/* Verticals */}
         <section className="mx-auto max-w-6xl px-4 py-16 md:px-8 md:py-24">
-          <h2 className="text-3xl font-semibold tracking-tight md:text-4xl">Made for busy and secure sites</h2>
-          <div className="mt-10 grid gap-4 md:grid-cols-3">
+          <h2 className="text-3xl font-semibold tracking-tight md:text-4xl">Made for offices, events, estates and secure sites</h2>
+          <div className="mt-10 grid gap-4 md:grid-cols-2 lg:grid-cols-5">
             {VERTICALS.map((vertical) => (
               <div key={vertical.title} className="border-t border-foreground pt-4">
                 <h3 className="font-semibold">{vertical.title}</h3>

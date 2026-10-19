@@ -130,11 +130,11 @@ export function ReceivedAttachmentGallery({ message, onDownload, downloadingAtta
         <h3 className="text-sm font-semibold">{files.length} {files.length === 1 ? "attachment" : "attachments"}</h3>
       </div>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
-        {files.map((file) => {
+        {files.map((file, index) => {
           const canPreview = isImage(file) || isPdf(file)
           const thumbnail = thumbnails[file.id]
           return (
-            <div key={file.id} className="min-w-0 overflow-hidden rounded-lg border border-border bg-card">
+            <div key={`${file.id}-${index}`} className="min-w-0 overflow-hidden rounded-lg border border-border bg-card">
               <button
                 type="button"
                 onClick={() => canPreview ? setPreviewFile(file) : onDownload(message, file)}
