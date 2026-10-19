@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useState, type FormEvent } from "react"
-import { Loader2, Pencil, Play, Plus, Trash2 } from "lucide-react"
+import { Copy, Loader2, Pencil, Play, Plus, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
@@ -119,6 +119,16 @@ export default function SchedulesPage() {
     }
   }
 
+  async function duplicate(schedule: LeadSchedule) {
+    try {
+      const { name, query, pitch, frequency, limit } = schedule
+      await call("/api/schedules", { method: "POST", body: JSON.stringify({ name: `${name} copy`, query, pitch, frequency, limit, active: false }) })
+      await load()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not copy the schedule.")
+    }
+  }
+
   async function remove(schedule: LeadSchedule) {
     setConfirmDelete(null)
     try {
@@ -193,6 +203,7 @@ export default function SchedulesPage() {
                   Run now
                 </Button>
                 <Button variant="ghost" size="icon" onClick={() => setEditing(schedule)} aria-label="Edit schedule"><Pencil className="size-4" /></Button>
+                <Button variant="ghost" size="icon" onClick={() => void duplicate(schedule)} aria-label="Duplicate schedule"><Copy className="size-4" /></Button>
                 <Button variant="ghost" size="icon" onClick={() => setConfirmDelete(schedule)} aria-label="Delete schedule"><Trash2 className="size-4" /></Button>
               </div>
             </li>
