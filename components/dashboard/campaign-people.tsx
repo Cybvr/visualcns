@@ -538,6 +538,11 @@ function ApplicationDetails({ application }: { application: CampaignApplication 
       </p>
       {application.rate > 0 && <p className="text-muted-foreground">Asks {formatPay(application.rate, application.currency || "NGN")}</p>}
       {application.note && <p className="whitespace-pre-wrap pt-1 text-foreground">{application.note}</p>}
+      {application.payout && (
+        <p className="pt-1 text-muted-foreground">
+          {[application.payout.accountName, application.payout.bankName, application.payout.accountNumber, application.payout.paypalEmail].filter(Boolean).join(" · ")}
+        </p>
+      )}
     </div>
   )
 }

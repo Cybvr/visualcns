@@ -3,12 +3,13 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import type { ComponentType } from "react"
-import { Activity, ArrowLeft, Bell, BookOpen, ChevronRight, Database, Link2, LogOut, Palette, Server, Sparkles, UserRound, Users } from "lucide-react"
+import { Activity, ArrowLeft, Bell, BookOpen, ChevronRight, Database, Landmark, Link2, LogOut, Palette, Server, Sparkles, UserRound, Users } from "lucide-react"
 
 import { useAuth } from "@/components/auth-provider"
 
-const LINKS: { label: string; href: string; icon: ComponentType<{ className?: string }>; adminOnly?: boolean; superAdminOnly?: boolean }[] = [
+const LINKS: { label: string; href: string; icon: ComponentType<{ className?: string }>; adminOnly?: boolean; superAdminOnly?: boolean; creatorOnly?: boolean }[] = [
   { label: "Profile Settings", href: "/dashboard/account/profile", icon: UserRound },
+  { label: "Payouts", href: "/dashboard/account/payouts", icon: Landmark, creatorOnly: true },
   { label: "Agency Settings", href: "/dashboard/account/agency", icon: Sparkles, adminOnly: true },
   { label: "Ngai Knowledge", href: "/dashboard/account/knowledge", icon: BookOpen, adminOnly: true },
   { label: "Ngai Operations", href: "/dashboard/account/agent-operations", icon: Activity, adminOnly: true },
@@ -37,6 +38,7 @@ export function AccountMenu() {
   const links = LINKS
     .filter((link) => !link.adminOnly || isAdmin)
     .filter((link) => !link.superAdminOnly || role === "superadmin")
+    .filter((link) => !link.creatorOnly || role === "creator")
   const name = appUser?.displayName || user?.displayName || appUser?.email || user?.email || ""
   const photo = appUser?.photoURL || user?.photoURL || ""
 

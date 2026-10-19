@@ -130,6 +130,11 @@ service cloud.firestore {
       allow read, update, delete: if agencyAdmin(resource.data);
       allow create: if false;
     }
+    // Where a creator gets paid. Written only by /api/creator; read by them and their agency's admins.
+    match /creatorPayouts/{uid} {
+      allow read: if (signedIn() && request.auth.uid == uid) || agencyAdmin(resource.data);
+      allow write: if false;
+    }
 
     // Posts, artwork, videos and links made for a campaign. Readable by anyone, like the campaign itself.
     // The client's own people can suggest a written post, edit post text and approve or send it back.

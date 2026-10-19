@@ -4,7 +4,7 @@ import dynamic from "next/dynamic"
 import { Suspense, useEffect, type ReactNode } from "react"
 import Image from "next/image"
 import { usePathname, useRouter } from "next/navigation"
-import { Bot, CalendarClock, Eye, FileText, House, LogOut, Megaphone, Receipt } from "lucide-react"
+import { Bot, CalendarClock, Eye, FileText, House, LogOut, Megaphone, Receipt, UserRound } from "lucide-react"
 import { FiBriefcase, FiMail, FiTrendingUp, FiUsers } from "react-icons/fi"
 import { AuthProvider, useAuth } from "@/components/auth-provider"
 import { AgentProvider } from "@/components/agent/agent-context"
@@ -31,6 +31,14 @@ const DASHBOARD_NAV: NavLink[] = [
   { label: "Ngai", href: "/dashboard/agent", icon: Bot },
 ]
 
+/** Creators sign up by applying to a campaign: they see their campaigns and their account. */
+const CREATOR_NAV: NavLink[] = [
+  { label: "Campaigns", href: "/dashboard/projects", icon: Megaphone },
+  { label: "Account", href: "/dashboard/account", icon: UserRound },
+]
+
+const CREATOR_PATHS = /^\/dashboard\/(?:projects$|account(?:\/|$))/
+
 function UnifiedDashboardShell({ children, requireAdmin = false }: { children: ReactNode; requireAdmin?: boolean }) {
   const { user, role, isAdmin, isImpersonating, isViewingAs, impersonatedUser, stopViewingAs, loading, signOut, agencyStatus } = useAuth()
   const router = useRouter()
@@ -40,8 +48,9 @@ function UnifiedDashboardShell({ children, requireAdmin = false }: { children: R
   useEffect(() => {
     if (loading) return
     if (!user && !isTaskDetailRoute) router.replace(`/login?next=${encodeURIComponent(window.location.pathname + window.location.search)}`)
+    else if (role === "creator" && !CREATOR_PATHS.test(pathname ?? "")) router.replace("/dashboard/projects")
     else if (requireAdmin && !isAdmin) router.replace("/dashboard")
-  }, [loading, user, isAdmin, requireAdmin, router, isTaskDetailRoute])
+  }, [loading, user, isAdmin, role, pathname, requireAdmin, router, isTaskDetailRoute])
 
   if (loading) {
     return <div className="min-h-screen bg-background p-6"><DashboardPageSkeleton variant="home" rows={4} /></div>
@@ -62,6 +71,17 @@ function UnifiedDashboardShell({ children, requireAdmin = false }: { children: R
   }
 
   if (role === "client" || isImpersonating) return <Suspense><LegacyClientRedirect /></Suspense>
+
+  if (role === "creator") {
+    if (!CREATOR_PATHS.test(pathname ?? "")) return null
+    return (
+      <AgentProvider>
+        <PageTitleProvider>
+          <DashboardShell title="VisualCNS" navLinks={CREATOR_NAV} rootHref="/dashboard/projects">{children}</DashboardShell>
+        </PageTitleProvider>
+      </AgentProvider>
+    )
+  }
 
   if (!isAdmin) {
     return (

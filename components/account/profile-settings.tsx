@@ -21,7 +21,7 @@ const CONTACT_FIELDS = [
 type ContactKey = (typeof CONTACT_FIELDS)[number]["key"]
 
 /** Label and value on one line, divided by a hairline. */
-function Row({ id, label, children }: { id: string; label: string; children: ReactNode }) {
+export function Row({ id, label, children }: { id: string; label: string; children: ReactNode }) {
   return (
     // Size set on the row: the dashboard-body rule makes label and input inherit theirs.
     <div className="flex items-center gap-3 border-b border-border py-1.5 text-sm">
@@ -33,7 +33,7 @@ function Row({ id, label, children }: { id: string; label: string; children: Rea
   )
 }
 
-const inlineInput = "h-9 border-0 bg-transparent px-0 shadow-none focus-visible:border-transparent focus-visible:ring-0 dark:bg-transparent"
+export const inlineInput = "h-9 border-0 bg-transparent px-0 shadow-none focus-visible:border-transparent focus-visible:ring-0 dark:bg-transparent"
 
 export function ProfileSettings({ showBackLink = true }: { showBackLink?: boolean }) {
   const { user, appUser } = useAuth()

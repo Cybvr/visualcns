@@ -194,6 +194,15 @@ export interface CampaignApplication {
   /** Their own rate, in `currency`, when the campaign has no fixed offer. */
   rate: number
   currency: string
+  /** Where they get paid, from Account > Payouts. Null until they fill it in. */
+  payout: CreatorPayout | null
+}
+
+export interface CreatorPayout {
+  accountName: string
+  bankName: string
+  accountNumber: string
+  paypalEmail: string
 }
 
 /** The application behind an applied creator, keyed by the creator's id. Agency only. */
@@ -202,7 +211,11 @@ export async function getCampaignApplication(personId: string): Promise<Campaign
   if (!snapshot.exists()) return null
   const data = snapshot.data()
   const text = (value: unknown) => (typeof value === "string" ? value : "")
-  return { name: text(data.name), email: text(data.email), phone: text(data.phone), note: text(data.note), rate: Number(data.rate) || 0, currency: text(data.currency) }
+  const payoutData = data.userId ? (await getDoc(doc(db, "creatorPayouts", text(data.userId))).catch(() => null))?.data() : undefined
+  const payout = payoutData
+    ? { accountName: text(payoutData.accountName), bankName: text(payoutData.bankName), accountNumber: text(payoutData.accountNumber), paypalEmail: text(payoutData.paypalEmail) }
+    : null
+  return { name: text(data.name), email: text(data.email), phone: text(data.phone), note: text(data.note), rate: Number(data.rate) || 0, currency: text(data.currency), payout }
 }
 
 /** Every creator who applied is a suggestion until someone adds them; this is the badge they show meanwhile. */
