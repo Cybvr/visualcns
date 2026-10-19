@@ -630,11 +630,10 @@ export default function EmailPage() {
     { key: "lists", label: "Lists", icon: List, count: () => lists.length },
     { key: "bin", label: "Bin", icon: Trash2, count: () => binItems.length },
   ]
-  // The folders replace the dashboard sidebar links while Email is open, with a way back.
+  // The folders replace the dashboard sidebar links while Email is open; Back shows the main menu.
   const inSidebar = useSidebarTakeover({
     title: "Email",
     backLabel: "Back",
-    onBack: () => (window.history.length > 1 ? router.back() : router.push("/dashboard")),
     items: EMAIL_FOLDERS.map((folder) => ({ key: folder.key, label: folder.label, icon: folder.icon, count: folder.count() })),
     active: tab,
     onSelect: (key) => setTab(key as EmailTab),

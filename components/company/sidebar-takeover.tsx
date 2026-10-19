@@ -1,6 +1,7 @@
 "use client"
 
-import { createContext, useCallback, useContext, useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react"
+import { createContext, useCallback, useContext, useEffect, useId, useMemo, useRef, useState, type MouseEvent, type ReactNode } from "react"
+import { usePathname } from "next/navigation"
 import { ChevronLeft, type LucideIcon } from "lucide-react"
 
 import { SidebarMenuButton, SidebarMenuItem, useSidebar } from "@/components/ui/sidebar"
@@ -12,7 +13,8 @@ export type SidebarTakeover = {
   title: string
   /** What the back link says, e.g. "Back" or "Campaigns". */
   backLabel: string
-  onBack: () => void
+  /** Leaves the page. Without it, Back just shows the main menu and the page stays open. */
+  onBack?: () => void
   items: { key: string; label: string; icon: LucideIcon; count?: number }[]
   active: string
   onSelect: (key: string) => void
@@ -28,6 +30,9 @@ type Entry = { id: string; order: number; takeover: SidebarTakeover }
 const SidebarTakeoverContext = createContext<{
   takeover: SidebarTakeover | null
   register: (id: string, takeover: SidebarTakeover | null) => void
+  /** Back was pressed on a page without onBack: the main menu shows until a link in it is used. */
+  showMain: boolean
+  setShowMain: (show: boolean) => void
 } | null>(null)
 
 export function SidebarTakeoverProvider({ children }: { children: ReactNode }) {
@@ -46,13 +51,15 @@ export function SidebarTakeoverProvider({ children }: { children: ReactNode }) {
     () => [...entries].sort((a, b) => (a.takeover.level ?? 1) - (b.takeover.level ?? 1) || a.order - b.order).at(-1)?.takeover ?? null,
     [entries],
   )
-  const value = useMemo(() => ({ takeover, register }), [takeover, register])
+  const [showMain, setShowMain] = useState(false)
+  const value = useMemo(() => ({ takeover, register, showMain, setShowMain }), [takeover, register, showMain])
   return <SidebarTakeoverContext.Provider value={value}>{children}</SidebarTakeoverContext.Provider>
 }
 
 /** What the sidebar should show instead of its own links, if anything. */
 export function useSidebarTakeoverState() {
-  return useContext(SidebarTakeoverContext)?.takeover ?? null
+  const context = useContext(SidebarTakeoverContext)
+  return context?.showMain ? null : context?.takeover ?? null
 }
 
 /**
@@ -80,7 +87,7 @@ export function useSidebarTakeover(takeover: SidebarTakeover | null) {
     }
     register(id, {
       ...current,
-      onBack: () => latest.current?.onBack(),
+      onBack: current.onBack && (() => latest.current?.onBack?.()),
       onSelect: (next) => latest.current?.onSelect(next),
     })
   }, [id, key, register])
@@ -100,7 +107,17 @@ const SIDEBAR_ITEM_CLASS = "h-9 gap-2 px-2 max-md:h-12 max-md:min-h-12 max-md:ga
  * a way back and that record's own sections. Shared by the company and dashboard sidebars.
  */
 export function SidebarTakeoverMenu({ sections }: { sections: ReactNode }) {
+  const context = useContext(SidebarTakeoverContext)
   const takeover = useSidebarTakeoverState()
+  const setShowMain = context?.setShowMain
+  const pathname = usePathname()
+  // Leaving the page ends the peek; so does using the page's own link in the main menu.
+  useEffect(() => { setShowMain?.(false) }, [pathname, setShowMain])
+  function reopenOnSamePage(event: MouseEvent) {
+    if (!context?.showMain) return
+    const link = (event.target as HTMLElement).closest("a")
+    if (link && new URL(link.href, window.location.href).pathname === window.location.pathname) setShowMain?.(false)
+  }
   const { setOpenMobile } = useSidebar()
   // Going deeper slides the new menu in from the right, going back slides it in from the left.
   const depth = takeover ? takeover.level ?? 1 : 0
@@ -119,23 +136,26 @@ export function SidebarTakeoverMenu({ sections }: { sections: ReactNode }) {
     <li className="-mx-0.5 list-none overflow-x-clip px-0.5">
       <ul
         key={panelKey}
+        onClickCapture={takeover ? undefined : reopenOnSamePage}
         className={cn(
           "flex w-full min-w-0 flex-col gap-0.5 max-md:gap-1.5",
           animate && "duration-200 ease-out animate-in fade-in motion-reduce:animate-none",
           animate && (deeper ? "slide-in-from-right-6" : "slide-in-from-left-6"),
         )}
       >
-        {takeover ? <TakeoverItems takeover={takeover} closeMobile={() => setOpenMobile(false)} /> : sections}
+        {takeover ? <TakeoverItems takeover={takeover} closeMobile={() => setOpenMobile(false)} onShowMain={() => setShowMain?.(true)} /> : sections}
       </ul>
     </li>
   )
 }
 
-function TakeoverItems({ takeover, closeMobile }: { takeover: SidebarTakeover; closeMobile: () => void }) {
+function TakeoverItems({ takeover, closeMobile, onShowMain }: { takeover: SidebarTakeover; closeMobile: () => void; onShowMain: () => void }) {
   return (
     <>
       <SidebarMenuItem>
-        <SidebarMenuButton type="button" tooltip={`Back to ${takeover.backLabel}`} onClick={() => { closeMobile(); takeover.onBack() }} className={cn(SIDEBAR_ITEM_CLASS, "text-muted-foreground")}>
+        <SidebarMenuButton type="button" tooltip={`Back to ${takeover.backLabel}`} onClick={() => {
+          if (takeover.onBack) { closeMobile(); takeover.onBack() } else onShowMain()
+        }} className={cn(SIDEBAR_ITEM_CLASS, "text-muted-foreground")}>
           <ChevronLeft className="h-4 w-4" aria-hidden="true" />
           <span className="sidebar-nav-label">{takeover.backLabel}</span>
         </SidebarMenuButton>
