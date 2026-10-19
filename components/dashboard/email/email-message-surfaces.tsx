@@ -173,7 +173,7 @@ export function EmailMessageSurfaces({
         )}
         <aside className={cn(
           "min-h-0 shrink-0 overflow-hidden",
-          mobileMessageView === "list" ? "block" : "hidden",
+          mobileMessageView === "list" || !selectedReceived ? "block" : "hidden",
         )}>
           <div className={cn("flex min-h-12 items-center gap-1 border-b border-border px-2 py-1.5", selectedReceivedIds.length === 0 && "max-sm:hidden")}>
             <input
@@ -350,7 +350,7 @@ export function EmailMessageSurfaces({
 
   return (
     <section className={cn("flex min-h-0 w-full min-w-0 max-w-full flex-1 flex-col gap-4 lg:gap-6", selectedSent && mobileMessageView === "list" ? "lg:grid lg:grid-cols-[18rem_minmax(0,1fr)] lg:grid-rows-[minmax(0,1fr)] lg:overflow-hidden" : "lg:overflow-y-auto")} role="tabpanel">
-      <aside className={cn("min-h-0 shrink-0 overflow-hidden", mobileMessageView === "list" ? "block" : "hidden")}>
+      <aside className={cn("min-h-0 shrink-0 overflow-hidden", mobileMessageView === "list" || !selectedSent ? "block" : "hidden")}>
         {messages.length === 0 ? <div className="px-4 py-10 text-center"><Inbox className="mx-auto size-5 text-muted-foreground" aria-hidden="true" /><p className="mt-3 text-sm font-medium">No sent messages</p></div> : visibleMessages.length === 0 ? <div className="px-4 py-10 text-center text-sm text-muted-foreground">No messages match your search.</div> : (
           <div className={MOBILE_LIST_CARD}>
             <div className={cn("flex min-h-12 items-center gap-1 border-b border-border px-2 py-1.5", selectedMessageIds.length === 0 && "max-sm:hidden")}><input type="checkbox" checked={visibleMessages.length > 0 && visibleMessages.every((message) => selectedMessageIds.includes(message.id))} onChange={(event) => onToggleAllMessages(event.target.checked)} aria-label="Select all visible sent messages" className={cn("ml-1 size-4 shrink-0 accent-primary", selectedMessageIds.length === 0 && "max-sm:hidden")} /><span className="mr-auto px-2 text-xs text-muted-foreground">{selectedMessageIds.length ? `${selectedMessageIds.length} selected` : `${messages.length} sent`}</span><Button type="button" variant="ghost" size="icon" className="size-8" onClick={onDeleteSelectedMessages} disabled={selectedMessageIds.length === 0} aria-label="Delete selected sent messages" title="Delete selected sent messages"><Trash2 className="size-4" aria-hidden="true" /></Button></div>
