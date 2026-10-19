@@ -126,10 +126,16 @@ export function TeamInvitePanel({ info, call, onChange }: {
               title={pending.email}
               subtitle="Invited · waiting to accept"
               menuLabel={`Actions for ${pending.email}`}
-              menu={<DropdownMenuItem disabled={busy === pending.id} onSelect={() => void cancel(pending.id)}>
-                {busy === pending.id ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <X className="size-4" aria-hidden="true" />}
-                Cancel invite
-              </DropdownMenuItem>}
+              actions={{
+                noun: "invite",
+                name: pending.email,
+                extra: (
+                  <DropdownMenuItem disabled={busy === pending.id} onSelect={() => void cancel(pending.id)}>
+                    {busy === pending.id ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <X className="size-4" aria-hidden="true" />}
+                    Cancel invite
+                  </DropdownMenuItem>
+                ),
+              }}
             />
           ))}
         </div>

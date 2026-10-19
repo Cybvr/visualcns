@@ -2,6 +2,7 @@ import Link from "next/link"
 import { EllipsisVertical } from "lucide-react"
 import type { ComponentType, ReactNode } from "react"
 
+import { hasItemActions, ItemActionsMenu, type ItemActions } from "@/components/dashboard/item-menu"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
 
@@ -17,7 +18,8 @@ export type GridCardProps = {
   imageAlt?: string
   /** Large icon shown in the preview tile when there is no image. */
   placeholder?: ReactNode
-  menu?: ReactNode
+  /** What the card can do, drawn as the standard menu. */
+  actions?: ItemActions
   menuLabel?: string
   /** Keep the menu button visible even when the card is not hovered. */
   menuAlwaysVisible?: boolean
@@ -39,7 +41,7 @@ export function GridCard({
   imageUrl,
   imageAlt = "",
   placeholder,
-  menu,
+  actions,
   menuLabel = "More options",
   menuAlwaysVisible = false,
   selected = false,
@@ -66,7 +68,7 @@ export function GridCard({
       <div className="flex min-h-9 items-center gap-2.5 pl-1">
         {icon && <span className="pointer-events-none relative flex shrink-0 items-center">{icon}</span>}
         <p className="pointer-events-none relative min-w-0 flex-1 truncate text-sm font-medium text-foreground">{title}</p>
-        {menu && (
+        {hasItemActions(actions) && (
           <DropdownMenu modal={false}>
             <DropdownMenuTrigger asChild>
               <button
@@ -78,7 +80,7 @@ export function GridCard({
                 <EllipsisVertical className="size-5" aria-hidden="true" />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">{menu}</DropdownMenuContent>
+            <DropdownMenuContent align="end"><ItemActionsMenu actions={actions} /></DropdownMenuContent>
           </DropdownMenu>
         )}
       </div>

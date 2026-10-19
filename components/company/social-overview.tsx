@@ -2,26 +2,29 @@
 
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react"
 import Link from "next/link"
-import { ImagePlus, Loader2, Plus, X } from "lucide-react"
+import { ImageIcon, ImagePlus, Loader2, X } from "lucide-react"
 import { toast } from "sonner"
 
 import { useCompanyPage } from "@/components/company/company-page-context"
-import { formatWhen, PlatformPreviews, PublishPill, PublishPostDialog } from "@/components/company/publish-post-dialog"
-import { postMediaType, StatusPill } from "@/components/dashboard/campaign-creatives"
-import { SocialAccounts } from "@/components/company/social-accounts"
+import { formatWhen, PlatformPreviews, PublishPostDialog } from "@/components/company/publish-post-dialog"
+import { CampaignBrandContext, CampaignPostViewDialog, postMediaType } from "@/components/dashboard/campaign-creatives"
 import { SocialIcon } from "@/components/company/social-icon"
+import { CollectionView } from "@/components/dashboard/collection-view"
+import { thumbnailIcon } from "@/components/dashboard/grid-card"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { VideoThumbnail } from "@/components/ui/video-thumbnail"
-import { creativeStatus, watchCompanyCampaignCreatives, type CampaignCreative } from "@/lib/campaign-creatives"
+import { addCampaignCreative, creativeStatus, deleteCampaignCreative, READY_FOR_REVIEW, updateCampaignCreative, watchCompanyCampaignCreatives, type CampaignCreative } from "@/lib/campaign-creatives"
 import { uploadFileToStorage } from "@/lib/documents"
 import { mediaKindForFile } from "@/lib/media"
-import { platformLabel, type SocialAccount, type SocialAccountsInfo } from "@/lib/social"
+import { platformLabel, PUBLISH_LABELS, type SocialAccount, type SocialAccountsInfo } from "@/lib/social"
 import { useSocialAccounts } from "@/lib/social-client"
 import { tsToMillis } from "@/lib/tasks"
+import { cn } from "@/lib/utils"
 
 type AccountNumbers = { id: string; followers?: number | null; posts?: number | null; following?: number | null; followerChange?: number | null; problem?: string }
 type PostNumbers = { creativeId: string; likes: number; comments: number; shares: number; saves: number }
@@ -48,19 +51,69 @@ function postTime(post: CampaignCreative) {
   return Number.isNaN(parsed) ? tsToMillis(post.updatedAt) || tsToMillis(post.createdAt) : parsed
 }
 
+/** The finer wording shown on the post itself. */
+function stageLabel(post: CampaignCreative) {
+  if (isCampaignContent(post)) return "In campaign"
+  if (post.publish) return PUBLISH_LABELS[post.publish.state]
+  return post.status === "Approved" ? "Ready to schedule" : "Waiting for approval"
+}
+
+function searchPost(post: CampaignCreative) {
+  return [post.title, post.body, stageLabel(post)]
+}
+
+/** The post's picture or video, filling whatever holds it. */
+function PostMedia({ post }: { post: CampaignCreative }) {
+  if (!post.mediaUrl) return null
+  return postMediaType(post) === "video"
+    ? <VideoThumbnail src={post.mediaUrl} />
+    // eslint-disable-next-line @next/next/no-img-element
+    : <img src={post.mediaUrl} alt="" loading="lazy" className="size-full object-cover" />
+}
+
+/** Pill buttons that narrow a list, beside the search in the filter bar. */
+export function PillFilter<T extends string>({ options, value, onChange }: { options: { value: T; label: string }[]; value: T; onChange: (value: T) => void }) {
+  return (
+    <div className="inline-flex max-w-full overflow-x-auto rounded-full bg-card p-1">
+      {options.map((option) => (
+        <button
+          key={option.value}
+          type="button"
+          onClick={() => onChange(option.value)}
+          aria-pressed={value === option.value}
+          className={cn(
+            "shrink-0 rounded-full px-3.5 py-1.5 text-sm font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring",
+            value === option.value ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
+          )}
+        >
+          {option.label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
 /**
- * The Social page's front: each account's followers, a New post button, and
- * every post with where it stands and how it did.
+ * The Social page's front: connected accounts and a direct view of every post.
  */
 export function SocialOverview() {
-  const { company, sectionHref } = useCompanyPage()
-  const { info, loading, reload, request } = useSocialAccounts(company.id)
+  const { company } = useCompanyPage()
+  const { info, reload, request } = useSocialAccounts(company.id)
   const [numbers, setNumbers] = useState<{ accounts: AccountNumbers[]; posts: PostNumbers[] }>({ accounts: [], posts: [] })
   const [posts, setPosts] = useState<CampaignCreative[]>([])
   const [writing, setWriting] = useState(false)
   const [openId, setOpenId] = useState<string | null>(null)
+  const [publishingId, setPublishingId] = useState<string | null>(null)
+  const [loaded, setLoaded] = useState(false)
 
-  useEffect(() => watchCompanyCampaignCreatives(company.id, (rows) => setPosts(rows.filter((item) => item.type === "text")), () => setPosts([])), [company.id])
+  useEffect(() => {
+    setLoaded(false)
+    return watchCompanyCampaignCreatives(
+      company.id,
+      (rows) => { setPosts(rows.filter((item) => item.type === "text")); setLoaded(true) },
+      () => { setPosts([]); setLoaded(true) },
+    )
+  }, [company.id])
 
   const accountKey = info?.accounts.map((account) => account.id).join(",") ?? ""
   useEffect(() => {
@@ -72,22 +125,85 @@ export function SocialOverview() {
     return () => { active = false }
   }, [accountKey, company.id, request])
 
-  const sorted = useMemo(() => posts.filter(isSocialPost).sort((a, b) => postTime(b) - postTime(a)), [posts])
-  const campaignContent = useMemo(() => posts.filter(isCampaignContent).sort((a, b) => (tsToMillis(b.updatedAt) || tsToMillis(b.createdAt)) - (tsToMillis(a.updatedAt) || tsToMillis(a.createdAt))), [posts])
+  const allPosts = useMemo(
+    () => posts.filter((post) => isSocialPost(post) || isCampaignContent(post)).sort((a, b) => postTime(b) - postTime(a)),
+    [posts],
+  )
   const postNumbers = new Map(numbers.posts.map((item) => [item.creativeId, item]))
   const accountNumbers = new Map(numbers.accounts.map((item) => [item.id, item]))
   const accounts = (info?.accounts ?? []).filter((account) => account.status !== "disconnected")
+  const canEdit = info?.role === "agency"
+  const canReview = info?.role === "client"
+
+  const openPost = (post: CampaignCreative) => ({ onClick: () => setOpenId(post.id) })
+  const statsLine = (post: CampaignCreative) => {
+    const stats = postNumbers.get(post.id)
+    return stats ? `${compact.format(stats.likes)} likes · ${compact.format(stats.comments)} comments · ${compact.format(stats.shares)} shares` : undefined
+  }
+  const subtitle = (post: CampaignCreative) => [stageLabel(post), formatWhen(new Date(postTime(post)).toISOString())].join(" · ")
+
+  async function duplicatePost(post: CampaignCreative) {
+    try {
+      await addCampaignCreative(
+        { agencyId: post.agencyId, companyId: post.companyId, projectId: post.projectId },
+        {
+          title: `${post.title || "Post"} (copy)`,
+          url: "",
+          type: "text",
+          kind: "content",
+          body: post.body ?? "",
+          postedBy: post.postedBy || "Founder",
+          status: "Draft",
+          ...(post.mediaUrl ? { mediaUrl: post.mediaUrl, mediaType: postMediaType(post) } : {}),
+        },
+      )
+    } catch (error) {
+      console.error("Error duplicating post:", error)
+      toast.error("Couldn't duplicate that post.")
+    }
+  }
+
+  async function updatePostStatus(id: string, status: string) {
+    try {
+      await updateCampaignCreative(id, { status })
+    } catch (error) {
+      console.error("Error updating post:", error)
+      toast.error("That change didn't save.")
+    }
+  }
+
+  async function removePost(id: string) {
+    try {
+      await deleteCampaignCreative(id)
+    } catch (error) {
+      console.error("Error deleting post:", error)
+      toast.error("Couldn't delete that post.")
+    }
+  }
+
+  function postActions(post: CampaignCreative) {
+    const status = creativeStatus(post)
+    return {
+      noun: "post",
+      name: post.title || "Post",
+      onOpen: () => setOpenId(post.id),
+      onDuplicate: canEdit ? () => duplicatePost(post) : undefined,
+      extra: (canEdit || canReview) ? (
+        <>
+          {canReview && status !== "Approved" && <DropdownMenuItem onSelect={() => void updatePostStatus(post.id, "Approved")}>Approve</DropdownMenuItem>}
+          {canReview && status !== "Approved" && <DropdownMenuItem onSelect={() => void updatePostStatus(post.id, "Changes requested")}>Request changes</DropdownMenuItem>}
+          {canReview && status === "Approved" && !post.publish && <DropdownMenuItem onSelect={() => void updatePostStatus(post.id, READY_FOR_REVIEW)}>Undo approval</DropdownMenuItem>}
+          {(canEdit || canReview) && (status === "Approved" || post.publish) && (
+            <DropdownMenuItem onSelect={() => setPublishingId(post.id)}>{post.publish && post.publish.state !== "failed" ? "Social post" : "Schedule post"}</DropdownMenuItem>
+          )}
+        </>
+      ) : undefined,
+      onDelete: canEdit ? () => removePost(post.id) : undefined,
+    }
+  }
 
   return (
     <div className="min-w-0 space-y-8">
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-sm text-muted-foreground">{sorted.length} {sorted.length === 1 ? "post" : "posts"}</p>
-        <Button type="button" size="sm" onClick={() => setWriting(true)}>
-          <Plus className="size-4" aria-hidden="true" />
-          New post
-        </Button>
-      </div>
-
       {info && !info.configured ? (
         <p className="rounded-lg bg-muted/50 px-4 py-3 text-sm text-muted-foreground">
           {info.role === "agency" ? (
@@ -96,8 +212,6 @@ export function SocialOverview() {
             "Posting to your accounts isn't switched on yet. You can still write posts; they go to your agency."
           )}
         </p>
-      ) : info && !info.accounts.length ? (
-        <SocialAccounts companyId={company.id} companyName={company.name} />
       ) : null}
 
       {accounts.length > 0 && (
@@ -127,77 +241,44 @@ export function SocialOverview() {
         </section>
       )}
 
-      {campaignContent.length > 0 && (
-        <section aria-label="Campaign content" className="space-y-3">
-          <div>
-            <h2 className="text-base font-semibold">Campaign content</h2>
-            <p className="mt-1 text-sm text-muted-foreground">Drafts and approved posts waiting to enter the social publishing flow.</p>
-          </div>
-          <ul className="divide-y divide-border rounded-lg border border-border">
-            {campaignContent.map((post) => (
-              <li key={post.id}>
-                <Link
-                  href={sectionHref("projects", { campaign: post.projectId, view: "content", post: post.id })}
-                  className="flex items-center gap-3 px-3 py-3 outline-none transition-colors hover:bg-muted/40 focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  <div className="size-14 shrink-0 overflow-hidden rounded-md bg-muted">
-                    {post.mediaUrl && (postMediaType(post) === "video"
-                      ? <VideoThumbnail src={post.mediaUrl} />
-                      // eslint-disable-next-line @next/next/no-img-element
-                      : <img src={post.mediaUrl} alt="" loading="lazy" className="size-full object-cover" />)}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium">{post.title || "Post"}</p>
-                    <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{post.body?.trim() || "No caption yet."}</p>
-                    <p className="mt-1 text-xs text-muted-foreground">{post.plannedPublishAt ? `Planned for ${formatWhen(post.plannedPublishAt)}` : "No publish date set"}</p>
-                  </div>
-                  <StatusPill status={creativeStatus(post)} />
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-
       <section aria-label="Posts">
-        {loading && !info && !sorted.length ? (
-          <p className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="size-4 animate-spin" aria-hidden="true" />Loading</p>
-        ) : !sorted.length ? (
-          <p className="text-sm text-muted-foreground">No posts yet.</p>
-        ) : (
-          <ul className="divide-y divide-border rounded-lg border border-border">
-            {sorted.map((post) => {
-              const stats = postNumbers.get(post.id)
-              const waiting = !post.publish && post.status !== "Approved"
-              return (
-                <li key={post.id}>
-                  <button type="button" onClick={() => setOpenId(post.id)} className="flex w-full items-center gap-3 px-3 py-3 text-left outline-none transition-colors hover:bg-muted/40 focus-visible:ring-2 focus-visible:ring-ring">
-                    <div className="size-14 shrink-0 overflow-hidden rounded-md bg-muted">
-                      {post.mediaUrl && (postMediaType(post) === "video"
-                        ? <VideoThumbnail src={post.mediaUrl} />
-                        // eslint-disable-next-line @next/next/no-img-element
-                        : <img src={post.mediaUrl} alt="" loading="lazy" className="size-full object-cover" />)}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="line-clamp-2 break-words text-sm">{post.body?.trim() || post.title || "Post"}</p>
-                      <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
-                        {post.publish ? <PublishPill post={post} /> : (
-                          <span className="rounded-full bg-amber-500/15 px-2.5 py-0.5 font-medium text-amber-700 dark:text-amber-300">{waiting ? "Waiting for approval" : "Ready to schedule"}</span>
-                        )}
-                        <span>{formatWhen(new Date(postTime(post)).toISOString())}</span>
-                        {stats && <span className="tabular-nums">{compact.format(stats.likes)} likes · {compact.format(stats.comments)} comments · {compact.format(stats.shares)} shares</span>}
-                      </p>
-                    </div>
-                  </button>
-                </li>
-              )
-            })}
-          </ul>
-        )}
+        <CollectionView
+          className=""
+          items={allPosts}
+          getKey={(post) => post.id}
+          searchFields={searchPost}
+          searchPlaceholder="Search posts"
+          viewKey="social-posts"
+          fixedView="list"
+          listStyle="thumbnail"
+          hideToolbar
+          loading={!loaded}
+          empty={{ icon: ImageIcon, title: allPosts.length ? "No posts here" : "No posts yet" }}
+          card={(post) => ({
+            title: post.body?.trim() || post.title || "Post",
+            preview: post.mediaUrl ? <PostMedia post={post} /> : thumbnailIcon(ImageIcon),
+            ariaLabel: `Open ${post.title || "post"}`,
+            menuLabel: `Options for ${post.title || "post"}`,
+            ...openPost(post),
+          })}
+          row={(post) => ({ subtitle: subtitle(post), description: statsLine(post) })}
+          itemActions={postActions}
+        />
       </section>
 
       <NewPostDialog open={writing} onOpenChange={setWriting} info={info} accounts={accounts} onSent={reload} />
-      <PublishPostDialog post={posts.find((post) => post.id === openId) ?? null} companyId={company.id} open={openId !== null} onOpenChange={(open) => { if (!open) setOpenId(null) }} />
+      <CampaignBrandContext.Provider value={{ name: company.name, logoUrl: company.logoUrl }}>
+        <CampaignPostViewDialog
+          post={allPosts.find((post) => post.id === openId) ?? null}
+          open={openId !== null}
+          onClose={() => setOpenId(null)}
+          canEdit={canEdit}
+          canReview={canReview}
+          posts={allPosts}
+          onNavigate={(post) => setOpenId(post.id)}
+        />
+      </CampaignBrandContext.Provider>
+      <PublishPostDialog post={allPosts.find((post) => post.id === publishingId) ?? null} companyId={company.id} open={publishingId !== null} onOpenChange={(open) => { if (!open) setPublishingId(null) }} />
     </div>
   )
 }

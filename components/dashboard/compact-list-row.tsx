@@ -4,6 +4,7 @@ import Link from "next/link"
 import { Check } from "lucide-react"
 import type { ReactNode } from "react"
 
+import { hasItemActions, ItemActionsMenu, type ItemActions } from "@/components/dashboard/item-menu"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Skeleton } from "@/components/ui/skeleton"
 import { MobileDataCard } from "@/components/dashboard/mobile-data-card"
@@ -21,7 +22,8 @@ type CompactListRowProps = {
   mobileSubtitle?: ReactNode
   leading?: ReactNode
   trailing?: ReactNode
-  menu?: ReactNode
+  /** What the row can do, drawn as the standard menu. */
+  actions?: ItemActions
   menuLabel?: string
   active?: boolean
   href?: string
@@ -91,8 +93,8 @@ export function InitialAvatar({ text, className }: { text: string; className?: s
 type MobileListRowProps = {
   className?: string
   avatar: ReactNode
-  /** Menu opened by tapping the avatar. */
-  avatarMenu?: ReactNode
+  /** What the row can do, opened by tapping the avatar. */
+  avatarActions?: ItemActions
   /** Or: what tapping the avatar does, like selecting the row. */
   onAvatarClick?: () => void
   avatarPressed?: boolean
@@ -112,7 +114,7 @@ type MobileListRowProps = {
 }
 
 /** Mobile list row: avatar, title with meta on the right, then a line or two. Only shows below sm. */
-export function MobileListRow({ className, avatar, avatarMenu, onAvatarClick, avatarPressed, avatarLabel = "More options", title, titleClassName, meta, metaClassName, lines = [], lineClassNames = [], trailing, active, href, onClick, ariaLabel }: MobileListRowProps) {
+export function MobileListRow({ className, avatar, avatarActions, onAvatarClick, avatarPressed, avatarLabel = "More options", title, titleClassName, meta, metaClassName, lines = [], lineClassNames = [], trailing, active, href, onClick, ariaLabel }: MobileListRowProps) {
   const body = (
     <>
       <span className="flex items-baseline gap-2">
@@ -129,12 +131,12 @@ export function MobileListRow({ className, avatar, avatarMenu, onAvatarClick, av
 
   return (
     <div data-mobile-row className={cn("flex items-center gap-3 px-4 py-3.5 sm:hidden", className, active && "bg-muted/60")}>
-      {avatarMenu ? (
+      {hasItemActions(avatarActions) ? (
         <DropdownMenu modal={false}>
           <DropdownMenuTrigger asChild>
             <button type="button" aria-label={avatarLabel} title={avatarLabel} className={avatarButtonClass}>{avatar}</button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="start">{avatarMenu}</DropdownMenuContent>
+          <DropdownMenuContent align="start"><ItemActionsMenu actions={avatarActions} /></DropdownMenuContent>
         </DropdownMenu>
       ) : onAvatarClick ? (
         <button type="button" onClick={onAvatarClick} aria-label={avatarLabel} aria-pressed={avatarPressed} className={avatarButtonClass}>{avatar}</button>
@@ -154,12 +156,12 @@ export function MobileListRow({ className, avatar, avatarMenu, onAvatarClick, av
 }
 
 /** One list item: the shared data card on desktop, and the compact row on mobile. */
-export function CompactListRow({ title, avatarText, meta, subtitle, mobileSubtitle, leading, trailing, menu, menuLabel = "More options", active, href, onClick, ariaLabel, className, mobile = true }: CompactListRowProps) {
+export function CompactListRow({ title, avatarText, meta, subtitle, mobileSubtitle, leading, trailing, actions, menuLabel = "More options", active, href, onClick, ariaLabel, className, mobile = true }: CompactListRowProps) {
   const avatarSource = avatarText ?? (typeof title === "string" ? title : "")
   const mobileRow = mobile && (
     <MobileListRow
       avatar={leading ?? <InitialAvatar text={avatarSource} />}
-      avatarMenu={menu}
+      avatarActions={actions}
       avatarLabel={menuLabel}
       title={title}
       meta={meta}
@@ -183,7 +185,7 @@ export function CompactListRow({ title, avatarText, meta, subtitle, mobileSubtit
         title={title}
         subtitle={subtitle}
         trailing={trailing ?? meta}
-        menu={menu}
+        actions={actions}
         menuLabel={menuLabel}
         selected={active}
         href={href}

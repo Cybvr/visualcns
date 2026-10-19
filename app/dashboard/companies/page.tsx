@@ -6,26 +6,15 @@ import { Building2 } from "lucide-react"
 import type { Timestamp } from "firebase/firestore"
 
 import { useAuth } from "@/components/auth-provider"
-import { CompactListRow, CompactListSkeleton, InitialAvatar, MOBILE_LIST_CARD, shortListDate } from "@/components/dashboard/compact-list-row"
-import { GridCard, GridCardList, thumbnailIcon } from "@/components/dashboard/grid-card"
-import { useViewMode, ViewToggle } from "@/components/dashboard/view-toggle"
+import { CollectionView } from "@/components/dashboard/collection-view"
+import { CompactListRow, InitialAvatar, shortListDate } from "@/components/dashboard/compact-list-row"
+import { thumbnailIcon } from "@/components/dashboard/grid-card"
+import type { ItemActions } from "@/components/dashboard/item-menu"
 import { CompanyCreateSheet } from "@/components/dashboard/company-create-sheet"
-import { EmptySearchState, FirstRunState } from "@/components/dashboard/empty-state"
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { TableFilterBar } from "@/components/dashboard/table-filter-bar"
-import { useFilterBar, type SortOption } from "@/components/dashboard/filter-bar"
+import type { SortOption } from "@/components/dashboard/filter-bar"
 import { deleteOrganization, getOrganizations, type Organization } from "@/lib/organizations"
 import { formatTimestamp, tsToMillis } from "@/lib/tasks"
 import { getProjects, type Project } from "@/lib/projects"
@@ -79,10 +68,7 @@ export default function CompaniesPage() {
   const [organizations, setOrganizations] = useState<Organization[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [deleting, setDeleting] = useState<string | null>(null)
-  const [pendingDelete, setPendingDelete] = useState<CompanyRow | null>(null)
   const [creating, setCreating] = useState(false)
-  const [view, setView] = useViewMode("clients", "list")
   const [clientTab, setClientTab] = useState<"active" | "archived">("active")
 
   async function fetchCompanies() {
@@ -181,28 +167,15 @@ export default function CompaniesPage() {
   const archivedCompanies = companies.filter((company) => !isActive(company))
   const tabCompanies = clientTab === "active" ? activeCompanies : archivedCompanies
 
-  const { results: visibleCompanies, bar } = useFilterBar({
-    items: tabCompanies,
-    search,
-    sorts,
-    defaultSort: "updatedAt",
-    defaultDirection: "desc",
-  })
-
   async function handleDelete(row: CompanyRow) {
-    if (deleting) return
-    setDeleting(row.id)
     setError(null)
     try {
       if (row.hasOrg) await deleteOrganization(row.id)
       if (row.user) await deleteUser(row.user.uid)
-      setPendingDelete(null)
       await fetchCompanies()
     } catch (deleteError) {
       console.error("Error deleting company:", deleteError)
       setError(deleteError instanceof Error ? deleteError.message : "The client could not be removed. Try again.")
-    } finally {
-      setDeleting(null)
     }
   }
 
@@ -212,22 +185,21 @@ export default function CompaniesPage() {
     router.push(`/${encodeURIComponent(row.slug || row.user.companyId)}`)
   }
 
-  function clientMenu(row: CompanyRow) {
-    return <>
-      <DropdownMenuItem onSelect={() => router.push(companyHref(row))}>Open client</DropdownMenuItem>
-      {row.user && <DropdownMenuItem onSelect={() => handleViewWorkspace(row)}>View workspace</DropdownMenuItem>}
-      <DropdownMenuItem variant="destructive" onSelect={() => setPendingDelete(row)}>Remove client</DropdownMenuItem>
-    </>
+  function clientActions(row: CompanyRow): ItemActions {
+    return {
+      noun: "client",
+      name: row.name,
+      onOpen: () => router.push(companyHref(row)),
+      extra: row.user ? <DropdownMenuItem onSelect={() => handleViewWorkspace(row)}>View workspace</DropdownMenuItem> : undefined,
+      onDelete: () => handleDelete(row),
+      deleteLabel: "Remove client",
+      deleteMessage: `This removes ${row.name}'s account. Their projects, tasks, and documents will remain in the database, but the client will no longer appear here. This cannot be undone.`,
+    }
   }
 
-  const clientFilter = (
-    <TableFilterBar
-      {...bar}
-      placeholder="Search clients"
-      controls={<ViewToggle view={view} onChange={setView} />}
-      createAction={{ label: "New client", onClick: () => setCreating(true) }}
-    />
-  )
+  function projectCountLabel(row: CompanyRow) {
+    return row.projectCount ? `${row.projectCount} project${row.projectCount === 1 ? "" : "s"}` : "No projects yet"
+  }
 
   return (
     <main className="w-full px-4 pb-12 pt-4 sm:px-6">
@@ -251,97 +223,59 @@ export default function CompaniesPage() {
         </TabsList>
       </Tabs>
 
-      {!loading && companies.length === 0 ? (
-        <>
-          {clientFilter}
-          <FirstRunState
-            label="Client"
-            title="Let's add your first client"
-            description="Add a client to create a company for their projects, tasks, and documents."
-            action={<Button onClick={() => setCreating(true)}>Add client</Button>}
+      <CollectionView
+        className="min-w-0"
+        items={tabCompanies}
+        getKey={companyRefOf}
+        searchFields={search}
+        searchPlaceholder="Search clients"
+        viewKey="clients"
+        initialView="list"
+        createAction={{ label: "New client", onClick: () => setCreating(true) }}
+        sorts={sorts}
+        defaultSort="updatedAt"
+        defaultDirection="desc"
+        loading={loading}
+        empty={companies.length === 0 ? {
+          icon: Building2,
+          title: "Let's add your first client",
+          description: "Add a client to create a company for their projects, tasks, and documents.",
+          action: <Button onClick={() => setCreating(true)}>Add client</Button>,
+        } : { icon: Building2, title: `No ${clientTab} clients.` }}
+        itemActions={clientActions}
+        card={(row) => ({
+          title: row.name,
+          icon: <Building2 className="size-4 text-muted-foreground" aria-hidden="true" />,
+          imageUrl: row.logoUrl,
+          imageAlt: "",
+          placeholder: thumbnailIcon(Building2),
+          subtitle: row.label || `${row.projectCount} project${row.projectCount === 1 ? "" : "s"}`,
+          href: companyHref(row),
+          ariaLabel: `Open ${row.name}`,
+          menuLabel: `Options for ${row.name}`,
+        })}
+        listItem={(row) => (
+          <CompactListRow
+            leading={row.logoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={row.logoUrl} alt="" referrerPolicy="no-referrer" className="size-8 rounded-full object-cover max-sm:size-12" />
+            ) : (
+              <>
+                <InitialAvatar text={row.name} className="sm:hidden" />
+                <span className="flex size-8 items-center justify-center rounded-full bg-muted max-sm:hidden"><Building2 className="size-4 text-muted-foreground" aria-hidden="true" /></span>
+              </>
+            )}
+            title={row.name}
+            meta={shortListDate(Math.max(tsToMillis(row.updatedAt), tsToMillis(row.createdAt)))}
+            subtitle={`${row.label || projectCountLabel(row)} · ${formatTimestamp(row.updatedAt ?? row.createdAt)}`}
+            mobileSubtitle={[row.label, projectCountLabel(row)].filter(Boolean).join(" · ")}
+            href={companyHref(row)}
+            ariaLabel={`Open ${row.name}`}
+            menuLabel={`Options for ${row.name}`}
+            actions={clientActions(row)}
           />
-        </>
-      ) : (
-        <div className="min-w-0">
-          {clientFilter}
-          {loading ? (
-            <CompactListSkeleton />
-          ) : visibleCompanies.length === 0 ? (
-            <EmptySearchState label={tabCompanies.length === 0 ? `No ${clientTab} clients.` : "No clients match your search."} />
-          ) : view === "grid" ? (
-            <div className="mt-4">
-              <GridCardList>
-                {visibleCompanies.map((row) => (
-                  <GridCard
-                    key={companyRefOf(row)}
-                    title={row.name}
-                    icon={<Building2 className="size-4 text-muted-foreground" aria-hidden="true" />}
-                    imageUrl={row.logoUrl}
-                    imageAlt=""
-                    placeholder={thumbnailIcon(Building2)}
-                    subtitle={row.label || `${row.projectCount} project${row.projectCount === 1 ? "" : "s"}`}
-                    href={companyHref(row)}
-                    ariaLabel={`Open ${row.name}`}
-                    menuLabel={`Options for ${row.name}`}
-                    menu={clientMenu(row)}
-                  />
-                ))}
-              </GridCardList>
-            </div>
-          ) : (
-            <ul className={`mt-1 ${MOBILE_LIST_CARD}`}>
-              {visibleCompanies.map((row) => (
-                <li key={companyRefOf(row)}>
-                  <CompactListRow
-                    leading={row.logoUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={row.logoUrl} alt="" referrerPolicy="no-referrer" className="size-8 rounded-full object-cover max-sm:size-12" />
-                    ) : (
-                      <>
-                        <InitialAvatar text={row.name} className="sm:hidden" />
-                        <span className="flex size-8 items-center justify-center rounded-full bg-muted max-sm:hidden"><Building2 className="size-4 text-muted-foreground" aria-hidden="true" /></span>
-                      </>
-                    )}
-                    title={row.name}
-                    meta={shortListDate(Math.max(tsToMillis(row.updatedAt), tsToMillis(row.createdAt)))}
-                    subtitle={`${row.label || (row.projectCount ? `${row.projectCount} project${row.projectCount === 1 ? "" : "s"}` : "No projects yet")} · ${formatTimestamp(row.updatedAt ?? row.createdAt)}`}
-                    mobileSubtitle={[row.label, row.projectCount ? `${row.projectCount} project${row.projectCount === 1 ? "" : "s"}` : "No projects yet"].filter(Boolean).join(" · ")}
-                    href={companyHref(row)}
-                    ariaLabel={`Open ${row.name}`}
-                    menuLabel={`Options for ${row.name}`}
-                    menu={clientMenu(row)}
-                  />
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      )}
-
-      <AlertDialog open={Boolean(pendingDelete)} onOpenChange={(open) => !open && !deleting && setPendingDelete(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Remove client?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This removes {pendingDelete?.name ?? "this client"}&apos;s account. Their projects, tasks, and documents
-              will remain in the database, but the client will no longer appear here. This cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleting !== null}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              disabled={deleting !== null}
-              onClick={(event) => {
-                event.preventDefault()
-                if (pendingDelete) void handleDelete(pendingDelete)
-              }}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              {deleting ? "Removing…" : "Remove Client"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        )}
+      />
 
       {/* Creating stays a sheet; the new client opens on its full page once it saves. */}
       <CompanyCreateSheet

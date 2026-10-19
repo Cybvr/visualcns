@@ -447,6 +447,20 @@ export function ProjectDetail({
                   onOpen={setTab}
                   onAction={startQuickAction}
                   bannerImage={campaignImage}
+                  latestContent={
+                    <CampaignCreatives
+                      kind="content"
+                      limit={4}
+                      creatives={contentItems}
+                      library={mediaItems}
+                      agencyId={project.agencyId}
+                      companyId={project.companyId || companyId}
+                      projectId={project.id}
+                      canEdit={canEditCampaign}
+                      canReview={canReview}
+                      sharePath={canEditCampaign ? postSharePath : undefined}
+                    />
+                  }
                 />
                 {canEditCampaign && (
                   <CampaignGenerateButton

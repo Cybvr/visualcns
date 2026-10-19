@@ -17,6 +17,7 @@ const DASHBOARD_SECTION_TITLES: Record<string, string> = {
   notes: "Notes",
   overview: "Overview",
   projects: "Projects",
+  schedules: "Schedules",
   seo: "SEO",
   settings: "Settings",
   tasks: "Tasks",

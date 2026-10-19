@@ -5,7 +5,6 @@ import { useState, type FormEvent } from "react"
 
 import { Button } from "@/components/ui/button"
 import { MobileDataCard } from "@/components/dashboard/mobile-data-card"
-import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import type { CompanyLink } from "@/lib/organizations"
 
@@ -75,7 +74,13 @@ export function CompanyLinks({
               onClick={() => window.open(externalHref(link.url), "_blank", "noopener,noreferrer")}
               ariaLabel={`Open ${link.label}`}
               menuLabel={`Options for ${link.label}`}
-              menu={onSave ? <DropdownMenuItem variant="destructive" disabled={saving} onSelect={() => void removeLink(link.id)}>Remove link</DropdownMenuItem> : undefined}
+              actions={onSave ? {
+                noun: "link",
+                name: link.label,
+                onDelete: () => removeLink(link.id),
+                deleteLabel: "Remove link",
+                deleteMessage: `${link.label} will be removed from this company's links.`,
+              } : undefined}
             />
           ))}
         </div>

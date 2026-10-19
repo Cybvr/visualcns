@@ -19,7 +19,7 @@ import { ImportWordDocumentDialog } from "@/components/dashboard/import-word-doc
 import { NewDocumentDialog } from "@/components/dashboard/new-document-dialog"
 import { TableFilterBar } from "@/components/dashboard/table-filter-bar"
 import { useFilterBar, type SortOption } from "@/components/dashboard/filter-bar"
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
+import { type ItemActions } from "@/components/dashboard/item-menu"
 import { Button } from "@/components/ui/button"
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { usePageTitle, useRecordTitle } from "@/components/dashboard/page-title-context"
@@ -80,8 +80,6 @@ export default function DocumentsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
   const [selectedId, setSelectedId] = useUrlSelection("document")
-  const [confirmDelete, setConfirmDelete] = useState<DocumentRow | null>(null)
-  const [deleting, setDeleting] = useState(false)
   const [creating, setCreating] = useState(false)
   const [importing, setImporting] = useState(false)
   const [duplicateTarget, setDuplicateTarget] = useState<DocumentRow | null>(null)
@@ -117,19 +115,30 @@ export default function DocumentsPage() {
   const selectedRow = selectedId ? rows.find((row) => row.id === selectedId) ?? null : null
   useRecordTitle(selectedRow?.title || null)
 
-  async function removeRow() {
-    if (!confirmDelete) return
-    setDeleting(true)
+  async function removeRow(target: DocumentRow) {
     try {
-      await deleteCompanyDocument(confirmDelete.id)
-      setRows((current) => current.filter((row) => row.id !== confirmDelete.id))
-      if (selectedId === confirmDelete.id) setSelectedId(null)
-      setConfirmDelete(null)
+      await deleteCompanyDocument(target.id)
+      setRows((current) => current.filter((row) => row.id !== target.id))
+      if (selectedId === target.id) setSelectedId(null)
     } catch (deleteError) {
       console.error("Error deleting document:", deleteError)
       toast.error("Couldn't delete this document.")
-    } finally {
-      setDeleting(false)
+    }
+  }
+
+  function documentActions(row: DocumentRow): ItemActions {
+    return {
+      noun: "document",
+      name: row.title || "Untitled document",
+      onOpen: () => setSelectedId(row.id),
+      onDuplicate: adminView ? () => setDuplicateTarget(row) : undefined,
+      extra: <>
+        <DropdownMenuItem onSelect={() => router.push(row.viewHref)}>View document</DropdownMenuItem>
+        {adminView && row.editHref && <DropdownMenuItem onSelect={() => router.push(row.editHref!)}>Edit document</DropdownMenuItem>}
+        {adminView && <DropdownMenuItem onSelect={() => router.push(buildEmailComposeHref(companyDocumentEmailContext(row.source, companyRefFor(row.companyId))))}>Email document</DropdownMenuItem>}
+      </>,
+      onDelete: adminView ? () => removeRow(row) : undefined,
+      deleteMessage: `${row.title || "This document"} will be removed for good. This cannot be undone.`,
     }
   }
 
@@ -205,14 +214,7 @@ export default function DocumentsPage() {
               onClick={() => setSelectedId(row.id)}
               ariaLabel={`Open ${row.title || "document"}`}
               menuLabel={`Options for ${row.title || "document"}`}
-              menu={<>
-                <DropdownMenuItem onSelect={() => setSelectedId(row.id)}>Open document</DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => router.push(row.viewHref)}>View document</DropdownMenuItem>
-                {adminView && row.editHref && <DropdownMenuItem onSelect={() => router.push(row.editHref!)}>Edit document</DropdownMenuItem>}
-                {adminView && <DropdownMenuItem onSelect={() => router.push(buildEmailComposeHref(companyDocumentEmailContext(row.source, companyRefFor(row.companyId))))}>Email document</DropdownMenuItem>}
-                {adminView && <DropdownMenuItem onSelect={() => setDuplicateTarget(row)}>Duplicate document</DropdownMenuItem>}
-                {adminView && <DropdownMenuItem variant="destructive" onSelect={() => setConfirmDelete(row)}>Delete document</DropdownMenuItem>}
-              </>}
+              actions={documentActions(row)}
             />
           )}
           renderItem={(row, active) => (
@@ -224,20 +226,12 @@ export default function DocumentsPage() {
               active={active}
               onClick={() => setSelectedId(row.id)}
               menuLabel={`Options for ${row.title || "document"}`}
-              menu={<>
-                <DropdownMenuItem onSelect={() => setSelectedId(row.id)}>Open document</DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => router.push(row.viewHref)}>View document</DropdownMenuItem>
-                {adminView && row.editHref && <DropdownMenuItem onSelect={() => router.push(row.editHref!)}>Edit document</DropdownMenuItem>}
-                {adminView && <DropdownMenuItem onSelect={() => router.push(buildEmailComposeHref(companyDocumentEmailContext(row.source, companyRefFor(row.companyId))))}>Email document</DropdownMenuItem>}
-                {adminView && <DropdownMenuItem onSelect={() => setDuplicateTarget(row)}>Duplicate document</DropdownMenuItem>}
-                {adminView && <DropdownMenuItem variant="destructive" onSelect={() => setConfirmDelete(row)}>Delete document</DropdownMenuItem>}
-              </>}
+              actions={documentActions(row)}
             />
           )}
         />
       )}
 
-      <AlertDialog open={confirmDelete !== null} onOpenChange={(open) => !open && setConfirmDelete(null)}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Delete this document?</AlertDialogTitle><AlertDialogDescription>{confirmDelete?.title} will be removed for good. This cannot be undone.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel><AlertDialogAction onClick={(event) => { event.preventDefault(); void removeRow() }} disabled={deleting}>{deleting ? "Deleting…" : "Delete"}</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
       {adminView && <NewDocumentDialog open={creating} onOpenChange={setCreating} />}
       {adminView && <ImportWordDocumentDialog open={importing} onOpenChange={setImporting} />}
       {adminView && <DuplicateDocumentDialog open={duplicateTarget !== null} onOpenChange={(open) => !open && !duplicating && setDuplicateTarget(null)} title={`Duplicate ${duplicateTarget?.title ?? "document"}`} description="Choose where the duplicate should live." defaultCompanyId={duplicateTarget?.companyId ?? ""} defaultProjectId={duplicateTarget?.source && "projectId" in duplicateTarget.source ? duplicateTarget.source.projectId : undefined} submitting={duplicating} onConfirm={confirmDuplicate} />}

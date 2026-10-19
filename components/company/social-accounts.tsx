@@ -2,13 +2,12 @@
 
 import { useEffect, useState, type FormEvent } from "react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
-import { Loader2, Plus, X } from "lucide-react"
+import { Loader2, X } from "lucide-react"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Switch } from "@/components/ui/switch"
 import { SocialIcon } from "@/components/company/social-icon"
 import { platformLabel, SOCIAL_PLATFORMS } from "@/lib/social"
 import { useSocialAccounts, useSocialRequest } from "@/lib/social-client"
@@ -20,12 +19,13 @@ const RESULT_MESSAGES: Record<string, [ok: boolean, message: string]> = {
   error: [false, "Couldn't connect that account."],
 }
 
+const CONNECT_PLATFORMS = SOCIAL_PLATFORMS.filter((platform) => !["google", "threads", "youtube", "tiktok"].includes(platform.key))
+
 /**
  * A company's social accounts on its settings page. The client (or the
- * agency) clicks Connect, signs in on the platform itself, and comes back.
- * The agency also decides whether the client may post on their own.
+ * agency) clicks a platform, signs in on the platform itself, and comes back.
  */
-export function SocialAccounts({ companyId, companyName }: { companyId: string; companyName: string }) {
+export function SocialAccounts({ companyId, variant = "default" }: { companyId: string; variant?: "default" | "compact" }) {
   const { info, error, loading, reload, request } = useSocialAccounts(companyId)
   const [connecting, setConnecting] = useState("")
   const [removing, setRemoving] = useState("")
@@ -70,17 +70,23 @@ export function SocialAccounts({ companyId, companyName }: { companyId: string; 
     }
   }
 
-  async function setClientPosting(clientPosting: boolean) {
-    try {
-      await request("accounts", { method: "PATCH", body: { companyId, clientPosting } })
-      await reload()
-    } catch (caught) {
-      toast.error(caught instanceof Error ? caught.message : "Couldn't save.")
-    }
-  }
-
   // The SocialAPI key lives in Agency settings; until it's added there is nothing to connect.
   if (info && !info.configured) return null
+
+  if (variant === "compact") {
+    if (loading && !info) return <Loader2 className="size-4 animate-spin text-muted-foreground" aria-label="Loading social accounts" />
+    if (!info) return null
+    return (
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        <span className="text-sm text-muted-foreground">Connect:</span>
+        {CONNECT_PLATFORMS.map((platform) => (
+          <Button key={platform.key} type="button" variant="outline" size="icon" disabled={Boolean(connecting)} onClick={() => void connect(platform.key)} aria-label={`Connect ${platform.label}`} title={`Connect ${platform.label}`}>
+            {connecting === platform.key ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <SocialIcon platform={platform.key} />}
+          </Button>
+        ))}
+      </div>
+    )
+  }
 
   return (
     <section className="py-2">
@@ -117,20 +123,12 @@ export function SocialAccounts({ companyId, companyName }: { companyId: string; 
             )}
 
             <div className="flex flex-wrap gap-2">
-              {SOCIAL_PLATFORMS.map((platform) => (
-                <Button key={platform.key} type="button" variant="outline" size="sm" disabled={Boolean(connecting)} onClick={() => void connect(platform.key)}>
-                  {connecting === platform.key ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <Plus className="size-4" aria-hidden="true" />}
-                  {platform.label}
+              {CONNECT_PLATFORMS.map((platform) => (
+                <Button key={platform.key} type="button" variant="outline" size="icon" disabled={Boolean(connecting)} onClick={() => void connect(platform.key)} aria-label={`Connect ${platform.label}`} title={`Connect ${platform.label}`}>
+                  {connecting === platform.key ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <SocialIcon platform={platform.key} />}
                 </Button>
               ))}
             </div>
-
-            {info.role === "agency" && (
-              <div className="flex items-center justify-between gap-4 rounded-lg border border-border px-4 py-3">
-                <Label htmlFor={`social-client-posting-${companyId}`} className="text-sm font-medium">Let {companyName} post on their own</Label>
-                <Switch id={`social-client-posting-${companyId}`} checked={info.clientPosting} onCheckedChange={(checked) => void setClientPosting(checked)} />
-              </div>
-            )}
           </>
         )}
       </div>

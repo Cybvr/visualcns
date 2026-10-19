@@ -4,6 +4,7 @@ import Link from "next/link"
 import { EllipsisVertical } from "lucide-react"
 import { useEffect, useRef, type MouseEvent, type PointerEvent, type ReactNode } from "react"
 
+import { hasItemActions, ItemActionsMenu, type ItemActions } from "@/components/dashboard/item-menu"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
 
@@ -17,7 +18,8 @@ export type MobileDataCardProps = {
   variant?: "default" | "task" | "inline"
   imageUrl?: string
   imageAlt?: string
-  menu?: ReactNode
+  /** What the row can do, drawn as the standard menu. */
+  actions?: ItemActions
   menuLabel?: string
   trailing?: ReactNode
   selected?: boolean
@@ -38,7 +40,7 @@ export function MobileDataCard({
   variant = "default",
   imageUrl,
   imageAlt = "",
-  menu,
+  actions,
   menuLabel = "More options",
   trailing,
   selected = false,
@@ -181,7 +183,7 @@ export function MobileDataCard({
       {trailing !== undefined && (
         <div className="relative z-0 shrink-0 text-right text-xs text-muted-foreground">{trailing}</div>
       )}
-      {menu && (
+      {hasItemActions(actions) && (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button
@@ -196,7 +198,7 @@ export function MobileDataCard({
               <EllipsisVertical className="size-5" aria-hidden="true" />
             </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">{menu}</DropdownMenuContent>
+          <DropdownMenuContent align="end"><ItemActionsMenu actions={actions} /></DropdownMenuContent>
         </DropdownMenu>
       )}
     </div>

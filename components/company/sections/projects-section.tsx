@@ -3,14 +3,15 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { useSearchParams } from "next/navigation"
-import { ChevronRight, House, ListTodo, Megaphone } from "lucide-react"
+import { ChevronRight, Eye, House, ListTodo, Megaphone } from "lucide-react"
 import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
 import { useCompanyPage } from "@/components/company/company-page-context"
+import { Button } from "@/components/ui/button"
 import { SectionAddButton } from "@/components/company/section-add-button"
 import { TaskDetailSheet } from "@/components/company/task-detail-sheet"
-import { campaignGridCardProps } from "@/components/dashboard/campaign-grid-card"
+import { campaignGridCardProps, useCampaignShare } from "@/components/dashboard/campaign-grid-card"
 import { CollectionView } from "@/components/dashboard/collection-view"
 import { NewProjectDialog } from "@/components/dashboard/new-project-dialog"
 import { ProjectDetail } from "@/components/dashboard/project-detail"
@@ -18,7 +19,10 @@ import { deleteProjectWithTasks, duplicateProject, getProject, isProjectArchived
 import { taskStatusMeta, tsToMillis } from "@/lib/tasks"
 
 export function ProjectsSection() {
-  const { company, projects: loadedProjects, admin, emptyProjectsLabel, tasks, tasksLoading, updateParams, setRecordOpen, invoices, sectionHref } = useCompanyPage()
+  const { company, projects: loadedProjects, admin, emptyProjectsLabel, tasks, tasksLoading, updateParams, setRecordOpen, invoices, sectionHref, mode } = useCompanyPage()
+  const share = useCampaignShare()
+  // On the dashboard, the client's public page is one click from an open campaign.
+  const visitHref = mode === "tabs" ? admin?.sharePath : undefined
   const { appUser } = useAuth()
   // The public page has no admin handle, but the agency's own admins can still create campaigns there.
   const canCreate = Boolean(admin)
@@ -206,6 +210,14 @@ export function ProjectsSection() {
               </li>
             </ol>
           </nav>
+          {visitHref && (
+            <Button asChild variant="ghost" size="sm" className="shrink-0 max-sm:hidden">
+              <Link href={visitHref}>
+                <Eye className="size-4" aria-hidden="true" />
+                Visit
+              </Link>
+            </Button>
+          )}
           </div>
           <div className="mt-0 sm:mt-2">
             <ProjectDetail
@@ -256,6 +268,7 @@ export function ProjectsSection() {
               onDuplicate: canManageCampaigns ? () => handleDuplicate(project) : undefined,
               onArchive: canManageCampaigns && !isProjectArchived(project) ? () => handleArchive(project, true) : undefined,
               onRestore: canManageCampaigns && isProjectArchived(project) ? () => handleArchive(project, false) : undefined,
+              extra: canManageCampaigns ? share.shareItem(project) : undefined,
               onDelete: canDeleteCampaigns ? () => handleDelete(project) : undefined,
             })}
             card={(project) => campaignGridCardProps(project, { onOpen: () => openCampaign(project) })}
@@ -265,6 +278,7 @@ export function ProjectsSection() {
       )}
 
       {!admin && <TaskDetailSheet />}
+      {share.dialog}
 
       {canCreate && (
         <NewProjectDialog

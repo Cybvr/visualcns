@@ -37,7 +37,6 @@ import {
   Play,
   Plus,
   Send,
-  Trash2,
   Upload,
   X,
 } from "lucide-react"
@@ -60,6 +59,7 @@ import {
 } from "@/lib/documents"
 import { FilterBar, MOBILE_CREATE_BUTTON_CLASS, useFilterBar, type SortOption } from "@/components/dashboard/filter-bar"
 import { CompactListSkeleton, MOBILE_LIST_CARD, MobileListRow } from "@/components/dashboard/compact-list-row"
+import { ItemActionsMenu, type ItemActions } from "@/components/dashboard/item-menu"
 import { tsToMillis } from "@/lib/tasks"
 
 const DOCUMENT_SORTS: SortOption<SharedDocument>[] = [
@@ -478,34 +478,37 @@ export function DriveView() {
   }, [previewIndex, visibleDocuments])
 
   // The same actions behind the card's ⋮ on desktop and the row's avatar on mobile.
-  const documentMenuItems = (d: SharedDocument) => (
-    <>
-      <DropdownMenuItem className="h-11 rounded-lg px-3 text-sm" asChild>
-        <a href={d.url} target="_blank" rel="noopener noreferrer"><ExternalLink />Open</a>
-      </DropdownMenuItem>
-      <DropdownMenuItem className="h-11 rounded-lg px-3 text-sm" asChild>
-        <a href={d.url} download><Download />Download</a>
-      </DropdownMenuItem>
-      <DropdownMenuItem className="h-11 rounded-lg px-3 text-sm" onSelect={() => navigator.clipboard.writeText(d.url)}>
-        <Copy />Make a copy of link
-      </DropdownMenuItem>
-      {adminView && (
-        <>
-          <DropdownMenuSeparator className="my-2" />
-          <DropdownMenuItem className="h-11 rounded-lg px-3 text-sm" onSelect={() => openShareDialog(d)}>
-            <Send />Share
-          </DropdownMenuItem>
-          <DropdownMenuItem className="h-11 rounded-lg px-3 text-sm" onSelect={() => setSelectedId(d.id)}>
-            <Info />File information
-          </DropdownMenuItem>
-          <DropdownMenuSeparator className="my-2" />
-          <DropdownMenuItem variant="destructive" className="h-11 rounded-lg px-3 text-sm" onSelect={() => handleDelete(d.id)}>
-            <Trash2 />Remove
-          </DropdownMenuItem>
-        </>
-      )}
-    </>
-  )
+  const documentActions = (d: SharedDocument): ItemActions => ({
+    noun: "file",
+    name: d.title,
+    extra: (
+      <>
+        <DropdownMenuItem className="h-11 rounded-lg px-3 text-sm" asChild>
+          <a href={d.url} target="_blank" rel="noopener noreferrer"><ExternalLink />Open</a>
+        </DropdownMenuItem>
+        <DropdownMenuItem className="h-11 rounded-lg px-3 text-sm" asChild>
+          <a href={d.url} download><Download />Download</a>
+        </DropdownMenuItem>
+        <DropdownMenuItem className="h-11 rounded-lg px-3 text-sm" onSelect={() => navigator.clipboard.writeText(d.url)}>
+          <Copy />Make a copy of link
+        </DropdownMenuItem>
+        {adminView && (
+          <>
+            <DropdownMenuSeparator className="my-2" />
+            <DropdownMenuItem className="h-11 rounded-lg px-3 text-sm" onSelect={() => openShareDialog(d)}>
+              <Send />Share
+            </DropdownMenuItem>
+            <DropdownMenuItem className="h-11 rounded-lg px-3 text-sm" onSelect={() => setSelectedId(d.id)}>
+              <Info />File information
+            </DropdownMenuItem>
+          </>
+        )}
+      </>
+    ),
+    onDelete: adminView ? () => handleDelete(d.id) : undefined,
+    deleteLabel: "Remove",
+    deleteMessage: `"${d.title}" will be removed from Drive.`,
+  })
 
   return (
     <div className="relative">
@@ -603,7 +606,7 @@ export function DriveView() {
               <li key={d.id}>
                 <MobileListRow
                   avatar={<MobileFileAvatar doc={d} />}
-                  avatarMenu={documentMenuItems(d)}
+                  avatarActions={documentActions(d)}
                   avatarLabel={`Actions for ${d.title}`}
                   title={d.title}
                   meta={formatFileDate(d)}
@@ -666,7 +669,7 @@ export function DriveView() {
                       className="w-72 rounded-xl border-border/70 p-2 shadow-xl"
                       onClick={(event) => event.stopPropagation()}
                     >
-                      {documentMenuItems(d)}
+                      <ItemActionsMenu actions={documentActions(d)} />
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>

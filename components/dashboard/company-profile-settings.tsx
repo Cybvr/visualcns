@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { Trash2 } from "lucide-react"
 
 import { useCompany } from "@/components/dashboard/company-context"
+import { CreatorDefaultsForm } from "@/components/dashboard/creator-brief"
 import { ImageDropzone } from "@/components/image-dropzone"
 import {
   AlertDialog,
@@ -102,6 +103,11 @@ export function CompanyProfileSettings() {
           />
         </div>
         <p className="text-xs text-muted-foreground">Changing it moves the public page to the new address.</p>
+      </div>
+
+      <div className="space-y-3 border-t border-border pt-5">
+        <h3 className="text-sm font-medium">Creator defaults</h3>
+        <CreatorDefaultsForm companyId={workspaceId} saved={organization?.creatorDefaults} onSaved={reload} />
       </div>
 
       {error && <p className="text-sm text-destructive">{error}</p>}

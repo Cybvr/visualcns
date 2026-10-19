@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { Check, Loader2 } from "lucide-react"
 
 import type { Project } from "@/lib/projects"
@@ -36,6 +37,7 @@ export function TemplateGallery({
   projectHref?: (project: Project) => string
 }) {
   const [openCard, setOpenCard] = useState<TemplateCard | null>(null)
+  const router = useRouter()
   const project = openCard?.project
 
   return (
@@ -56,31 +58,29 @@ export function TemplateGallery({
                 </span>
               </div>
             }
-            menu={
-              <>
-                {projectHref ? (
+            actions={{
+              noun: projectHref ? "project" : "details",
+              name: card.project.title,
+              onOpen: projectHref ? () => router.push(projectHref(card.project)) : () => setOpenCard(card),
+              extra: (
+                <>
+                  {onUse && (
+                    <DropdownMenuItem
+                      onSelect={(event) => {
+                        event.preventDefault()
+                        onUse(card.project)
+                      }}
+                      disabled={applyingId !== null}
+                    >
+                      Add to my agency
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuItem asChild>
-                    <Link href={projectHref(card.project)}>Open project</Link>
+                    <Link href="/pricing">See plans</Link>
                   </DropdownMenuItem>
-                ) : (
-                  <DropdownMenuItem onSelect={() => setOpenCard(card)}>View details</DropdownMenuItem>
-                )}
-                {onUse && (
-                  <DropdownMenuItem
-                    onSelect={(event) => {
-                      event.preventDefault()
-                      onUse(card.project)
-                    }}
-                    disabled={applyingId !== null}
-                  >
-                    Add to my agency
-                  </DropdownMenuItem>
-                )}
-                <DropdownMenuItem asChild>
-                  <Link href="/pricing">See plans</Link>
-                </DropdownMenuItem>
-              </>
-            }
+                </>
+              ),
+            }}
           />
         ))}
       </div>

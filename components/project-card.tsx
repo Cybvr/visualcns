@@ -5,6 +5,7 @@ import Link from "next/link"
 import { MoreHorizontal } from "lucide-react"
 
 import { planIcons } from "@/components/offer-card"
+import { hasItemActions, ItemActionsMenu, type ItemActions } from "@/components/dashboard/item-menu"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import type { Project } from "@/lib/projects"
 
@@ -59,7 +60,7 @@ export function ProjectCover({ project, className = "" }: { project: Project; cl
  * templates on the public page, so both grids stay the same card: cover, title,
  * the service line underneath, then whatever belongs in the footer.
  *
- * `href` makes the body a link, `onClick` makes it a button. `menu` holds the
+ * `href` makes the body a link, `onClick` makes it a button. `actions` holds the
  * items for the corner menu, and is rendered as a sibling of the body since a
  * button cannot legally contain another one.
  */
@@ -69,7 +70,7 @@ export function ProjectCard({
   footer,
   href,
   onClick,
-  menu,
+  actions,
   menuLabel,
 }: {
   project: Project
@@ -77,7 +78,8 @@ export function ProjectCard({
   footer?: ReactNode
   href?: string
   onClick?: () => void
-  menu?: ReactNode
+  /** What the card can do, drawn as the standard menu. */
+  actions?: ItemActions
   menuLabel?: string
 }) {
   const bodyClass = `flex w-full flex-row items-center gap-2 rounded-[14px] border border-border/60 bg-card p-2 text-left shadow-sm sm:flex-col sm:items-stretch sm:gap-0 ${
@@ -113,7 +115,7 @@ export function ProjectCard({
         <div className={bodyClass}>{body}</div>
       )}
 
-      {menu && (
+      {hasItemActions(actions) && (
         // Revealed on hover on pointer devices, always there on touch.
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -126,7 +128,7 @@ export function ProjectCard({
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">
-            {menu}
+            <ItemActionsMenu actions={actions} />
           </DropdownMenuContent>
         </DropdownMenu>
       )}

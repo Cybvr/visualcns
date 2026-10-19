@@ -13,7 +13,6 @@ import { MobileDataCard } from "@/components/dashboard/mobile-data-card"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 
 export function TeamSection() {
@@ -104,18 +103,15 @@ export function TeamSection() {
               imageUrl={person.photoUrl}
               icon={<UserIcon className="size-5 text-violet-600 dark:text-violet-400" aria-hidden="true" />}
               menuLabel={`Options for ${person.name}`}
-              menu={canManageTeam && person.id !== appUser?.uid && teamSeats.info?.staff.some((member) => member.id === person.id) ? (
-                <DropdownMenuItem
-                  variant="destructive"
-                  onSelect={() => {
-                    void teamSeats.removePerson(person.id)
-                      .then(() => { setRemovedPersonIds((current) => [...current, person.id]); toast.success(`${person.name} removed from the team.`) })
-                      .catch((reason) => toast.error(reason instanceof Error ? reason.message : "Couldn't remove them. Try again."))
-                  }}
-                >
-                  Remove from team
-                </DropdownMenuItem>
-              ) : undefined}
+              actions={canManageTeam && person.id !== appUser?.uid && teamSeats.info?.staff.some((member) => member.id === person.id) ? {
+                noun: "team member",
+                name: person.name,
+                onDelete: () => teamSeats.removePerson(person.id)
+                  .then(() => { setRemovedPersonIds((current) => [...current, person.id]); toast.success(`${person.name} removed from the team.`) })
+                  .catch((reason) => { toast.error(reason instanceof Error ? reason.message : "Couldn't remove them. Try again.") }),
+                deleteLabel: "Remove from team",
+                deleteMessage: `${person.name} will lose access to this company and free up a seat.`,
+              } : undefined}
             />
           ))}
         </div>

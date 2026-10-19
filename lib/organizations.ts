@@ -4,6 +4,7 @@ import { auth } from "./firebase"
 import { slugify } from "./projects"
 import { RESERVED_SLUGS } from "./slugs"
 import { getCurrentAgencyId } from "./agency-scope"
+import type { CreatorDefaults } from "./campaign-brief"
 
 /**
  * The company a user belongs to: the actual agency that owns projects,
@@ -52,6 +53,8 @@ export interface Organization {
   estimateNotes?: string
   /** Agency owner only: how Ngai should write (tone, sign-off, layout habits). */
   ngaiStyle?: string
+  /** What every new campaign brief for this client starts from. See lib/campaign-brief. */
+  creatorDefaults?: Partial<CreatorDefaults>
   /** The public page's URL segment, e.g. visualcns.com/pan-atlantic-university */
   slug?: string
   /**

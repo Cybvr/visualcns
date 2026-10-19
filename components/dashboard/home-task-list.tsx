@@ -6,7 +6,6 @@ import { ArrowUpRight, ListTodo } from "lucide-react"
 
 import { TaskEditorSheet } from "@/components/dashboard/task-editor-sheet"
 import { MobileDataCard } from "@/components/dashboard/mobile-data-card"
-import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import type { Task } from "@/lib/tasks"
 import { cn } from "@/lib/utils"
 
@@ -66,7 +65,7 @@ export function HomeTaskList({
                   onClick={() => setEditingId(task.id)}
                   ariaLabel={`Open ${task.name}`}
                   menuLabel={`Options for ${task.name}`}
-                  menu={<DropdownMenuItem onSelect={() => setEditingId(task.id)}>Edit task</DropdownMenuItem>}
+                  actions={{ noun: "task", name: task.name, onOpen: () => setEditingId(task.id) }}
                 />
               </li>
             )

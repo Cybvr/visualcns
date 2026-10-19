@@ -13,6 +13,7 @@ import {
 } from "firebase/firestore"
 import { db } from "./firebase"
 import { getCurrentAgencyId } from "./agency-scope"
+import type { CreatorBrief } from "./campaign-brief"
 import {
   createTask,
   deleteTask,
@@ -89,6 +90,8 @@ export interface Project {
   order?: number
   tags?: string[]
   technologies?: string[]
+  /** What creators are asked to make, when, for how much, and who it wants. See lib/campaign-brief. */
+  brief?: Partial<CreatorBrief>
   createdAt?: Timestamp
   updatedAt?: Timestamp
 }

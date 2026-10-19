@@ -3,7 +3,6 @@
 import { ArrowLeft, List } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
-import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import { MobileDataCard } from "@/components/dashboard/mobile-data-card"
 import { cn } from "@/lib/utils"
@@ -63,7 +62,7 @@ export function EmailLists({
                   onClick={() => editList(list)}
                   ariaLabel={`Open ${list.name}`}
                   menuLabel={`Options for ${list.name}`}
-                  menu={<DropdownMenuItem variant="destructive" onSelect={() => deleteList(list.id)}>Delete list</DropdownMenuItem>}
+                  actions={{ noun: "list", name: list.name, onDelete: () => deleteList(list.id) }}
                 />
               ))}
             </div>
@@ -79,7 +78,7 @@ export function EmailLists({
                   onClick={() => editList(list)}
                   ariaLabel={`Open ${list.name}`}
                   menuLabel={`Options for ${list.name}`}
-                  menu={<DropdownMenuItem variant="destructive" onSelect={() => deleteList(list.id)}>Delete list</DropdownMenuItem>}
+                  actions={{ noun: "list", name: list.name, onDelete: () => deleteList(list.id) }}
                 />
               ))}
             </div>

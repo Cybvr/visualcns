@@ -2,7 +2,6 @@
 
 import { useRef, useState } from "react"
 import Link from "next/link"
-import { Loader2 } from "lucide-react"
 import { FaFolderOpen } from "react-icons/fa"
 
 import { FirstRunState } from "@/components/dashboard/empty-state"
@@ -11,17 +10,7 @@ import { MobileCardsSkeleton } from "@/components/dashboard/collection-skeletons
 import { ReactIcon } from "@/components/react-icon"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
-import { DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import {
   Sheet,
   SheetContent,
@@ -51,10 +40,6 @@ export function ProjectsView({
   minimal?: boolean
   loading?: boolean
 }) {
-  const [renaming, setRenaming] = useState<Project | null>(null)
-  const [deleting, setDeleting] = useState<Project | null>(null)
-  const [title, setTitle] = useState("")
-  const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [previewing, setPreviewing] = useState<Project | null>(null)
   const [previewTasks, setPreviewTasks] = useState<Task[]>([])
@@ -88,17 +73,12 @@ export function ProjectsView({
   }
 
   async function run(action: () => Promise<unknown>, failure: string) {
-    setBusy(true)
     setError(null)
     try {
       await action()
       await onChanged?.()
-      setRenaming(null)
-      setDeleting(null)
     } catch (caughtError) {
       setError(caughtError instanceof Error ? caughtError.message : failure)
-    } finally {
-      setBusy(false)
     }
   }
 
@@ -111,7 +91,7 @@ export function ProjectsView({
         </div>
       )}
 
-      {error && !renaming && !deleting && (
+      {error && (
         <p className="mt-3 text-sm text-destructive" role="alert">
           {error}
         </p>
@@ -149,15 +129,15 @@ export function ProjectsView({
                 href={`/dashboard/projects/${projectSlug(project)}`}
                 ariaLabel={`Open ${project.title}`}
                 menuLabel={`Options for ${project.title}`}
-                menu={onChanged ? (
-                  <>
-                    <DropdownMenuItem onSelect={() => { setTitle(project.title); setError(null); setRenaming(project) }}>Rename</DropdownMenuItem>
-                    <DropdownMenuItem onSelect={(event) => { event.preventDefault(); run(() => duplicateProject(project), "The project could not be duplicated.") }}>Duplicate</DropdownMenuItem>
-                    <DropdownMenuItem onSelect={() => openTaskPreview(project)}>Preview tasks</DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem variant="destructive" onSelect={() => { setError(null); setDeleting(project) }}>Delete</DropdownMenuItem>
-                  </>
-                ) : undefined}
+                actions={onChanged ? {
+                  noun: "project",
+                  name: project.title,
+                  onRename: (title) => run(() => renameProject(project.id, title), "The project could not be renamed."),
+                  onDuplicate: () => run(() => duplicateProject(project), "The project could not be duplicated."),
+                  extra: <DropdownMenuItem onSelect={() => openTaskPreview(project)}>Preview tasks</DropdownMenuItem>,
+                  onDelete: () => run(() => deleteProjectWithTasks(project.id), "The project could not be deleted."),
+                  deleteMessage: "This removes the project and every task filed under it. It cannot be undone.",
+                } : undefined}
               />
             )
           })}
@@ -230,74 +210,6 @@ export function ProjectsView({
           )}
         </SheetContent>
       </Sheet>
-
-      <Dialog open={Boolean(renaming)} onOpenChange={(open) => !open && setRenaming(null)}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Rename project</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-2">
-            <Label htmlFor="rename-project">Project name</Label>
-            <Input
-              id="rename-project"
-              value={title}
-              onChange={(event) => setTitle(event.target.value)}
-              maxLength={120}
-              autoFocus
-            />
-          </div>
-          {error && (
-            <p className="text-sm text-destructive" role="alert">
-              {error}
-            </p>
-          )}
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setRenaming(null)} disabled={busy}>
-              Cancel
-            </Button>
-            <Button
-              disabled={busy || !title.trim() || title.trim() === renaming?.title}
-              onClick={() =>
-                renaming && run(() => renameProject(renaming.id, title.trim()), "The project could not be renamed.")
-              }
-            >
-              {busy && <Loader2 className="animate-spin" aria-hidden="true" />}
-              Save
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={Boolean(deleting)} onOpenChange={(open) => !open && setDeleting(null)}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Delete {deleting?.title}?</DialogTitle>
-            <DialogDescription>
-              This removes the project and every task filed under it. It cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          {error && (
-            <p className="text-sm text-destructive" role="alert">
-              {error}
-            </p>
-          )}
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setDeleting(null)} disabled={busy}>
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              disabled={busy}
-              onClick={() =>
-                deleting && run(() => deleteProjectWithTasks(deleting.id), "The project could not be deleted.")
-              }
-            >
-              {busy && <Loader2 className="animate-spin" aria-hidden="true" />}
-              Delete
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </section>
   )
 }

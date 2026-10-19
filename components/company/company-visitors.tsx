@@ -6,13 +6,12 @@ import { Copy, Download, ExternalLink, Loader2, LogOut, RefreshCw, Settings, Eye
 import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
-import { CompanyEmptyState } from "@/components/company/empty-state"
 import { SectionAddButton } from "@/components/company/section-add-button"
+import { CollectionView } from "@/components/dashboard/collection-view"
 import { InitialAvatar } from "@/components/dashboard/compact-list-row"
-import { GridCard, GridCardList } from "@/components/dashboard/grid-card"
+import type { ItemActions } from "@/components/dashboard/item-menu"
 import { MobileDataCard } from "@/components/dashboard/mobile-data-card"
 import { Button } from "@/components/ui/button"
-import { ListSkeleton, ListToolbar, useListSearch, useListView } from "@/components/dashboard/list-search"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { Switch } from "@/components/ui/switch"
@@ -72,10 +71,8 @@ export function CompanyVisitors({ agencyId, companyId, slug }: { agencyId: strin
   }
 
   const allVisitors = useMemo(() => visitors ?? [], [visitors])
-  const [view, setView] = useListView("company-visitors")
-  const { query, setQuery, results } = useListSearch(allVisitors, (visitor) => [visitor.name, visitor.visitorCompany, visitor.hostName, visitor.reason, visitor.email, visitor.phone, visitor.agreement?.title])
   // People still on site first, then past visits in the order they arrive.
-  const rows = useMemo(() => [...results.filter((visitor) => visitor.status === "on_site"), ...results.filter((visitor) => visitor.status !== "on_site")], [results])
+  const rows = useMemo(() => [...allVisitors.filter((visitor) => visitor.status === "on_site"), ...allVisitors.filter((visitor) => visitor.status !== "on_site")], [allVisitors])
   const link = kiosk?.enabled && kiosk.key ? kioskUrl(slug, kiosk.key) : ""
 
   // A tablet switched on before billing existed starts its trial now.
@@ -93,6 +90,27 @@ export function CompanyVisitors({ agencyId, companyId, slug }: { agencyId: strin
     } finally {
       setBusyId("")
     }
+  }
+
+  /** Sign out is the only action, and only for someone still on site. */
+  function visitorActions(visitor: Visitor): ItemActions | undefined {
+    if (visitor.status !== "on_site") return undefined
+    return {
+      noun: "visitor",
+      name: visitor.name,
+      extra: (
+        <DropdownMenuItem onSelect={() => void signOut(visitor)} disabled={busyId === visitor.id}>
+          {busyId === visitor.id ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <LogOut className="size-4" aria-hidden="true" />}
+          Sign out
+        </DropdownMenuItem>
+      ),
+    }
+  }
+
+  function visitTimes(visitor: Visitor) {
+    return visitor.status === "on_site"
+      ? `On site · in at ${time(visitor.signedInAt)}`
+      : `${day(visitor.signedInAt)} · ${time(visitor.signedInAt)}${visitor.signedOutAt ? `–${time(visitor.signedOutAt)}` : ""}`
   }
 
   async function toggleKiosk(enabled: boolean) {
@@ -173,84 +191,62 @@ export function CompanyVisitors({ agencyId, companyId, slug }: { agencyId: strin
             Try again
           </Button>
         </div>
-      ) : visitors === null ? (
-        <ListSkeleton view={view} label="Loading visitors" />
       ) : (
-        <>
-          <ListToolbar
-            query={query}
-            onQueryChange={setQuery}
-            placeholder="Search visitors"
-            view={view}
-            onViewChange={setView}
-            actions={<>
-              {visitors.length > 0 && (
-              <Button type="button" variant="outline" onClick={() => void exportCsv()} disabled={exporting} className="h-11 rounded-full px-5">
-                {exporting ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <Download className="size-4" aria-hidden="true" />}
-                Export CSV
-              </Button>
-              )}
-              <SectionAddButton
-                label="Sign someone in"
-                onClick={() => { if (link) window.open(link, "_blank", "noopener,noreferrer"); else setShareOpen(true) }}
+        <CollectionView
+          className=""
+          items={rows}
+          getKey={(visitor) => visitor.id}
+          searchFields={(visitor) => [visitor.name, visitor.visitorCompany, visitor.hostName, visitor.reason, visitor.email, visitor.phone, visitor.agreement?.title]}
+          searchPlaceholder="Search visitors"
+          viewKey="company-visitors"
+          loading={visitors === null}
+          empty={{ icon: Eye, title: "No visitors yet", description: "People who sign in at the front desk will appear here." }}
+          actions={<>
+            {allVisitors.length > 0 && (
+            <Button type="button" variant="outline" onClick={() => void exportCsv()} disabled={exporting} className="h-11 rounded-full px-5">
+              {exporting ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <Download className="size-4" aria-hidden="true" />}
+              Export CSV
+            </Button>
+            )}
+            <SectionAddButton
+              label="Sign someone in"
+              onClick={() => { if (link) window.open(link, "_blank", "noopener,noreferrer"); else setShareOpen(true) }}
+            />
+          </>}
+          card={(visitor) => {
+            const here = visitor.status === "on_site"
+            const details = [visitor.visitorCompany, visitor.hostName && `${here ? "Visiting" : "Visited"} ${visitor.hostName}`, visitor.reason].filter(Boolean).join(" · ")
+            return {
+              icon: <InitialAvatar text={visitor.name} className="size-6 text-xs" />,
+              title: visitor.name,
+              subtitle: visitTimes(visitor),
+              preview: (
+                <div className="flex size-full flex-col items-center justify-center gap-3 p-4 text-center">
+                  <InitialAvatar text={visitor.name} className="size-16 text-2xl" />
+                  {details && <p className="line-clamp-2 text-sm text-muted-foreground">{details}</p>}
+                </div>
+              ),
+              menuLabel: here ? `Actions for ${visitor.name}` : undefined,
+              actions: visitorActions(visitor),
+            }
+          }}
+          listItem={(visitor) => {
+            const here = visitor.status === "on_site"
+            return (
+              <MobileDataCard
+                surface="list"
+                variant="inline"
+                iconShape="circle"
+                icon={<InitialAvatar text={visitor.name} className="size-8" />}
+                title={visitor.name}
+                subtitle={[visitor.visitorCompany, visitor.hostName && `${here ? "Visiting" : "Visited"} ${visitor.hostName}`, visitor.reason, visitor.agreement && `Agreed to ${visitor.agreement.title}`, !here && (visitor.phone || visitor.email)].filter(Boolean).join(" · ") || "—"}
+                trailing={visitTimes(visitor)}
+                menuLabel={here ? `Actions for ${visitor.name}` : undefined}
+                actions={visitorActions(visitor)}
               />
-            </>}
-          />
-          {visitors.length === 0 ? (
-            <CompanyEmptyState icon={Eye} title="No visitors yet" description="People who sign in at the front desk will appear here." />
-          ) : rows.length === 0 ? (
-            <p className="px-3 py-8 text-center text-sm text-muted-foreground">Nothing matches your search.</p>
-          ) : (
-            <div className={view === "card" ? "mt-4" : undefined}>
-              {view === "card" ? (
-                <GridCardList>
-                  {rows.map((visitor) => {
-                    const here = visitor.status === "on_site"
-                    const details = [visitor.visitorCompany, visitor.hostName && `${here ? "Visiting" : "Visited"} ${visitor.hostName}`, visitor.reason].filter(Boolean).join(" · ")
-                    return (
-                      <GridCard
-                        key={visitor.id}
-                        icon={<InitialAvatar text={visitor.name} className="size-6 text-xs" />}
-                        title={visitor.name}
-                        subtitle={here ? `On site · in at ${time(visitor.signedInAt)}` : `${day(visitor.signedInAt)} · ${time(visitor.signedInAt)}${visitor.signedOutAt ? `–${time(visitor.signedOutAt)}` : ""}`}
-                        preview={
-                          <div className="flex size-full flex-col items-center justify-center gap-3 p-4 text-center">
-                            <InitialAvatar text={visitor.name} className="size-16 text-2xl" />
-                            {details && <p className="line-clamp-2 text-sm text-muted-foreground">{details}</p>}
-                          </div>
-                        }
-                        menuLabel={here ? `Actions for ${visitor.name}` : undefined}
-                        menu={here ? <DropdownMenuItem onSelect={() => void signOut(visitor)} disabled={busyId === visitor.id}>
-                          {busyId === visitor.id ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <LogOut className="size-4" aria-hidden="true" />}
-                          Sign out
-                        </DropdownMenuItem> : undefined}
-                      />
-                    )
-                  })}
-                </GridCardList>
-              ) : rows.map((visitor) => {
-                const here = visitor.status === "on_site"
-                return (
-                  <MobileDataCard
-                    key={visitor.id}
-                    surface="list"
-                    variant="inline"
-                    iconShape="circle"
-                    icon={<InitialAvatar text={visitor.name} className="size-8" />}
-                    title={visitor.name}
-                    subtitle={[visitor.visitorCompany, visitor.hostName && `${here ? "Visiting" : "Visited"} ${visitor.hostName}`, visitor.reason, visitor.agreement && `Agreed to ${visitor.agreement.title}`, !here && (visitor.phone || visitor.email)].filter(Boolean).join(" · ") || "—"}
-                    trailing={here ? `On site · in at ${time(visitor.signedInAt)}` : `${day(visitor.signedInAt)} · ${time(visitor.signedInAt)}${visitor.signedOutAt ? `–${time(visitor.signedOutAt)}` : ""}`}
-                    menuLabel={here ? `Actions for ${visitor.name}` : undefined}
-                    menu={here ? <DropdownMenuItem onSelect={() => void signOut(visitor)} disabled={busyId === visitor.id}>
-                      {busyId === visitor.id ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <LogOut className="size-4" aria-hidden="true" />}
-                      Sign out
-                    </DropdownMenuItem> : undefined}
-                  />
-                )
-              })}
-            </div>
-          )}
-        </>
+            )
+          }}
+        />
       )}
     </div>
   )

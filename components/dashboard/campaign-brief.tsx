@@ -4,6 +4,7 @@ import { useEffect, useState, type FormEvent, type ReactNode } from "react"
 import { toast } from "sonner"
 
 import { StatusPill } from "@/components/dashboard/campaign-creatives"
+import { CreatorBriefForm } from "@/components/dashboard/creator-brief"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -85,44 +86,49 @@ export function CampaignBrief({
   }
 
   return (
-    <form onSubmit={save} className="space-y-8">
-      <Section title="About the event">
-        <Field canEdit={canEdit} value={draft.about} onChange={set("about")} rows={12} label="About the event" placeholder={ABOUT_PLACEHOLDER} />
-      </Section>
-      <Section title="Narrative and angle">
-        <Field canEdit={canEdit} value={draft.angle} onChange={set("angle")} singleLine label="Narrative and angle" placeholder="The one line the whole campaign hangs on, e.g. “Lagos executives step into the ring for one night”" />
-      </Section>
-      <Section title="Strategy">
-        <Field canEdit={canEdit} value={draft.strategy} onChange={set("strategy")} rows={5} label="Strategy" placeholder="How you'll get there: which creators, which platforms, what they post and when, and what counts as a win." />
-      </Section>
-      <Section title="Announcement post">
-        <Field canEdit={canWriteAnnouncement} value={draft.announcement} onChange={set("announcement")} rows={7} label="Announcement post" placeholder="The first post people will see: the hook, what's happening, when and where, and what to do next." />
-        {post && (
-          <div className="mt-3 flex flex-wrap items-center gap-2">
-            <StatusPill status={status} />
-            {canReview && status !== "Approved" && (
-              <>
-                <Button type="button" size="sm" onClick={() => void setStatus("Approved")}>Approve</Button>
-                <Button type="button" size="sm" variant="outline" className="rounded-full" onClick={() => void setStatus("Changes requested")}>Request changes</Button>
-              </>
-            )}
-            {canReview && status === "Approved" && (
-              <button type="button" onClick={() => void setStatus(READY_FOR_REVIEW)} className="text-sm font-medium text-blue-600 hover:underline dark:text-blue-400">Undo approval</button>
-            )}
-            {canEdit && !canReview && (status === "Draft" || status === "Changes requested") && (
-              <Button type="button" size="sm" variant="outline" className="rounded-full" onClick={() => void setStatus(READY_FOR_REVIEW)}>Send for review</Button>
-            )}
+    <div className="space-y-10">
+      <form onSubmit={save} className="space-y-8">
+        <Section title="About the event">
+          <Field canEdit={canEdit} value={draft.about} onChange={set("about")} rows={12} label="About the event" placeholder={ABOUT_PLACEHOLDER} />
+        </Section>
+        <Section title="Narrative and angle">
+          <Field canEdit={canEdit} value={draft.angle} onChange={set("angle")} singleLine label="Narrative and angle" placeholder="The one line the whole campaign hangs on, e.g. “Lagos executives step into the ring for one night”" />
+        </Section>
+        <Section title="Strategy">
+          <Field canEdit={canEdit} value={draft.strategy} onChange={set("strategy")} rows={5} label="Strategy" placeholder="How you'll get there: which creators, which platforms, what they post and when, and what counts as a win." />
+        </Section>
+        <Section title="Announcement post">
+          <Field canEdit={canWriteAnnouncement} value={draft.announcement} onChange={set("announcement")} rows={7} label="Announcement post" placeholder="The first post people will see: the hook, what's happening, when and where, and what to do next." />
+          {post && (
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <StatusPill status={status} />
+              {canReview && status !== "Approved" && (
+                <>
+                  <Button type="button" size="sm" onClick={() => void setStatus("Approved")}>Approve</Button>
+                  <Button type="button" size="sm" variant="outline" className="rounded-full" onClick={() => void setStatus("Changes requested")}>Request changes</Button>
+                </>
+              )}
+              {canReview && status === "Approved" && (
+                <button type="button" onClick={() => void setStatus(READY_FOR_REVIEW)} className="text-sm font-medium text-blue-600 hover:underline dark:text-blue-400">Undo approval</button>
+              )}
+              {canEdit && !canReview && (status === "Draft" || status === "Changes requested") && (
+                <Button type="button" size="sm" variant="outline" className="rounded-full" onClick={() => void setStatus(READY_FOR_REVIEW)}>Send for review</Button>
+              )}
+            </div>
+          )}
+        </Section>
+  
+        {(canEdit || canWriteAnnouncement) && (
+          <div className="flex gap-2 border-t border-border pt-4">
+            <Button type="submit" disabled={!dirty || saving}>{saving ? "Saving…" : "Save"}</Button>
+            {dirty && <Button type="button" variant="ghost" onClick={() => setDraft(saved)}>Cancel</Button>}
           </div>
         )}
+      </form>
+      <Section title="Creator brief">
+        <CreatorBriefForm project={project} canEdit={canEdit} onPatched={onPatched} />
       </Section>
-
-      {(canEdit || canWriteAnnouncement) && (
-        <div className="flex gap-2 border-t border-border pt-4">
-          <Button type="submit" disabled={!dirty || saving}>{saving ? "Saving…" : "Save"}</Button>
-          {dirty && <Button type="button" variant="ghost" onClick={() => setDraft(saved)}>Cancel</Button>}
-        </div>
-      )}
-    </form>
+    </div>
   )
 }
 

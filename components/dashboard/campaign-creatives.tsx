@@ -14,6 +14,7 @@ import { CollectionView, type CollectionItemActions } from "@/components/dashboa
 import { filterBySearch } from "@/components/dashboard/list-search"
 import { ShareDialog } from "@/components/dashboard/share-dialog"
 import { Input } from "@/components/ui/input"
+import { MediaLightbox } from "@/components/ui/media-lightbox"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import {
@@ -50,6 +51,8 @@ interface CampaignCreativesProps {
   onActionHandled?: () => void
   /** Builds a public deep link for an individual content post. */
   sharePath?: (post: CampaignCreative) => string
+  /** Shows only the newest posts as cards, with no filter bar: the campaign home's Content strip. */
+  limit?: number
 }
 
 // Images are shrunk before upload; these match what the storage rules accept.
@@ -95,10 +98,10 @@ export function StatusPill({ status }: { status: string }) {
  * A campaign's Content (written posts and hooks to approve) or its Media
  * (images, videos and links kept with it).
  */
-export function CampaignCreatives({ creatives, agencyId, companyId, projectId, canEdit, canReview = false, kind = "content", library = [], startNew = false, onActionHandled, sharePath }: CampaignCreativesProps) {
+export function CampaignCreatives({ creatives, agencyId, companyId, projectId, canEdit, canReview = false, kind = "content", library = [], startNew = false, onActionHandled, sharePath, limit }: CampaignCreativesProps) {
   const scope = { agencyId, companyId, projectId }
   // Newest post first; the list arrives sorted that way.
-  const posts = kind === "content" ? creatives.filter((item) => item.type === "text") : []
+  const posts = kind === "content" ? creatives.filter((item) => item.type === "text").slice(0, limit) : []
   const files = creatives.filter((item) => item.type !== "text")
   const [editing, setEditing] = useState<CampaignCreative | "new" | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -203,6 +206,8 @@ export function CampaignCreatives({ creatives, agencyId, companyId, projectId, c
           onSearch={setPostQuery}
           searchPlaceholder="Search content"
           viewKey="campaign-content"
+          hideToolbar={limit !== undefined}
+          fixedView={limit !== undefined ? "grid" : undefined}
           actions={canEdit || canReview ? <SectionAddButton label={canEdit ? "New post" : "Suggest a post"} onClick={() => setEditing("new")} /> : undefined}
           empty={{
             icon: Palette,
@@ -332,7 +337,6 @@ function BrandAvatar({ className }: { className?: string }) {
     </span>
   )
 }
-
 // Stored as Founder or Roster; shown in plain words.
 const POSTED_BY = [{ value: "Founder", label: "You" }, { value: "Roster", label: "Creators" }] as const
 
@@ -1136,7 +1140,7 @@ function MediaLibrary({ files, scope, canEdit, startNew = false, onActionHandled
           : { subtitle: item.type === "video" ? "Video" : item.type === "link" ? "Link" : "Image" }}
       />
 
-      <Lightbox items={viewable} activeId={viewingId} onChange={setViewingId} />
+      <MediaLightbox items={viewable.map((item) => ({ id: item.id, title: item.title, url: item.url, type: item.type as "image" | "video" }))} activeId={viewingId} onChange={setViewingId} />
 
       {canEdit && (
         <>
@@ -1236,59 +1240,6 @@ function AddLinkDialog({ open, onOpenChange, scope, folderId }: { open: boolean;
             <Button type="submit" disabled={busy || !link.trim()}>{busy ? "Adding…" : "Add link"}</Button>
           </DialogFooter>
         </form>
-      </DialogContent>
-    </Dialog>
-  )
-}
-
-/** Full-size pictures and videos with previous and next, by button or arrow key. */
-function Lightbox({ items, activeId, onChange }: { items: CampaignCreative[]; activeId: string | null; onChange: (id: string | null) => void }) {
-  const index = items.findIndex((item) => item.id === activeId)
-  const item = index >= 0 ? items[index] : null
-  const step = (by: number) => {
-    if (index < 0 || items.length < 2) return
-    onChange(items[(index + by + items.length) % items.length].id)
-  }
-
-  useEffect(() => {
-    if (!item) return
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "ArrowLeft") step(-1)
-      if (event.key === "ArrowRight") step(1)
-    }
-    window.addEventListener("keydown", onKey)
-    return () => window.removeEventListener("keydown", onKey)
-  })
-
-  return (
-    <Dialog open={Boolean(item)} onOpenChange={(next) => { if (!next) onChange(null) }}>
-      <DialogContent className="max-w-none gap-0 border-0 bg-black/95 p-0 text-white sm:max-w-[min(96vw,72rem)] [&>button]:text-white">
-        <DialogTitle className="sr-only">{item?.title ?? "Media"}</DialogTitle>
-        <DialogDescription className="sr-only">Use the arrow keys to move between pictures.</DialogDescription>
-        {item && (
-          <div className="relative flex h-[85vh] items-center justify-center">
-            {item.type === "video" ? (
-              <video key={item.id} src={item.url} controls autoPlay playsInline className="max-h-full max-w-full" />
-            ) : (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img key={item.id} src={item.url} alt={item.title} className="max-h-full max-w-full object-contain" />
-            )}
-            {items.length > 1 && (
-              <>
-                <button type="button" onClick={() => step(-1)} aria-label="Previous" className="absolute left-3 top-1/2 grid size-10 -translate-y-1/2 place-items-center rounded-full bg-white/10 outline-none transition-colors hover:bg-white/20 focus-visible:ring-2 focus-visible:ring-white">
-                  <ChevronLeft className="size-5" aria-hidden="true" />
-                </button>
-                <button type="button" onClick={() => step(1)} aria-label="Next" className="absolute right-3 top-1/2 grid size-10 -translate-y-1/2 place-items-center rounded-full bg-white/10 outline-none transition-colors hover:bg-white/20 focus-visible:ring-2 focus-visible:ring-white">
-                  <ChevronRight className="size-5" aria-hidden="true" />
-                </button>
-              </>
-            )}
-            <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-3 bg-gradient-to-t from-black/70 to-transparent px-4 pb-3 pt-8 text-sm">
-              <span className="min-w-0 truncate">{item.title}</span>
-              <span className="shrink-0 tabular-nums text-white/70">{index + 1} / {items.length}</span>
-            </div>
-          </div>
-        )}
       </DialogContent>
     </Dialog>
   )

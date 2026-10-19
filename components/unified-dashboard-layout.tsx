@@ -4,7 +4,7 @@ import dynamic from "next/dynamic"
 import { Suspense, useEffect, type ReactNode } from "react"
 import Image from "next/image"
 import { usePathname, useRouter } from "next/navigation"
-import { Bot, Eye, FileText, House, LogOut, Megaphone, Receipt } from "lucide-react"
+import { Bot, CalendarClock, Eye, FileText, House, LogOut, Megaphone, Receipt } from "lucide-react"
 import { FiBriefcase, FiMail, FiTrendingUp, FiUsers } from "react-icons/fi"
 import { AuthProvider, useAuth } from "@/components/auth-provider"
 import { AgentProvider } from "@/components/agent/agent-context"
@@ -21,6 +21,7 @@ const DASHBOARD_NAV: NavLink[] = [
   { label: "Home", href: "/dashboard", icon: House },
   { label: "Email", href: "/dashboard/email", icon: FiMail },
   { label: "Leads", href: "/dashboard/leads", icon: FiTrendingUp, adminOnly: true },
+  { label: "Schedules", href: "/dashboard/schedules", icon: CalendarClock },
   { label: "Contacts", href: "/dashboard/users", icon: FiUsers, adminOnly: true },
   { label: "Clients", href: "/dashboard/clients", icon: FiBriefcase, adminOnly: true },
   { label: "Campaigns", href: "/dashboard/projects", icon: Megaphone, adminOnly: true },

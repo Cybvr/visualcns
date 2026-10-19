@@ -19,6 +19,7 @@ import { getOrganizations } from "@/lib/organizations"
 import { CompactListRow, InitialAvatar } from "@/components/dashboard/compact-list-row"
 import { DocumentSplitPane } from "@/components/dashboard/document-split-pane"
 import { GridCard, thumbnailIcon } from "@/components/dashboard/grid-card"
+import type { ItemActions } from "@/components/dashboard/item-menu"
 import { FirstRunState } from "@/components/dashboard/empty-state"
 import { UserForm } from "@/components/dashboard/user-form"
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
@@ -136,13 +137,19 @@ export default function UsersAdminPage() {
     })
   }
 
-  function contactMenu(u: AppUser) {
-    return <>
-      <DropdownMenuItem onSelect={() => setSelectedId(u.uid)}>Open contact</DropdownMenuItem>
-      <DropdownMenuItem disabled={!u.email?.trim()} onSelect={() => router.push(emailHref(u))}>Email</DropdownMenuItem>
-      {canViewAs(u) && <DropdownMenuItem onSelect={() => handleViewAs(u)}>View as</DropdownMenuItem>}
-      <DropdownMenuItem variant="destructive" onSelect={() => setPendingDelete(u)}>Delete</DropdownMenuItem>
-    </>
+  function contactActions(u: AppUser): ItemActions {
+    const name = u.displayName || u.email || "this contact"
+    return {
+      noun: "contact",
+      name,
+      onOpen: () => setSelectedId(u.uid),
+      extra: <>
+        <DropdownMenuItem disabled={!u.email?.trim()} onSelect={() => router.push(emailHref(u))}>Email</DropdownMenuItem>
+        {canViewAs(u) && <DropdownMenuItem onSelect={() => handleViewAs(u)}>View as</DropdownMenuItem>}
+      </>,
+      onDelete: () => handleDelete(u.uid),
+      deleteMessage: `You're about to remove ${name}. This can't be undone.`,
+    }
   }
 
   const { results: visibleUsers, bar } = useFilterBar({
@@ -230,7 +237,7 @@ export default function UsersAdminPage() {
               onClick={() => setSelectedId(u.uid)}
               ariaLabel={`Open ${u.displayName || u.email || "contact"}`}
               menuLabel={`Options for ${u.displayName || u.email || "contact"}`}
-              menu={contactMenu(u)}
+              actions={contactActions(u)}
             />
           )}
           renderItem={(u, active) => (
@@ -252,7 +259,7 @@ export default function UsersAdminPage() {
               onClick={() => setSelectedId(u.uid)}
               ariaLabel={`Open ${u.displayName || u.email || "contact"}`}
               menuLabel={`Options for ${u.displayName || u.email || "contact"}`}
-              menu={contactMenu(u)}
+              actions={contactActions(u)}
             />
           )}
         />

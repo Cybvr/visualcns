@@ -9,7 +9,7 @@ import { toast } from "sonner"
 import { useAuth } from "@/components/auth-provider"
 import { useCompanyPage } from "@/components/company/company-page-context"
 import { postMediaType } from "@/components/dashboard/campaign-creatives"
-import { campaignGridCardProps } from "@/components/dashboard/campaign-grid-card"
+import { campaignGridCardProps, useCampaignShare } from "@/components/dashboard/campaign-grid-card"
 import { CollectionView } from "@/components/dashboard/collection-view"
 import { GridCard, GridCardList, thumbnailIcon } from "@/components/dashboard/grid-card"
 import { deleteProjectWithTasks, duplicateProject, getProject, isProjectArchived, renameProject, setProjectArchived, type Project } from "@/lib/projects"
@@ -44,6 +44,7 @@ function SectionHeader({ id, title, href }: { id: string; title: string; href?: 
 /** Home body: post, campaign and creator counts, then the latest of each. */
 export function HomeOverview() {
   const { company, projects, admin, sectionHref } = useCompanyPage()
+  const share = useCampaignShare()
   const { appUser } = useAuth()
   const router = useRouter()
   const canDeleteCampaigns = Boolean(admin)
@@ -152,9 +153,9 @@ export function HomeOverview() {
           searchFields={(project) => [project.title, project.service, project.status, project.dueDate]}
           searchPlaceholder="Search campaigns"
           viewKey="company-home-campaigns"
-          fixedView="card"
+          fixedView="grid"
           hideToolbar
-          initialView="card"
+          initialView="grid"
           empty={{ icon: Megaphone, title: "No campaigns yet." }}
           itemActions={(project) => ({
             noun: "campaign",
@@ -163,6 +164,7 @@ export function HomeOverview() {
             onDuplicate: canManageCampaigns ? () => handleDuplicateCampaign(project) : undefined,
             onArchive: canManageCampaigns && !isProjectArchived(project) ? () => handleArchiveCampaign(project, true) : undefined,
             onRestore: canManageCampaigns && isProjectArchived(project) ? () => handleArchiveCampaign(project, false) : undefined,
+            extra: canManageCampaigns ? share.shareItem(project) : undefined,
             onDelete: canDeleteCampaigns ? () => handleDeleteCampaign(project) : undefined,
           })}
           card={(project) => campaignGridCardProps(project, {
@@ -222,6 +224,7 @@ export function HomeOverview() {
         </section>
       )}
 
+      {share.dialog}
     </>
   )
 }

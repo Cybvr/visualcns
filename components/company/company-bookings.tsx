@@ -93,10 +93,14 @@ export function CompanyBookings({ companyId, canCancel = false }: { companyId: s
               subtitle={`${readableDate(booking)} · ${bookingTime(booking)} · ${booking.durationMinutes} min${booking.projectName ? ` · ${booking.projectName}` : ""}`}
               description={booking.location ? <span className="inline-flex items-center gap-1"><MapPin className="size-3.5" />{booking.location}</span> : undefined}
               menuLabel={`Actions for ${booking.title}`}
-              menu={booking.meetingUrl || canCancel ? <>
-                {booking.meetingUrl && <DropdownMenuItem asChild><a href={booking.meetingUrl} target="_blank" rel="noreferrer">Join meeting</a></DropdownMenuItem>}
-                {canCancel && <DropdownMenuItem onSelect={() => setCancelTarget(booking)}>Cancel booking</DropdownMenuItem>}
-              </> : undefined}
+              actions={{
+                noun: "booking",
+                name: booking.title,
+                extra: booking.meetingUrl || canCancel ? <>
+                  {booking.meetingUrl && <DropdownMenuItem asChild><a href={booking.meetingUrl} target="_blank" rel="noreferrer">Join meeting</a></DropdownMenuItem>}
+                  {canCancel && <DropdownMenuItem onSelect={() => setCancelTarget(booking)}>Cancel booking</DropdownMenuItem>}
+                </> : undefined,
+              }}
             />
           ))}
         </div>

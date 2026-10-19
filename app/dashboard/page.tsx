@@ -1,16 +1,17 @@
 "use client"
 
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { Image as ImageIcon, Megaphone, Palette, Receipt } from "lucide-react"
 
 import { useAuth } from "@/components/auth-provider"
+import { useCampaignShare } from "@/components/dashboard/campaign-grid-card"
 import { DashboardPageSkeleton } from "@/components/dashboard/dashboard-page-skeleton"
 import { GridCard, GridCardList, thumbnailIcon } from "@/components/dashboard/grid-card"
 import { MobileDataCard } from "@/components/dashboard/mobile-data-card"
-import { useListView, ViewToggle } from "@/components/dashboard/list-search"
+import { useViewMode, ViewToggle } from "@/components/dashboard/view-toggle"
 import { Card, CardContent } from "@/components/ui/card"
-import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { getCurrentAgencyId } from "@/lib/agency-scope"
 import { formatMoney, getInvoices, invoiceStatusMeta, type Invoice } from "@/lib/billing"
 import { invoiceIsOpen, invoiceIsOverdue } from "@/lib/invoice-reminders"
@@ -51,7 +52,7 @@ function invoiceStatus(invoice: Invoice) {
   return invoiceIsOverdue(invoice) ? "overdue" : invoice.status
 }
 
-function invoiceCard(invoice: Invoice) {
+function invoiceCard(invoice: Invoice, open: (href: string) => void) {
   const status = invoiceStatus(invoice)
   const title = invoiceTitle(invoice)
   const href = `/dashboard/invoices?invoice=${encodeURIComponent(invoice.id)}`
@@ -61,7 +62,7 @@ function invoiceCard(invoice: Invoice) {
     icon: <Receipt className={cn("size-4", status === "overdue" ? "text-destructive" : "text-emerald-600 dark:text-emerald-400")} aria-hidden="true" />,
     placeholder: thumbnailIcon(Receipt),
     menuLabel: `Options for ${title}`,
-    menu: <DropdownMenuItem asChild><Link href={href}>Open invoice</Link></DropdownMenuItem>,
+    actions: { noun: "invoice", name: title, onOpen: () => open(href) },
     href,
     ariaLabel: `Open ${title}`,
   }
@@ -69,6 +70,8 @@ function invoiceCard(invoice: Invoice) {
 
 /** Agency home: the useful numbers first, then the invoices that need attention. */
 export default function DashboardPage() {
+  const router = useRouter()
+  const share = useCampaignShare()
   const { user, appUser } = useAuth()
   const [leads, setLeads] = useState<Lead[] | null>(null)
   const [projects, setProjects] = useState<Project[]>([])
@@ -78,7 +81,7 @@ export default function DashboardPage() {
   const [leadsLoading, setLeadsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [greeting, setGreeting] = useState("Good morning")
-  const [invoiceView, setInvoiceView] = useListView("dashboard-outstanding-invoices", "card")
+  const [invoiceView, setInvoiceView] = useViewMode("dashboard-outstanding-invoices", "grid")
 
   const fetchData = useCallback(async () => {
     setError(null)
@@ -202,7 +205,7 @@ export default function DashboardPage() {
                     href={href}
                     ariaLabel={`Open ${project.title || "campaign"}`}
                     menuLabel={`Options for ${project.title || "campaign"}`}
-                    menu={<DropdownMenuItem asChild><Link href={href}>Open campaign</Link></DropdownMenuItem>}
+                    actions={{ noun: "campaign", name: project.title || "Untitled campaign", onOpen: () => router.push(href), extra: share.shareItem(project) }}
                   />
                 )
               })}
@@ -236,7 +239,7 @@ export default function DashboardPage() {
                     href={href}
                     ariaLabel={`Open ${title}`}
                     menuLabel={href ? `Options for ${title}` : undefined}
-                    menu={href ? <DropdownMenuItem asChild><Link href={href}>Open post</Link></DropdownMenuItem> : undefined}
+                    actions={href ? { noun: "post", name: title, onOpen: () => router.push(href) } : undefined}
                   />
                 )
               })}
@@ -248,7 +251,7 @@ export default function DashboardPage() {
       <section aria-labelledby="outstanding-invoices-heading" className="mt-8">
         <div className="flex items-center justify-between gap-3">
           <h2 id="outstanding-invoices-heading" className="text-lg font-semibold tracking-tight text-foreground">Outstanding invoices</h2>
-          <ViewToggle value={invoiceView} onChange={setInvoiceView} />
+          <ViewToggle view={invoiceView} onChange={setInvoiceView} />
           <Link href="/dashboard/invoices" className="shrink-0 text-sm font-medium text-foreground underline-offset-4 hover:underline">View all</Link>
         </div>
 
@@ -256,16 +259,16 @@ export default function DashboardPage() {
           <Card className="mt-4">
             <CardContent className="py-8 text-center text-sm text-muted-foreground">No outstanding invoices.</CardContent>
           </Card>
-        ) : invoiceView === "card" ? (
+        ) : invoiceView === "grid" ? (
           <div className="mt-4">
             <GridCardList>
-              {outstandingInvoices.map((invoice) => <GridCard key={invoice.id} {...invoiceCard(invoice)} />)}
+              {outstandingInvoices.map((invoice) => <GridCard key={invoice.id} {...invoiceCard(invoice, (href) => router.push(href))} />)}
             </GridCardList>
           </div>
         ) : (
           <div className="mt-4">
             {outstandingInvoices.map((invoice) => {
-              const card = invoiceCard(invoice)
+              const card = invoiceCard(invoice, (href) => router.push(href))
               const status = invoiceStatus(invoice)
               return (
                 <MobileDataCard
@@ -280,7 +283,7 @@ export default function DashboardPage() {
                   trailing={formatTimestamp(invoice.updatedAt ?? invoice.createdAt)}
                   href={card.href}
                   ariaLabel={card.ariaLabel}
-                  menu={card.menu}
+                  actions={card.actions}
                   menuLabel={card.menuLabel}
                 />
               )
@@ -294,6 +297,7 @@ export default function DashboardPage() {
           <CardContent className="py-8 text-center text-sm text-muted-foreground">Add your first lead, campaign, or invoice to start filling this overview.</CardContent>
         </Card>
       )}
+      {share.dialog}
     </main>
   )
 }

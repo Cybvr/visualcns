@@ -260,7 +260,7 @@ export function AboutSection({ singleColumn = false, formStyle = false }: { sing
   const links = <CompanyLinks links={company.links} onSave={admin ? (next) => admin.onUpdateCompany({ links: next }) : undefined} />
   const bookings = user ? <CompanyBookings companyId={company.id} canCancel={!admin} /> : null
   // The agency and the company's own people; same rule as the Social section.
-  const social = user && canSeeVisitors ? <SocialAccounts companyId={company.id} companyName={company.name} /> : null
+  const social = user && canSeeVisitors ? <SocialAccounts companyId={company.id} /> : null
 
   if (formStyle) {
     return (

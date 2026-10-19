@@ -24,6 +24,7 @@ import { MobileDataCard } from "@/components/dashboard/mobile-data-card"
 import { TableFilterBar } from "@/components/dashboard/table-filter-bar"
 import { useFilterBar, type SortOption } from "@/components/dashboard/filter-bar"
 import { ImportLeadsDialog } from "@/components/dashboard/import-leads-dialog"
+import type { ItemActions } from "@/components/dashboard/item-menu"
 import { StatusHistory } from "@/components/dashboard/status-history"
 import { QuickEmailComposer } from "@/components/dashboard/email/quick-email-composer"
 import { TableBulkBar } from "@/components/dashboard/table-bulk-bar"
@@ -31,7 +32,7 @@ import { useViewMode, ViewToggle } from "@/components/dashboard/view-toggle"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
-import { DropdownMenuCheckboxItem, DropdownMenuItem } from "@/components/ui/dropdown-menu"
+import { DropdownMenuCheckboxItem } from "@/components/ui/dropdown-menu"
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -169,16 +170,21 @@ export default function LeadsPage() {
     if (lead && stage) void moveLead(lead, stage)
   }
 
-  async function removeLead() {
-    if (!confirmDelete) return
-    const lead = confirmDelete
-    setConfirmDelete(null)
-    setEditing(null)
+  async function removeLead(lead: Lead) {
     try {
       await deleteLead(lead.id)
     } catch {
       toast.error("Couldn't delete this lead.")
     }
+  }
+
+  // The sheet's Delete button still asks here; list menus ask through the shared item dialogs.
+  async function removeConfirmedLead() {
+    if (!confirmDelete) return
+    const lead = confirmDelete
+    setConfirmDelete(null)
+    setEditing(null)
+    await removeLead(lead)
   }
 
   if (!user) return null
@@ -203,7 +209,7 @@ export default function LeadsPage() {
       {error ? (
         <p role="alert" className="mt-10 text-sm text-destructive">Leads unavailable. Refresh to try again.</p>
       ) : view === "list" ? (
-        <LeadsTable leads={visibleLeads} loading={leads === null} onOpen={setEditing} onDelete={setConfirmDelete} />
+        <LeadsTable leads={visibleLeads} loading={leads === null} onOpen={setEditing} onDelete={removeLead} />
       ) : (
         <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd} onDragCancel={() => setActiveId(null)}>
           <div className="scrollbar-none -mx-4 mt-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-4 sm:-mx-6 sm:px-6">
@@ -265,7 +271,7 @@ export default function LeadsPage() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={() => void removeLead()}>Delete</AlertDialogAction>
+            <AlertDialogAction onClick={() => void removeConfirmedLead()}>Delete</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -273,9 +279,19 @@ export default function LeadsPage() {
   )
 }
 
-function LeadsTable({ leads, loading, onOpen, onDelete }: { leads: Lead[]; loading: boolean; onOpen: (lead: Lead) => void; onDelete: (lead: Lead) => void }) {
+function LeadsTable({ leads, loading, onOpen, onDelete }: { leads: Lead[]; loading: boolean; onOpen: (lead: Lead) => void; onDelete: (lead: Lead) => Promise<void> }) {
   const selection = useRowSelection(leads, leadId)
   const [bulkBusy, setBulkBusy] = useState(false)
+
+  function leadActions(lead: Lead): ItemActions {
+    return {
+      noun: "lead",
+      name: lead.name || "This lead",
+      onOpen: () => onOpen(lead),
+      extra: <DropdownMenuCheckboxItem checked={selection.isSelected(lead.id)} onCheckedChange={() => selection.toggle(lead.id)}>Select lead</DropdownMenuCheckboxItem>,
+      onDelete: () => onDelete(lead),
+    }
+  }
 
   async function deleteSelected() {
     const ids = selection.selectedIds
@@ -340,13 +356,7 @@ function LeadsTable({ leads, loading, onOpen, onDelete }: { leads: Lead[]; loadi
                   avatar={selected ? (
                     <CheckAvatar />
                   ) : <InitialAvatar text={name} />}
-                  avatarMenu={
-                    <>
-                      <DropdownMenuItem onSelect={() => onOpen(lead)}>Open lead</DropdownMenuItem>
-                      <DropdownMenuCheckboxItem checked={selected} onCheckedChange={() => selection.toggle(lead.id)}>Select lead</DropdownMenuCheckboxItem>
-                      <DropdownMenuItem variant="destructive" onSelect={() => onDelete(lead)}>Delete lead</DropdownMenuItem>
-                    </>
-                  }
+                  avatarActions={leadActions(lead)}
                   avatarLabel={`Options for ${name}`}
                   title={name}
                   meta={STAGE_LABELS.get(lead.stage) ?? lead.stage}
@@ -387,11 +397,7 @@ function LeadsTable({ leads, loading, onOpen, onDelete }: { leads: Lead[]; loadi
               onClick={(event) => selection.selectedCount > 0 ? selection.toggle(lead.id, event.shiftKey) : onOpen(lead)}
               ariaLabel={`Open ${name}`}
               menuLabel={`Options for ${name}`}
-              menu={<>
-                <DropdownMenuItem onSelect={() => onOpen(lead)}>Open lead</DropdownMenuItem>
-                <DropdownMenuCheckboxItem checked={selected} onCheckedChange={() => selection.toggle(lead.id)}>Select lead</DropdownMenuCheckboxItem>
-                <DropdownMenuItem variant="destructive" onSelect={() => onDelete(lead)}>Delete lead</DropdownMenuItem>
-              </>}
+              actions={leadActions(lead)}
             />
           })}
         </>}

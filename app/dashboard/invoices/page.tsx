@@ -19,7 +19,7 @@ import { TableFilterBar } from "@/components/dashboard/table-filter-bar"
 import { useFilterBar, type SortOption } from "@/components/dashboard/filter-bar"
 import { InvoiceBuilder } from "@/components/dashboard/invoice-builder"
 import { InvoiceDocument } from "@/components/dashboard/invoice-document"
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
+import { ItemActionsMenu, type ItemActions } from "@/components/dashboard/item-menu"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { createInvoice, deleteInvoice, formatMoney, getInvoices, getInvoicesByCompanyId, invoiceStatusMeta, nextInvoiceNumber, type Invoice } from "@/lib/billing"
@@ -83,8 +83,6 @@ export default function InvoicesPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
   const [selectedId, setSelectedId] = useUrlSelection("invoice")
-  const [confirmDelete, setConfirmDelete] = useState<Invoice | null>(null)
-  const [deleting, setDeleting] = useState(false)
   const [duplicateTarget, setDuplicateTarget] = useState<Invoice | null>(null)
   const [duplicating, setDuplicating] = useState(false)
   const [view, setView] = useViewMode("invoices", "list")
@@ -116,19 +114,29 @@ export default function InvoicesPage() {
   const selectedInvoice = selectedId ? invoices.find((invoice) => invoice.id === selectedId) ?? null : null
   useRecordTitle(selectedInvoice ? selectedInvoice.title || (selectedInvoice.invoiceNumber ? `Invoice ${selectedInvoice.invoiceNumber}` : "Invoice") : null)
 
-  async function removeInvoice() {
-    if (!confirmDelete) return
-    setDeleting(true)
+  async function removeInvoice(invoice: Invoice) {
     try {
-      await deleteInvoice(confirmDelete.id)
-      setInvoices((current) => current.filter((row) => row.id !== confirmDelete.id))
-      if (selectedId === confirmDelete.id) setSelectedId(null)
-      setConfirmDelete(null)
+      await deleteInvoice(invoice.id)
+      setInvoices((current) => current.filter((row) => row.id !== invoice.id))
+      if (selectedId === invoice.id) setSelectedId(null)
     } catch (deleteError) {
       console.error("Error deleting invoice:", deleteError)
       toast.error("Couldn't delete this invoice.")
-    } finally {
-      setDeleting(false)
+    }
+  }
+
+  function invoiceActions(invoice: Invoice): ItemActions {
+    return {
+      noun: "invoice",
+      name: invoice.title || invoice.invoiceNumber || "Untitled invoice",
+      onOpen: () => setSelectedId(invoice.id),
+      onDuplicate: adminView ? () => setDuplicateTarget(invoice) : undefined,
+      extra: adminView ? <>
+        <DropdownMenuItem onSelect={() => router.push(`/dashboard/invoices/${invoice.id}/edit`)}>Edit invoice</DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => router.push(buildEmailComposeHref(invoiceEmailContext(invoice, companyRefFor(invoice.companyId))))}>Email invoice</DropdownMenuItem>
+      </> : undefined,
+      onDelete: adminView ? () => removeInvoice(invoice) : undefined,
+      deleteMessage: `${invoice.invoiceNumber || "This invoice"} will be removed for good. This cannot be undone.`,
     }
   }
 
@@ -192,18 +200,12 @@ export default function InvoicesPage() {
                 onClick={() => setSelectedId(invoice.id)}
                 ariaLabel={`Open ${invoice.title || invoice.invoiceNumber || "invoice"}`}
                 menuLabel={`Options for ${invoice.title || invoice.invoiceNumber || "invoice"}`}
-                menu={<>
-                  <DropdownMenuItem onSelect={() => setSelectedId(invoice.id)}>Open invoice</DropdownMenuItem>
-                  {adminView && <DropdownMenuItem onSelect={() => router.push(`/dashboard/invoices/${invoice.id}/edit`)}>Edit invoice</DropdownMenuItem>}
-                  {adminView && <DropdownMenuItem onSelect={() => router.push(buildEmailComposeHref(invoiceEmailContext(invoice, companyRefFor(invoice.companyId))))}>Email invoice</DropdownMenuItem>}
-                  {adminView && <DropdownMenuItem onSelect={() => setDuplicateTarget(invoice)}>Duplicate invoice</DropdownMenuItem>}
-                  {adminView && <DropdownMenuItem variant="destructive" onSelect={() => setConfirmDelete(invoice)}>Delete invoice</DropdownMenuItem>}
-                </>}
+                actions={invoiceActions(invoice)}
               />
             )}
             headerActions={selectedInvoice && (
               <>
-                {adminView && <DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="size-8 text-muted-foreground hover:text-foreground" aria-label="Invoice actions"><MoreHorizontal className="size-4" /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onSelect={() => setDuplicateTarget(selectedInvoice)}>Duplicate</DropdownMenuItem><DropdownMenuItem variant="destructive" onSelect={() => setConfirmDelete(selectedInvoice)}>Delete invoice</DropdownMenuItem></DropdownMenuContent></DropdownMenu>}
+                {adminView && <DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="size-8 text-muted-foreground hover:text-foreground" aria-label="Invoice actions"><MoreHorizontal className="size-4" /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><ItemActionsMenu actions={{ ...invoiceActions(selectedInvoice), onOpen: undefined, extra: undefined }} /></DropdownMenuContent></DropdownMenu>}
                 {adminView && <Button asChild variant="ghost" size="icon" className="size-8 text-muted-foreground hover:text-foreground" aria-label="Email invoice"><Link href={buildEmailComposeHref(invoiceEmailContext(selectedInvoice, companyRefFor(selectedInvoice.companyId)))}><Mail className="size-4" /></Link></Button>}
                 <Button asChild variant="ghost" size="icon" className="size-8 text-muted-foreground hover:text-foreground" aria-label={adminView ? "Edit invoice" : "Open invoice"}><Link href={adminView ? `/dashboard/invoices/${selectedInvoice.id}/edit` : `/dashboard/invoices/${selectedInvoice.id}`}><ExternalLink className="size-4" /></Link></Button>
               </>
@@ -219,20 +221,13 @@ export default function InvoicesPage() {
                 active={active}
                 onClick={() => setSelectedId(invoice.id)}
                 menuLabel={`Options for ${invoice.title || invoice.invoiceNumber}`}
-                menu={<>
-                  <DropdownMenuItem onSelect={() => setSelectedId(invoice.id)}>Open invoice</DropdownMenuItem>
-                  {adminView && <DropdownMenuItem onSelect={() => router.push(`/dashboard/invoices/${invoice.id}/edit`)}>Edit invoice</DropdownMenuItem>}
-                  {adminView && <DropdownMenuItem onSelect={() => router.push(buildEmailComposeHref(invoiceEmailContext(invoice, companyRefFor(invoice.companyId))))}>Email invoice</DropdownMenuItem>}
-                  {adminView && <DropdownMenuItem onSelect={() => setDuplicateTarget(invoice)}>Duplicate invoice</DropdownMenuItem>}
-                  {adminView && <DropdownMenuItem variant="destructive" onSelect={() => setConfirmDelete(invoice)}>Delete invoice</DropdownMenuItem>}
-                </>}
+                actions={invoiceActions(invoice)}
               />
             }}
           />
         </>
       )}
 
-      <AlertDialog open={confirmDelete !== null} onOpenChange={(open) => !open && setConfirmDelete(null)}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Delete this invoice?</AlertDialogTitle><AlertDialogDescription>{confirmDelete?.invoiceNumber} will be removed for good. This cannot be undone.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel><AlertDialogAction onClick={(event) => { event.preventDefault(); void removeInvoice() }} disabled={deleting}>{deleting ? "Deleting…" : "Delete"}</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
       <DuplicateDocumentDialog open={duplicateTarget !== null} onOpenChange={(open) => !open && setDuplicateTarget(null)} title={`Duplicate ${duplicateTarget?.invoiceNumber ?? "invoice"}`} description="Choose which client and project the copy belongs to." defaultCompanyId={duplicateTarget?.companyId ?? ""} defaultProjectId={duplicateTarget?.projectId} submitting={duplicating} onConfirm={confirmDuplicate} />
     </main>
   )

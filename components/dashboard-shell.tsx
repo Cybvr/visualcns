@@ -1,5 +1,6 @@
 "use client"
 
+import { ItemActionsProvider } from "@/components/dashboard/item-menu"
 import { SidebarTakeoverProvider, useSidebarTakeoverState } from "@/components/company/sidebar-takeover"
 import { useNavCounts } from "@/components/dashboard/use-nav-counts"
 import dynamic from "next/dynamic"
@@ -176,6 +177,7 @@ export function DashboardShell({
     <div className="dashboard-body flex h-svh flex-col overflow-hidden bg-background font-sans [&_*]:font-sans">
       {banner && <div className="z-50 h-10 shrink-0">{banner}</div>}
       <SidebarTakeoverProvider>
+      <ItemActionsProvider>
       <SidebarProvider
         open={agentOpen ? false : sidebarOpen}
         onOpenChange={setSidebarOpen}
@@ -306,6 +308,7 @@ export function DashboardShell({
         <NgaiSidePanel />
         {!hideMobileFooter && <DashboardMobileFooterNav unreadEmailCount={unreadEmailCount} />}
       </SidebarProvider>
+      </ItemActionsProvider>
       </SidebarTakeoverProvider>
 
       <GlobalSearchDialog open={searchOpen} onOpenChange={setSearchOpen} results={searchResults} loading={searchLoading} placeholder="Search companies, projects, documents…" />

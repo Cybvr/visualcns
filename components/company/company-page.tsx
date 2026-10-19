@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
-import { Building2, Eye, ExternalLink, Mail, MoreVertical } from "lucide-react"
+import { Building2, ExternalLink, Mail, MoreVertical } from "lucide-react"
 
 import {
   CompanyPageProvider,
@@ -16,9 +16,7 @@ import { useSidebarTakeover } from "@/components/company/sidebar-takeover"
 import { CompanySection } from "@/components/company/sections/company-section"
 import { ShareDialog } from "@/components/dashboard/share-dialog"
 import { useClientOpen, usePageHeaderActions, usePageHeaderBack, usePageHeaderTitle } from "@/components/dashboard/page-title-context"
-import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb"
 import { buildEmailComposeHref } from "@/lib/email-composer"
 import { cn } from "@/lib/utils"
 
@@ -147,31 +145,6 @@ function DashboardCompanyView({ embedded = false, onBack }: { embedded?: boolean
 
   return (
     <main className={embedded ? "w-full min-w-0" : "mx-auto min-h-screen w-full max-w-7xl max-md:bg-page px-4 pb-[calc(7rem+env(safe-area-inset-bottom))] pt-6 sm:px-6 sm:pb-16 sm:pt-8 md:pt-6"}>
-      {!embedded && (
-        <div className="mb-4 flex min-w-0 items-center justify-between gap-4">
-          <Breadcrumb className="min-w-0">
-            <BreadcrumbList className="flex-nowrap">
-              <BreadcrumbItem>
-                <BreadcrumbLink asChild>
-                  <Link href="/dashboard/clients">Clients</Link>
-                </BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbSeparator />
-              <BreadcrumbItem className="min-w-0">
-                <BreadcrumbPage className="truncate">{company.name}</BreadcrumbPage>
-              </BreadcrumbItem>
-            </BreadcrumbList>
-          </Breadcrumb>
-          {sharePath && (
-            <Button asChild variant="ghost" size="sm" className="shrink-0">
-              <Link href={sharePath}>
-                <Eye className="size-4" aria-hidden="true" />
-                Visit
-              </Link>
-            </Button>
-          )}
-        </div>
-      )}
       <div className={cn(!inSidebar && "md:grid md:grid-cols-[8rem_minmax(0,1fr)] md:items-start md:gap-6")}>
         <aside className={cn("hidden md:sticky md:top-6", !inSidebar && "md:block")}>
           <SectionNav sections={sections} active={section} href={sectionHref} vertical />

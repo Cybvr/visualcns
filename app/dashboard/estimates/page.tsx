@@ -18,7 +18,7 @@ import { EstimateBuilder } from "@/components/dashboard/estimate-builder"
 import { FirstRunState } from "@/components/dashboard/empty-state"
 import { TableFilterBar } from "@/components/dashboard/table-filter-bar"
 import { useFilterBar } from "@/components/dashboard/filter-bar"
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
+import { ItemActionsMenu, type ItemActions } from "@/components/dashboard/item-menu"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { createEstimate, deleteEstimate, estimateStatusMeta, formatMoney, getEstimates, getEstimatesByCompanyId, nextEstimateNumber, type Estimate } from "@/lib/billing"
@@ -40,8 +40,6 @@ export default function EstimatesPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
   const [selectedId, setSelectedId] = useUrlSelection("estimate")
-  const [confirmDelete, setConfirmDelete] = useState<Estimate | null>(null)
-  const [deleting, setDeleting] = useState(false)
   const [duplicateTarget, setDuplicateTarget] = useState<Estimate | null>(null)
   const [duplicating, setDuplicating] = useState(false)
   const [organizations, setOrganizations] = useState<Organization[]>([])
@@ -73,19 +71,30 @@ export default function EstimatesPage() {
   const selectedEstimate = selectedId ? estimates.find((estimate) => estimate.id === selectedId) ?? null : null
   useRecordTitle(selectedEstimate ? selectedEstimate.title || (selectedEstimate.estimateNumber ? `Estimate ${selectedEstimate.estimateNumber}` : "Estimate") : null)
 
-  async function removeEstimate() {
-    if (!confirmDelete) return
-    setDeleting(true)
+  async function removeEstimate(estimate: Estimate) {
     try {
-      await deleteEstimate(confirmDelete.id)
-      setEstimates((current) => current.filter((row) => row.id !== confirmDelete.id))
-      if (selectedId === confirmDelete.id) setSelectedId(null)
-      setConfirmDelete(null)
+      await deleteEstimate(estimate.id)
+      setEstimates((current) => current.filter((row) => row.id !== estimate.id))
+      if (selectedId === estimate.id) setSelectedId(null)
     } catch (deleteError) {
       console.error("Error deleting estimate:", deleteError)
       toast.error("Couldn't delete this estimate.")
-    } finally {
-      setDeleting(false)
+    }
+  }
+
+  function estimateActions(estimate: Estimate): ItemActions {
+    return {
+      noun: "estimate",
+      name: estimate.title || estimate.estimateNumber || "Untitled estimate",
+      onOpen: () => setSelectedId(estimate.id),
+      onDuplicate: adminView ? () => setDuplicateTarget(estimate) : undefined,
+      extra: adminView ? <>
+        <DropdownMenuItem onSelect={() => router.push(`/dashboard/estimates/${estimate.id}/edit`)}>Edit estimate</DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => router.push(buildEmailComposeHref(estimateEmailContext(estimate, companyRefFor(estimate.companyId))))}>Email estimate</DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => router.push(`/dashboard/invoices/new?estimateId=${encodeURIComponent(estimate.id)}`)}>Convert to invoice</DropdownMenuItem>
+      </> : undefined,
+      onDelete: adminView ? () => removeEstimate(estimate) : undefined,
+      deleteMessage: `${estimate.estimateNumber || "This estimate"} will be removed for good. This cannot be undone.`,
     }
   }
 
@@ -138,7 +147,7 @@ export default function EstimatesPage() {
           selectedTitle={selectedEstimate?.title || selectedEstimate?.estimateNumber || "Estimate"}
           headerActions={selectedEstimate && (
             <>
-              {adminView && <DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="size-8 text-muted-foreground hover:text-foreground" aria-label="Estimate actions"><MoreHorizontal className="size-4" /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onSelect={() => setDuplicateTarget(selectedEstimate)}>Duplicate</DropdownMenuItem><DropdownMenuItem onSelect={() => router.push(`/dashboard/invoices/new?estimateId=${encodeURIComponent(selectedEstimate.id)}`)}>Convert to invoice</DropdownMenuItem><DropdownMenuItem variant="destructive" onSelect={() => setConfirmDelete(selectedEstimate)}>Delete estimate</DropdownMenuItem></DropdownMenuContent></DropdownMenu>}
+              {adminView && <DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="size-8 text-muted-foreground hover:text-foreground" aria-label="Estimate actions"><MoreHorizontal className="size-4" /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><ItemActionsMenu actions={{ ...estimateActions(selectedEstimate), onOpen: undefined, extra: <DropdownMenuItem onSelect={() => router.push(`/dashboard/invoices/new?estimateId=${encodeURIComponent(selectedEstimate.id)}`)}>Convert to invoice</DropdownMenuItem> }} /></DropdownMenuContent></DropdownMenu>}
               {adminView && <Button asChild variant="ghost" size="icon" className="size-8 text-muted-foreground hover:text-foreground" aria-label="Email estimate"><Link href={buildEmailComposeHref(estimateEmailContext(selectedEstimate, companyRefFor(selectedEstimate.companyId)))}><Mail className="size-4" /></Link></Button>}
               <Button asChild variant="ghost" size="icon" className="size-8 text-muted-foreground hover:text-foreground" aria-label={adminView ? "Edit estimate" : "Open estimate"}><Link href={adminView ? `/dashboard/estimates/${selectedEstimate.id}/edit` : `/dashboard/estimates/${selectedEstimate.id}`}><ExternalLink className="size-4" /></Link></Button>
             </>
@@ -153,20 +162,12 @@ export default function EstimatesPage() {
               active={active}
               onClick={() => setSelectedId(estimate.id)}
               menuLabel={`Options for ${estimate.title || estimate.estimateNumber}`}
-              menu={<>
-                <DropdownMenuItem onSelect={() => setSelectedId(estimate.id)}>Open estimate</DropdownMenuItem>
-                {adminView && <DropdownMenuItem onSelect={() => router.push(`/dashboard/estimates/${estimate.id}/edit`)}>Edit estimate</DropdownMenuItem>}
-                {adminView && <DropdownMenuItem onSelect={() => router.push(buildEmailComposeHref(estimateEmailContext(estimate, companyRefFor(estimate.companyId))))}>Email estimate</DropdownMenuItem>}
-                {adminView && <DropdownMenuItem onSelect={() => setDuplicateTarget(estimate)}>Duplicate estimate</DropdownMenuItem>}
-                {adminView && <DropdownMenuItem onSelect={() => router.push(`/dashboard/invoices/new?estimateId=${encodeURIComponent(estimate.id)}`)}>Convert to invoice</DropdownMenuItem>}
-                {adminView && <DropdownMenuItem variant="destructive" onSelect={() => setConfirmDelete(estimate)}>Delete estimate</DropdownMenuItem>}
-              </>}
+              actions={estimateActions(estimate)}
             />
           }}
         />
       )}
 
-      <AlertDialog open={confirmDelete !== null} onOpenChange={(open) => !open && setConfirmDelete(null)}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Delete this estimate?</AlertDialogTitle><AlertDialogDescription>{confirmDelete?.estimateNumber} will be removed for good. This cannot be undone.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel><AlertDialogAction onClick={(event) => { event.preventDefault(); void removeEstimate() }} disabled={deleting}>{deleting ? "Deleting…" : "Delete"}</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
       <DuplicateDocumentDialog open={duplicateTarget !== null} onOpenChange={(open) => !open && setDuplicateTarget(null)} title={`Duplicate ${duplicateTarget?.estimateNumber ?? "estimate"}`} description="Choose which client and project the copy belongs to." defaultCompanyId={duplicateTarget?.companyId ?? ""} defaultProjectId={duplicateTarget?.projectId} submitting={duplicating} onConfirm={confirmDuplicate} />
     </main>
   )

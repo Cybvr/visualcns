@@ -10,6 +10,7 @@ import { useAuth } from "@/components/auth-provider"
 import { BrandLockup } from "@/components/brand-lockup"
 import { useCompanyPage } from "@/components/company/company-page-context"
 import { NgaiWidget } from "@/components/company/ngai-widget"
+import { ItemActionsProvider } from "@/components/dashboard/item-menu"
 import { SidebarTakeoverMenu, SidebarTakeoverProvider } from "@/components/company/sidebar-takeover"
 import { AppSwitcher } from "@/components/dashboard/app-switcher"
 import { useSubscription } from "@/components/company/company-plan"
@@ -188,6 +189,7 @@ export function CompanyProfileShell({ children }: { children: ReactNode }) {
 
   return (
     <SidebarTakeoverProvider>
+    <ItemActionsProvider>
     <div className="dashboard-body flex h-svh flex-col overflow-hidden bg-background font-sans [&_*]:font-sans">
       <SidebarProvider className="!min-h-0 flex-1">
         <Sidebar collapsible="icon" className="dashboard-sidebar bg-sidebar text-foreground group-data-[side=left]:!border-r-0 print:hidden">
@@ -274,6 +276,7 @@ export function CompanyProfileShell({ children }: { children: ReactNode }) {
         <NgaiWidget />
       </SidebarProvider>
     </div>
+    </ItemActionsProvider>
     </SidebarTakeoverProvider>
   )
 }

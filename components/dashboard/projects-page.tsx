@@ -4,22 +4,12 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
-import { DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu"
-import { Loader2 } from "lucide-react"
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { toast } from "sonner"
 import { getProjects, deleteProject, duplicateProject, getProject, isProjectArchived, projectLastActivity, projectSlug, projectStatusMeta, renameProject, setProjectArchived, type Project } from "@/lib/projects"
 import { NewProjectDialog } from "@/components/dashboard/new-project-dialog"
-import { campaignGridCardProps } from "@/components/dashboard/campaign-grid-card"
+import { campaignGridCardProps, useCampaignShare } from "@/components/dashboard/campaign-grid-card"
+import type { ItemActions } from "@/components/dashboard/item-menu"
 import { CompactListSkeleton, InitialAvatar, MOBILE_LIST_CARD, MobileListRow, CheckAvatar } from "@/components/dashboard/compact-list-row"
 import { GridCardsSkeleton, MobileCardsSkeleton } from "@/components/dashboard/collection-skeletons"
 import { MobileDataCard } from "@/components/dashboard/mobile-data-card"
@@ -30,8 +20,6 @@ import { TableFilterBar } from "@/components/dashboard/table-filter-bar"
 import { useFilterBar, type SortOption } from "@/components/dashboard/filter-bar"
 import { TableBulkBar } from "@/components/dashboard/table-bulk-bar"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
 import { useRowSelection } from "@/hooks/use-row-selection"
 import { cn } from "@/lib/utils"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -62,12 +50,7 @@ export default function ProjectsAdminPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [view, setView] = useViewMode("projects", "grid")
-  const [deleting, setDeleting] = useState<string | null>(null)
   const [bulkDeleting, setBulkDeleting] = useState(false)
-  const [pendingDelete, setPendingDelete] = useState<Project | null>(null)
-  const [renaming, setRenaming] = useState<Project | null>(null)
-  const [renameTitle, setRenameTitle] = useState("")
-  const [renameBusy, setRenameBusy] = useState(false)
   const [duplicateBusy, setDuplicateBusy] = useState(false)
   const [creating, setCreating] = useState(false)
   const [campaignTab, setCampaignTab] = useState<"active" | "archive">("active")
@@ -103,32 +86,23 @@ export default function ProjectsAdminPage() {
   }, [])
 
   async function handleDelete(project: Project) {
-    setDeleting(project.id)
     try {
       await deleteProject(project.id)
       setProjects((prev) => prev.filter((p) => p.id !== project.id))
-      setPendingDelete(null)
     } catch (err) {
       console.error("Error deleting project:", err)
-    } finally {
-      setDeleting(null)
     }
   }
 
-  async function handleRename() {
-    const title = renameTitle.trim()
-    if (!renaming || !title || title === renaming.title || renameBusy) return
-    setRenameBusy(true)
+  async function handleRename(project: Project, title: string) {
+    if (title === project.title) return
     try {
-      await renameProject(renaming.id, title)
-      setProjects((current) => current.map((project) => project.id === renaming.id ? { ...project, title } : project))
-      setRenaming(null)
+      await renameProject(project.id, title)
+      setProjects((current) => current.map((item) => item.id === project.id ? { ...item, title } : item))
       toast.success("Campaign renamed")
     } catch (error) {
       console.error("Error renaming campaign:", error)
       toast.error("The campaign could not be renamed.")
-    } finally {
-      setRenameBusy(false)
     }
   }
 
@@ -167,12 +141,26 @@ export default function ProjectsAdminPage() {
       await Promise.all(ids.map((id) => deleteProject(id)))
       const removed = new Set(ids)
       setProjects((prev) => prev.filter((p) => !removed.has(p.id)))
-      if (pendingDelete && removed.has(pendingDelete.id)) setPendingDelete(null)
       selection.clear()
     } catch (err) {
       console.error("Error deleting projects:", err)
     } finally {
       setBulkDeleting(false)
+    }
+  }
+
+  // One campaign's menu, shared by every view. Select sits with the page's own actions.
+  const share = useCampaignShare()
+
+  function campaignActions(p: Project): Omit<ItemActions, "noun" | "name" | "onOpen"> {
+    return {
+      onRename: (title) => handleRename(p, title),
+      onDuplicate: () => handleDuplicate(p),
+      onArchive: isCampaignActive(p) ? () => handleArchive(p, true) : undefined,
+      onRestore: !isCampaignActive(p) ? () => handleArchive(p, false) : undefined,
+      extra: <>{share.shareItem(p)}<DropdownMenuItem onSelect={() => selection.toggle(p.id)}>{selection.isSelected(p.id) ? "Deselect" : "Select"}</DropdownMenuItem></>,
+      onDelete: () => handleDelete(p),
+      deleteMessage: `This permanently deletes "${p.title}". Tasks under it are not deleted automatically. This cannot be undone.`,
     }
   }
 
@@ -222,12 +210,10 @@ export default function ProjectsAdminPage() {
                     {...campaignGridCardProps(p, {
                       href: `/dashboard/projects/${projectSlug(p)}`,
                       onOpen: () => router.push(`/dashboard/projects/${projectSlug(p)}`),
-                      onRenameRequest: () => { setRenameTitle(p.title); setRenaming(p) },
-                      onDuplicate: () => void handleDuplicate(p),
                       archived: !isCampaignActive(p),
-                      onArchive: isCampaignActive(p) ? () => void handleArchive(p, true) : undefined,
-                      onRestore: !isCampaignActive(p) ? () => void handleArchive(p, false) : undefined,
-                      onDeleteRequest: () => setPendingDelete(p),
+                      ...campaignActions(p),
+                      // The grid has no bulk bar, so it gets Share but not Select.
+                      extra: share.shareItem(p),
                     })}
                   />
                 )
@@ -267,18 +253,7 @@ export default function ProjectsAdminPage() {
                           onAvatarClick={selecting ? () => selection.toggle(p.id) : undefined}
                           avatarPressed={selecting ? checked : undefined}
                           avatarLabel={selecting ? `${checked ? "Deselect" : "Select"} ${p.title}` : `Options for ${p.title}`}
-                          avatarMenu={selecting ? undefined : (
-                            <>
-                              <DropdownMenuItem onSelect={() => { setRenameTitle(p.title); setRenaming(p) }}>Rename</DropdownMenuItem>
-                              <DropdownMenuItem onSelect={() => void handleDuplicate(p)}>Duplicate</DropdownMenuItem>
-                              {!isCampaignActive(p)
-                                ? <DropdownMenuItem onSelect={() => void handleArchive(p, false)}>Restore</DropdownMenuItem>
-                                : <DropdownMenuItem onSelect={() => void handleArchive(p, true)}>Archive</DropdownMenuItem>}
-                              <DropdownMenuItem onSelect={() => selection.toggle(p.id)}>Select</DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem variant="destructive" onSelect={() => setPendingDelete(p)}>Delete</DropdownMenuItem>
-                            </>
-                          )}
+                          avatarActions={selecting ? undefined : { noun: "campaign", name: p.title, ...campaignActions(p) }}
                           title={p.title}
                           meta={<span className={cn("rounded-full px-1.5 py-px text-[10px] font-medium", meta.className)}>{meta.label}</span>}
                           lines={[
@@ -316,16 +291,7 @@ export default function ProjectsAdminPage() {
                     onClick={(event) => selection.selectedCount > 0 ? selection.toggle(p.id, event.shiftKey) : router.push(href)}
                     ariaLabel={`Open ${p.title}`}
                     menuLabel={`Options for ${p.title}`}
-                    menu={<>
-                      <DropdownMenuItem onSelect={() => { setRenameTitle(p.title); setRenaming(p) }}>Rename</DropdownMenuItem>
-                      <DropdownMenuItem onSelect={() => void handleDuplicate(p)}>Duplicate</DropdownMenuItem>
-                      {!isCampaignActive(p)
-                        ? <DropdownMenuItem onSelect={() => void handleArchive(p, false)}>Restore</DropdownMenuItem>
-                        : <DropdownMenuItem onSelect={() => void handleArchive(p, true)}>Archive</DropdownMenuItem>}
-                      <DropdownMenuItem onSelect={() => selection.toggle(p.id)}>{selected ? "Deselect" : "Select"}</DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem variant="destructive" onSelect={() => setPendingDelete(p)}>Delete</DropdownMenuItem>
-                    </>}
+                    actions={{ noun: "campaign", name: p.title, ...campaignActions(p) }}
                   />
                 })}
               </div>
@@ -334,45 +300,8 @@ export default function ProjectsAdminPage() {
         </>
       )}
 
-      <AlertDialog open={Boolean(pendingDelete)} onOpenChange={(open) => !open && !deleting && setPendingDelete(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete campaign?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This permanently deletes &quot;{pendingDelete?.title}&quot;. Tasks under it are not deleted
-              automatically. This cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleting !== null}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              disabled={deleting !== null}
-              onClick={() => pendingDelete && void handleDelete(pendingDelete)}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Delete"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <Dialog open={renaming !== null} onOpenChange={(open) => { if (!open && !renameBusy) setRenaming(null) }}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Rename campaign</DialogTitle>
-            <DialogDescription>Choose a new name for this campaign.</DialogDescription>
-          </DialogHeader>
-          <Input value={renameTitle} onChange={(event) => setRenameTitle(event.target.value)} maxLength={120} aria-label="Campaign name" autoFocus />
-          <DialogFooter>
-            <Button type="button" variant="ghost" onClick={() => setRenaming(null)} disabled={renameBusy}>Cancel</Button>
-            <Button type="button" onClick={() => void handleRename()} disabled={renameBusy || !renameTitle.trim() || renameTitle.trim() === renaming?.title}>
-              {renameBusy ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : "Save"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
       <NewProjectDialog open={creating} onOpenChange={setCreating} entityLabel="campaign" />
+      {share.dialog}
     </main>
   )
 }

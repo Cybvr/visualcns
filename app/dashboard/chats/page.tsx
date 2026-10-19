@@ -4,7 +4,6 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 
 import { useAgent, type AgentConversation } from "@/components/agent/agent-context"
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
 import { MobileCardsSkeleton } from "@/components/dashboard/collection-skeletons"
 import { CompactListSkeleton, InitialAvatar, MOBILE_LIST_CARD, MobileListRow, CheckAvatar } from "@/components/dashboard/compact-list-row"
@@ -15,7 +14,8 @@ import { useFilterBar, type SortOption } from "@/components/dashboard/filter-bar
 import { TableBulkBar } from "@/components/dashboard/table-bulk-bar"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useRowSelection } from "@/hooks/use-row-selection"
-import { DropdownMenuCheckboxItem, DropdownMenuItem } from "@/components/ui/dropdown-menu"
+import { DropdownMenuCheckboxItem } from "@/components/ui/dropdown-menu"
+import type { ItemActions } from "@/components/dashboard/item-menu"
 
 const CHAT_SORTS: SortOption<AgentConversation>[] = [
   { value: "updatedAt", label: "Last modified", get: (chat) => chat.updatedAt, ascLabel: "Oldest", descLabel: "Newest" },
@@ -45,7 +45,6 @@ export default function AllChatsPage() {
   const router = useRouter()
   const [bulkDeleting, setBulkDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState<string | null>(null)
-  const [pendingDelete, setPendingDelete] = useState<AgentConversation | null>(null)
   const { conversations, conversationsLoading, activeConversationId, selectConversation, reset, deleteConversations } = useAgent()
   const { results: visibleChats, bar } = useFilterBar({
     items: conversations,
@@ -71,7 +70,6 @@ export default function AllChatsPage() {
   }
 
   async function deleteChat(chat: AgentConversation) {
-    setPendingDelete(null)
     setDeleteError(null)
     try {
       await deleteConversations([chat.id])
@@ -83,6 +81,16 @@ export default function AllChatsPage() {
   function openChat(chat: AgentConversation) {
     selectConversation(chat.id)
     router.push(`/dashboard/agent/${encodeURIComponent(chat.id)}`)
+  }
+
+  function chatActions(chat: AgentConversation): ItemActions {
+    return {
+      noun: "chat",
+      name: chat.title || "Untitled chat",
+      onOpen: () => openChat(chat),
+      extra: <DropdownMenuCheckboxItem checked={selection.isSelected(chat.id)} onCheckedChange={() => selection.toggle(chat.id)}>Select chat</DropdownMenuCheckboxItem>,
+      onDelete: () => deleteChat(chat),
+    }
   }
 
   function startChat() {
@@ -144,15 +152,7 @@ export default function AllChatsPage() {
                       avatar={selected ? (
                         <CheckAvatar />
                       ) : <InitialAvatar text={title} />}
-                      avatarMenu={
-                        <>
-                          <DropdownMenuItem onSelect={() => openChat(chat)}>Open chat</DropdownMenuItem>
-                          <DropdownMenuCheckboxItem checked={selected} onCheckedChange={() => selection.toggle(chat.id)}>
-                            Select chat
-                          </DropdownMenuCheckboxItem>
-                          <DropdownMenuItem variant="destructive" onSelect={() => setPendingDelete(chat)}>Delete chat</DropdownMenuItem>
-                        </>
-                      }
+                      avatarActions={chatActions(chat)}
                       avatarLabel={`Options for ${title}`}
                       title={title}
                       meta={formatShortDate(chat.updatedAt)}
@@ -189,29 +189,12 @@ export default function AllChatsPage() {
                 onClick={(event) => selection.selectedCount > 0 ? selection.toggle(chat.id, event.shiftKey) : openChat(chat)}
                 ariaLabel={`${selected ? "Selected. " : ""}Open ${title}`}
                 menuLabel={`Options for ${title}`}
-                menu={<>
-                  <DropdownMenuItem onSelect={() => openChat(chat)}>Open chat</DropdownMenuItem>
-                  <DropdownMenuCheckboxItem checked={selected} onCheckedChange={() => selection.toggle(chat.id)}>Select chat</DropdownMenuCheckboxItem>
-                  <DropdownMenuItem variant="destructive" onSelect={() => setPendingDelete(chat)}>Delete chat</DropdownMenuItem>
-                </>}
+                actions={chatActions(chat)}
               />
             })}
           </div>
         </>
       )}
-
-      <AlertDialog open={pendingDelete !== null} onOpenChange={(open) => !open && setPendingDelete(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete this chat?</AlertDialogTitle>
-            <AlertDialogDescription>{pendingDelete?.title || "This chat"} will be removed for good.</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={() => pendingDelete && void deleteChat(pendingDelete)}>Delete</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </main>
   )
 }

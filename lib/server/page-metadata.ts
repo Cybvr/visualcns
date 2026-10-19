@@ -175,3 +175,31 @@ export async function publicProjectsMetadata(
   }
   return fallback()
 }
+
+/** The creators' campaign page (/share/campaigns/…): the campaign's name, its angle and its cover. */
+export async function sharedCampaignMetadata(id: string): Promise<Metadata> {
+  const path = `/share/campaigns/${encodeURIComponent(id)}`
+  const fallback: Metadata = { title: fullTitle("Campaign"), robots: { index: false, follow: false } }
+  if (!isRecordId(id)) return fallback
+  try {
+    const { db } = adminServices()
+    const campaign = (await db.collection("projects").doc(id).get()).data()
+    const campaignTitle = typeof campaign?.title === "string" ? campaign.title.trim() : ""
+    if (!campaign || !campaignTitle || campaign.isArchived === true) return fallback
+    const organization = typeof campaign.companyId === "string" && campaign.companyId
+      ? (await db.collection("organizations").doc(campaign.companyId).get()).data()
+      : undefined
+    const clientName = typeof organization?.name === "string" && organization.name.trim() ? organization.name.trim() : typeof campaign.client === "string" ? campaign.client.trim() : ""
+    const title = clientName ? `${campaignTitle} · ${clientName}` : campaignTitle
+    const description = previewText(campaign.angle) || previewText(campaign.about) || `See the ${campaignTitle} campaign and the posts to share.`
+    const picture = [campaign.campaignImageUrl, campaign.thumbnailUrl, campaign.gallery?.[0]].find((value): value is string => typeof value === "string" && Boolean(value))
+    return {
+      title: fullTitle(title),
+      alternates: { canonical: path },
+      ...socialMetadata(title, description, path, picture || organization?.logoUrl, Boolean(picture)),
+      robots: { index: false, follow: false },
+    }
+  } catch {
+    return fallback
+  }
+}

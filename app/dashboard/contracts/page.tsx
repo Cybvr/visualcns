@@ -2,8 +2,7 @@
 
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { useCallback, useEffect, useMemo, useState } from "react"
-import { Loader2 } from "lucide-react"
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react"
 import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
@@ -13,16 +12,7 @@ import { EmptySearchState, FirstRunState } from "@/components/dashboard/empty-st
 import { CompactListSkeleton, InitialAvatar, MOBILE_LIST_CARD, MobileListRow } from "@/components/dashboard/compact-list-row"
 import { MobileDataCard } from "@/components/dashboard/mobile-data-card"
 import { UserEditorSheet } from "@/components/dashboard/user-editor-sheet"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
+import { type ItemActions } from "@/components/dashboard/item-menu"
 import { Button } from "@/components/ui/button"
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import {
@@ -76,9 +66,7 @@ export default function ContractsPage() {
   const [contracts, setContracts] = useState<Contract[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
-  const [confirmDelete, setConfirmDelete] = useState<Contract | null>(null)
   const [clientSheet, setClientSheet] = useState<string | null>(null)
-  const [deleting, setDeleting] = useState(false)
   const [bulkDeleting, setBulkDeleting] = useState(false)
   const [duplicateTarget, setDuplicateTarget] = useState<Contract | null>(null)
   const [duplicating, setDuplicating] = useState(false)
@@ -125,17 +113,24 @@ export default function ContractsPage() {
     }
   }
 
-  async function removeContract() {
-    if (!confirmDelete) return
-    setDeleting(true)
+  async function removeContract(contract: Contract) {
     try {
-      await deleteContract(confirmDelete.id)
-      setContracts((current) => current.filter((row) => row.id !== confirmDelete.id))
-      setConfirmDelete(null)
+      await deleteContract(contract.id)
+      setContracts((current) => current.filter((row) => row.id !== contract.id))
     } catch (err) {
       console.error("Error deleting contract:", err)
-    } finally {
-      setDeleting(false)
+    }
+  }
+
+  function contractActions(contract: Contract, extra: ReactNode): ItemActions {
+    return {
+      noun: "contract",
+      name: contract.title,
+      onOpen: () => router.push(`/dashboard/contracts/${contract.id}`),
+      onDuplicate: adminView ? () => setDuplicateTarget(contract) : undefined,
+      extra,
+      onDelete: adminView ? () => removeContract(contract) : undefined,
+      deleteMessage: `${contract.title || "This contract"} will be removed for good. This cannot be undone.`,
     }
   }
 
@@ -162,7 +157,6 @@ export default function ContractsPage() {
       await Promise.all(ids.map((id) => deleteContract(id)))
       const removed = new Set(ids)
       setContracts((current) => current.filter((row) => !removed.has(row.id)))
-      if (confirmDelete && removed.has(confirmDelete.id)) setConfirmDelete(null)
       selection.clear()
     } catch (err) {
       console.error("Error deleting contracts:", err)
@@ -247,21 +241,12 @@ export default function ContractsPage() {
                             [adminView ? contract.client : "", contract.project].filter(Boolean).join(" · ") || undefined,
                             contract.endsOn ? `Ends ${formatDate(contract.endsOn)}` : `Modified ${formatTimestamp(contract.updatedAt ?? contract.createdAt)}`,
                           ]}
-                          avatarMenu={
-                            <>
-                              <DropdownMenuItem onSelect={() => router.push(`/dashboard/contracts/${contract.id}`)}>View contract</DropdownMenuItem>
-                              {contract.url && (
-                                <DropdownMenuItem onSelect={() => window.open(contract.url, "_blank", "noopener,noreferrer")}>Open source link</DropdownMenuItem>
-                              )}
-                              {adminView && (
-                                <>
-                                  <DropdownMenuItem onSelect={() => router.push(`/dashboard/contracts/${contract.id}/edit`)}>Edit contract</DropdownMenuItem>
-                                  <DropdownMenuItem onSelect={() => setDuplicateTarget(contract)}>Duplicate</DropdownMenuItem>
-                                  <DropdownMenuItem variant="destructive" onSelect={() => setConfirmDelete(contract)}>Delete contract</DropdownMenuItem>
-                                </>
-                              )}
-                            </>
-                          }
+                          avatarActions={contractActions(contract, <>
+                            {contract.url && (
+                              <DropdownMenuItem onSelect={() => window.open(contract.url, "_blank", "noopener,noreferrer")}>Open source link</DropdownMenuItem>
+                            )}
+                            {adminView && <DropdownMenuItem onSelect={() => router.push(`/dashboard/contracts/${contract.id}/edit`)}>Edit contract</DropdownMenuItem>}
+                          </>)}
                         />
                       </li>
                     )
@@ -292,18 +277,15 @@ export default function ContractsPage() {
                       onClick={(event) => adminView && selection.selectedCount > 0 ? selection.toggle(contract.id, event.shiftKey) : router.push(href)}
                       ariaLabel={`Open contract ${contract.title}`}
                       menuLabel={`Options for ${contract.title}`}
-                      menu={<>
-                        <DropdownMenuItem onSelect={() => router.push(`/dashboard/contracts/${contract.id}`)}>View contract</DropdownMenuItem>
+                      actions={contractActions(contract, <>
                         {contract.url && <DropdownMenuItem onSelect={() => window.open(contract.url, "_blank", "noopener,noreferrer")}>Open source link</DropdownMenuItem>}
                         {contract.projectId && <DropdownMenuItem onSelect={() => router.push(`/dashboard/projects/${contract.projectId}`)}>View project</DropdownMenuItem>}
                         {adminView && <>
                           {contract.companyId && <DropdownMenuItem onSelect={() => setClientSheet(contract.companyId)}>View client</DropdownMenuItem>}
                           <DropdownMenuItem onSelect={() => router.push(`/dashboard/contracts/${contract.id}/edit`)}>Edit contract</DropdownMenuItem>
                           <DropdownMenuItem onSelect={() => selection.toggle(contract.id)}>{selected ? "Deselect" : "Select"}</DropdownMenuItem>
-                          <DropdownMenuItem onSelect={() => setDuplicateTarget(contract)}>Duplicate</DropdownMenuItem>
-                          <DropdownMenuItem variant="destructive" onSelect={() => setConfirmDelete(contract)}>Delete contract</DropdownMenuItem>
                         </>}
-                      </>}
+                      </>)}
                     />
                   })}
                 </div>
@@ -314,43 +296,16 @@ export default function ContractsPage() {
       )}
 
       {adminView && (
-        <>
-
-          <AlertDialog open={confirmDelete !== null} onOpenChange={(open) => !open && setConfirmDelete(null)}>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Delete this contract?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  {confirmDelete?.title} will be removed for good. This cannot be undone.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={(event) => {
-                    event.preventDefault()
-                    removeContract()
-                  }}
-                  disabled={deleting}
-                >
-                  {deleting && <Loader2 className="mr-2 size-4 animate-spin" />}
-                  Delete
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-
-          <DuplicateDocumentDialog
-            open={duplicateTarget !== null}
-            onOpenChange={(open) => !open && setDuplicateTarget(null)}
-            title={`Duplicate ${duplicateTarget?.title ?? "contract"}`}
-            description="Choose which client and project the copy belongs to."
-            defaultCompanyId={duplicateTarget?.companyId ?? ""}
-            defaultProjectId={duplicateTarget?.projectId}
-            submitting={duplicating}
-            onConfirm={confirmDuplicateContract}
-          />
-        </>
+        <DuplicateDocumentDialog
+          open={duplicateTarget !== null}
+          onOpenChange={(open) => !open && setDuplicateTarget(null)}
+          title={`Duplicate ${duplicateTarget?.title ?? "contract"}`}
+          description="Choose which client and project the copy belongs to."
+          defaultCompanyId={duplicateTarget?.companyId ?? ""}
+          defaultProjectId={duplicateTarget?.projectId}
+          submitting={duplicating}
+          onConfirm={confirmDuplicateContract}
+        />
       )}
 
       {adminView && (

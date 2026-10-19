@@ -2,7 +2,7 @@
 
 import { CheckAvatar, MobileListRow, shortListDate } from "@/components/dashboard/compact-list-row"
 import { MobileDataCard } from "@/components/dashboard/mobile-data-card"
-import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
+import { DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
 
 export type EmailListRowProps = {
@@ -94,10 +94,16 @@ export function EmailListRow({
         onClick={() => selectionMode && onCheckedChange ? onCheckedChange(!checked) : onOpen()}
         ariaLabel={unread ? `Unread. ${ariaLabel}` : ariaLabel}
         menuLabel={`Options for ${subject || title}`}
-        menu={canSelect || onDelete ? <>
-          {canSelect && <DropdownMenuItem onSelect={() => onCheckedChange?.(!checked)}>{checked ? "Deselect" : "Select"}</DropdownMenuItem>}
-          {onDelete && <DropdownMenuItem variant="destructive" onSelect={onDelete} aria-label={deleteLabel}>{deleteText}</DropdownMenuItem>}
-        </> : undefined}
+        // Delete stays in extra: callers either confirm it themselves (the bin) or it only moves the item to the bin.
+        actions={{
+          noun: "email",
+          name: subject || title,
+          extra: canSelect || onDelete ? <>
+            {canSelect && <DropdownMenuItem onSelect={() => onCheckedChange?.(!checked)}>{checked ? "Deselect" : "Select"}</DropdownMenuItem>}
+            {canSelect && onDelete && <DropdownMenuSeparator />}
+            {onDelete && <DropdownMenuItem variant="destructive" onSelect={onDelete} aria-label={deleteLabel}>{deleteText}</DropdownMenuItem>}
+          </> : undefined,
+        }}
       />
     </div>
     </>

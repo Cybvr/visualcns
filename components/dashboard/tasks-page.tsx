@@ -268,14 +268,15 @@ export default function TasksAdminPage() {
                           active={selectedId === t.id}
                           ariaLabel={`Open ${t.name || "task"}`}
                           menuLabel={`Options for ${t.name || "task"}`}
-                          menu={
-                            <>
-                              <DropdownMenuItem onSelect={() => emailTask(t)}>Email task</DropdownMenuItem>
-                              <DropdownMenuItem onSelect={() => setSelectedId(t.id)}>Edit task</DropdownMenuItem>
-                              <DropdownMenuItem disabled={duplicatingId !== null} onSelect={() => void handleDuplicate(t)}>Duplicate task</DropdownMenuItem>
-                              <DropdownMenuItem onSelect={() => setDeleteId(t.id)}>Delete task</DropdownMenuItem>
-                            </>
-                          }
+                          actions={{
+                            noun: "task",
+                            name: t.name || "Untitled task",
+                            onOpen: () => setSelectedId(t.id),
+                            onDuplicate: () => handleDuplicate(t),
+                            extra: <DropdownMenuItem onSelect={() => emailTask(t)}>Email task</DropdownMenuItem>,
+                            onDelete: () => handleDelete(t.id),
+                            deleteMessage: `This permanently deletes "${t.name || "this task"}". This cannot be undone.`,
+                          }}
                         />
                       </li>
                     ))}

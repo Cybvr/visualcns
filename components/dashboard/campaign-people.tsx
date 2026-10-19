@@ -8,22 +8,13 @@ import { toast } from "sonner"
 
 import { SectionAddButton } from "@/components/company/section-add-button"
 import { CollectionView } from "@/components/dashboard/collection-view"
+import { hasItemActions, ItemActionsMenu, type ItemActions } from "@/components/dashboard/item-menu"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import {
   addCampaignPeople,
   compactCount,
@@ -69,7 +60,6 @@ const fieldClass = "h-9 w-full min-w-0 rounded-md border border-input bg-transpa
 export function CampaignPeople({ people, agencyId, companyId, projectId, canEdit, canReview = false, startNew = false, onActionHandled }: CampaignPeopleProps) {
   const [openId, setOpenId] = useState<string | null>(null)
   const [adding, setAdding] = useState(false)
-  const [deleting, setDeleting] = useState<CampaignPerson | null>(null)
   const open = people.find((person) => person.id === openId) ?? null
   // Added creators first, then suggestions, each by best match.
   const sorted = [...people].sort((a, b) => Number(onRoster(b)) - Number(onRoster(a)) || (b.overlap ?? 0) - (a.overlap ?? 0))
@@ -90,7 +80,6 @@ export function CampaignPeople({ people, agencyId, companyId, projectId, canEdit
   }
 
   async function removeCreator(person: CampaignPerson) {
-    setDeleting(null)
     try {
       await deleteCampaignPerson(person.id)
     } catch (error) {
@@ -103,24 +92,22 @@ export function CampaignPeople({ people, agencyId, companyId, projectId, canEdit
     return person.source === "ngai" && !person.pay ? "Pay unknown" : person.pay ? formatPay(person.pay, payCurrency(person)) : "Free"
   }
 
-  function menuFor(person: CampaignPerson) {
+  function actionsFor(person: CampaignPerson): ItemActions {
     const href = profileUrl(person)
     const canAdd = !onRoster(person) && (canEdit || canReview)
-    if (!href && !canAdd && !canEdit) return undefined
-    return (
-      <>
-        {/* The shared order: Open first, the tab's own actions, then Delete last. */}
-        {href && <DropdownMenuItem onSelect={() => window.open(href, "_blank", "noopener,noreferrer")}>Open profile</DropdownMenuItem>}
-        {canEdit && <DropdownMenuItem onSelect={() => setOpenId(person.id)}>Edit</DropdownMenuItem>}
-        {canAdd && <DropdownMenuItem onSelect={() => void addToRoster(person)}>Add to campaign</DropdownMenuItem>}
-        {canEdit && (
-          <>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem variant="destructive" onSelect={() => setDeleting(person)}>Delete</DropdownMenuItem>
-          </>
-        )}
-      </>
-    )
+    return {
+      noun: "creator",
+      name: person.handle,
+      onOpen: href ? () => window.open(href, "_blank", "noopener,noreferrer") : undefined,
+      extra: (canEdit || canAdd) && (
+        <>
+          {canEdit && <DropdownMenuItem onSelect={() => setOpenId(person.id)}>Edit</DropdownMenuItem>}
+          {canAdd && <DropdownMenuItem onSelect={() => void addToRoster(person)}>Add to campaign</DropdownMenuItem>}
+        </>
+      ),
+      onDelete: canEdit ? () => removeCreator(person) : undefined,
+      deleteMessage: "They'll be removed from this campaign.",
+    }
   }
 
   function openPerson(person: CampaignPerson) {
@@ -171,9 +158,9 @@ export function CampaignPeople({ people, agencyId, companyId, projectId, canEdit
             onClick: canEdit || profileUrl(person) ? () => openPerson(person) : undefined,
             ariaLabel: canEdit ? `Edit ${person.handle}` : `Open ${person.handle}`,
             menuLabel: `Options for ${person.handle}`,
-            menu: menuFor(person),
           }
         }}
+        itemActions={actionsFor}
         row={(person) => {
           const status = onRoster(person) ? person.status : "Suggested"
           return {
@@ -196,25 +183,13 @@ export function CampaignPeople({ people, agencyId, companyId, projectId, canEdit
               pay={payLabel(person)}
               onOpen={() => openPerson(person)}
               profileHref={profileUrl(person)}
-              menu={menuFor(person)}
+              actions={actionsFor(person)}
             />
           )
         }}
       />
 
       {canEdit && <CreatorDialog person={open} onClose={() => setOpenId(null)} />}
-      <AlertDialog open={Boolean(deleting)} onOpenChange={(next) => { if (!next) setDeleting(null) }}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete {deleting?.handle}?</AlertDialogTitle>
-            <AlertDialogDescription>They'll be removed from this campaign.</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => { if (deleting) void removeCreator(deleting) }}>Delete</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   )
 }
@@ -236,14 +211,14 @@ function CreatorListRow({
   pay,
   onOpen,
   profileHref,
-  menu,
+  actions,
 }: {
   person: CampaignPerson
   status: string
   pay: string
   onOpen: () => void
   profileHref?: string
-  menu?: ReactNode
+  actions?: ItemActions
 }) {
   const meta = [person.category, person.followers ? `${compactCount(person.followers)} followers` : undefined].filter(Boolean).join(" · ")
   const isSuggested = status === "Suggested"
@@ -268,14 +243,14 @@ function CreatorListRow({
         <Badge variant="secondary" className={cn("rounded-full px-2.5 py-1 text-xs", isSuggested ? "bg-amber-500/15 text-amber-700" : "bg-emerald-500/15 text-emerald-700")}>{status}</Badge>
         <span className="whitespace-nowrap text-xs text-muted-foreground sm:text-sm">{pay}</span>
       </div>
-      {menu && (
+      {hasItemActions(actions) && (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button type="button" variant="ghost" size="icon" className="size-8 shrink-0" aria-label={`Options for ${person.handle}`}>
               <MoreVertical className="size-4" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">{menu}</DropdownMenuContent>
+          <DropdownMenuContent align="end"><ItemActionsMenu actions={actions} /></DropdownMenuContent>
         </DropdownMenu>
       )}
     </div>

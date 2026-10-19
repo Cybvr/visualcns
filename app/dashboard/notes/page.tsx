@@ -339,11 +339,13 @@ export default function NotesPage() {
                         active={active}
                         onClick={() => void open(note)}
                         menuLabel={`Options for ${noteTitle(shown)}`}
-                        menu={<>
-                          <DropdownMenuItem onSelect={() => void open(note)}>Open note</DropdownMenuItem>
-                          <DropdownMenuItem onSelect={() => openShare(note.id)}>Share note</DropdownMenuItem>
-                          <DropdownMenuItem variant="destructive" onSelect={() => setPendingDelete({ id: note.id, title: noteTitle(note) })}>Delete note</DropdownMenuItem>
-                        </>}
+                        actions={{
+                          noun: "note",
+                          name: noteTitle(shown),
+                          onOpen: () => void open(note),
+                          extra: <DropdownMenuItem onSelect={() => openShare(note.id)}>Share note</DropdownMenuItem>,
+                          onDelete: () => removeFromList(note.id),
+                        }}
                       />
                     </li>
                   )
