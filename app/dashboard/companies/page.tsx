@@ -152,7 +152,7 @@ export default function CompaniesPage() {
     () => [
       { value: "name", label: "Name", get: (row) => row.name, ascLabel: "A–Z", descLabel: "Z–A" },
       { value: "category", label: "Category", get: (row) => row.label, ascLabel: "A–Z", descLabel: "Z–A" },
-      { value: "projects", label: "Projects", get: (row) => row.projectCount, ascLabel: "Fewest", descLabel: "Most" },
+      { value: "projects", label: "Campaigns", get: (row) => row.projectCount, ascLabel: "Fewest", descLabel: "Most" },
       { value: "createdAt", label: "Date added", get: (row) => tsToMillis(row.createdAt), ascLabel: "Oldest", descLabel: "Newest" },
       { value: "updatedAt", label: "Last modified", get: (row) => Math.max(tsToMillis(row.updatedAt), tsToMillis(row.createdAt)), ascLabel: "Oldest", descLabel: "Newest" },
     ],

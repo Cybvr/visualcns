@@ -76,7 +76,7 @@ export function useDashboardSearch() {
           ...current,
           ...projects.map((project) => ({
             id: `project-${project.id}`,
-            group: "Projects",
+            group: "Campaigns",
             label: project.title,
             sublabel: join(project.client, project.service) || undefined,
             href: `/dashboard/projects/${projectSlug(project)}`,

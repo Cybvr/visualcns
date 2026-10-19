@@ -79,7 +79,7 @@ export default function DashboardPage() {
         <>
           <Tabs defaultValue="projects" className="mt-0 gap-1">
             <TabsList className="h-8 p-0.5">
-              <TabsTrigger value="projects" className="px-3 py-0">Projects</TabsTrigger>
+              <TabsTrigger value="projects" className="px-3 py-0">Campaigns</TabsTrigger>
               <TabsTrigger value="activity" className="px-3 py-0">Activity</TabsTrigger>
             </TabsList>
             <TabsContent value="projects" className="mt-0">

@@ -16,7 +16,7 @@ const DASHBOARD_SECTION_TITLES: Record<string, string> = {
   media: "Media",
   notes: "Notes",
   overview: "Overview",
-  projects: "Projects",
+  projects: "Campaigns",
   schedules: "Schedules",
   seo: "SEO",
   settings: "Settings",
@@ -110,7 +110,7 @@ export function dashboardPageTitle(pathname: string, searchParams?: SearchParams
   if (section === "documents") return recordSection("Documents", "Document", record, action)
   if (section === "estimates") return recordSection("Estimates", "Estimate", record, action)
   if (section === "invoices") return recordSection("Invoices", "Invoice", record, action)
-  if (section === "projects") return record ? "Project" : "Projects"
+  if (section === "projects") return record ? "Campaign" : "Campaigns"
   if (section === "tasks") return record ? "Task" : "Tasks"
   return DASHBOARD_SECTION_TITLES[section] || "Dashboard"
 }

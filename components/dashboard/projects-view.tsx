@@ -86,7 +86,7 @@ export function ProjectsView({
     <section id="projects" className={cn(hideHeader ? "mt-0" : "mt-4", "scroll-mt-20")}>
       {!hideHeader && (
         <div className="flex items-center gap-2">
-          <h2 className="text-xs font-medium text-muted-foreground">Projects</h2>
+          <h2 className="text-xs font-medium text-muted-foreground">Campaigns</h2>
           {!loading && <span className="text-xs font-medium text-muted-foreground">{projects.length}</span>}
         </div>
       )}
