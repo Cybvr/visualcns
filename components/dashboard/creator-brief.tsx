@@ -207,9 +207,21 @@ const PLATFORM_HOSTS: Record<string, string[]> = {
   youtube: ["youtube.com", "youtu.be"],
 }
 
-/** The brand's account on a platform, from its saved links: the URL and the @handle. */
-function brandAccount(platform: string, links: { url: string }[]) {
-  for (const link of links) {
+const PROFILE_URLS: Record<string, (username: string) => string> = {
+  instagram: (username) => `https://www.instagram.com/${username}`,
+  facebook: (username) => `https://www.facebook.com/${username}`,
+  tiktok: (username) => `https://www.tiktok.com/@${username}`,
+  youtube: (username) => `https://www.youtube.com/@${username}`,
+}
+
+/** The brand's account on a platform: a connected account first, then a saved link. */
+function brandAccount(platform: string, brand?: CreatorBriefBrand) {
+  const connected = brand?.accounts?.find((account) => account.platform.toLowerCase() === platform && account.username)
+  if (connected) {
+    const username = connected.username.replace(/^@/, "")
+    return { url: PROFILE_URLS[platform]?.(username) ?? "", handle: `@${username}` }
+  }
+  for (const link of brand?.links ?? []) {
     try {
       const url = new URL(/^https?:\/\//i.test(link.url) ? link.url : `https://${link.url}`)
       const host = url.hostname.replace(/^www\./, "")
@@ -227,11 +239,18 @@ function websiteHref(website: string) {
   return /^https?:\/\//i.test(website) ? website : `https://${website}`
 }
 
+type CreatorBriefBrand = {
+  /** Connected in the client's settings. */
+  accounts?: { platform: string; username: string }[]
+  links?: { url: string }[]
+  website?: string
+}
+
 /** What creators and the client see: the brief as plain facts. */
 export function CreatorBriefSummary({ brief, brand }: {
   brief: CreatorBrief
-  /** The client's links and website, so creators can find the brand's accounts. */
-  brand?: { links?: { url: string }[]; website?: string }
+  /** The client's accounts, links and website, so creators can find the brand. */
+  brand?: CreatorBriefBrand
 }) {
   const platforms = brief.platform.split(" and ").map((name) => name.trim())
   const content = contentSummary(brief)
@@ -246,13 +265,13 @@ export function CreatorBriefSummary({ brief, brand }: {
           <span className="flex flex-wrap gap-x-4 gap-y-1">
             {platforms.map((name) => {
               const key = name.toLowerCase()
-              const account = brandAccount(key, brand?.links ?? [])
+              const account = brandAccount(key, brand)
               return (
                 <span key={name} className="inline-flex items-center gap-1.5">
                   <SocialIcon platform={key} />
-                  {account?.handle
+                  {account?.handle && account.url
                     ? <a href={account.url} target="_blank" rel="noreferrer" className="hover:underline">{account.handle}</a>
-                    : name}
+                    : account?.handle || name}
                 </span>
               )
             })}

@@ -35,6 +35,7 @@ export default function SharedCampaignPage() {
   const [creatives, setCreatives] = useState<CampaignCreative[]>([])
   const [loading, setLoading] = useState(true)
   const [previewId, setPreviewId] = useState<string | null>(null)
+  const [socialAccounts, setSocialAccounts] = useState<{ platform: string; username: string }[]>([])
 
   useEffect(() => {
     if (!id) return
@@ -55,6 +56,10 @@ export default function SharedCampaignPage() {
           setLoading(false)
         }
       })
+    fetch(`/api/campaigns/socials?id=${encodeURIComponent(id)}`, { cache: "no-store" })
+      .then((response) => response.json())
+      .then((result: { accounts?: { platform: string; username: string }[] }) => { if (active) setSocialAccounts(result.accounts ?? []) })
+      .catch(() => undefined)
     const stop = watchCampaignCreatives(id, (rows) => { if (active) setCreatives(rows) }, () => undefined)
     return () => {
       active = false
@@ -136,7 +141,7 @@ export default function SharedCampaignPage() {
                 <h2 id="shared-brief-heading" className="text-sm font-semibold text-foreground">The brief</h2>
                 {formatOffer(brief) && <p className="text-sm font-semibold text-foreground">{formatOffer(brief)}</p>}
               </div>
-              <CreatorBriefSummary brief={brief} brand={organization ?? undefined} />
+              <CreatorBriefSummary brief={brief} brand={{ accounts: socialAccounts, links: organization?.links, website: organization?.website }} />
               {samples.length > 0 && (
                 <div className="flex gap-2">
                   {samples.map((item) => (
