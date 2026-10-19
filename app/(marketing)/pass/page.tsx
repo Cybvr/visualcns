@@ -65,30 +65,36 @@ const FEATURES: (Item & { icon: typeof FileSignature; illustration: () => React.
   },
 ]
 
-const VERTICALS: Item[] = [
+const VERTICALS: (Item & { image: { src: string; alt: string } })[] = [
   {
     title: "Head offices",
     body: "Give guests a quick, friendly welcome and keep the front desk line short.",
+    image: { src: "/images/pass/use-cases/head-offices.webp", alt: "A guest checking in at an office reception" },
   },
   {
     title: "Events",
     body: "Check guests in quickly, keep attendance accurate and see who is on site throughout the day.",
+    image: { src: "/images/pass/use-cases/events.webp", alt: "Guests checking in at an event" },
   },
   {
     title: "Estates",
     body: "Keep a clear record of residents' guests, contractors and deliveries at every gate.",
+    image: { src: "/images/pass/use-cases/estates.webp", alt: "A visitor checking in at a residential estate gate" },
   },
   {
     title: "Data centres and tech sites",
     body: "Know who is on site, who they came to see and when they left.",
+    image: { src: "/images/pass/use-cases/data-centres.webp", alt: "A visitor checking in at a data centre reception" },
     soon: ["ID scanning, face matching and watchlists"],
   },
   {
     title: "Factories and secure sites",
     body: "Keep a full record of every visit, ready when an auditor asks.",
+    image: { src: "/images/pass/use-cases/factories.webp", alt: "A contractor checking in at a factory gate" },
     soon: ["ITAR, CMMC and SOC 2 compliance"],
   },
 ]
+
 const STEPS: Item[] = [
   { title: "Add your staff", body: "Add your hosts and turn on Slack or Teams alerts if you use them." },
   {
@@ -254,6 +260,9 @@ export default function PassPage() {
           <div className="mt-10 grid gap-4 md:grid-cols-2 lg:grid-cols-5">
             {VERTICALS.map((vertical) => (
               <div key={vertical.title} className="border-t border-foreground pt-4">
+                <div className="relative mb-4 aspect-[4/3] overflow-hidden rounded-xl bg-muted">
+                  <Image src={vertical.image.src} alt={vertical.image.alt} fill sizes="(min-width: 1024px) 20vw, (min-width: 768px) 50vw, 100vw" className="object-cover" />
+                </div>
                 <h3 className="font-semibold">{vertical.title}</h3>
                 <p className="mt-2 text-sm text-muted-foreground">{vertical.body}</p>
                 <ComingSoon items={vertical.soon} />

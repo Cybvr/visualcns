@@ -718,18 +718,11 @@
   }
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-eb-garamond), ui-serif, Georgia, serif;
-    font-weight: 700 !important;
-  }
-  /* Legacy heading markers keep the universal bold heading weight. */
-  :is(h1, h2, h3, h4, h5, h6)[data-weight="bold"] {
-    font-weight: 700 !important;
-  }
-  :is(h1, h2, h3, h4, h5, h6)[data-weight="semibold"] {
-    font-weight: 700 !important;
+    font-weight: 400 !important;
   }
   .portal-surface h1, .portal-surface h2, .portal-surface h3 {
     font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-    font-weight: 700 !important;
+    font-weight: 400 !important;
   }
   .portal-surface {
     font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
