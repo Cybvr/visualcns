@@ -490,6 +490,7 @@ export function ProjectDetail({
                 agencyId={project.agencyId}
                 companyId={project.companyId || companyId}
                 projectId={project.id}
+                projectName={project.title}
                 canEdit={canEditCampaign}
                 canReview={canReview}
                 startNew={quickAction === "creator"}

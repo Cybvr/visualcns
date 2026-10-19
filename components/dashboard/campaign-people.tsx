@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import { useEffect, useState, type FormEvent, type ReactNode } from "react"
 import { Linkedin, MoreVertical, Users } from "lucide-react"
 import { SiFacebook, SiInstagram, SiSnapchat, SiThreads, SiTiktok, SiX, SiYoutube } from "react-icons/si"
@@ -38,6 +39,7 @@ import {
   type CampaignPerson,
   type CampaignPersonInput,
 } from "@/lib/campaign-people"
+import { buildEmailComposeHref } from "@/lib/email-composer"
 import { cn } from "@/lib/utils"
 
 interface CampaignPeopleProps {
@@ -45,6 +47,7 @@ interface CampaignPeopleProps {
   agencyId?: string
   companyId: string
   projectId: string
+  projectName?: string
   /** The agency: adds creators and edits every detail. */
   canEdit: boolean
   /** The client's own people: can add a suggested creator. */
@@ -60,7 +63,7 @@ const fieldClass = "h-9 w-full min-w-0 rounded-md border border-input bg-transpa
  * The Creators tab: everyone on the campaign as cards or a list. The agency adds
  * creators in the row above the list and opens any of them to change the rest.
  */
-export function CampaignPeople({ people, agencyId, companyId, projectId, canEdit, canReview = false, startNew = false, onActionHandled }: CampaignPeopleProps) {
+export function CampaignPeople({ people, agencyId, companyId, projectId, projectName, canEdit, canReview = false, startNew = false, onActionHandled }: CampaignPeopleProps) {
   const [openId, setOpenId] = useState<string | null>(null)
   const [adding, setAdding] = useState(false)
   const open = people.find((person) => person.id === openId) ?? null
@@ -105,6 +108,11 @@ export function CampaignPeople({ people, agencyId, companyId, projectId, canEdit
       extra: (canEdit || canAdd) && (
         <>
           {canEdit && <DropdownMenuItem onSelect={() => setOpenId(person.id)}>Edit</DropdownMenuItem>}
+          {canEdit && (
+            <DropdownMenuItem asChild>
+              <Link href={buildEmailComposeHref({ companyId, projectId, projectName, recipientName: person.handle, subject: projectName ? `${projectName} campaign` : undefined })}>Email</Link>
+            </DropdownMenuItem>
+          )}
           {canAdd && <DropdownMenuItem onSelect={() => void addToRoster(person)}>Add to campaign</DropdownMenuItem>}
         </>
       ),
