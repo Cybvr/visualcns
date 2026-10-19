@@ -23,15 +23,6 @@ const PREVIEW_LIMIT = 4
 
 const modified = (item: { updatedAt?: unknown; createdAt?: unknown }) => tsToMillis(item.updatedAt) || tsToMillis(item.createdAt)
 
-function Metric({ label, value, href }: { label: string; value: number; href: string }) {
-  return (
-    <Link href={href} className="block rounded-xl border border-border bg-card p-5 max-sm:w-[78%] max-sm:shrink-0 max-sm:snap-start outline-none transition-colors hover:bg-muted/40 focus-visible:ring-2 focus-visible:ring-ring sm:p-6">
-      <p className="text-sm text-muted-foreground">{label}</p>
-      <div className="mt-6 text-2xl font-semibold leading-none tracking-tight text-foreground tabular-nums sm:text-3xl">{value.toLocaleString()}</div>
-    </Link>
-  )
-}
-
 function SectionHeader({ id, title, href }: { id: string; title: string; href?: string }) {
   return (
     <div className="flex items-center justify-between gap-3">
@@ -41,7 +32,7 @@ function SectionHeader({ id, title, href }: { id: string; title: string; href?: 
   )
 }
 
-/** Home body: post, campaign and creator counts, then the latest of each. */
+/** Home body: the latest campaigns, posts and creators. */
 export function HomeOverview() {
   const { company, projects, admin, sectionHref } = useCompanyPage()
   const share = useCampaignShare()
@@ -137,14 +128,7 @@ export function HomeOverview() {
 
   return (
     <>
-      {/* Phones: one swipeable row of tiles, each snapping into place, with the next one peeking in. */}
-      <div className="scrollbar-none grid gap-3 max-sm:-mx-4 max-sm:flex max-sm:snap-x max-sm:snap-mandatory max-sm:scroll-px-4 max-sm:overflow-x-auto max-sm:px-4 sm:grid-cols-3">
-        <Metric label="Posts" value={posts.length} href={sectionHref("analytics")} />
-        <Metric label="Campaigns" value={campaigns.length} href={sectionHref("projects")} />
-        <Metric label="Creators" value={creators.length} href={sectionHref("analytics")} />
-      </div>
-
-      <section aria-labelledby="home-campaigns-heading" className="mt-8">
+      <section aria-labelledby="home-campaigns-heading">
         <SectionHeader id="home-campaigns-heading" title="Campaigns" href={campaigns.length > 0 ? sectionHref("projects") : undefined} />
         <CollectionView
           className=""
