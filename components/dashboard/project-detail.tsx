@@ -447,6 +447,7 @@ export function ProjectDetail({
                   onOpen={setTab}
                   onAction={startQuickAction}
                   bannerImage={campaignImage}
+                  sharePath={`/share/campaigns/${encodeURIComponent(project.id)}`}
                   latestContent={
                     <CampaignCreatives
                       kind="content"

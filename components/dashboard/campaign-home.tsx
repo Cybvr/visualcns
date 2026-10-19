@@ -1,7 +1,7 @@
 "use client"
 
 import type { ReactNode } from "react"
-import { Images, Megaphone, PenLine, UserPlus } from "lucide-react"
+import { Images, Megaphone, PenLine, Share2, UserPlus } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import type { CampaignCreative } from "@/lib/campaign-creatives"
@@ -17,6 +17,7 @@ export function CampaignHome({
   onAction,
   bannerImage: campaignImage,
   latestContent,
+  sharePath,
 }: {
   content: CampaignCreative[]
   canEdit: boolean
@@ -26,6 +27,8 @@ export function CampaignHome({
   bannerImage?: string
   /** The newest posts, drawn by the Content tab's own list so cards, menus and the viewer match it. */
   latestContent: ReactNode
+  /** The campaign's public share page, opened from the banner. */
+  sharePath?: string
 }) {
   const posts = content.filter((item) => item.type === "text")
   const bannerImage = campaignImage || posts.find((post) => post.mediaUrl && post.mediaType !== "video")?.mediaUrl
@@ -39,6 +42,18 @@ export function CampaignHome({
         )}
         <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/25 to-transparent" />
         <p className="relative flex h-full items-center px-4 text-sm font-semibold text-white sm:px-5">Campaign at a glance</p>
+        {sharePath && (
+          <a
+            href={sharePath}
+            target="_blank"
+            rel="noreferrer"
+            aria-label="Open campaign share page"
+            title="Share campaign"
+            className="absolute right-3 top-1/2 flex size-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/40 text-white outline-none transition-colors hover:bg-black/60 focus-visible:ring-2 focus-visible:ring-ring sm:right-4"
+          >
+            <Share2 className="size-4" aria-hidden="true" />
+          </a>
+        )}
       </div>
 
       {canEdit && (
