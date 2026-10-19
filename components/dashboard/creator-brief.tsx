@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState, type ReactNode } from "react"
-import { X } from "lucide-react"
+import { CalendarClock, CalendarRange, Clapperboard, CreditCard, Globe, Megaphone, Smartphone, Target, Users, Wallet, X, type LucideIcon } from "lucide-react"
 import { toast } from "sonner"
 
 import { SocialIcon } from "@/components/company/social-icon"
@@ -242,7 +242,7 @@ export function CreatorBriefSummary({ brief, brand }: {
   return (
     <div className="space-y-5">
       <dl className="grid gap-x-6 gap-y-4 sm:grid-cols-2">
-        <Fact label="Platform">
+        <Fact label="Platform" icon={Smartphone}>
           <span className="flex flex-wrap gap-x-4 gap-y-1">
             {platforms.map((name) => {
               const key = name.toLowerCase()
@@ -259,30 +259,33 @@ export function CreatorBriefSummary({ brief, brand }: {
           </span>
         </Fact>
         {brand?.website && (
-          <Fact label="Website">
+          <Fact label="Website" icon={Globe}>
             <a href={websiteHref(brand.website)} target="_blank" rel="noreferrer" className="break-all hover:underline">
               {brand.website.replace(/^https?:\/\//i, "").replace(/\/$/, "")}
             </a>
           </Fact>
         )}
-        <Fact label="Goal">{goalLabel(brief.goal)}</Fact>
-        {formatOffer(brief) && <Fact label="Offer">{formatOffer(brief)}</Fact>}
-        {content && <Fact label="Content">{content}</Fact>}
-        {brief.registerBy && <Fact label="Apply by">{formatBriefDate(brief.registerBy)}</Fact>}
-        {dates && <Fact label="Post between">{dates}</Fact>}
-        {who && <Fact label="Creators">{who}</Fact>}
-        <Fact label="Payment">{brief.paymentMethod}</Fact>
-        {brief.paidAds && <Fact label="Paid ads">Yes</Fact>}
+        <Fact label="Goal" icon={Target}>{goalLabel(brief.goal)}</Fact>
+        {formatOffer(brief) && <Fact label="Offer" icon={Wallet}>{formatOffer(brief)}</Fact>}
+        {content && <Fact label="Content" icon={Clapperboard}>{content}</Fact>}
+        {brief.registerBy && <Fact label="Apply by" icon={CalendarClock}>{formatBriefDate(brief.registerBy)}</Fact>}
+        {dates && <Fact label="Post between" icon={CalendarRange}>{dates}</Fact>}
+        {who && <Fact label="Creators" icon={Users}>{who}</Fact>}
+        <Fact label="Payment" icon={CreditCard}>{brief.paymentMethod}</Fact>
+        {brief.paidAds && <Fact label="Paid ads" icon={Megaphone}>Yes</Fact>}
       </dl>
       {brief.contentDetails && <p className="whitespace-pre-wrap text-sm leading-7 text-foreground">{brief.contentDetails}</p>}
     </div>
   )
 }
 
-function Fact({ label, children }: { label: string; children: ReactNode }) {
+function Fact({ label, icon: Icon, children }: { label: string; icon: LucideIcon; children: ReactNode }) {
   return (
     <div>
-      <dt className="text-xs text-muted-foreground">{label}</dt>
+      <dt className="flex items-center gap-1.5 text-xs text-muted-foreground">
+        <Icon className="size-3.5 shrink-0" aria-hidden="true" />
+        {label}
+      </dt>
       <dd className="mt-0.5 text-sm text-foreground">{children}</dd>
     </div>
   )
