@@ -4,7 +4,7 @@ import { useCallback, useMemo, useState, type ComponentProps, type ReactNode } f
 import Image from "next/image"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { LogIn, Search } from "lucide-react"
+import { LogIn, Search, ShoppingBag } from "lucide-react"
 
 import { useAuth } from "@/components/auth-provider"
 import { BrandLockup } from "@/components/brand-lockup"
@@ -194,7 +194,22 @@ export function CompanyProfileShell({ children }: { children: ReactNode }) {
             <SidebarContent>
               <SidebarGroup className="group-data-[collapsible=icon]:p-1">
                 <SidebarMenu className="gap-0.5 max-md:gap-1.5">
-                  <SidebarTakeoverMenu sections={<>{sidebarSections.map(renderItem)}</>} />
+                  <SidebarTakeoverMenu sections={<>
+                    {sidebarSections.map(renderItem)}
+                    <SidebarMenuItem>
+                      <SidebarMenuButton
+                        asChild
+                        isActive={isServicesPage || isCartPage || isCheckoutPage}
+                        tooltip="Services"
+                        className="h-9 gap-2 px-2 max-md:h-12 max-md:min-h-12 max-md:gap-3 max-md:px-3 [&>svg]:size-[18px] [&>svg]:max-md:size-5"
+                      >
+                        <CompanySidebarLink href={`${companyPath}/services`}>
+                          <ShoppingBag className="h-4 w-4" aria-hidden="true" />
+                          <span className="sidebar-nav-label">Services</span>
+                        </CompanySidebarLink>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  </>} />
                 </SidebarMenu>
               </SidebarGroup>
             </SidebarContent>
@@ -225,12 +240,8 @@ export function CompanyProfileShell({ children }: { children: ReactNode }) {
               <Button type="button" variant="ghost" size="icon" className="rounded-full text-foreground hover:bg-muted/50 active:bg-muted/50 md:hidden" aria-label={`Search ${company.name}`} onClick={openSearch}>
                 <Search className="size-[18px]" aria-hidden="true" />
               </Button>
-              {user && (
-                <>
-                  <CartButton cartHref={`${companyPath}/cart`} servicesHref={`${companyPath}/services`} />
-                  <NotificationsButton activity={activity} hrefFor={activityHref} viewAllHref={`${companyPath}/notifications`} />
-                </>
-              )}
+              <CartButton cartHref={`${companyPath}/cart`} servicesHref={`${companyPath}/services`} />
+              {user && <NotificationsButton activity={activity} hrefFor={activityHref} viewAllHref={`${companyPath}/notifications`} />}
               <SidebarAccount header />
             </div>
           </header>
