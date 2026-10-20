@@ -30,7 +30,7 @@ function CheckoutContent({ checkoutPath, doneHref }: { checkoutPath: string; don
   const verified = useRef("")
 
   async function post(body: Record<string, unknown>) {
-    if (!user) throw new Error("Please sign in again.")
+    if (!user) throw new Error("Sign in to pay.")
     const response = await fetch("/api/checkout", {
       method: "POST",
       headers: { Authorization: `Bearer ${await user.getIdToken()}`, "Content-Type": "application/json" },
