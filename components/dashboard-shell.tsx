@@ -31,7 +31,6 @@ import { cn } from "@/lib/utils"
 import { useAuth } from "@/components/auth-provider"
 
 import { AppSwitcher } from "@/components/dashboard/app-switcher"
-import { CartButton } from "@/components/dashboard/cart-button"
 import { NotificationsButton } from "@/components/dashboard/notifications-button"
 
 const NgaiSidePanel = dynamic(() => import("@/components/agent/ngai-side-panel").then((module) => module.NgaiSidePanel), { ssr: false })
@@ -203,7 +202,6 @@ export function DashboardShell({
               {!isBackDetailRoute && <Button type="button" variant="ghost" size="icon" aria-label="Search workspace" onClick={openSearch} className={cn("size-10 md:hidden [&_svg]:size-5", replacesMobileDefaults && "max-sm:hidden")}><Search className="size-4" aria-hidden="true" /></Button>}
               <div ref={setHeaderSlot} className="contents" />
               {headerActions}
-              <CartButton />
               {!isCompanyDetailRoute && !clientOpen && <AppSwitcher />}
               <NotificationsButton />
               <NavUser variant="header" />

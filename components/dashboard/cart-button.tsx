@@ -11,7 +11,7 @@ import { cartTotal } from "@/lib/cart"
 import { formatPrice } from "@/lib/plans"
 
 /** The cart in the header: what's in it, the total, and the way to the cart page. */
-export function CartButton({ cartHref = "/dashboard/cart", servicesHref = "/dashboard/services" }: { cartHref?: string; servicesHref?: string } = {}) {
+export function CartButton({ cartHref, servicesHref }: { cartHref: string; servicesHref: string }) {
   const { items, remove } = useCart()
   const [open, setOpen] = useState(false)
   const count = items.length

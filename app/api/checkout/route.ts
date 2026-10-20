@@ -43,8 +43,8 @@ export async function POST(request: NextRequest) {
       const services = cartServices(body.items)
       if (services.length === 0) return NextResponse.json({ error: "Your cart is empty." }, { status: 400 })
       const total = cartTotal(services)
-      // Back to the checkout they paid from: the dashboard's or a company page's.
-      const returnTo = typeof body.returnTo === "string" && /^\/[A-Za-z0-9%._~-]+\/checkout$/.test(body.returnTo) ? body.returnTo : "/dashboard/checkout"
+      // Back to the company page checkout they paid from.
+      const returnTo = typeof body.returnTo === "string" && /^\/[A-Za-z0-9%._~-]+\/checkout$/.test(body.returnTo) ? body.returnTo : "/"
       const ref = db.collection("orders").doc()
       const reference = `vcns_${ref.id}`
       await ref.set({
