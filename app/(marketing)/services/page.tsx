@@ -11,7 +11,7 @@ export default function ServicesPage() {
       <Header />
       <div className="pb-20 pt-32">
         <div className="mx-auto max-w-6xl px-4 sm:px-6"><PageHeading title="Services" /></div>
-        <ServicesView checkoutHref="/cart" />
+        <ServicesView cartHref="/cart" />
       </div>
       <Footer />
     </div>
