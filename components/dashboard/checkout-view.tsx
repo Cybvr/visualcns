@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { Suspense, useEffect, useRef, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { Check, CheckCircle2, Loader2, Plus, X } from "lucide-react"
+import { CheckCircle2, Loader2, X } from "lucide-react"
 import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
@@ -11,10 +11,9 @@ import { useCart } from "@/components/dashboard/use-cart"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { CART_SERVICES, cartTotal } from "@/lib/cart"
+import { cartTotal } from "@/lib/cart"
 import { formatPrice } from "@/lib/plans"
 
-const GROUPS = [...new Set(CART_SERVICES.map((service) => service.group))]
 
 type Paid = { items: Array<{ id: string; name: string; amount: number }>; total: number }
 
@@ -23,7 +22,7 @@ function CheckoutContent({ checkoutPath, doneHref }: { checkoutPath: string; don
   const router = useRouter()
   const searchParams = useSearchParams()
   const reference = searchParams.get("reference") || searchParams.get("trxref") || ""
-  const { items, add, remove, clear, has } = useCart()
+  const { items, remove, clear } = useCart()
   const [note, setNote] = useState("")
   const [paying, setPaying] = useState(false)
   const [paid, setPaid] = useState<Paid | null>(null)
@@ -107,44 +106,15 @@ function CheckoutContent({ checkoutPath, doneHref }: { checkoutPath: string; don
   const total = cartTotal(items)
 
   return (
-    <main className="mx-auto grid w-full max-w-6xl gap-8 px-4 pt-4 pb-12 sm:px-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
-      <div className="space-y-8">
-        {GROUPS.map((group) => (
-          <section key={group}>
-            <h2 className="mb-3 text-sm font-medium text-muted-foreground">{group}</h2>
-            <ul className="divide-y divide-border rounded-2xl border border-border">
-              {CART_SERVICES.filter((service) => service.group === group).map((service) => {
-                const inCart = has(service.id)
-                return (
-                  <li key={service.id} className="flex items-center gap-4 px-4 py-3">
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium">{service.name}</p>
-                      <p className="text-xs text-muted-foreground">{service.scope}</p>
-                    </div>
-                    <span className="shrink-0 text-sm font-medium">{formatPrice(service.price, "NGN")}</span>
-                    <Button
-                      type="button"
-                      variant={inCart ? "secondary" : "outline"}
-                      size="sm"
-                      className="w-24 shrink-0"
-                      onClick={() => (inCart ? remove(service.id) : add(service.id))}
-                      aria-label={inCart ? `Remove ${service.name} from cart` : `Add ${service.name} to cart`}
-                    >
-                      {inCart ? <><Check className="size-3.5" aria-hidden="true" />Added</> : <><Plus className="size-3.5" aria-hidden="true" />Add</>}
-                    </Button>
-                  </li>
-                )
-              })}
-            </ul>
-          </section>
-        ))}
-      </div>
-
-      <aside className="lg:sticky lg:top-4 lg:self-start">
+    <main className="mx-auto w-full max-w-lg px-4 pt-4 pb-12 sm:px-6">
+      <section aria-label="Order summary">
         <div className="rounded-2xl border border-border">
           <h2 className="border-b border-border px-4 py-3 text-sm font-medium">Order summary</h2>
           {items.length === 0 ? (
-            <p className="px-4 py-8 text-center text-sm text-muted-foreground">Add a service to get started.</p>
+            <div className="px-4 py-8 text-center">
+              <p className="text-sm text-muted-foreground">Your cart is empty.</p>
+              <Button asChild variant="outline" size="sm" className="mt-4"><Link href={checkoutPath.replace(/\/checkout$/, "/services")}>Browse services</Link></Button>
+            </div>
           ) : (
             <ul className="divide-y divide-border">
               {items.map((item) => (
@@ -176,12 +146,12 @@ function CheckoutContent({ checkoutPath, doneHref }: { checkoutPath: string; don
             <p className="text-xs text-muted-foreground">Monthly services are charged for the first month now.</p>
           </div>
         </div>
-      </aside>
+      </section>
     </main>
   )
 }
 
-/** Services to add, the order summary and Paystack payment. checkoutPath is where Paystack sends the payer back. */
+/** The cart's order summary and Paystack payment. checkoutPath is where Paystack sends the payer back. */
 export function CheckoutView(props: { checkoutPath: string; doneHref: string }) {
   return (
     <Suspense>

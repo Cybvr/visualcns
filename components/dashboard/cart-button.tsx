@@ -10,8 +10,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cartTotal } from "@/lib/cart"
 import { formatPrice } from "@/lib/plans"
 
-/** The cart in the dashboard header: what's in it, the total, and the way to checkout. */
-export function CartButton({ checkoutHref = "/dashboard/checkout", servicesHref = "/dashboard/services" }: { checkoutHref?: string; servicesHref?: string } = {}) {
+/** The cart in the header: what's in it, the total, and the way to the cart page. */
+export function CartButton({ cartHref = "/dashboard/cart", servicesHref = "/dashboard/services" }: { cartHref?: string; servicesHref?: string } = {}) {
   const { items, remove } = useCart()
   const [open, setOpen] = useState(false)
   const count = items.length
@@ -67,7 +67,7 @@ export function CartButton({ checkoutHref = "/dashboard/checkout", servicesHref 
                 <span className="font-semibold">{formatPrice({ amount: cartTotal(items) }, "NGN")}</span>
               </div>
               <Button asChild className="w-full">
-                <Link href={checkoutHref} onClick={() => setOpen(false)}>Checkout</Link>
+                <Link href={cartHref} onClick={() => setOpen(false)}>View cart</Link>
               </Button>
             </div>
           </>
