@@ -178,11 +178,12 @@ export function CompanyPageProvider({
       { ...about, label: "Home", icon: House },
       find("projects"),
       find("social"),
+      find("visitors"),
       find("documents"),
       find("billings"),
-      find("pulse"),
-      find("visitors"),
       find("ngai"),
+      // Reports and Analytics sit under Account, not in the menu.
+      find("pulse"),
       find("analytics"),
       activity && { ...activity, label: "Notifications", icon: Bell },
     ]

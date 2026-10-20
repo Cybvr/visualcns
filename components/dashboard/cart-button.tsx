@@ -11,7 +11,7 @@ import { cartTotal } from "@/lib/cart"
 import { formatPrice } from "@/lib/plans"
 
 /** The cart in the dashboard header: what's in it, the total, and the way to checkout. */
-export function CartButton({ checkoutHref = "/dashboard/checkout" }: { checkoutHref?: string } = {}) {
+export function CartButton({ checkoutHref = "/dashboard/checkout", servicesHref = "/dashboard/services" }: { checkoutHref?: string; servicesHref?: string } = {}) {
   const { items, remove } = useCart()
   const [open, setOpen] = useState(false)
   const count = items.length
@@ -37,7 +37,7 @@ export function CartButton({ checkoutHref = "/dashboard/checkout" }: { checkoutH
           <div className="px-4 py-8 text-center">
             <p className="text-sm text-muted-foreground">Your cart is empty.</p>
             <Button asChild variant="outline" size="sm" className="mt-4">
-              <Link href={checkoutHref} onClick={() => setOpen(false)}>Browse services</Link>
+              <Link href={servicesHref} onClick={() => setOpen(false)}>Browse services</Link>
             </Button>
           </div>
         ) : (

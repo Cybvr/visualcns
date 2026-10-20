@@ -107,9 +107,10 @@ export function CompanyProfileShell({ children }: { children: ReactNode }) {
   const settingsSubpage = pathname.split("/").filter(Boolean)[2]
   const isSettingsPage = pageSegment === "settings"
   const isCheckoutPage = pageSegment === "checkout"
+  const isServicesPage = pageSegment === "services"
   const sectionLabel = sections.find((item) => item.key === section)?.label
   const settingsPageLabel = settingsSubpage === "account" ? "Account" : settingsSubpage === "social" ? "Social" : settingsSubpage === "reports" ? "Reports" : settingsSubpage === "analytics" ? "Analytics" : "General"
-  const pageLabel = isSettingsPage ? settingsPageLabel : isCheckoutPage ? "Checkout" : sectionLabel
+  const pageLabel = isSettingsPage ? settingsPageLabel : isCheckoutPage ? "Checkout" : isServicesPage ? "Services" : sectionLabel
   const companyPath = `/${encodeURIComponent(company.slug || company.id)}`
   const activity = useMemo(() => buildActivity({ projects, tasks, invoices, estimates, contracts, documents }, 20), [projects, tasks, invoices, estimates, contracts, documents])
   const activityHref = useCallback((item: ActivityItem) => {
@@ -139,7 +140,7 @@ export function CompanyProfileShell({ children }: { children: ReactNode }) {
 
   function renderItem(item: SectionItem) {
     const Icon = item.icon
-    const isActive = !isSettingsPage && !isCheckoutPage && section === item.key
+    const isActive = !isSettingsPage && !isCheckoutPage && !isServicesPage && section === item.key
     return (
       <SidebarMenuItem key={item.key}>
         <SidebarMenuButton
@@ -225,7 +226,7 @@ export function CompanyProfileShell({ children }: { children: ReactNode }) {
               </Button>
               {user && (
                 <>
-                  <CartButton checkoutHref={`${companyPath}/checkout`} />
+                  <CartButton checkoutHref={`${companyPath}/checkout`} servicesHref={`${companyPath}/services`} />
                   <NotificationsButton activity={activity} hrefFor={activityHref} viewAllHref={`${companyPath}/notifications`} />
                 </>
               )}
@@ -240,7 +241,7 @@ export function CompanyProfileShell({ children }: { children: ReactNode }) {
               section === "ngai" ? "pb-1 md:pb-1" : "pb-16 md:pb-6 has-[[data-ngai-page]]:pb-1 md:has-[[data-ngai-page]]:pb-1",
               recordOpen ? "pt-0 sm:pt-0" : "pt-1 sm:pt-6",
             )}>
-              {(isSettingsPage || isCheckoutPage || section !== "about") && pageLabel && !recordOpen && (
+              {(isSettingsPage || isCheckoutPage || isServicesPage || section !== "about") && pageLabel && !recordOpen && (
                 <div className="mb-0.5 flex items-center justify-between gap-3">
                   <h2 className="surface-record-title min-w-0 truncate max-md:hidden">{pageLabel}</h2>
                   {/* Pages portal their own action buttons here, opposite the title. */}

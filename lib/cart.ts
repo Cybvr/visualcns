@@ -12,16 +12,29 @@ export type CartService = {
   name: string
   scope: string
   price: Exclude<Price, "free">
+  /** The steps a workflow runs, e.g. ["New lead", "Auto-reply", "Qualify"]. */
+  steps?: string[]
+  tools?: string[]
+  /** A retainer's headline numbers, e.g. ["5 hrs", "48-hour"]. */
+  highlights?: string[]
 }
 
 function slug(value: string) {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")
 }
 
-function fromRows(group: string, rows: ServiceRow[]): CartService[] {
+function fromRows(group: string, rows: (ServiceRow & { workflow?: string })[]): CartService[] {
   return rows.flatMap((row) => {
     if (row.price === "free" || row.price.suffix === "/hr") return []
-    return [{ id: slug(`${group}-${row.service}`), group, name: row.service, scope: row.scope, price: row.price }]
+    return [{
+      id: slug(`${group}-${row.service}`),
+      group,
+      name: row.service,
+      scope: row.scope,
+      price: row.price,
+      steps: row.workflow?.split("->").map((step) => step.trim()).filter(Boolean),
+      tools: row.tools,
+    }]
   })
 }
 
@@ -37,6 +50,7 @@ export const CART_SERVICES: CartService[] = [
     name: `${tier.name} retainer`,
     scope: tier.specs.map((spec) => ("text" in spec ? spec.text : `${spec.strong} ${spec.rest ?? ""}`.trim())).join(" - "),
     price: { amount: tier.amount, suffix: "/mo" },
+    highlights: tier.specs.flatMap((spec) => ("strong" in spec ? [spec.strong] : [])),
   })),
 ]
 

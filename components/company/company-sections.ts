@@ -3,7 +3,7 @@ import { Activity, Bot, ChartColumn, DollarSign, FileText, Fingerprint, Info, Li
 /** The sections of a company page, in menu order. Plain module so server routes can check a section too. */
 export const COMPANY_SECTIONS = [
   { key: "projects", label: "Campaigns", icon: Megaphone },
-  { key: "social", label: "Social", icon: Share2 },
+  { key: "social", label: "Social Media", icon: Share2 },
   { key: "documents", label: "Documents", icon: FileText },
   { key: "ngai", label: "Support", icon: Bot },
   { key: "tasks", label: "Tasks", icon: ListTodo },

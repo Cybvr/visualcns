@@ -5,6 +5,7 @@ const DASHBOARD_SECTION_TITLES: Record<string, string> = {
   calendar: "Calendar",
   chats: "All Chats",
   checkout: "Checkout",
+  services: "Services",
   clients: "Clients",
   companies: "Clients",
   contracts: "Contracts",
@@ -39,11 +40,11 @@ const COMPANY_SECTION_TITLES: Record<string, string> = {
   notes: "Documents",
   notifications: "Notifications",
   projects: "Campaigns",
-  social: "Social",
+  social: "Social Media",
   pulse: "Reports",
   tasks: "Tasks",
   team: "Team",
-  visitors: "Pass",
+  visitors: "Security",
 }
 
 type SearchParamsReader = Pick<URLSearchParams, "get">
