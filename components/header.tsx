@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation"
 import { useEffect, useRef, useState, type CSSProperties } from "react"
 import { ArrowUpRight, ChevronDown, LogIn, Menu, Phone, X } from "lucide-react"
 import { onAuthStateChanged, type User } from "firebase/auth"
+import { CartButton } from "@/components/dashboard/cart-button"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { auth } from "@/lib/firebase"
@@ -335,6 +336,7 @@ export function Header() {
           </div>
 
           <div className="flex items-center gap-2">
+            <CartButton cartHref="/cart" servicesHref="/services" />
             {currentUser ? (
               <Link
                 href="/dashboard"
