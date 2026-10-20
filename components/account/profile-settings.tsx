@@ -35,7 +35,7 @@ export function Row({ id, label, children }: { id: string; label: string; childr
 
 export const inlineInput = "h-9 border-0 bg-transparent px-0 shadow-none focus-visible:border-transparent focus-visible:ring-0 dark:bg-transparent"
 
-export function ProfileSettings({ showBackLink = true }: { showBackLink?: boolean }) {
+export function ProfileSettings({ showBackLink = true, embedded = false }: { showBackLink?: boolean; embedded?: boolean }) {
   const { user, appUser } = useAuth()
 
   const [displayName, setDisplayName] = useState("")
@@ -87,7 +87,7 @@ export function ProfileSettings({ showBackLink = true }: { showBackLink?: boolea
   }
 
   return (
-    <main className="mx-auto w-full max-w-3xl px-4 py-9 sm:px-6 lg:mx-0">
+    <main className={embedded ? "w-full max-w-2xl pt-5 pb-10" : "mx-auto w-full max-w-3xl px-4 py-9 sm:px-6 lg:mx-0"}>
       {showBackLink && <AccountNav />}
 
       <div className="mt-5">

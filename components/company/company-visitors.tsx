@@ -18,6 +18,8 @@ import { Switch } from "@/components/ui/switch"
 import { Input } from "@/components/ui/input"
 import { usePlanBilling, useSubscription } from "@/components/company/company-plan"
 import { SettingRow, VisitorExtras } from "@/components/company/visitor-extras"
+import { PlanPricing } from "@/components/company/plan-pricing"
+import { SectionHeader } from "@/components/dashboard/section-header"
 import { getAllVisitors, kioskUrl, resetKioskKey, visitorsCsv, visitDay as day, visitTime as time, setKioskEnabled, signOutVisitor, watchKiosk, watchVisitors, type Visitor, type VisitorKiosk } from "@/lib/visitors"
 
 /** The company's Visitors tab: who is in now, past visits, and the front-desk tablet link. */
@@ -183,6 +185,23 @@ export function CompanyVisitors({ agencyId, companyId, slug }: { agencyId: strin
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Until front desk sign-in is on, Pass opens on its plans, with a free start first. */}
+      {!kiosk?.enabled && (
+        <section aria-labelledby="pass-pricing-heading">
+          <PlanPricing
+            companyId={companyId}
+            billing={billing}
+            header={<SectionHeader id="pass-pricing-heading" title="Choose how to start Pass" />}
+            free={{
+              label: "Continue with free",
+              onSelect: () => toggleKiosk(true),
+              busy: kioskBusy,
+            }}
+            onBeforeSubscribe={async () => { await setKioskEnabled(agencyId, companyId, true, kiosk) }}
+          />
+        </section>
+      )}
 
       {error ? (
         <div role="alert" className="flex flex-wrap items-center gap-3 text-sm">

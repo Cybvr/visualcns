@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react"
+import { SectionHeader } from "@/components/dashboard/section-header"
 import { MessageSquare, Send } from "lucide-react"
 
 import { useAuth } from "@/components/auth-provider"
@@ -74,8 +75,7 @@ export function CompanyMessages() {
 
   return (
     <section className="mt-4 flex flex-col" aria-labelledby="company-messages-heading">
-      <h2 id="company-messages-heading" className="sr-only">Messages</h2>
-      <span className="sidebar-nav-label text-muted-foreground">Messages with the agency</span>
+      <SectionHeader id="company-messages-heading" title="Messages with the agency" />
 
       {messages === null && !error ? (
         <p className="mt-6 text-sm text-muted-foreground">Loading messages…</p>

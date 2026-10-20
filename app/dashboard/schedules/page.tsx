@@ -1,6 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useState, type FormEvent } from "react"
+import { SectionHeader } from "@/components/dashboard/section-header"
 import { Copy, Loader2, Pencil, Play, Plus, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 
@@ -213,8 +214,7 @@ export default function SchedulesPage() {
 
       {drafts.length > 0 && (
         <section className="mt-10">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 className="text-base font-semibold">Waiting to send ({drafts.length})</h2>
+          <SectionHeader title={`Waiting to send (${drafts.length})`}>
             {senders.length > 1 && (
               <Select value={sender} onValueChange={setSender}>
                 <SelectTrigger className="w-auto min-w-56" aria-label="Send from"><SelectValue placeholder="Send from" /></SelectTrigger>
@@ -223,7 +223,7 @@ export default function SchedulesPage() {
                 </SelectContent>
               </Select>
             )}
-          </div>
+          </SectionHeader>
           <div className="mt-4 space-y-4">
             {drafts.map((draft) => <DraftCard key={draft.id} draft={draft} onSend={sendDraft} onDiscard={discardDraft} />)}
           </div>

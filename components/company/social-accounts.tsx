@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState, type FormEvent } from "react"
+import { SectionHeader } from "@/components/dashboard/section-header"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { Loader2, X } from "lucide-react"
 import { toast } from "sonner"
@@ -11,6 +12,7 @@ import { Label } from "@/components/ui/label"
 import { SocialIcon } from "@/components/company/social-icon"
 import { platformLabel, SOCIAL_PLATFORMS } from "@/lib/social"
 import { useSocialAccounts, useSocialRequest } from "@/lib/social-client"
+import { cn } from "@/lib/utils"
 
 const RESULT_MESSAGES: Record<string, [ok: boolean, message: string]> = {
   connected: [true, "Account connected."],
@@ -25,7 +27,7 @@ const CONNECT_PLATFORMS = SOCIAL_PLATFORMS.filter((platform) => !["google", "thr
  * A company's social accounts on its settings page. The client (or the
  * agency) clicks a platform, signs in on the platform itself, and comes back.
  */
-export function SocialAccounts({ companyId, variant = "default" }: { companyId: string; variant?: "default" | "compact" }) {
+export function SocialAccounts({ companyId, variant = "default" }: { companyId: string; variant?: "default" | "compact" | "banner" }) {
   const { info, error, loading, reload, request } = useSocialAccounts(companyId)
   const [connecting, setConnecting] = useState("")
   const [removing, setRemoving] = useState("")
@@ -73,6 +75,39 @@ export function SocialAccounts({ companyId, variant = "default" }: { companyId: 
   // The SocialAPI key lives in Agency settings; until it's added there is nothing to connect.
   if (info && !info.configured) return null
 
+  if (variant === "banner") {
+    if (!info) return null
+    return (
+      <div className="relative overflow-hidden rounded-2xl bg-neutral-950 px-6 py-7 text-white sm:px-8">
+        <div className="pointer-events-none absolute -right-16 -top-24 size-96 rounded-full bg-[radial-gradient(circle,rgba(124,58,237,0.7)_0%,rgba(76,29,149,0.3)_45%,transparent_70%)]" aria-hidden="true" />
+        <div className="relative flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+          <div className="max-w-md">
+            <h2 className="text-xl font-semibold leading-snug text-white sm:text-2xl">Connect your social pages</h2>
+            <div className="mt-2 text-sm text-white/65">Link your accounts to post from here and see your followers and posts in one place.</div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {CONNECT_PLATFORMS.map((platform, index) => (
+              <button
+                key={platform.key}
+                type="button"
+                disabled={Boolean(connecting)}
+                onClick={() => void connect(platform.key)}
+                aria-label={`Connect ${platform.label}`}
+                title={`Connect ${platform.label}`}
+                className={cn(
+                  "grid size-12 place-items-center rounded-xl bg-white shadow-[0_8px_24px_rgba(124,58,237,0.35)] outline-none transition-transform hover:-translate-y-0.5 focus-visible:ring-2 focus-visible:ring-violet-400 disabled:opacity-60 [&_svg]:size-5",
+                  index % 2 ? "rotate-6" : "-rotate-6",
+                )}
+              >
+                {connecting === platform.key ? <Loader2 className="animate-spin text-neutral-900" aria-hidden="true" /> : <SocialIcon platform={platform.key} />}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   if (variant === "compact") {
     if (loading && !info) return <Loader2 className="size-4 animate-spin text-muted-foreground" aria-label="Loading social accounts" />
     if (!info) return null
@@ -90,7 +125,7 @@ export function SocialAccounts({ companyId, variant = "default" }: { companyId: 
 
   return (
     <section className="py-2">
-      <h2 className="surface-section-label">Social accounts</h2>
+      <SectionHeader title="Social accounts" />
       <div className="mt-5 space-y-5">
         {loading && !info ? (
           <p className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="size-4 animate-spin" aria-hidden="true" />Loading</p>

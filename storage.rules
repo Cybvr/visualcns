@@ -11,6 +11,15 @@ service firebase.storage {
       allow delete: if request.auth != null && request.auth.uid == userId;
     }
 
+    // Files a client adds from their company page: any type, up to 20 MB
+    // (CLIENT_FILE_MAX_BYTES in lib/documents.ts), written only by that person.
+    match /client-files/{userId}/{fileName} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null
+        && request.auth.uid == userId
+        && request.resource.size <= 20 * 1024 * 1024;
+    }
+
     // Existing dashboard image uploads and links.
     match /{allPaths=**} {
       allow read: if true;

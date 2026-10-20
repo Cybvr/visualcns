@@ -4,6 +4,7 @@ const DASHBOARD_SECTION_TITLES: Record<string, string> = {
   agent: "Agent",
   calendar: "Calendar",
   chats: "All Chats",
+  checkout: "Checkout",
   clients: "Clients",
   companies: "Clients",
   contracts: "Contracts",

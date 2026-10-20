@@ -1,6 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
+import { SectionHeader } from "@/components/dashboard/section-header"
 
 import { AccountHeader } from "@/components/account/account-nav"
 import { useAuth } from "@/components/auth-provider"
@@ -69,7 +70,7 @@ export default function AgentOperationsPage() {
       </section>
 
       <section className="mt-10">
-        <h2 className="text-base font-semibold">Shared memory review</h2>
+        <SectionHeader title="Shared memory review" />
         <div className="mt-4 divide-y divide-border rounded-xl border border-border bg-card">
           {memories.length === 0 && <p className="px-4 py-5 text-sm text-muted-foreground">No memories have been proposed yet.</p>}
           {memories.map((memory) => (

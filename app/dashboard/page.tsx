@@ -2,27 +2,25 @@
 
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { useCallback, useEffect, useMemo, useState } from "react"
-import { Image as ImageIcon, Megaphone, Palette, Receipt } from "lucide-react"
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react"
 
 import { useAuth } from "@/components/auth-provider"
 import { useCampaignShare } from "@/components/dashboard/campaign-grid-card"
 import { DashboardPageSkeleton } from "@/components/dashboard/dashboard-page-skeleton"
-import { GridCard, GridCardList, thumbnailIcon } from "@/components/dashboard/grid-card"
-import { MobileDataCard } from "@/components/dashboard/mobile-data-card"
-import { useViewMode, ViewToggle } from "@/components/dashboard/view-toggle"
+import { SectionHeader } from "@/components/dashboard/section-header"
+import { ThumbnailListItem } from "@/components/dashboard/thumbnail-list-item"
 import { Card, CardContent } from "@/components/ui/card"
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { getCurrentAgencyId } from "@/lib/agency-scope"
-import { formatMoney, getInvoices, invoiceStatusMeta, type Invoice } from "@/lib/billing"
-import { invoiceIsOpen, invoiceIsOverdue } from "@/lib/invoice-reminders"
+import { deleteInvoice, getInvoices, updateInvoice, type Invoice } from "@/lib/billing"
+import { invoiceIsOpen } from "@/lib/invoice-reminders"
 import { watchLeads, type Lead } from "@/lib/leads"
-import { getProjects, projectSlug, type Project } from "@/lib/projects"
+import { deleteProject, getProjects, projectSlug, renameProject, type Project } from "@/lib/projects"
 import { ProjectCover } from "@/components/project-card"
 import { VideoThumbnail } from "@/components/ui/video-thumbnail"
-import { getLatestCampaignPosts, type CampaignCreative } from "@/lib/campaign-creatives"
+import { deleteCampaignCreative, getLatestCampaignPosts, updateCampaignCreative, type CampaignCreative } from "@/lib/campaign-creatives"
 import { postMediaType } from "@/components/dashboard/campaign-creatives"
 import { formatTimestamp, tsToMillis } from "@/lib/tasks"
-import { cn } from "@/lib/utils"
 
 function Metric({ label, value, href }: { label: string; value: number; href: string }) {
   return (
@@ -48,27 +46,24 @@ function invoiceDate(invoice: Invoice) {
   return Math.max(tsToMillis(invoice.updatedAt), tsToMillis(invoice.createdAt))
 }
 
-function invoiceStatus(invoice: Invoice) {
-  return invoiceIsOverdue(invoice) ? "overdue" : invoice.status
+
+/** One of the home page's three columns: a heading, then thumbnail rows. */
+function HomeColumn({ id, title, href, empty, children }: { id: string; title: string; href?: string; empty: string; children: ReactNode[] }) {
+  return (
+    <section aria-labelledby={id} className="min-w-0">
+      <SectionHeader id={id} title={title} href={href} />
+      {children.length === 0 ? (
+        <Card className="mt-4">
+          <CardContent className="py-8 text-center text-sm text-muted-foreground">{empty}</CardContent>
+        </Card>
+      ) : (
+        <div className="mt-4 space-y-2">{children}</div>
+      )}
+    </section>
+  )
 }
 
-function invoiceCard(invoice: Invoice, open: (href: string) => void) {
-  const status = invoiceStatus(invoice)
-  const title = invoiceTitle(invoice)
-  const href = `/dashboard/invoices?invoice=${encodeURIComponent(invoice.id)}`
-  // The same card as every other list. With no picture, the thumbnail is just the icon; amount and status are in the list row.
-  return {
-    title,
-    icon: <Receipt className={cn("size-4", status === "overdue" ? "text-destructive" : "text-emerald-600 dark:text-emerald-400")} aria-hidden="true" />,
-    placeholder: thumbnailIcon(Receipt),
-    menuLabel: `Options for ${title}`,
-    actions: { noun: "invoice", name: title, onOpen: () => open(href) },
-    href,
-    ariaLabel: `Open ${title}`,
-  }
-}
-
-/** Agency home: the useful numbers first, then the invoices that need attention. */
+/** Agency home: the useful numbers first, then the latest campaigns, posts and invoices side by side. */
 export default function DashboardPage() {
   const router = useRouter()
   const share = useCampaignShare()
@@ -81,7 +76,6 @@ export default function DashboardPage() {
   const [leadsLoading, setLeadsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [greeting, setGreeting] = useState("Good morning")
-  const [invoiceView, setInvoiceView] = useViewMode("dashboard-outstanding-invoices", "grid")
 
   const fetchData = useCallback(async () => {
     setError(null)
@@ -102,6 +96,12 @@ export default function DashboardPage() {
     if (!user) return
     void fetchData()
   }, [fetchData, user])
+
+  /** Runs a menu change, then reloads the columns. */
+  async function refreshAfter(change: Promise<void>) {
+    await change
+    await fetchData()
+  }
 
   useEffect(() => {
     setGreeting(greetingForHour(new Date().getHours()))
@@ -152,7 +152,7 @@ export default function DashboardPage() {
     [leads],
   )
   const outstandingInvoices = useMemo(
-    () => invoices.filter(invoiceIsOpen).sort((a, b) => invoiceDate(b) - invoiceDate(a)).slice(0, 3),
+    () => invoices.filter(invoiceIsOpen).sort((a, b) => invoiceDate(b) - invoiceDate(a)).slice(0, 4),
     [invoices],
   )
   const outstandingInvoiceCount = useMemo(() => invoices.filter(invoiceIsOpen).length, [invoices])
@@ -186,111 +186,92 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      {latestCampaigns.length > 0 && (
-        <section aria-labelledby="latest-campaigns-heading" className="mt-8">
-          <div className="flex items-center justify-between gap-3">
-            <h2 id="latest-campaigns-heading" className="text-lg font-semibold tracking-tight text-foreground">Latest campaigns</h2>
-            <Link href="/dashboard/projects" className="shrink-0 text-sm font-medium text-foreground underline-offset-4 hover:underline">View all</Link>
-          </div>
-          <div className="mt-4">
-            <GridCardList>
-              {latestCampaigns.map((project) => {
-                const href = `/dashboard/projects/${encodeURIComponent(projectSlug(project))}`
-                return (
-                  <GridCard
-                    key={project.id}
-                    title={project.title || "Untitled campaign"}
-                    icon={<Megaphone className="size-4 text-amber-600 dark:text-amber-400" aria-hidden="true" />}
-                    preview={<ProjectCover project={project} />}
-                    href={href}
-                    ariaLabel={`Open ${project.title || "campaign"}`}
-                    menuLabel={`Options for ${project.title || "campaign"}`}
-                    actions={{ noun: "campaign", name: project.title || "Untitled campaign", onOpen: () => router.push(href), extra: share.shareItem(project) }}
-                  />
-                )
-              })}
-            </GridCardList>
-          </div>
-        </section>
-      )}
+      <div className="mt-8 grid gap-8 lg:grid-cols-3 lg:gap-6">
+        <HomeColumn id="latest-campaigns-heading" title="Latest campaigns" href="/dashboard/projects" empty="No campaigns yet.">
+          {latestCampaigns.map((project) => {
+            const href = `/dashboard/projects/${encodeURIComponent(projectSlug(project))}`
+            const title = project.title || "Untitled campaign"
+            return (
+              <ThumbnailListItem
+                key={project.id}
+                size="sm"
+                title={title}
+                subtitle={formatTimestamp(project.updatedAt ?? project.createdAt)}
+                preview={<ProjectCover project={project} />}
+                href={href}
+                ariaLabel={`Open ${title}`}
+                menuLabel={`Options for ${title}`}
+                actions={{
+                  noun: "campaign",
+                  name: title,
+                  onRename: (next) => refreshAfter(renameProject(project.id, next)),
+                  extra: share.shareItem(project),
+                  onDelete: () => refreshAfter(deleteProject(project.id)),
+                  deleteMessage: `This permanently deletes "${title}". Tasks under it are not deleted automatically. This cannot be undone.`,
+                }}
+              />
+            )
+          })}
+        </HomeColumn>
 
-      {latestPosts.length > 0 && (
-        <section aria-labelledby="latest-posts-heading" className="mt-8">
-          <h2 id="latest-posts-heading" className="text-lg font-semibold tracking-tight text-foreground">Latest posts</h2>
-          <div className="mt-4">
-            <GridCardList>
-              {latestPosts.map((post) => {
-                const project = projects.find((item) => item.id === post.projectId)
-                // Opens the post in its campaign's Content tab.
-                const href = project ? `/dashboard/projects/${encodeURIComponent(projectSlug(project))}?view=content&post=${encodeURIComponent(post.id)}` : undefined
-                const title = post.title || "Post"
-                return (
-                  <GridCard
-                    key={post.id}
-                    title={title}
-                    icon={<Palette className="size-4 text-muted-foreground" aria-hidden="true" />}
-                    preview={post.mediaUrl ? (
-                      postMediaType(post) === "video"
-                        ? <VideoThumbnail src={post.mediaUrl} />
-                        // eslint-disable-next-line @next/next/no-img-element
-                        : <img src={post.mediaUrl} alt="" loading="lazy" className="size-full object-cover" />
-                    ) : undefined}
-                    placeholder={thumbnailIcon(ImageIcon)}
-                    href={href}
-                    ariaLabel={`Open ${title}`}
-                    menuLabel={href ? `Options for ${title}` : undefined}
-                    actions={href ? { noun: "post", name: title, onOpen: () => router.push(href) } : undefined}
-                  />
-                )
-              })}
-            </GridCardList>
-          </div>
-        </section>
-      )}
+        <HomeColumn id="latest-posts-heading" title="Latest posts" empty="No posts yet.">
+          {latestPosts.map((post) => {
+            const project = projects.find((item) => item.id === post.projectId)
+            // Opens the post in its campaign's Content tab.
+            const href = project ? `/dashboard/projects/${encodeURIComponent(projectSlug(project))}?view=content&post=${encodeURIComponent(post.id)}` : undefined
+            const title = post.title || "Post"
+            return (
+              <ThumbnailListItem
+                key={post.id}
+                size="sm"
+                title={title}
+                subtitle={formatTimestamp(post.updatedAt ?? post.createdAt)}
+                preview={post.mediaUrl ? (
+                  postMediaType(post) === "video"
+                    ? <VideoThumbnail src={post.mediaUrl} />
+                    // eslint-disable-next-line @next/next/no-img-element
+                    : <img src={post.mediaUrl} alt="" loading="lazy" className="size-full object-cover" />
+                ) : undefined}
+                href={href}
+                ariaLabel={`Open ${title}`}
+                menuLabel={`Options for ${title}`}
+                actions={{
+                  noun: "post",
+                  name: title,
+                  onRename: (next) => refreshAfter(updateCampaignCreative(post.id, { title: next })),
+                  onDelete: () => refreshAfter(deleteCampaignCreative(post.id)),
+                }}
+              />
+            )
+          })}
+        </HomeColumn>
 
-      <section aria-labelledby="outstanding-invoices-heading" className="mt-8">
-        <div className="flex items-center justify-between gap-3">
-          <h2 id="outstanding-invoices-heading" className="text-lg font-semibold tracking-tight text-foreground">Outstanding invoices</h2>
-          <ViewToggle view={invoiceView} onChange={setInvoiceView} />
-          <Link href="/dashboard/invoices" className="shrink-0 text-sm font-medium text-foreground underline-offset-4 hover:underline">View all</Link>
-        </div>
-
-        {outstandingInvoices.length === 0 ? (
-          <Card className="mt-4">
-            <CardContent className="py-8 text-center text-sm text-muted-foreground">No outstanding invoices.</CardContent>
-          </Card>
-        ) : invoiceView === "grid" ? (
-          <div className="mt-4">
-            <GridCardList>
-              {outstandingInvoices.map((invoice) => <GridCard key={invoice.id} {...invoiceCard(invoice, (href) => router.push(href))} />)}
-            </GridCardList>
-          </div>
-        ) : (
-          <div className="mt-4">
-            {outstandingInvoices.map((invoice) => {
-              const card = invoiceCard(invoice, (href) => router.push(href))
-              const status = invoiceStatus(invoice)
-              return (
-                <MobileDataCard
-                  key={invoice.id}
-                  surface="list"
-                  variant="inline"
-                  iconShape="circle"
-                  icon={card.icon}
-                  title={card.title}
-                  subtitle={invoice.client || invoice.companyId}
-                  description={`${invoiceStatusMeta[status]?.label ?? invoice.status} · ${formatMoney(invoice.amount, invoice.currency)}`}
-                  trailing={formatTimestamp(invoice.updatedAt ?? invoice.createdAt)}
-                  href={card.href}
-                  ariaLabel={card.ariaLabel}
-                  actions={card.actions}
-                  menuLabel={card.menuLabel}
-                />
-              )
-            })}
-          </div>
-        )}
-      </section>
+        <HomeColumn id="outstanding-invoices-heading" title="Outstanding invoices" href="/dashboard/invoices" empty="No outstanding invoices.">
+          {outstandingInvoices.map((invoice) => {
+            const title = invoiceTitle(invoice)
+            const href = `/dashboard/invoices?invoice=${encodeURIComponent(invoice.id)}`
+            return (
+              <ThumbnailListItem
+                key={invoice.id}
+                size="sm"
+                title={title}
+                subtitle={formatTimestamp(invoice.updatedAt ?? invoice.createdAt)}
+                href={href}
+                ariaLabel={`Open ${title}`}
+                menuLabel={`Options for ${title}`}
+                actions={{
+                  noun: "invoice",
+                  name: title,
+                  onRename: (next) => refreshAfter(updateInvoice(invoice.id, { title: next })),
+                  extra: <DropdownMenuItem onSelect={() => router.push(`/dashboard/invoices/${invoice.id}/edit`)}>Edit invoice</DropdownMenuItem>,
+                  onDelete: () => refreshAfter(deleteInvoice(invoice.id)),
+                  deleteMessage: `${invoice.invoiceNumber || "This invoice"} will be removed for good. This cannot be undone.`,
+                }}
+              />
+            )
+          })}
+        </HomeColumn>
+      </div>
 
       {!loading && !leadsLoading && !error && projects.length === 0 && invoices.length === 0 && !leads?.length && (
         <Card className="mt-8">

@@ -1,7 +1,6 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Image as ImageIcon, Megaphone, Palette, Users } from "lucide-react"
 import { toast } from "sonner"
@@ -12,6 +11,7 @@ import { postMediaType } from "@/components/dashboard/campaign-creatives"
 import { campaignGridCardProps, useCampaignShare } from "@/components/dashboard/campaign-grid-card"
 import { CollectionView } from "@/components/dashboard/collection-view"
 import { GridCard, GridCardList, thumbnailIcon } from "@/components/dashboard/grid-card"
+import { SectionHeader } from "@/components/dashboard/section-header"
 import { deleteProjectWithTasks, duplicateProject, getProject, isProjectArchived, renameProject, setProjectArchived, type Project } from "@/lib/projects"
 import { VideoThumbnail } from "@/components/ui/video-thumbnail"
 import { watchCompanyCampaignCreatives, type CampaignCreative } from "@/lib/campaign-creatives"
@@ -22,15 +22,6 @@ import { tsToMillis } from "@/lib/tasks"
 const PREVIEW_LIMIT = 4
 
 const modified = (item: { updatedAt?: unknown; createdAt?: unknown }) => tsToMillis(item.updatedAt) || tsToMillis(item.createdAt)
-
-function SectionHeader({ id, title, href }: { id: string; title: string; href?: string }) {
-  return (
-    <div className="flex items-center justify-between gap-3">
-      <h2 id={id} className="text-lg font-semibold tracking-tight text-foreground">{title}</h2>
-      {href && <Link href={href} className="shrink-0 text-sm font-medium text-foreground underline-offset-4 hover:underline">View all</Link>}
-    </div>
-  )
-}
 
 /** Home body: the latest campaigns, posts and creators. */
 export function HomeOverview() {

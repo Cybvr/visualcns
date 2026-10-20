@@ -10,7 +10,7 @@ import { toast } from "sonner"
 import { useAuth } from "@/components/auth-provider"
 import { CompanyDocumentView } from "@/components/dashboard/company-document-view"
 import { CompanyDocumentBuilder } from "@/components/dashboard/company-document-builder"
-import { CompactListRow, shortListDate } from "@/components/dashboard/compact-list-row"
+import { CompactListRow } from "@/components/dashboard/compact-list-row"
 import { DocumentSplitPane } from "@/components/dashboard/document-split-pane"
 import { GridCard, thumbnailIcon } from "@/components/dashboard/grid-card"
 import { DuplicateDocumentDialog, type DuplicateSelection } from "@/components/dashboard/duplicate-document-dialog"
@@ -220,8 +220,8 @@ export default function DocumentsPage() {
           renderItem={(row, active) => (
             <CompactListRow
               title={row.title || "Untitled document"}
-              subtitle={`${companyDocumentKindMeta[row.kind]?.label ?? "Document"} · ${formatTimestamp(row.source.updatedAt ?? row.source.createdAt)}`}
-              meta={shortListDate(row.updatedAtMs)}
+              subtitle={companyDocumentKindMeta[row.kind]?.label ?? "Document"}
+              meta={formatTimestamp(row.source.updatedAt ?? row.source.createdAt)}
               mobileSubtitle={[row.source.client || (row.companyId && companyRefFor(row.companyId)), companyDocumentKindMeta[row.kind]?.label ?? "Document", row.statusLabel].filter(Boolean).join(" · ")}
               active={active}
               onClick={() => setSelectedId(row.id)}

@@ -11,10 +11,26 @@ import type { Timestamp } from "firebase/firestore"
 export type PlanKey = "starter" | "business" | "pro"
 export type PlanInterval = "monthly" | "yearly"
 
+/**
+ * The money plans are sold in. Each has its own fixed prices (not a
+ * conversion) and its own payment provider: Naira through Paystack for
+ * Nigeria, US dollars through Stripe for everyone else.
+ */
+export type BillingCurrency = "NGN" | "USD"
+export const BILLING_CURRENCIES: BillingCurrency[] = ["NGN", "USD"]
+export const PAYMENT_PROVIDER: Record<BillingCurrency, "paystack" | "stripe"> = { NGN: "paystack", USD: "stripe" }
+
+/** Which money a visitor from this country (ISO code, e.g. "NG") pays in. */
+export function currencyForCountry(country: string): BillingCurrency {
+  return country.toUpperCase() === "NG" ? "NGN" : "USD"
+}
+
 export type Plan = {
   name: string
   monthlyNaira: number
   yearlyNaira: number
+  monthlyUsd: number
+  yearlyUsd: number
   /** Pass staff: the people visitors can pick, who get arrival emails. */
   staff: number
   /** Pulse scans a month. Infinity means no limit. */
@@ -28,6 +44,8 @@ export const PLANS: Record<PlanKey, Plan> = {
     name: "Starter",
     monthlyNaira: 25000,
     yearlyNaira: 250000,
+    monthlyUsd: 19,
+    yearlyUsd: 190,
     staff: 5,
     pulseScans: 1,
     summary: "For a small office getting set up.",
@@ -37,6 +55,8 @@ export const PLANS: Record<PlanKey, Plan> = {
     name: "Business",
     monthlyNaira: 50000,
     yearlyNaira: 500000,
+    monthlyUsd: 39,
+    yearlyUsd: 390,
     staff: 25,
     pulseScans: 4,
     summary: "For a growing team with a busy front desk.",
@@ -46,6 +66,8 @@ export const PLANS: Record<PlanKey, Plan> = {
     name: "Pro",
     monthlyNaira: 200000,
     yearlyNaira: 2000000,
+    monthlyUsd: 149,
+    yearlyUsd: 1490,
     staff: Infinity,
     pulseScans: Infinity,
     summary: "For larger companies that want everything.",
@@ -63,11 +85,18 @@ export function isPlanInterval(value: unknown): value is PlanInterval {
   return value === "monthly" || value === "yearly"
 }
 
-export function planPrice(key: PlanKey, interval: PlanInterval) {
-  return interval === "yearly" ? PLANS[key].yearlyNaira : PLANS[key].monthlyNaira
+/** A plan's price in whole units of the currency (naira or dollars). Paystack and the server use Naira, the default. */
+export function planPrice(key: PlanKey, interval: PlanInterval, currency: BillingCurrency = "NGN") {
+  const plan = PLANS[key]
+  if (currency === "USD") return interval === "yearly" ? plan.yearlyUsd : plan.monthlyUsd
+  return interval === "yearly" ? plan.yearlyNaira : plan.monthlyNaira
 }
 
 export const naira = (amount: number) => `₦${amount.toLocaleString("en-NG")}`
+
+export function billingMoney(amount: number, currency: BillingCurrency) {
+  return currency === "USD" ? `$${amount.toLocaleString("en-US")}` : naira(amount)
+}
 
 export function staffLabel(staff: number) {
   return Number.isFinite(staff) ? `Up to ${staff} staff` : "Unlimited staff"

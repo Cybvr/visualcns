@@ -10,11 +10,9 @@ import {
   useCompanyPage,
   type CompanyPageData,
 } from "@/components/company/company-page-context"
-import { HeaderTeam } from "@/components/company/header-team"
 import { SectionNav } from "@/components/company/section-nav"
 import { useSidebarTakeover } from "@/components/company/sidebar-takeover"
 import { CompanySection } from "@/components/company/sections/company-section"
-import { ShareDialog } from "@/components/dashboard/share-dialog"
 import { useClientOpen, usePageHeaderActions, usePageHeaderBack, usePageHeaderTitle } from "@/components/dashboard/page-title-context"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { buildEmailComposeHref } from "@/lib/email-composer"
@@ -35,7 +33,7 @@ function usePhone() {
 export type { CompanyPageAdmin, CompanyPageCompany, CompanyPagePerson } from "@/components/company/company-page-context"
 
 function DashboardCompanyView({ embedded = false, onBack }: { embedded?: boolean; onBack?: () => void }) {
-  const { company, people, admin, sections, section, sectionHref, absoluteUrl, projects, updateParams } = useCompanyPage()
+  const { company, people, admin, sections, section, sectionHref, projects, updateParams } = useCompanyPage()
   const searchParams = useSearchParams()
 
   // On phones an open campaign takes the whole pane: the client's tabs hide and the
@@ -60,6 +58,7 @@ function DashboardCompanyView({ embedded = false, onBack }: { embedded?: boolean
   const router = useRouter()
   const inSidebar = useSidebarTakeover({
     title: company.name,
+    titleHref: `/${encodeURIComponent(company.slug || company.id)}`,
     backLabel: "Clients",
     onBack: () => (latest.current.onBack ? latest.current.onBack() : router.push("/dashboard/clients")),
     items: sections.map((item) => ({ key: item.key, label: item.label, icon: item.icon ?? Building2 })),
@@ -70,39 +69,16 @@ function DashboardCompanyView({ embedded = false, onBack }: { embedded?: boolean
 
   const primaryContact = people.find((person) => person.adminUser?.uid === company.primaryContactId)
     || people.find((person) => person.adminUser?.email)
-  // `admin` and the people are rebuilt on every render, so the header actions
-  // depend on these plain values instead. Depending on the objects made a new
-  // header each render, which re-rendered the page, in a loop.
+  // `admin` is rebuilt on every render, so the header actions depend on its
+  // share path instead. Depending on the object caused a render loop.
   const sharePath = admin?.sharePath
   const recipientEmail = primaryContact?.adminUser?.email
   const recipientName = primaryContact?.adminUser?.displayName || primaryContact?.name
 
-  const shareUrl = sharePath ? absoluteUrl(sharePath) : ""
-  const campaignSharePath = campaignId
-    ? `/${encodeURIComponent(company.slug || company.id)}/projects?campaign=${encodeURIComponent(campaignId)}`
-    : ""
-  const teamKey = JSON.stringify(people.map((person) => ({ id: person.id, name: person.name, email: person.email, photoUrl: person.photoUrl })))
-  const canManageTeam = Boolean(admin)
-
   const headerActions = useMemo(() => {
-    if (campaignId && campaignTitle && campaignSharePath) {
-      return (
-        <ShareDialog
-          path={campaignSharePath}
-          title={`Share ${campaignTitle}`}
-          shareText={`See the ${campaignTitle} campaign`}
-        />
-      )
-    }
     if (!sharePath) return null
     return (
       <div className="flex items-center gap-2">
-        <HeaderTeam
-          company={{ id: company.id, name: company.name }}
-          people={JSON.parse(teamKey)}
-          canManageTeam={canManageTeam}
-          shareUrl={shareUrl}
-        />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button
@@ -138,7 +114,7 @@ function DashboardCompanyView({ embedded = false, onBack }: { embedded?: boolean
         </DropdownMenu>
       </div>
     )
-  }, [campaignId, campaignSharePath, campaignTitle, sharePath, shareUrl, teamKey, canManageTeam, company.id, company.name, recipientEmail, recipientName])
+  }, [sharePath, company.id, company.name, recipientEmail, recipientName])
 
   usePageHeaderActions(headerActions)
   useClientOpen(Boolean(sharePath))

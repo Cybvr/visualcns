@@ -1,6 +1,7 @@
 "use client"
 
 import { useMemo, useState } from "react"
+import { SectionHeader } from "@/components/dashboard/section-header"
 import { User as UserIcon } from "lucide-react"
 import { toast } from "sonner"
 
@@ -71,13 +72,9 @@ export function TeamSection() {
 
   return (
     <div className="mt-5">
-      <div className="flex items-center justify-between gap-4">
-        <h2 className="sr-only">Team</h2>
-        <span className="sidebar-nav-label text-muted-foreground">
-          Team members{teamSeats.info ? (teamSeats.info.limit === null ? ` · ${teamSeats.info.seats} seats` : ` · ${teamSeats.info.seats} of ${teamSeats.info.limit} seats`) : ""}
-        </span>
+      <SectionHeader title={`Team members${teamSeats.info ? (teamSeats.info.limit === null ? ` · ${teamSeats.info.seats} seats` : ` · ${teamSeats.info.seats} of ${teamSeats.info.limit} seats`) : ""}`}>
         {admin && <SectionAddButton label="Add team members" onClick={openDialog} />}
-      </div>
+      </SectionHeader>
       {canManageTeam && teamSeats.info && (
         <TeamInvitePanel info={teamSeats.info} call={teamSeats.call} onChange={() => void teamSeats.reload()} />
       )}

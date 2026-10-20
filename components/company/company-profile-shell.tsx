@@ -4,7 +4,7 @@ import { useCallback, useMemo, useState, type ComponentProps, type ReactNode } f
 import Image from "next/image"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { LogIn, Search, Sparkles } from "lucide-react"
+import { LogIn, Search } from "lucide-react"
 
 import { useAuth } from "@/components/auth-provider"
 import { BrandLockup } from "@/components/brand-lockup"
@@ -12,11 +12,10 @@ import { useCompanyPage } from "@/components/company/company-page-context"
 import { NgaiWidget } from "@/components/company/ngai-widget"
 import { ItemActionsProvider } from "@/components/dashboard/item-menu"
 import { SidebarTakeoverMenu, SidebarTakeoverProvider } from "@/components/company/sidebar-takeover"
-import { AppSwitcher } from "@/components/dashboard/app-switcher"
-import { useSubscription } from "@/components/company/company-plan"
-import { UpgradeModal } from "@/components/company/upgrade-modal"
-import { HeaderTeam } from "@/components/company/header-team"
-import { useTeamSeats } from "@/components/company/team-seats"
+import { CartButton } from "@/components/dashboard/cart-button"
+import { NotificationsButton } from "@/components/dashboard/notifications-button"
+import { buildActivity, type ActivityItem } from "@/lib/activity"
+import { UpgradeCard } from "@/components/company/upgrade-card"
 import { NavUser } from "@/components/nav-user"
 import { GlobalSearchDialog, useSearchHotkey, type SearchResult } from "@/components/search/global-search"
 import { Button } from "@/components/ui/button"
@@ -76,39 +75,13 @@ function CompanyIdentity() {
   )
 }
 
-/** Opens the plans in a modal for the people who manage the team. */
-function UpgradeNavItem() {
-  const { company, canManageTeam } = useCompanyPage()
-  const { setOpenMobile } = useSidebar()
-  const billing = useSubscription(company.id)
-  const teamSeats = useTeamSeats(company.id, canManageTeam)
-  const [open, setOpen] = useState(false)
-
-  if (!canManageTeam) return null
-
-  return (
-    <SidebarMenuItem>
-      <SidebarMenuButton
-        type="button"
-        tooltip="Upgrade"
-        onClick={() => { setOpenMobile(false); setOpen(true) }}
-        className="h-9 gap-2 px-2 max-md:h-12 max-md:min-h-12 max-md:gap-3 max-md:px-3 [&>svg]:size-[18px] [&>svg]:max-md:size-5"
-      >
-        <Sparkles className="h-4 w-4" aria-hidden="true" />
-        <span className="sidebar-nav-label">Upgrade</span>
-      </SidebarMenuButton>
-      <UpgradeModal open={open} onOpenChange={setOpen} companyId={company.id} companyName={company.name} billing={billing} seats={teamSeats.info?.seats ?? null} />
-    </SidebarMenuItem>
-  )
-}
-
 /** The dashboard's account menu when signed in, a sign-in button for visitors. */
 function SidebarAccount({ header = false }: { header?: boolean }) {
   const { company } = useCompanyPage()
   const { user } = useAuth()
 
   // On a company page, My Account opens that company's own account page rather than the dashboard's.
-  if (user) return <NavUser variant={header ? "header" : "sidebar"} accountLabel="My Account" accountHref={`/${encodeURIComponent(company.slug || company.id)}/settings`} />
+  if (user) return <NavUser variant={header ? "header" : "sidebar"} accountLabel="My Account" accountHref={`/${encodeURIComponent(company.slug || company.id)}/settings/account`} />
   if (!company.slug) return null
   return (
     <Button asChild className={header ? "h-9" : "w-full group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:p-0"}>
@@ -127,11 +100,24 @@ function SidebarAccount({ header = false }: { header?: boolean }) {
  * card on the tinted background and the page header inside the card.
  */
 export function CompanyProfileShell({ children }: { children: ReactNode }) {
-  const { company, people, canManageTeam, absoluteUrl, sections, section, sectionHref, projects, invoices, contracts, estimates, documents, recordOpen } = useCompanyPage()
+  const { company, sections, section, sectionHref, projects, tasks, invoices, contracts, estimates, documents, recordOpen } = useCompanyPage()
+  const { user } = useAuth()
   const pathname = usePathname()
-  const isSettingsPage = pathname.split("/").filter(Boolean)[1] === "settings"
+  const pageSegment = pathname.split("/").filter(Boolean)[1]
+  const settingsSubpage = pathname.split("/").filter(Boolean)[2]
+  const isSettingsPage = pageSegment === "settings"
+  const isCheckoutPage = pageSegment === "checkout"
   const sectionLabel = sections.find((item) => item.key === section)?.label
-  const pageLabel = isSettingsPage ? "Account" : sectionLabel
+  const settingsPageLabel = settingsSubpage === "account" ? "Account" : settingsSubpage === "social" ? "Social" : settingsSubpage === "reports" ? "Reports" : settingsSubpage === "analytics" ? "Analytics" : "General"
+  const pageLabel = isSettingsPage ? settingsPageLabel : isCheckoutPage ? "Checkout" : sectionLabel
+  const companyPath = `/${encodeURIComponent(company.slug || company.id)}`
+  const activity = useMemo(() => buildActivity({ projects, tasks, invoices, estimates, contracts, documents }, 20), [projects, tasks, invoices, estimates, contracts, documents])
+  const activityHref = useCallback((item: ActivityItem) => {
+    if (item.kind === "task") return sectionHref("projects", { task: item.refId })
+    if (item.kind === "project") return sectionHref("projects")
+    if (item.kind === "file") return undefined
+    return sectionHref("documents", { doc: `${item.kind}:${item.refId}` })
+  }, [sectionHref])
   const overdueInvoiceCount = invoices.filter((invoice) => invoiceIsOverdue(invoice)).length
   const [searchOpen, setSearchOpen] = useState(false)
   const openSearch = useCallback(() => setSearchOpen(true), [])
@@ -148,11 +134,12 @@ export function CompanyProfileShell({ children }: { children: ReactNode }) {
   ], [sections, projects, documents, invoices, estimates, contracts])
 
   type SectionItem = (typeof sections)[number]
-  const sidebarSections = sections.filter((item) => item.key !== "activity")
+  // Reports and Analytics live under Settings, so they leave the main menu.
+  const sidebarSections = sections.filter((item) => !["activity", "pulse", "analytics"].includes(item.key))
 
   function renderItem(item: SectionItem) {
     const Icon = item.icon
-    const isActive = !isSettingsPage && section === item.key
+    const isActive = !isSettingsPage && !isCheckoutPage && section === item.key
     return (
       <SidebarMenuItem key={item.key}>
         <SidebarMenuButton
@@ -190,7 +177,7 @@ export function CompanyProfileShell({ children }: { children: ReactNode }) {
   return (
     <SidebarTakeoverProvider>
     <ItemActionsProvider>
-    <div className="dashboard-body flex h-svh flex-col overflow-hidden bg-background font-sans [&_*]:font-sans">
+    <div className="dashboard-body flex h-svh flex-col overflow-hidden bg-background font-dashboard [&_*]:font-dashboard">
       <SidebarProvider className="!min-h-0 flex-1">
         <Sidebar collapsible="icon" className="dashboard-sidebar bg-sidebar text-foreground group-data-[side=left]:!border-r-0 print:hidden">
           <div className="flex min-h-0 flex-1 flex-col overflow-hidden text-foreground">
@@ -205,10 +192,11 @@ export function CompanyProfileShell({ children }: { children: ReactNode }) {
             <SidebarContent>
               <SidebarGroup className="group-data-[collapsible=icon]:p-1">
                 <SidebarMenu className="gap-0.5 max-md:gap-1.5">
-                  <SidebarTakeoverMenu sections={<>{sidebarSections.map(renderItem)}<UpgradeNavItem /></>} />
+                  <SidebarTakeoverMenu sections={<>{sidebarSections.map(renderItem)}</>} />
                 </SidebarMenu>
               </SidebarGroup>
             </SidebarContent>
+            <UpgradeCard />
           </div>
           <SidebarRail />
         </Sidebar>
@@ -235,13 +223,12 @@ export function CompanyProfileShell({ children }: { children: ReactNode }) {
               <Button type="button" variant="ghost" size="icon" className="rounded-full text-foreground hover:bg-muted/50 active:bg-muted/50 md:hidden" aria-label={`Search ${company.name}`} onClick={openSearch}>
                 <Search className="size-[18px]" aria-hidden="true" />
               </Button>
-              <HeaderTeam
-                company={company}
-                people={people}
-                canManageTeam={canManageTeam}
-                shareUrl={absoluteUrl(`/${encodeURIComponent(company.slug || company.id)}`)}
-              />
-              <AppSwitcher />
+              {user && (
+                <>
+                  <CartButton checkoutHref={`${companyPath}/checkout`} />
+                  <NotificationsButton activity={activity} hrefFor={activityHref} viewAllHref={`${companyPath}/notifications`} />
+                </>
+              )}
               <SidebarAccount header />
             </div>
           </header>
@@ -253,7 +240,7 @@ export function CompanyProfileShell({ children }: { children: ReactNode }) {
               section === "ngai" ? "pb-1 md:pb-1" : "pb-16 md:pb-6 has-[[data-ngai-page]]:pb-1 md:has-[[data-ngai-page]]:pb-1",
               recordOpen ? "pt-0 sm:pt-0" : "pt-1 sm:pt-6",
             )}>
-              {(isSettingsPage || section !== "about") && pageLabel && !recordOpen && (
+              {(isSettingsPage || isCheckoutPage || section !== "about") && pageLabel && !recordOpen && (
                 <div className="mb-0.5 flex items-center justify-between gap-3">
                   <h2 className="surface-record-title min-w-0 truncate max-md:hidden">{pageLabel}</h2>
                   {/* Pages portal their own action buttons here, opposite the title. */}

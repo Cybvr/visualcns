@@ -7,6 +7,7 @@ import { ClipboardList, FileSignature, FileText, FolderOpen, ListTodo, Paperclip
 import type { ActivityItem, ActivityKind } from "@/lib/activity"
 import { collectionDate } from "@/components/dashboard/collection-view"
 import { MobileDataCard } from "@/components/dashboard/mobile-data-card"
+import { SectionHeader } from "@/components/dashboard/section-header"
 import { cn } from "@/lib/utils"
 
 const KIND_ICON: Record<ActivityKind, ComponentType<{ className?: string }>> = {
@@ -58,10 +59,7 @@ export function ActivityFeed({
     return (
       <section className={className}>
         {showHeader && (
-          <h2 className="mb-4 flex items-center gap-2 text-sm font-semibold">
-            {title}
-            {items.length > 0 && <span className="font-normal tabular-nums text-muted-foreground">{items.length}</span>}
-          </h2>
+          <SectionHeader className="mb-4" title={<>{title}{items.length > 0 && <span className="ml-2 font-normal tabular-nums text-muted-foreground">{items.length}</span>}</>} />
         )}
         {items.length ? items.map((item) => {
           const Icon = KIND_ICON[item.kind]
@@ -92,10 +90,7 @@ export function ActivityFeed({
   return (
     <section className={cn("sm:rounded-lg sm:bg-card sm:p-5", className)}>
       {showHeader && (
-        <h2 className="mb-4 flex items-center gap-2 text-sm font-semibold">
-          {title}
-          {items.length > 0 && <span className="font-normal tabular-nums text-muted-foreground">{items.length}</span>}
-        </h2>
+        <SectionHeader className="mb-4" title={<>{title}{items.length > 0 && <span className="ml-2 font-normal tabular-nums text-muted-foreground">{items.length}</span>}</>} />
       )}
       {items.length ? (
         <>

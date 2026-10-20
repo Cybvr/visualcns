@@ -4,33 +4,23 @@ import { ItemActionsProvider } from "@/components/dashboard/item-menu"
 import { SidebarTakeoverProvider, useSidebarTakeoverState } from "@/components/company/sidebar-takeover"
 import { useNavCounts } from "@/components/dashboard/use-nav-counts"
 import dynamic from "next/dynamic"
-import { useEffect, useState, type FormEvent, type ReactNode } from "react"
+import { useEffect, useState, type ReactNode } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { ArrowLeft, Briefcase, Building2, FileText, Home, ListTodo, Plus, Receipt, ScrollText, Search, Users, X } from "lucide-react"
+import { ArrowLeft, Building2, Home, Receipt, Search, X } from "lucide-react"
 import { FiMail, FiUser } from "react-icons/fi"
 
 import { useAgent } from "@/components/agent/agent-context"
 import { AppSidebar, type NavLink } from "@/components/app-sidebar"
 import { MobileFooterNav, type MobileFooterNavItem } from "@/components/mobile-footer-nav"
 import { useDashboardSearch } from "@/components/dashboard/sidebar-search"
-import { DashboardHeaderTeam } from "@/components/dashboard/dashboard-header-team"
 import { NavUser } from "@/components/nav-user"
 import { GlobalSearchDialog } from "@/components/search/global-search"
 import { useUnreadEmailCount } from "@/components/dashboard/email/use-unread-email-count"
-import { NewDocumentDialog } from "@/components/dashboard/new-document-dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import { dashboardPageTitle } from "@/lib/page-titles"
 import { usePageHeaderOverride } from "@/components/dashboard/page-title-context"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
 import { Separator } from "@/components/ui/separator"
 import {
   SidebarInset,
@@ -39,47 +29,14 @@ import {
 } from "@/components/ui/sidebar"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/components/auth-provider"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 
 import { AppSwitcher } from "@/components/dashboard/app-switcher"
+import { CartButton } from "@/components/dashboard/cart-button"
+import { NotificationsButton } from "@/components/dashboard/notifications-button"
 
 const NgaiSidePanel = dynamic(() => import("@/components/agent/ngai-side-panel").then((module) => module.NgaiSidePanel), { ssr: false })
 
 export type { NavLink }
-
-const QUICK_CREATE_LINKS = [
-  { label: "Client", href: "/dashboard/clients", icon: Building2 },
-  { label: "New Contact", href: "/dashboard/users", icon: Users },
-  { label: "Project", href: "/dashboard/projects", icon: Briefcase },
-  { label: "Task", href: "/dashboard/tasks", icon: ListTodo },
-  { label: "Invoice", href: "/dashboard/invoices/new", icon: Receipt },
-  { label: "Estimate", href: "/dashboard/estimates/new", icon: FileText },
-  { label: "Contract", href: "/dashboard/contracts/new", icon: ScrollText },
-  // Documents use their full template/company selection flow from the header.
-  { label: "Document", href: "/dashboard/documents", icon: FileText },
-] as const
-
-/** The "create new…" dropdown, opened from the header's Plus button. */
-function QuickCreateMenu({ trigger, onSelect }: { trigger: ReactNode; onSelect: (label: string) => void }) {
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>{trigger}</DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="dashboard-body">
-        {QUICK_CREATE_LINKS.map(({ label, icon: Icon }) => (
-          <DropdownMenuItem key={label} onSelect={() => onSelect(label)}>
-            <Icon aria-hidden="true" />
-            <span>{label}</span>
-          </DropdownMenuItem>
-        ))}
-      </DropdownMenuContent>
-    </DropdownMenu>
-  )
-}
 
 /** Bottom tab bar for mobile. Must render inside SidebarProvider. */
 function DashboardMobileFooterNav({ unreadEmailCount }: { unreadEmailCount: number }) {
@@ -128,7 +85,7 @@ export function DashboardShell({
   const isProjectDetailRoute = /^\/dashboard\/projects\/[^/]+$/.test(pathname ?? "")
   const isTaskDetailRoute = /^\/dashboard\/tasks\/[^/]+$/.test(pathname ?? "")
   const isBackDetailRoute = isProjectDetailRoute || isTaskDetailRoute
-  const isCompanyDetailRoute = /^\/dashboard\/(?:companies|clients)\/[^/]+$/.test(pathname ?? "")
+  const isCompanyDetailRoute = /^\/dashboard\/(?:companies|clients)\/[^/]+(?:\/|$)/.test(pathname ?? "")
   // The dashboard home is Ngai too, so it gets the same full-height chat layout.
   const isAgentRoute = /^\/dashboard\/agent(?:\/[^/]+)?$/.test(pathname ?? "")
   const isEmailRoute = pathname === "/dashboard/email"
@@ -140,41 +97,15 @@ export function DashboardShell({
   const navCounts = useNavCounts()
   const { override: titleOverride, titleNode, headerSearch, actions: headerActions, replacesMobileDefaults, setHeaderSlot, hideMobileFooter, backAction, clientOpen } = usePageHeaderOverride()
   const { open: searchOpen, setOpen: setSearchOpen, openSearch, results: searchResults, loading: searchLoading } = useDashboardSearch()
-  const [createItem, setCreateItem] = useState<(typeof QUICK_CREATE_LINKS)[number] | null>(null)
-  const [createName, setCreateName] = useState("")
-  const [documentCreateOpen, setDocumentCreateOpen] = useState(false)
 
   useEffect(() => {
     setSidebarOpen(!isDocumentRoute)
   }, [isDocumentRoute])
 
-  function closeCreateModal() {
-    setCreateItem(null)
-    setCreateName("")
-  }
-
-  function selectQuickCreate(label: string) {
-    if (label === "Document") {
-      setDocumentCreateOpen(true)
-      return
-    }
-    setCreateName("")
-    setCreateItem(QUICK_CREATE_LINKS.find((item) => item.label === label) ?? null)
-  }
-
-  function createFromHeader(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    if (!createItem) return
-    const query = createName.trim() ? `?name=${encodeURIComponent(createName.trim())}` : ""
-    const destination = `${createItem.href}${query}`
-    closeCreateModal()
-    router.push(destination)
-  }
-
   return (
     // h-svh + overflow-hidden: the shell never grows taller than the viewport,
     // so the body never scrolls. Only SidebarInset (overflow-y-auto) scrolls.
-    <div className="dashboard-body flex h-svh flex-col overflow-hidden bg-background font-sans [&_*]:font-sans">
+    <div className="dashboard-body flex h-svh flex-col overflow-hidden bg-background font-dashboard [&_*]:font-dashboard">
       {banner && <div className="z-50 h-10 shrink-0">{banner}</div>}
       <SidebarTakeoverProvider>
       <ItemActionsProvider>
@@ -272,26 +203,9 @@ export function DashboardShell({
               {!isBackDetailRoute && <Button type="button" variant="ghost" size="icon" aria-label="Search workspace" onClick={openSearch} className={cn("size-10 md:hidden [&_svg]:size-5", replacesMobileDefaults && "max-sm:hidden")}><Search className="size-4" aria-hidden="true" /></Button>}
               <div ref={setHeaderSlot} className="contents" />
               {headerActions}
-              {/* The team control is for the workspace; on a campaign the campaign's own Share is enough. */}
-              {!isCompanyDetailRoute && !clientOpen && !isProjectDetailRoute && <DashboardHeaderTeam />}
-              <AppSwitcher />
-              {!isCompanyDetailRoute && !clientOpen && !isBackDetailRoute && (
-                <QuickCreateMenu
-                  onSelect={selectQuickCreate}
-                  trigger={
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      aria-label="Create new"
-                      title="Create new"
-                      className={cn("rounded-full text-foreground hover:bg-muted/50 active:bg-muted/50", replacesMobileDefaults && "max-sm:hidden")}
-                    >
-                      <Plus className="size-[18px]" aria-hidden="true" />
-                    </Button>
-                  }
-                />
-              )}
+              <CartButton />
+              {!isCompanyDetailRoute && !clientOpen && <AppSwitcher />}
+              <NotificationsButton />
               <NavUser variant="header" />
             </div>
           </header>
@@ -312,41 +226,6 @@ export function DashboardShell({
       </SidebarTakeoverProvider>
 
       <GlobalSearchDialog open={searchOpen} onOpenChange={setSearchOpen} results={searchResults} loading={searchLoading} placeholder="Search companies, projects, documents…" />
-
-      <Dialog
-        open={Boolean(createItem)}
-        onOpenChange={(open) => {
-          if (!open) closeCreateModal()
-        }}
-      >
-        <DialogContent className="max-w-md gap-0 p-0">
-          <DialogHeader className="border-b border-border px-5 py-4">
-            <DialogTitle>Create {createItem?.label ?? "new"}</DialogTitle>
-            <DialogDescription className="sr-only">Add the basics, then continue to the {createItem?.label?.toLowerCase() ?? "new item"} page.</DialogDescription>
-          </DialogHeader>
-          {createItem && (
-            <form onSubmit={createFromHeader} className="space-y-5 p-5">
-              <div className="space-y-2">
-                <Label htmlFor="quick-create-name">{createItem.label} name</Label>
-                <Input
-                  id="quick-create-name"
-                  value={createName}
-                  onChange={(event) => setCreateName(event.target.value)}
-                  placeholder={`Enter a ${createItem.label.toLowerCase()} name`}
-                  autoFocus
-                  required
-                />
-              </div>
-              <div className="flex justify-end gap-2 border-t border-border pt-4">
-                <Button type="button" variant="ghost" onClick={closeCreateModal}>Cancel</Button>
-                <Button type="submit">Create {createItem.label}</Button>
-              </div>
-            </form>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      <NewDocumentDialog open={documentCreateOpen} onOpenChange={setDocumentCreateOpen} />
     </div>
   )
 }

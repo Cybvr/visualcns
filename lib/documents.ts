@@ -30,6 +30,8 @@ export interface SharedDocument {
   createdAt?: Timestamp
   type?: "link" | "image" | "video" | "file" | "doc"
   thumbnailUrl?: string
+  /** Set when a client uploaded it from their company page; they may delete their own uploads. */
+  uploadedBy?: string
 }
 
 export async function uploadFileToStorage(
@@ -54,7 +56,34 @@ export async function uploadFileToStorage(
   })
 }
 
+/** Max size for a file a client uploads from their company page. Keep in step with storage.rules. */
+export const CLIENT_FILE_MAX_BYTES = 20 * 1024 * 1024
+
+/**
+ * Uploads a file a client added from their company page. Any file type, kept
+ * under client-files/{uid}, which storage.rules lets only that person write.
+ */
+export function uploadClientFile(file: File, uid: string, onProgress?: (pct: number) => void): Promise<string> {
+  const storageRef = ref(storage, `client-files/${uid}/${Date.now()}_${file.name}`)
+  return new Promise((resolve, reject) => {
+    const task = uploadBytesResumable(storageRef, file, { contentType: file.type || "application/octet-stream" })
+    task.on(
+      "state_changed",
+      (snap) => onProgress?.(Math.round((snap.bytesTransferred / snap.totalBytes) * 100)),
+      reject,
+      () => getDownloadURL(task.snapshot.ref).then(resolve).catch(reject),
+    )
+  })
+}
+
 const COLLECTION_NAME = "documents"
+
+/** The files filed under one company, newest first, for its company page. */
+export async function getCompanyFiles(agencyId: string, companyId: string): Promise<SharedDocument[]> {
+  const snapshot = await getDocs(query(collection(db, COLLECTION_NAME), where("agencyId", "==", agencyId), where("companyId", "==", companyId)))
+  const docs = snapshot.docs.map((d) => ({ ...(d.data() as object), id: d.id })) as SharedDocument[]
+  return docs.sort((a, b) => (b.createdAt?.toMillis() ?? 0) - (a.createdAt?.toMillis() ?? 0))
+}
 
 /** Every shared document — used by the admin Drive page. */
 export async function getDocuments(): Promise<SharedDocument[]> {

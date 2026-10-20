@@ -114,6 +114,7 @@
 @theme inline {
   /* optional: --font-sans, --font-serif, --font-mono if they are applied in the layout.tsx */
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-dashboard: var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif;
   --font-serif: var(--font-eb-garamond), ui-serif, Georgia, serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
   --font-poppins: var(--font-poppins), ui-sans-serif, system-ui, sans-serif;
@@ -169,7 +170,7 @@
   /* Dashboard and portal surfaces share these semantic typography roles:
      body/nav are muted, while titles and section labels are foreground. */
   .dashboard-body {
-    font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+    font-family: var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif;
     font-size: var(--surface-body-size) !important;
     line-height: var(--surface-body-line-height) !important;
     font-weight: 500 !important;
@@ -790,7 +791,7 @@
   }
 
   .surface-caption {
-    font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif !important;
+    font-family: var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif !important;
     color: var(--muted-foreground) !important;
     font-size: 11px !important;
     line-height: 16px !important;

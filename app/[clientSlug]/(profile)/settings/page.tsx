@@ -3,7 +3,7 @@ import { CompanySettingsLayout } from "@/components/company/company-settings-lay
 
 export default function CompanySettingsPage() {
   return (
-    <CompanySettingsLayout includeProfile={false}>
+    <CompanySettingsLayout>
       <AboutSection singleColumn formStyle />
     </CompanySettingsLayout>
   )

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { FieldValue, Timestamp } from "firebase-admin/firestore"
 
 import { adminServices } from "@/lib/firebase-admin"
+import { applyOrderCharge } from "@/lib/server/orders"
 import { applyCharge, planForCode, saveSubscription, validPaystackSignature } from "@/lib/server/paystack"
 
 export const runtime = "nodejs"
@@ -40,6 +41,8 @@ export async function POST(request: Request) {
       case "charge.success": {
         // The first payment carries our metadata; renewals are handled by invoice.update.
         await applyCharge(db, data as Parameters<typeof applyCharge>[1])
+        // Dashboard checkout orders; each helper ignores the other's charges.
+        await applyOrderCharge(db, data as Parameters<typeof applyOrderCharge>[1])
         break
       }
       case "subscription.create": {

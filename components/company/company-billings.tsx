@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, type ReactNode } from "react"
+import { SectionHeader } from "@/components/dashboard/section-header"
 import { useRouter } from "next/navigation"
 import { CreditCard, MapPin, Plus } from "lucide-react"
 import { toast } from "sonner"
@@ -26,7 +27,7 @@ function BillingCard({ title, children, className }: { title: string; children: 
 function SectionHeading({ title, description }: { title: string; description: string }) {
   return (
     <div>
-      <h2 className="surface-section-label">{title}</h2>
+      <SectionHeader title={title} />
       <p className="surface-body mt-1">{description}</p>
     </div>
   )

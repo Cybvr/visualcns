@@ -1,6 +1,7 @@
 "use client"
 
 import { Link2, Plus } from "lucide-react"
+import { SectionHeader } from "@/components/dashboard/section-header"
 import { useState, type FormEvent } from "react"
 
 import { Button } from "@/components/ui/button"
@@ -53,7 +54,7 @@ export function CompanyLinks({
   return (
     <section className="py-2" aria-labelledby="company-links-heading">
       <div className="flex items-center justify-between gap-3">
-        <h2 id="company-links-heading" className="surface-section-label">Links</h2>
+        <SectionHeader id="company-links-heading" title="Links" />
         {onSave && !adding && (
           <Button type="button" variant="ghost" size="sm" onClick={() => setAdding(true)}>
             <Plus className="size-4" aria-hidden="true" />

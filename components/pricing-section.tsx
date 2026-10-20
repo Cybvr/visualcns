@@ -5,12 +5,14 @@ import Link from "next/link"
 
 import { OfferCard } from "@/components/offer-card"
 import { Button } from "@/components/ui/button"
-import { naira, PLAN_KEYS, PLANS, planPrice, TRIAL_DAYS, type PlanInterval } from "@/lib/subscription"
+import { useLocalCurrency } from "@/components/use-local-currency"
+import { billingMoney, PLAN_KEYS, PLANS, planPrice, TRIAL_DAYS, type PlanInterval } from "@/lib/subscription"
 import { cn } from "@/lib/utils"
 
 /** The three VisualCNS plans, monthly or yearly. Consulting work is on the rate card. */
 export function PricingSection() {
   const [interval, setInterval] = useState<PlanInterval>("monthly")
+  const currency = useLocalCurrency()
 
   return (
     <div className="space-y-10">
@@ -41,7 +43,7 @@ export function PricingSection() {
               badge={key === "business" ? "Most popular" : undefined}
               featured={key === "business"}
               title={plan.name}
-              price={`${naira(planPrice(key, interval))}/${interval === "yearly" ? "yr" : "mo"}`}
+              price={`${billingMoney(planPrice(key, interval, currency), currency)}/${interval === "yearly" ? "yr" : "mo"}`}
               timeline={interval === "yearly" ? "Billed yearly" : "Billed monthly"}
               description={plan.summary}
               features={plan.features}

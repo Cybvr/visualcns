@@ -23,6 +23,7 @@ import { uploadFileToStorage } from "@/lib/documents"
 import { mediaKindForFile } from "@/lib/media"
 import { platformLabel, PUBLISH_LABELS, type SocialAccount, type SocialAccountsInfo } from "@/lib/social"
 import { useSocialAccounts } from "@/lib/social-client"
+import { SocialAccounts } from "@/components/company/social-accounts"
 import { tsToMillis } from "@/lib/tasks"
 import { cn } from "@/lib/utils"
 
@@ -242,6 +243,10 @@ export function SocialOverview() {
       )}
 
       <section aria-label="Posts">
+        {/* Nothing posted and nothing connected: the empty list becomes a prompt to connect. */}
+        {loaded && allPosts.length === 0 && accounts.length === 0 && info?.configured ? (
+          <SocialAccounts companyId={company.id} variant="banner" />
+        ) : (
         <CollectionView
           className=""
           items={allPosts}
@@ -264,6 +269,7 @@ export function SocialOverview() {
           row={(post) => ({ subtitle: subtitle(post), description: statsLine(post) })}
           itemActions={postActions}
         />
+        )}
       </section>
 
       <NewPostDialog open={writing} onOpenChange={setWriting} info={info} accounts={accounts} onSent={reload} />

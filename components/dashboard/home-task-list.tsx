@@ -1,9 +1,9 @@
 "use client"
 
-import Link from "next/link"
 import { useState } from "react"
-import { ArrowUpRight, ListTodo } from "lucide-react"
+import { ListTodo } from "lucide-react"
 
+import { SectionHeader } from "@/components/dashboard/section-header"
 import { TaskEditorSheet } from "@/components/dashboard/task-editor-sheet"
 import { MobileDataCard } from "@/components/dashboard/mobile-data-card"
 import type { Task } from "@/lib/tasks"
@@ -35,18 +35,7 @@ export function HomeTaskList({
 
   return (
     <section className={cn("mt-8 min-w-0", className)} aria-labelledby="home-tasks-heading">
-      <div className="flex items-center justify-between gap-4">
-        <h2 id="home-tasks-heading" className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
-          Tasks
-        </h2>
-        <Link
-          href="/dashboard/tasks"
-          className="inline-flex items-center gap-1.5 text-sm font-medium text-foreground transition-colors hover:text-primary"
-        >
-          View all
-          <ArrowUpRight className="size-4" aria-hidden="true" />
-        </Link>
-      </div>
+      <SectionHeader id="home-tasks-heading" title="Tasks" href="/dashboard/tasks" />
 
       {tasks.length === 0 ? (
         <p className="mt-3 border border-border bg-card px-4 py-5 text-sm text-muted-foreground">

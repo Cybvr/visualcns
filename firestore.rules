@@ -170,9 +170,12 @@ service cloud.firestore {
     match /documents/{id} {
       allow read: if agencyAdmin(resource.data) || owns(resource.data)
         || (signedIn() && request.auth.uid in resource.data.get('sharedWithUserIds', []));
-      allow create: if isAdmin() && sameAgency(request.resource.data);
+      // Clients can add files to their own company page and delete the ones they added.
+      allow create: if (isAdmin() && sameAgency(request.resource.data))
+        || (owns(request.resource.data) && request.resource.data.get('uploadedBy', '') == request.auth.uid);
       allow update: if agencyAdmin(resource.data) && sameAgency(request.resource.data);
-      allow delete: if agencyAdmin(resource.data);
+      allow delete: if agencyAdmin(resource.data)
+        || (owns(resource.data) && resource.data.get('uploadedBy', '') == request.auth.uid);
     }
 
     match /emailMessages/{id} {

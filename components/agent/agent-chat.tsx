@@ -658,7 +658,7 @@ export function AgentChat({
 
   return (
     <div
-      className={cn("dashboard-body agent-chat-root relative flex h-full min-h-0 flex-col md:overflow-hidden font-sans [&_*]:font-sans", compact ? "bg-background" : "agent-surface", className)}
+      className={cn("dashboard-body agent-chat-root relative flex h-full min-h-0 flex-col md:overflow-hidden font-dashboard [&_*]:font-dashboard", compact ? "bg-background" : "agent-surface", className)}
       onDragEnter={allowAttachments ? handleDragEnter : undefined}
       onDragOver={allowAttachments ? handleDragOver : undefined}
       onDragLeave={allowAttachments ? handleDragLeave : undefined}

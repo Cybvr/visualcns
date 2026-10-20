@@ -2,7 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useId, useMemo, useRef, useState, type MouseEvent, type ReactNode } from "react"
 import { usePathname } from "next/navigation"
-import { ChevronLeft, type LucideIcon } from "lucide-react"
+import { ChevronLeft, ExternalLink, type LucideIcon } from "lucide-react"
 
 import { SidebarMenuButton, SidebarMenuItem, useSidebar } from "@/components/ui/sidebar"
 import { cn } from "@/lib/utils"
@@ -11,6 +11,8 @@ import { cn } from "@/lib/utils"
 export type SidebarTakeover = {
   /** The open page's name, under the back link. */
   title: string
+  /** Opens the page's public view in a new tab, from a small icon beside the title. */
+  titleHref?: string
   /** What the back link says, e.g. "Back" or "Campaigns". */
   backLabel: string
   /** Leaves the page. Without it, Back just shows the main menu and the page stays open. */
@@ -75,7 +77,7 @@ export function useSidebarTakeover(takeover: SidebarTakeover | null) {
   const latest = useRef(takeover)
   latest.current = takeover
   const key = takeover
-    ? JSON.stringify([takeover.title, takeover.backLabel, takeover.active, takeover.level ?? 1, takeover.items.map((item) => [item.key, item.label, item.count ?? 0])])
+    ? JSON.stringify([takeover.title, takeover.titleHref ?? "", takeover.backLabel, takeover.active, takeover.level ?? 1, takeover.items.map((item) => [item.key, item.label, item.count ?? 0])])
     : ""
 
   useEffect(() => {
@@ -160,7 +162,14 @@ function TakeoverItems({ takeover, closeMobile, onShowMain }: { takeover: Sideba
           <span className="sidebar-nav-label">{takeover.backLabel}</span>
         </SidebarMenuButton>
       </SidebarMenuItem>
-      <li className="truncate px-2 pb-1 pt-3 text-sm font-semibold text-foreground group-data-[collapsible=icon]:hidden max-md:px-3">{takeover.title}</li>
+      <li className="flex items-center gap-1.5 px-2 pb-1 pt-3 text-sm font-semibold text-foreground group-data-[collapsible=icon]:hidden max-md:px-3">
+        <span className="min-w-0 truncate">{takeover.title}</span>
+        {takeover.titleHref && (
+          <a href={takeover.titleHref} target="_blank" rel="noreferrer" aria-label={`Open ${takeover.title} site`} title="Open client site" className="shrink-0 rounded-sm p-0.5 text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring">
+            <ExternalLink className="size-3.5" aria-hidden="true" />
+          </a>
+        )}
+      </li>
       {takeover.items.map((item) => (
         <SidebarMenuItem key={item.key}>
           <SidebarMenuButton

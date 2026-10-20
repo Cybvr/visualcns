@@ -12,16 +12,17 @@ import { useCompanyPage } from "@/components/company/company-page-context"
 import { CompanyDetails, type CompanyDetailsPatch } from "@/components/company/company-sidebar"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { SectionHeader } from "@/components/dashboard/section-header"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { COMPANY_SIZES } from "@/lib/organizations"
 
-/** A titled block on the Account page, one per link in its side menu (Profile, Social, Team). */
+/** A titled block on the dashboard Account tab. */
 export function SettingsGroup({ id, title, children }: { id: string; title: string; children: ReactNode }) {
   return (
     <section id={id} aria-labelledby={`${id}-title`} className="scroll-mt-6 space-y-6">
-      <h2 id={`${id}-title`} className="text-lg font-semibold tracking-tight text-foreground">{title}</h2>
+      <SectionHeader id={`${id}-title`} title={title} />
       {children}
     </section>
   )
@@ -30,7 +31,7 @@ export function SettingsGroup({ id, title, children }: { id: string; title: stri
 function ProfileCard({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section className="py-2">
-      <h2 className="surface-section-label">{title}</h2>
+      <SectionHeader title={title} />
       <div className="mt-5">{children}</div>
     </section>
   )
@@ -291,8 +292,6 @@ export function AboutSection({ singleColumn = false, formStyle = false }: { sing
         )}
         <div id="company-settings-tags">{tags}</div>
         <div id="company-settings-links">{links}</div>
-        {social && <SettingsGroup id="company-settings-social" title="Social">{social}</SettingsGroup>}
-        <div id="company-settings-bookings">{bookings}</div>
       </div>
     )
   }
@@ -325,4 +324,13 @@ export function AboutSection({ singleColumn = false, formStyle = false }: { sing
       <div className="mt-6 empty:hidden">{bookings}</div>
     </div>
   )
+}
+
+/** Connected accounts live on their own page in the company-site settings. */
+export function CompanySocialSettings() {
+  const { company, canSeeVisitors } = useCompanyPage()
+  const { user } = useAuth()
+
+  if (!user || !canSeeVisitors) return <p className="mt-5 text-sm text-muted-foreground">Sign in with a company account to manage social connections.</p>
+  return <div className="mt-5 w-full max-w-2xl"><SocialAccounts companyId={company.id} /></div>
 }

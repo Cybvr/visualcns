@@ -7,9 +7,11 @@ import { ThemeProvider } from "@/components/theme-provider"
 import { ServiceWorkerRegister } from "@/components/service-worker-register"
 import { Toaster } from "sonner"
 
-import { EB_Garamond, Geist_Mono, Inter, Poppins } from "next/font/google"
+import { DM_Sans, EB_Garamond, Geist_Mono, Inter, Poppins } from "next/font/google"
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" })
+// The dashboard and company pages.
+const dmSans = DM_Sans({ subsets: ["latin"], variable: "--font-dm-sans" })
 const geistMono = Geist_Mono({ subsets: ["latin"], variable: "--font-geist-mono" })
 const ebGaramond = EB_Garamond({ subsets: ["latin"], variable: "--font-eb-garamond" })
 const poppins = Poppins({
@@ -73,7 +75,7 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${inter.variable} ${geistMono.variable} ${ebGaramond.variable} ${poppins.variable}`}
+      className={`${inter.variable} ${dmSans.variable} ${geistMono.variable} ${ebGaramond.variable} ${poppins.variable}`}
     >
       <body className="font-sans antialiased">
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false} disableTransitionOnChange>

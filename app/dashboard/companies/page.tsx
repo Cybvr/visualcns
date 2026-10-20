@@ -7,7 +7,7 @@ import type { Timestamp } from "firebase/firestore"
 
 import { useAuth } from "@/components/auth-provider"
 import { CollectionView } from "@/components/dashboard/collection-view"
-import { CompactListRow, InitialAvatar, shortListDate } from "@/components/dashboard/compact-list-row"
+import { CompactListRow, InitialAvatar } from "@/components/dashboard/compact-list-row"
 import { thumbnailIcon } from "@/components/dashboard/grid-card"
 import type { ItemActions } from "@/components/dashboard/item-menu"
 import { CompanyCreateSheet } from "@/components/dashboard/company-create-sheet"
@@ -266,8 +266,8 @@ export default function CompaniesPage() {
               </>
             )}
             title={row.name}
-            meta={shortListDate(Math.max(tsToMillis(row.updatedAt), tsToMillis(row.createdAt)))}
-            subtitle={`${row.label || projectCountLabel(row)} · ${formatTimestamp(row.updatedAt ?? row.createdAt)}`}
+            meta={formatTimestamp(row.updatedAt ?? row.createdAt)}
+            subtitle={row.label || projectCountLabel(row)}
             mobileSubtitle={[row.label, projectCountLabel(row)].filter(Boolean).join(" · ")}
             href={companyHref(row)}
             ariaLabel={`Open ${row.name}`}

@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { SectionHeader } from "@/components/dashboard/section-header"
 
 import { SocialIcon } from "@/components/company/social-icon"
 import { platformLabel } from "@/lib/social"
@@ -51,7 +52,7 @@ export function SocialAnalytics({ companyId }: { companyId: string }) {
 
   return (
     <section aria-labelledby="social-analytics-title" className="mb-8">
-      <h2 id="social-analytics-title" className="surface-section-label py-2">Social</h2>
+      <SectionHeader id="social-analytics-title" title="Social" className="py-2" />
       <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {data.accounts.map((account) => (
           <div key={account.id} className="rounded-lg border border-border p-4">

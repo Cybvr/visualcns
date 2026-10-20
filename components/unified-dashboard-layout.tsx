@@ -28,7 +28,7 @@ const DASHBOARD_NAV: NavLink[] = [
   // Estimates are a tab on Invoices, and Notes a tab on Documents.
   { label: "Invoices", href: "/dashboard/invoices", icon: Receipt, adminOnly: true, alsoActive: ["/dashboard/estimates"] },
   { label: "Documents", href: "/dashboard/documents", icon: FileText, adminOnly: true, alsoActive: ["/dashboard/notes"] },
-  { label: "Ngai", href: "/dashboard/agent", icon: Bot },
+  { label: "Support", href: "/dashboard/agent", icon: Bot },
 ]
 
 /** Creators sign up by applying to a campaign: they see their campaigns and their account. */
