@@ -46,6 +46,8 @@ export function CollectionView<T>({
   loading = false,
   empty,
   card,
+  gridItem,
+  gridClassName,
   row,
   listItem,
   before,
@@ -81,6 +83,9 @@ export function CollectionView<T>({
   empty: { icon: ComponentType<{ className?: string }>; title: string; description?: string; action?: ReactNode }
   /** The item as a card. Its icon, title, open action and menu are reused for the list row. */
   card: (item: T) => GridCardProps
+  /** Optional tile for this collection's grid; list rows still use `card`. */
+  gridItem?: (item: T) => ReactNode
+  gridClassName?: string
   /** Extra text for the list row. Falls back to the card's subtitle. */
   row?: (item: T) => CollectionRow
   /** Optional complete list-row renderer for collections that need a richer compact layout. */
@@ -151,8 +156,8 @@ export function CollectionView<T>({
       ) : results.length === 0 && !(view === "grid" && cardsAfter && hasExtraCards) ? (
         <p className="px-3 py-8 text-center text-sm text-muted-foreground">Nothing matches your search.</p>
       ) : view === "grid" ? (
-        <GridCardList>
-          {results.map((item) => <GridCard key={getKey(item)} {...cardFor(item)} />)}
+        <GridCardList className={gridClassName}>
+          {results.map((item) => <Fragment key={getKey(item)}>{gridItem ? gridItem(item) : <GridCard {...cardFor(item)} />}</Fragment>)}
           {cardsAfter?.(query)}
         </GridCardList>
       ) : listStyle === "thumbnail" ? (

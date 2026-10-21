@@ -205,6 +205,24 @@ export function CampaignCreatives({ creatives, agencyId, companyId, projectId, c
           onSearch={setPostQuery}
           searchPlaceholder="Search content"
           viewKey="campaign-content"
+          gridClassName="lg:grid-cols-3"
+          gridItem={(post) => (
+            <button
+              type="button"
+              onClick={() => openPost(post)}
+              aria-label={`Preview ${post.title || "post"}`}
+              className="aspect-square w-full overflow-hidden rounded-xl bg-muted outline-none transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              {post.mediaUrl ? (
+                postMediaType(post) === "video"
+                  ? <video src={`${post.mediaUrl}#t=0.1`} muted playsInline preload="metadata" className="size-full object-cover" />
+                  // eslint-disable-next-line @next/next/no-img-element
+                  : <img src={post.mediaUrl} alt="" loading="lazy" className="size-full object-cover" />
+              ) : (
+                <span className="flex size-full items-center justify-center" aria-hidden="true"><ImageIcon className="size-10 text-muted-foreground/45" /></span>
+              )}
+            </button>
+          )}
           hideToolbar={limit !== undefined}
           fixedView={limit !== undefined ? "grid" : undefined}
           actions={canEdit || canReview ? <SectionAddButton label={canEdit ? "New post" : "Suggest a post"} onClick={() => setEditing("new")} /> : undefined}
@@ -216,24 +234,6 @@ export function CampaignCreatives({ creatives, agencyId, companyId, projectId, c
           card={(post) => ({
             icon: <Palette className="size-4 text-muted-foreground" aria-hidden="true" />,
             title: post.title || "Post",
-            preview: (
-              <div className="relative size-full">
-                {post.mediaUrl ? (
-                  postMediaType(post) === "video"
-                    ? <VideoThumbnail src={post.mediaUrl} />
-                    // eslint-disable-next-line @next/next/no-img-element
-                    : <img src={post.mediaUrl} alt="" loading="lazy" className="size-full object-cover" />
-                ) : (
-                  <div className="flex size-full items-center justify-center bg-muted/30" aria-label="No thumbnail available">
-                    <ImageIcon className="size-10 text-muted-foreground/45" aria-hidden="true" />
-                  </div>
-                )}
-                <div className="absolute inset-x-2 bottom-2 flex items-center justify-between gap-2">
-                  <StatusPill status={creativeStatus(post)} />
-                  {plannedDateLabel(post.plannedPublishAt) && <span className="min-w-0 truncate rounded-full bg-black/65 px-2 py-0.5 text-[11px] font-medium text-white">Publishes {plannedDateLabel(post.plannedPublishAt)}</span>}
-                </div>
-              </div>
-            ),
             onClick: () => openPost(post),
             ariaLabel: `Preview ${post.title}`,
             menuLabel: `Options for ${post.title}`,
