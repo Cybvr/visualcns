@@ -20,6 +20,14 @@ export const dynamic = "force-dynamic"
 class Refused extends Error {}
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const CHANNELS = new Set(["card", "bank_transfer", "ussd"])
+
+/** The billing details the payer typed, trimmed and capped; empty strings for anything missing. */
+function billingDetails(value: unknown) {
+  const raw = value && typeof value === "object" ? (value as Record<string, unknown>) : {}
+  const text = (key: string, max = 200) => (typeof raw[key] === "string" ? (raw[key] as string).trim().slice(0, max) : "")
+  return { name: text("name"), email: text("email"), phone: text("phone", 40), company: text("company"), country: text("country", 80), address: text("address", 400) }
+}
 
 /** The signed-in buyer, or a guest (no uid) when no token is sent. */
 async function buyer(request: NextRequest) {
@@ -37,15 +45,19 @@ function siteOrigin(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const body = (await request.json().catch(() => ({}))) as { action?: string; items?: unknown; reference?: string; note?: string; returnTo?: string; email?: string; currency?: string }
+  const body = (await request.json().catch(() => ({}))) as { action?: string; items?: unknown; reference?: string; note?: string; returnTo?: string; email?: string; currency?: string; details?: Record<string, unknown>; channel?: string }
 
   try {
     const { db, uid, user, email: accountEmail } = await buyer(request)
 
     if (body.action === "pay") {
       const guestEmail = typeof body.email === "string" ? body.email.trim().toLowerCase().slice(0, 200) : ""
-      const email = accountEmail || (EMAIL_PATTERN.test(guestEmail) ? guestEmail : "")
+      const billing = billingDetails(body.details)
+      const email = EMAIL_PATTERN.test(billing.email) ? billing.email : accountEmail || (EMAIL_PATTERN.test(guestEmail) ? guestEmail : "")
       if (!email) return NextResponse.json({ error: "Enter your email address to pay." }, { status: 400 })
+      if (!billing.name) return NextResponse.json({ error: "Add your name." }, { status: 400 })
+      // Paystack offers every payment method on its own page unless one was picked.
+      const channel = typeof body.channel === "string" && CHANNELS.has(body.channel) ? body.channel : ""
       const services = cartServices(body.items)
       if (services.length === 0) return NextResponse.json({ error: "Your cart is empty." }, { status: 400 })
       // Naira, or dollars at the rate card's own conversion; Paystack charges in either.
@@ -63,6 +75,8 @@ export async function POST(request: NextRequest) {
         items: services.map((service) => ({ id: service.id, name: service.name, amount: servicePrice(service, currency) })),
         total,
         currency,
+        billing,
+        channel,
         note: typeof body.note === "string" ? body.note.trim().slice(0, 2000) : "",
         status: "pending",
         reference,
@@ -75,6 +89,7 @@ export async function POST(request: NextRequest) {
           email,
           amount: total * 100,
           currency,
+          ...(channel ? { channels: [channel] } : {}),
           reference,
           callback_url: `${siteOrigin(request)}${returnTo}`,
           metadata: {

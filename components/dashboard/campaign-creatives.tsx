@@ -15,7 +15,6 @@ import { filterBySearch } from "@/components/dashboard/list-search"
 import { ShareDialog } from "@/components/dashboard/share-dialog"
 import { Input } from "@/components/ui/input"
 import { MediaLightbox } from "@/components/ui/media-lightbox"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import {
   addCampaignCreative,
@@ -337,9 +336,6 @@ function BrandAvatar({ className }: { className?: string }) {
     </span>
   )
 }
-// Stored as Founder or Roster; shown in plain words.
-const POSTED_BY = [{ value: "Founder", label: "You" }, { value: "Roster", label: "Creators" }] as const
-
 function postDate(post: CampaignCreative) {
   const ms = (post.createdAt ?? post.updatedAt)?.toMillis()
   return ms ? new Date(ms).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : ""
@@ -640,8 +636,6 @@ function MediaLibraryStrip({ library, selectedUrl, onPick }: { library: Campaign
 }
 
 function InlinePostEditor({ post, canEdit, canReview, library = [], onMediaChange, onCancel, onSaved }: { post: CampaignCreative; canEdit: boolean; canReview: boolean; library?: CampaignCreative[]; onMediaChange?: (media: { url: string; type: "image" | "video" } | null) => void; onCancel: () => void; onSaved: () => void }) {
-  const [title, setTitle] = useState(post.title)
-  const [postedBy, setPostedBy] = useState(post.postedBy || "Founder")
   const [body, setBody] = useState(post.body ?? "")
   const [status, setStatus] = useState(creativeStatus(post))
   const [plannedPublishAt, setPlannedPublishAt] = useState(localDateTimeValue(post.plannedPublishAt))
@@ -678,7 +672,7 @@ function InlinePostEditor({ post, canEdit, canReview, library = [], onMediaChang
     setSaving(true)
     try {
       await updateCampaignCreative(post.id, canEdit
-        ? { title: title.trim() || post.title, postedBy, body, status, plannedPublishAt: isoFromLocalDateTime(plannedPublishAt), mediaUrl: media?.url ?? "", ...(media ? { mediaType: media.type } : {}) }
+        ? { body, status, plannedPublishAt: isoFromLocalDateTime(plannedPublishAt), mediaUrl: media?.url ?? "", ...(media ? { mediaType: media.type } : {}) }
         : { body })
       toast.success("Saved")
       onSaved()
@@ -692,15 +686,6 @@ function InlinePostEditor({ post, canEdit, canReview, library = [], onMediaChang
 
   return (
     <form onSubmit={save} className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-5">
-      {canEdit && (
-        <div className="grid grid-cols-[minmax(0,1fr)_8rem] gap-2">
-          <Input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Title" aria-label="Title" />
-          <Select value={postedBy} onValueChange={setPostedBy}>
-            <SelectTrigger aria-label="Assigned to"><SelectValue /></SelectTrigger>
-            <SelectContent className={VIEWER_POPOVER}>{POSTED_BY.map((item) => <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>)}</SelectContent>
-          </Select>
-        </div>
-      )}
       {canEdit && (
         <div className="flex items-center gap-3">
           <input ref={fileInput} type="file" accept="image/*,video/*" hidden onChange={(event) => { void upload(event.target.files?.[0]); event.target.value = "" }} />
@@ -738,8 +723,8 @@ function InlinePostEditor({ post, canEdit, canReview, library = [], onMediaChang
 }
 
 /**
- * Write or change a post. The agency sets who posts it, its picture and its
- * status; the client can only change the words.
+ * Write or change a post. The agency sets its picture and status; the client
+ * can only change the words.
  */
 function PostDialog({
   post,
@@ -770,8 +755,6 @@ function PostDialog({
 }
 
 function PostForm({ post, scope, canEdit, library, onDone }: { post: CampaignCreative | null; scope: { agencyId?: string; companyId: string; projectId: string }; canEdit: boolean; library: CampaignCreative[]; onDone: () => void }) {
-  const [title, setTitle] = useState(post?.title ?? (canEdit ? "Announcement post" : "Suggested post"))
-  const [postedBy, setPostedBy] = useState(post?.postedBy || "Founder")
   const [body, setBody] = useState(post?.body ?? "")
   const [status, setStatus] = useState(post ? creativeStatus(post) : "Draft")
   const [plannedPublishAt, setPlannedPublishAt] = useState(localDateTimeValue(post?.plannedPublishAt))
@@ -804,16 +787,16 @@ function PostForm({ post, scope, canEdit, library, onDone }: { post: CampaignCre
     try {
       if (post) {
         await updateCampaignCreative(post.id, canEdit
-          ? { title: title.trim() || post.title, postedBy, body, status, plannedPublishAt: isoFromLocalDateTime(plannedPublishAt), mediaUrl: media?.url ?? "", mediaType: media?.type ?? "image" }
+          ? { body, status, plannedPublishAt: isoFromLocalDateTime(plannedPublishAt), mediaUrl: media?.url ?? "", mediaType: media?.type ?? "image" }
           : { body })
       } else {
         await addCampaignCreative(scope, {
-          title: title.trim() || "Post",
+          title: canEdit ? "Announcement post" : "Suggested post",
           url: "",
           type: "text",
           kind: "content",
           body,
-          postedBy,
+          postedBy: "Founder",
           status: canEdit ? status : "Draft",
           ...(canEdit && plannedPublishAt ? { plannedPublishAt: isoFromLocalDateTime(plannedPublishAt) } : {}),
           ...(canEdit && media ? { mediaUrl: media.url, mediaType: media.type } : {}),
@@ -831,17 +814,6 @@ function PostForm({ post, scope, canEdit, library, onDone }: { post: CampaignCre
   return (
     <form onSubmit={save} className="grid gap-5 md:grid-cols-[minmax(0,1fr)_15rem]">
       <div className="flex min-w-0 flex-col gap-3">
-        {canEdit && (
-          <div className="grid grid-cols-[minmax(0,1fr)_8rem] gap-2">
-            <Input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Title" aria-label="Title" />
-            <Select value={postedBy} onValueChange={setPostedBy}>
-              <SelectTrigger size="default" className="w-full" aria-label="Assigned to"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {POSTED_BY.map((item) => <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-        )}
         <div className="relative">
           <Textarea value={body} onChange={(event) => setBody(event.target.value)} rows={8} maxLength={CAPTION_MAX} placeholder="Caption" aria-label="Caption" className="min-h-48 resize-none pb-6 text-sm leading-6" />
           <span className="pointer-events-none absolute bottom-2 right-3 text-xs tabular-nums text-muted-foreground">{body.length}/{CAPTION_MAX}</span>
