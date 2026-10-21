@@ -10,7 +10,8 @@ export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
 /**
- * The dashboard checkout. Actions:
+ * The services checkout, on the site and on company pages. Signed in or not:
+ * a guest gives an email instead. Actions:
  * - pay: saves the cart as an order and returns a Paystack checkout link for its total
  * - verify: after Paystack sends the payer back, confirms the payment
  * Prices come from lib/cart, never from the request.
@@ -18,10 +19,13 @@ export const dynamic = "force-dynamic"
 
 class Refused extends Error {}
 
-async function signedIn(request: NextRequest) {
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+/** The signed-in buyer, or a guest (no uid) when no token is sent. */
+async function buyer(request: NextRequest) {
   const token = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "")
-  if (!token) throw new Refused("Please sign in again.")
   const { auth, db } = adminServices()
+  if (!token) return { db, uid: "", user: {} as Record<string, unknown>, email: "" }
   const decoded = await auth.verifyIdToken(token).catch(() => null)
   if (!decoded) throw new Refused("Please sign in again.")
   const user = (await db.collection("users").doc(decoded.uid).get()).data() ?? {}
@@ -33,13 +37,15 @@ function siteOrigin(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const body = (await request.json().catch(() => ({}))) as { action?: string; items?: unknown; reference?: string; note?: string; returnTo?: string }
+  const body = (await request.json().catch(() => ({}))) as { action?: string; items?: unknown; reference?: string; note?: string; returnTo?: string; email?: string }
 
   try {
-    const { db, uid, user, email } = await signedIn(request)
+    const { db, uid, user, email: accountEmail } = await buyer(request)
 
     if (body.action === "pay") {
-      if (!email) return NextResponse.json({ error: "Your account needs an email address to pay." }, { status: 400 })
+      const guestEmail = typeof body.email === "string" ? body.email.trim().toLowerCase().slice(0, 200) : ""
+      const email = accountEmail || (EMAIL_PATTERN.test(guestEmail) ? guestEmail : "")
+      if (!email) return NextResponse.json({ error: "Enter your email address to pay." }, { status: 400 })
       const services = cartServices(body.items)
       if (services.length === 0) return NextResponse.json({ error: "Your cart is empty." }, { status: 400 })
       const total = cartTotal(services)
@@ -86,7 +92,8 @@ export async function POST(request: NextRequest) {
       const charge = await paystack<Parameters<typeof applyOrderCharge>[1]>(`/transaction/verify/${encodeURIComponent(reference)}`)
       const orderId = await applyOrderCharge(db, charge)
       const order = orderId ? (await db.collection("orders").doc(orderId).get()).data() : null
-      if (!order || order.uid !== uid) return NextResponse.json({ error: charge.status === "success" ? "We couldn't match that payment to your order." : "The payment didn't go through." }, { status: 400 })
+      // Guest orders have no uid; their reference only reaches the payer, through Paystack's redirect.
+      if (!order || (order.uid && order.uid !== uid)) return NextResponse.json({ error: charge.status === "success" ? "We couldn't match that payment to your order." : "The payment didn't go through." }, { status: 400 })
       return NextResponse.json({ ok: true, items: order.items, total: order.total })
     }
 

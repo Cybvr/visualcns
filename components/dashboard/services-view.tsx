@@ -6,7 +6,6 @@ import { Check, Code2, Globe, Plus, TrendingUp, Workflow, Wrench, type LucideIco
 import { useCart } from "@/components/dashboard/use-cart"
 import { SectionHeader } from "@/components/dashboard/section-header"
 import { ServiceArt } from "@/components/dashboard/service-art"
-import { useLocalCurrency } from "@/components/use-local-currency"
 import { Button } from "@/components/ui/button"
 import { CART_SERVICES, type CartService } from "@/lib/cart"
 import { formatPrice } from "@/lib/plans"
@@ -67,9 +66,9 @@ function ServiceCard({ service, price, index, cartHref, inCart, onSelect }: { se
 
 /** Every service on the rate card as deal cards that lead to the cart. */
 export function ServicesView({ cartHref }: { cartHref: string }) {
-  const currency = useLocalCurrency()
   const { items, add, has } = useCart()
-  const price = (service: CartService) => formatPrice(service.price, currency)
+  // Naira, as charged at checkout.
+  const price = (service: CartService) => formatPrice(service.price, "NGN")
   const featured = FEATURED_IDS.map((id) => CART_SERVICES.find((service) => service.id === id)).filter((service): service is CartService => Boolean(service))
 
   return (

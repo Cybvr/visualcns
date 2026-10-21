@@ -9,6 +9,7 @@ import { toast } from "sonner"
 import { useAuth } from "@/components/auth-provider"
 import { useCart } from "@/components/dashboard/use-cart"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { cartTotal } from "@/lib/cart"
@@ -18,22 +19,25 @@ import { formatPrice } from "@/lib/plans"
 type Paid = { items: Array<{ id: string; name: string; amount: number }>; total: number }
 
 function CheckoutContent({ checkoutPath, doneHref }: { checkoutPath: string; doneHref: string }) {
-  const { user } = useAuth()
+  const { user, loading } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
   const reference = searchParams.get("reference") || searchParams.get("trxref") || ""
   const { items, remove, clear } = useCart()
   const [note, setNote] = useState("")
+  const [email, setEmail] = useState("")
   const [paying, setPaying] = useState(false)
   const [paid, setPaid] = useState<Paid | null>(null)
   const [verifyError, setVerifyError] = useState("")
   const verified = useRef("")
 
   async function post(body: Record<string, unknown>) {
-    if (!user) throw new Error("Sign in to pay.")
+    // Guests pay too: no token, and the email they type instead.
+    const headers: Record<string, string> = { "Content-Type": "application/json" }
+    if (user) headers.Authorization = `Bearer ${await user.getIdToken()}`
     const response = await fetch("/api/checkout", {
       method: "POST",
-      headers: { Authorization: `Bearer ${await user.getIdToken()}`, "Content-Type": "application/json" },
+      headers,
       body: JSON.stringify(body),
     })
     const payload = (await response.json().catch(() => ({}))) as Record<string, any>
@@ -43,7 +47,7 @@ function CheckoutContent({ checkoutPath, doneHref }: { checkoutPath: string; don
 
   // Paystack sends the payer back here with the payment reference.
   useEffect(() => {
-    if (!reference || !user || verified.current === reference) return
+    if (!reference || loading || verified.current === reference) return
     verified.current = reference
     post({ action: "verify", reference })
       .then((payload) => {
@@ -52,12 +56,12 @@ function CheckoutContent({ checkoutPath, doneHref }: { checkoutPath: string; don
       })
       .catch((error: Error) => setVerifyError(error.message))
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [reference, user])
+  }, [reference, user, loading])
 
   async function pay() {
     setPaying(true)
     try {
-      const { url } = await post({ action: "pay", items: items.map((item) => item.id), note, returnTo: checkoutPath })
+      const { url } = await post({ action: "pay", items: items.map((item) => item.id), note, email: user ? undefined : email, returnTo: checkoutPath })
       window.location.assign(url)
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Couldn't start the payment.")
@@ -131,6 +135,12 @@ function CheckoutContent({ checkoutPath, doneHref }: { checkoutPath: string; don
             </ul>
           )}
           <div className="space-y-4 border-t border-border px-4 py-4">
+            {!user && (
+              <div className="space-y-1.5">
+                <Label htmlFor="checkout-email">Email</Label>
+                <Input id="checkout-email" type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@company.com" required />
+              </div>
+            )}
             <div className="space-y-1.5">
               <Label htmlFor="checkout-note">Anything we should know?</Label>
               <Textarea id="checkout-note" value={note} onChange={(event) => setNote(event.target.value)} maxLength={2000} rows={3} placeholder="Optional" />
@@ -139,7 +149,7 @@ function CheckoutContent({ checkoutPath, doneHref }: { checkoutPath: string; don
               <span className="text-sm text-muted-foreground">Total</span>
               <span className="text-lg font-semibold">{formatPrice({ amount: total }, "NGN")}</span>
             </div>
-            <Button type="button" className="w-full" disabled={items.length === 0 || paying} onClick={pay}>
+            <Button type="button" className="w-full" disabled={items.length === 0 || paying || (!user && !email.trim())} onClick={pay}>
               {paying && <Loader2 className="size-4 animate-spin" aria-hidden="true" />}
               Pay with Paystack
             </Button>
