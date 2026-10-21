@@ -44,5 +44,6 @@ export function useCart() {
   const add = useCallback((id: string) => { const current = read(); if (!current.includes(id)) write([...current, id]) }, [])
   const remove = useCallback((id: string) => write(read().filter((item) => item !== id)), [])
   const clear = useCallback(() => write([]), [])
-  return { ids, items, add, remove, clear, has: (id: string) => ids.includes(id) }
+  const replace = useCallback((next: string[]) => write(cartServices(next).map((service) => service.id)), [])
+  return { ids, items, add, remove, clear, replace, has: (id: string) => ids.includes(id) }
 }

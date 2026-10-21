@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import { useEffect, useRef } from "react"
 import { Plus, ShoppingCart, X } from "lucide-react"
 
 import { useCart } from "@/components/dashboard/use-cart"
@@ -17,7 +18,24 @@ const RECOMMENDATION_COUNT = 3
  * card with the way to checkout, then a few services to add.
  */
 export function CartView({ checkoutHref, servicesHref }: { checkoutHref: string; servicesHref: string }) {
-  const { items, ids, add, remove, clear } = useCart()
+  const { items, ids, add, remove, clear, replace } = useCart()
+  const loaded = useRef(false)
+
+  // The address carries the cart (?items=a,b), so a cart link opens the same cart.
+  useEffect(() => {
+    if (!loaded.current) {
+      loaded.current = true
+      const fromUrl = new URLSearchParams(window.location.search).get("items")
+      if (fromUrl !== null) {
+        replace(fromUrl.split(",").filter(Boolean))
+        return
+      }
+    }
+    const url = new URL(window.location.href)
+    if (ids.length) url.searchParams.set("items", ids.join(","))
+    else url.searchParams.delete("items")
+    window.history.replaceState(window.history.state, "", url.toString().replace(/%2C/g, ","))
+  }, [ids, replace])
   const total = cartTotal(items)
   // Others from the groups already in the cart first, then anything else.
   const groups = new Set(items.map((item) => item.group))
