@@ -286,7 +286,7 @@ export const retainers: Array<{
   },
 ]
 
-function ngnToUsd(amount: number) {
+export function ngnToUsd(amount: number) {
   const raw = amount / NGN_PER_USD
   const roundTo = raw < 50 ? 1 : 10
   return Math.round(raw / roundTo) * roundTo

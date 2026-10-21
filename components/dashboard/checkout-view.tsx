@@ -12,11 +12,12 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { cartTotal } from "@/lib/cart"
+import { cartTotal, formatMoney } from "@/lib/cart"
+import { useLocalCurrency } from "@/components/use-local-currency"
 import { formatPrice } from "@/lib/plans"
 
 
-type Paid = { items: Array<{ id: string; name: string; amount: number }>; total: number }
+type Paid = { items: Array<{ id: string; name: string; amount: number }>; total: number; currency: "NGN" | "USD" }
 
 function CheckoutContent({ checkoutPath, doneHref }: { checkoutPath: string; doneHref: string }) {
   const { user, loading } = useAuth()
@@ -24,6 +25,7 @@ function CheckoutContent({ checkoutPath, doneHref }: { checkoutPath: string; don
   const searchParams = useSearchParams()
   const reference = searchParams.get("reference") || searchParams.get("trxref") || ""
   const { items, remove, clear } = useCart()
+  const currency = useLocalCurrency()
   const [note, setNote] = useState("")
   const [email, setEmail] = useState("")
   const [paying, setPaying] = useState(false)
@@ -51,7 +53,7 @@ function CheckoutContent({ checkoutPath, doneHref }: { checkoutPath: string; don
     verified.current = reference
     post({ action: "verify", reference })
       .then((payload) => {
-        setPaid({ items: payload.items ?? [], total: payload.total ?? 0 })
+        setPaid({ items: payload.items ?? [], total: payload.total ?? 0, currency: payload.currency === "USD" ? "USD" : "NGN" })
         clear()
       })
       .catch((error: Error) => setVerifyError(error.message))
@@ -61,7 +63,7 @@ function CheckoutContent({ checkoutPath, doneHref }: { checkoutPath: string; don
   async function pay() {
     setPaying(true)
     try {
-      const { url } = await post({ action: "pay", items: items.map((item) => item.id), note, email: user ? undefined : email, returnTo: checkoutPath })
+      const { url } = await post({ action: "pay", items: items.map((item) => item.id), note, currency, email: user ? undefined : email, returnTo: checkoutPath })
       window.location.assign(url)
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Couldn't start the payment.")
@@ -81,13 +83,13 @@ function CheckoutContent({ checkoutPath, doneHref }: { checkoutPath: string; don
               {paid.items.map((item) => (
                 <li key={item.id} className="flex justify-between gap-4 py-2.5 text-sm">
                   <span>{item.name}</span>
-                  <span className="text-muted-foreground">{formatPrice({ amount: item.amount }, "NGN")}</span>
+                  <span className="text-muted-foreground">{formatMoney(item.amount, paid.currency)}</span>
                 </li>
               ))}
             </ul>
             <div className="mt-3 flex justify-between text-sm font-semibold">
               <span>Total paid</span>
-              <span>{formatPrice({ amount: paid.total }, "NGN")}</span>
+              <span>{formatMoney(paid.total, paid.currency)}</span>
             </div>
             <Button asChild className="mt-6 w-full"><Link href={doneHref}>Done</Link></Button>
           </div>
@@ -107,7 +109,7 @@ function CheckoutContent({ checkoutPath, doneHref }: { checkoutPath: string; don
     )
   }
 
-  const total = cartTotal(items)
+  const total = cartTotal(items, currency)
 
   return (
     <main className="mx-auto w-full max-w-lg px-4 pt-4 pb-12 sm:px-6">
@@ -125,7 +127,7 @@ function CheckoutContent({ checkoutPath, doneHref }: { checkoutPath: string; don
                 <li key={item.id} className="flex items-start gap-3 px-4 py-3">
                   <div className="min-w-0 flex-1">
                     <p className="text-sm">{item.name}</p>
-                    <p className="text-xs text-muted-foreground">{formatPrice(item.price, "NGN")}</p>
+                    <p className="text-xs text-muted-foreground">{formatPrice(item.price, currency)}</p>
                   </div>
                   <button type="button" onClick={() => remove(item.id)} aria-label={`Remove ${item.name}`} title="Remove" className="rounded-sm p-1 text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring">
                     <X className="size-3.5" aria-hidden="true" />
@@ -147,7 +149,7 @@ function CheckoutContent({ checkoutPath, doneHref }: { checkoutPath: string; don
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">Total</span>
-              <span className="text-lg font-semibold">{formatPrice({ amount: total }, "NGN")}</span>
+              <span className="text-lg font-semibold">{formatMoney(total, currency)}</span>
             </div>
             <Button type="button" className="w-full" disabled={items.length === 0 || paying || (!user && !email.trim())} onClick={pay}>
               {paying && <Loader2 className="size-4 animate-spin" aria-hidden="true" />}

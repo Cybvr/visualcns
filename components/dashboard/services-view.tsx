@@ -4,6 +4,7 @@ import Link from "next/link"
 import { Check, Code2, Globe, Plus, TrendingUp, Workflow, Wrench, type LucideIcon } from "lucide-react"
 
 import { useCart } from "@/components/dashboard/use-cart"
+import { useLocalCurrency } from "@/components/use-local-currency"
 import { SectionHeader } from "@/components/dashboard/section-header"
 import { ServiceArt } from "@/components/dashboard/service-art"
 import { Button } from "@/components/ui/button"
@@ -67,8 +68,8 @@ function ServiceCard({ service, price, index, cartHref, inCart, onSelect }: { se
 /** Every service on the rate card as deal cards that lead to the cart. */
 export function ServicesView({ cartHref }: { cartHref: string }) {
   const { items, add, has } = useCart()
-  // Naira, as charged at checkout.
-  const price = (service: CartService) => formatPrice(service.price, "NGN")
+  const currency = useLocalCurrency()
+  const price = (service: CartService) => formatPrice(service.price, currency)
   const featured = FEATURED_IDS.map((id) => CART_SERVICES.find((service) => service.id === id)).filter((service): service is CartService => Boolean(service))
 
   return (

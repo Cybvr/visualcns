@@ -22,7 +22,7 @@ export async function applyOrderCharge(db: Firestore, charge: Charge) {
   const ref = db.collection("orders").doc(orderId)
   const order = (await ref.get()).data()
   if (!order || order.reference !== charge.reference) return ""
-  if (Math.round(Number(order.total) * 100) !== charge.amount || (charge.currency && charge.currency !== "NGN")) return ""
+  if (Math.round(Number(order.total) * 100) !== charge.amount || (charge.currency && charge.currency !== (order.currency || "NGN"))) return ""
   if (order.status !== "paid") {
     await ref.set({ status: "paid", paidAt: FieldValue.serverTimestamp(), updatedAt: FieldValue.serverTimestamp() }, { merge: true })
     await notifyPaidOrder(orderId, order).catch((error) => console.error("Paid order email failed", error))
@@ -40,14 +40,14 @@ async function notifyPaidOrder(orderId: string, order: Record<string, any>) {
   const to = process.env.BOOKING_NOTIFY_EMAIL?.trim() || process.env.EMAIL_REPLY_TO?.trim() || from
   if (!apiKey || !from || !to) return
   const items = Array.isArray(order.items) ? order.items as { name?: string; amount?: number }[] : []
-  const naira = (amount: unknown) => `₦${Number(amount || 0).toLocaleString("en-NG")}`
+  const money = (amount: unknown) => order.currency === "USD" ? `$${Number(amount || 0).toLocaleString("en-US")}` : `₦${Number(amount || 0).toLocaleString("en-NG")}`
   const escape = (value: unknown) => String(value ?? "").replace(/[&<>"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[char] as string)
-  const lines = items.map((item) => `${item.name}: ${naira(item.amount)}`)
+  const lines = items.map((item) => `${item.name}: ${money(item.amount)}`)
   const text = [
     `New paid order from ${order.email}.`,
     "",
     ...lines,
-    `Total: ${naira(order.total)}`,
+    `Total: ${money(order.total)}`,
     order.note ? `\nNote: ${order.note}` : "",
     `\nPaystack reference: ${order.reference}`,
   ].join("\n")
@@ -58,7 +58,7 @@ async function notifyPaidOrder(orderId: string, order: Record<string, any>) {
       from,
       to,
       reply_to: order.email,
-      subject: `Paid order: ${naira(order.total)} from ${order.email}`,
+      subject: `Paid order: ${money(order.total)} from ${order.email}`,
       text,
       html: `<pre style="font-family:inherit;white-space:pre-wrap">${escape(text)}</pre>`,
     }),

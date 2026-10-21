@@ -7,12 +7,14 @@ import { ShoppingCart, X } from "lucide-react"
 import { useCart } from "@/components/dashboard/use-cart"
 import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { cartTotal } from "@/lib/cart"
+import { cartTotal, formatMoney } from "@/lib/cart"
+import { useLocalCurrency } from "@/components/use-local-currency"
 import { formatPrice } from "@/lib/plans"
 
 /** The cart in the header: what's in it, the total, and the way to the cart page. */
 export function CartButton({ cartHref, servicesHref }: { cartHref: string; servicesHref: string }) {
   const { items, remove } = useCart()
+  const currency = useLocalCurrency()
   const [open, setOpen] = useState(false)
   const count = items.length
 
@@ -47,7 +49,7 @@ export function CartButton({ cartHref, servicesHref }: { cartHref: string; servi
                 <li key={item.id} className="flex items-start gap-3 px-4 py-3">
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium">{item.name}</p>
-                    <p className="text-xs text-muted-foreground">{formatPrice(item.price, "NGN")}</p>
+                    <p className="text-xs text-muted-foreground">{formatPrice(item.price, currency)}</p>
                   </div>
                   <button
                     type="button"
@@ -64,7 +66,7 @@ export function CartButton({ cartHref, servicesHref }: { cartHref: string; servi
             <div className="space-y-3 border-t border-border px-4 py-3">
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">Total</span>
-                <span className="font-semibold">{formatPrice({ amount: cartTotal(items) }, "NGN")}</span>
+                <span className="font-semibold">{formatMoney(cartTotal(items, currency), currency)}</span>
               </div>
               <Button asChild className="w-full">
                 <Link href={cartHref} onClick={() => setOpen(false)}>View cart</Link>

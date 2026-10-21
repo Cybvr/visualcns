@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server"
 import { FieldValue } from "firebase-admin/firestore"
 
 import { adminServices } from "@/lib/firebase-admin"
-import { cartServices, cartTotal } from "@/lib/cart"
+import { cartServices, cartTotal, servicePrice } from "@/lib/cart"
 import { paystack, PaystackError } from "@/lib/server/paystack"
 import { applyOrderCharge, ORDER_KIND } from "@/lib/server/orders"
 
@@ -37,7 +37,7 @@ function siteOrigin(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const body = (await request.json().catch(() => ({}))) as { action?: string; items?: unknown; reference?: string; note?: string; returnTo?: string; email?: string }
+  const body = (await request.json().catch(() => ({}))) as { action?: string; items?: unknown; reference?: string; note?: string; returnTo?: string; email?: string; currency?: string }
 
   try {
     const { db, uid, user, email: accountEmail } = await buyer(request)
@@ -48,7 +48,9 @@ export async function POST(request: NextRequest) {
       if (!email) return NextResponse.json({ error: "Enter your email address to pay." }, { status: 400 })
       const services = cartServices(body.items)
       if (services.length === 0) return NextResponse.json({ error: "Your cart is empty." }, { status: 400 })
-      const total = cartTotal(services)
+      // Naira, or dollars at the rate card's own conversion; Paystack charges in either.
+      const currency = body.currency === "USD" ? "USD" : "NGN"
+      const total = cartTotal(services, currency)
       // Back to the checkout they paid from: the site's or a company page's.
       const returnTo = typeof body.returnTo === "string" && /^(?:\/[A-Za-z0-9%._~-]+)?\/checkout$/.test(body.returnTo) ? body.returnTo : "/checkout"
       const ref = db.collection("orders").doc()
@@ -58,9 +60,9 @@ export async function POST(request: NextRequest) {
         email,
         agencyId: String(user.agencyId || ""),
         companyId: String(user.companyId || ""),
-        items: services.map((service) => ({ id: service.id, name: service.name, amount: service.price.amount })),
+        items: services.map((service) => ({ id: service.id, name: service.name, amount: servicePrice(service, currency) })),
         total,
-        currency: "NGN",
+        currency,
         note: typeof body.note === "string" ? body.note.trim().slice(0, 2000) : "",
         status: "pending",
         reference,
@@ -72,7 +74,7 @@ export async function POST(request: NextRequest) {
         body: {
           email,
           amount: total * 100,
-          currency: "NGN",
+          currency,
           reference,
           callback_url: `${siteOrigin(request)}${returnTo}`,
           metadata: {
@@ -94,7 +96,7 @@ export async function POST(request: NextRequest) {
       const order = orderId ? (await db.collection("orders").doc(orderId).get()).data() : null
       // Guest orders have no uid; their reference only reaches the payer, through Paystack's redirect.
       if (!order || (order.uid && order.uid !== uid)) return NextResponse.json({ error: charge.status === "success" ? "We couldn't match that payment to your order." : "The payment didn't go through." }, { status: 400 })
-      return NextResponse.json({ ok: true, items: order.items, total: order.total })
+      return NextResponse.json({ ok: true, items: order.items, total: order.total, currency: order.currency || "NGN" })
     }
 
     return NextResponse.json({ error: "Unknown action." }, { status: 400 })

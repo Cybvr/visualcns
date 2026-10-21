@@ -1,4 +1,4 @@
-import { customDevelopmentRows, growthPlanRows, platformRows, retainers, workflowPlanRows, type Price, type ServiceRow } from "@/lib/plans"
+import { customDevelopmentRows, growthPlanRows, ngnToUsd, platformRows, retainers, workflowPlanRows, type Currency, type Price, type ServiceRow } from "@/lib/plans"
 
 /**
  * The rate-card services someone can buy from the dashboard checkout. Prices
@@ -72,7 +72,17 @@ export function cartServices(ids: unknown): CartService[] {
   })
 }
 
-/** Total in naira. */
-export function cartTotal(services: CartService[]) {
-  return services.reduce((sum, service) => sum + service.price.amount, 0)
+/** A service's price in naira, or in dollars as the rate card rounds it. */
+export function servicePrice(service: CartService, currency: Currency = "NGN") {
+  return currency === "USD" ? ngnToUsd(service.price.amount) : service.price.amount
+}
+
+/** Total in the given currency: the sum of the prices shown, so it adds up on screen. */
+export function cartTotal(services: CartService[], currency: Currency = "NGN") {
+  return services.reduce((sum, service) => sum + servicePrice(service, currency), 0)
+}
+
+/** An amount already in that currency, e.g. an order's total. */
+export function formatMoney(amount: number, currency: Currency) {
+  return currency === "USD" ? `$${amount.toLocaleString("en-US")}` : `₦${amount.toLocaleString("en-NG")}`
 }

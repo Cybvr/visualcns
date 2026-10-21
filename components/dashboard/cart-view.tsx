@@ -8,7 +8,8 @@ import { useCart } from "@/components/dashboard/use-cart"
 import { SectionHeader } from "@/components/dashboard/section-header"
 import { ServiceArt } from "@/components/dashboard/service-art"
 import { Button } from "@/components/ui/button"
-import { CART_SERVICES, cartTotal } from "@/lib/cart"
+import { CART_SERVICES, cartTotal, formatMoney } from "@/lib/cart"
+import { useLocalCurrency } from "@/components/use-local-currency"
 import { formatPrice } from "@/lib/plans"
 
 const RECOMMENDATION_COUNT = 3
@@ -36,7 +37,8 @@ export function CartView({ checkoutHref, servicesHref }: { checkoutHref: string;
     else url.searchParams.delete("items")
     window.history.replaceState(window.history.state, "", url.toString().replace(/%2C/g, ","))
   }, [ids, replace])
-  const total = cartTotal(items)
+  const currency = useLocalCurrency()
+  const total = cartTotal(items, currency)
   // Others from the groups already in the cart first, then anything else.
   const groups = new Set(items.map((item) => item.group))
   const recommendations = CART_SERVICES
@@ -66,7 +68,7 @@ export function CartView({ checkoutHref, servicesHref }: { checkoutHref: string;
                     <div className="surface-body mt-1">{item.scope}</div>
                     <div className="surface-caption mt-2">{item.group}{item.price.suffix === "/mo" ? " · Billed monthly" : " · One-off"}</div>
                   </div>
-                  <div className="shrink-0 text-right text-base font-semibold text-foreground">{formatPrice(item.price, "NGN")}</div>
+                  <div className="shrink-0 text-right text-base font-semibold text-foreground">{formatPrice(item.price, currency)}</div>
                   <button
                     type="button"
                     onClick={() => remove(item.id)}
@@ -91,7 +93,7 @@ export function CartView({ checkoutHref, servicesHref }: { checkoutHref: string;
                   <ServiceArt service={service} index={index} />
                   <div className="flex flex-1 flex-col px-1.5 pb-1 pt-3">
                     <div className="truncate text-sm font-semibold text-foreground">{service.name}</div>
-                    <div className="surface-caption mt-0.5">{formatPrice(service.price, "NGN")}</div>
+                    <div className="surface-caption mt-0.5">{formatPrice(service.price, currency)}</div>
                     <Button type="button" variant="outline" size="sm" className="mt-3" onClick={() => add(service.id)}>
                       <Plus aria-hidden="true" />
                       Add to cart
@@ -109,7 +111,7 @@ export function CartView({ checkoutHref, servicesHref }: { checkoutHref: string;
         <div className="space-y-4 p-5">
           <div className="flex items-center justify-between">
             <span className="surface-body">Subtotal</span>
-            <span className="text-lg font-semibold text-foreground">{formatPrice({ amount: total }, "NGN")}</span>
+            <span className="text-lg font-semibold text-foreground">{formatMoney(total, currency)}</span>
           </div>
           <div className="border-t border-border" />
           {items.length > 0 ? (
