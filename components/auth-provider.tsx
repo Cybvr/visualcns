@@ -7,10 +7,8 @@ import {
   browserSessionPersistence,
   onAuthStateChanged,
   setPersistence,
-  getRedirectResult,
   signInWithEmailAndPassword,
   signInWithPopup,
-  signInWithRedirect,
   signOut as firebaseSignOut,
   updateProfile,
   type User,
@@ -24,20 +22,6 @@ import { clearCurrentAgencyId, primeCurrentAgencyId } from "@/lib/agency-scope"
 
 /** sessionStorage key holding the uid an admin is currently "viewing as". */
 const VIEW_AS_KEY = "viewAsUid"
-/** sessionStorage key holding a Google sign-in's options while it goes through a redirect. */
-const GOOGLE_PENDING_KEY = "googleSignInPending"
-
-type GoogleSignInOptions = { agencyName: string; createWorkspace: boolean; workspaceId: string }
-
-/**
- * The installed phone app: Google's popup opens in a separate browser tab that
- * can't hand the sign-in back, so the app would land on Sign in again. It
- * signs in by redirect in its own window instead.
- */
-function isInstalledApp() {
-  if (typeof window === "undefined") return false
-  return window.matchMedia?.("(display-mode: standalone)").matches || (navigator as Navigator & { standalone?: boolean }).standalone === true
-}
 
 async function sendWelcomeEmailIfPending(firebaseUser: User, appUser: AppUser | null) {
   if (!appUser?.welcomeEmailPending || appUser.welcomeEmailSentAt || appUser.role !== "client" || !appUser.email) return
@@ -180,36 +164,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return unsubscribe
   }, [])
 
-  // Back from a redirect sign-in (installed app): finish it with the options saved before leaving.
-  useEffect(() => {
-    getRedirectResult(auth)
-      .then(async (result) => {
-        const saved = sessionStorage.getItem(GOOGLE_PENDING_KEY)
-        sessionStorage.removeItem(GOOGLE_PENDING_KEY)
-        if (!result?.user || !saved) return
-        await finishGoogleSignIn(result.user, JSON.parse(saved) as GoogleSignInOptions)
-      })
-      .catch((error) => {
-        sessionStorage.removeItem(GOOGLE_PENDING_KEY)
-        console.error("Google redirect sign-in failed:", error)
-      })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
   async function signInWithGoogle(agencyName = "", createWorkspace = false, workspaceId = "", keepSignedIn = true) {
     await setPersistence(auth, keepSignedIn ? browserLocalPersistence : browserSessionPersistence)
-    const options: GoogleSignInOptions = { agencyName, createWorkspace, workspaceId }
-    if (isInstalledApp()) {
-      sessionStorage.setItem(GOOGLE_PENDING_KEY, JSON.stringify(options))
-      await signInWithRedirect(auth, googleProvider)
-      return
-    }
     const authenticatedUser = (await signInWithPopup(auth, googleProvider)).user
-    await finishGoogleSignIn(authenticatedUser, options)
-  }
-
-  /** After Google: join the chosen organization, or set up a new workspace. */
-  async function finishGoogleSignIn(authenticatedUser: User, { agencyName, createWorkspace, workspaceId }: GoogleSignInOptions) {
     if (workspaceId) {
       const idToken = await authenticatedUser.getIdToken()
       const response = await fetch("/api/auth/workspaces", {
