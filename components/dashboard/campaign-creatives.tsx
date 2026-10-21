@@ -205,13 +205,13 @@ export function CampaignCreatives({ creatives, agencyId, companyId, projectId, c
           onSearch={setPostQuery}
           searchPlaceholder="Search content"
           viewKey="campaign-content"
-          gridClassName="lg:grid-cols-3"
+          gridClassName="gap-px lg:grid-cols-3"
           gridItem={(post) => (
             <button
               type="button"
               onClick={() => openPost(post)}
               aria-label={`Preview ${post.title || "post"}`}
-              className="aspect-square w-full overflow-hidden rounded-xl bg-muted outline-none transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring"
+              className="aspect-square w-full overflow-hidden bg-muted outline-none transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring"
             >
               {post.mediaUrl ? (
                 postMediaType(post) === "video"
