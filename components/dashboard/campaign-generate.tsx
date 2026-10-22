@@ -22,8 +22,6 @@ type PartKey = "angle" | "strategy" | "announcement" | "hooks" | "rosterTarget" 
 type Step = "idle" | "queued" | "working" | "done" | "failed"
 
 const PARTS: { key: PartKey; label: string }[] = [
-  { key: "angle", label: "Narrative and angle" },
-  { key: "strategy", label: "Strategy" },
   { key: "announcement", label: "Announcement post" },
   { key: "hooks", label: "Hooks" },
   { key: "rosterTarget", label: "Creator target" },

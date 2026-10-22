@@ -7,6 +7,7 @@ import { useParams } from "next/navigation"
 import { BrandLockup } from "@/components/brand-lockup"
 import { CreatorApplyButton } from "@/components/creator-apply-form"
 import { CreatorBriefSummary } from "@/components/dashboard/creator-brief"
+import { TaskContent } from "@/components/dashboard/task-content"
 import { ProjectCover } from "@/components/project-card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { VideoThumbnail } from "@/components/ui/video-thumbnail"
@@ -129,8 +130,7 @@ export default function SharedCampaignPage() {
                 {posted.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
               </time>
             )}
-            {project.angle && <p className="mt-3 text-sm text-foreground">{project.angle}</p>}
-            {project.about && <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-muted-foreground">{project.about}</p>}
+            {project.about?.trim() && <TaskContent value={project.about} className="mt-3 text-sm leading-6" />}
           </div>
         </header>
 

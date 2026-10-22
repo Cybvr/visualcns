@@ -352,7 +352,7 @@ export function ProjectDetail({
 
   const sections = [
     { key: "home", label: "Home", icon: House },
-    { key: "about", label: "Brief", icon: FileText },
+    { key: "about", label: "About campaign", icon: FileText },
     { key: "people", label: "Creators", count: roster.length, icon: Users },
     { key: "creatives", label: "Content", count: contentItems.length, icon: Palette },
     { key: "media", label: "Media", count: mediaItems.length, icon: Images },
@@ -493,7 +493,7 @@ export function ProjectDetail({
                 <AnalyticsSkeleton scope="campaign" />
               )
             ) : tab === "about" ? (
-              <CampaignBrief project={project} content={contentItems} canEdit={canEditCampaign} canReview={canReview} onPatched={onProjectPatched} />
+              <CampaignBrief project={project} canEdit={canEditCampaign} onPatched={onProjectPatched} />
             ) : tab === "build" && embedded && canEditCampaign ? (
               <Ngai scope={{ kind: "campaign", campaign: { id: project.id, title: project.title } }} />
             ) : tab === "people" ? (
