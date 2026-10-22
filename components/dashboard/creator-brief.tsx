@@ -5,6 +5,7 @@ import { CalendarClock, CalendarRange, Clapperboard, CreditCard, Globe, Megaphon
 import { toast } from "sonner"
 
 import { SocialIcon } from "@/components/company/social-icon"
+import { SettingsSection } from "@/components/dashboard/settings-section"
 import { Button } from "@/components/ui/button"
 import { Combobox } from "@/components/ui/combobox"
 import { Input } from "@/components/ui/input"
@@ -79,10 +80,43 @@ export function CreatorBriefForm({ project, canEdit, onPatched }: { project: Pro
   if (!canEdit) return project.brief ? <CreatorBriefSummary brief={saved} /> : <p className="text-[15px] text-muted-foreground">Not written yet.</p>
 
   return (
-    <div className="space-y-6">
-      <CampaignFields value={draft} onChange={set} />
-      <CreatorFields value={draft} onChange={set} />
-      <div className="flex flex-wrap gap-2 border-t border-border pt-4">
+    <div>
+      <SettingsSection title="Campaign" icon={Target} defaultOpen>
+        <div className="space-y-4">
+          <Pick label="Platform" value={draft.platform} options={BRIEF_PLATFORMS} onChange={(platform) => set({ platform })} />
+          <Pick label="Goal" value={draft.goal} options={BRIEF_GOALS} onChange={(goal) => set({ goal })} />
+          <OfferField value={draft} onChange={set} />
+        </div>
+      </SettingsSection>
+      <SettingsSection title="Content" icon={Clapperboard}>
+        <ContentFields value={draft} onChange={set} />
+      </SettingsSection>
+      <SettingsSection title="Dates" icon={CalendarRange}>
+        <div className="space-y-4">
+          <DateField label="Register interest by" value={draft.registerBy} onChange={(registerBy) => set({ registerBy })} />
+          <DateField label="Post from" value={draft.postFrom} onChange={(postFrom) => set({ postFrom })} />
+          <DateField label="Post until" value={draft.postTo} min={draft.postFrom} onChange={(postTo) => set({ postTo })} />
+        </div>
+      </SettingsSection>
+      <SettingsSection title="Creators" icon={Users}>
+        <div className="space-y-4">
+          <Pick label="Gender" value={draft.gender} options={BRIEF_GENDERS} onChange={(gender) => set({ gender })} />
+          <Pick label="Age" value={draft.age} options={BRIEF_AGES} onChange={(age) => set({ age })} />
+          <Pick label="Followers" value={draft.followers} options={BRIEF_FOLLOWERS} onChange={(followers) => set({ followers })} />
+          <Chips label="Interests" values={draft.interests} options={BRIEF_INTERESTS} onChange={(interests) => set({ interests })} />
+          <Chips label="Countries" values={draft.countries} options={BRIEF_COUNTRIES} onChange={(countries) => set({ countries })} allowNew />
+        </div>
+      </SettingsSection>
+      <SettingsSection title="Payment" icon={CreditCard}>
+        <div className="space-y-4">
+          <Pick label="Payment method" value={draft.paymentMethod} options={BRIEF_PAYMENT_METHODS} onChange={(paymentMethod) => set({ paymentMethod })} />
+          <div className="flex items-center gap-2">
+            <Switch id="brief-paid-ads" checked={draft.paidAds} onCheckedChange={(paidAds) => set({ paidAds })} />
+            <Label htmlFor="brief-paid-ads">Featured in paid ads</Label>
+          </div>
+        </div>
+      </SettingsSection>
+      <div className="flex flex-wrap gap-2 pt-4">
         <Button type="button" onClick={() => void save()} disabled={!dirty || saving}>{saving ? "Saving…" : "Save brief"}</Button>
         {JSON.stringify(draft) !== savedKey && <Button type="button" variant="ghost" onClick={() => setDraft(saved)}>Cancel</Button>}
       </div>
@@ -116,47 +150,42 @@ export function CreatorDefaultsForm({ companyId, saved, onSaved }: { companyId: 
   )
 }
 
-function CampaignFields({ value, onChange }: { value: CreatorBrief; onChange: Patch }) {
+function OfferField({ value, onChange }: { value: CreatorBrief; onChange: Patch }) {
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center gap-2">
+        <Switch id="brief-fixed-offer" checked={value.fixedOffer} onCheckedChange={(fixedOffer) => onChange({ fixedOffer })} />
+        <Label htmlFor="brief-fixed-offer">Fixed offer</Label>
+      </div>
+      {value.fixedOffer && (
+        <div className="flex gap-2">
+          <Select value={value.currency} onValueChange={(currency) => onChange({ currency })}>
+            <SelectTrigger className="w-28" aria-label="Currency"><SelectValue /></SelectTrigger>
+            <SelectContent>{BRIEF_CURRENCIES.map((currency) => <SelectItem key={currency} value={currency}>{currency}</SelectItem>)}</SelectContent>
+          </Select>
+          <Input
+            type="number"
+            min={0}
+            inputMode="numeric"
+            value={value.offerAmount || ""}
+            onChange={(event) => onChange({ offerAmount: Math.max(0, Math.round(Number(event.target.value) || 0)) })}
+            placeholder="Amount per creator"
+            aria-label="Amount per creator"
+          />
+        </div>
+      )}
+    </div>
+  )
+}
+
+function ContentFields({ value, onChange }: { value: CreatorBrief; onChange: Patch }) {
   return (
     <div className="space-y-4">
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Pick label="Platform" value={value.platform} options={BRIEF_PLATFORMS} onChange={(platform) => onChange({ platform })} />
-        <Pick label="Goal" value={value.goal} options={BRIEF_GOALS} onChange={(goal) => onChange({ goal })} />
+      <div className="grid grid-cols-3 gap-3">
+        <Count label="Story" value={value.stories} onChange={(stories) => onChange({ stories })} />
+        <Count label="Post" value={value.posts} onChange={(posts) => onChange({ posts })} />
+        <Count label="Reel" value={value.reels} onChange={(reels) => onChange({ reels })} />
       </div>
-
-      <div className="space-y-2">
-        <div className="flex items-center gap-2">
-          <Switch id="brief-fixed-offer" checked={value.fixedOffer} onCheckedChange={(fixedOffer) => onChange({ fixedOffer })} />
-          <Label htmlFor="brief-fixed-offer">Fixed offer</Label>
-        </div>
-        {value.fixedOffer && (
-          <div className="flex gap-2">
-            <Select value={value.currency} onValueChange={(currency) => onChange({ currency })}>
-              <SelectTrigger className="w-28" aria-label="Currency"><SelectValue /></SelectTrigger>
-              <SelectContent>{BRIEF_CURRENCIES.map((currency) => <SelectItem key={currency} value={currency}>{currency}</SelectItem>)}</SelectContent>
-            </Select>
-            <Input
-              type="number"
-              min={0}
-              inputMode="numeric"
-              value={value.offerAmount || ""}
-              onChange={(event) => onChange({ offerAmount: Math.max(0, Math.round(Number(event.target.value) || 0)) })}
-              placeholder="Amount per creator"
-              aria-label="Amount per creator"
-            />
-          </div>
-        )}
-      </div>
-
-      <div>
-        <p className="text-sm font-medium">Content to create</p>
-        <div className="mt-2 grid grid-cols-3 gap-3">
-          <Count label="Story" value={value.stories} onChange={(stories) => onChange({ stories })} />
-          <Count label="Post" value={value.posts} onChange={(posts) => onChange({ posts })} />
-          <Count label="Reel" value={value.reels} onChange={(reels) => onChange({ reels })} />
-        </div>
-      </div>
-
       <div className="space-y-2">
         <Label htmlFor="brief-content-details">Content details</Label>
         <Textarea
@@ -167,12 +196,6 @@ function CampaignFields({ value, onChange }: { value: CreatorBrief; onChange: Pa
           onChange={(event) => onChange({ contentDetails: event.target.value })}
           className="text-[15px] leading-7"
         />
-      </div>
-
-      <div className="grid gap-4 sm:grid-cols-3">
-        <DateField label="Register interest by" value={value.registerBy} onChange={(registerBy) => onChange({ registerBy })} />
-        <DateField label="Post from" value={value.postFrom} onChange={(postFrom) => onChange({ postFrom })} />
-        <DateField label="Post until" value={value.postTo} min={value.postFrom} onChange={(postTo) => onChange({ postTo })} />
       </div>
     </div>
   )
