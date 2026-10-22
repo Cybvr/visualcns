@@ -3,6 +3,7 @@
 import { VideoThumbnail } from "@/components/ui/video-thumbnail"
 import { createContext, useContext, useEffect, useRef, useState, type FormEvent } from "react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
+import { FaFolder, FaImage, FaLink, FaVideo } from "react-icons/fa"
 import { Bookmark, ChevronLeft, ChevronRight, Download, ExternalLink, Folder, FolderInput, Heart, Image as ImageIcon, Images, ImagePlus, Link2, MessageCircle, MoreHorizontal, Palette, Repeat2, Send, Trash2, Video, VolumeX, X } from "lucide-react"
 import { toast } from "sonner"
 
@@ -12,6 +13,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { CollectionView, type CollectionItemActions } from "@/components/dashboard/collection-view"
 import { filterBySearch } from "@/components/dashboard/list-search"
+import { ReactIcon } from "@/components/react-icon"
 import { ShareDialog } from "@/components/dashboard/share-dialog"
 import { Input } from "@/components/ui/input"
 import { MediaLightbox } from "@/components/ui/media-lightbox"
@@ -1045,10 +1047,10 @@ function MediaLibrary({ files, scope, canEdit, startNew = false, onActionHandled
 
   function folderCard(folder: CampaignCreative) {
     return {
-      icon: <Folder className="size-4 text-muted-foreground" aria-hidden="true" />,
+      icon: <ReactIcon icon={FaFolder} className="size-4 text-blue-600 dark:text-blue-400" aria-hidden="true" />,
       title: folder.title,
       subtitle: folderCountLabel(folder),
-      placeholder: <Folder className="size-10 text-muted-foreground" aria-hidden="true" />,
+      placeholder: <ReactIcon icon={FaFolder} className="size-10 text-blue-600/70 dark:text-blue-400/70" aria-hidden="true" />,
       onClick: () => setActiveFolderId(folder.id),
       ariaLabel: `Open ${folder.title}`,
       menuLabel: `Options for ${folder.title}`,
@@ -1059,7 +1061,11 @@ function MediaLibrary({ files, scope, canEdit, startNew = false, onActionHandled
     return {
       title: creative.title,
       subtitle: creative.type === "video" ? "Video" : creative.type === "link" ? "Link" : "Image",
-      icon: creative.type === "video" ? <Video className="size-4 text-muted-foreground" aria-hidden="true" /> : creative.type === "link" ? <Link2 className="size-4 text-muted-foreground" aria-hidden="true" /> : <ImageIcon className="size-4 text-muted-foreground" aria-hidden="true" />,
+      icon: creative.type === "video"
+        ? <ReactIcon icon={FaVideo} className="size-4 text-blue-600 dark:text-blue-400" aria-hidden="true" />
+        : creative.type === "link"
+          ? <ReactIcon icon={FaLink} className="size-4 text-blue-600 dark:text-blue-400" aria-hidden="true" />
+          : <ReactIcon icon={FaImage} className="size-4 text-blue-600 dark:text-blue-400" aria-hidden="true" />,
       imageUrl: creative.type === "image" ? creative.url : undefined,
       preview: creative.type === "video" ? <VideoThumbnail src={creative.url} /> : undefined,
       placeholder: <ExternalLink className="size-8 text-muted-foreground" aria-hidden="true" />,

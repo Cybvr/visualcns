@@ -54,8 +54,8 @@ export function GridCard({
   return (
     <div
       className={cn(
-        "relative flex flex-col gap-3 rounded-2xl bg-muted/60 p-3 transition-colors hover:bg-muted",
-        selected && "bg-muted ring-2 ring-primary/60",
+        "relative flex flex-col gap-1 rounded-2xl bg-sidebar-accent/25 px-2 py-1 transition-colors hover:bg-sidebar-accent/40",
+        selected && "bg-sidebar-accent/40 ring-2 ring-primary/60",
         (href || onClick) && "cursor-pointer",
       )}
     >
@@ -65,7 +65,7 @@ export function GridCard({
         <button type="button" onClick={onClick} aria-label={ariaLabel} className={overlayClass} />
       ) : null}
 
-      <div className="flex min-h-9 items-center gap-2.5 pl-1">
+      <div className="flex min-h-7 items-center gap-2.5 pl-1">
         {icon && <span className="pointer-events-none relative flex shrink-0 items-center">{icon}</span>}
         <p className="pointer-events-none relative min-w-0 flex-1 truncate text-sm font-medium text-foreground">{title}</p>
         {hasItemActions(actions) && (
@@ -75,7 +75,7 @@ export function GridCard({
                 type="button"
                 aria-label={menuLabel}
                 title={menuLabel}
-                className={`relative z-10 -mr-1 flex size-8 shrink-0 items-center justify-center rounded-full text-foreground outline-none transition-colors hover:bg-background/60 focus-visible:ring-2 focus-visible:ring-ring ${menuAlwaysVisible ? "!opacity-100" : ""}`}
+                className={`relative z-10 -mr-1 flex size-7 shrink-0 items-center justify-center rounded-full text-foreground outline-none transition-colors hover:bg-background/60 focus-visible:ring-2 focus-visible:ring-ring ${menuAlwaysVisible ? "!opacity-100" : ""}`}
               >
                 <EllipsisVertical className="size-5" aria-hidden="true" />
               </button>
@@ -85,7 +85,7 @@ export function GridCard({
         )}
       </div>
 
-      <div className="pointer-events-none relative flex aspect-[4/3] items-center justify-center overflow-hidden rounded-xl bg-background">
+      <div className="pointer-events-none relative flex aspect-[4/3] items-center justify-center overflow-hidden rounded-lg bg-background">
         {preview ??
           (imageUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
