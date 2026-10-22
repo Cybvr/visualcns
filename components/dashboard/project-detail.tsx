@@ -278,9 +278,9 @@ export function ProjectDetail({
     return (
       <div className="flex items-center gap-1">
         <ShareDialog
-          path={campaignSharePath}
+          path={`/share/campaigns/${encodeURIComponent(project.id)}`}
           title={`Share ${project.title}`}
-          shareText={`See the ${project.title} campaign`}
+          shareText={`Apply for the ${project.title} campaign`}
         />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
