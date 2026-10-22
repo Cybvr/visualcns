@@ -1,6 +1,6 @@
 "use client"
 
-import { ArrowLeft, Check, ChevronDown, ChevronsUpDown, Clock, Eye, FileText, MoreVertical, Paperclip, Trash2, X } from "lucide-react"
+import { ArrowLeft, ChevronDown, Clock, Eye, FileText, MoreVertical, Paperclip, Trash2, Users, X } from "lucide-react"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { IoSend } from "react-icons/io5"
 
@@ -8,10 +8,8 @@ import { RichTextEditor } from "@/components/dashboard/rich-text-editor"
 import { ReactIcon } from "@/components/react-icon"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
@@ -30,6 +28,8 @@ function matchingContacts(contacts: EmailContact[], query: string): EmailContact
 }
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+type ToSuggestion = { kind: "list"; list: ContactList } | { kind: "contact"; contact: EmailContact }
 
 /** An entered address shown as a removable badge, named when it's a saved contact. */
 function EmailChip({ email, contacts, onRemove, onEdit }: { email: string; contacts: EmailContact[]; onRemove: () => void; onEdit?: () => void }) {
@@ -75,24 +75,17 @@ export type EmailComposerProps = {
   cleanSenderDisplay: (value: string) => string
   messageKind: EmailMessageKind
   setMessageKind: (value: EmailMessageKind) => void
-  contactPickerOpen: boolean
-  setContactPickerOpen: (value: boolean) => void
-  setContactQuery: (value: string) => void
-  contactQuery: string
   selectedList: ContactList | null
   handleRecipientChange: (value: string) => void
   contacts: EmailContact[]
-  visibleContactOptions: EmailContact[]
   contactInitials: (name: string, email: string) => string
   contactAvatarTone: (value: string) => string
   to: string
   /** Comma-separated addresses to copy. */
   cc: string
   setCc: (value: string) => void
-  recipientEmail: (value: string) => string
   selectedListId: string
   setSelectedListId: (value: string) => void
-  setTo: (value: string) => void
   lists: ContactList[]
   body: string
   setBody: (value: string) => void
@@ -140,23 +133,16 @@ export function EmailComposer({
   cleanSenderDisplay,
   messageKind,
   setMessageKind,
-  contactPickerOpen,
-  setContactPickerOpen,
-  setContactQuery,
-  contactQuery,
   selectedList,
   handleRecipientChange,
   contacts,
-  visibleContactOptions,
   contactInitials,
   contactAvatarTone,
   to,
   cc,
   setCc,
-  recipientEmail,
   selectedListId,
   setSelectedListId,
-  setTo,
   lists,
   body,
   setBody,
@@ -191,22 +177,48 @@ export function EmailComposer({
   const [ccSuggestionsOpen, setCcSuggestionsOpen] = useState(false)
   const [activeCcIndex, setActiveCcIndex] = useState(0)
   const attachmentInputRef = useRef<HTMLInputElement>(null)
-  const recipientMatches = useMemo(() => matchingContacts(contacts, to), [contacts, to])
+
+  // To is kept like Cc, "a@x.com, b@y.com, draft": finished addresses are badges and
+  // the input holds the one being typed. A contact list sits beside them as its own badge.
+  const toInputRef = useRef<HTMLInputElement>(null)
+  const toParts = to.split(/[,;]/)
+  const toChips = toParts.slice(0, -1).map((email) => email.trim()).filter(Boolean)
+  const toDraft = toParts.at(-1) ?? ""
+  const toQuery = toDraft.trim()
+  const toSuggestions = useMemo<ToSuggestion[]>(() => {
+    const search = toQuery.toLowerCase()
+    const entered = new Set(toChips.map((email) => email.toLowerCase()))
+    const listMatches = lists
+      .filter((list) => list.id !== selectedListId && (!search || list.name.toLowerCase().includes(search)))
+      .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }))
+      .slice(0, 5)
+    const contactMatches = matchingContacts(contacts, toQuery).filter((contact) => !entered.has(contact.email.toLowerCase()))
+    return [...listMatches.map((list) => ({ kind: "list" as const, list })), ...contactMatches.map((contact) => ({ kind: "contact" as const, contact }))]
+    // toChips is derived from `to`.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [contacts, lists, selectedListId, to])
+
+  function writeTo(chips: string[], draft: string) {
+    handleRecipientChange(chips.length ? `${chips.join(", ")}, ${draft.trimStart()}` : draft.trimStart())
+  }
+
+  function pickSuggestion(suggestion: ToSuggestion) {
+    if (suggestion.kind === "list") {
+      setSelectedListId(suggestion.list.id)
+      writeTo(toChips, "")
+    } else {
+      writeTo([...toChips, suggestion.contact.email], "")
+    }
+    setActiveRecipientIndex(0)
+    setRecipientSuggestionsOpen(false)
+    requestAnimationFrame(() => toInputRef.current?.focus())
+  }
+
   const ccQuery = cc.split(/[,;]/).at(-1)?.trim() ?? ""
   const ccMatches = useMemo(() => {
     const entered = new Set(cc.split(/[,;]/).slice(0, -1).map((email) => email.trim().toLowerCase()))
     return matchingContacts(contacts, ccQuery).filter((contact) => !entered.has(contact.email.toLowerCase()))
   }, [cc, ccQuery, contacts])
-
-  // The recipient shows as a badge once it's a whole address and you've left the field.
-  const toInputRef = useRef<HTMLInputElement>(null)
-  const [editingTo, setEditingTo] = useState(false)
-  const showToChip = !selectedListId && !editingTo && EMAIL_PATTERN.test(to.trim())
-
-  function editTo() {
-    setEditingTo(true)
-    requestAnimationFrame(() => toInputRef.current?.focus())
-  }
 
   // Cc is kept as "a@x.com, b@y.com, draft": every finished address is a badge,
   // and the input only holds the one being typed.
@@ -214,9 +226,9 @@ export function EmailComposer({
   const ccParts = cc.split(/[,;]/)
   const ccChips = ccParts.slice(0, -1).map((email) => email.trim()).filter(Boolean)
   const ccDraft = ccParts.at(-1) ?? ""
-  const hasRecipient = selectedListId
-    ? Boolean(selectedList?.contactEmails.length && selectedList.contactEmails.every((email) => EMAIL_PATTERN.test(email.trim())))
-    : EMAIL_PATTERN.test(to.trim())
+  const typedRecipients = [...toChips, toDraft.trim()].filter(Boolean)
+  const listReady = !selectedListId || Boolean(selectedList?.contactEmails.length && selectedList.contactEmails.every((email) => EMAIL_PATTERN.test(email.trim())))
+  const hasRecipient = listReady && (Boolean(selectedListId) || typedRecipients.length > 0) && typedRecipients.every((email) => EMAIL_PATTERN.test(email))
   const sendDisabled = !senderConfigured || !senderAddress.trim() || !hasRecipient || sending || preparingAttachments || !subject.trim() || !htmlToText(body).trim() || (scheduleEnabled && !scheduleAt)
 
   function writeCc(chips: string[], draft: string) {
@@ -229,11 +241,11 @@ export function EmailComposer({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cc])
 
-  function selectRecipient(contact: EmailContact) {
-    handleRecipientChange(contact.email)
-    setRecipientSuggestionsOpen(false)
-    setEditingTo(false)
-  }
+  // A recipient filled in from elsewhere (a reply, a draft, a share button) becomes a badge too.
+  useEffect(() => {
+    if (document.activeElement !== toInputRef.current && EMAIL_PATTERN.test(toDraft.trim())) writeTo([...toChips, toDraft.trim()], "")
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [to])
 
   function selectCc(contact: EmailContact) {
     const separator = Math.max(cc.lastIndexOf(","), cc.lastIndexOf(";"))
@@ -295,65 +307,89 @@ export function EmailComposer({
             >
               <div className="grid shrink-0 grid-cols-[minmax(0,1fr)_9rem] items-center border-b border-border"><div className="flex min-w-0 items-center gap-2 px-4 py-2"><span className="shrink-0 text-xs font-medium text-muted-foreground">From</span>{senderOptions.length > 1 ? <Select value={senderAddress} onValueChange={setSenderAddress}><SelectTrigger aria-label="Sender address" className="h-7 min-w-0 flex-1 border-0 bg-transparent px-0 text-left text-sm shadow-none hover:bg-transparent data-[state=open]:bg-transparent"><SelectValue /></SelectTrigger><SelectContent align="start" className="w-72">{senderOptions.map((sender) => <SelectItem key={sender} value={sender}>{cleanSenderDisplay(sender)}</SelectItem>)}</SelectContent></Select> : <p className="min-w-0 truncate text-sm">{cleanSenderDisplay(senderAddress || (showOpsDetail ? "Not configured" : "Not available yet"))}</p>}</div><div className="px-3 py-1"><Select value={messageKind} onValueChange={(value) => setMessageKind(value as EmailMessageKind)}><SelectTrigger aria-label="Message type" className="h-7 w-full border-0 bg-transparent px-1 text-xs shadow-none hover:bg-transparent data-[state=open]:bg-transparent"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="transactional">Service message</SelectItem><SelectItem value="marketing">Marketing email</SelectItem></SelectContent></Select></div></div>
 
-              <div className="grid shrink-0 grid-cols-2 gap-3 border-b border-border px-4 py-2.5">
-                <div className="relative flex min-w-0 items-center gap-2 border-b border-input" onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setRecipientSuggestionsOpen(false) }}>
-                  {showToChip ? (
-                    <div className="flex h-8 min-w-0 flex-1 items-center">
-                      <EmailChip email={to.trim()} contacts={contacts} onEdit={editTo} onRemove={() => { handleRecipientChange(""); editTo() }} />
-                    </div>
-                  ) : (
-                  <Input
-                    ref={toInputRef}
-                    id="email-to"
-                    name="message-to"
-                    type="email"
-                    inputMode="email"
-                    autoComplete="off"
-                    aria-label="Recipient email"
-                    aria-autocomplete="list"
-                    aria-expanded={recipientSuggestionsOpen && Boolean(to.trim()) && !selectedListId}
-                    aria-controls="email-to-suggestions"
-                    aria-activedescendant={recipientSuggestionsOpen && recipientMatches.length ? `email-to-option-${activeRecipientIndex}` : undefined}
-                    value={selectedListId ? "" : to}
-                    onFocus={() => { setEditingTo(true); setRecipientSuggestionsOpen(Boolean(to.trim())) }}
-                    onBlur={() => setEditingTo(false)}
-                    onChange={(event) => { handleRecipientChange(event.target.value); setActiveRecipientIndex(0); setRecipientSuggestionsOpen(Boolean(event.target.value.trim())) }}
-                    onKeyDown={(event) => {
-                      // Enter or a comma finishes the address and turns it into a badge.
-                      if ((event.key === "Enter" || event.key === ",") && EMAIL_PATTERN.test(to.trim()) && !(recipientSuggestionsOpen && recipientMatches.length)) { event.preventDefault(); setRecipientSuggestionsOpen(false); setEditingTo(false); return }
-                      if (!recipientSuggestionsOpen) return
-                      if (event.key === "ArrowDown" && recipientMatches.length) { event.preventDefault(); setActiveRecipientIndex((index) => (index + 1) % recipientMatches.length) }
-                      if (event.key === "ArrowUp" && recipientMatches.length) { event.preventDefault(); setActiveRecipientIndex((index) => (index - 1 + recipientMatches.length) % recipientMatches.length) }
-                      if (event.key === "Enter") { event.preventDefault(); if (recipientMatches.length) selectRecipient(recipientMatches[activeRecipientIndex] ?? recipientMatches[0]); else setRecipientSuggestionsOpen(false) }
-                      if (event.key === "Escape") { event.preventDefault(); setRecipientSuggestionsOpen(false) }
-                    }}
-                    placeholder={selectedList ? `Sending to ${selectedList.contactEmails.length} contacts` : "To"}
-                    disabled={Boolean(selectedListId)}
-                    className="h-8 min-w-0 flex-1 border-0 px-0 shadow-none focus-visible:ring-0 disabled:opacity-60"
-                  />
-                  )}
-                  <Popover open={contactPickerOpen} onOpenChange={(open) => { setContactPickerOpen(open); if (open) setRecipientSuggestionsOpen(false); else setContactQuery("") }}><PopoverTrigger asChild><button type="button" aria-label="Choose contact" disabled={Boolean(selectedListId)} className="flex size-8 shrink-0 items-center justify-center text-muted-foreground outline-none transition-colors hover:text-foreground disabled:pointer-events-none disabled:opacity-50"><ChevronsUpDown className="size-4" aria-hidden="true" /></button></PopoverTrigger><PopoverContent align="start" className="w-[var(--radix-popover-trigger-width)] min-w-[280px] p-0"><Command><CommandInput autoFocus placeholder="Search contacts" value={contactQuery} onValueChange={setContactQuery} /><CommandList><CommandEmpty className="px-3 py-6 text-center text-sm text-muted-foreground">No matching contacts.</CommandEmpty><CommandGroup>{visibleContactOptions.map((contact) => { const isSelected = recipientEmail(contact.email) === recipientEmail(to); return <CommandItem key={contact.email} value={`${contact.name} ${contact.email}`} onSelect={() => { selectRecipient(contact); setContactPickerOpen(false); setContactQuery("") }} className="items-center gap-3 px-3 py-2.5"><Avatar className={cn("size-10", contactAvatarTone(contact.name || contact.email))}><AvatarFallback className="bg-transparent text-sm font-medium">{contactInitials(contact.name, contact.email)}</AvatarFallback></Avatar><span className="min-w-0 flex-1"><span className="block truncate text-sm font-medium text-foreground">{contact.name || "Unnamed contact"}</span><span className="block truncate text-xs text-muted-foreground">{contact.email}</span></span><Check className={cn("size-4 shrink-0", isSelected ? "opacity-100" : "opacity-0")} aria-hidden="true" /></CommandItem> })}</CommandGroup></CommandList></Command></PopoverContent></Popover>
-                  {recipientSuggestionsOpen && to.trim() && !selectedListId && (
-                    <div id="email-to-suggestions" role="listbox" aria-label="Matching contacts" className="absolute left-0 top-full z-50 mt-1 max-h-64 w-[min(26rem,calc(100vw-2rem))] overflow-y-auto rounded-md border border-border bg-popover p-1 text-popover-foreground shadow-lg">
-                      {recipientMatches.length ? recipientMatches.map((contact, index) => (
-                        <button
-                          key={contact.email}
-                          id={`email-to-option-${index}`}
-                          type="button"
-                          role="option"
-                          aria-selected={index === activeRecipientIndex}
-                          tabIndex={-1}
-                          onClick={() => selectRecipient(contact)}
-                          className={cn("flex w-full items-center gap-3 rounded px-2 py-2 text-left outline-none hover:bg-accent", index === activeRecipientIndex && "bg-accent")}
-                        >
-                          <Avatar className={cn("size-9 shrink-0", contactAvatarTone(contact.name || contact.email))}><AvatarFallback className="bg-transparent text-xs font-medium">{contactInitials(contact.name, contact.email)}</AvatarFallback></Avatar>
-                          <span className="min-w-0"><span className="block truncate text-sm font-medium">{contact.name || "Unnamed contact"}</span><span className="block truncate text-xs text-muted-foreground">{contact.email}</span></span>
-                        </button>
-                      )) : <p className="px-3 py-2 text-xs text-muted-foreground">No saved contact matches.</p>}
-                    </div>
-                  )}
-                </div>
-                <Select value={selectedListId || "none"} onValueChange={(value) => { setSelectedListId(value === "none" ? "" : value); if (value !== "none") setTo("") }}><SelectTrigger aria-label="Contact list" className="h-8"><SelectValue placeholder="Select list" /></SelectTrigger><SelectContent><SelectItem value="none">No list</SelectItem>{[...lists].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" })).map((list) => <SelectItem key={list.id} value={list.id}>{list.name} ({list.contactEmails.length})</SelectItem>)}</SelectContent></Select>
+              {/* To: addresses and a contact list together, as badges, like Cc. Typing (or just clicking in) suggests lists and contacts. */}
+              <div className="relative flex shrink-0 flex-wrap items-center gap-x-2 gap-y-1 border-b border-border px-4 py-1.5" onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setRecipientSuggestionsOpen(false) }}>
+                <label htmlFor="email-to" className="shrink-0 text-xs font-medium text-muted-foreground">To</label>
+                {selectedList && (
+                  <span className="inline-flex h-6 min-w-0 max-w-full shrink-0 items-center gap-1 rounded-full bg-primary/10 py-0.5 pl-2.5 pr-1 text-xs font-medium text-foreground" title={`${selectedList.contactEmails.length} contacts`}>
+                    <Users className="size-3 shrink-0" aria-hidden="true" />
+                    <span className="min-w-0 truncate">{selectedList.name} ({selectedList.contactEmails.length})</span>
+                    <button type="button" onClick={() => setSelectedListId("")} aria-label={`Remove list ${selectedList.name}`} className="grid size-4 shrink-0 place-items-center rounded-full text-muted-foreground outline-none transition-colors hover:bg-background hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring">
+                      <X className="size-3" aria-hidden="true" />
+                    </button>
+                  </span>
+                )}
+                {toChips.map((email, index) => (
+                  <EmailChip key={`${email}-${index}`} email={email} contacts={contacts} onRemove={() => writeTo(toChips.filter((_, i) => i !== index), toDraft)} />
+                ))}
+                <Input
+                  ref={toInputRef}
+                  id="email-to"
+                  name="message-to"
+                  type="text"
+                  inputMode="email"
+                  autoComplete="off"
+                  aria-autocomplete="list"
+                  aria-expanded={recipientSuggestionsOpen && toSuggestions.length > 0}
+                  aria-controls="email-to-suggestions"
+                  aria-activedescendant={recipientSuggestionsOpen && toSuggestions.length ? `email-to-option-${Math.min(activeRecipientIndex, toSuggestions.length - 1)}` : undefined}
+                  value={toDraft.trimStart()}
+                  onFocus={() => { setActiveRecipientIndex(0); setRecipientSuggestionsOpen(true) }}
+                  onBlur={(event) => {
+                    // Picking a suggestion moves focus inside the field, so don't turn the half-typed text into a badge then.
+                    if (toDraft.trim() && !event.currentTarget.parentElement?.contains(event.relatedTarget)) writeTo([...toChips, toDraft.trim()], "")
+                  }}
+                  onChange={(event) => {
+                    // A comma, semicolon or space finishes an address and turns it into a badge.
+                    const parts = event.target.value.split(/[,;\s]+/)
+                    const draft = parts.pop() ?? ""
+                    writeTo([...toChips, ...parts.filter(Boolean)], draft)
+                    setActiveRecipientIndex(0)
+                    setRecipientSuggestionsOpen(true)
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === "Backspace" && !toDraft.trim()) {
+                      if (toChips.length) { event.preventDefault(); writeTo(toChips.slice(0, -1), ""); return }
+                      if (selectedListId) { event.preventDefault(); setSelectedListId(""); return }
+                    }
+                    if (event.key === "Enter" && toDraft.trim() && !(recipientSuggestionsOpen && toSuggestions.length)) { event.preventDefault(); writeTo([...toChips, toDraft.trim()], ""); return }
+                    if (!recipientSuggestionsOpen) return
+                    if (event.key === "ArrowDown" && toSuggestions.length) { event.preventDefault(); setActiveRecipientIndex((index) => (index + 1) % toSuggestions.length) }
+                    if (event.key === "ArrowUp" && toSuggestions.length) { event.preventDefault(); setActiveRecipientIndex((index) => (index - 1 + toSuggestions.length) % toSuggestions.length) }
+                    if (event.key === "Enter" && toSuggestions.length) { event.preventDefault(); pickSuggestion(toSuggestions[activeRecipientIndex] ?? toSuggestions[0]) }
+                    if (event.key === "Escape") { event.preventDefault(); setRecipientSuggestionsOpen(false) }
+                  }}
+                  placeholder={toChips.length || selectedList ? "" : "Add emails or a list"}
+                  className="h-8 w-auto min-w-32 flex-1 border-0 px-0 shadow-none focus-visible:ring-0"
+                />
+                {recipientSuggestionsOpen && toSuggestions.length > 0 && (
+                  <div id="email-to-suggestions" role="listbox" aria-label="Lists and contacts" className="absolute left-4 right-4 top-full z-50 mt-1 max-h-64 overflow-y-auto rounded-md border border-border bg-popover p-1 text-popover-foreground shadow-lg">
+                    {toSuggestions.map((suggestion, index) => (
+                      <button
+                        key={suggestion.kind === "list" ? `list-${suggestion.list.id}` : suggestion.contact.email}
+                        id={`email-to-option-${index}`}
+                        type="button"
+                        role="option"
+                        aria-selected={index === activeRecipientIndex}
+                        tabIndex={-1}
+                        onClick={() => pickSuggestion(suggestion)}
+                        className={cn("flex w-full items-center gap-3 rounded px-2 py-2 text-left outline-none hover:bg-accent", index === activeRecipientIndex && "bg-accent")}
+                      >
+                        {suggestion.kind === "list" ? (
+                          <>
+                            <span className="grid size-9 shrink-0 place-items-center rounded-full bg-primary/10 text-foreground"><Users className="size-4" aria-hidden="true" /></span>
+                            <span className="min-w-0"><span className="block truncate text-sm font-medium">{suggestion.list.name}</span><span className="block truncate text-xs text-muted-foreground">List · {suggestion.list.contactEmails.length} contacts</span></span>
+                          </>
+                        ) : (
+                          <>
+                            <Avatar className={cn("size-9 shrink-0", contactAvatarTone(suggestion.contact.name || suggestion.contact.email))}><AvatarFallback className="bg-transparent text-xs font-medium">{contactInitials(suggestion.contact.name, suggestion.contact.email)}</AvatarFallback></Avatar>
+                            <span className="min-w-0"><span className="block truncate text-sm font-medium">{suggestion.contact.name || "Unnamed contact"}</span><span className="block truncate text-xs text-muted-foreground">{suggestion.contact.email}</span></span>
+                          </>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {messageKind === "transactional" && (

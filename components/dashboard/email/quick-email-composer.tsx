@@ -10,9 +10,11 @@ import { MAX_EMAIL_ATTACHMENTS, MAX_EMAIL_ATTACHMENT_BYTES, MAX_EMAIL_ATTACHMENT
 import { prepareEmailAttachment, removeUploadedEmailAttachments, uploadEmailAttachments } from "@/lib/email-attachment-uploads"
 import { parseEmailList, plainTextToEditorHtml } from "@/lib/email-composer"
 import { markdownToHtml } from "@/lib/markdown"
+import { getEmailLists } from "@/lib/email-lists"
 import { getEmailTemplates, type EmailTemplateRecord } from "@/lib/email-templates-store"
+import { getUsers } from "@/lib/users"
 import { withMessageImage } from "@/components/dashboard/email/email-preview"
-import type { EmailMessageKind } from "@/components/dashboard/email/types"
+import type { ContactList, EmailContact, EmailMessageKind } from "@/components/dashboard/email/types"
 
 type Notice = { tone: "success" | "error"; text: string } | null
 
@@ -80,8 +82,9 @@ export function QuickEmailComposer({
   const [senderOptions, setSenderOptions] = useState<string[]>([])
   const [brandedEmail, setBrandedEmail] = useState(true)
   const [messageKind, setMessageKind] = useState<EmailMessageKind>("transactional")
-  const [contactPickerOpen, setContactPickerOpen] = useState(false)
-  const [contactQuery, setContactQuery] = useState("")
+  // The same contacts and lists the Email page offers, suggested as you type in To.
+  const [contacts, setContacts] = useState<EmailContact[]>([])
+  const [lists, setLists] = useState<ContactList[]>([])
   const [to, setTo] = useState(email)
   const [cc, setCc] = useState("")
   const [selectedListId, setSelectedListId] = useState("")
@@ -104,6 +107,7 @@ export function QuickEmailComposer({
   useEffect(() => {
     if (!open) return
     setTo(email)
+    setSelectedListId("")
     setSubject(initialSubject)
     setBody(startingBody)
     setSendNotice(null)
@@ -122,6 +126,39 @@ export function QuickEmailComposer({
       .catch(() => { if (active) setTemplates([]) })
     return () => { active = false }
   }, [showAllTemplates, user?.uid, workspaceId])
+
+  useEffect(() => {
+    if (!open || !user?.uid) return
+    let active = true
+    getEmailLists(workspaceId, showAllTemplates)
+      .then((rows) => { if (active) setLists(rows) })
+      .catch(() => { if (active) setLists([]) })
+    // Agency people only, as on the Email page: a client's view doesn't list everyone.
+    if (showAllTemplates) {
+      getUsers()
+        .then((users) => {
+          if (!active) return
+          const seen = new Set<string>()
+          setContacts(users
+            .filter((person) => person.email?.trim())
+            .map((person) => ({
+              email: person.email.trim().toLowerCase(),
+              label: [person.company, person.displayName].filter(Boolean).join(" · ") || person.email.trim(),
+              name: person.displayName?.trim() || person.company?.trim() || person.email.trim().split("@")[0],
+              companyId: person.companyId || person.uid,
+            }))
+            .filter((contact) => {
+              if (seen.has(contact.email)) return false
+              seen.add(contact.email)
+              return true
+            }))
+        })
+        .catch(() => { if (active) setContacts([]) })
+    }
+    return () => { active = false }
+  }, [open, showAllTemplates, user?.uid, workspaceId])
+
+  const selectedList = lists.find((list) => list.id === selectedListId) ?? null
 
   function applyTemplate(templateId: string) {
     setSelectedTemplateId(templateId)
@@ -214,8 +251,11 @@ export function QuickEmailComposer({
   async function sendEmail() {
     if (!user || sending || preparingAttachments || !senderConfigured || !senderAddress.trim()) return
     const trimmedSubject = subject.trim()
-    const target = to.trim()
-    if (!target || !trimmedSubject || !htmlToText(body).trim()) return
+    // Everyone typed in To, plus a picked list, each once.
+    const typedRecipients = to.split(/[,;]/).map((value) => value.trim()).filter(Boolean)
+    const recipients = Array.from(new Set([...(selectedList?.contactEmails ?? []), ...typedRecipients].map(recipientEmail)))
+    const recipientsLabel = [selectedList ? `${selectedList.name} (${selectedList.contactEmails.length})` : "", ...typedRecipients].filter(Boolean).join(", ")
+    if (!recipients.length || !trimmedSubject || !htmlToText(body).trim()) return
     const ccList = parseEmailList(messageKind === "transactional" ? cc : "")
     if (ccList.invalid.length) {
       setSendNotice({ tone: "error", text: `Check the Cc addresses: ${ccList.invalid.join(", ")}` })
@@ -244,7 +284,7 @@ export function QuickEmailComposer({
         method: "POST",
         headers: { Authorization: `Bearer ${idToken}`, "Content-Type": "application/json" },
         body: JSON.stringify({
-          to: target,
+          to: recipients,
           cc: ccList.valid.length ? ccList.valid : undefined,
           type: messageKind,
           subject: trimmedSubject,
@@ -255,9 +295,12 @@ export function QuickEmailComposer({
           scheduledAt: scheduledAt || undefined,
           attachments: uploaded,
           history: {
-            to: target,
+            to: recipientsLabel,
             createdAt: new Date().toISOString(),
-            recipients: [{ email: recipientEmail(target), name: name?.trim() || undefined }],
+            recipients: recipients.map((email) => ({
+              email,
+              name: contacts.find((contact) => contact.email === email)?.name || (recipients.length === 1 ? name?.trim() || undefined : undefined),
+            })),
             companyName: companyName?.trim() || undefined,
           },
         }),
@@ -297,24 +340,17 @@ export function QuickEmailComposer({
       cleanSenderDisplay={cleanSenderDisplay}
       messageKind={messageKind}
       setMessageKind={setMessageKind}
-      contactPickerOpen={contactPickerOpen}
-      setContactPickerOpen={setContactPickerOpen}
-      setContactQuery={setContactQuery}
-      contactQuery={contactQuery}
-      selectedList={null}
+      selectedList={selectedList}
       handleRecipientChange={setTo}
-      contacts={[]}
-      visibleContactOptions={[]}
+      contacts={contacts}
       contactInitials={(contactName, contactEmail) => (contactName || contactEmail).slice(0, 2).toUpperCase()}
       contactAvatarTone={() => "bg-muted text-foreground"}
       to={to}
       cc={cc}
       setCc={setCc}
-      recipientEmail={recipientEmail}
       selectedListId={selectedListId}
       setSelectedListId={setSelectedListId}
-      setTo={setTo}
-      lists={[]}
+      lists={lists}
       body={body}
       setBody={setBody}
       attachments={attachments}

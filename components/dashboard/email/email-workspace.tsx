@@ -350,8 +350,6 @@ export function EmailWorkspace({ initialTab, initialMessageId }: { initialTab: E
   const [senderOptions, setSenderOptions] = useState<string[]>([])
   const [replyToAddress, setReplyToAddress] = useState<string | null>(null)
   const [contacts, setContacts] = useState<EmailContact[]>([])
-  const [contactPickerOpen, setContactPickerOpen] = useState(false)
-  const [contactQuery, setContactQuery] = useState("")
   const [lists, setLists] = useState<ContactList[]>([])
   const [businessProfile, setBusinessProfile] = useState<BusinessProfile | null>(null)
 
@@ -658,14 +656,10 @@ export function EmailWorkspace({ initialTab, initialMessageId }: { initialTab: E
   })
   const selectedReceived = activeReceivedMessages.find((message) => message.id === selectedReceivedId) || null
   const selectedSent = messages.find((message) => message.id === selectedSentId) || null
-  const selectedContactName = contacts.find((contact) => recipientEmail(contact.email) === recipientEmail(to))?.name
+  // A greeting is only personalised when the message goes to one person.
+  const toEmails = to.split(/[,;]/).map((email) => email.trim()).filter(Boolean)
+  const selectedContactName = toEmails.length === 1 ? contacts.find((contact) => recipientEmail(contact.email) === recipientEmail(toEmails[0]))?.name : undefined
   const composeRecipientName = selectedContactName || composeContext?.recipientName
-  const visibleContactOptions = useMemo(() => {
-    const query = contactQuery.trim().toLowerCase()
-    return [...contacts]
-      .filter((contact) => !query || `${contact.name} ${contact.email}`.toLowerCase().includes(query))
-      .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }))
-  }, [contactQuery, contacts])
 
   async function loadReceivedMessages() {
     if (!user) return
@@ -1556,7 +1550,10 @@ export function EmailWorkspace({ initialTab, initialMessageId }: { initialTab: E
 
     setSendNotice(null)
 
-    const trimmedSubject = subject.trim()
+    // Everyone typed in To, plus a picked list, each once.
+    const typedRecipients = to.split(/[,;]/).map((email) => email.trim()).filter(Boolean)
+    const recipientEmails = Array.from(new Set([...(selectedList?.contactEmails ?? []), ...typedRecipients].map((email) => email.trim().toLowerCase())))
+    const recipientsLabel = [selectedList ? `${selectedList.name} (${selectedList.contactEmails.length})` : "", ...typedRecipients].filter(Boolean).join(", ")
     const recipientEmails = selectedList ? selectedList.contactEmails : [to.trim()]
     if ((selectedListId && !selectedList) || !recipientEmails.length || recipientEmails.some((email) => !EMAIL_PATTERN.test(email.trim()))) return
     if (EMAIL_PATTERN.test(trimmedSubject) || recipientEmails.some((email) => email.toLowerCase() === trimmedSubject.toLowerCase())) {
@@ -1603,7 +1600,7 @@ export function EmailWorkspace({ initialTab, initialMessageId }: { initialTab: E
       const savedCompanyId = composeContext?.companyId || workspaceId
       const idToken = await user.getIdToken()
       const requestBody = JSON.stringify({
-        to: selectedList ? selectedList.contactEmails : to,
+        to: recipientEmails,
         cc: ccList.valid.length ? ccList.valid : undefined,
         intent: composeContext?.intent,
         type: messageKind,
@@ -1625,7 +1622,7 @@ export function EmailWorkspace({ initialTab, initialMessageId }: { initialTab: E
         threading: composeThreading || undefined,
         history: {
           companyId: savedCompanyId,
-          to: selectedList ? `${selectedList.name} (${selectedList.contactEmails.length})` : to.trim(),
+          to: recipientsLabel,
           createdAt: new Date().toISOString(),
           recipients: recipientRecords,
           companyName: composeContext?.companyName,
@@ -1664,7 +1661,7 @@ export function EmailWorkspace({ initialTab, initialMessageId }: { initialTab: E
       const sentMessage: SentMessage = {
         id: result.id as string,
         providerId: result.id as string,
-        to: selectedList ? `${selectedList.name} (${selectedList.contactEmails.length})` : to.trim(),
+        to: recipientsLabel,
         cc: result.cc?.length ? result.cc : undefined,
         subject: trimmedSubject,
         createdAt: new Date().toISOString(),
@@ -1689,7 +1686,7 @@ export function EmailWorkspace({ initialTab, initialMessageId }: { initialTab: E
       }
       const historySaved = result.historySaved !== false
       setMessages((current) => [sentMessage, ...current])
-      if (showOpsDetail) void saveNewContacts([...(selectedList ? [] : [to]), ...ccList.valid])
+      if (showOpsDetail) void saveNewContacts([...typedRecipients, ...ccList.valid])
       setTo("")
       setCc("")
       setSelectedListId("")
@@ -2374,23 +2371,16 @@ export function EmailWorkspace({ initialTab, initialMessageId }: { initialTab: E
         cleanSenderDisplay={cleanSenderDisplay}
         messageKind={messageKind}
         setMessageKind={setMessageKind}
-        contactPickerOpen={contactPickerOpen}
-        setContactPickerOpen={setContactPickerOpen}
-        setContactQuery={setContactQuery}
-        contactQuery={contactQuery}
         selectedList={selectedList || null}
         handleRecipientChange={handleRecipientChange}
         contacts={contacts}
-        visibleContactOptions={visibleContactOptions}
         contactInitials={contactInitials}
         contactAvatarTone={contactAvatarTone}
         to={to}
         cc={cc}
         setCc={setCc}
-        recipientEmail={recipientEmail}
         selectedListId={selectedListId || ""}
         setSelectedListId={setSelectedListId}
-        setTo={setTo}
         lists={lists}
         body={body}
         setBody={setBody}
