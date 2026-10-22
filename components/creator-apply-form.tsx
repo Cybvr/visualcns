@@ -5,6 +5,8 @@ import Link from "next/link"
 import { Loader2 } from "lucide-react"
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth"
 
+import { useAuth } from "@/components/auth-provider"
+import { LoginDialog } from "@/components/login-dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -44,14 +46,18 @@ async function signUpOrSignIn(email: string, password: string) {
 
 /** The apply page's form. Creates their account, signs them in, and lands them on the campaign's Creators tab as "Applied". */
 export function CreatorApplyForm({ projectId, brief }: { projectId: string; brief: CreatorBrief }) {
+  const { user } = useAuth()
   const questions = applicationQuestions(brief)
   const [form, setForm] = useState({ name: "", email: "", password: "", app: defaultApp(brief.platform), handle: "", coverLetter: "" })
   const [answers, setAnswers] = useState<string[]>(() => questions.map(() => ""))
   const [sending, setSending] = useState(false)
   const [error, setError] = useState("")
   const [sent, setSent] = useState(false)
+  const [loginOpen, setLoginOpen] = useState(false)
   const set = (key: keyof typeof form) => (value: string) => setForm((current) => ({ ...current, [key]: value }))
-  const complete = Boolean(form.name.trim() && form.email.trim() && form.password.length >= 8 && form.handle.trim() && form.coverLetter.trim()) && answers.every((answer) => answer.trim())
+  // Someone already signed in applies with that account, so they skip email and password.
+  const account = Boolean(user) || Boolean(form.email.trim() && form.password.length >= 8)
+  const complete = Boolean(form.name.trim() && form.handle.trim() && form.coverLetter.trim()) && account && answers.every((answer) => answer.trim())
 
   async function submit(event: FormEvent) {
     event.preventDefault()
@@ -60,8 +66,7 @@ export function CreatorApplyForm({ projectId, brief }: { projectId: string; brie
     setError("")
     try {
       const { password, ...details } = form
-      const credential = await signUpOrSignIn(details.email.trim(), password)
-      const token = await credential.user.getIdToken()
+      const token = user ? await user.getIdToken() : await (await signUpOrSignIn(details.email.trim(), password)).user.getIdToken()
       const response = await fetch("/api/campaigns/apply", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
@@ -84,14 +89,34 @@ export function CreatorApplyForm({ projectId, brief }: { projectId: string; brie
 
   return (
     <form onSubmit={submit} className="space-y-5">
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Text id="apply-name" label="Name" value={form.name} onChange={set("name")} required autoComplete="name" />
-        <Text id="apply-email" label="Email" type="email" value={form.email} onChange={set("email")} required autoComplete="email" />
-      </div>
-      <div className="space-y-2">
-        <Text id="apply-password" label="Password" type="password" value={form.password} onChange={set("password")} required minLength={8} autoComplete="new-password" />
-        <p className="text-xs text-muted-foreground">At least 8 characters. You&apos;ll use it to sign in and follow your campaigns. Already have an account? Use its password.</p>
-      </div>
+      {user ? (
+        <>
+          <p className="text-sm text-muted-foreground">Applying as <span className="text-foreground">{user.email}</span></p>
+          <Text id="apply-name" label="Name" value={form.name} onChange={set("name")} required autoComplete="name" />
+        </>
+      ) : (
+        <>
+          <p className="text-sm text-muted-foreground">
+            Already have an account?{" "}
+            <button type="button" onClick={() => setLoginOpen(true)} className="font-medium text-foreground underline underline-offset-4">Sign in</button>
+          </p>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Text id="apply-name" label="Name" value={form.name} onChange={set("name")} required autoComplete="name" />
+            <Text id="apply-email" label="Email" type="email" value={form.email} onChange={set("email")} required autoComplete="email" />
+          </div>
+          <div className="space-y-2">
+            <Text id="apply-password" label="Password" type="password" value={form.password} onChange={set("password")} required minLength={8} autoComplete="new-password" />
+            <p className="text-xs text-muted-foreground">At least 8 characters. You&apos;ll use it to sign in and follow your campaigns.</p>
+          </div>
+          <LoginDialog
+            open={loginOpen}
+            onOpenChange={setLoginOpen}
+            onSignedIn={() => setLoginOpen(false)}
+            title="Sign in to apply"
+            description="Use your VisualCNS account. Your answers here stay as they are."
+          />
+        </>
+      )}
       <div className="grid gap-4 sm:grid-cols-[10rem_1fr]">
         <div className="space-y-2">
           <Label>Platform</Label>
