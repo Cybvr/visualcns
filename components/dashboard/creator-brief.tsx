@@ -96,8 +96,10 @@ export function CreatorBriefForm({ project, canEdit, value, onChange }: { projec
       <SettingsSection title="Dates" icon={CalendarRange}>
         <div className="space-y-4">
           <DateField label="Apply by" value={draft.registerBy} onChange={(registerBy) => set({ registerBy })} />
-          <DateField label="Start date" value={draft.postFrom} onChange={(postFrom) => set({ postFrom })} />
-          <DateField label="End date" value={draft.postTo} min={draft.postFrom} onChange={(postTo) => set({ postTo })} />
+          {/* No browser min on End date: inside a collapsed section an invalid date silently blocks Save.
+              A later start moves the end with it instead, and an earlier end pulls the start back. */}
+          <DateField label="Start date" value={draft.postFrom} onChange={(postFrom) => set(postFrom && draft.postTo && draft.postTo < postFrom ? { postFrom, postTo: postFrom } : { postFrom })} />
+          <DateField label="End date" value={draft.postTo} onChange={(postTo) => set(postTo && draft.postFrom && postTo < draft.postFrom ? { postTo, postFrom: postTo } : { postTo })} />
         </div>
       </SettingsSection>
       <SettingsSection title="Creators" icon={Users}>
@@ -387,11 +389,11 @@ function Count({ label, value, onChange }: { label: string; value: number; onCha
   )
 }
 
-function DateField({ label, value, min, onChange }: { label: string; value: string; min?: string; onChange: (value: string) => void }) {
+function DateField({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
   return (
     <div className="space-y-2">
       <Label>{label}</Label>
-      <Input type="date" value={value} min={min || undefined} onChange={(event) => onChange(event.target.value)} aria-label={label} />
+      <Input type="date" value={value} onChange={(event) => onChange(event.target.value)} aria-label={label} />
     </div>
   )
 }
