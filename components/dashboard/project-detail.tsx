@@ -299,6 +299,7 @@ export function ProjectDetail({
             open
             onOpenChange={setEmailOpen}
             companyName={project.client || clientName}
+            context={{ companyId: project.companyId || companyId, companyName: project.client || clientName, projectId: project.id, projectName: project.title }}
             initialSubject={`Apply for the ${project.title} campaign`}
             initialBody={campaignInviteHtml(project.title, siteUrl(`/share/campaigns/${encodeURIComponent(project.id)}`))}
           />

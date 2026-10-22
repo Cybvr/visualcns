@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
@@ -8,7 +8,8 @@ import { EmailComposer } from "@/components/dashboard/email/email-composer"
 import { useHideMobileFooter } from "@/components/dashboard/page-title-context"
 import { MAX_EMAIL_ATTACHMENTS, MAX_EMAIL_ATTACHMENT_BYTES, MAX_EMAIL_ATTACHMENT_MEGABYTES, type StoredEmailAttachment } from "@/lib/email-attachments"
 import { prepareEmailAttachment, removeUploadedEmailAttachments, uploadEmailAttachments } from "@/lib/email-attachment-uploads"
-import { parseEmailList, plainTextToEditorHtml } from "@/lib/email-composer"
+import { parseEmailList, plainTextToEditorHtml, type EmailComposeContext } from "@/lib/email-composer"
+import { deleteEmailDraft, saveEmailDraft, setEmailDraftTrashed, type EmailDraftRecord } from "@/lib/email-drafts"
 import { markdownToHtml } from "@/lib/markdown"
 import { getEmailLists } from "@/lib/email-lists"
 import { getEmailTemplates, type EmailTemplateRecord } from "@/lib/email-templates-store"
@@ -44,6 +45,12 @@ function escapeHtml(value: string) {
   return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;")
 }
 
+/** The message as words and addresses only, so "a@b.com" and the "a@b.com, " its badge leaves behind compare the same. */
+function draftKey(to: string, cc: string, listId: string, subject: string, body: string) {
+  const addresses = (value: string) => value.split(/[,;]/).map((item) => item.trim().toLowerCase()).filter(Boolean).join(",")
+  return JSON.stringify([addresses(to), addresses(cc), listId, subject.trim(), htmlToText(body).trim()])
+}
+
 function datetimeLocalMin() {
   const soon = new Date(Date.now() + 5 * 60_000)
   soon.setSeconds(0, 0)
@@ -59,6 +66,7 @@ export function QuickEmailComposer({
   companyName,
   initialSubject = "",
   initialBody,
+  context,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -69,6 +77,8 @@ export function QuickEmailComposer({
   /** What the message starts as each time it opens. HTML or plain text; plain text becomes paragraphs. */
   initialSubject?: string
   initialBody?: string
+  /** What the message is about (client, campaign), kept on its draft so it reopens where it started. */
+  context?: EmailComposeContext
 }) {
   const { user, appUser, isAdmin, isImpersonating } = useAuth()
   const firstName = name?.trim().split(/\s+/)[0] || "there"
@@ -100,6 +110,13 @@ export function QuickEmailComposer({
   const [scheduleAt, setScheduleAt] = useState("")
   const [composerPreviewOpen, setComposerPreviewOpen] = useState(false)
   const [sendNotice, setSendNotice] = useState<Notice>(null)
+  // Drafts go to the same Drafts as the Email page, saved shortly after typing stops.
+  const [draftId, setDraftId] = useState<string | null>(null)
+  const [draftStatus, setDraftStatus] = useState<"idle" | "saving" | "saved" | "error">("idle")
+  const [savingDraft, setSavingDraft] = useState(false)
+  const draftIdRef = useRef<string | null>(null)
+  // What it opened with, so a message nobody has touched isn't saved as a draft.
+  const startingRef = useRef("")
 
   useHideMobileFooter(open)
 
@@ -111,6 +128,10 @@ export function QuickEmailComposer({
     setSubject(initialSubject)
     setBody(startingBody)
     setSendNotice(null)
+    setDraftId(null)
+    setDraftStatus("idle")
+    draftIdRef.current = null
+    startingRef.current = draftKey(email, "", "", initialSubject, startingBody)
     // Only on opening; the props are the starting point, not live values.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
@@ -159,6 +180,63 @@ export function QuickEmailComposer({
   }, [open, showAllTemplates, user?.uid, workspaceId])
 
   const selectedList = lists.find((list) => list.id === selectedListId) ?? null
+
+  async function saveDraft() {
+    if (!user || savingDraft) return
+    setSavingDraft(true)
+    setDraftStatus("saving")
+    const id = draftIdRef.current || (typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `${Date.now()}`)
+    draftIdRef.current = id
+    const draft: EmailDraftRecord = {
+      id,
+      companyId: workspaceId,
+      createdBy: user.uid,
+      to: to.trim() || undefined,
+      cc: cc.trim() || undefined,
+      listId: selectedListId || undefined,
+      subject: subject.trim() || undefined,
+      body: body || undefined,
+      messageKind,
+      brandedEmail,
+      context: context ? { ...context } : null,
+      updatedAt: new Date().toISOString(),
+    }
+    try {
+      await saveEmailDraft(draft)
+      setDraftId(id)
+      setDraftStatus("saved")
+    } catch {
+      setDraftStatus("error")
+    } finally {
+      setSavingDraft(false)
+    }
+  }
+
+  useEffect(() => {
+    if (!open || !user?.uid) return
+    const empty = !subject.trim() && !htmlToText(body).trim() && !to.trim() && !selectedListId
+    const untouched = draftKey(to, cc, selectedListId, subject, body) === startingRef.current
+    if (empty || (untouched && !draftIdRef.current)) {
+      setDraftStatus("idle")
+      return
+    }
+    setDraftStatus("saving")
+    const timer = window.setTimeout(() => { void saveDraft() }, 800)
+    return () => window.clearTimeout(timer)
+    // saveDraft reads the latest values when the timer fires.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [body, brandedEmail, cc, messageKind, open, selectedListId, subject, to, user?.uid])
+
+  async function removeDraft(id: string) {
+    try {
+      await setEmailDraftTrashed(id, new Date().toISOString())
+    } catch {
+      setSendNotice({ tone: "error", text: "The draft could not be moved to Bin." })
+      return
+    }
+    setDraftId(null)
+    draftIdRef.current = null
+  }
 
   function applyTemplate(templateId: string) {
     setSelectedTemplateId(templateId)
@@ -308,6 +386,12 @@ export function QuickEmailComposer({
       const result = await response.json().catch(() => ({})) as { id?: string; error?: string }
       if (!response.ok || !result.id) throw new Error(result.error || "The message could not be sent.")
       toast.success(scheduledAt ? "Email scheduled." : "Email sent.")
+      // Sent, so it's no longer a draft.
+      const sentDraftId = draftIdRef.current
+      draftIdRef.current = null
+      setDraftId(null)
+      setDraftStatus("idle")
+      if (sentDraftId) void deleteEmailDraft(sentDraftId).catch(() => undefined)
       close()
     } catch (error) {
       if (uploaded.length) await removeUploadedEmailAttachments(uploaded)
@@ -365,14 +449,14 @@ export function QuickEmailComposer({
       scheduleMin={datetimeLocalMin()}
       setScheduleAt={setScheduleAt}
       sendEmail={() => void sendEmail()}
-      draftStatus="idle"
-      savingDraft={false}
+      draftStatus={draftStatus}
+      savingDraft={savingDraft}
       setComposerPreviewOpen={setComposerPreviewOpen}
       templates={templates}
       selectedTemplate={selectedTemplate}
       applyTemplate={applyTemplate}
-      editingDraftId={null}
-      removeDraft={() => undefined}
+      editingDraftId={draftId}
+      removeDraft={(id) => void removeDraft(id)}
       clearComposer={clearComposer}
       htmlToText={htmlToText}
       composerPreviewOpen={composerPreviewOpen}
