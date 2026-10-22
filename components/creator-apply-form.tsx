@@ -3,6 +3,7 @@
 import { useState, type ComponentProps, type FormEvent } from "react"
 import Link from "next/link"
 import { Loader2 } from "lucide-react"
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -10,6 +11,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { applicationQuestions, type CreatorBrief } from "@/lib/campaign-brief"
+import { auth } from "@/lib/firebase"
 
 const APPS = ["Instagram", "TikTok", "YouTube", "Facebook", "X"] as const
 
@@ -22,16 +24,34 @@ export function applicationsClosed(brief: Pick<CreatorBrief, "registerBy">) {
   return Boolean(brief.registerBy) && new Date().toISOString().slice(0, 10) > brief.registerBy
 }
 
-/** The apply page's form. Lands on the campaign's Creators tab as "Applied". */
-export function CreatorApplyForm({ projectId, brief, backHref }: { projectId: string; brief: CreatorBrief; backHref: string }) {
+const AUTH_ERRORS: Record<string, string> = {
+  "auth/invalid-email": "Check your email address.",
+  "auth/weak-password": "Use a password of at least 8 characters.",
+  "auth/wrong-password": "That email already has an account and the password doesn't match. Sign in, or reset your password from the sign-in page.",
+  "auth/invalid-credential": "That email already has an account and the password doesn't match. Sign in, or reset your password from the sign-in page.",
+  "auth/too-many-requests": "Too many tries. Wait a minute and try again.",
+}
+
+/** Creates the applicant's account, or signs them in when the email already has one. */
+async function signUpOrSignIn(email: string, password: string) {
+  try {
+    return await createUserWithEmailAndPassword(auth, email, password)
+  } catch (error) {
+    if ((error as { code?: string }).code !== "auth/email-already-in-use") throw error
+    return signInWithEmailAndPassword(auth, email, password)
+  }
+}
+
+/** The apply page's form. Creates their account, signs them in, and lands them on the campaign's Creators tab as "Applied". */
+export function CreatorApplyForm({ projectId, brief }: { projectId: string; brief: CreatorBrief }) {
   const questions = applicationQuestions(brief)
-  const [form, setForm] = useState({ name: "", email: "", app: defaultApp(brief.platform), handle: "", coverLetter: "" })
+  const [form, setForm] = useState({ name: "", email: "", password: "", app: defaultApp(brief.platform), handle: "", coverLetter: "" })
   const [answers, setAnswers] = useState<string[]>(() => questions.map(() => ""))
   const [sending, setSending] = useState(false)
   const [error, setError] = useState("")
   const [sent, setSent] = useState(false)
   const set = (key: keyof typeof form) => (value: string) => setForm((current) => ({ ...current, [key]: value }))
-  const complete = Boolean(form.name.trim() && form.email.trim() && form.handle.trim() && form.coverLetter.trim()) && answers.every((answer) => answer.trim())
+  const complete = Boolean(form.name.trim() && form.email.trim() && form.password.length >= 8 && form.handle.trim() && form.coverLetter.trim()) && answers.every((answer) => answer.trim())
 
   async function submit(event: FormEvent) {
     event.preventDefault()
@@ -39,36 +59,38 @@ export function CreatorApplyForm({ projectId, brief, backHref }: { projectId: st
     setSending(true)
     setError("")
     try {
+      const { password, ...details } = form
+      const credential = await signUpOrSignIn(details.email.trim(), password)
+      const token = await credential.user.getIdToken()
       const response = await fetch("/api/campaigns/apply", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, projectId, answers: questions.map((question, index) => ({ question, answer: answers[index] ?? "" })) }),
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ ...details, projectId, answers: questions.map((question, index) => ({ question, answer: answers[index] ?? "" })) }),
       })
       const result = await response.json().catch(() => ({})) as { error?: string }
       if (!response.ok) throw new Error(result.error || "That didn't send. Try again.")
       setSent(true)
+      // A full load, so the app reads their creator role fresh and opens their campaigns.
+      window.location.assign("/dashboard/projects")
     } catch (err) {
-      setError(err instanceof Error ? err.message : "That didn't send. Try again.")
-    } finally {
+      const code = (err as { code?: string }).code
+      setError(code ? AUTH_ERRORS[code] ?? "We couldn't create your account. Try again." : err instanceof Error ? err.message : "That didn't send. Try again.")
       setSending(false)
     }
   }
 
   if (applicationsClosed(brief)) return <p className="text-sm text-muted-foreground">Applications for this campaign have closed.</p>
-  if (sent) {
-    return (
-      <div className="space-y-4">
-        <p className="text-[15px] text-foreground">Thanks, your application has been sent. We&apos;ll be in touch by email.</p>
-        <Button asChild variant="outline"><Link href={backHref}>Back to the campaign</Link></Button>
-      </div>
-    )
-  }
+  if (sent) return <p className="text-[15px] text-foreground">Application sent. Taking you to your campaigns…</p>
 
   return (
     <form onSubmit={submit} className="space-y-5">
       <div className="grid gap-4 sm:grid-cols-2">
         <Text id="apply-name" label="Name" value={form.name} onChange={set("name")} required autoComplete="name" />
         <Text id="apply-email" label="Email" type="email" value={form.email} onChange={set("email")} required autoComplete="email" />
+      </div>
+      <div className="space-y-2">
+        <Text id="apply-password" label="Password" type="password" value={form.password} onChange={set("password")} required minLength={8} autoComplete="new-password" />
+        <p className="text-xs text-muted-foreground">At least 8 characters. You&apos;ll use it to sign in and follow your campaigns. Already have an account? Use its password.</p>
       </div>
       <div className="grid gap-4 sm:grid-cols-[10rem_1fr]">
         <div className="space-y-2">

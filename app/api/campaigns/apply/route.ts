@@ -16,35 +16,33 @@ const count = (value: unknown) => Math.max(0, Math.round(Number(String(value ?? 
 const SOCIAL_FIELDS: Record<string, string> = { Instagram: "instagram", X: "x" }
 
 /**
- * Every applicant becomes a user of the app: a Firebase Auth account with no
- * password (they set one through password reset) and a "creator" user doc.
- * Someone who already has an account keeps their role; only blanks are filled.
+ * Every applicant is a user of the app: they sign up (or in) with a password
+ * on the apply page, and their user doc is tagged "creator" for the campaign's
+ * agency. Someone who already has a role keeps it; only blanks are filled.
  */
-async function ensureCreatorAccount(person: { email: string; name: string; phone: string; app: string; handle: string; agencyId: string }) {
+async function ensureCreatorAccount(person: { uid: string; email: string; name: string; phone: string; app: string; handle: string; agencyId: string }) {
   const { auth, db } = adminServices()
-  const account = await auth.getUserByEmail(person.email).catch(async (error: { code?: string }) => {
-    if (error?.code !== "auth/user-not-found") throw error
-    return auth.createUser({ email: person.email, displayName: person.name, emailVerified: false })
-  })
-  const ref = db.collection("users").doc(account.uid)
+  const ref = db.collection("users").doc(person.uid)
   const current = (await ref.get()).data()
   const now = Timestamp.now()
   const social = SOCIAL_FIELDS[person.app]
-  if (!current) {
+  // Signing up in the browser can make a bare doc (no role) first, so a doc without a role is still a new creator.
+  if (!current?.role) {
     await ref.set({
       email: person.email,
-      displayName: person.name,
-      photoURL: "",
+      displayName: current?.displayName || person.name,
+      photoURL: current?.photoURL || "",
       role: "creator",
       agencyId: person.agencyId,
-      companyId: account.uid,
+      companyId: person.uid,
       phone: person.phone,
       ...(social ? { [social]: person.handle } : {}),
       source: "Campaign application",
-      onboardingStatus: "pending-invite",
-      createdAt: now,
+      onboardingStatus: "active",
+      createdAt: current?.createdAt || now,
       updatedAt: now,
-    })
+    }, { merge: true })
+    await auth.updateUser(person.uid, { displayName: person.name }).catch(() => undefined)
   } else {
     const fill: Record<string, unknown> = {}
     if (!current.displayName) fill.displayName = person.name
@@ -52,7 +50,7 @@ async function ensureCreatorAccount(person: { email: string; name: string; phone
     if (social && !current[social]) fill[social] = person.handle
     if (Object.keys(fill).length) await ref.set({ ...fill, updatedAt: now }, { merge: true })
   }
-  return account.uid
+  return person.uid
 }
 
 function tierFor(followers: number) {
@@ -62,15 +60,26 @@ function tierFor(followers: number) {
 }
 
 /**
- * A creator registering interest from the shared campaign page. No login: they
- * land on the campaign's Creators tab as "Applied", and their contact details go
- * in campaignApplications, which only the agency can read.
+ * A creator applying from the shared campaign page, signed in with the account
+ * the apply form made. They land on the campaign's Creators tab as "Applied",
+ * and their contact details go in campaignApplications, which only the agency can read.
  */
 export async function POST(request: Request) {
+  const token = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "")
+  if (!token) return NextResponse.json({ error: "Please sign in again." }, { status: 401 })
+  let uid = ""
+  let email = ""
+  try {
+    const decoded = await adminServices().auth.verifyIdToken(token)
+    uid = decoded.uid
+    email = String(decoded.email ?? "").toLowerCase()
+  } catch {
+    return NextResponse.json({ error: "Please sign in again." }, { status: 401 })
+  }
+
   const body = await request.json().catch(() => ({})) as Record<string, unknown>
   const projectId = clip(body.projectId, 128)
   const name = clip(body.name, 120)
-  const email = clip(body.email, 200).toLowerCase()
   const phone = clip(body.phone, 40)
   const app = APPS.includes(String(body.app)) ? String(body.app) : "Instagram"
   // A pasted profile link works too: keep the last part of the path.
@@ -112,7 +121,7 @@ export async function POST(request: Request) {
 
   let userId = ""
   try {
-    userId = await ensureCreatorAccount({ email, name, phone, app, handle, agencyId: String(project.agencyId || "") })
+    userId = await ensureCreatorAccount({ uid, email, name, phone, app, handle, agencyId: String(project.agencyId || "") })
   } catch (error) {
     console.error("Could not create the creator's account", error)
     return NextResponse.json({ error: "That didn't send. Try again." }, { status: 500 })

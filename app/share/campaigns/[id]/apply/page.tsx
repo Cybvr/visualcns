@@ -56,7 +56,7 @@ export default function SharedCampaignApplyPage() {
             <h1 id="apply-heading" className="text-2xl font-semibold tracking-tight text-foreground">Apply</h1>
             <div className="mt-1 text-sm text-muted-foreground">{project.title}</div>
           </div>
-          <CreatorApplyForm projectId={project.id} brief={resolveBrief(project.brief)} backHref={backHref} />
+          <CreatorApplyForm projectId={project.id} brief={resolveBrief(project.brief)} />
         </section>
       </div>
     </main>
