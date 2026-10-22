@@ -26,7 +26,7 @@ import { useSidebarTakeover } from "@/components/company/sidebar-takeover"
 import { watchCampaignCreatives, type CampaignCreative } from "@/lib/campaign-creatives"
 import { onRoster, watchCampaignPeople, type CampaignPerson } from "@/lib/campaign-people"
 import type { Invoice } from "@/lib/billing"
-import { buildEmailComposeHref } from "@/lib/email-composer"
+import { buildEmailComposeHref, siteUrl } from "@/lib/email-composer"
 import { deleteProjectWithTasks, renameProject, slugify, type Project } from "@/lib/projects"
 import { deleteTask, getTasksByCompanyId, tsToMillis, updateTask, type Task } from "@/lib/tasks"
 import { companyPath } from "@/lib/navigation"
@@ -300,7 +300,7 @@ export function ProjectDetail({
             onOpenChange={setEmailOpen}
             companyName={project.client || clientName}
             initialSubject={`Apply for the ${project.title} campaign`}
-            initialBody={campaignInviteHtml(project.title, `${window.location.origin}/share/campaigns/${encodeURIComponent(project.id)}`)}
+            initialBody={campaignInviteHtml(project.title, siteUrl(`/share/campaigns/${encodeURIComponent(project.id)}`))}
           />
         )}
         <ShareDialog

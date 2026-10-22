@@ -3,6 +3,7 @@
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { ShareLinkActions } from "@/components/dashboard/share-link-actions"
+import { siteUrl } from "@/lib/email-composer"
 
 /**
  * The public-link toggle shared by tasks, invoices, contracts, and estimates.
@@ -19,7 +20,7 @@ export function ShareLinkField({
   onEnabledChange: (value: boolean) => void
   path?: string
 }) {
-  const url = path && typeof window !== "undefined" ? `${window.location.origin}${path}` : ""
+  const url = path ? siteUrl(path) : ""
 
   return (
     <div className="space-y-2">

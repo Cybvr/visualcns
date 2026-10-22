@@ -5,6 +5,7 @@ import { Send } from "lucide-react"
 import { ShareLinkActions } from "@/components/dashboard/share-link-actions"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { siteUrl } from "@/lib/email-composer"
 import { cn } from "@/lib/utils"
 
 type ShareDialogProps = {
@@ -32,7 +33,7 @@ export function ShareDialog({
   showTrigger = true,
   contentClassName,
 }: ShareDialogProps) {
-  const url = typeof window !== "undefined" ? `${window.location.origin}${path}` : path
+  const url = siteUrl(path)
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

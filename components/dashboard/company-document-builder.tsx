@@ -24,6 +24,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
+import { siteUrl } from "@/lib/email-composer"
 import { cn } from "@/lib/utils"
 import {
   companyDocumentKindMeta,
@@ -292,7 +293,7 @@ export function CompanyDocumentBuilder({ document: record }: { document: Company
             <Label htmlFor="share-toggle" className="text-sm font-medium">Public sharing</Label>
             <Switch id="share-toggle" checked={shareEnabled} onCheckedChange={setShareEnabled} />
           </div>
-          {shareEnabled && <ShareLinkActions url={`${window.location.origin}/share/documents/${record.id}`} label="Public document link" shareText={`View ${record.title}`} />}
+          {shareEnabled && <ShareLinkActions url={siteUrl(`/share/documents/${record.id}`)} label="Public document link" shareText={`View ${record.title}`} />}
         </DialogContent>
       </Dialog>
     </form>
