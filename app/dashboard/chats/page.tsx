@@ -168,7 +168,7 @@ export default function AllChatsPage() {
           </div>
 
           <div className="hidden space-y-2 sm:block">
-            <label className="flex items-center gap-2 py-1 text-sm text-muted-foreground">
+            <label className="flex items-center gap-2 px-3 py-1 text-sm text-muted-foreground">
               <Checkbox aria-label="Select all chats" checked={selection.allSelected} indeterminate={selection.someSelected} onChange={selection.toggleAll} />
               Select all chats
             </label>
@@ -186,6 +186,7 @@ export default function AllChatsPage() {
                 trailing={formatShortDate(chat.updatedAt)}
                 selected={selected || chat.id === activeConversationId}
                 pressed={selected}
+                checkbox={{ checked: selected, onChange: () => selection.toggle(chat.id), label: `${selected ? "Deselect" : "Select"} ${title}` }}
                 onClick={(event) => selection.selectedCount > 0 ? selection.toggle(chat.id, event.shiftKey) : openChat(chat)}
                 ariaLabel={`${selected ? "Selected. " : ""}Open ${title}`}
                 menuLabel={`Options for ${title}`}

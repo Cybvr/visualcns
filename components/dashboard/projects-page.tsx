@@ -269,7 +269,7 @@ export default function ProjectsAdminPage() {
 
               <div className="hidden space-y-2 sm:block">
                 <TableBulkBar count={selection.selectedCount} noun="campaign" deleting={bulkDeleting} onClear={selection.clear} onDelete={handleBulkDelete} />
-                <label className="flex items-center gap-2 py-1 text-sm text-muted-foreground">
+                <label className="flex items-center gap-2 px-3 py-1 text-sm text-muted-foreground">
                   <Checkbox aria-label="Select all campaigns" checked={selection.allSelected} indeterminate={selection.someSelected} onChange={selection.toggleAll} />
                   Select all campaigns
                 </label>
@@ -288,6 +288,7 @@ export default function ProjectsAdminPage() {
                     description={`${meta.label} · ${p.progress}% done${p.dueDate ? ` · Due ${p.dueDate}` : ""}`}
                     selected={selected}
                     pressed={selected}
+                    checkbox={{ checked: selected, onChange: () => selection.toggle(p.id), label: `${selected ? "Deselect" : "Select"} ${p.title}` }}
                     onClick={(event) => selection.selectedCount > 0 ? selection.toggle(p.id, event.shiftKey) : router.push(href)}
                     ariaLabel={`Open ${p.title}`}
                     menuLabel={`Options for ${p.title}`}

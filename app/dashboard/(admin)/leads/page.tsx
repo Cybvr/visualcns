@@ -376,7 +376,7 @@ function LeadsTable({ leads, loading, onOpen, onDelete }: { leads: Lead[]; loadi
       )}
       <div className="hidden space-y-2 sm:block">
         {leads.length === 0 ? <p className="py-8 text-center text-sm text-muted-foreground">No leads.</p> : <>
-          <label className="flex items-center gap-2 py-1 text-sm text-muted-foreground">
+          <label className="flex items-center gap-2 px-3 py-1 text-sm text-muted-foreground">
             <Checkbox aria-label="Select all leads" checked={selection.allSelected} indeterminate={selection.someSelected} onChange={selection.toggleAll} />
             Select all leads
           </label>
@@ -394,6 +394,7 @@ function LeadsTable({ leads, loading, onOpen, onDelete }: { leads: Lead[]; loadi
               trailing={<><span className="block">{STAGE_LABELS.get(lead.stage) ?? lead.stage}</span><span className="block">{formatValue(lead.value)}</span></>}
               selected={selected}
               pressed={selected}
+              checkbox={{ checked: selected, onChange: () => selection.toggle(lead.id), label: `${selected ? "Deselect" : "Select"} ${name}` }}
               onClick={(event) => selection.selectedCount > 0 ? selection.toggle(lead.id, event.shiftKey) : onOpen(lead)}
               ariaLabel={`Open ${name}`}
               menuLabel={`Options for ${name}`}

@@ -254,7 +254,7 @@ export default function ContractsPage() {
                 </ul>
                 <div className="hidden space-y-2 sm:block">
                   {adminView && (
-                    <label className="flex items-center gap-2 py-1 text-sm text-muted-foreground">
+                    <label className="flex items-center gap-2 px-3 py-1 text-sm text-muted-foreground">
                       <Checkbox aria-label="Select all contracts" checked={selection.allSelected} indeterminate={selection.someSelected} onChange={selection.toggleAll} />
                       Select all contracts
                     </label>
@@ -274,6 +274,7 @@ export default function ContractsPage() {
                       trailing={meta.label}
                       selected={selected}
                       pressed={selected}
+                      checkbox={adminView ? { checked: selected, onChange: () => selection.toggle(contract.id), label: `${selected ? "Deselect" : "Select"} ${contract.title}` } : undefined}
                       onClick={(event) => adminView && selection.selectedCount > 0 ? selection.toggle(contract.id, event.shiftKey) : router.push(href)}
                       ariaLabel={`Open contract ${contract.title}`}
                       menuLabel={`Options for ${contract.title}`}
