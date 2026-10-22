@@ -44,6 +44,8 @@ export type CreatorBrief = {
   /** Whole units, e.g. 150000 for ₦150,000. */
   offerAmount: number
   currency: string
+  /** Off: the shared campaign page leaves the offer out. */
+  showOffer: boolean
   stories: number
   posts: number
   reels: number
@@ -74,6 +76,7 @@ export const EMPTY_BRIEF: CreatorBrief = {
   fixedOffer: true,
   offerAmount: 0,
   currency: "NGN",
+  showOffer: true,
   stories: 1,
   posts: 0,
   reels: 1,
@@ -106,6 +109,7 @@ export function resolveBrief(saved?: Partial<CreatorBrief> | null, defaults?: Pa
     fixedOffer: typeof source.fixedOffer === "boolean" ? source.fixedOffer : EMPTY_BRIEF.fixedOffer,
     offerAmount: count(source.offerAmount, 0),
     currency: text(source.currency, EMPTY_BRIEF.currency),
+    showOffer: source.showOffer !== false,
     stories: count(source.stories, EMPTY_BRIEF.stories),
     posts: count(source.posts, EMPTY_BRIEF.posts),
     reels: count(source.reels, EMPTY_BRIEF.reels),

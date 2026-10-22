@@ -95,9 +95,9 @@ export function CreatorBriefForm({ project, canEdit, value, onChange }: { projec
       </SettingsSection>
       <SettingsSection title="Dates" icon={CalendarRange}>
         <div className="space-y-4">
-          <DateField label="Register interest by" value={draft.registerBy} onChange={(registerBy) => set({ registerBy })} />
-          <DateField label="Post from" value={draft.postFrom} onChange={(postFrom) => set({ postFrom })} />
-          <DateField label="Post until" value={draft.postTo} min={draft.postFrom} onChange={(postTo) => set({ postTo })} />
+          <DateField label="Apply by" value={draft.registerBy} onChange={(registerBy) => set({ registerBy })} />
+          <DateField label="Start date" value={draft.postFrom} onChange={(postFrom) => set({ postFrom })} />
+          <DateField label="End date" value={draft.postTo} min={draft.postFrom} onChange={(postTo) => set({ postTo })} />
         </div>
       </SettingsSection>
       <SettingsSection title="Creators" icon={Users}>
@@ -185,6 +185,12 @@ function OfferField({ value, onChange }: { value: CreatorBrief; onChange: Patch 
             placeholder="Amount per creator"
             aria-label="Amount per creator"
           />
+        </div>
+      )}
+      {value.fixedOffer && (
+        <div className="flex items-center gap-2 pt-2">
+          <Switch id="brief-show-offer" checked={value.showOffer} onCheckedChange={(showOffer) => onChange({ showOffer })} />
+          <Label htmlFor="brief-show-offer">Show offer and payment on the shared page</Label>
         </div>
       )}
     </div>
@@ -283,10 +289,14 @@ type CreatorBriefBrand = {
 }
 
 /** What creators and the client see: the brief as plain facts. */
-export function CreatorBriefSummary({ brief, brand }: {
+export function CreatorBriefSummary({ brief, brand, hideOffer = false, shared = false }: {
   brief: CreatorBrief
   /** The client's accounts, links and website, so creators can find the brand. */
   brand?: CreatorBriefBrand
+  /** Leave the offer and how it's paid out, for the shared page when the campaign hides them. */
+  hideOffer?: boolean
+  /** On the public campaign page, which leaves out paid ads. */
+  shared?: boolean
 }) {
   const platforms = brief.platform.split(" and ").map((name) => name.trim())
   const content = contentSummary(brief)
@@ -321,13 +331,13 @@ export function CreatorBriefSummary({ brief, brand }: {
           </Fact>
         )}
         <Fact label="Goal" icon={Target}>{goalLabel(brief.goal)}</Fact>
-        {formatOffer(brief) && <Fact label="Offer" icon={Wallet}>{formatOffer(brief)}</Fact>}
+        {!hideOffer && formatOffer(brief) && <Fact label="Offer" icon={Wallet}>{formatOffer(brief)}</Fact>}
         {content && <Fact label="Content" icon={Clapperboard}>{content}</Fact>}
         {brief.registerBy && <Fact label="Apply by" icon={CalendarClock}>{formatBriefDate(brief.registerBy)}</Fact>}
-        {dates && <Fact label="Post between" icon={CalendarRange}>{dates}</Fact>}
+        {dates && <Fact label="Runs" icon={CalendarRange}>{dates}</Fact>}
         {who && <Fact label="Creators" icon={Users}>{who}</Fact>}
-        <Fact label="Payment" icon={CreditCard}>{brief.paymentMethod}</Fact>
-        {brief.paidAds && <Fact label="Paid ads" icon={Megaphone}>Yes</Fact>}
+        {!hideOffer && <Fact label="Payment" icon={CreditCard}>{brief.paymentMethod}</Fact>}
+        {!shared && brief.paidAds && <Fact label="Paid ads" icon={Megaphone}>Yes</Fact>}
       </dl>
       {brief.contentDetails && <p className="whitespace-pre-wrap text-sm leading-7 text-foreground">{brief.contentDetails}</p>}
     </div>

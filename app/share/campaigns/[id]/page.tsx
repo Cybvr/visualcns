@@ -15,7 +15,7 @@ import { VideoThumbnail } from "@/components/ui/video-thumbnail"
 import { MediaLightbox, type MediaLightboxItem } from "@/components/ui/media-lightbox"
 import { watchCampaignCreatives, type CampaignCreative } from "@/lib/campaign-creatives"
 import { getOrganization, type Organization } from "@/lib/organizations"
-import { formatBriefDate, formatOffer, hasBrief, resolveBrief } from "@/lib/campaign-brief"
+import { formatBriefDate, hasBrief, resolveBrief } from "@/lib/campaign-brief"
 import { getProject, type Project } from "@/lib/projects"
 import { tsToMillis } from "@/lib/tasks"
 import { cn } from "@/lib/utils"
@@ -127,21 +127,18 @@ export default function SharedCampaignPage() {
             )}
           </div>
           <div className="space-y-5 px-5 pt-5 pb-6 sm:px-6">
-            <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1">
-              <div>
-                <h1 id="shared-campaign-title" className="text-2xl font-semibold tracking-tight text-foreground">{project.title}</h1>
-                {posted && (
-                  // A <time>, not a <p>: dashboard-body sets every paragraph to body size.
-                  <time dateTime={posted.toISOString()} className="mt-1 block text-xs text-muted-foreground">
-                    {posted.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
-                  </time>
-                )}
-              </div>
-              {brief && formatOffer(brief) && <p className="text-lg font-semibold text-foreground">{formatOffer(brief)}</p>}
+            <div>
+              <h1 id="shared-campaign-title" className="text-2xl font-semibold tracking-tight text-foreground">{project.title}</h1>
+              {posted && (
+                // A <time>, not a <p>: dashboard-body sets every paragraph to body size.
+                <time dateTime={posted.toISOString()} className="mt-1 block text-xs text-muted-foreground">
+                  {posted.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+                </time>
+              )}
             </div>
             {brief && (
               <>
-                <CreatorBriefSummary brief={brief} brand={{ accounts: socialAccounts, links: organization?.links, website: organization?.website }} />
+                <CreatorBriefSummary brief={brief} shared hideOffer={!brief.showOffer} brand={{ accounts: socialAccounts, links: organization?.links, website: organization?.website }} />
                 {samples.length > 0 && (
                   <div className="flex gap-2">
                     {samples.map((item) => (
