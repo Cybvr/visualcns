@@ -14,10 +14,12 @@ import { CampaignGenerateButton } from "@/components/dashboard/campaign-generate
 import { CampaignSettings } from "@/components/dashboard/campaign-settings"
 import { CaseStudyForm } from "@/components/dashboard/case-study-form"
 import { Ngai } from "@/components/agent/ngai"
+import { QuickEmailComposer } from "@/components/dashboard/email/quick-email-composer"
 import { ShareDialog } from "@/components/dashboard/share-dialog"
 import { ProjectShareButton } from "@/components/dashboard/project-share-button"
 import { ProjectTeamPicker } from "@/components/dashboard/project-team-picker"
 import { TasksView } from "@/components/dashboard/tasks-view"
+import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { useOptionalSidebar } from "@/components/ui/sidebar"
 import { useSidebarTakeover } from "@/components/company/sidebar-takeover"
@@ -60,6 +62,17 @@ interface ProjectDetailProps {
   invoiceHref?: (invoice: Invoice) => string
   /** The job's shared tasks for the public view, which can't edit them. */
   publicTasks?: ReactNode
+}
+
+function escapeHtml(value: string) {
+  return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;")
+}
+
+/** The starting message for sharing a campaign by email: what it is and the link to apply. */
+function campaignInviteHtml(title: string, url: string) {
+  const name = escapeHtml(title)
+  const href = escapeHtml(url)
+  return `<p>Hi,</p><p>We're looking for creators for ${name}. You can see the brief and apply here:</p><p><a href="${href}">${href}</a></p>`
 }
 
 /**
@@ -154,6 +167,7 @@ export function ProjectDetail({
   const campaignSharePath = `/${encodeURIComponent(publicCompanyRef)}/projects?campaign=${encodeURIComponent(project.id)}`
   const postSharePath = (post: CampaignCreative) => `${campaignSharePath}&view=content&post=${encodeURIComponent(post.id)}`
   const [shareOpen, setShareOpen] = useState(false)
+  const [emailOpen, setEmailOpen] = useState(false)
   const [quickAction, setQuickAction] = useState<Exclude<CampaignQuickAction, "run"> | null>(null)
   const [runCampaignOpen, setRunCampaignOpen] = useState(false)
   const [titleDraft, setTitleDraft] = useState(project.title)
@@ -277,6 +291,18 @@ export function ProjectDetail({
 
     return (
       <div className="flex items-center gap-1">
+        <Button type="button" variant="ghost" size="icon" onClick={() => setEmailOpen(true)} aria-label="Share by email" title="Share by email" className="shrink-0 rounded-full text-foreground hover:bg-muted/50">
+          <Mail className="size-[18px]" aria-hidden="true" />
+        </Button>
+        {emailOpen && (
+          <QuickEmailComposer
+            open
+            onOpenChange={setEmailOpen}
+            companyName={project.client || clientName}
+            initialSubject={`Apply for the ${project.title} campaign`}
+            initialBody={campaignInviteHtml(project.title, `${window.location.origin}/share/campaigns/${encodeURIComponent(project.id)}`)}
+          />
+        )}
         <ShareDialog
           path={`/share/campaigns/${encodeURIComponent(project.id)}`}
           title={`Share ${project.title}`}
@@ -332,7 +358,7 @@ export function ProjectDetail({
         )}
       </div>
     )
-  }, [campaignSharePath, clientName, companyId, fetchTasks, isAdmin, project, publicView, shareOpen, tasks.length])
+  }, [campaignSharePath, clientName, companyId, emailOpen, fetchTasks, isAdmin, project, publicView, shareOpen, tasks.length])
 
 
 

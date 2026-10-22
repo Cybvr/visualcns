@@ -52,20 +52,29 @@ function datetimeLocalMin() {
 export function QuickEmailComposer({
   open,
   onOpenChange,
-  email,
+  email = "",
   name,
   companyName,
+  initialSubject = "",
+  initialBody,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
-  email: string
+  /** Who it goes to. Empty lets the sender type the addresses. */
+  email?: string
   name?: string
   companyName?: string
+  /** What the message starts as each time it opens. HTML or plain text; plain text becomes paragraphs. */
+  initialSubject?: string
+  initialBody?: string
 }) {
   const { user, appUser, isAdmin, isImpersonating } = useAuth()
   const firstName = name?.trim().split(/\s+/)[0] || "there"
+  const startingBody = initialBody
+    ? (initialBody.includes("<") ? initialBody : plainTextToEditorHtml(initialBody))
+    : plainTextToEditorHtml(`Hi ${firstName},\n\n`)
   const [composeMinimized, setComposeMinimized] = useState(false)
-  const [subject, setSubject] = useState("")
+  const [subject, setSubject] = useState(initialSubject)
   const [senderConfigured, setSenderConfigured] = useState(false)
   const [senderAddress, setSenderAddress] = useState("")
   const [senderOptions, setSenderOptions] = useState<string[]>([])
@@ -76,7 +85,7 @@ export function QuickEmailComposer({
   const [to, setTo] = useState(email)
   const [cc, setCc] = useState("")
   const [selectedListId, setSelectedListId] = useState("")
-  const [body, setBody] = useState(() => plainTextToEditorHtml(`Hi ${firstName},\n\n`))
+  const [body, setBody] = useState(startingBody)
   const [attachments, setAttachments] = useState<File[]>([])
   const [preparingAttachments, setPreparingAttachments] = useState(false)
   const [sending, setSending] = useState(false)
@@ -90,6 +99,17 @@ export function QuickEmailComposer({
   const [sendNotice, setSendNotice] = useState<Notice>(null)
 
   useHideMobileFooter(open)
+
+  // Each opening starts from what the caller passed, not from the last message.
+  useEffect(() => {
+    if (!open) return
+    setTo(email)
+    setSubject(initialSubject)
+    setBody(startingBody)
+    setSendNotice(null)
+    // Only on opening; the props are the starting point, not live values.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open])
 
   // An admin "viewing as" a client sees only that client's templates, as on the Email page.
   const showAllTemplates = isAdmin && !isImpersonating
