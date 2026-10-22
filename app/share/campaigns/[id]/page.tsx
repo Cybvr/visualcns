@@ -5,18 +5,20 @@ import Link from "next/link"
 import { useParams } from "next/navigation"
 
 import { BrandLockup } from "@/components/brand-lockup"
-import { CreatorApplyButton } from "@/components/creator-apply-form"
+import { applicationsClosed } from "@/components/creator-apply-form"
 import { CreatorBriefSummary } from "@/components/dashboard/creator-brief"
 import { TaskContent } from "@/components/dashboard/task-content"
 import { ProjectCover } from "@/components/project-card"
+import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { VideoThumbnail } from "@/components/ui/video-thumbnail"
 import { MediaLightbox, type MediaLightboxItem } from "@/components/ui/media-lightbox"
 import { watchCampaignCreatives, type CampaignCreative } from "@/lib/campaign-creatives"
 import { getOrganization, type Organization } from "@/lib/organizations"
-import { formatOffer, hasBrief, resolveBrief } from "@/lib/campaign-brief"
+import { formatBriefDate, formatOffer, hasBrief, resolveBrief } from "@/lib/campaign-brief"
 import { getProject, type Project } from "@/lib/projects"
 import { tsToMillis } from "@/lib/tasks"
+import { cn } from "@/lib/utils"
 
 const LEGAL_LINKS = [
   { name: "Privacy", href: "/privacy" },
@@ -97,10 +99,12 @@ export default function SharedCampaignPage() {
   const brief = hasBrief(project.brief) ? resolveBrief(project.brief) : null
   const posted = tsToMillis(project.createdAt) > 0 ? new Date(tsToMillis(project.createdAt)) : null
 
+  const closed = brief ? applicationsClosed(brief) : true
+
   return (
-    <main className="dashboard-body min-h-screen bg-background px-4 pt-4 pb-10 font-sans sm:pt-6 sm:pb-16 [&_*]:font-sans">
+    <main className={cn("dashboard-body min-h-screen bg-background px-4 pt-4 font-sans sm:pt-6 [&_*]:font-sans", brief ? "pb-32" : "pb-10 sm:pb-16")}>
       <div className="mx-auto max-w-4xl space-y-4">
-        <header className="overflow-hidden rounded-xs bg-card">
+        <section aria-labelledby="shared-campaign-title" className="overflow-hidden rounded-xs bg-card">
           {/* Kept short and darkened so the client's logo leads. */}
           <div className="relative h-28 overflow-hidden bg-muted sm:h-36">
             <ProjectCover project={project} />
@@ -122,49 +126,50 @@ export default function SharedCampaignPage() {
               </p>
             )}
           </div>
-          <div className="px-5 pt-5 pb-6 sm:px-6">
-            <h1 className="text-2xl font-semibold tracking-tight text-foreground">{project.title}</h1>
-            {posted && (
-              // A <time>, not a <p>: dashboard-body sets every paragraph to body size.
-              <time dateTime={posted.toISOString()} className="mt-1 block text-xs text-muted-foreground">
-                {posted.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
-              </time>
-            )}
-            {project.about?.trim() && <TaskContent value={project.about} className="mt-3 text-sm leading-6" />}
-          </div>
-        </header>
-
-        {brief && (
-          <div className="space-y-4">
-            <section aria-labelledby="shared-brief-heading" className="space-y-4 rounded-xs bg-card p-5 sm:p-6">
-              <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-                <h2 id="shared-brief-heading" className="text-sm font-semibold text-foreground">The brief</h2>
-                {formatOffer(brief) && <p className="text-sm font-semibold text-foreground">{formatOffer(brief)}</p>}
+          <div className="space-y-5 px-5 pt-5 pb-6 sm:px-6">
+            <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1">
+              <div>
+                <h1 id="shared-campaign-title" className="text-2xl font-semibold tracking-tight text-foreground">{project.title}</h1>
+                {posted && (
+                  // A <time>, not a <p>: dashboard-body sets every paragraph to body size.
+                  <time dateTime={posted.toISOString()} className="mt-1 block text-xs text-muted-foreground">
+                    {posted.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+                  </time>
+                )}
               </div>
-              <CreatorBriefSummary brief={brief} brand={{ accounts: socialAccounts, links: organization?.links, website: organization?.website }} />
-              {samples.length > 0 && (
-                <div className="flex gap-2">
-                  {samples.map((item) => (
-                    <button
-                      key={item.id}
-                      type="button"
-                      onClick={() => setPreviewId(`media:${item.id}`)}
-                      aria-label={`Preview ${item.title || item.type}`}
-                      className="size-16 shrink-0 overflow-hidden rounded-xs bg-muted outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    >
-                      {item.type === "video"
-                        ? <VideoThumbnail src={item.url} />
-                        // eslint-disable-next-line @next/next/no-img-element
-                        : <img src={item.url} alt="" loading="lazy" className="size-full object-cover" />}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </section>
-            <div className="flex justify-end">
-              <CreatorApplyButton projectId={project.id} brief={brief} title={project.title} />
+              {brief && formatOffer(brief) && <p className="text-lg font-semibold text-foreground">{formatOffer(brief)}</p>}
             </div>
+            {brief && (
+              <>
+                <CreatorBriefSummary brief={brief} brand={{ accounts: socialAccounts, links: organization?.links, website: organization?.website }} />
+                {samples.length > 0 && (
+                  <div className="flex gap-2">
+                    {samples.map((item) => (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => setPreviewId(`media:${item.id}`)}
+                        aria-label={`Preview ${item.title || item.type}`}
+                        className="size-16 shrink-0 overflow-hidden rounded-xs bg-muted outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      >
+                        {item.type === "video"
+                          ? <VideoThumbnail src={item.url} />
+                          // eslint-disable-next-line @next/next/no-img-element
+                          : <img src={item.url} alt="" loading="lazy" className="size-full object-cover" />}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
           </div>
+        </section>
+
+        {project.about?.trim() && (
+          <section aria-labelledby="shared-about-heading" className="rounded-xs bg-card p-5 sm:p-6">
+            <h2 id="shared-about-heading" className="text-sm font-semibold text-foreground">About</h2>
+            <TaskContent value={project.about} className="mt-3 text-sm leading-6" />
+          </section>
         )}
 
         <footer className="!mt-10 flex flex-col gap-4 border-t border-border pt-6 text-xs text-foreground/55 sm:flex-row sm:items-center sm:justify-between">
@@ -180,6 +185,18 @@ export default function SharedCampaignPage() {
           </div>
         </footer>
       </div>
+      {brief && (
+        <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-background/95 px-4 pt-3 backdrop-blur-sm pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+          <div className="mx-auto flex max-w-4xl items-center justify-between gap-4">
+            <p className="min-w-0 truncate text-sm text-muted-foreground">
+              {closed ? "Applications have closed" : brief.registerBy ? `Apply by ${formatBriefDate(brief.registerBy)}` : project.title}
+            </p>
+            {closed
+              ? <Button type="button" size="lg" className="h-12 px-12" disabled>Closed</Button>
+              : <Button asChild size="lg" className="h-12 px-12"><Link href={`/share/campaigns/${encodeURIComponent(project.id)}/apply`}>Apply</Link></Button>}
+          </div>
+        </div>
+      )}
       <MediaLightbox items={previewItems} activeId={previewId} onChange={setPreviewId} />
     </main>
   )

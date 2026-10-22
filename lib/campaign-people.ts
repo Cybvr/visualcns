@@ -190,7 +190,10 @@ export interface CampaignApplication {
   name: string
   email: string
   phone: string
+  /** Their cover letter. */
   note: string
+  /** Their answers to the campaign's questions, with each question as it was asked. */
+  answers: { question: string; answer: string }[]
   /** Their own rate, in `currency`, when the campaign has no fixed offer. */
   rate: number
   currency: string
@@ -215,7 +218,10 @@ export async function getCampaignApplication(personId: string): Promise<Campaign
   const payout = payoutData
     ? { accountName: text(payoutData.accountName), bankName: text(payoutData.bankName), accountNumber: text(payoutData.accountNumber), paypalEmail: text(payoutData.paypalEmail) }
     : null
-  return { name: text(data.name), email: text(data.email), phone: text(data.phone), note: text(data.note), rate: Number(data.rate) || 0, currency: text(data.currency), payout }
+  const answers = Array.isArray(data.answers)
+    ? data.answers.map((item: { question?: unknown; answer?: unknown }) => ({ question: text(item?.question), answer: text(item?.answer) })).filter((item: { answer: string }) => item.answer)
+    : []
+  return { name: text(data.name), email: text(data.email), phone: text(data.phone), note: text(data.note), answers, rate: Number(data.rate) || 0, currency: text(data.currency), payout }
 }
 
 /** Every creator who applied is a suggestion until someone adds them; this is the badge they show meanwhile. */

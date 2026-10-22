@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 import { Timestamp } from "firebase-admin/firestore"
 
 import { adminServices } from "@/lib/firebase-admin"
-import { hasBrief, resolveBrief } from "@/lib/campaign-brief"
+import { applicationQuestions, hasBrief, resolveBrief } from "@/lib/campaign-brief"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -77,11 +77,13 @@ export async function POST(request: Request) {
   const typedHandle = clip(body.handle, 200).replace(/^https?:\/\/[^/]+\//i, "").replace(/[/?#].*$/, "").replace(/^@+/, "").slice(0, 100)
   const handle = typedHandle ? `@${typedHandle}` : ""
   const followers = count(body.followers)
-  const note = String(body.note ?? "").trim().slice(0, 1000)
+  // The cover letter; older forms sent a short note instead.
+  const note = String(body.coverLetter ?? body.note ?? "").trim().slice(0, 3000)
 
   if (!projectId || !name || !handle || !EMAIL_PATTERN.test(email)) {
     return NextResponse.json({ error: "Add your name, email and handle." }, { status: 400 })
   }
+  if (!note) return NextResponse.json({ error: "Add a cover letter." }, { status: 400 })
 
   const { db } = adminServices()
   const project = (await db.collection("projects").doc(projectId).get()).data()
@@ -91,6 +93,15 @@ export async function POST(request: Request) {
   const brief = resolveBrief(project.brief)
   if (brief.registerBy && new Date().toISOString().slice(0, 10) > brief.registerBy) {
     return NextResponse.json({ error: "Applications for this campaign have closed." }, { status: 410 })
+  }
+  // Answers are kept against the campaign's own questions, not whatever the form sent.
+  const sentAnswers = Array.isArray(body.answers) ? body.answers as Array<{ question?: unknown; answer?: unknown }> : []
+  const answers = applicationQuestions(brief).map((question) => ({
+    question,
+    answer: String(sentAnswers.find((item) => item?.question === question)?.answer ?? "").trim().slice(0, 1000),
+  }))
+  if (answers.some((item) => !item.answer)) {
+    return NextResponse.json({ error: "Answer every question." }, { status: 400 })
   }
 
   const people = db.collection("campaignPeople")
@@ -142,6 +153,7 @@ export async function POST(request: Request) {
     email,
     phone,
     note,
+    answers,
     rate: brief.fixedOffer ? 0 : rate,
     currency: brief.currency,
     createdAt: now,

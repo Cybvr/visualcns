@@ -60,6 +60,8 @@ export type CreatorBrief = {
   /** Whether the client may run the creator's content as a paid ad. */
   paidAds: boolean
   paymentMethod: string
+  /** Up to three questions the apply page asks. Blank ones are skipped. */
+  questions: string[]
 }
 
 export const CREATOR_DEFAULT_KEYS = ["platform", "gender", "age", "followers", "interests", "countries", "paidAds", "paymentMethod", "currency"] as const
@@ -86,7 +88,10 @@ export const EMPTY_BRIEF: CreatorBrief = {
   countries: [],
   paidAds: false,
   paymentMethod: "Bank transfer",
+  questions: ["", "", ""],
 }
+
+export const BRIEF_QUESTION_COUNT = 3
 
 const text = (value: unknown, fallback: string) => (typeof value === "string" ? value : fallback)
 const count = (value: unknown, fallback: number) => (typeof value === "number" && Number.isFinite(value) ? Math.max(0, Math.round(value)) : fallback)
@@ -115,6 +120,7 @@ export function resolveBrief(saved?: Partial<CreatorBrief> | null, defaults?: Pa
     countries: list(source.countries),
     paidAds: source.paidAds === true,
     paymentMethod: text(source.paymentMethod, EMPTY_BRIEF.paymentMethod),
+    questions: Array.from({ length: BRIEF_QUESTION_COUNT }, (_, index) => (Array.isArray(source.questions) ? text(source.questions[index], "") : "")),
   }
 }
 
@@ -165,6 +171,11 @@ export function creatorSummary(brief: CreatorBrief) {
 
 function joinWords(words: string[]) {
   return words.length < 2 ? words.join("") : `${words.slice(0, -1).join(", ")} and ${words[words.length - 1]}`
+}
+
+/** The questions the apply page asks, without the blank ones. */
+export function applicationQuestions(brief: Pick<CreatorBrief, "questions">) {
+  return brief.questions.map((question) => question.trim()).filter(Boolean)
 }
 
 /** Whether there's anything worth showing creators yet. */

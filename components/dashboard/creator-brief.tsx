@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState, type ReactNode } from "react"
-import { CalendarClock, CalendarRange, Clapperboard, CreditCard, Globe, Megaphone, Smartphone, Target, Users, Wallet, X, type LucideIcon } from "lucide-react"
+import { CalendarClock, CalendarRange, Clapperboard, CreditCard, Globe, Megaphone, MessageSquareText, Smartphone, Target, Users, Wallet, X, type LucideIcon } from "lucide-react"
 import { toast } from "sonner"
 
 import { SocialIcon } from "@/components/company/social-icon"
@@ -70,7 +70,7 @@ export function useCreatorBriefDraft(project: Project) {
     changed,
     reset: () => setDraft(saved),
     /** What to store on the project. */
-    toSave: (): CreatorBrief => ({ ...draft, contentDetails: draft.contentDetails.trim() }),
+    toSave: (): CreatorBrief => ({ ...draft, contentDetails: draft.contentDetails.trim(), questions: draft.questions.map((question) => question.trim()) }),
   }
 }
 
@@ -116,6 +116,21 @@ export function CreatorBriefForm({ project, canEdit, value, onChange }: { projec
             <Switch id="brief-paid-ads" checked={draft.paidAds} onCheckedChange={(paidAds) => set({ paidAds })} />
             <Label htmlFor="brief-paid-ads">Featured in paid ads</Label>
           </div>
+        </div>
+      </SettingsSection>
+      <SettingsSection title="Application" icon={MessageSquareText}>
+        <div className="space-y-4">
+          {draft.questions.map((question, index) => (
+            <div key={index} className="space-y-2">
+              <Label htmlFor={`brief-question-${index}`}>Question {index + 1}</Label>
+              <Input
+                id={`brief-question-${index}`}
+                value={question}
+                maxLength={200}
+                onChange={(event) => set({ questions: draft.questions.map((item, at) => (at === index ? event.target.value : item)) })}
+              />
+            </div>
+          ))}
         </div>
       </SettingsSection>
     </div>
