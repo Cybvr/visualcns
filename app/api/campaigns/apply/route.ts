@@ -81,16 +81,14 @@ export async function POST(request: Request) {
   const projectId = clip(body.projectId, 128)
   const name = clip(body.name, 120)
   const phone = clip(body.phone, 40)
-  const app = APPS.includes(String(body.app)) ? String(body.app) : "Instagram"
   // A pasted profile link works too: keep the last part of the path.
   const typedHandle = clip(body.handle, 200).replace(/^https?:\/\/[^/]+\//i, "").replace(/[/?#].*$/, "").replace(/^@+/, "").slice(0, 100)
-  const handle = typedHandle ? `@${typedHandle}` : ""
   const followers = count(body.followers)
   // The cover letter; older forms sent a short note instead.
   const note = String(body.coverLetter ?? body.note ?? "").trim().slice(0, 3000)
 
-  if (!projectId || !name || !handle || !EMAIL_PATTERN.test(email)) {
-    return NextResponse.json({ error: "Add your name, email and handle." }, { status: 400 })
+  if (!projectId || !name || !EMAIL_PATTERN.test(email)) {
+    return NextResponse.json({ error: "Add your name and email." }, { status: 400 })
   }
   if (!note) return NextResponse.json({ error: "Add a cover letter." }, { status: 400 })
 
@@ -113,9 +111,17 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Answer every question." }, { status: 400 })
   }
 
+  // Without a handle the Creators tab lists them by name, with no app to link to.
+  const app = !brief.showCreatorDetails ? "" : APPS.includes(String(body.app)) ? String(body.app) : "Instagram"
+  const handle = !brief.showCreatorDetails ? name : typedHandle ? `@${typedHandle}` : ""
+  if (!handle) return NextResponse.json({ error: "Add your handle." }, { status: 400 })
+
   const people = db.collection("campaignPeople")
-  const existing = await people.where("projectId", "==", projectId).where("handle", "==", handle).limit(5).get()
-  if (existing.docs.some((item) => item.data().app === app)) {
+  const [sameHandle, sameAccount] = await Promise.all([
+    app ? people.where("projectId", "==", projectId).where("handle", "==", handle).limit(5).get() : null,
+    db.collection("campaignApplications").where("projectId", "==", projectId).where("userId", "==", uid).limit(1).get(),
+  ])
+  if (!sameAccount.empty || sameHandle?.docs.some((item) => item.data().app === app)) {
     return NextResponse.json({ error: "You've already applied for this campaign." }, { status: 409 })
   }
 

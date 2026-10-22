@@ -57,7 +57,8 @@ export function CreatorApplyForm({ projectId, brief }: { projectId: string; brie
   const set = (key: keyof typeof form) => (value: string) => setForm((current) => ({ ...current, [key]: value }))
   // Someone already signed in applies with that account, so they skip email and password.
   const account = Boolean(user) || Boolean(form.email.trim() && form.password.length >= 8)
-  const complete = Boolean(form.name.trim() && form.handle.trim() && form.coverLetter.trim()) && account && answers.every((answer) => answer.trim())
+  const askHandle = brief.showCreatorDetails
+  const complete = Boolean(form.name.trim() && (!askHandle || form.handle.trim()) && form.coverLetter.trim()) && account && answers.every((answer) => answer.trim())
 
   async function submit(event: FormEvent) {
     event.preventDefault()
@@ -117,16 +118,18 @@ export function CreatorApplyForm({ projectId, brief }: { projectId: string; brie
           />
         </>
       )}
-      <div className="grid gap-4 sm:grid-cols-[10rem_1fr]">
-        <div className="space-y-2">
-          <Label>Platform</Label>
-          <Select value={form.app} onValueChange={set("app")}>
-            <SelectTrigger aria-label="Platform"><SelectValue /></SelectTrigger>
-            <SelectContent>{APPS.map((app) => <SelectItem key={app} value={app}>{app}</SelectItem>)}</SelectContent>
-          </Select>
+      {askHandle && (
+        <div className="grid gap-4 sm:grid-cols-[10rem_1fr]">
+          <div className="space-y-2">
+            <Label>Platform</Label>
+            <Select value={form.app} onValueChange={set("app")}>
+              <SelectTrigger aria-label="Platform"><SelectValue /></SelectTrigger>
+              <SelectContent>{APPS.map((app) => <SelectItem key={app} value={app}>{app}</SelectItem>)}</SelectContent>
+            </Select>
+          </div>
+          <Text id="apply-handle" label="Handle" value={form.handle} onChange={set("handle")} placeholder="@yourname" required />
         </div>
-        <Text id="apply-handle" label="Handle" value={form.handle} onChange={set("handle")} placeholder="@yourname" required />
-      </div>
+      )}
       <div className="space-y-2">
         <Label htmlFor="apply-cover-letter">Cover letter</Label>
         <Textarea id="apply-cover-letter" rows={6} maxLength={3000} value={form.coverLetter} onChange={(event) => set("coverLetter")(event.target.value)} required />

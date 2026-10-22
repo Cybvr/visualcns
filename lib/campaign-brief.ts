@@ -46,6 +46,8 @@ export type CreatorBrief = {
   currency: string
   /** Off: the shared campaign page leaves the offer out. */
   showOffer: boolean
+  /** Off: applicants aren't asked for a platform and handle, and the shared page leaves out who the campaign wants. */
+  showCreatorDetails: boolean
   stories: number
   posts: number
   reels: number
@@ -77,6 +79,7 @@ export const EMPTY_BRIEF: CreatorBrief = {
   offerAmount: 0,
   currency: "NGN",
   showOffer: true,
+  showCreatorDetails: true,
   stories: 1,
   posts: 0,
   reels: 1,
@@ -110,6 +113,7 @@ export function resolveBrief(saved?: Partial<CreatorBrief> | null, defaults?: Pa
     offerAmount: count(source.offerAmount, 0),
     currency: text(source.currency, EMPTY_BRIEF.currency),
     showOffer: source.showOffer !== false,
+    showCreatorDetails: source.showCreatorDetails !== false,
     stories: count(source.stories, EMPTY_BRIEF.stories),
     posts: count(source.posts, EMPTY_BRIEF.posts),
     reels: count(source.reels, EMPTY_BRIEF.reels),

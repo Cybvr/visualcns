@@ -107,6 +107,10 @@ export function CreatorBriefForm({ project, canEdit, value, onChange }: { projec
           <Pick label="Followers" value={draft.followers} options={BRIEF_FOLLOWERS} onChange={(followers) => set({ followers })} />
           <Chips label="Interests" values={draft.interests} options={BRIEF_INTERESTS} onChange={(interests) => set({ interests })} />
           <Chips label="Countries" values={draft.countries} options={BRIEF_COUNTRIES} onChange={(countries) => set({ countries })} allowNew />
+          <div className="flex items-center gap-2 pt-2">
+            <Switch id="brief-show-creator-details" checked={draft.showCreatorDetails} onCheckedChange={(showCreatorDetails) => set({ showCreatorDetails })} />
+            <Label htmlFor="brief-show-creator-details">Show creator details and ask for handles on the shared page</Label>
+          </div>
         </div>
       </SettingsSection>
       <SettingsSection title="Payment" icon={CreditCard}>
@@ -335,7 +339,7 @@ export function CreatorBriefSummary({ brief, brand, hideOffer = false, shared = 
         {content && <Fact label="Content" icon={Clapperboard}>{content}</Fact>}
         {brief.registerBy && <Fact label="Apply by" icon={CalendarClock}>{formatBriefDate(brief.registerBy)}</Fact>}
         {dates && <Fact label="Runs" icon={CalendarRange}>{dates}</Fact>}
-        {who && <Fact label="Creators" icon={Users}>{who}</Fact>}
+        {(!shared || brief.showCreatorDetails) && who && <Fact label="Creators" icon={Users}>{who}</Fact>}
         {!hideOffer && <Fact label="Payment" icon={CreditCard}>{brief.paymentMethod}</Fact>}
         {!shared && brief.paidAds && <Fact label="Paid ads" icon={Megaphone}>Yes</Fact>}
       </dl>
