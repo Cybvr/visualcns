@@ -4,7 +4,7 @@ import { useEffect, useState, type FormEvent } from "react"
 import { FileText, SlidersHorizontal } from "lucide-react"
 import { toast } from "sonner"
 
-import { CreatorBriefForm } from "@/components/dashboard/creator-brief"
+import { CreatorBriefForm, useCreatorBriefDraft } from "@/components/dashboard/creator-brief"
 import { RichTextEditor } from "@/components/dashboard/rich-text-editor"
 import { SettingsSection } from "@/components/dashboard/settings-section"
 import { TaskContent, taskContentHtml } from "@/components/dashboard/task-content"
@@ -35,7 +35,9 @@ export function CampaignBrief({
   const [saving, setSaving] = useState(false)
   useEffect(() => setTitle(project.title), [project.title])
   useEffect(() => setAbout(savedAbout), [savedAbout])
-  const dirty = title.trim() !== project.title || about !== savedAbout
+  const brief = useCreatorBriefDraft(project)
+  const textDirty = title.trim() !== project.title || about !== savedAbout
+  const dirty = textDirty || brief.dirty
 
   async function save(event?: FormEvent) {
     event?.preventDefault()
@@ -53,6 +55,11 @@ export function CampaignBrief({
         await updateProject(project.id, { about: nextAbout })
         onPatched?.({ about: nextAbout })
       }
+      if (brief.dirty) {
+        const nextBrief = brief.toSave()
+        await updateProject(project.id, { brief: nextBrief })
+        onPatched?.({ brief: nextBrief })
+      }
       toast.success("Saved")
     } catch (error) {
       console.error("Error saving about:", error)
@@ -63,8 +70,9 @@ export function CampaignBrief({
   }
 
   return (
-    <div className="grid gap-x-8 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start">
-      <form onSubmit={save}>
+    // grid-cols-1 and min-w-0 keep the editor inside a phone's width.
+    <form onSubmit={save} className="grid grid-cols-1 gap-x-8 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start">
+      <div className="min-w-0">
         <SettingsSection title="Title and about" icon={FileText} defaultOpen>
           {canEdit ? (
             <div className="space-y-4">
@@ -76,10 +84,6 @@ export function CampaignBrief({
                 <Label>About</Label>
                 <RichTextEditor value={about} onChange={setAbout} placeholder={ABOUT_PLACEHOLDER} className="min-h-[50vh]" />
               </div>
-              <div className="flex gap-2">
-                <Button type="submit" disabled={!dirty || saving || !title.trim()}>{saving ? "Saving…" : "Save"}</Button>
-                {dirty && <Button type="button" variant="ghost" onClick={() => { setTitle(project.title); setAbout(savedAbout) }}>Cancel</Button>}
-              </div>
             </div>
           ) : project.about?.trim() ? (
             <TaskContent value={project.about} className="text-[15px] text-foreground" />
@@ -87,16 +91,25 @@ export function CampaignBrief({
             <p className="text-[15px] text-muted-foreground">Not written yet.</p>
           )}
         </SettingsSection>
-      </form>
+      </div>
       {/* Settings: a side panel on wide screens, more sections below on phones. */}
-      <aside aria-label="Creator brief settings" className="lg:sticky lg:top-4 lg:rounded-xl lg:border lg:border-border lg:px-4">
+      <aside aria-label="Creator brief settings" className="min-w-0 lg:sticky lg:top-4 lg:rounded-xl lg:border lg:border-border lg:px-4">
         <p className="hidden items-center gap-2 border-b border-border py-3.5 text-xs font-medium uppercase tracking-wide text-muted-foreground lg:flex">
           <SlidersHorizontal className="size-3.5" aria-hidden="true" />
           Creator brief
         </p>
-        <CreatorBriefForm project={project} canEdit={canEdit} onPatched={onPatched} />
+        <CreatorBriefForm project={project} canEdit={canEdit} value={brief.draft} onChange={brief.set} />
       </aside>
-    </div>
+      {/* One Save for the title, the about and the creator brief. */}
+      {canEdit && (
+        <div className="flex gap-2 border-t border-border pt-4 lg:col-span-2">
+          <Button type="submit" disabled={!dirty || saving || !title.trim()}>{saving ? "Saving…" : "Save"}</Button>
+          {(textDirty || brief.changed) && (
+            <Button type="button" variant="ghost" onClick={() => { setTitle(project.title); setAbout(savedAbout); brief.reset() }}>Cancel</Button>
+          )}
+        </div>
+      )}
+    </form>
   )
 }
 

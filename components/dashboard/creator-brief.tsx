@@ -38,12 +38,14 @@ import { updateProject, type Project } from "@/lib/projects"
 
 type Patch = (patch: Partial<CreatorBrief>) => void
 
-/** The campaign's creator brief on the Brief tab. Starts from the client's defaults until it's saved. */
-export function CreatorBriefForm({ project, canEdit, onPatched }: { project: Project; canEdit: boolean; onPatched?: (patch: Partial<Project>) => void }) {
+/**
+ * The campaign's creator brief being edited: starts from the client's defaults
+ * until it's saved. The About campaign tab saves it with its one Save button.
+ */
+export function useCreatorBriefDraft(project: Project) {
   const [defaults, setDefaults] = useState<Partial<CreatorDefaults> | null>(null)
   const saved = resolveBrief(project.brief, defaults)
   const [draft, setDraft] = useState<CreatorBrief>(saved)
-  const [saving, setSaving] = useState(false)
   const savedKey = JSON.stringify(saved)
 
   useEffect(() => {
@@ -58,25 +60,25 @@ export function CreatorBriefForm({ project, canEdit, onPatched }: { project: Pro
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => setDraft(saved), [savedKey])
 
-  const dirty = JSON.stringify(draft) !== savedKey || !project.brief
-  const set: Patch = (patch) => setDraft((current) => ({ ...current, ...patch }))
-
-  async function save() {
-    if (saving) return
-    setSaving(true)
-    try {
-      const brief = { ...draft, contentDetails: draft.contentDetails.trim() }
-      await updateProject(project.id, { brief })
-      onPatched?.({ brief })
-      toast.success("Saved")
-    } catch (error) {
-      console.error("Error saving creator brief:", error)
-      toast.error("That didn't save.")
-    } finally {
-      setSaving(false)
-    }
+  const changed = JSON.stringify(draft) !== savedKey
+  return {
+    saved,
+    draft,
+    set: ((patch) => setDraft((current) => ({ ...current, ...patch }))) as Patch,
+    /** Edited, or never saved (a new campaign still showing the client's defaults). */
+    dirty: changed || !project.brief,
+    changed,
+    reset: () => setDraft(saved),
+    /** What to store on the project. */
+    toSave: (): CreatorBrief => ({ ...draft, contentDetails: draft.contentDetails.trim() }),
   }
+}
 
+/** The creator brief's settings as + / − sections; plain facts for people who can't edit. */
+export function CreatorBriefForm({ project, canEdit, value, onChange }: { project: Project; canEdit: boolean; value: CreatorBrief; onChange: Patch }) {
+  const draft = value
+  const set = onChange
+  const saved = value
   if (!canEdit) return project.brief ? <CreatorBriefSummary brief={saved} /> : <p className="text-[15px] text-muted-foreground">Not written yet.</p>
 
   return (
@@ -116,10 +118,6 @@ export function CreatorBriefForm({ project, canEdit, onPatched }: { project: Pro
           </div>
         </div>
       </SettingsSection>
-      <div className="flex flex-wrap gap-2 pt-4">
-        <Button type="button" onClick={() => void save()} disabled={!dirty || saving}>{saving ? "Saving…" : "Save brief"}</Button>
-        {JSON.stringify(draft) !== savedKey && <Button type="button" variant="ghost" onClick={() => setDraft(saved)}>Cancel</Button>}
-      </div>
     </div>
   )
 }
