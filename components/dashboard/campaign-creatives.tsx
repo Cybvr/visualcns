@@ -695,7 +695,10 @@ function InlinePostEditor({ post, canEdit, canReview, library = [], onMediaChang
     if (file.size > (isVideo ? MAX_VIDEO_BYTES : MAX_IMAGE_BYTES)) return toast.error("That file is too big. Images up to 12 MB, videos up to 20 MB.")
     setUploading(true)
     try {
-      setMedia({ url: await uploadFileToStorage(file), type: isVideo ? "video" : "image" })
+      const uploaded = { url: await uploadFileToStorage(file), type: isVideo ? "video" as const : "image" as const }
+      setMedia(uploaded)
+      // Into the campaign's Media straight away, whether or not the post is saved.
+      if (canEdit) await addPostMediaToLibrary(post, uploaded, library).catch((error) => console.error("Error adding post media to Media:", error))
     } catch (error) {
       console.error("Error uploading post media:", error)
       toast.error("It didn't upload.")
@@ -712,7 +715,6 @@ function InlinePostEditor({ post, canEdit, canReview, library = [], onMediaChang
       await updateCampaignCreative(post.id, canEdit
         ? { body, status, plannedPublishAt: isoFromLocalDateTime(plannedPublishAt), mediaUrl: media?.url ?? "", ...(media ? { mediaType: media.type } : {}) }
         : { body })
-      if (canEdit && media) await addPostMediaToLibrary(post, media, library).catch((error) => console.error("Error adding post media to Media:", error))
       toast.success("Saved")
       onSaved()
     } catch (error) {
@@ -811,7 +813,10 @@ function PostForm({ post, scope, canEdit, library, onDone }: { post: CampaignCre
     if (file.size > (isVideo ? MAX_VIDEO_BYTES : MAX_IMAGE_BYTES)) return toast.error("That file is too big. Images up to 12 MB, videos up to 20 MB.")
     setUploading(true)
     try {
-      setMedia({ url: await uploadFileToStorage(file), type: isVideo ? "video" : "image" })
+      const uploaded = { url: await uploadFileToStorage(file), type: isVideo ? "video" as const : "image" as const }
+      setMedia(uploaded)
+      // Into the campaign's Media straight away, whether or not the post is saved.
+      if (canEdit) await addPostMediaToLibrary(scope, uploaded, library).catch((error) => console.error("Error adding post media to Media:", error))
     } catch (error) {
       console.error("Error uploading post media:", error)
       toast.error("It didn't upload.")
@@ -842,7 +847,6 @@ function PostForm({ post, scope, canEdit, library, onDone }: { post: CampaignCre
           ...(canEdit && media ? { mediaUrl: media.url, mediaType: media.type } : {}),
         })
       }
-      if (canEdit && media) await addPostMediaToLibrary(scope, media, library).catch((error) => console.error("Error adding post media to Media:", error))
       onDone()
     } catch (error) {
       console.error("Error saving post:", error)
