@@ -3,7 +3,7 @@
 import { VideoThumbnail } from "@/components/ui/video-thumbnail"
 import { createContext, useContext, useEffect, useRef, useState, type FormEvent } from "react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
-import { Bookmark, ChevronLeft, ChevronRight, ExternalLink, Folder, FolderInput, Heart, Image as ImageIcon, Images, ImagePlus, Link2, MessageCircle, MoreHorizontal, Palette, Repeat2, Send, Video, VolumeX, X } from "lucide-react"
+import { Bookmark, ChevronLeft, ChevronRight, ExternalLink, Folder, FolderInput, Heart, Image as ImageIcon, Images, ImagePlus, Link2, MessageCircle, MoreHorizontal, Palette, Repeat2, Send, Trash2, Video, VolumeX, X } from "lucide-react"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
@@ -317,6 +317,44 @@ async function removeCreative(id: string) {
   }
 }
 
+/** A post's picture or video also belongs in the campaign's Media, unless it came from there. */
+export async function addPostMediaToLibrary(
+  scope: { agencyId?: string; companyId: string; projectId: string },
+  media: { url: string; type: "image" | "video" },
+  library: Pick<CampaignCreative, "url">[],
+) {
+  if (!media.url || library.some((item) => item.url === media.url)) return
+  await addCampaignCreative(scope, { title: media.type === "video" ? "Post video" : "Post image", url: media.url, type: media.type, kind: "media" })
+}
+
+/** Delete, then a second tap to confirm, on the left of a post editor's buttons. */
+function DeletePostButton({ onDelete }: { onDelete: () => Promise<void> }) {
+  const [confirming, setConfirming] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  return (
+    <Button
+      type="button"
+      variant={confirming ? "destructive" : "ghost"}
+      className={cn("mr-auto", !confirming && "text-destructive hover:text-destructive")}
+      disabled={deleting}
+      onClick={async () => {
+        if (!confirming) return setConfirming(true)
+        setDeleting(true)
+        try {
+          await onDelete()
+        } finally {
+          setDeleting(false)
+          setConfirming(false)
+        }
+      }}
+      onBlur={() => setConfirming(false)}
+    >
+      <Trash2 className="size-4" aria-hidden="true" />
+      {deleting ? "Deleting…" : confirming ? "Delete post?" : "Delete"}
+    </Button>
+  )
+}
+
 /** The client whose campaign this is, so a post shows their name and logo as the poster. */
 export const CampaignBrandContext = createContext<{ name: string; logoUrl?: string }>({ name: "" })
 
@@ -509,7 +547,7 @@ export function CampaignPostViewDialog({
         </div>
 
         {editing ? (
-          <InlinePostEditor post={post} canEdit={canEdit} canReview={canReview} library={library} onMediaChange={setDraftMedia} onCancel={() => setEditing(false)} onSaved={() => setEditing(false)} />
+          <InlinePostEditor post={post} canEdit={canEdit} canReview={canReview} library={library} onMediaChange={setDraftMedia} onCancel={() => setEditing(false)} onSaved={() => setEditing(false)} onDeleted={onClose} />
         ) : (
           <div className="px-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-3">
             <div className="flex items-center justify-between text-foreground">
@@ -577,7 +615,7 @@ export function CampaignPostViewDialog({
             <PostContextMenu canEdit={canEdit} canReview={canReview} onEdit={() => setEditing(true)} className="-mr-1.5" />
           </header>
           {editing ? (
-            <InlinePostEditor post={post} canEdit={canEdit} canReview={canReview} library={library} onMediaChange={setDraftMedia} onCancel={() => setEditing(false)} onSaved={() => setEditing(false)} />
+            <InlinePostEditor post={post} canEdit={canEdit} canReview={canReview} library={library} onMediaChange={setDraftMedia} onCancel={() => setEditing(false)} onSaved={() => setEditing(false)} onDeleted={onClose} />
           ) : (
             <>
               <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-5">
@@ -635,7 +673,7 @@ function MediaLibraryStrip({ library, selectedUrl, onPick }: { library: Campaign
   )
 }
 
-function InlinePostEditor({ post, canEdit, canReview, library = [], onMediaChange, onCancel, onSaved }: { post: CampaignCreative; canEdit: boolean; canReview: boolean; library?: CampaignCreative[]; onMediaChange?: (media: { url: string; type: "image" | "video" } | null) => void; onCancel: () => void; onSaved: () => void }) {
+function InlinePostEditor({ post, canEdit, canReview, library = [], onMediaChange, onCancel, onSaved, onDeleted }: { post: CampaignCreative; canEdit: boolean; canReview: boolean; library?: CampaignCreative[]; onMediaChange?: (media: { url: string; type: "image" | "video" } | null) => void; onCancel: () => void; onSaved: () => void; onDeleted?: () => void }) {
   const [body, setBody] = useState(post.body ?? "")
   const [status, setStatus] = useState(creativeStatus(post))
   const [plannedPublishAt, setPlannedPublishAt] = useState(localDateTimeValue(post.plannedPublishAt))
@@ -674,6 +712,7 @@ function InlinePostEditor({ post, canEdit, canReview, library = [], onMediaChang
       await updateCampaignCreative(post.id, canEdit
         ? { body, status, plannedPublishAt: isoFromLocalDateTime(plannedPublishAt), mediaUrl: media?.url ?? "", ...(media ? { mediaType: media.type } : {}) }
         : { body })
+      if (canEdit && media) await addPostMediaToLibrary(post, media, library).catch((error) => console.error("Error adding post media to Media:", error))
       toast.success("Saved")
       onSaved()
     } catch (error) {
@@ -715,6 +754,7 @@ function InlinePostEditor({ post, canEdit, canReview, library = [], onMediaChang
         </div>
       )}
       <div className="mt-auto flex justify-end gap-2 border-t border-border pt-4">
+        {canEdit && <DeletePostButton onDelete={async () => { await removeCreative(post.id); onDeleted?.() }} />}
         <Button type="button" variant="ghost" onClick={onCancel}>Cancel</Button>
         <Button type="submit" disabled={saving || uploading}>{saving ? "Saving…" : "Save"}</Button>
       </div>
@@ -802,6 +842,7 @@ function PostForm({ post, scope, canEdit, library, onDone }: { post: CampaignCre
           ...(canEdit && media ? { mediaUrl: media.url, mediaType: media.type } : {}),
         })
       }
+      if (canEdit && media) await addPostMediaToLibrary(scope, media, library).catch((error) => console.error("Error adding post media to Media:", error))
       onDone()
     } catch (error) {
       console.error("Error saving post:", error)
@@ -881,6 +922,7 @@ function PostForm({ post, scope, canEdit, library, onDone }: { post: CampaignCre
       </div>
 
       <DialogFooter className="md:col-span-2">
+        {post && canEdit && <DeletePostButton onDelete={async () => { await removeCreative(post.id); onDone() }} />}
         <Button type="button" variant="ghost" onClick={onDone}>Cancel</Button>
         <Button type="submit" disabled={saving || uploading}>{saving ? "Saving…" : post ? "Save" : canEdit ? "Add post" : "Send suggestion"}</Button>
       </DialogFooter>

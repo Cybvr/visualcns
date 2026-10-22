@@ -6,7 +6,7 @@ import { ChevronDown, DollarSign, FileText, House, Images, ListTodo, Mail, MoreV
 
 import { AnalyticsSkeleton, AnalyticsView } from "@/components/company/analytics-view"
 import { CampaignBrief } from "@/components/dashboard/campaign-brief"
-import { CampaignBrandContext, CampaignCreatives } from "@/components/dashboard/campaign-creatives"
+import { addPostMediaToLibrary, CampaignBrandContext, CampaignCreatives } from "@/components/dashboard/campaign-creatives"
 import { CampaignHome, type CampaignQuickAction, type CampaignTab } from "@/components/dashboard/campaign-home"
 import { CampaignPeople } from "@/components/dashboard/campaign-people"
 import { CampaignPayments } from "@/components/dashboard/campaign-payments"
@@ -130,6 +130,18 @@ export function ProjectDetail({
   const contentItems = creatives.filter((item) => item.type === "text")
   const campaignMedia = creatives.filter((item) => item.type !== "text")
   const mediaItems = campaignMedia.filter((item) => item.type !== "folder")
+  // Posts saved before their pictures went to Media: copy those over once, when the agency opens the campaign.
+  const backfilled = useRef(new Set<string>())
+  useEffect(() => {
+    if (!creativesLoaded || !canEditCampaign) return
+    const scope = { agencyId: project.agencyId, companyId: project.companyId || companyId, projectId: project.id }
+    for (const post of contentItems) {
+      if (!post.mediaUrl || backfilled.current.has(post.mediaUrl)) continue
+      backfilled.current.add(post.mediaUrl)
+      void addPostMediaToLibrary(scope, { url: post.mediaUrl, type: post.mediaType === "video" ? "video" : "image" }, mediaItems)
+        .catch((error) => console.error("Error adding post media to Media:", error))
+    }
+  }, [creativesLoaded, canEditCampaign, contentItems, mediaItems, project.agencyId, project.companyId, project.id, companyId])
   const campaignImage = [
     project.imageUrl,
     project.thumbnailUrl,
