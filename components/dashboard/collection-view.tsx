@@ -1,6 +1,6 @@
 "use client"
 
-import { Fragment, useEffect, type ComponentType, type ReactNode } from "react"
+import { Fragment, useEffect, useState, type ComponentType, type ReactNode } from "react"
 
 import { CompanyEmptyState } from "@/components/company/empty-state"
 import { MOBILE_LIST_CARD } from "@/components/dashboard/compact-list-row"
@@ -10,8 +10,11 @@ import type { ItemActions } from "@/components/dashboard/item-menu"
 import { ListSkeleton } from "@/components/dashboard/list-search"
 import { MobileDataCard, type MobileDataCardProps } from "@/components/dashboard/mobile-data-card"
 import { TableFilterBar, type TableFilterBarProps } from "@/components/dashboard/table-filter-bar"
+import { TableBulkBar } from "@/components/dashboard/table-bulk-bar"
 import { ThumbnailListItem } from "@/components/dashboard/thumbnail-list-item"
 import { useViewMode, ViewToggle, type ViewMode } from "@/components/dashboard/view-toggle"
+import { Checkbox } from "@/components/ui/checkbox"
+import { useRowSelection } from "@/hooks/use-row-selection"
 import { formatTimestamp } from "@/lib/tasks"
 
 /** What a row shows in list view. The icon, open action and menu come from the card. */
@@ -61,6 +64,7 @@ export function CollectionView<T>({
   onSearch,
   date,
   itemActions,
+  selection,
 }: {
   items: T[]
   getKey: (item: T) => string
@@ -110,11 +114,32 @@ export function CollectionView<T>({
   date?: (item: T) => unknown
   /** The item's menu, built in the standard order. Used in place of the card's own `actions`. */
   itemActions?: (item: T) => CollectionItemActions
+  /** Checkbox selection and confirmed bulk delete for compact list rows. */
+  selection?: { noun: string; onDelete: (items: T[]) => Promise<void> }
 }) {
   const [savedView, setSavedView] = useViewMode(viewKey, initialView)
   const view = fixedView ?? savedView
   const { query, results, bar } = useFilterBar({ items, search: searchFields, sorts, defaultSort, defaultDirection })
   const isEmpty = items.length === 0 && !hasExtraCards
+  const selected = useRowSelection(results, getKey)
+  const [deleting, setDeleting] = useState(false)
+
+  useEffect(() => {
+    if (view !== "list") selected.clear()
+  }, [view, selected.clear])
+
+  async function deleteSelected() {
+    if (!selection || deleting || selected.selectedCount === 0) return
+    setDeleting(true)
+    try {
+      await selection.onDelete(results.filter((item) => selected.isSelected(getKey(item))))
+      selected.clear()
+    } catch (error) {
+      console.error(`Couldn't delete selected ${selection.noun}s`, error)
+    } finally {
+      setDeleting(false)
+    }
+  }
 
   useEffect(() => {
     onSearch?.(query)
@@ -149,6 +174,15 @@ export function CollectionView<T>({
         />
       )}
       {before}
+      {view === "list" && selection && listStyle === "compact" && !listItem && !loading && results.length > 0 && (
+        <>
+          <TableBulkBar count={selected.selectedCount} noun={selection.noun} deleting={deleting} onClear={selected.clear} onDelete={() => void deleteSelected()} />
+          <label className="flex min-h-12 items-center gap-3 border-b border-border px-3 text-sm text-muted-foreground">
+            <Checkbox aria-label={`Select all ${selection.noun}s`} checked={selected.allSelected} indeterminate={selected.someSelected} onChange={selected.toggleAll} />
+            {selected.selectedCount ? `${selected.selectedCount} selected` : `${results.length} ${selection.noun}${results.length === 1 ? "" : "s"}`}
+          </label>
+        </>
+      )}
       {loading ? (
         <ListSkeleton view={view} count={4} toolbar={false} label={`Loading ${searchPlaceholder.replace(/^Search /, "")}`} />
       ) : isEmpty ? (
@@ -191,9 +225,13 @@ export function CollectionView<T>({
           {listItem ? results.map((item) => <Fragment key={getKey(item)}>{listItem(item)}</Fragment>) : results.map((item) => {
             const { title, icon, href, onClick, ariaLabel, actions: menuActions, menuLabel, subtitle } = cardFor(item)
             const extra = row?.(item)
+            const id = getKey(item)
+            const checked = selection ? selected.isSelected(id) : false
+            const selecting = Boolean(selection && selected.selectedCount > 0)
+            const itemLabel = typeof title === "string" ? title : selection?.noun ?? "item"
             return (
               <MobileDataCard
-                key={getKey(item)}
+                key={id}
                 surface="list"
                 variant="inline"
                 iconShape="circle"
@@ -203,11 +241,18 @@ export function CollectionView<T>({
                 description={extra?.description}
                 // The date always sits on the right when the page has one.
                 trailing={date ? collectionDate(date(item)) : extra?.trailing}
-                href={href}
-                onClick={onClick ? () => onClick() : undefined}
-                ariaLabel={ariaLabel}
+                href={selecting ? undefined : href}
+                onClick={selecting ? (event) => selected.toggle(id, event.shiftKey) : onClick ? () => onClick() : undefined}
+                ariaLabel={selecting ? `${checked ? "Deselect" : "Select"} ${itemLabel}` : ariaLabel}
                 actions={menuActions}
                 menuLabel={menuLabel}
+                checkbox={selection ? {
+                  checked,
+                  onChange: () => selected.toggle(id),
+                  label: `${checked ? "Deselect" : "Select"} ${itemLabel}`,
+                } : undefined}
+                selected={selection ? checked : undefined}
+                pressed={selection ? checked : undefined}
               />
             )
           })}

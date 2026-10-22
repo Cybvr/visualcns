@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState, type FormEvent } from "react"
-import { FileText, SlidersHorizontal } from "lucide-react"
+import { FileText } from "lucide-react"
 import { toast } from "sonner"
 
 import { CreatorBriefForm, useCreatorBriefDraft } from "@/components/dashboard/creator-brief"
@@ -10,7 +10,6 @@ import { SettingsSection } from "@/components/dashboard/settings-section"
 import { TaskContent, taskContentHtml } from "@/components/dashboard/task-content"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import { renameProject, slugify, updateProject, type Project } from "@/lib/projects"
 
 /**
@@ -71,19 +70,13 @@ export function CampaignBrief({
 
   return (
     // grid-cols-1 and min-w-0 keep the editor inside a phone's width.
-    <form onSubmit={save} className="grid grid-cols-1 gap-x-8 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start">
+    <form onSubmit={save} className="grid grid-cols-1 gap-x-8 lg:grid-cols-[minmax(0,1fr)_15rem] lg:items-start">
       <div className="min-w-0">
-        <SettingsSection title="Title and about" icon={FileText} defaultOpen>
+        <SettingsSection title="Content" icon={FileText} defaultOpen divider={false}>
           {canEdit ? (
             <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor={`campaign-title-${project.id}`}>Title</Label>
-                <Input id={`campaign-title-${project.id}`} value={title} onChange={(event) => setTitle(event.target.value)} maxLength={120} className="h-11 text-[15px]" />
-              </div>
-              <div className="space-y-2">
-                <Label>About</Label>
-                <RichTextEditor value={about} onChange={setAbout} placeholder={ABOUT_PLACEHOLDER} className="min-h-[50vh]" />
-              </div>
+              <Input id={`campaign-title-${project.id}`} aria-label="Campaign title" value={title} onChange={(event) => setTitle(event.target.value)} maxLength={120} className="h-11 text-[15px] text-foreground" />
+              <RichTextEditor value={about} onChange={setAbout} placeholder={ABOUT_PLACEHOLDER} ariaLabel="About campaign" className="min-h-[50vh] text-foreground" />
             </div>
           ) : project.about?.trim() ? (
             <TaskContent value={project.about} className="text-[15px] text-foreground" />
@@ -93,11 +86,7 @@ export function CampaignBrief({
         </SettingsSection>
       </div>
       {/* Settings: a side panel on wide screens, more sections below on phones. */}
-      <aside aria-label="Creator brief settings" className="min-w-0 lg:sticky lg:top-4 lg:rounded-xl lg:border lg:border-border lg:px-4">
-        <p className="hidden items-center gap-2 border-b border-border py-3.5 text-xs font-medium uppercase tracking-wide text-muted-foreground lg:flex">
-          <SlidersHorizontal className="size-3.5" aria-hidden="true" />
-          Creator brief
-        </p>
+      <aside aria-label="Creator brief settings" className="min-w-0 lg:sticky lg:top-4">
         <CreatorBriefForm project={project} canEdit={canEdit} value={brief.draft} onChange={brief.set} />
       </aside>
       {/* One Save for the title, the about and the creator brief. */}

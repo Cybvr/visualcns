@@ -4,11 +4,11 @@ import { useId, useState, type ReactNode } from "react"
 import { Minus, Plus, type LucideIcon } from "lucide-react"
 
 /** A setting group that opens and closes with + and −, so long settings stay easy to scan on a phone. */
-export function SettingsSection({ title, icon: Icon, defaultOpen = false, children }: { title: string; icon?: LucideIcon; defaultOpen?: boolean; children: ReactNode }) {
+export function SettingsSection({ title, icon: Icon, defaultOpen = false, divider = true, children }: { title: string; icon?: LucideIcon; defaultOpen?: boolean; divider?: boolean; children: ReactNode }) {
   const [open, setOpen] = useState(defaultOpen)
   const id = useId()
   return (
-    <section className="border-b border-border last:border-b-0">
+    <section className={divider ? "border-b border-border last:border-b-0" : undefined}>
       <button
         type="button"
         onClick={() => setOpen((current) => !current)}

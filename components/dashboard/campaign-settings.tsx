@@ -135,7 +135,7 @@ export function CampaignSettings({
       <section className="space-y-3">
         <Label>Profile image</Label>
         <div className="flex items-center gap-4">
-          <div className="size-20 shrink-0 overflow-hidden rounded-full bg-muted">
+          <div className="size-20 shrink-0 overflow-hidden rounded-none bg-muted">
             {project.logoUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={project.logoUrl} alt="" className="size-full object-cover" />

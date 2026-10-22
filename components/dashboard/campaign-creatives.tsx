@@ -3,7 +3,7 @@
 import { VideoThumbnail } from "@/components/ui/video-thumbnail"
 import { createContext, useContext, useEffect, useRef, useState, type FormEvent } from "react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
-import { Bookmark, ChevronLeft, ChevronRight, ExternalLink, Folder, FolderInput, Heart, Image as ImageIcon, Images, ImagePlus, Link2, MessageCircle, MoreHorizontal, Palette, Repeat2, Send, Trash2, Video, VolumeX, X } from "lucide-react"
+import { Bookmark, ChevronLeft, ChevronRight, Download, ExternalLink, Folder, FolderInput, Heart, Image as ImageIcon, Images, ImagePlus, Link2, MessageCircle, MoreHorizontal, Palette, Repeat2, Send, Trash2, Video, VolumeX, X } from "lucide-react"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
@@ -248,6 +248,18 @@ export function CampaignCreatives({ creatives, agencyId, companyId, projectId, c
             extra: postExtra(post),
             onDelete: canEdit ? () => removeCreative(post.id) : undefined,
           })}
+          selection={canEdit && limit === undefined ? {
+            noun: "post",
+            onDelete: async (selectedPosts) => {
+              const results = await Promise.allSettled(selectedPosts.map((post) => deleteCampaignCreative(post.id)))
+              const failures = results.filter((result) => result.status === "rejected").length
+              if (failures) {
+                toast.error(`${failures} ${failures === 1 ? "post" : "posts"} couldn't be deleted.`)
+                throw new Error(`Failed to delete ${failures} posts`)
+              }
+              toast.success(`${selectedPosts.length} ${selectedPosts.length === 1 ? "post" : "posts"} deleted.`)
+            },
+          } : undefined}
           row={(post) => ({ subtitle: post.body?.trim() || post.title, description: `${post.publish ? `${creativeStatus(post)} · ${PUBLISH_LABELS[post.publish.state]}` : creativeStatus(post)}${plannedDateLabel(post.plannedPublishAt) ? ` · Publishes ${plannedDateLabel(post.plannedPublishAt)}` : ""}` })}
         />
 
@@ -1066,6 +1078,16 @@ function MediaLibrary({ files, scope, canEdit, startNew = false, onActionHandled
     }
   }
 
+  function downloadMedia(creative: CampaignCreative) {
+    const link = document.createElement("a")
+    link.href = creative.url
+    link.download = creative.title
+    link.rel = "noreferrer"
+    document.body.append(link)
+    link.click()
+    link.remove()
+  }
+
   function itemActions(item: CampaignCreative): CollectionItemActions {
     if (item.type === "folder") {
       return {
@@ -1083,17 +1105,20 @@ function MediaLibrary({ files, scope, canEdit, startNew = false, onActionHandled
       onOpen: () => open(item),
       onRename: canEdit ? (title) => saveCreative(item.id, { title }) : undefined,
       onDuplicate: canEdit ? () => duplicateMedia(item) : undefined,
-      extra: canEdit && folders.length > 0 ? (
-        <DropdownMenuSub>
-          <DropdownMenuSubTrigger><FolderInput className="size-4" aria-hidden="true" />Move to</DropdownMenuSubTrigger>
-          <DropdownMenuSubContent>
-            <DropdownMenuItem disabled={!item.folderId} onSelect={() => void moveMedia(item.id, "")}>All media</DropdownMenuItem>
-            {folders.filter((folder) => folder.id !== item.folderId).map((folder) => (
-              <DropdownMenuItem key={folder.id} onSelect={() => void moveMedia(item.id, folder.id)}>{folder.title}</DropdownMenuItem>
-            ))}
-          </DropdownMenuSubContent>
-        </DropdownMenuSub>
-      ) : undefined,
+      extra: item.type !== "link" || (canEdit && folders.length > 0) ? <>
+        {item.type !== "link" && <DropdownMenuItem onSelect={() => downloadMedia(item)}><Download className="size-4" aria-hidden="true" />Download</DropdownMenuItem>}
+        {canEdit && folders.length > 0 && (
+          <DropdownMenuSub>
+            <DropdownMenuSubTrigger><FolderInput className="size-4" aria-hidden="true" />Move to</DropdownMenuSubTrigger>
+            <DropdownMenuSubContent>
+              <DropdownMenuItem disabled={!item.folderId} onSelect={() => void moveMedia(item.id, "")}>All media</DropdownMenuItem>
+              {folders.filter((folder) => folder.id !== item.folderId).map((folder) => (
+                <DropdownMenuItem key={folder.id} onSelect={() => void moveMedia(item.id, folder.id)}>{folder.title}</DropdownMenuItem>
+              ))}
+            </DropdownMenuSubContent>
+          </DropdownMenuSub>
+        )}
+      </> : undefined,
       onDelete: canEdit ? () => removeCreative(item.id) : undefined,
     }
   }

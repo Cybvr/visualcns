@@ -6,6 +6,7 @@ import { useEffect, useRef, type MouseEvent, type PointerEvent, type ReactNode }
 
 import { hasItemActions, ItemActionsMenu, type ItemActions } from "@/components/dashboard/item-menu"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { Checkbox } from "@/components/ui/checkbox"
 import { cn } from "@/lib/utils"
 
 export type MobileDataCardProps = {
@@ -28,6 +29,7 @@ export type MobileDataCardProps = {
   onLongPress?: () => void
   ariaLabel?: string
   pressed?: boolean
+  checkbox?: { checked: boolean; onChange: () => void; label: string }
 }
 
 export function MobileDataCard({
@@ -49,6 +51,7 @@ export function MobileDataCard({
   onLongPress,
   ariaLabel,
   pressed,
+  checkbox,
 }: MobileDataCardProps) {
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const pressStart = useRef({ x: 0, y: 0 })
@@ -172,6 +175,15 @@ export function MobileDataCard({
           className={cn("absolute inset-0 z-0 rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-ring", surface === "muted" && "rounded-xl", surface === "list" && "rounded-none")}
         />
       ) : null}
+      {checkbox && (
+        <Checkbox
+          checked={checkbox.checked}
+          onChange={checkbox.onChange}
+          onClick={(event) => event.stopPropagation()}
+          aria-label={checkbox.label}
+          className="relative z-10"
+        />
+      )}
       <div
         className={cn(
           "pointer-events-none relative z-0 flex min-w-0 items-center gap-3",

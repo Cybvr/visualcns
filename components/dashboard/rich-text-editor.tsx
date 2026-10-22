@@ -167,6 +167,7 @@ export function RichTextEditor({
   value,
   onChange,
   placeholder,
+  ariaLabel,
   className,
   scrollable = false,
   compact = false,
@@ -182,6 +183,7 @@ export function RichTextEditor({
   value: string
   onChange: (html: string) => void
   placeholder?: string
+  ariaLabel?: string
   className?: string
   scrollable?: boolean
   compact?: boolean
@@ -248,7 +250,7 @@ export function RichTextEditor({
           "[&_h2]:mt-5 [&_h2]:text-lg [&_h2]:font-semibold [&_h3]:mt-4 [&_h3]:text-base [&_h3]:font-semibold [&_p]:my-2 [&_p]:leading-7 [&_ul]:my-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:my-2 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:my-1 [&_strong]:font-semibold [&_blockquote]:my-3 [&_blockquote]:border-l-2 [&_blockquote]:pl-3 [&_blockquote]:italic [&_blockquote]:border-border",
           "[&_ul[data-type=taskList]]:list-none [&_ul[data-type=taskList]]:pl-0 [&_ul[data-type=taskList]_li]:flex [&_ul[data-type=taskList]_li]:items-start [&_ul[data-type=taskList]_li]:gap-2 [&_ul[data-type=taskList]_li>label]:flex [&_ul[data-type=taskList]_li>label]:h-[1lh] [&_ul[data-type=taskList]_li>label]:items-center [&_ul[data-type=taskList]_li>label]:shrink-0 [&_ul[data-type=taskList]_li>div]:min-w-0 [&_ul[data-type=taskList]_li>div]:flex-1 [&_ul[data-type=taskList]_li[data-checked=true]>div]:text-muted-foreground [&_ul[data-type=taskList]_li[data-checked=true]>div]:line-through [&_ul[data-type=taskList]_li>div>p]:my-0 [&_input[type=checkbox]]:size-4 [&_input[type=checkbox]]:cursor-pointer [&_input[type=checkbox]]:accent-primary [&_a]:break-all [&_a]:text-primary [&_a]:underline [&_a]:underline-offset-2 [&_img]:max-w-full [&_table]:my-3 [&_table]:w-full [&_table]:table-fixed [&_table]:border-collapse [&_td]:border [&_td]:border-border [&_td]:p-2 [&_td]:align-top [&_th]:border [&_th]:border-border [&_th]:bg-muted [&_th]:p-2 [&_th]:text-left [&_th]:font-semibold [&_.selectedCell]:bg-muted/60 [&_.ProseMirror-selectednode]:outline [&_.ProseMirror-selectednode]:outline-2 [&_.ProseMirror-selectednode]:outline-ring",
         ),
-        "aria-label": placeholder || "Message",
+        "aria-label": ariaLabel || placeholder || "Message",
         ...(placeholder ? { "data-placeholder": placeholder } : {}),
       },
     },
