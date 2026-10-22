@@ -29,6 +29,7 @@ import { useFilterBar, type SortOption } from "@/components/dashboard/filter-bar
 import { TableBulkBar } from "@/components/dashboard/table-bulk-bar"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useRowSelection } from "@/hooks/use-row-selection"
+import { useCachedState } from "@/lib/page-cache"
 import { formatTimestamp, tsToMillis } from "@/lib/tasks"
 import { cn } from "@/lib/utils"
 
@@ -63,8 +64,8 @@ export default function ContractsPage() {
   const companyId = appUser?.companyId ?? ""
   const adminView = isAdmin && !isImpersonating
 
-  const [contracts, setContracts] = useState<Contract[]>([])
-  const [loading, setLoading] = useState(true)
+  const [contracts, setContracts, cached] = useCachedState<Contract[]>(adminView ? "contracts" : `contracts:${companyId}`, [])
+  const [loading, setLoading] = useState(!cached)
   const [error, setError] = useState(false)
   const [clientSheet, setClientSheet] = useState<string | null>(null)
   const [bulkDeleting, setBulkDeleting] = useState(false)

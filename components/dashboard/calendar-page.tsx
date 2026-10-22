@@ -14,6 +14,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { CompactListSkeleton } from "@/components/dashboard/compact-list-row"
+import { useCachedState } from "@/lib/page-cache"
 import { getOrganizations, type Organization } from "@/lib/organizations"
 import { getProjects, type Project } from "@/lib/projects"
 import { getTasks, type Task } from "@/lib/tasks"
@@ -75,12 +76,12 @@ function tasksForDate(tasks: Task[], key: string) {
 
 export function CalendarPage() {
   const { user } = useAuth()
-  const [bookings, setBookings] = useState<CalendarBooking[]>([])
-  const [tasks, setTasks] = useState<Task[]>([])
+  const [bookings, setBookings, cached] = useCachedState<CalendarBooking[]>("calendar:bookings", [])
+  const [tasks, setTasks] = useCachedState<Task[]>("calendar:tasks", [])
   const [calendarFilter, setCalendarFilter] = useState<CalendarFilter>("both")
-  const [companies, setCompanies] = useState<Organization[]>([])
-  const [projects, setProjects] = useState<Project[]>([])
-  const [loading, setLoading] = useState(true)
+  const [companies, setCompanies] = useCachedState<Organization[]>("organizations", [])
+  const [projects, setProjects] = useCachedState<Project[]>("projects", [])
+  const [loading, setLoading] = useState(!cached)
   const [error, setError] = useState("")
   const [month, setMonth] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1))
   const [selectedDate, setSelectedDate] = useState(() => dateKey(new Date()))
@@ -92,7 +93,6 @@ export function CalendarPage() {
 
   const load = useCallback(async () => {
     if (!user) return
-    setLoading(true)
     setError("")
     try {
       const token = await user.getIdToken()

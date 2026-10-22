@@ -14,6 +14,7 @@ import { PageTitleProvider } from "@/components/dashboard/page-title-context"
 import { LegacyClientRedirect } from "@/components/portal/legacy-client-redirect"
 import { TaskSignInGate } from "@/components/dashboard/task-sign-in-gate"
 import { DashboardPageSkeleton } from "@/components/dashboard/dashboard-page-skeleton"
+import { setPageCacheScope } from "@/lib/page-cache"
 
 const AgentDock = dynamic(() => import("@/components/agent/agent-dock").then((module) => module.AgentDock), { ssr: false })
 
@@ -40,8 +41,10 @@ const CREATOR_NAV: NavLink[] = [
 const CREATOR_PATHS = /^\/dashboard\/(?:projects$|account(?:\/|$))/
 
 function UnifiedDashboardShell({ children, requireAdmin = false }: { children: ReactNode; requireAdmin?: boolean }) {
-  const { user, role, isAdmin, isImpersonating, isViewingAs, impersonatedUser, stopViewingAs, loading, signOut, agencyStatus } = useAuth()
+  const { user, appUser, role, isAdmin, isImpersonating, isViewingAs, impersonatedUser, stopViewingAs, loading, signOut, agencyStatus } = useAuth()
   const router = useRouter()
+  // Before any page reads its remembered data: a different account, view-as or agency starts clean.
+  if (!loading) setPageCacheScope([user?.uid, impersonatedUser?.uid, appUser?.agencyId, role].join(":"))
   const pathname = usePathname()
   const isTaskDetailRoute = /^\/dashboard\/tasks\/[^/]+$/.test(pathname ?? "")
 

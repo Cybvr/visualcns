@@ -24,6 +24,7 @@ import { Button } from "@/components/ui/button"
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { usePageTitle, useRecordTitle } from "@/components/dashboard/page-title-context"
 import { useUrlSelection } from "@/hooks/use-url-selection"
+import { useCachedState } from "@/lib/page-cache"
 import { buildEmailComposeHref } from "@/lib/email-composer"
 import { companyDocumentEmailContext } from "@/lib/document-emails"
 import { companyDocumentKindMeta, companyDocumentStatusMeta, createCompanyDocument, deleteCompanyDocument, getCompanyDocuments, getCompanyDocumentsByCompanyId, type CompanyDocument, type CompanyDocumentKind } from "@/lib/company-documents"
@@ -76,15 +77,15 @@ export default function DocumentsPage() {
 
   usePageTitle("Documents")
 
-  const [rows, setRows] = useState<DocumentRow[]>([])
-  const [loading, setLoading] = useState(true)
+  const [rows, setRows, cached] = useCachedState<DocumentRow[]>(adminView ? "documents" : `documents:${companyId}`, [])
+  const [loading, setLoading] = useState(!cached)
   const [error, setError] = useState(false)
   const [selectedId, setSelectedId] = useUrlSelection("document")
   const [creating, setCreating] = useState(false)
   const [importing, setImporting] = useState(false)
   const [duplicateTarget, setDuplicateTarget] = useState<DocumentRow | null>(null)
   const [duplicating, setDuplicating] = useState(false)
-  const [organizations, setOrganizations] = useState<Organization[]>([])
+  const [organizations, setOrganizations] = useCachedState<Organization[]>(adminView ? "organizations" : "organizations:none", [])
   const [view, setView] = useViewMode("documents", "grid")
 
   const fetchData = useCallback(async () => {

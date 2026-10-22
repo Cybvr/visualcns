@@ -39,6 +39,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Textarea } from "@/components/ui/textarea"
+import { useCachedState } from "@/lib/page-cache"
 import { getCurrentAgencyId } from "@/lib/agency-scope"
 import { createLead, deleteLead, LEAD_STAGES, updateLead, watchLeads, type Lead, type LeadFields, type LeadStage } from "@/lib/leads"
 import { getStatusHistory, type StatusEvent } from "@/lib/status-history"
@@ -105,7 +106,7 @@ function formatValue(value: number) {
 export default function LeadsPage() {
   const { user } = useAuth()
   const uid = user?.uid || ""
-  const [leads, setLeads] = useState<Lead[] | null>(null)
+  const [leads, setLeads] = useCachedState<Lead[] | null>("leads", null)
   const [error, setError] = useState(false)
   const [activeId, setActiveId] = useState<string | null>(null)
   // Stage changes show straight away, before Firestore confirms them.

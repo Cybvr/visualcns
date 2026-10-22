@@ -10,7 +10,8 @@ import { ProjectDetail } from "@/components/dashboard/project-detail"
 import { usePageTitle } from "@/components/dashboard/page-title-context"
 import { getInvoicesByCompanyId, getPublicInvoicesByCompanyId, type Invoice } from "@/lib/billing"
 import { getOrganization } from "@/lib/organizations"
-import { getProjectBySlug, type Project } from "@/lib/projects"
+import { readPageCache, useCachedState } from "@/lib/page-cache"
+import { getProjectBySlug, projectSlug, type Project } from "@/lib/projects"
 
 /** Goes back a step in history, falling back to the dashboard on a cold open. */
 function BackLink() {
@@ -35,11 +36,15 @@ export default function ProjectDetailPage() {
   const companyId = appUser?.companyId ?? ""
   const clientName = appUser?.company || appUser?.displayName || ""
 
-  const [project, setProject] = useState<Project | null>(null)
-  const [invoices, setInvoices] = useState<Invoice[]>([])
+  // Opened from the campaigns list, the campaign is already in memory, so it shows at once.
+  const [project, setProject, cached] = useCachedState<Project | null>(
+    `project:${slug}`,
+    readPageCache<Project[]>("projects")?.find((item) => projectSlug(item) === slug) ?? null,
+  )
+  const [invoices, setInvoices] = useCachedState<Invoice[]>(`project-invoices:${slug}`, [])
   const [clientLogoUrl, setClientLogoUrl] = useState<string>()
   const [companySlug, setCompanySlug] = useState<string>()
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(!cached && !project)
   const [error, setError] = useState(false)
 
   usePageTitle(project?.title ?? null)

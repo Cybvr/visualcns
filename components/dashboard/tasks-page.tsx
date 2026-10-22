@@ -41,6 +41,7 @@ import { EmptySearchState, FirstRunState } from "@/components/dashboard/empty-st
 import { TableFilterBar } from "@/components/dashboard/table-filter-bar"
 import { useFilterBar, type SortOption } from "@/components/dashboard/filter-bar"
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
+import { useCachedState } from "@/lib/page-cache"
 import { useTaskEmail } from "@/components/dashboard/use-task-email"
 
 function searchTask(t: Task) {
@@ -134,8 +135,8 @@ function TaskContentPane({
 
 export default function TasksAdminPage() {
   const { emailTask, emailDialog, emailingId } = useTaskEmail()
-  const [tasks, setTasks] = useState<Task[]>([])
-  const [loading, setLoading] = useState(true)
+  const [tasks, setTasks, cached] = useCachedState<Task[]>("tasks", [])
+  const [loading, setLoading] = useState(!cached)
   const [error, setError] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
   const [selectedId, setSelectedId] = useUrlSelection("task")

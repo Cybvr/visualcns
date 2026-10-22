@@ -40,6 +40,7 @@ import {
   Upload,
   X,
 } from "lucide-react"
+import { useCachedState } from "@/lib/page-cache"
 import { cn } from "@/lib/utils"
 import { EmptyState, EmptySearchState } from "@/components/dashboard/empty-state"
 import { GridCardsSkeleton } from "@/components/dashboard/collection-skeletons"
@@ -299,9 +300,9 @@ export function DriveView() {
   const companyId = appUser?.companyId ?? ""
   const uid = appUser?.uid ?? ""
 
-  const [documents, setDocuments] = useState<SharedDocument[]>([])
-  const [users, setUsers] = useState<AppUser[]>([])
-  const [loading, setLoading] = useState(true)
+  const [documents, setDocuments, cached] = useCachedState<SharedDocument[]>(adminView ? "drive" : `drive:${companyId}`, [])
+  const [users, setUsers] = useCachedState<AppUser[]>("users", [])
+  const [loading, setLoading] = useState(!cached)
   const [error, setError] = useState<string | null>(null)
   const [, setDeleting] = useState<string | null>(null)
   const [uploading, setUploading] = useState<UploadingCard[]>([])

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { toast } from "sonner"
+import { useCachedState } from "@/lib/page-cache"
 import { getProjects, deleteProject, duplicateProject, getProject, isProjectArchived, projectLastActivity, projectSlug, projectStatusMeta, renameProject, setProjectArchived, type Project } from "@/lib/projects"
 import { NewProjectDialog } from "@/components/dashboard/new-project-dialog"
 import { campaignGridCardProps, useCampaignShare } from "@/components/dashboard/campaign-grid-card"
@@ -46,8 +47,8 @@ function searchProject(p: Project) {
 
 export default function ProjectsAdminPage() {
   const router = useRouter()
-  const [projects, setProjects] = useState<Project[]>([])
-  const [loading, setLoading] = useState(true)
+  const [projects, setProjects, cached] = useCachedState<Project[]>("projects", [])
+  const [loading, setLoading] = useState(!cached)
   const [error, setError] = useState<string | null>(null)
   const [view, setView] = useViewMode("projects", "grid")
   const [bulkDeleting, setBulkDeleting] = useState(false)

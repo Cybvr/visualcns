@@ -21,6 +21,7 @@ import { useFilterBar } from "@/components/dashboard/filter-bar"
 import { ItemActionsMenu, type ItemActions } from "@/components/dashboard/item-menu"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { useCachedState } from "@/lib/page-cache"
 import { createEstimate, deleteEstimate, estimateStatusMeta, formatMoney, getEstimates, getEstimatesByCompanyId, nextEstimateNumber, type Estimate } from "@/lib/billing"
 import { estimateEmailContext } from "@/lib/document-emails"
 import { buildEmailComposeHref } from "@/lib/email-composer"
@@ -36,13 +37,13 @@ export default function EstimatesPage() {
   const { user, appUser, isAdmin, isImpersonating } = useAuth()
   const companyId = appUser?.companyId ?? ""
   const adminView = isAdmin && !isImpersonating
-  const [estimates, setEstimates] = useState<Estimate[]>([])
-  const [loading, setLoading] = useState(true)
+  const [estimates, setEstimates, cached] = useCachedState<Estimate[]>(adminView ? "estimates" : `estimates:${companyId}`, [])
+  const [loading, setLoading] = useState(!cached)
   const [error, setError] = useState(false)
   const [selectedId, setSelectedId] = useUrlSelection("estimate")
   const [duplicateTarget, setDuplicateTarget] = useState<Estimate | null>(null)
   const [duplicating, setDuplicating] = useState(false)
-  const [organizations, setOrganizations] = useState<Organization[]>([])
+  const [organizations, setOrganizations] = useCachedState<Organization[]>(adminView ? "organizations" : "organizations:none", [])
 
   const fetchData = useCallback(async () => {
     setError(false)

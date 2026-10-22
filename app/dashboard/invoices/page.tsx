@@ -22,6 +22,7 @@ import { InvoiceDocument } from "@/components/dashboard/invoice-document"
 import { ItemActionsMenu, type ItemActions } from "@/components/dashboard/item-menu"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { useCachedState } from "@/lib/page-cache"
 import { createInvoice, deleteInvoice, formatMoney, getInvoices, getInvoicesByCompanyId, invoiceStatusMeta, nextInvoiceNumber, type Invoice } from "@/lib/billing"
 import { invoiceEmailContext } from "@/lib/document-emails"
 import { buildEmailComposeHref } from "@/lib/email-composer"
@@ -78,9 +79,9 @@ export default function InvoicesPage() {
   const { user, appUser, isAdmin, isImpersonating } = useAuth()
   const companyId = appUser?.companyId ?? ""
   const adminView = isAdmin && !isImpersonating
-  const [invoices, setInvoices] = useState<Invoice[]>([])
-  const [organizations, setOrganizations] = useState<Organization[]>([])
-  const [loading, setLoading] = useState(true)
+  const [invoices, setInvoices, cached] = useCachedState<Invoice[]>(adminView ? "invoices" : `invoices:${companyId}`, [])
+  const [organizations, setOrganizations] = useCachedState<Organization[]>(adminView ? "organizations" : "organizations:none", [])
+  const [loading, setLoading] = useState(!cached)
   const [error, setError] = useState(false)
   const [selectedId, setSelectedId] = useUrlSelection("invoice")
   const [duplicateTarget, setDuplicateTarget] = useState<Invoice | null>(null)

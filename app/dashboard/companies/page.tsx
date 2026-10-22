@@ -15,6 +15,7 @@ import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import type { SortOption } from "@/components/dashboard/filter-bar"
+import { useCachedState } from "@/lib/page-cache"
 import { deleteOrganization, getOrganizations, type Organization } from "@/lib/organizations"
 import { formatTimestamp, tsToMillis } from "@/lib/tasks"
 import { getProjects, type Project } from "@/lib/projects"
@@ -63,10 +64,10 @@ function companyHref(row: CompanyRow): string {
 export default function CompaniesPage() {
   const router = useRouter()
   const { viewAsUser } = useAuth()
-  const [users, setUsers] = useState<AppUser[]>([])
-  const [projects, setProjects] = useState<Project[]>([])
-  const [organizations, setOrganizations] = useState<Organization[]>([])
-  const [loading, setLoading] = useState(true)
+  const [users, setUsers, cached] = useCachedState<AppUser[]>("users", [])
+  const [projects, setProjects] = useCachedState<Project[]>("projects", [])
+  const [organizations, setOrganizations] = useCachedState<Organization[]>("organizations", [])
+  const [loading, setLoading] = useState(!cached)
   const [error, setError] = useState<string | null>(null)
   const [creating, setCreating] = useState(false)
   const [clientTab, setClientTab] = useState<"active" | "archived">("active")

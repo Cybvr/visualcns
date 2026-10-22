@@ -11,6 +11,7 @@ import { SectionHeader } from "@/components/dashboard/section-header"
 import { ThumbnailListItem } from "@/components/dashboard/thumbnail-list-item"
 import { Card, CardContent } from "@/components/ui/card"
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
+import { useCachedState } from "@/lib/page-cache"
 import { getCurrentAgencyId } from "@/lib/agency-scope"
 import { deleteInvoice, getInvoices, updateInvoice, type Invoice } from "@/lib/billing"
 import { invoiceIsOpen } from "@/lib/invoice-reminders"
@@ -68,12 +69,12 @@ export default function DashboardPage() {
   const router = useRouter()
   const share = useCampaignShare()
   const { user, appUser } = useAuth()
-  const [leads, setLeads] = useState<Lead[] | null>(null)
-  const [projects, setProjects] = useState<Project[]>([])
-  const [latestPosts, setLatestPosts] = useState<CampaignCreative[]>([])
-  const [invoices, setInvoices] = useState<Invoice[]>([])
-  const [loading, setLoading] = useState(true)
-  const [leadsLoading, setLeadsLoading] = useState(true)
+  const [leads, setLeads, leadsCached] = useCachedState<Lead[] | null>("leads", null)
+  const [projects, setProjects, cached] = useCachedState<Project[]>("projects", [])
+  const [latestPosts, setLatestPosts] = useCachedState<CampaignCreative[]>("latest-posts", [])
+  const [invoices, setInvoices] = useCachedState<Invoice[]>("invoices", [])
+  const [loading, setLoading] = useState(!cached)
+  const [leadsLoading, setLeadsLoading] = useState(!leadsCached)
   const [error, setError] = useState<string | null>(null)
   const [greeting, setGreeting] = useState("Good morning")
 
@@ -111,7 +112,6 @@ export default function DashboardPage() {
     if (!user) return
     let active = true
     let stop = () => {}
-    setLeadsLoading(true)
 
     getCurrentAgencyId()
       .then((agencyId) => {
