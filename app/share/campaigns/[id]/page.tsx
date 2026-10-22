@@ -7,6 +7,7 @@ import { useParams } from "next/navigation"
 import { BrandLockup } from "@/components/brand-lockup"
 import { applicationsClosed } from "@/components/creator-apply-form"
 import { CreatorBriefSummary } from "@/components/dashboard/creator-brief"
+import { ShareDialog } from "@/components/dashboard/share-dialog"
 import { TaskContent } from "@/components/dashboard/task-content"
 import { ProjectCover } from "@/components/project-card"
 import { Button } from "@/components/ui/button"
@@ -127,14 +128,22 @@ export default function SharedCampaignPage() {
             )}
           </div>
           <div className="space-y-5 px-5 pt-5 pb-6 sm:px-6">
-            <div>
-              <h1 id="shared-campaign-title" className="text-2xl font-semibold tracking-tight text-foreground">{project.title}</h1>
-              {posted && (
-                // A <time>, not a <p>: dashboard-body sets every paragraph to body size.
-                <time dateTime={posted.toISOString()} className="mt-1 block text-xs text-muted-foreground">
-                  {posted.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
-                </time>
-              )}
+            <div className="flex items-start justify-between gap-4">
+              <div className="min-w-0">
+                <h1 id="shared-campaign-title" className="text-2xl font-semibold tracking-tight text-foreground">{project.title}</h1>
+                {posted && (
+                  // A <time>, not a <p>: dashboard-body sets every paragraph to body size.
+                  <time dateTime={posted.toISOString()} className="mt-1 block text-xs text-muted-foreground">
+                    {posted.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+                  </time>
+                )}
+              </div>
+              <ShareDialog
+                path={`/share/campaigns/${encodeURIComponent(project.id)}`}
+                title={`Share ${project.title}`}
+                shareText={brief ? `Apply for the ${project.title} campaign` : `See the ${project.title} campaign`}
+                contentClassName="dashboard-body font-sans"
+              />
             </div>
             {brief && (
               <>
