@@ -1550,11 +1550,11 @@ export function EmailWorkspace({ initialTab, initialMessageId }: { initialTab: E
 
     setSendNotice(null)
 
+    const trimmedSubject = subject.trim()
     // Everyone typed in To, plus a picked list, each once.
     const typedRecipients = to.split(/[,;]/).map((email) => email.trim()).filter(Boolean)
     const recipientEmails = Array.from(new Set([...(selectedList?.contactEmails ?? []), ...typedRecipients].map((email) => email.trim().toLowerCase())))
     const recipientsLabel = [selectedList ? `${selectedList.name} (${selectedList.contactEmails.length})` : "", ...typedRecipients].filter(Boolean).join(", ")
-    const recipientEmails = selectedList ? selectedList.contactEmails : [to.trim()]
     if ((selectedListId && !selectedList) || !recipientEmails.length || recipientEmails.some((email) => !EMAIL_PATTERN.test(email.trim()))) return
     if (EMAIL_PATTERN.test(trimmedSubject) || recipientEmails.some((email) => email.toLowerCase() === trimmedSubject.toLowerCase())) {
       setSendNotice({ tone: "error", text: "Add a message subject—the recipient email cannot be used as the subject." })
