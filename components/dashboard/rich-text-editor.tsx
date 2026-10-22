@@ -8,6 +8,9 @@ import StarterKit from "@tiptap/starter-kit"
 import { TaskItem, TaskList } from "@tiptap/extension-list"
 import { TableKit } from "@tiptap/extension-table"
 
+import { toast } from "sonner"
+
+import { uploadFileToStorage } from "@/lib/documents"
 import { formatMarkdownParagraphs, looksLikeMarkdown, markdownToHtml } from "@/lib/markdown"
 import {
   Bold,
@@ -148,6 +151,14 @@ const BUTTONS: ToolbarButton[][] = [
   ],
 ]
 
+/** An image whose picture is inside the HTML (base64), rather than at a web address. */
+const EMBEDDED_IMAGE = /<img\b[^>]*\bsrc=["']data:image\//i
+
+/** The words in pasted HTML, ignoring tags and images. */
+function htmlText(html: string) {
+  return html.replace(/<[^>]+>/g, "").replace(/&nbsp;/g, " ").trim()
+}
+
 function linkHref(value: string): string | null {
   const input = value.trim()
   if (!input) return null
@@ -214,6 +225,51 @@ export function RichTextEditor({
   const linkSelectionRef = useRef<{ from: number; to: number }>({ from: 0, to: 0 })
   const [htmlMode, setHtmlMode] = useState(false)
 
+  /** Uploads pasted or dropped images and inserts each at `at`. False when there are none, so the editor handles the event. */
+  function insertImageFiles(files: File[], at: number) {
+    const images = files.filter((file) => file.type.startsWith("image/"))
+    if (!images.length) return false
+    void (async () => {
+      const id = toast.loading(images.length === 1 ? "Uploading image" : `Uploading ${images.length} images`)
+      try {
+        let position = at
+        for (const file of images) {
+          const src = await uploadFileToStorage(file)
+          const current = editorRef.current
+          if (!current) return
+          const alt = file.name.replace(/\.[^.]+$/, "")
+          current.chain().focus().insertContentAt(Math.min(position, current.state.doc.content.size), { type: "image", attrs: { src, alt } }).run()
+          // The next image goes after this one, not before it.
+          position = current.state.selection.to
+        }
+        toast.dismiss(id)
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "The image could not be uploaded.", { id })
+      }
+    })()
+    return true
+  }
+
+  function insertWithUploadedImages(html: string, at: number) {
+    void (async () => {
+      const id = toast.loading("Uploading images")
+      try {
+        const sources = Array.from(new Set(Array.from(html.matchAll(/src=["'](data:image\/[^"']+)["']/gi), (match) => match[1])))
+        let content = html
+        for (const [index, source] of sources.entries()) {
+          const blob = await (await fetch(source)).blob()
+          const url = await uploadFileToStorage(new File([blob], `pasted-image-${index + 1}.${blob.type.split("/")[1] || "png"}`, { type: blob.type }))
+          content = content.split(source).join(url)
+        }
+        const current = editorRef.current
+        if (current) current.chain().focus().insertContentAt(Math.min(at, current.state.doc.content.size), content).run()
+        toast.dismiss(id)
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "The images could not be uploaded.", { id })
+      }
+    })()
+  }
+
   const editor = useEditor({
     extensions: [StarterKit.configure({ link: { openOnClick: false, autolink: true, linkOnPaste: true } }), Image, TaskList, TaskItem.configure({ nested: true }), TableKit.configure({ table: { resizable: true } })],
     content: value,
@@ -222,21 +278,32 @@ export function RichTextEditor({
     editorProps: {
       // Pasted text that is really Markdown arrives as literal #, * and |,
       // so format it before it lands. Rich pastes with real structure are left untouched.
-      handlePaste: (_view, event) => {
+      handlePaste: (view, event) => {
         const clipboard = event.clipboardData
         if (!clipboard) return false
+        const at = view.state.selection.from
         const pastedHtml = clipboard.getData("text/html")
+        // A copied image or screenshot on its own is uploaded and put where the caret is.
+        if (!htmlText(pastedHtml) && insertImageFiles(Array.from(clipboard.files), at)) return true
         if (pastedHtml) {
           // Some apps copy Markdown as plain paragraphs, so tables arrive as "| a | b |" lines.
           const formatted = formatMarkdownParagraphs(pastedHtml)
-          if (!formatted) return false
-          editorRef.current?.chain().focus().insertContent(formatted).run()
+          const content = formatted ?? (EMBEDDED_IMAGE.test(pastedHtml) ? pastedHtml : null)
+          if (!content) return false
+          // Images carried inside the HTML itself are uploaded first; the editor won't keep them as they are.
+          if (EMBEDDED_IMAGE.test(content)) insertWithUploadedImages(content, at)
+          else editorRef.current?.chain().focus().insertContent(content).run()
           return true
         }
         const text = clipboard.getData("text/plain")
         if (!text || !looksLikeMarkdown(text)) return false
         editorRef.current?.chain().focus().insertContent(markdownToHtml(text)).run()
         return true
+      },
+      handleDrop: (view, event, _slice, moved) => {
+        if (moved || !event.dataTransfer?.files.length) return false
+        const at = view.posAtCoords({ left: event.clientX, top: event.clientY })?.pos ?? view.state.selection.from
+        return insertImageFiles(Array.from(event.dataTransfer.files), at)
       },
       attributes: {
         class: documentLayout ? cn(

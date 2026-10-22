@@ -18,11 +18,12 @@ function escapeHtml(value: string) {
 function inlineMarkdown(text: string) {
   return text
     .replace(/`([^`]+)`/g, (_match, code) => `<code>${code}</code>`)
+    .replace(/!\[([^\]]*)\]\(((?:https?:|data:image\/)[^)\s]+)\)/g, '<img src="$2" alt="$1">')
     .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
     .replace(/__([^_]+)__/g, "<strong>$1</strong>")
     .replace(/\*([^*]+)\*/g, "<em>$1</em>")
     .replace(/(^|[^_])_([^_]+)_/g, "$1<em>$2</em>")
-    .replace(/\[([^\]]+)\]\((https?:[^)\s]+)\)/g, '<a href="$2">$1</a>')
+    .replace(/(^|[^!])\[([^\]]+)\]\((https?:[^)\s]+)\)/g, '$1<a href="$3">$2</a>')
 }
 
 /** Split "| a | b |" into ["a", "b"], tolerating the optional outer pipes. */
@@ -147,6 +148,12 @@ const MARKDOWN_ROW = /^\s*(\||[-*+]\s|\d+[.)]\s)/
 export function formatMarkdownParagraphs(html: string): string | null {
   if (/<(table|h[1-6]|ul|ol|pre|blockquote)\b/i.test(html)) return null
   const lines = html
+    // Images are kept, each on its own line, rather than stripped with the other tags.
+    .replace(/<img\b[^>]*>/gi, (tag) => {
+      const src = /\bsrc=["']([^"']+)["']/i.exec(tag)?.[1] ?? ""
+      const alt = /\balt=["']([^"']*)["']/i.exec(tag)?.[1] ?? ""
+      return src ? `\n![${alt.replace(/[[\]]/g, "")}](${src.replace(/&amp;/g, "&")})\n` : ""
+    })
     .replace(/<\/(p|div|li|tr)>|<br\s*\/?>/gi, "\n")
     .replace(/<[^>]+>/g, "")
     .replace(/&(nbsp|amp|lt|gt|quot|#39);/g, (entity) => HTML_ENTITIES[entity] ?? entity)

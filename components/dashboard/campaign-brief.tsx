@@ -49,8 +49,8 @@ export function CampaignBrief({
         onPatched?.({ title: nextTitle, slug: slugify(nextTitle) })
       }
       if (about !== savedAbout) {
-        // An emptied editor leaves "<p></p>"; store that as nothing.
-        const nextAbout = about.replace(/<[^>]*>/g, "").trim() ? about : ""
+        // An emptied editor leaves "<p></p>"; store that as nothing. An image on its own still counts.
+        const nextAbout = about.replace(/<[^>]*>/g, "").trim() || /<img\b/i.test(about) ? about : ""
         await updateProject(project.id, { about: nextAbout })
         onPatched?.({ about: nextAbout })
       }
