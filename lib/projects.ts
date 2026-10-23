@@ -13,7 +13,7 @@ import {
 } from "firebase/firestore"
 import { db } from "./firebase"
 import { getCurrentAgencyId } from "./agency-scope"
-import type { CreatorBrief } from "./campaign-brief"
+import type { CampaignOpening, CreatorBrief } from "./campaign-brief"
 import {
   createTask,
   deleteTask,
@@ -92,6 +92,8 @@ export interface Project {
   technologies?: string[]
   /** What creators are asked to make, when, for how much, and who it wants. See lib/campaign-brief. */
   brief?: Partial<CreatorBrief>
+  /** Jobs on the campaign other than posting, each with its own link and applicants. See lib/campaign-brief. */
+  openings?: Partial<CampaignOpening>[]
   createdAt?: Timestamp
   updatedAt?: Timestamp
 }

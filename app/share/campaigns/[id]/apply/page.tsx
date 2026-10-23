@@ -1,18 +1,23 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { Suspense, useEffect, useState } from "react"
 import Link from "next/link"
-import { useParams } from "next/navigation"
+import { useParams, useSearchParams } from "next/navigation"
 import { ArrowLeft } from "lucide-react"
 
 import { CreatorApplyForm } from "@/components/creator-apply-form"
 import { Skeleton } from "@/components/ui/skeleton"
-import { hasBrief, resolveBrief } from "@/lib/campaign-brief"
+import { campaignSharePath, hiresCreators, resolveBrief, resolveOpenings } from "@/lib/campaign-brief"
 import { getProject, type Project } from "@/lib/projects"
 
-/** No login required: where the shared campaign page's Apply button goes. */
+/** No login required: where the shared campaign page's Apply button goes. ?role=<opening id> applies for that opening. */
 export default function SharedCampaignApplyPage() {
+  return <Suspense><SharedCampaignApply /></Suspense>
+}
+
+function SharedCampaignApply() {
   const { id = "" } = useParams<{ id: string }>()
+  const roleId = useSearchParams().get("role") ?? ""
   const [project, setProject] = useState<Project | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -34,7 +39,8 @@ export default function SharedCampaignApplyPage() {
     )
   }
 
-  if (!project || project.isArchived || !hasBrief(project.brief)) {
+  const opening = roleId ? resolveOpenings(project?.openings).find((item) => item.id === roleId) : undefined
+  if (!project || project.isArchived || (roleId ? !opening : !hiresCreators(project.brief))) {
     return (
       <main className="dashboard-body flex min-h-screen items-center justify-center bg-background px-4 font-sans">
         <p className="text-sm text-muted-foreground">This campaign isn&apos;t taking applications.</p>
@@ -42,7 +48,7 @@ export default function SharedCampaignApplyPage() {
     )
   }
 
-  const backHref = `/share/campaigns/${encodeURIComponent(project.id)}`
+  const backHref = campaignSharePath(project.id, opening?.id)
 
   return (
     <main className="dashboard-body min-h-screen bg-background px-4 pt-4 pb-10 font-sans sm:pt-6 sm:pb-16 [&_*]:font-sans">
@@ -54,9 +60,9 @@ export default function SharedCampaignApplyPage() {
         <section aria-labelledby="apply-heading" className="space-y-5 rounded-xs bg-card p-5 sm:p-6">
           <div>
             <h1 id="apply-heading" className="text-2xl font-semibold tracking-tight text-foreground">Apply</h1>
-            <div className="mt-1 text-sm text-muted-foreground">{project.title}</div>
+            <div className="mt-1 text-sm text-muted-foreground">{opening ? `${opening.title} · ${project.title}` : project.title}</div>
           </div>
-          <CreatorApplyForm projectId={project.id} brief={resolveBrief(project.brief)} />
+          <CreatorApplyForm projectId={project.id} brief={resolveBrief(project.brief)} opening={opening} />
         </section>
       </div>
     </main>

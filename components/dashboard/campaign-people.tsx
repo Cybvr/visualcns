@@ -66,9 +66,14 @@ const fieldClass = "h-9 w-full min-w-0 rounded-md border border-input bg-transpa
 export function CampaignPeople({ people, agencyId, companyId, projectId, projectName, canEdit, canReview = false, startNew = false, onActionHandled }: CampaignPeopleProps) {
   const [openId, setOpenId] = useState<string | null>(null)
   const [adding, setAdding] = useState(false)
+  const [role, setRole] = useState(ALL_ROLES)
   const open = people.find((person) => person.id === openId) ?? null
+  // Creators who post, then each opening people applied for, like a graphic designer.
+  const roles = [...new Set(people.map(roleOf))]
+  const activeRole = roles.includes(role) ? role : ALL_ROLES
+  const shown = activeRole === ALL_ROLES ? people : people.filter((person) => roleOf(person) === activeRole)
   // Added creators first, then suggestions, each by best match.
-  const sorted = [...people].sort((a, b) => Number(onRoster(b)) - Number(onRoster(a)) || (b.overlap ?? 0) - (a.overlap ?? 0))
+  const sorted = [...shown].sort((a, b) => Number(onRoster(b)) - Number(onRoster(a)) || (b.overlap ?? 0) - (a.overlap ?? 0))
 
   useEffect(() => {
     if (!canEdit || !startNew) return
@@ -133,10 +138,19 @@ export function CampaignPeople({ people, agencyId, companyId, projectId, project
         className=""
         items={sorted}
         getKey={(person) => person.id}
-        searchFields={(person) => [person.handle, person.app, person.category, person.status]}
+        searchFields={(person) => [person.handle, person.app, person.category, person.status, person.opening ?? ""]}
         searchPlaceholder="Search creators"
         viewKey="campaign-creators-inline"
         initialView="list"
+        filters={roles.length > 1 && (
+          <Select value={activeRole} onValueChange={setRole}>
+            <SelectTrigger size="sm" aria-label="Role" className="w-auto min-w-32"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value={ALL_ROLES}>Everyone</SelectItem>
+              {roles.map((item) => <SelectItem key={item} value={item}>{item}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        )}
         actions={
           <>
             {canEdit && <SectionAddButton label="New creator" disabled={adding} onClick={() => setAdding(true)} />}
@@ -174,7 +188,7 @@ export function CampaignPeople({ people, agencyId, companyId, projectId, project
         row={(person) => {
           const status = personStatusLabel(person)
           return {
-            subtitle: [person.app, person.category, `${compactCount(person.followers)} followers`].filter(Boolean).join(" · "),
+            subtitle: person.opening || [person.app, person.category, `${compactCount(person.followers)} followers`].filter(Boolean).join(" · "),
             trailing: (
               <span className="grid w-56 max-w-[42vw] grid-cols-[minmax(0,1fr)_auto] items-center gap-3 max-sm:w-auto max-sm:max-w-none">
                 <Badge variant="secondary" className="max-w-full justify-self-start rounded-full">{status}</Badge>
@@ -204,6 +218,13 @@ export function CampaignPeople({ people, agencyId, companyId, projectId, project
   )
 }
 
+const ALL_ROLES = "__all"
+
+/** The opening they applied for, or Creators for everyone who posts. */
+function roleOf(person: CampaignPerson) {
+  return person.opening || "Creators"
+}
+
 const PLATFORM_ICONS: Record<string, IconType> = {
   X: SiX,
   Instagram: SiInstagram,
@@ -230,7 +251,7 @@ function CreatorListRow({
   profileHref?: string
   actions?: ItemActions
 }) {
-  const meta = [person.category, person.followers ? `${compactCount(person.followers)} followers` : undefined].filter(Boolean).join(" · ")
+  const meta = person.opening || [person.category, person.followers ? `${compactCount(person.followers)} followers` : undefined].filter(Boolean).join(" · ")
   const isSuggested = status === "Suggested" || status === "Applied"
   const PlatformIcon = PLATFORM_ICONS[person.app]
 
@@ -242,7 +263,7 @@ function CreatorListRow({
       <div className="min-w-0 flex-1">
         <div className="flex min-w-0 items-center gap-2">
           <button type="button" onClick={onOpen} className="truncate text-left text-sm font-semibold text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:text-base">{person.handle}</button>
-          <span className="hidden truncate text-xs text-muted-foreground sm:inline">{person.category || "Creator"}</span>
+          <span className="hidden truncate text-xs text-muted-foreground sm:inline">{person.opening || person.category || "Creator"}</span>
         </div>
         <p className="mt-0.5 truncate text-xs text-muted-foreground">{meta || "Creator"}</p>
         <div className="mt-2 flex flex-wrap gap-1.5">
@@ -539,11 +560,16 @@ export function CreatorThumbnail({ person, compact = false, showMeta = true }: {
 function ApplicationDetails({ application }: { application: CampaignApplication }) {
   return (
     <div className="space-y-1 rounded-lg bg-muted/60 p-3 text-sm">
-      <p className="font-medium text-foreground">{application.name}</p>
+      <p className="font-medium text-foreground">{application.name}{application.opening && <span className="font-normal text-muted-foreground"> · {application.opening}</span>}</p>
       <p className="text-muted-foreground">
         <a href={`mailto:${application.email}`} className="hover:underline">{application.email}</a>
         {application.phone && <> · <a href={`tel:${application.phone}`} className="hover:underline">{application.phone}</a></>}
       </p>
+      {application.portfolio && (
+        <p className="truncate">
+          <a href={/^https?:\/\//i.test(application.portfolio) ? application.portfolio : `https://${application.portfolio}`} target="_blank" rel="noreferrer" className="text-foreground underline underline-offset-2">{application.portfolio}</a>
+        </p>
+      )}
       {application.rate > 0 && <p className="text-muted-foreground">Asks {formatPay(application.rate, application.currency || "NGN")}</p>}
       {application.note && <p className="whitespace-pre-wrap pt-1 text-foreground">{application.note}</p>}
       {application.answers.map((item, index) => (

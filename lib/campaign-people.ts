@@ -39,6 +39,10 @@ export interface CampaignPerson {
   onRoster?: boolean
   /** "ngai": from grounded Firecrawl search results. "apply": the creator registered interest on the shared campaign page. */
   source?: "ngai" | "apply"
+  /** The campaign opening they applied for, e.g. a graphic designer. None for creators who post. */
+  openingId?: string
+  /** That opening's title when they applied. */
+  opening?: string
   createdAt?: Timestamp
   updatedAt?: Timestamp
 }
@@ -197,6 +201,9 @@ export interface CampaignApplication {
   /** Their own rate, in `currency`, when the campaign has no fixed offer. */
   rate: number
   currency: string
+  /** The opening they applied for, and the link to their work it asks for. */
+  opening: string
+  portfolio: string
   /** Where they get paid, from Account > Payouts. Null until they fill it in. */
   payout: CreatorPayout | null
 }
@@ -221,7 +228,7 @@ export async function getCampaignApplication(personId: string): Promise<Campaign
   const answers = Array.isArray(data.answers)
     ? data.answers.map((item: { question?: unknown; answer?: unknown }) => ({ question: text(item?.question), answer: text(item?.answer) })).filter((item: { answer: string }) => item.answer)
     : []
-  return { name: text(data.name), email: text(data.email), phone: text(data.phone), note: text(data.note), answers, rate: Number(data.rate) || 0, currency: text(data.currency), payout }
+  return { name: text(data.name), email: text(data.email), phone: text(data.phone), note: text(data.note), answers, rate: Number(data.rate) || 0, currency: text(data.currency), opening: text(data.opening), portfolio: text(data.portfolio), payout }
 }
 
 /** Every creator who applied is a suggestion until someone adds them; this is the badge they show meanwhile. */

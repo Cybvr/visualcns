@@ -1,15 +1,17 @@
 "use client"
 
 import { useEffect, useState, type FormEvent } from "react"
-import { FileText } from "lucide-react"
+import { Briefcase, FileText } from "lucide-react"
 import { toast } from "sonner"
 
-import { CreatorBriefForm, useCreatorBriefDraft } from "@/components/dashboard/creator-brief"
+import { CampaignOpeningsForm } from "@/components/dashboard/campaign-openings"
+import { CreatorBriefForm, OpeningSummary, useCreatorBriefDraft } from "@/components/dashboard/creator-brief"
 import { RichTextEditor } from "@/components/dashboard/rich-text-editor"
 import { SettingsSection } from "@/components/dashboard/settings-section"
 import { TaskContent, taskContentHtml } from "@/components/dashboard/task-content"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { resolveOpenings } from "@/lib/campaign-brief"
 import { renameProject, slugify, updateProject, type Project } from "@/lib/projects"
 
 /**
@@ -35,12 +37,20 @@ export function CampaignBrief({
   useEffect(() => setTitle(project.title), [project.title])
   useEffect(() => setAbout(savedAbout), [savedAbout])
   const brief = useCreatorBriefDraft(project)
-  const textDirty = title.trim() !== project.title || about !== savedAbout
+  const savedOpenings = resolveOpenings(project.openings)
+  const savedOpeningsKey = JSON.stringify(savedOpenings)
+  const [openings, setOpenings] = useState(savedOpenings)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => setOpenings(savedOpenings), [savedOpeningsKey])
+  const openingsDirty = JSON.stringify(openings) !== savedOpeningsKey
+  // An opening needs a role before it can be saved.
+  const openingsReady = openings.every((opening) => opening.title.trim())
+  const textDirty = title.trim() !== project.title || about !== savedAbout || openingsDirty
   const dirty = textDirty || brief.dirty
 
   async function save(event?: FormEvent) {
     event?.preventDefault()
-    if (!dirty || saving || !title.trim()) return
+    if (!dirty || saving || !title.trim() || !openingsReady) return
     setSaving(true)
     try {
       const nextTitle = title.trim()
@@ -53,6 +63,17 @@ export function CampaignBrief({
         const nextAbout = about.replace(/<[^>]*>/g, "").trim() || /<img\b/i.test(about) ? about : ""
         await updateProject(project.id, { about: nextAbout })
         onPatched?.({ about: nextAbout })
+      }
+      if (openingsDirty) {
+        const nextOpenings = openings.map((opening) => ({
+          ...opening,
+          title: opening.title.trim(),
+          deliverables: opening.deliverables.trim(),
+          details: opening.details.trim(),
+          questions: opening.questions.map((question) => question.trim()),
+        }))
+        await updateProject(project.id, { openings: nextOpenings })
+        onPatched?.({ openings: nextOpenings })
       }
       if (brief.dirty) {
         const nextBrief = brief.toSave()
@@ -84,6 +105,22 @@ export function CampaignBrief({
             <p className="text-[15px] text-muted-foreground">Not written yet.</p>
           )}
         </SettingsSection>
+        {(canEdit || savedOpenings.length > 0) && (
+          <SettingsSection title={openings.length ? `Openings (${openings.length})` : "Openings"} icon={Briefcase} defaultOpen={savedOpenings.length > 0}>
+            {canEdit ? (
+              <CampaignOpeningsForm projectId={project.id} value={openings} savedIds={savedOpenings.map((opening) => opening.id)} currency={brief.draft.currency} onChange={setOpenings} />
+            ) : (
+              <div className="space-y-6">
+                {savedOpenings.map((opening) => (
+                  <div key={opening.id} className="space-y-3">
+                    <h3 className="text-sm font-semibold text-foreground">{opening.title}</h3>
+                    <OpeningSummary opening={opening} />
+                  </div>
+                ))}
+              </div>
+            )}
+          </SettingsSection>
+        )}
       </div>
       {/* Settings: a side panel on wide screens, more sections below on phones. */}
       <aside aria-label="Creator brief settings" className="min-w-0 lg:sticky lg:top-4">
@@ -92,10 +129,11 @@ export function CampaignBrief({
       {/* One Save for the title, the about and the creator brief. */}
       {canEdit && (
         <div className="flex gap-2 border-t border-border pt-4 lg:col-span-2">
-          <Button type="submit" disabled={!dirty || saving || !title.trim()}>{saving ? "Saving…" : "Save"}</Button>
+          <Button type="submit" disabled={!dirty || saving || !title.trim() || !openingsReady}>{saving ? "Saving…" : "Save"}</Button>
           {(textDirty || brief.changed) && (
-            <Button type="button" variant="ghost" onClick={() => { setTitle(project.title); setAbout(savedAbout); brief.reset() }}>Cancel</Button>
+            <Button type="button" variant="ghost" onClick={() => { setTitle(project.title); setAbout(savedAbout); setOpenings(savedOpenings); brief.reset() }}>Cancel</Button>
           )}
+          {!openingsReady && <p className="self-center text-sm text-muted-foreground">Give each opening a role to save.</p>}
         </div>
       )}
     </form>

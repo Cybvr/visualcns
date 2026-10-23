@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 import { Timestamp } from "firebase-admin/firestore"
 
 import { adminServices } from "@/lib/firebase-admin"
-import { applicationQuestions, hasBrief, resolveBrief } from "@/lib/campaign-brief"
+import { applicationQuestions, applicationsClosed, hiresCreators, resolveBrief, resolveOpenings } from "@/lib/campaign-brief"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -63,6 +63,7 @@ function tierFor(followers: number) {
  * A creator applying from the shared campaign page, signed in with the account
  * the apply form made. They land on the campaign's Creators tab as "Applied",
  * and their contact details go in campaignApplications, which only the agency can read.
+ * With an openingId they apply for that job instead, and are listed under it.
  */
 export async function POST(request: Request) {
   const token = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "")
@@ -84,6 +85,8 @@ export async function POST(request: Request) {
   // A pasted profile link works too: keep the last part of the path.
   const typedHandle = clip(body.handle, 200).replace(/^https?:\/\/[^/]+\//i, "").replace(/[/?#].*$/, "").replace(/^@+/, "").slice(0, 100)
   const followers = count(body.followers)
+  const openingId = clip(body.openingId, 64)
+  const portfolio = clip(body.portfolio, 500)
   // The cover letter; older forms sent a short note instead.
   const note = String(body.coverLetter ?? body.note ?? "").trim().slice(0, 3000)
 
@@ -94,16 +97,20 @@ export async function POST(request: Request) {
 
   const { db } = adminServices()
   const project = (await db.collection("projects").doc(projectId).get()).data()
-  if (!project || project.isArchived || !hasBrief(project.brief)) {
+  const opening = openingId ? resolveOpenings(project?.openings).find((item) => item.id === openingId) : undefined
+  if (!project || project.isArchived || (openingId ? !opening : !hiresCreators(project.brief))) {
     return NextResponse.json({ error: "This campaign isn't taking applications." }, { status: 404 })
   }
   const brief = resolveBrief(project.brief)
-  if (brief.registerBy && new Date().toISOString().slice(0, 10) > brief.registerBy) {
-    return NextResponse.json({ error: "Applications for this campaign have closed." }, { status: 410 })
+  // The opening's own pay, dates and questions; the creator brief's otherwise.
+  const terms = opening ?? brief
+  if (applicationsClosed(terms)) {
+    return NextResponse.json({ error: `Applications for this ${opening ? "role" : "campaign"} have closed.` }, { status: 410 })
   }
+  if (opening && !portfolio) return NextResponse.json({ error: "Add a link to your work." }, { status: 400 })
   // Answers are kept against the campaign's own questions, not whatever the form sent.
   const sentAnswers = Array.isArray(body.answers) ? body.answers as Array<{ question?: unknown; answer?: unknown }> : []
-  const answers = applicationQuestions(brief).map((question) => ({
+  const answers = applicationQuestions(terms).map((question) => ({
     question,
     answer: String(sentAnswers.find((item) => item?.question === question)?.answer ?? "").trim().slice(0, 1000),
   }))
@@ -112,17 +119,19 @@ export async function POST(request: Request) {
   }
 
   // Without a handle the Creators tab lists them by name, with no app to link to.
-  const app = !brief.showCreatorDetails ? "" : APPS.includes(String(body.app)) ? String(body.app) : "Instagram"
-  const handle = !brief.showCreatorDetails ? name : typedHandle ? `@${typedHandle}` : ""
+  const app = opening || !brief.showCreatorDetails ? "" : APPS.includes(String(body.app)) ? String(body.app) : "Instagram"
+  const handle = opening || !brief.showCreatorDetails ? name : typedHandle ? `@${typedHandle}` : ""
   if (!handle) return NextResponse.json({ error: "Add your handle." }, { status: 400 })
 
   const people = db.collection("campaignPeople")
   const [sameHandle, sameAccount] = await Promise.all([
     app ? people.where("projectId", "==", projectId).where("handle", "==", handle).limit(5).get() : null,
-    db.collection("campaignApplications").where("projectId", "==", projectId).where("userId", "==", uid).limit(1).get(),
+    db.collection("campaignApplications").where("projectId", "==", projectId).where("userId", "==", uid).limit(20).get(),
   ])
-  if (!sameAccount.empty || sameHandle?.docs.some((item) => item.data().app === app)) {
-    return NextResponse.json({ error: "You've already applied for this campaign." }, { status: 409 })
+  // One application per job: the same person can apply to post and, say, to design.
+  const appliedHere = sameAccount.docs.some((item) => String(item.data().openingId || "") === openingId)
+  if (appliedHere || sameHandle?.docs.some((item) => item.data().app === app)) {
+    return NextResponse.json({ error: `You've already applied for this ${opening ? "role" : "campaign"}.` }, { status: 409 })
   }
 
   let userId = ""
@@ -133,7 +142,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "That didn't send. Try again." }, { status: 500 })
   }
 
-  const rate = brief.fixedOffer ? brief.offerAmount : count(body.rate)
+  const rate = terms.fixedOffer ? terms.offerAmount : count(body.rate)
+  const role = opening ? { openingId: opening.id, opening: opening.title.trim() } : {}
   const now = Timestamp.now()
   const personRef = people.doc()
   const batch = db.batch()
@@ -149,13 +159,14 @@ export async function POST(request: Request) {
     status: "Applied",
     postLink: "",
     pay: rate,
-    currency: brief.currency,
+    currency: terms.currency,
     paid: false,
     labelled: false,
     category: "",
     overlap: 0,
     onRoster: false,
     source: "apply",
+    ...role,
     createdAt: now,
     updatedAt: now,
   })
@@ -169,8 +180,10 @@ export async function POST(request: Request) {
     phone,
     note,
     answers,
-    rate: brief.fixedOffer ? 0 : rate,
-    currency: brief.currency,
+    rate: terms.fixedOffer ? 0 : rate,
+    currency: terms.currency,
+    ...role,
+    ...(portfolio ? { portfolio } : {}),
     createdAt: now,
   })
   await batch.commit()

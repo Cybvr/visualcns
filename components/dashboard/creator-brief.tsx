@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState, type ReactNode } from "react"
-import { CalendarClock, CalendarRange, Clapperboard, CreditCard, Globe, Megaphone, MessageSquareText, Smartphone, Target, Users, Wallet, X, type LucideIcon } from "lucide-react"
+import { CalendarCheck, CalendarClock, CalendarRange, Clapperboard, CreditCard, Globe, ListChecks, Megaphone, MessageSquareText, Smartphone, Target, Users, Wallet, X, type LucideIcon } from "lucide-react"
 import { toast } from "sonner"
 
 import { SocialIcon } from "@/components/company/social-icon"
@@ -25,11 +25,13 @@ import {
   BRIEF_PLATFORMS,
   contentSummary,
   creatorSummary,
+  deliverableLines,
   formatBriefDate,
   formatOffer,
   goalLabel,
   pickCreatorDefaults,
   resolveBrief,
+  type CampaignOpening,
   type CreatorBrief,
   type CreatorDefaults,
 } from "@/lib/campaign-brief"
@@ -87,21 +89,28 @@ export function CreatorBriefForm({ project, canEdit, value, onChange }: { projec
         <div className="space-y-4">
           <Pick label="Platform" value={draft.platform} options={BRIEF_PLATFORMS} onChange={(platform) => set({ platform })} />
           <Pick label="Goal" value={draft.goal} options={BRIEF_GOALS} onChange={(goal) => set({ goal })} />
-          <OfferField value={draft} onChange={set} />
+          <div className="flex items-center gap-2">
+            <Switch id="brief-hire-creators" checked={draft.hireCreators} onCheckedChange={(hireCreators) => set({ hireCreators })} />
+            <Label htmlFor="brief-hire-creators">Hire creators to post</Label>
+          </div>
+          {draft.hireCreators && <OfferField value={draft} onChange={set} />}
         </div>
       </SettingsSection>
-      <SettingsSection title="Content" icon={Clapperboard}>
-        <ContentFields value={draft} onChange={set} />
-      </SettingsSection>
+      {draft.hireCreators && (
+        <SettingsSection title="Content" icon={Clapperboard}>
+          <ContentFields value={draft} onChange={set} />
+        </SettingsSection>
+      )}
       <SettingsSection title="Dates" icon={CalendarRange}>
         <div className="space-y-4">
-          <DateField label="Apply by" value={draft.registerBy} onChange={(registerBy) => set({ registerBy })} />
+          {draft.hireCreators && <DateField label="Apply by" value={draft.registerBy} onChange={(registerBy) => set({ registerBy })} />}
           {/* No browser min on End date: inside a collapsed section an invalid date silently blocks Save.
               A later start moves the end with it instead, and an earlier end pulls the start back. */}
           <DateField label="Start date" value={draft.postFrom} onChange={(postFrom) => set(postFrom && draft.postTo && draft.postTo < postFrom ? { postFrom, postTo: postFrom } : { postFrom })} />
           <DateField label="End date" value={draft.postTo} onChange={(postTo) => set(postTo && draft.postFrom && postTo < draft.postFrom ? { postTo, postFrom: postTo } : { postTo })} />
         </div>
       </SettingsSection>
+      {draft.hireCreators && <>
       <SettingsSection title="Creators" icon={Users}>
         <div className="space-y-4">
           <Pick label="Gender" value={draft.gender} options={BRIEF_GENDERS} onChange={(gender) => set({ gender })} />
@@ -139,6 +148,7 @@ export function CreatorBriefForm({ project, canEdit, value, onChange }: { projec
           ))}
         </div>
       </SettingsSection>
+      </>}
     </div>
   )
 }
@@ -294,8 +304,12 @@ type CreatorBriefBrand = {
   website?: string
 }
 
-/** What creators and the client see: the brief as plain facts. */
-export function CreatorBriefSummary({ brief, brand, hideOffer = false, shared = false }: {
+/**
+ * What creators and the client see: the brief as plain facts. "campaign" is the
+ * part every opening shares (platforms, website, goal, dates); "creators" is the
+ * job of posting (offer, content, who it wants); "all" is both.
+ */
+export function CreatorBriefSummary({ brief, brand, hideOffer = false, shared = false, part = "all" }: {
   brief: CreatorBrief
   /** The client's accounts, links and website, so creators can find the brand. */
   brand?: CreatorBriefBrand
@@ -303,7 +317,10 @@ export function CreatorBriefSummary({ brief, brand, hideOffer = false, shared = 
   hideOffer?: boolean
   /** On the public campaign page, which leaves out paid ads. */
   shared?: boolean
+  part?: "all" | "campaign" | "creators"
 }) {
+  const campaign = part !== "creators"
+  const creators = part !== "campaign" && brief.hireCreators
   const platforms = brief.platform.split(" and ").map((name) => name.trim())
   const content = contentSummary(brief)
   const who = creatorSummary(brief)
@@ -313,7 +330,7 @@ export function CreatorBriefSummary({ brief, brand, hideOffer = false, shared = 
   return (
     <div className="space-y-5">
       <dl className="grid gap-x-6 gap-y-4 sm:grid-cols-2">
-        <Fact label="Platform" icon={Smartphone}>
+        {campaign && <Fact label="Platform" icon={Smartphone}>
           <span className="flex flex-wrap gap-x-4 gap-y-1">
             {platforms.map((name) => {
               const key = name.toLowerCase()
@@ -328,24 +345,46 @@ export function CreatorBriefSummary({ brief, brand, hideOffer = false, shared = 
               )
             })}
           </span>
-        </Fact>
-        {brand?.website && (
+        </Fact>}
+        {campaign && brand?.website && (
           <Fact label="Website" icon={Globe}>
             <a href={websiteHref(brand.website)} target="_blank" rel="noreferrer" className="break-all hover:underline">
               {brand.website.replace(/^https?:\/\//i, "").replace(/\/$/, "")}
             </a>
           </Fact>
         )}
-        <Fact label="Goal" icon={Target}>{goalLabel(brief.goal)}</Fact>
-        {!hideOffer && formatOffer(brief) && <Fact label="Offer" icon={Wallet}>{formatOffer(brief)}</Fact>}
-        {content && <Fact label="Content" icon={Clapperboard}>{content}</Fact>}
-        {brief.registerBy && <Fact label="Apply by" icon={CalendarClock}>{formatBriefDate(brief.registerBy)}</Fact>}
-        {dates && <Fact label="Runs" icon={CalendarRange}>{dates}</Fact>}
-        {(!shared || brief.showCreatorDetails) && who && <Fact label="Creators" icon={Users}>{who}</Fact>}
-        {!hideOffer && <Fact label="Payment" icon={CreditCard}>{brief.paymentMethod}</Fact>}
-        {!shared && brief.paidAds && <Fact label="Paid ads" icon={Megaphone}>Yes</Fact>}
+        {campaign && <Fact label="Goal" icon={Target}>{goalLabel(brief.goal)}</Fact>}
+        {campaign && dates && <Fact label="Runs" icon={CalendarRange}>{dates}</Fact>}
+        {creators && !hideOffer && formatOffer(brief) && <Fact label="Offer" icon={Wallet}>{formatOffer(brief)}</Fact>}
+        {creators && content && <Fact label="Content" icon={Clapperboard}>{content}</Fact>}
+        {creators && brief.registerBy && <Fact label="Apply by" icon={CalendarClock}>{formatBriefDate(brief.registerBy)}</Fact>}
+        {creators && (!shared || brief.showCreatorDetails) && who && <Fact label="Creators" icon={Users}>{who}</Fact>}
+        {creators && !hideOffer && <Fact label="Payment" icon={CreditCard}>{brief.paymentMethod}</Fact>}
+        {creators && !shared && brief.paidAds && <Fact label="Paid ads" icon={Megaphone}>Yes</Fact>}
       </dl>
-      {brief.contentDetails && <p className="whitespace-pre-wrap text-sm leading-7 text-foreground">{brief.contentDetails}</p>}
+      {creators && brief.contentDetails && <p className="whitespace-pre-wrap text-sm leading-7 text-foreground">{brief.contentDetails}</p>}
+    </div>
+  )
+}
+
+/** One opening as plain facts: what they hand over, when, and the pay. */
+export function OpeningSummary({ opening }: { opening: CampaignOpening }) {
+  const lines = deliverableLines(opening)
+  const pay = opening.fixedOffer ? formatOffer(opening) : "Send your rate"
+  return (
+    <div className="space-y-5">
+      <dl className="grid gap-x-6 gap-y-4 sm:grid-cols-2">
+        {lines.length > 0 && (
+          <Fact label="What we need" icon={ListChecks}>
+            <ul className="list-disc space-y-0.5 pl-4">{lines.map((line, index) => <li key={index}>{line}</li>)}</ul>
+          </Fact>
+        )}
+        {opening.dueBy && <Fact label="Due" icon={CalendarCheck}>{formatBriefDate(opening.dueBy)}</Fact>}
+        {opening.showOffer && pay && <Fact label="Pay" icon={Wallet}>{pay}</Fact>}
+        {opening.showOffer && <Fact label="Payment" icon={CreditCard}>{opening.paymentMethod}</Fact>}
+        {opening.registerBy && <Fact label="Apply by" icon={CalendarClock}>{formatBriefDate(opening.registerBy)}</Fact>}
+      </dl>
+      {opening.details.trim() && <p className="whitespace-pre-wrap text-sm leading-7 text-foreground">{opening.details}</p>}
     </div>
   )
 }
@@ -362,7 +401,7 @@ function Fact({ label, icon: Icon, children }: { label: string; icon: LucideIcon
   )
 }
 
-function Pick({ label, value, options, onChange }: {
+export function Pick({ label, value, options, onChange }: {
   label: string
   value: string
   options: readonly string[] | readonly { value: string; label: string }[]
@@ -389,7 +428,7 @@ function Count({ label, value, onChange }: { label: string; value: number; onCha
   )
 }
 
-function DateField({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
+export function DateField({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
   return (
     <div className="space-y-2">
       <Label>{label}</Label>

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 import { Timestamp } from "firebase-admin/firestore"
 
 import { adminServices } from "@/lib/firebase-admin"
-import { formatOffer, resolveBrief } from "@/lib/campaign-brief"
+import { formatOffer, resolveBrief, resolveOpenings } from "@/lib/campaign-brief"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -42,6 +42,8 @@ export async function GET(request: Request) {
       if (!personData || !projectData) return null
       const organization = projectData.companyId ? (await db.collection("organizations").doc(text(projectData.companyId)).get()).data() : null
       const brief = resolveBrief(projectData.brief)
+      // Someone who applied for an opening sees its pay; the campaign's dates stay the same.
+      const opening = application.openingId ? resolveOpenings(projectData.openings).find((item) => item.id === application.openingId) : undefined
       const onRoster = personData.source === "ngai" || personData.onRoster !== false
       return {
         id: item.id,
@@ -53,8 +55,10 @@ export async function GET(request: Request) {
         handle: text(personData.handle),
         app: text(personData.app),
         pay: Number(personData.pay) || 0,
-        currency: text(personData.currency) || brief.currency,
-        offer: formatOffer(brief),
+        currency: text(personData.currency) || (opening ?? brief).currency,
+        offer: opening ? (opening.fixedOffer ? formatOffer(opening) : "") : formatOffer(brief),
+        role: text(application.opening),
+        openingId: text(application.openingId),
         postFrom: brief.postFrom,
         postTo: brief.postTo,
         postLink: text(personData.postLink),

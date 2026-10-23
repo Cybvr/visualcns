@@ -37,6 +37,8 @@ export const BRIEF_PAYMENT_METHODS = ["Bank transfer", "PayPal", "Wise", "Mobile
 export const BRIEF_CURRENCIES = ["NGN", "USD", "GBP", "EUR", "AED", "GHS", "KES", "ZAR"] as const
 
 export type CreatorBrief = {
+  /** Off: the campaign doesn't hire creators to post, only the openings below. Platform, goal and dates still describe the campaign. */
+  hireCreators: boolean
   platform: string
   goal: string
   /** On: every creator is paid offerAmount. Off: creators send their rate. */
@@ -73,6 +75,7 @@ export const CREATOR_DEFAULT_KEYS = ["platform", "gender", "age", "followers", "
 export type CreatorDefaults = Pick<CreatorBrief, (typeof CREATOR_DEFAULT_KEYS)[number]>
 
 export const EMPTY_BRIEF: CreatorBrief = {
+  hireCreators: true,
   platform: "Instagram",
   goal: "awareness",
   fixedOffer: true,
@@ -107,6 +110,7 @@ const list = (value: unknown) => (Array.isArray(value) ? value.filter((item): it
 export function resolveBrief(saved?: Partial<CreatorBrief> | null, defaults?: Partial<CreatorDefaults> | null): CreatorBrief {
   const source: Record<string, unknown> = { ...(defaults ?? {}), ...(saved ?? {}) }
   return {
+    hireCreators: source.hireCreators !== false,
     platform: text(source.platform, EMPTY_BRIEF.platform),
     goal: text(source.goal, EMPTY_BRIEF.goal),
     fixedOffer: typeof source.fixedOffer === "boolean" ? source.fixedOffer : EMPTY_BRIEF.fixedOffer,
@@ -189,4 +193,90 @@ export function applicationQuestions(brief: Pick<CreatorBrief, "questions">) {
 /** Whether there's anything worth showing creators yet. */
 export function hasBrief(saved?: Partial<CreatorBrief> | null) {
   return Boolean(saved && Object.keys(saved).length)
+}
+
+/** Whether creators can apply to post, on the campaign's own link. */
+export function hiresCreators(saved?: Partial<CreatorBrief> | null) {
+  return hasBrief(saved) && saved?.hireCreators !== false
+}
+
+/**
+ * A job on the campaign other than posting, like a graphic designer or a
+ * strategist. Each has its own link (/share/campaigns/<id>?role=<opening id>),
+ * its own apply form and its own applicants. Everyone sees the campaign itself
+ * the same way; only this part differs.
+ */
+export type CampaignOpening = {
+  id: string
+  /** The role, e.g. "Graphic designer". */
+  title: string
+  /** What they hand over, one per line. */
+  deliverables: string
+  details: string
+  /** yyyy-mm-dd */
+  dueBy: string
+  registerBy: string
+  /** On: they're paid offerAmount. Off: they send their rate. */
+  fixedOffer: boolean
+  offerAmount: number
+  currency: string
+  showOffer: boolean
+  paymentMethod: string
+  questions: string[]
+}
+
+export function newOpening(currency = EMPTY_BRIEF.currency): CampaignOpening {
+  return {
+    id: Math.random().toString(36).slice(2, 10),
+    title: "",
+    deliverables: "",
+    details: "",
+    dueBy: "",
+    registerBy: "",
+    fixedOffer: false,
+    offerAmount: 0,
+    currency,
+    showOffer: true,
+    paymentMethod: EMPTY_BRIEF.paymentMethod,
+    questions: ["", "", ""],
+  }
+}
+
+export function resolveOpening(saved: Partial<CampaignOpening>): CampaignOpening {
+  const source = saved as Record<string, unknown>
+  return {
+    id: text(source.id, ""),
+    title: text(source.title, ""),
+    deliverables: text(source.deliverables, ""),
+    details: text(source.details, ""),
+    dueBy: text(source.dueBy, ""),
+    registerBy: text(source.registerBy, ""),
+    fixedOffer: source.fixedOffer === true,
+    offerAmount: count(source.offerAmount, 0),
+    currency: text(source.currency, EMPTY_BRIEF.currency),
+    showOffer: source.showOffer !== false,
+    paymentMethod: text(source.paymentMethod, EMPTY_BRIEF.paymentMethod),
+    questions: Array.from({ length: BRIEF_QUESTION_COUNT }, (_, index) => (Array.isArray(source.questions) ? text(source.questions[index], "") : "")),
+  }
+}
+
+/** The campaign's openings that have an id and a title, in the order they were added. */
+export function resolveOpenings(saved?: Partial<CampaignOpening>[] | null) {
+  return (Array.isArray(saved) ? saved : []).map(resolveOpening).filter((opening) => opening.id && opening.title.trim())
+}
+
+/** What they hand over, as a list. */
+export function deliverableLines(opening: Pick<CampaignOpening, "deliverables">) {
+  return opening.deliverables.split("\n").map((line) => line.replace(/^[-•*]\s*/, "").trim()).filter(Boolean)
+}
+
+/** Past the apply-by date. Works for the creator brief and for an opening. */
+export function applicationsClosed(item: { registerBy: string }) {
+  return Boolean(item.registerBy) && new Date().toISOString().slice(0, 10) > item.registerBy
+}
+
+/** The shared page for one opening, or for the campaign itself. */
+export function campaignSharePath(projectId: string, openingId?: string) {
+  const path = `/share/campaigns/${encodeURIComponent(projectId)}`
+  return openingId ? `${path}?role=${encodeURIComponent(openingId)}` : path
 }

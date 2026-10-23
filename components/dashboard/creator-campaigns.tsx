@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
-import { formatBriefDate } from "@/lib/campaign-brief"
+import { campaignSharePath, formatBriefDate } from "@/lib/campaign-brief"
 import { formatPay } from "@/lib/campaign-people"
 
 type CreatorCampaign = {
@@ -24,6 +24,9 @@ type CreatorCampaign = {
   pay: number
   currency: string
   offer: string
+  /** The opening they applied for, e.g. Graphic designer. Empty for creators who post. */
+  role: string
+  openingId: string
   postFrom: string
   postTo: string
   postLink: string
@@ -72,7 +75,7 @@ export function CreatorCampaigns() {
                 <img src={campaign.logoUrl} alt="" className="size-11 rounded-full object-cover" />
               ) : undefined}
               avatarText={campaign.client || campaign.title}
-              subtitle={[campaign.client, campaign.handle, dates].filter(Boolean).join(" · ")}
+              subtitle={[campaign.client, campaign.role || campaign.handle, dates].filter(Boolean).join(" · ")}
               meta={pay}
               trailing={
                 <span className="flex items-center gap-3">
@@ -135,7 +138,7 @@ function PostLinkDialog({ campaign, onClose, onSaved }: { campaign: CreatorCampa
           <Input value={postLink} onChange={(event) => setPostLink(event.target.value)} placeholder="https://" aria-label="Post link" type="url" />
           <DialogFooter>
             <Button type="button" variant="outline" asChild>
-              <a href={`/share/campaigns/${campaign?.projectId ?? ""}`} target="_blank" rel="noreferrer">Brief</a>
+              <a href={campaignSharePath(campaign?.projectId ?? "", campaign?.openingId)} target="_blank" rel="noreferrer">Brief</a>
             </Button>
             <Button type="submit" disabled={saving}>{saving ? "Saving…" : "Save"}</Button>
           </DialogFooter>
