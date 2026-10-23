@@ -278,8 +278,8 @@ export function applicationsClosed(item: { registerBy: string }) {
 /** The job link for creators who post, for campaigns whose general link lists several jobs. */
 export const CREATORS_ROLE = "creators"
 
-/** The shared page for one opening, or for the campaign itself. */
-export function campaignSharePath(projectId: string, openingId?: string) {
+/** The shared page for one job (an opening, or creators), or for the campaign itself. */
+export function campaignSharePath(projectId: string, jobId?: string) {
   const path = `/share/campaigns/${encodeURIComponent(projectId)}`
-  return openingId ? `${path}?role=${encodeURIComponent(openingId)}` : path
+  return jobId ? `${path}/jobs/${encodeURIComponent(jobId)}` : path
 }

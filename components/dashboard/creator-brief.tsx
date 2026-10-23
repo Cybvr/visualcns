@@ -273,7 +273,7 @@ const PROFILE_URLS: Record<string, (username: string) => string> = {
 }
 
 /** The brand's account on a platform: a connected account first, then a saved link. */
-function brandAccount(platform: string, brand?: CreatorBriefBrand) {
+export function brandAccount(platform: string, brand?: CreatorBriefBrand) {
   const connected = brand?.accounts?.find((account) => account.platform.toLowerCase() === platform && account.username)
   if (connected) {
     const username = connected.username.replace(/^@/, "")
@@ -293,11 +293,11 @@ function brandAccount(platform: string, brand?: CreatorBriefBrand) {
   return null
 }
 
-function websiteHref(website: string) {
+export function websiteHref(website: string) {
   return /^https?:\/\//i.test(website) ? website : `https://${website}`
 }
 
-type CreatorBriefBrand = {
+export type CreatorBriefBrand = {
   /** Connected in the client's settings. */
   accounts?: { platform: string; username: string }[]
   links?: { url: string }[]
@@ -309,7 +309,7 @@ type CreatorBriefBrand = {
  * part every opening shares (platforms, website, goal, dates); "creators" is the
  * job of posting (offer, content, who it wants); "all" is both.
  */
-export function CreatorBriefSummary({ brief, brand, hideOffer = false, shared = false, part = "all" }: {
+export function CreatorBriefSummary({ brief, brand, hideOffer = false, shared = false, part = "all", hideDetails = false }: {
   brief: CreatorBrief
   /** The client's accounts, links and website, so creators can find the brand. */
   brand?: CreatorBriefBrand
@@ -318,6 +318,8 @@ export function CreatorBriefSummary({ brief, brand, hideOffer = false, shared = 
   /** On the public campaign page, which leaves out paid ads. */
   shared?: boolean
   part?: "all" | "campaign" | "creators"
+  /** Leave out the content details, for a page that shows them above. */
+  hideDetails?: boolean
 }) {
   const campaign = part !== "creators"
   const creators = part !== "campaign" && brief.hireCreators
@@ -362,13 +364,13 @@ export function CreatorBriefSummary({ brief, brand, hideOffer = false, shared = 
         {creators && !hideOffer && <Fact label="Payment" icon={CreditCard}>{brief.paymentMethod}</Fact>}
         {creators && !shared && brief.paidAds && <Fact label="Paid ads" icon={Megaphone}>Yes</Fact>}
       </dl>
-      {creators && brief.contentDetails && <p className="whitespace-pre-wrap text-sm leading-7 text-foreground">{brief.contentDetails}</p>}
+      {creators && !hideDetails && brief.contentDetails && <p className="whitespace-pre-wrap text-sm leading-7 text-foreground">{brief.contentDetails}</p>}
     </div>
   )
 }
 
 /** One opening as plain facts: what they hand over, when, and the pay. */
-export function OpeningSummary({ opening }: { opening: CampaignOpening }) {
+export function OpeningSummary({ opening, hideDetails = false }: { opening: CampaignOpening; hideDetails?: boolean }) {
   const lines = deliverableLines(opening)
   const pay = opening.fixedOffer ? formatOffer(opening) : "Send your rate"
   return (
@@ -384,7 +386,7 @@ export function OpeningSummary({ opening }: { opening: CampaignOpening }) {
         {opening.showOffer && <Fact label="Payment" icon={CreditCard}>{opening.paymentMethod}</Fact>}
         {opening.registerBy && <Fact label="Apply by" icon={CalendarClock}>{formatBriefDate(opening.registerBy)}</Fact>}
       </dl>
-      {opening.details.trim() && <p className="whitespace-pre-wrap text-sm leading-7 text-foreground">{opening.details}</p>}
+      {!hideDetails && opening.details.trim() && <p className="whitespace-pre-wrap text-sm leading-7 text-foreground">{opening.details}</p>}
     </div>
   )
 }

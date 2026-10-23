@@ -203,3 +203,38 @@ export async function sharedCampaignMetadata(id: string): Promise<Metadata> {
     return fallback
   }
 }
+
+/** One job on a campaign (/share/campaigns/…/jobs/…): the job's title, the campaign and the client. */
+export async function sharedJobMetadata(id: string, jobId: string): Promise<Metadata> {
+  const path = `/share/campaigns/${encodeURIComponent(id)}/jobs/${encodeURIComponent(jobId)}`
+  const fallback: Metadata = { title: fullTitle("Job"), robots: { index: false, follow: false } }
+  if (!isRecordId(id) || !jobId) return fallback
+  try {
+    const { db } = adminServices()
+    const campaign = (await db.collection("projects").doc(id).get()).data()
+    const campaignTitle = typeof campaign?.title === "string" ? campaign.title.trim() : ""
+    if (!campaign || !campaignTitle || campaign.isArchived === true) return fallback
+    const opening = Array.isArray(campaign.openings)
+      ? (campaign.openings as Array<Record<string, unknown>>).find((item) => item?.id === jobId)
+      : undefined
+    const jobTitle = typeof opening?.title === "string" && opening.title.trim() ? opening.title.trim() : jobId === "creators" ? "Creators" : ""
+    if (!jobTitle) return sharedCampaignMetadata(id)
+    const organization = typeof campaign.companyId === "string" && campaign.companyId
+      ? (await db.collection("organizations").doc(campaign.companyId).get()).data()
+      : undefined
+    const clientName = typeof organization?.name === "string" && organization.name.trim() ? organization.name.trim() : typeof campaign.client === "string" ? campaign.client.trim() : ""
+    const title = [jobTitle, campaignTitle, clientName].filter(Boolean).join(" · ")
+    const description = previewText(opening?.details) || previewText(opening?.deliverables)
+      || (opening ? "" : previewText(campaign.brief?.contentDetails))
+      || `Apply for ${jobTitle} on the ${campaignTitle} campaign.`
+    const picture = [campaign.campaignImageUrl, campaign.thumbnailUrl, campaign.gallery?.[0]].find((value): value is string => typeof value === "string" && Boolean(value))
+    return {
+      title: fullTitle(title),
+      alternates: { canonical: path },
+      ...socialMetadata(title, description, path, picture || organization?.logoUrl, Boolean(picture)),
+      robots: { index: false, follow: false },
+    }
+  } catch {
+    return fallback
+  }
+}
