@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useRef, useState, type FormEvent } from "react"
+import { useEffect, useMemo, useRef, useState, type ComponentProps, type FormEvent } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import {
   ArrowDown,
@@ -54,27 +54,28 @@ import { SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@/components/ui
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { FilterBar, MOBILE_CREATE_BUTTON_CLASS, MobileSearchBar, useFilterBar, type SortOption } from "@/components/dashboard/filter-bar"
 import { deleteEmailList, getEmailLists, saveEmailList, type EmailContactList } from "@/lib/email-lists"
-import { deleteEmailDraft, getEmailDrafts, saveEmailDraft, setEmailDraftTrashed, type EmailDraftRecord } from "@/lib/email-drafts"
-import { deleteEmailMessage, getAllEmailMessages, getEmailMessages, saveEmailMessage, setEmailMessageTrashed, updateEmailMessageStatus, type EmailMessageRecord, type EmailRecipient } from "@/lib/email-messages"
+import { deleteEmailDraft, getEmailDrafts, setEmailDraftTrashed, type EmailDraftRecord } from "@/lib/email-drafts"
+import { deleteEmailMessage, getAllEmailMessages, getEmailMessages, saveEmailMessage, setEmailMessageTrashed, updateEmailMessageStatus, type EmailMessageRecord } from "@/lib/email-messages"
 import { getHiddenReceivedEmails, hideReceivedEmail, permanentlyHideReceivedEmail, restoreReceivedEmail, trashReceivedEmail, type HiddenReceivedEmail } from "@/lib/email-received-hidden"
 import { EMAIL_INBOX_REFRESH_EVENT, publishUnreadEmailCount } from "@/components/dashboard/email/use-unread-email-count"
-import { contextualEmailBody, parseEmailList, plainTextToEditorHtml, readEmailComposeContext, type EmailComposeContext } from "@/lib/email-composer"
+import { contextualEmailBody, plainTextToEditorHtml, readEmailComposeContext } from "@/lib/email-composer"
 import { getBusinessProfile, type BusinessProfile } from "@/lib/business-profile"
-import { MAX_EMAIL_ATTACHMENTS, MAX_EMAIL_ATTACHMENT_BYTES, MAX_EMAIL_ATTACHMENT_MEGABYTES, type StoredEmailAttachment } from "@/lib/email-attachments"
-import { prepareEmailAttachment, removeUploadedEmailAttachments, uploadEmailAttachments } from "@/lib/email-attachment-uploads"
 import { deleteEmailTemplate, getEmailTemplates, saveEmailTemplate } from "@/lib/email-templates-store"
 import { SIGNUP_WELCOME_TEMPLATE_ID } from "@/lib/email-templates"
-import { markdownToHtml } from "@/lib/markdown"
-import { createUser, getUsers } from "@/lib/users"
+import { getUsers } from "@/lib/users"
 import { TRIAL_DAYS } from "@/lib/subscription"
 import { cn } from "@/lib/utils"
 import { useSidebarTakeover } from "@/components/company/sidebar-takeover"
 import { useIsMobile } from "@/hooks/use-mobile"
 import {
-  escapeHtml,
-  escapeHtmlAttribute,
+  cleanSenderDisplay,
+  composedEmailPreview,
+  contactAvatarTone,
+  contactInitials,
   formatTemplateBody,
+  htmlToText,
   receivedMessagePreview,
+  recipientEmail,
   sentMessagePreview,
   templatePreview,
   withMessageImage,
@@ -82,33 +83,25 @@ import {
 import type {
   ContactList,
   EmailContact,
-  EmailMessageKind,
   EmailTab,
   EmailTemplate,
   ReceivedAttachment,
   ReceivedMessage,
   SentMessage,
 } from "@/components/dashboard/email/types"
-import { EmailComposer } from "@/components/dashboard/email/email-composer"
-import { useHideMobileFooter, usePageHeaderSearch } from "@/components/dashboard/page-title-context"
+import { QuickEmailComposer } from "@/components/dashboard/email/quick-email-composer"
+import { usePageHeaderSearch } from "@/components/dashboard/page-title-context"
 import { EmailListPicker, EmailLists } from "@/components/dashboard/email/email-lists"
 import { EmailMessageSurfaces } from "@/components/dashboard/email/email-message-surfaces"
 import { EmailBin, type EmailBinItem } from "@/components/dashboard/email/email-bin"
 import { EmailTemplates } from "@/components/dashboard/email/email-templates"
 
+type ComposeStart = Omit<ComponentProps<typeof QuickEmailComposer>, "open" | "onOpenChange" | "onSent" | "onDraftSaved" | "onDraftTrashed">
+
 type Notice = {
   tone: "success" | "error"
   text: string
 } | null
-
-type DraftStatus = "idle" | "saving" | "saved" | "error"
-type EmailThreading = {
-  threadId?: string
-  inReplyTo?: string
-  references?: string[]
-}
-
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 function uniqueReceivedMessages(messages: ReceivedMessage[]) {
   return [...new Map(messages.map((message) => [message.id, message])).values()]
@@ -208,58 +201,9 @@ function formatListDate(value: string) {
   }
 }
 
-/** Local time a few minutes ahead, formatted for a datetime-local input's min/value. */
-function datetimeLocalMin() {
-  const soon = new Date(Date.now() + 5 * 60_000)
-  soon.setSeconds(0, 0)
-  const pad = (n: number) => String(n).padStart(2, "0")
-  return `${soon.getFullYear()}-${pad(soon.getMonth() + 1)}-${pad(soon.getDate())}T${pad(soon.getHours())}:${pad(soon.getMinutes())}`
-}
-
 /** A scheduled send whose time has passed—Resend has released it by now. */
 function isScheduledPastDue(message: SentMessage) {
   return message.status === "scheduled" && !!message.scheduledAt && Date.parse(message.scheduledAt) <= Date.now()
-}
-
-
-function cleanSenderDisplay(value: string) {
-  return value
-    .replace(/(?:&nbsp;|&#(?:x0*a0|160|x0*20|32);)/gi, " ")
-    .replace(/[\u00a0\u2007\u202f]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-}
-
-function contactInitials(name: string, email: string) {
-  const source = name.trim() || email.trim()
-  const parts = source.split(/\s+/).filter(Boolean)
-  return (parts.length > 1 ? `${parts[0][0]}${parts[parts.length - 1][0]}` : source.slice(0, 2)).toUpperCase()
-}
-
-function contactAvatarTone(value: string) {
-  const tones = [
-    "bg-cyan-200 text-cyan-950",
-    "bg-sky-200 text-sky-950",
-    "bg-rose-200 text-rose-950",
-    "bg-slate-300 text-slate-900",
-    "bg-amber-200 text-amber-950",
-  ]
-  const index = Array.from(value).reduce((total, character) => total + character.charCodeAt(0), 0) % tones.length
-  return tones[index]
-}
-
-function htmlToText(value: string) {
-  if (!value.includes("<")) return value
-  return value
-    .replace(/<br\s*\/?>/gi, "\n")
-    .replace(/<\/(p|li|h[1-6])>/gi, "\n")
-    .replace(/<[^>]+>/g, "")
-    .replace(/&nbsp;/gi, " ")
-    .replace(/&amp;/gi, "&")
-    .replace(/&lt;/gi, "<")
-    .replace(/&gt;/gi, ">")
-    .replace(/&quot;/gi, '"')
-    .replace(/&#39;/gi, "'")
 }
 
 function firstImageAttributes(value: string) {
@@ -271,18 +215,6 @@ function firstImageAttributes(value: string) {
     src,
     alt: image.match(/\balt=["']([^"']*)["']/i)?.[1] || undefined,
   }
-}
-
-function personalizeGreeting(value: string, name?: string) {
-  const trimmedName = name?.trim()
-  if (!trimmedName) return value
-  return value
-    .replace(/\[Customer Name\]|\[Name\]/gi, trimmedName)
-    .replace(/(^|>|\n)(\s*(?:Dear|Hello)\s+)(Customer)(\s*,?)/i, `$1$2${trimmedName}$4`)
-}
-
-function recipientEmail(value: string) {
-  return value.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)?.[0].toLowerCase() || value.trim().toLowerCase()
 }
 
 export function EmailWorkspace({ initialTab, initialMessageId }: { initialTab: EmailTab; initialMessageId?: string }) {
@@ -299,14 +231,11 @@ export function EmailWorkspace({ initialTab, initialMessageId }: { initialTab: E
   const receivedReadStorageKey = `visualcns-email-received-read:${workspaceId}`
 
   const [tab, setTab] = useState<EmailTab>(initialTab)
-  const [composeOpen, setComposeOpen] = useState(false)
-  // Drafts open as a full page; new-mail compose stays the docked popup.
-  const [composeFullPage, setComposeFullPage] = useState(false)
-  const [composerPreviewOpen, setComposerPreviewOpen] = useState(false)
+  // What the composer opens with; null while it's closed. The key remounts it for each new message.
+  const [compose, setCompose] = useState<ComposeStart | null>(null)
+  const [composeKey, setComposeKey] = useState(0)
+  const [openDraftId, setOpenDraftId] = useState<string | null>(null)
   const [templatePreviewOpen, setTemplatePreviewOpen] = useState(false)
-  const [composeMinimized, setComposeMinimized] = useState(false)
-  // The composer covers the bottom of the screen on phones, so the footer nav steps aside.
-  useHideMobileFooter(composeOpen)
   const [selectedSentId, setSelectedSentId] = useState<string | null>(null)
   const [templates, setTemplates] = useState<EmailTemplate[]>([])
   const [messages, setMessages] = useState<SentMessage[]>([])
@@ -345,36 +274,12 @@ export function EmailWorkspace({ initialTab, initialMessageId }: { initialTab: E
   }, [initialMessageId, initialTab])
   const [loadingReceivedId, setLoadingReceivedId] = useState<string | null>(null)
   const [downloadingAttachmentId, setDownloadingAttachmentId] = useState<string | null>(null)
-  const [senderConfigured, setSenderConfigured] = useState<boolean | null>(null)
-  const [senderAddress, setSenderAddress] = useState<string | null>(null)
-  const [senderOptions, setSenderOptions] = useState<string[]>([])
-  const [replyToAddress, setReplyToAddress] = useState<string | null>(null)
   const [contacts, setContacts] = useState<EmailContact[]>([])
   const [lists, setLists] = useState<ContactList[]>([])
   const [businessProfile, setBusinessProfile] = useState<BusinessProfile | null>(null)
 
-  const [to, setTo] = useState("")
-  const [cc, setCc] = useState("")
-  const [selectedListId, setSelectedListId] = useState("")
-  const [subject, setSubject] = useState("")
-  const [body, setBody] = useState("")
-  const [attachments, setAttachments] = useState<File[]>([])
-  const [preparingAttachments, setPreparingAttachments] = useState(false)
-  const [messageKind, setMessageKind] = useState<EmailMessageKind>("transactional")
-  const [brandedEmail, setBrandedEmail] = useState(true)
-  const [composeContext, setComposeContext] = useState<EmailComposeContext | null>(null)
-  const [composeThreading, setComposeThreading] = useState<EmailThreading | null>(null)
-  const [selectedTemplateId, setSelectedTemplateId] = useState("")
-  const [scheduleEnabled, setScheduleEnabled] = useState(false)
-  const [scheduleAt, setScheduleAt] = useState("")
-  const [scheduleMin, setScheduleMin] = useState("")
   const [drafts, setDrafts] = useState<EmailDraftRecord[]>([])
   const [trashedDrafts, setTrashedDrafts] = useState<EmailDraftRecord[]>([])
-  const [editingDraftId, setEditingDraftId] = useState<string | null>(null)
-  const [savingDraft, setSavingDraft] = useState(false)
-  const [draftStatus, setDraftStatus] = useState<DraftStatus>("idle")
-  const draftIdRef = useRef<string | null>(null)
-  const [sending, setSending] = useState(false)
   const [sendNotice, setSendNotice] = useState<Notice>(null)
   const [loadingMessageId, setLoadingMessageId] = useState<string | null>(null)
   const [messageViewError, setMessageViewError] = useState("")
@@ -531,19 +436,12 @@ export function EmailWorkspace({ initialTab, initialMessageId }: { initialTab: E
     ? Math.min(previewStage.w / PREVIEW_WIDTH, previewStage.h / previewHeight, 1)
     : 1
 
-  // The server and browser must render the same initial markup. Calculate the
-  // moving minimum only after hydration so Date.now() never changes SSR HTML.
+  // Clear the page toast a few seconds after it appears.
   useEffect(() => {
-    setScheduleMin(datetimeLocalMin())
-  }, [])
-
-  // Clear the page toast a few seconds after a send (the notice inside the open
-  // composer is left alone).
-  useEffect(() => {
-    if (composeOpen || !sendNotice) return
+    if (!sendNotice) return
     const timer = window.setTimeout(() => setSendNotice(null), 6000)
     return () => window.clearTimeout(timer)
-  }, [composeOpen, sendNotice])
+  }, [sendNotice])
 
   // Keep a user-selected message valid without opening the first message on
   // page load. Gmail lands on the list; the reader opens only after a click.
@@ -656,10 +554,6 @@ export function EmailWorkspace({ initialTab, initialMessageId }: { initialTab: E
   })
   const selectedReceived = activeReceivedMessages.find((message) => message.id === selectedReceivedId) || null
   const selectedSent = messages.find((message) => message.id === selectedSentId) || null
-  // A greeting is only personalised when the message goes to one person.
-  const toEmails = to.split(/[,;]/).map((email) => email.trim()).filter(Boolean)
-  const selectedContactName = toEmails.length === 1 ? contacts.find((contact) => recipientEmail(contact.email) === recipientEmail(toEmails[0]))?.name : undefined
-  const composeRecipientName = selectedContactName || composeContext?.recipientName
 
   async function loadReceivedMessages() {
     if (!user) return
@@ -943,69 +837,21 @@ export function EmailWorkspace({ initialTab, initialMessageId }: { initialTab: E
   useEffect(() => {
     const nextContext = readEmailComposeContext(searchParams)
     if (!nextContext) return
-    // A message we write for them carries the link in its text, so it gets no button as well.
-    setComposeContext(nextContext.body ? nextContext : { ...nextContext, ctaText: undefined, ctaUrl: undefined })
-    setComposeThreading(null)
-    setComposeFullPage(false)
-    setComposeOpen(true)
-    setComposeMinimized(false)
-    setPreview(null)
-    setTo(nextContext.recipientEmail || "")
-    setCc(nextContext.cc || "")
-    setSelectedListId("")
-    setSubject(nextContext.subject || "")
-    // Messages written for a record are plain text; the editor needs paragraphs and real links.
-    setBody(plainTextToEditorHtml(nextContext.body || contextualEmailBody(nextContext)))
-    setMessageKind(nextContext.messageKind === "marketing" ? "marketing" : "transactional")
-    setSelectedTemplateId("")
-    setSendNotice(null)
+    openCompose({
+      email: nextContext.recipientEmail || "",
+      name: nextContext.recipientName,
+      initialCc: nextContext.cc || "",
+      initialSubject: nextContext.subject || "",
+      // Messages written for a record are plain text; the editor needs paragraphs and real links.
+      initialBody: plainTextToEditorHtml(nextContext.body || contextualEmailBody(nextContext)),
+      initialMessageKind: nextContext.messageKind === "marketing" ? "marketing" : "transactional",
+      // A message we write for them carries the link in its text, so it gets no button as well.
+      context: nextContext.body ? nextContext : { ...nextContext, ctaText: undefined, ctaUrl: undefined },
+    })
     // The request to compose is used once. Left in the URL, every refresh,
     // Back, or re-read of the URL would open the composer again.
     router.replace("/dashboard/email", { scroll: false })
   }, [router, searchParams])
-
-  useEffect(() => {
-    let active = true
-
-    fetch("/api/email/send", { cache: "no-store" })
-      .then(async (response) => {
-        const result = (await response.json()) as { configured?: boolean; from?: string | null; replyTo?: string | null; senders?: string[] }
-        if (!active) return
-        setSenderConfigured(Boolean(result.configured))
-        setSenderAddress(result.from || null)
-        setSenderOptions(Array.isArray(result.senders) ? result.senders : result.from ? [result.from] : [])
-        setReplyToAddress(result.replyTo || result.from || null)
-      })
-      .catch(() => {
-        if (active) setSenderConfigured(false)
-      })
-
-    return () => {
-      active = false
-    }
-  }, [])
-
-  useEffect(() => {
-    let active = true
-    if (!user) {
-      return () => { active = false }
-    }
-    void user.getIdToken().then((idToken) => fetch("/api/email/google/status", {
-      headers: { Authorization: `Bearer ${idToken}` },
-      cache: "no-store",
-    })).then(async (response) => {
-      const result = await response.json().catch(() => ({})) as { configured?: boolean; email?: string | null; senders?: Array<{ display?: string; email?: string }> }
-      if (!active) return
-      if (result.configured && Array.isArray(result.senders) && result.senders.length) {
-        const senders = result.senders.map((sender) => sender.display || sender.email || "").filter(Boolean)
-        setSenderConfigured(true)
-        setSenderAddress(senders[0] || result.email || null)
-        setSenderOptions((current) => Array.from(new Set([...current, ...senders])))
-        setReplyToAddress(result.email || senders[0] || null)
-      }
-    }).catch(() => undefined)
-    return () => { active = false }
-  }, [showOpsDetail, user])
 
   useEffect(() => {
     let active = true
@@ -1017,15 +863,6 @@ export function EmailWorkspace({ initialTab, initialMessageId }: { initialTab: E
     }
   }, [])
 
-  const selectedTemplate = useMemo(
-    () => templates.find((template) => template.id === selectedTemplateId),
-    [selectedTemplateId, templates],
-  )
-  const selectedList = useMemo(
-    () => lists.find((list) => list.id === selectedListId),
-    [selectedListId, lists],
-  )
-
   const visibleListContacts = useMemo(() => {
     const query = listContactQuery.trim().toLowerCase()
     return contacts.filter((contact) => {
@@ -1035,168 +872,51 @@ export function EmailWorkspace({ initialTab, initialMessageId }: { initialTab: E
     })
   }, [contacts, listContactQuery, listShowSelectedOnly, listContactEmails])
 
-  /** The email as it will arrive. Defaults to the open composer; the template editor passes its own draft. */
-  function composerPreviewHtml(previewSubject = subject, previewBody = body, branded = brandedEmail) {
-    const origin = typeof window !== "undefined" ? window.location.origin : ""
-    const logoUrl = businessProfile?.logoUrl || "/visualcns-email-logo.png"
-    const absoluteLogoUrl = logoUrl.startsWith("/") ? `${origin}${logoUrl}` : logoUrl
-    const content = formatTemplateBody(previewBody || "<p>Your message preview will appear here.</p>")
-      .replace(/(src=["'])\/([^"']*)/gi, `$1${origin}/$2`)
-    if (!branded) {
-      return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{margin:0;padding:36px;background:#fff;color:#20232d;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.65}p{margin:0 0 1em}a{color:#1649d8}</style></head><body>${content}</body></html>`
-    }
-    const brandName = businessProfile?.name || "VisualCNS"
-    const address = businessProfile?.address || "Lagos, Nigeria"
-    const website = businessProfile?.website || "visualcns.com"
-    const websiteUrl = website.startsWith("http") ? website : `https://${website}`
-    const ctaUrl = composeContext?.ctaUrl || `${origin}/`
-    const ctaText = composeContext?.ctaText || "Open your company page"
-    return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>html{color-scheme:light}body{margin:0;padding:0;background:#f3f4f7;color:#20232d;font-family:Arial,Helvetica,sans-serif}table{border-collapse:collapse}img{display:block;max-width:100%;height:auto;max-height:56px;object-fit:contain;object-position:left center}p{margin:0 0 1em}ul,ol{padding-left:1.5rem}a{color:#1649d8}</style></head><body><table role="presentation" width="100%" style="width:100%;background:#f3f4f7"><tr><td align="center" style="padding:28px 12px"><table role="presentation" width="600" style="width:100%;max-width:600px;background:#fff"><tr><td style="padding:22px 28px;height:56px;line-height:0"><img src="${escapeHtmlAttribute(absoluteLogoUrl)}" width="320" alt="${escapeHtmlAttribute(brandName)}" style="display:block;width:320px;max-width:100%;height:auto;max-height:56px;object-fit:contain;object-position:left center;border:0"></td></tr><tr><td style="padding:8px 28px 12px;font-size:15px;line-height:1.65;overflow-wrap:anywhere"><h1 style="margin:0 0 18px;font-size:24px;line-height:1.25;color:#20232d">${escapeHtml(previewSubject || "(No subject)")}</h1>${content}</td></tr><tr><td style="padding:0 28px 30px"><a href="${escapeHtmlAttribute(ctaUrl)}" style="display:inline-block;background:#111318;border-radius:999px;color:#fff;padding:12px 20px;font-size:14px;font-weight:700;line-height:20px;text-decoration:none">${escapeHtml(ctaText)}</a></td></tr><tr><td style="padding:20px 28px;background:#f8f8fa;border-top:1px solid #e7e8ec;font-size:12px;line-height:1.6;color:#6d7280"><strong style="color:#303440">${escapeHtml(brandName)}</strong><br>${escapeHtml(address)}<br><a href="${escapeHtmlAttribute(websiteUrl)}" style="color:#5f6472">${escapeHtml(website)}</a></td></tr></table></td></tr></table></body></html>`
-  }
-
-  function applyTemplate(templateId: string) {
-    setSelectedTemplateId(templateId)
-    const template = templates.find((item) => item.id === templateId)
-    if (!template) return
-    setSubject(template.subject)
-    setBody(personalizeGreeting(withMessageImage(template.body, template.imageUrl, template.imageAlt), composeRecipientName))
-    setSendNotice(null)
-  }
-
-  function handleRecipientChange(value: string) {
-    setTo(value)
-    const contact = contacts.find((item) => recipientEmail(item.email) === recipientEmail(value))
-    if (contact) setBody((current) => personalizeGreeting(current, contact.name))
-  }
-
-  function clearComposer() {
-    setComposerPreviewOpen(false)
-    setLoadingMessageId(null)
+  /** Opens the composer with a fresh start; the key makes it begin again rather than reuse the last message. */
+  function openCompose(start: ComposeStart = {}) {
     setMessageViewError("")
-    setTo("")
-    setCc("")
-    setSelectedListId("")
-    setSubject("")
-    setBody("")
-    setAttachments([])
-    setMessageKind("transactional")
-    setComposeContext(null)
-    setComposeThreading(null)
-    setSelectedTemplateId("")
-    setScheduleEnabled(false)
-    setScheduleAt("")
-    setEditingDraftId(null)
-    draftIdRef.current = null
-    setDraftStatus("idle")
-    setSendNotice(null)
-  }
-
-  // Open the docked compose window. Pass reset to start from a blank message.
-  function openCompose(reset = false) {
-    if (reset) clearComposer()
-    setComposeFullPage(false)
-    setComposeOpen(true)
-    setComposeMinimized(false)
+    setPreview(null)
+    setOpenDraftId(start.draft?.id ?? null)
+    setCompose(start)
+    setComposeKey((key) => key + 1)
   }
 
   function composeReceivedMessage(message: ReceivedMessage, mode: "reply" | "forward") {
     const originalBody = (message.text || htmlToText(message.html || "")).trim()
-    const quotedBody = originalBody
-      ? `\n\n--- Original message ---\n${originalBody}`
-      : ""
-    clearComposer()
-    setTo(mode === "reply" ? recipientEmail(message.from) : "")
-    setSubject(`${mode === "reply" ? "Re" : "Fwd"}: ${message.subject.replace(/^(re|fwd):\s*/i, "")}`)
-    setBody(plainTextToEditorHtml(quotedBody))
-    setMessageKind("transactional")
-    setComposeThreading(mode === "reply" && message.messageId ? {
-      threadId: message.threadId || undefined,
-      inReplyTo: message.messageId,
-      references: Array.from(new Set([...messageIds(message.headers?.references), message.messageId])),
-    } : null)
-    openCompose()
+    openCompose({
+      email: mode === "reply" ? recipientEmail(message.from) : "",
+      initialSubject: `${mode === "reply" ? "Re" : "Fwd"}: ${message.subject.replace(/^(re|fwd):\s*/i, "")}`,
+      initialBody: plainTextToEditorHtml(originalBody ? `\n\n--- Original message ---\n${originalBody}` : ""),
+      threading: mode === "reply" && message.messageId ? {
+        threadId: message.threadId || undefined,
+        inReplyTo: message.messageId,
+        references: Array.from(new Set([...messageIds(message.headers?.references), message.messageId])),
+      } : undefined,
+    })
   }
-
-  function closeCompose() {
-    setComposerPreviewOpen(false)
-    setComposeOpen(false)
-    setComposeMinimized(false)
-  }
-
-  async function saveDraft() {
-    if (!user || savingDraft) return
-    if (!subject.trim() && !htmlToText(body).trim() && !to.trim() && !selectedListId) {
-      setDraftStatus("idle")
-      return
-    }
-    setSavingDraft(true)
-    setDraftStatus("saving")
-    const id = draftIdRef.current || editingDraftId || (typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `${Date.now()}`)
-    draftIdRef.current = id
-    const draft: EmailDraftRecord = {
-      id,
-      companyId: drafts.find((item) => item.id === id)?.companyId || workspaceId,
-      createdBy: user.uid,
-      to: to.trim() || undefined,
-      cc: cc.trim() || undefined,
-      listId: selectedListId || undefined,
-      subject: subject.trim() || undefined,
-      body: body || undefined,
-      messageKind,
-      brandedEmail,
-      context: composeContext ? { ...composeContext } : null,
-      updatedAt: new Date().toISOString(),
-    }
-    try {
-      await saveEmailDraft(draft)
-      setDrafts((current) => [draft, ...current.filter((item) => item.id !== id)])
-      setEditingDraftId(id)
-      setDraftStatus("saved")
-    } catch {
-      setDraftStatus("error")
-    } finally {
-      setSavingDraft(false)
-    }
-  }
-
-  useEffect(() => {
-    if (!user?.uid || (!subject.trim() && !htmlToText(body).trim() && !to.trim() && !selectedListId)) {
-      setDraftStatus("idle")
-      return
-    }
-
-    setDraftStatus("saving")
-    const timer = window.setTimeout(() => { void saveDraft() }, 800)
-    return () => window.clearTimeout(timer)
-  }, [body, brandedEmail, cc, composeContext, messageKind, selectedListId, subject, to, user?.uid])
 
   function loadDraft(draft: EmailDraftRecord) {
-    setMessageViewError("")
-    // Clear any open preview overlay so the composer opens as the only surface.
-    setComposerPreviewOpen(false)
-    setPreview(null)
-    setTo(draft.to || "")
-    setCc(draft.cc || "")
-    setSelectedListId(draft.listId || "")
-    setSubject(draft.subject || "")
-    setBody(draft.body || "")
-    if (draft.id !== draftIdRef.current) setAttachments([])
-    setMessageKind(draft.messageKind === "marketing" ? "marketing" : "transactional")
-    setBrandedEmail(draft.brandedEmail !== false)
-    setComposeContext((draft.context as EmailComposeContext | null) ?? (draft.companyId !== workspaceId ? { companyId: draft.companyId } : null))
-    setComposeThreading(null)
-    setSelectedTemplateId("")
-    setScheduleEnabled(false)
-    setScheduleAt("")
-    setEditingDraftId(draft.id)
-    draftIdRef.current = draft.id
-    setDraftStatus("saved")
-    setSendNotice(null)
-    setComposeFullPage(false)
-    setComposeOpen(true)
-    setComposeMinimized(false)
+    openCompose({ draft })
   }
 
+  /** Keeps the lists on this page in step with what the composer did. */
+  function handleSent(message: SentMessage) {
+    setMessages((current) => [message, ...current])
+    if (openDraftId) setDrafts((current) => current.filter((item) => item.id !== openDraftId))
+    setOpenDraftId(null)
+  }
+
+  function handleDraftSaved(draft: EmailDraftRecord) {
+    setOpenDraftId(draft.id)
+    setDrafts((current) => [draft, ...current.filter((item) => item.id !== draft.id)])
+  }
+
+  function handleDraftTrashed(draft: EmailDraftRecord) {
+    const saved = drafts.find((item) => item.id === draft.id)
+    setDrafts((current) => current.filter((item) => item.id !== draft.id))
+    setTrashedDrafts((current) => [{ ...(saved || draft), trashedAt: draft.trashedAt }, ...current])
+    setOpenDraftId(null)
+  }
   async function removeDraft(id: string) {
     const draft = drafts.find((item) => item.id === id)
     if (!draft) return
@@ -1210,8 +930,7 @@ export function EmailWorkspace({ initialTab, initialMessageId }: { initialTab: E
     setDrafts((current) => current.filter((item) => item.id !== id))
     setTrashedDrafts((current) => [{ ...draft, trashedAt }, ...current])
     setSelectedDraftIds((current) => { const next = new Set(current); next.delete(id); return next })
-    if (editingDraftId === id) setEditingDraftId(null)
-    if (draftIdRef.current === id) draftIdRef.current = null
+    if (openDraftId === id) { setCompose(null); setOpenDraftId(null) }
   }
 
   async function deleteReceivedMessage(message: ReceivedMessage) {
@@ -1500,231 +1219,6 @@ export function EmailWorkspace({ initialTab, initialMessageId }: { initialTab: E
     if (isScheduledPastDue(message)) void reconcileScheduled(message)
   }
 
-  /** Anyone emailed who isn't a contact yet is saved as an agency contact, so they're there next time. */
-  async function saveNewContacts(emails: string[]) {
-    const known = new Set(contacts.map((contact) => recipientEmail(contact.email)))
-    const fresh = [...new Set(emails.map(recipientEmail))].filter((email) => EMAIL_PATTERN.test(email) && !known.has(email))
-    if (!fresh.length) return
-    const added = await Promise.all(fresh.map(async (email): Promise<EmailContact | null> => {
-      try {
-        await createUser(crypto.randomUUID(), { email, displayName: "", company: "", companyId: "", photoURL: "", role: "client" })
-        return { email, label: email, name: email.split("@")[0], companyId: "" } satisfies EmailContact
-      } catch (error) {
-        console.error("Couldn't save the new contact:", error)
-        return null
-      }
-    }))
-    const saved = added.filter((contact): contact is EmailContact => contact !== null)
-    if (saved.length) setContacts((current) => [...current, ...saved])
-  }
-
-  async function addAttachments(files: File[]) {
-    if (!files.length) return
-    if (attachments.length + files.length > MAX_EMAIL_ATTACHMENTS) {
-      setSendNotice({ tone: "error", text: `Attach up to ${MAX_EMAIL_ATTACHMENTS} files.` })
-      return
-    }
-    setPreparingAttachments(true)
-    setSendNotice(null)
-    try {
-      const preparedFiles = await Promise.all(files.map(prepareEmailAttachment))
-      const next = [...attachments, ...preparedFiles]
-      if (next.some((file) => !file.size)) {
-        setSendNotice({ tone: "error", text: "Empty files cannot be attached." })
-        return
-      }
-      if (next.reduce((total, file) => total + file.size, 0) > MAX_EMAIL_ATTACHMENT_BYTES) {
-        setSendNotice({ tone: "error", text: `Attachments can total up to ${MAX_EMAIL_ATTACHMENT_MEGABYTES} MB after image optimization.` })
-        return
-      }
-      setAttachments(next)
-    } catch (error) {
-      setSendNotice({ tone: "error", text: error instanceof Error ? error.message : "The attachment could not be prepared." })
-    } finally {
-      setPreparingAttachments(false)
-    }
-  }
-
-  async function sendEmail() {
-    if (!user || sending || preparingAttachments || !senderConfigured || !senderAddress?.trim()) return
-
-    setSendNotice(null)
-
-    const trimmedSubject = subject.trim()
-    // Everyone typed in To, plus a picked list, each once.
-    const typedRecipients = to.split(/[,;]/).map((email) => email.trim()).filter(Boolean)
-    const recipientEmails = Array.from(new Set([...(selectedList?.contactEmails ?? []), ...typedRecipients].map((email) => email.trim().toLowerCase())))
-    const recipientsLabel = [selectedList ? `${selectedList.name} (${selectedList.contactEmails.length})` : "", ...typedRecipients].filter(Boolean).join(", ")
-    if ((selectedListId && !selectedList) || !recipientEmails.length || recipientEmails.some((email) => !EMAIL_PATTERN.test(email.trim()))) return
-    if (EMAIL_PATTERN.test(trimmedSubject) || recipientEmails.some((email) => email.toLowerCase() === trimmedSubject.toLowerCase())) {
-      setSendNotice({ tone: "error", text: "Add a message subject—the recipient email cannot be used as the subject." })
-      return
-    }
-
-    const ccList = parseEmailList(messageKind === "transactional" ? cc : "")
-    if (ccList.invalid.length) {
-      setSendNotice({ tone: "error", text: `Check the Cc addresses: ${ccList.invalid.join(", ")}` })
-      return
-    }
-
-    let scheduledAtIso = ""
-    if (scheduleEnabled) {
-      const when = new Date(scheduleAt)
-      if (!scheduleAt || Number.isNaN(when.getTime())) {
-        setSendNotice({ tone: "error", text: "Pick a date and time to schedule this email." })
-        return
-      }
-      if (when.getTime() < Date.now() + 60_000) {
-        setSendNotice({ tone: "error", text: "Pick a scheduled time at least a minute from now." })
-        return
-      }
-      scheduledAtIso = when.toISOString()
-    }
-
-    setSending(true)
-
-    let uploadedAttachments: StoredEmailAttachment[] = []
-    try {
-      uploadedAttachments = await uploadEmailAttachments(attachments, user.uid)
-      const sentBody = personalizeGreeting(body, composeRecipientName)
-      const textBody = htmlToText(sentBody).trim()
-      const bodyHtml = sentBody.includes("<") ? sentBody : markdownToHtml(sentBody)
-      const recipientRecords: EmailRecipient[] = recipientEmails.map((email) => {
-        const contact = contacts.find((item) => recipientEmail(item.email) === recipientEmail(email))
-        return {
-          email: recipientEmail(email),
-          name: contact?.name || (recipientEmails.length === 1 ? composeRecipientName : undefined),
-          companyId: contact?.companyId || composeContext?.companyId,
-        }
-      })
-      const savedCompanyId = composeContext?.companyId || workspaceId
-      const idToken = await user.getIdToken()
-      const requestBody = JSON.stringify({
-        to: recipientEmails,
-        cc: ccList.valid.length ? ccList.valid : undefined,
-        intent: composeContext?.intent,
-        type: messageKind,
-        subject: trimmedSubject,
-        text: textBody,
-        html: bodyHtml,
-        branded: brandedEmail,
-        from: senderAddress || undefined,
-        brand: businessProfile,
-        cta: composeContext?.ctaUrl
-          ? { text: composeContext.ctaText || "Open your company page", url: composeContext.ctaUrl }
-          : undefined,
-        companyId: composeContext?.companyId,
-        projectId: composeContext?.projectId,
-        documentType: composeContext?.documentType,
-        documentId: composeContext?.documentId,
-        scheduledAt: scheduledAtIso || undefined,
-        attachments: uploadedAttachments,
-        threading: composeThreading || undefined,
-        history: {
-          companyId: savedCompanyId,
-          to: recipientsLabel,
-          createdAt: new Date().toISOString(),
-          recipients: recipientRecords,
-          companyName: composeContext?.companyName,
-          projectName: composeContext?.projectName,
-          documentTitle: composeContext?.documentTitle,
-          threadId: composeThreading?.threadId,
-          inReplyTo: composeThreading?.inReplyTo,
-          references: composeThreading?.references,
-        },
-      })
-      const response = await fetch("/api/email/send", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${idToken}`,
-          "Content-Type": "application/json",
-        },
-        body: requestBody,
-      })
-      const responseText = await response.text()
-      let result: { id?: string; html?: string; text?: string; replyTo?: string | null; threadId?: string | null; suppressedCount?: number; scheduledAt?: string | null; cc?: string[]; historySaved?: boolean; error?: string } = {}
-      try {
-        result = responseText ? JSON.parse(responseText) as typeof result : {}
-      } catch {
-        const requestTooLarge = response.status === 413 || /(?:request|payload).{0,20}too large/i.test(responseText)
-        result = {
-          error: requestTooLarge
-            ? "This email is too large to send. Remove an attachment and try again."
-            : "The email service returned an unreadable response. Try again.",
-        }
-      }
-
-      if (!response.ok || !result.id) {
-        throw new Error(result.error || "The message could not be sent.")
-      }
-
-      const sentMessage: SentMessage = {
-        id: result.id as string,
-        providerId: result.id as string,
-        to: recipientsLabel,
-        cc: result.cc?.length ? result.cc : undefined,
-        subject: trimmedSubject,
-        createdAt: new Date().toISOString(),
-        from: senderAddress || undefined,
-        replyTo: result.replyTo || replyToAddress || senderAddress || undefined,
-        threadId: result.threadId || composeThreading?.threadId,
-        inReplyTo: composeThreading?.inReplyTo,
-        references: composeThreading?.references,
-        bodyHtml: result.html || bodyHtml,
-        bodyText: result.text || textBody,
-        recipients: recipientRecords,
-        companyName: composeContext?.companyName,
-        projectId: composeContext?.projectId,
-        projectName: composeContext?.projectName,
-        documentType: composeContext?.documentType,
-        documentId: composeContext?.documentId,
-        documentTitle: composeContext?.documentTitle,
-        messageKind,
-        status: scheduledAtIso ? "scheduled" : "sent",
-        scheduledAt: scheduledAtIso || undefined,
-        attachments: attachments.map((file) => ({ filename: file.name, size: file.size })),
-      }
-      const historySaved = result.historySaved !== false
-      setMessages((current) => [sentMessage, ...current])
-      if (showOpsDetail) void saveNewContacts([...typedRecipients, ...ccList.valid])
-      setTo("")
-      setCc("")
-      setSelectedListId("")
-      setSubject("")
-      setBody("")
-      setAttachments([])
-      setMessageKind("transactional")
-      setComposeContext(null)
-      setSelectedTemplateId("")
-      setScheduleEnabled(false)
-      setScheduleAt("")
-      if (editingDraftId) {
-        const sentDraftId = editingDraftId
-        setDrafts((current) => current.filter((item) => item.id !== sentDraftId))
-        setEditingDraftId(null)
-        void deleteEmailDraft(sentDraftId).catch(() => undefined)
-      }
-      draftIdRef.current = null
-      setDraftStatus("idle")
-      const suppressionNotice = result.suppressedCount ? ` ${result.suppressedCount} unsubscribed contact${result.suppressedCount === 1 ? "" : "s"} skipped.` : ""
-      const verb = scheduledAtIso ? `Scheduled for ${formatMessageDate(scheduledAtIso)}` : "Message sent"
-      setSendNotice(historySaved
-        ? { tone: "success", text: `${verb}.${suppressionNotice}` }
-        : { tone: "error", text: `${verb}, but its shared history could not be saved.` })
-      // Close the docked window on a successful send (Gmail-style); the notice
-      // shows as a page toast.
-      closeCompose()
-    } catch (error) {
-      if (uploadedAttachments.length) await removeUploadedEmailAttachments(uploadedAttachments)
-      setSendNotice({
-        tone: "error",
-        text: error instanceof Error ? error.message : "The message could not be sent. Try again.",
-      })
-    } finally {
-      setSending(false)
-    }
-  }
-
   function resetTemplateEditor() {
     setEditingTemplateId(null)
     setTemplateName("")
@@ -1748,17 +1242,7 @@ export function EmailWorkspace({ initialTab, initialMessageId }: { initialTab: E
 
   function useTemplateInComposer(templateId: string) {
     if (!templates.some((template) => template.id === templateId)) return
-    setMessageViewError("")
-    setComposerPreviewOpen(false)
-    setPreview(null)
-    applyTemplate(templateId)
-    setEditingDraftId(null)
-    draftIdRef.current = null
-    setDraftStatus("idle")
-    setComposeFullPage(false)
-    setComposeOpen(true)
-    setComposeMinimized(false)
-  }
+    openCompose({ templateId })
 
   /** Shows the template being edited as an email, without opening the composer. */
   function previewEditingTemplate() {
@@ -1890,7 +1374,6 @@ export function EmailWorkspace({ initialTab, initialMessageId }: { initialTab: E
       await deleteEmailTemplate(templateId)
       setTemplates((current) => current.filter((template) => template.id !== templateId))
       setSelectedTemplateIds((current) => { const next = new Set(current); next.delete(templateId); return next })
-      if (selectedTemplateId === templateId) setSelectedTemplateId("")
       // Deleting the template that's open leaves nothing to edit, so go back to the list.
       if (editingTemplateId === templateId) {
         resetTemplateEditor()
@@ -2047,7 +1530,7 @@ export function EmailWorkspace({ initialTab, initialMessageId }: { initialTab: E
   return (
     <main className="mx-auto flex min-h-0 w-full min-w-0 max-w-6xl flex-1 flex-col overflow-visible px-3 pt-3 pb-5 sm:px-6 sm:pt-4 sm:pb-6 lg:flex-row lg:gap-6 lg:overflow-hidden">
       <nav className={cn("dashboard-sidebar hidden shrink-0 text-foreground lg:w-52 lg:flex-col", !inSidebar && "lg:flex")} aria-label="Email folders">
-        {!initialMessageId && !selectedReceived && <Button type="button" size="lg" className="mb-3 w-fit justify-start gap-2 rounded-full px-4 shadow-none" onClick={() => openCompose(true)}>
+        {!initialMessageId && !selectedReceived && <Button type="button" size="lg" className="mb-3 w-fit justify-start gap-2 rounded-full px-4 shadow-none" onClick={() => openCompose()}>
           <Plus aria-hidden="true" />Compose
         </Button>}
         <SidebarMenu className="gap-0.5">
@@ -2072,7 +1555,7 @@ export function EmailWorkspace({ initialTab, initialMessageId }: { initialTab: E
       <div className="flex h-full min-h-0 w-full min-w-0 flex-1 flex-col">
         {/* With the folders in the sidebar, Compose remains available from the list. */}
         {inSidebar && !initialMessageId && !selectedReceived && (
-          <Button type="button" size="lg" className="mb-3 hidden w-fit justify-start gap-2 rounded-full px-4 shadow-none lg:inline-flex" onClick={() => openCompose(true)}>
+          <Button type="button" size="lg" className="mb-3 hidden w-fit justify-start gap-2 rounded-full px-4 shadow-none lg:inline-flex" onClick={() => openCompose()}>
             <Plus aria-hidden="true" />Compose
           </Button>
         )}
@@ -2091,7 +1574,7 @@ export function EmailWorkspace({ initialTab, initialMessageId }: { initialTab: E
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem onSelect={() => openCompose(true)}><Mail aria-hidden="true" />Compose email</DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => openCompose()}><Mail aria-hidden="true" />Compose email</DropdownMenuItem>
                     <DropdownMenuItem onSelect={() => { openFolder("templates"); resetTemplateEditor(); setMobileTemplateView("editor") }}><FileText aria-hidden="true" />New template</DropdownMenuItem>
                     <DropdownMenuItem onSelect={() => { openFolder("lists"); resetListEditor(); setListPickerOpen(true) }}><List aria-hidden="true" />New list</DropdownMenuItem>
                   </DropdownMenuContent>
@@ -2125,7 +1608,7 @@ export function EmailWorkspace({ initialTab, initialMessageId }: { initialTab: E
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem onSelect={() => openCompose(true)}><Mail aria-hidden="true" />Compose email</DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => openCompose()}><Mail aria-hidden="true" />Compose email</DropdownMenuItem>
                   <DropdownMenuItem onSelect={() => { openFolder("templates"); resetTemplateEditor(); setMobileTemplateView("editor") }}><FileText aria-hidden="true" />New template</DropdownMenuItem>
                   <DropdownMenuItem onSelect={() => { openFolder("lists"); resetListEditor(); setListPickerOpen(true) }}><List aria-hidden="true" />New list</DropdownMenuItem>
                 </DropdownMenuContent>
@@ -2203,7 +1686,7 @@ export function EmailWorkspace({ initialTab, initialMessageId }: { initialTab: E
             onToggleAllDrafts={toggleAllDrafts}
             onToggleDraft={toggleDraftSelection}
             onDeleteSelectedDrafts={() => void deleteSelectedDrafts()}
-            editingDraftId={editingDraftId}
+            editingDraftId={openDraftId}
             onLoadDraft={loadDraft}
             onRemoveDraft={removeDraft}
             messages={messages}
@@ -2326,11 +1809,11 @@ export function EmailWorkspace({ initialTab, initialMessageId }: { initialTab: E
       </div>
 
       {/* Mobile: compose stays one tap away above the bottom nav. */}
-      {!mobileReaderOpen && !composeOpen && (tab === "inbox" || tab === "updates" || tab === "drafts" || tab === "messages" || tab === "bin") && (
+      {!mobileReaderOpen && !compose && (tab === "inbox" || tab === "updates" || tab === "drafts" || tab === "messages" || tab === "bin") && (
         <Button
           type="button"
           size="lg"
-          onClick={() => openCompose(true)}
+          onClick={() => openCompose()}
           className="fixed right-4 bottom-[calc(6rem+env(safe-area-inset-bottom))] z-30 h-14 gap-2 rounded-full px-6 text-base shadow-lg sm:hidden"
         >
           <Plus className="size-5" aria-hidden="true" />Write
@@ -2349,70 +1832,25 @@ export function EmailWorkspace({ initialTab, initialMessageId }: { initialTab: E
             </button>
           </div>
           <div className="min-h-0 flex-1 overflow-hidden px-2 pb-6 sm:px-6" onClick={(event) => event.stopPropagation()}>
-            <iframe title="Template preview" srcDoc={composerPreviewHtml(templateSubject, withMessageImage(templateBody), true)} sandbox="allow-same-origin" className="h-full w-full border-0 bg-[#f3f4f7]" />
+            <iframe title="Template preview" srcDoc={composedEmailPreview({ subject: templateSubject, body: withMessageImage(templateBody), branded: true, brand: businessProfile })} sandbox="allow-same-origin" className="h-full w-full border-0 bg-[#f3f4f7]" />
           </div>
         </div>
       )}
 
-      <EmailComposer
-        composeOpen={composeOpen}
-        fullPage={composeFullPage}
-        composeMinimized={composeMinimized}
-        setComposeMinimized={setComposeMinimized}
-        closeCompose={closeCompose}
-        subject={subject}
-        setSubject={setSubject}
-        senderAddress={senderAddress || ""}
-        senderOptions={senderOptions}
-        setSenderAddress={setSenderAddress}
-        brandedEmail={brandedEmail}
-        setBrandedEmail={setBrandedEmail}
-        showOpsDetail={showOpsDetail}
-        cleanSenderDisplay={cleanSenderDisplay}
-        messageKind={messageKind}
-        setMessageKind={setMessageKind}
-        selectedList={selectedList || null}
-        handleRecipientChange={handleRecipientChange}
-        contacts={contacts}
-        contactInitials={contactInitials}
-        contactAvatarTone={contactAvatarTone}
-        to={to}
-        cc={cc}
-        setCc={setCc}
-        selectedListId={selectedListId || ""}
-        setSelectedListId={setSelectedListId}
-        lists={lists}
-        body={body}
-        setBody={setBody}
-        attachments={attachments}
-        addAttachments={addAttachments}
-        removeAttachment={(index) => setAttachments((current) => current.filter((_, position) => position !== index))}
-        preparingAttachments={preparingAttachments}
-        senderConfigured={Boolean(senderConfigured)}
-        sending={sending}
-        scheduleEnabled={Boolean(scheduleEnabled)}
-        setScheduleEnabled={setScheduleEnabled}
-        scheduleAt={scheduleAt}
-        scheduleMin={scheduleMin}
-        setScheduleAt={setScheduleAt}
-        sendEmail={sendEmail}
-        draftStatus={draftStatus}
-        savingDraft={savingDraft}
-        setComposerPreviewOpen={setComposerPreviewOpen}
-        templates={templates}
-        selectedTemplate={selectedTemplate || null}
-        applyTemplate={applyTemplate}
-        editingDraftId={editingDraftId}
-        removeDraft={removeDraft}
-        clearComposer={clearComposer}
-        htmlToText={htmlToText}
-        composerPreviewOpen={composerPreviewOpen}
-        composerPreviewHtml={composerPreviewHtml}
-        sendNotice={sendNotice}
-      />
+      {compose && (
+        <QuickEmailComposer
+          key={composeKey}
+          open
+          onOpenChange={(open) => { if (!open) setCompose(null) }}
+          {...compose}
+          onSent={handleSent}
+          onDraftSaved={handleDraftSaved}
+          onDraftTrashed={handleDraftTrashed}
+        />
+      )}
 
-      {/* Send confirmation toast (shown once the composer closes) */}
-      {!composeOpen && sendNotice && (
+      {/* Page notices, such as a draft that could not be moved to Bin */}
+      {!compose && sendNotice && (
         <div className="fixed bottom-[calc(5.5rem+env(safe-area-inset-bottom))] left-1/2 z-40 -translate-x-1/2 sm:left-6 sm:translate-x-0 md:bottom-4">
           <div className={cn(
             "flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm shadow-lg",

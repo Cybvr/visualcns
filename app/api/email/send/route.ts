@@ -1,3 +1,4 @@
+import { createHash } from "crypto"
 import { NextResponse } from "next/server"
 import { FieldValue } from "firebase-admin/firestore"
 
@@ -271,10 +272,18 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Your session has expired. Sign in again and retry." }, { status: 401 })
     }
 
+    const caller = await getAdminCaller(idToken)
+    if (!caller) return NextResponse.json({ error: "Your account has no agency assigned." }, { status: 403 })
+    const agencyId = requireAgencyId(caller.data)
+    // Admins can open any sent email; everyone else only the ones they sent.
+    if (caller.data.role !== "admin" && caller.data.role !== "superadmin") {
+      const record = (await caller.db.collection("emailMessages").doc(emailId).get()).data()
+      if (record?.agencyId !== agencyId || record?.createdBy !== caller.uid) {
+        return NextResponse.json({ error: "The sent email could not be loaded." }, { status: 404 })
+      }
+    }
+
     if (emailId.startsWith("gmail:")) {
-      const caller = await getAdminCaller(idToken)
-      if (!caller) return NextResponse.json({ error: "Your account has no agency assigned." }, { status: 403 })
-      const agencyId = requireAgencyId(caller.data)
       try {
         const email = await getGmailMessage(agencyId, emailId.slice(6))
         if (!email) return NextResponse.json({ error: "The sent email could not be loaded." }, { status: 404 })
@@ -463,24 +472,21 @@ export async function POST(request: Request) {
     }
     try {
       for (const attachment of storedAttachments) {
+        // Read only: the files are removed once the email has gone, and the composer removes them if it fails.
         const storedFile = caller.storage.bucket().file(attachment.storagePath)
-        try {
-          const [metadata] = await storedFile.getMetadata()
-          const storedSize = Number(metadata.size || 0)
-          if (!Number.isSafeInteger(storedSize) || storedSize <= 0 || storedSize !== attachment.size || attachmentBytes + storedSize > MAX_EMAIL_ATTACHMENT_BYTES) {
-            return NextResponse.json({ error: `Attachments can total up to ${MAX_EMAIL_ATTACHMENT_MEGABYTES} MB.` }, { status: 400 })
-          }
-          const [content] = await storedFile.download()
-          attachmentBytes += content.length
-          attachments.push({
-            filename: attachment.filename.replace(/[\r\n]/g, "_"),
-            contentType: typeof metadata.contentType === "string" && /^[\w.+-]+\/[\w.+-]+$/.test(metadata.contentType) ? metadata.contentType : attachment.contentType,
-            content: content.toString("base64"),
-          })
-          attachmentInfo.push({ filename: attachment.filename.replace(/[\r\n]/g, "_"), size: content.length })
-        } finally {
-          await storedFile.delete({ ignoreNotFound: true }).catch(() => undefined)
+        const [metadata] = await storedFile.getMetadata()
+        const storedSize = Number(metadata.size || 0)
+        if (!Number.isSafeInteger(storedSize) || storedSize <= 0 || storedSize !== attachment.size || attachmentBytes + storedSize > MAX_EMAIL_ATTACHMENT_BYTES) {
+          return NextResponse.json({ error: `Attachments can total up to ${MAX_EMAIL_ATTACHMENT_MEGABYTES} MB.` }, { status: 400 })
         }
+        const [content] = await storedFile.download()
+        attachmentBytes += content.length
+        attachments.push({
+          filename: attachment.filename.replace(/[\r\n]/g, "_"),
+          contentType: typeof metadata.contentType === "string" && /^[\w.+-]+\/[\w.+-]+$/.test(metadata.contentType) ? metadata.contentType : attachment.contentType,
+          content: content.toString("base64"),
+        })
+        attachmentInfo.push({ filename: attachment.filename.replace(/[\r\n]/g, "_"), size: content.length })
       }
     } catch {
       return NextResponse.json({ error: "An attachment could not be retrieved. Reattach it and try again." }, { status: 503 })
@@ -523,7 +529,6 @@ export async function POST(request: Request) {
   if ((!apiKey && !useGmail) || !from) {
     return NextResponse.json({ error: "Email sending is not configured for this agency." }, { status: 503 })
   }
-  let welcomeClaim: WelcomeClaim | null = null
   if (isWelcome) {
     if (!caller) return NextResponse.json({ error: "Your session has expired. Sign in again and retry." }, { status: 401 })
     const companyId = String(caller.data.companyId || caller.uid)
@@ -543,8 +548,6 @@ export async function POST(request: Request) {
     if (templateImageUrl) {
       requestedHtml += `<p><img src="${escapeHtml(templateImageUrl)}" alt="${escapeHtml(String(template.imageAlt || "Message image"))}" style="display:block;width:100%;max-width:720px;height:auto;border-radius:12px;margin-top:24px;" /></p>`
     }
-    welcomeClaim = await claimWelcomeEmail(caller, recipients[0])
-    if (!welcomeClaim) return NextResponse.json({ error: "This welcome email has already been sent or is already being delivered." }, { status: 409 })
   }
   if (!subject || subject.length > 200) {
     return NextResponse.json({ error: "Add a subject no longer than 200 characters." }, { status: 400 })
@@ -561,6 +564,15 @@ export async function POST(request: Request) {
   const callerIsAdmin = caller?.data.role === "admin" || caller?.data.role === "superadmin"
   if (context.documentId && (!caller || !callerIsAdmin)) {
     return NextResponse.json({ error: "Only an agency admin can send contextual client communication." }, { status: 403 })
+  }
+  // Clients can only email people who have an account here, so the mailbox can't be used to email strangers.
+  if (!callerIsAdmin && !isWelcome) {
+    const members = await caller.db.collection("users").where("agencyId", "==", agencyId).get()
+    const memberEmails = new Set(members.docs.map((item) => String(item.data().email || "").trim().toLowerCase()).filter(Boolean))
+    const outsiders = [...recipients, ...cc].filter((email) => !memberEmails.has(email.toLowerCase()))
+    if (outsiders.length) {
+      return NextResponse.json({ error: `You can only email people with a VisualCNS account. Not found: ${outsiders.join(", ")}` }, { status: 403 })
+    }
   }
   if (messageKind === "marketing") {
     if (!caller || !callerIsAdmin) {
@@ -584,6 +596,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Marketing subscription status could not be checked. Try again." }, { status: 503 })
     }
   }
+
+  // Claimed only after everything above has passed, so a rejected request doesn't lock the welcome email.
+  let welcomeClaim: WelcomeClaim | null = null
+  if (isWelcome) {
+    welcomeClaim = await claimWelcomeEmail(caller, recipients[0])
+    if (!welcomeClaim) return NextResponse.json({ error: "This welcome email has already been sent or is already being delivered." }, { status: 409 })
+  }
+  const removeStoredAttachments = () => Promise.all(storedAttachments.map((attachment) =>
+    caller.storage.bucket().file(attachment.storagePath).delete({ ignoreNotFound: true }).catch(() => undefined)))
 
   const richHtml = linkifyHtml(requestedHtml.replace(/(src=["'])\/([^"']*)/gi, `$1${SITE_ORIGIN}/$2`))
   const messageContent = [
@@ -649,21 +670,35 @@ export async function POST(request: Request) {
   }
 
   if (messageKind === "marketing") {
-    const sent: Array<{ id: string; html: string; text: string }> = []
+    // Who this message has reached so far, so retrying after a failure skips them. Cleared once everyone has it.
+    const progressRef = caller.db.collection("emailSendProgress").doc(
+      createHash("sha256").update(JSON.stringify([caller.uid, subject, text, scheduledAtIso, [...recipients].sort()])).digest("hex"),
+    )
+    const progress = (await progressRef.get()).data()
+    const progressFresh = progress && Date.now() - Date.parse(String(progress.updatedAt || "")) < 24 * 60 * 60 * 1000
+    const sent: Array<{ email: string; id: string }> = progressFresh && Array.isArray(progress.sent) ? progress.sent : []
+    const alreadySent = new Set(sent.map((item) => item.email))
+    let content: { html: string; text: string } | null = null
     for (const recipient of recipients) {
-      const attempt = await sendOne([recipient], recipient)
-      if (!attempt.response.ok || !attempt.result.id) {
-        const providerMessage = attempt.result.error?.message || attempt.result.message
+      if (alreadySent.has(recipient)) continue
+      const attempt = await sendOne([recipient], recipient).catch(() => null)
+      if (!attempt?.response.ok || !attempt.result.id) {
+        const providerMessage = attempt?.result.error?.message || attempt?.result.message
         return NextResponse.json(
           {
-            error: providerMessage || `The marketing email could not be sent to ${recipient}. ${sent.length} email${sent.length === 1 ? "" : "s"} already sent.`,
+            error: providerMessage || `The marketing email could not be sent to ${recipient}. ${sent.length} email${sent.length === 1 ? "" : "s"} already sent; sending again skips them.`,
             sentCount: sent.length,
           },
-          { status: attempt.response.status >= 400 ? attempt.response.status : 502 },
+          { status: attempt && attempt.response.status >= 400 ? attempt.response.status : 502 },
         )
       }
-      sent.push({ id: attempt.result.id, html: attempt.html, text: attempt.brandedText })
+      sent.push({ email: recipient, id: attempt.result.id })
+      content = { html: attempt.html, text: attempt.brandedText }
+      await progressRef.set({ sent, updatedAt: new Date().toISOString() }).catch(() => undefined)
     }
+    await progressRef.delete().catch(() => undefined)
+    if (!content) return NextResponse.json({ error: "This email has already been sent to everyone on the list." }, { status: 409 })
+    await removeStoredAttachments()
     if (caller && context.documentId && !scheduledAtIso) {
       try { await markContextAsSent(caller.db, context, agencyId) } catch { /* Sending remains successful if object sync is temporarily unavailable. */ }
     }
@@ -675,8 +710,8 @@ export async function POST(request: Request) {
         subject,
         from,
         replyTo,
-        html: sent[0].html,
-        text: sent[0].text,
+        html: content.html,
+        text: content.text,
         scheduledAt: scheduledAtIso,
         messageKind,
         context,
@@ -690,8 +725,8 @@ export async function POST(request: Request) {
     return NextResponse.json({
       id: sent[0].id,
       ids: sent.map((item) => item.id),
-      html: sent[0].html,
-      text: sent[0].text,
+      html: content.html,
+      text: content.text,
       replyTo: replyTo || null,
       threadId: threading.threadId || null,
       suppressedCount: suppressedRecipients.length,
@@ -715,6 +750,7 @@ export async function POST(request: Request) {
       { status: attempt.response.status >= 400 ? attempt.response.status : 502 },
     )
   }
+  await removeStoredAttachments()
 
   if (caller && context.documentId && !scheduledAtIso) {
     try { await markContextAsSent(caller.db, context, agencyId) } catch { /* Sending remains successful if object sync is temporarily unavailable. */ }
