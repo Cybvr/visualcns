@@ -15,7 +15,7 @@ import { VideoThumbnail } from "@/components/ui/video-thumbnail"
 import { MediaLightbox, type MediaLightboxItem } from "@/components/ui/media-lightbox"
 import { watchCampaignCreatives, type CampaignCreative } from "@/lib/campaign-creatives"
 import { getOrganization, type Organization } from "@/lib/organizations"
-import { applicationsClosed, campaignSharePath, formatBriefDate, hasBrief, hiresCreators, resolveBrief, resolveOpenings } from "@/lib/campaign-brief"
+import { applicationsClosed, campaignSharePath, CREATORS_ROLE, formatBriefDate, hasBrief, hiresCreators, resolveBrief, resolveOpenings } from "@/lib/campaign-brief"
 import { getProject, type Project } from "@/lib/projects"
 import { tsToMillis } from "@/lib/tasks"
 import { cn } from "@/lib/utils"
@@ -107,15 +107,13 @@ function SharedCampaign() {
   const openings = resolveOpenings(project.openings)
   const opening = openings.find((item) => item.id === roleId)
   const creatorsOpen = hiresCreators(project.brief)
-  // The job this page is for: the opening in the link, or posting when the campaign hires creators.
-  const role = opening ?? (creatorsOpen ? brief : null)
+  // The general link lists every job when there's more than posting; a job's own link shows only that job.
+  const general = !opening && !(roleId === CREATORS_ROLE && creatorsOpen) && openings.length > 0
+  const role = opening ?? (!general && creatorsOpen ? brief : null)
   const roleTitle = opening ? opening.title : "Creators"
-  const others = [
-    ...(opening && creatorsOpen ? [{ id: "", title: "Creators" }] : []),
-    ...openings.filter((item) => item.id !== opening?.id),
-  ]
+  const jobs = general ? [...(creatorsOpen ? [{ id: CREATORS_ROLE, title: "Creators" }] : []), ...openings] : []
   const closed = role ? applicationsClosed(role) : true
-  const sharePath = campaignSharePath(project.id, opening?.id)
+  const sharePath = campaignSharePath(project.id, opening?.id ?? (roleId === CREATORS_ROLE && !general ? CREATORS_ROLE : undefined))
 
   return (
     <main className={cn("dashboard-body min-h-screen bg-background px-4 pt-4 font-sans sm:pt-6 [&_*]:font-sans", role ? "pb-32" : "pb-10 sm:pb-16")}>
@@ -200,15 +198,15 @@ function SharedCampaign() {
           </section>
         )}
 
-        {others.length > 0 && (
+        {jobs.length > 0 && (
           <section aria-labelledby="shared-openings-heading" className="rounded-xs bg-card p-5 sm:p-6">
-            <h2 id="shared-openings-heading" className="text-sm font-semibold text-foreground">{role ? "Also on this campaign" : "Openings"}</h2>
+            <h2 id="shared-openings-heading" className="text-sm font-semibold text-foreground">Jobs on this campaign</h2>
             <ul className="mt-3 divide-y divide-border">
-              {others.map((item) => (
-                <li key={item.id || "creators"}>
+              {jobs.map((item) => (
+                <li key={item.id}>
                   <Link href={campaignSharePath(project.id, item.id)} className="flex items-center justify-between gap-4 py-3 text-sm text-foreground hover:underline">
                     {item.title}
-                    <span className="text-muted-foreground">See role</span>
+                    <span className="text-muted-foreground">See job</span>
                   </Link>
                 </li>
               ))}

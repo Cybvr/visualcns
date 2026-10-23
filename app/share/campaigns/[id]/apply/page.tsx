@@ -7,7 +7,7 @@ import { ArrowLeft } from "lucide-react"
 
 import { CreatorApplyForm } from "@/components/creator-apply-form"
 import { Skeleton } from "@/components/ui/skeleton"
-import { campaignSharePath, hiresCreators, resolveBrief, resolveOpenings } from "@/lib/campaign-brief"
+import { campaignSharePath, CREATORS_ROLE, hiresCreators, resolveBrief, resolveOpenings } from "@/lib/campaign-brief"
 import { getProject, type Project } from "@/lib/projects"
 
 /** No login required: where the shared campaign page's Apply button goes. ?role=<opening id> applies for that opening. */
@@ -39,8 +39,9 @@ function SharedCampaignApply() {
     )
   }
 
-  const opening = roleId ? resolveOpenings(project?.openings).find((item) => item.id === roleId) : undefined
-  if (!project || project.isArchived || (roleId ? !opening : !hiresCreators(project.brief))) {
+  const openings = resolveOpenings(project?.openings)
+  const opening = roleId ? openings.find((item) => item.id === roleId) : undefined
+  if (!project || project.isArchived || (opening ? false : !hiresCreators(project.brief))) {
     return (
       <main className="dashboard-body flex min-h-screen items-center justify-center bg-background px-4 font-sans">
         <p className="text-sm text-muted-foreground">This campaign isn&apos;t taking applications.</p>
@@ -48,7 +49,8 @@ function SharedCampaignApply() {
     )
   }
 
-  const backHref = campaignSharePath(project.id, opening?.id)
+  // Back to this job's own page, not the general list.
+  const backHref = campaignSharePath(project.id, opening?.id ?? (openings.length ? CREATORS_ROLE : undefined))
 
   return (
     <main className="dashboard-body min-h-screen bg-background px-4 pt-4 pb-10 font-sans sm:pt-6 sm:pb-16 [&_*]:font-sans">

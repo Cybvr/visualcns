@@ -275,6 +275,9 @@ export function applicationsClosed(item: { registerBy: string }) {
   return Boolean(item.registerBy) && new Date().toISOString().slice(0, 10) > item.registerBy
 }
 
+/** The job link for creators who post, for campaigns whose general link lists several jobs. */
+export const CREATORS_ROLE = "creators"
+
 /** The shared page for one opening, or for the campaign itself. */
 export function campaignSharePath(projectId: string, openingId?: string) {
   const path = `/share/campaigns/${encodeURIComponent(projectId)}`

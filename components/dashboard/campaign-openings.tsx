@@ -1,6 +1,6 @@
 "use client"
 
-import { Copy, Trash2 } from "lucide-react"
+import { Link2, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 
 import { DateField, Pick } from "@/components/dashboard/creator-brief"
@@ -45,7 +45,7 @@ export function CampaignOpeningsForm({
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-muted-foreground">Jobs on this campaign besides posting. Each gets its own link: people see the campaign, then only their job.</p>
+      <p className="text-sm text-muted-foreground">Jobs on this campaign besides posting. Each gets its own link: people see the campaign, then only their job. The campaign's main link lists every job.</p>
       {value.map((opening, index) => {
         const id = `opening-${opening.id}`
         const saved = savedIds.includes(opening.id)
@@ -56,8 +56,8 @@ export function CampaignOpeningsForm({
                 <Label htmlFor={`${id}-title`}>Role</Label>
                 <Input id={`${id}-title`} value={opening.title} maxLength={80} placeholder="e.g. Graphic designer" onChange={(event) => update(opening.id, { title: event.target.value })} />
               </div>
-              <Button type="button" variant="outline" size="icon" disabled={!saved} onClick={() => void copyLink(opening.id)} aria-label="Copy link" title={saved ? "Copy link" : "Save to get its link"}>
-                <Copy className="size-4" />
+              <Button type="button" variant="outline" size="icon" disabled={!saved} onClick={() => void copyLink(opening.id)} aria-label="Copy job link" title={saved ? "Copy job link" : "Save to get its link"}>
+                <Link2 className="size-4" />
               </Button>
               <Button type="button" variant="ghost" size="icon" onClick={() => onChange(value.filter((item) => item.id !== opening.id))} aria-label={`Remove ${opening.title || "opening"}`} title="Remove">
                 <Trash2 className="size-4" />
