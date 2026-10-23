@@ -485,6 +485,7 @@ export function ProjectDetail({
                   canEdit={canEditCampaign}
                   onOpen={setTab}
                   onAction={startQuickAction}
+                  name={project.title}
                   bannerImage={campaignImage}
                   sharePath={`/share/campaigns/${encodeURIComponent(project.id)}`}
                   latestContent={

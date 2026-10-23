@@ -15,6 +15,7 @@ export function CampaignHome({
   canEdit,
   onOpen,
   onAction,
+  name,
   bannerImage: campaignImage,
   latestContent,
   sharePath,
@@ -23,6 +24,8 @@ export function CampaignHome({
   canEdit: boolean
   onOpen: (tab: CampaignTab) => void
   onAction: (action: CampaignQuickAction) => void
+  /** The campaign's name, shown on the banner. */
+  name: string
   /** The campaign cover/logo/media image, when one has been attached. */
   bannerImage?: string
   /** The newest posts, drawn by the Content tab's own list so cards, menus and the viewer match it. */
@@ -41,7 +44,7 @@ export function CampaignHome({
           <img src={bannerImage} alt="" className="absolute inset-0 size-full object-cover" />
         )}
         <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/25 to-transparent" />
-        <p className="relative flex h-full items-center px-4 text-sm font-semibold text-white sm:px-5">Campaign at a glance</p>
+        <p className="relative flex h-full items-center px-4 text-sm font-semibold text-white sm:px-5">{name}</p>
         {sharePath && (
           <a
             href={sharePath}

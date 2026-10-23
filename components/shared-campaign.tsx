@@ -165,7 +165,7 @@ export function SharedCampaignView({ id, jobId = "" }: { id: string; jobId?: str
               contentClassName="dashboard-body font-sans"
             />
           </div>
-          {job && description && <p className="whitespace-pre-wrap text-sm leading-7 text-foreground">{description}</p>}
+          {job && description && <TaskContent value={description} className="text-foreground" />}
           {job && (opening
             ? <OpeningSummary opening={opening} hideDetails />
             : brief && <CreatorBriefSummary brief={brief} shared part="creators" hideOffer={!brief.showOffer} hideDetails />)}

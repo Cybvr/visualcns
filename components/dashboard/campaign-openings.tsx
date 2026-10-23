@@ -1,9 +1,11 @@
 "use client"
 
-import { Link2, Trash2 } from "lucide-react"
+import { ChevronDown, Link2, Trash2 } from "lucide-react"
+import { useId, useState, type ReactNode } from "react"
 import { toast } from "sonner"
 
 import { CreatorsJobFields, DateField, Pick } from "@/components/dashboard/creator-brief"
+import { RichTextEditor } from "@/components/dashboard/rich-text-editor"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -12,6 +14,7 @@ import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
 import { BRIEF_CURRENCIES, BRIEF_PAYMENT_METHODS, campaignSharePath, CREATORS_ROLE, newOpening, type CampaignOpening, type CreatorBrief } from "@/lib/campaign-brief"
 import { siteUrl } from "@/lib/email-composer"
+import { cn } from "@/lib/utils"
 
 /**
  * The campaign's jobs: openings like a graphic designer or a strategist, each with
@@ -52,43 +55,33 @@ export function CampaignOpeningsForm({
   return (
     <div className="space-y-4">
       {brief.hireCreators && (
-        <section aria-label="Creators" className="space-y-4 rounded-xs border border-border p-4">
-          <div className="flex items-center gap-2">
-            <h3 className="min-w-0 flex-1 text-sm font-semibold text-foreground">Creators</h3>
-            <Button type="button" variant="outline" size="icon" disabled={!creatorsSaved} onClick={() => void copyLink(CREATORS_ROLE)} aria-label="Copy job link" title={creatorsSaved ? "Copy job link" : "Save to get its link"}>
-              <Link2 className="size-4" />
-            </Button>
-            <Button type="button" variant="ghost" size="icon" onClick={() => onBriefChange({ hireCreators: false })} aria-label="Remove Creators" title="Remove">
-              <Trash2 className="size-4" />
-            </Button>
-          </div>
+        <JobCard title="Creators" defaultOpen={!creatorsSaved} linkReady={creatorsSaved} onCopyLink={() => void copyLink(CREATORS_ROLE)} onRemove={() => onBriefChange({ hireCreators: false })}>
           <CreatorsJobFields value={brief} onChange={onBriefChange} />
-        </section>
+        </JobCard>
       )}
       {value.map((opening, index) => {
         const id = `opening-${opening.id}`
         const saved = savedIds.includes(opening.id)
         return (
-          <section key={opening.id} aria-label={opening.title || `Job ${index + 1}`} className="space-y-4 rounded-xs border border-border p-4">
-            <div className="flex items-end gap-2">
-              <div className="min-w-0 flex-1 space-y-2">
-                <Label htmlFor={`${id}-title`}>Job title</Label>
-                <Input id={`${id}-title`} value={opening.title} maxLength={80} placeholder="e.g. Graphic designer" onChange={(event) => update(opening.id, { title: event.target.value })} />
-              </div>
-              <Button type="button" variant="outline" size="icon" disabled={!saved} onClick={() => void copyLink(opening.id)} aria-label="Copy job link" title={saved ? "Copy job link" : "Save to get its link"}>
-                <Link2 className="size-4" />
-              </Button>
-              <Button type="button" variant="ghost" size="icon" onClick={() => onChange(value.filter((item) => item.id !== opening.id))} aria-label={`Remove ${opening.title || "job"}`} title="Remove">
-                <Trash2 className="size-4" />
-              </Button>
+          <JobCard
+            key={opening.id}
+            title={opening.title || `Job ${index + 1}`}
+            defaultOpen={!saved}
+            linkReady={saved}
+            onCopyLink={() => void copyLink(opening.id)}
+            onRemove={() => onChange(value.filter((item) => item.id !== opening.id))}
+          >
+            <div className="space-y-2">
+              <Label htmlFor={`${id}-title`}>Job title</Label>
+              <Input id={`${id}-title`} value={opening.title} maxLength={80} placeholder="e.g. Graphic designer" onChange={(event) => update(opening.id, { title: event.target.value })} />
             </div>
             <div className="space-y-2">
               <Label htmlFor={`${id}-deliverables`}>What we need</Label>
               <Textarea id={`${id}-deliverables`} rows={3} maxLength={1000} placeholder={"One per line, e.g.\n12 static ads, 1080×1350"} value={opening.deliverables} onChange={(event) => update(opening.id, { deliverables: event.target.value })} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor={`${id}-details`}>Details</Label>
-              <Textarea id={`${id}-details`} rows={3} maxLength={2000} value={opening.details} onChange={(event) => update(opening.id, { details: event.target.value })} />
+              <Label>Details</Label>
+              <RichTextEditor value={opening.details} onChange={(details) => update(opening.id, { details })} ariaLabel="Job details" compact className="min-h-40 text-foreground" />
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <DateField label="Apply by" value={opening.registerBy} onChange={(registerBy) => update(opening.id, { registerBy })} />
@@ -137,13 +130,40 @@ export function CampaignOpeningsForm({
                 />
               </div>
             ))}
-          </section>
+          </JobCard>
         )
       })}
-      <div className="flex flex-wrap gap-2">
-        <Button type="button" variant="outline" onClick={() => onChange([...value, newOpening(brief.currency)])}>Add job</Button>
-        {!brief.hireCreators && <Button type="button" variant="outline" onClick={() => onBriefChange({ hireCreators: true })}>Add creators</Button>}
-      </div>
+      <Button type="button" variant="outline" onClick={() => onChange([...value, newOpening(brief.currency)])}>Add job</Button>
     </div>
+  )
+}
+
+/** One job, folded to its title row until opened, with its link and remove buttons always in reach. New jobs start open. */
+function JobCard({ title, defaultOpen, linkReady, onCopyLink, onRemove, children }: {
+  title: string
+  defaultOpen: boolean
+  linkReady: boolean
+  onCopyLink: () => void
+  onRemove: () => void
+  children: ReactNode
+}) {
+  const [open, setOpen] = useState(defaultOpen)
+  const id = useId()
+  return (
+    <section aria-label={title} className="rounded-xs border border-border">
+      <div className="flex items-center gap-2 p-2 pl-4">
+        <button type="button" onClick={() => setOpen((current) => !current)} aria-expanded={open} aria-controls={id} className="flex min-w-0 flex-1 items-center gap-2 py-2 text-left text-sm font-semibold text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          <ChevronDown className={cn("size-4 shrink-0 text-muted-foreground transition-transform", !open && "-rotate-90")} aria-hidden="true" />
+          <span className="min-w-0 flex-1 truncate">{title}</span>
+        </button>
+        <Button type="button" variant="outline" size="icon" disabled={!linkReady} onClick={onCopyLink} aria-label="Copy job link" title={linkReady ? "Copy job link" : "Save to get its link"}>
+          <Link2 className="size-4" />
+        </Button>
+        <Button type="button" variant="ghost" size="icon" onClick={onRemove} aria-label={`Remove ${title}`} title="Remove">
+          <Trash2 className="size-4" />
+        </Button>
+      </div>
+      <div id={id} hidden={!open} className="space-y-4 border-t border-border p-4">{children}</div>
+    </section>
   )
 }

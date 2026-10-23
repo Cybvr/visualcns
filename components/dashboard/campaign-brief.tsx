@@ -70,7 +70,8 @@ export function CampaignBrief({
           ...opening,
           title: opening.title.trim(),
           deliverables: opening.deliverables.trim(),
-          details: opening.details.trim(),
+          // An emptied editor leaves "<p></p>", which would show as a blank block.
+          details: opening.details.replace(/<[^>]+>|&nbsp;/g, "").trim() ? opening.details.trim() : "",
           questions: opening.questions.map((question) => question.trim()),
         }))
         await updateProject(project.id, { openings: nextOpenings })

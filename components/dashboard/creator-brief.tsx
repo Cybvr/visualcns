@@ -6,6 +6,7 @@ import { toast } from "sonner"
 
 import { SocialIcon } from "@/components/company/social-icon"
 import { SettingsSection } from "@/components/dashboard/settings-section"
+import { TaskContent } from "@/components/dashboard/task-content"
 import { Button } from "@/components/ui/button"
 import { Combobox } from "@/components/ui/combobox"
 import { Input } from "@/components/ui/input"
@@ -379,7 +380,7 @@ export function OpeningSummary({ opening, hideDetails = false }: { opening: Camp
         {opening.showOffer && <Fact label="Payment" icon={CreditCard}>{opening.paymentMethod}</Fact>}
         {opening.registerBy && <Fact label="Apply by" icon={CalendarClock}>{formatBriefDate(opening.registerBy)}</Fact>}
       </dl>
-      {!hideDetails && opening.details.trim() && <p className="whitespace-pre-wrap text-sm leading-7 text-foreground">{opening.details}</p>}
+      {!hideDetails && opening.details.trim() && <TaskContent value={opening.details} className="text-foreground" />}
     </div>
   )
 }

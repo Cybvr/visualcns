@@ -111,7 +111,8 @@ export async function publicCompanyMetadata(ref: string, section: string | null,
 
 /** Turns a caption into one line short enough for a link preview. */
 function previewText(value: unknown, max = 200) {
-  const text = typeof value === "string" ? value.replace(/\s+/g, " ").trim() : ""
+  // Rich text, such as a job's details, previews as its words only.
+  const text = typeof value === "string" ? value.replace(/<[^>]+>/g, " ").replace(/&nbsp;/g, " ").replace(/\s+/g, " ").trim() : ""
   return text.length > max ? `${text.slice(0, max - 1).trimEnd()}…` : text
 }
 
