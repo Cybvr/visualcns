@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
 import type { BusinessProfile } from "@/lib/business-profile"
-import { SIGNUP_WELCOME_TEMPLATE_ID } from "@/lib/email-templates"
+import { EmailFolderEmpty, EmailFolderList } from "./email-folder-list"
 import { EmailListRow } from "./email-list-row"
 import type { EmailTemplate } from "./types"
 
@@ -34,7 +34,6 @@ export type EmailTemplatesProps = {
   mobileTemplateView: "list" | "editor"
   businessProfile: BusinessProfile | null
   isAdmin: boolean
-  addSignupWelcomeTemplate: () => void
   addVisitorSalesTemplate: () => void
   resetTemplateEditor: () => void
   deleteTemplate: (id: string) => void
@@ -66,7 +65,6 @@ export function EmailTemplates({
   mobileTemplateView,
   businessProfile,
   isAdmin,
-  addSignupWelcomeTemplate,
   addVisitorSalesTemplate,
   resetTemplateEditor,
   deleteTemplate,
@@ -74,7 +72,6 @@ export function EmailTemplates({
   contactAvatarTone,
   formatListDate,
 }: EmailTemplatesProps) {
-  const hasSignupWelcomeTemplate = templates.some((template) => (template.templateId || template.id) === SIGNUP_WELCOME_TEMPLATE_ID)
   const hasVisitorSalesTemplate = templates.some((template) => (template.templateId || template.id) === "visitor-signin-introduction")
 
   return (
@@ -113,16 +110,23 @@ export function EmailTemplates({
         </div>
       </form>
       <div className={cn("min-h-0 w-full min-w-0 max-w-full max-lg:shrink-0 lg:flex-1 lg:overflow-y-auto", mobileTemplateView === "list" ? "block" : "hidden")}>
-        {isAdmin && (!hasVisitorSalesTemplate || !hasSignupWelcomeTemplate) && (
+        {isAdmin && !hasVisitorSalesTemplate && (
           <div className="flex flex-wrap items-center justify-end gap-2 border-b border-border p-2">
             {!hasVisitorSalesTemplate && <Button type="button" variant="outline" size="sm" onClick={addVisitorSalesTemplate}>Add Visitor introduction email</Button>}
-            {!hasSignupWelcomeTemplate && <Button type="button" variant="outline" size="sm" onClick={addSignupWelcomeTemplate}>Add signup welcome email</Button>}
           </div>
         )}
-        {templates.length === 0 ? <div className="mt-3 rounded-[12px] border border-dashed border-border px-4 py-8 text-center"><FileText className="mx-auto size-5 text-muted-foreground" aria-hidden="true" /><p className="mt-3 text-sm font-medium">No templates yet</p></div> : visibleTemplates.length === 0 ? <div className="mt-3 rounded-[12px] border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground">No templates match your search.</div> : (
-          <div>
-            <div className="flex min-h-12 items-center gap-1 border-b border-border px-2 py-1.5"><input type="checkbox" checked={visibleTemplates.length > 0 && visibleTemplates.every((template) => selectedTemplateIds.includes(template.id))} onChange={(event) => onToggleAllTemplates(event.target.checked)} aria-label="Select all visible templates" className={cn("ml-1 size-4 shrink-0 accent-primary", selectedTemplateIds.length === 0 && "max-sm:hidden")} /><span className="mr-auto px-2 text-xs text-muted-foreground">{selectedTemplateIds.length ? `${selectedTemplateIds.length} selected` : `${templates.length} templates`}</span><Button type="button" variant="ghost" size="icon" className="size-8" onClick={onDeleteSelectedTemplates} disabled={selectedTemplateIds.length === 0} aria-label="Delete selected templates" title="Delete selected templates"><Trash2 className="size-4" aria-hidden="true" /></Button></div>
-            {visibleTemplates.map((template) => (
+        <EmailFolderList
+          label={`${templates.length} ${templates.length === 1 ? "template" : "templates"}`}
+          selectedCount={selectedTemplateIds.length}
+          allChecked={visibleTemplates.length > 0 && visibleTemplates.every((template) => selectedTemplateIds.includes(template.id))}
+          onToggleAll={onToggleAllTemplates}
+          selectAllLabel="Select all visible templates"
+          actions={<Button type="button" variant="ghost" size="icon" className="size-8" onClick={onDeleteSelectedTemplates} disabled={selectedTemplateIds.length === 0} aria-label="Delete selected templates" title="Delete selected templates"><Trash2 className="size-4" aria-hidden="true" /></Button>}
+          empty={templates.length === 0
+            ? <EmailFolderEmpty icon={<FileText className="mx-auto size-5 text-muted-foreground" aria-hidden="true" />} title="No templates yet" />
+            : visibleTemplates.length === 0 ? <EmailFolderEmpty title="No templates match your search." /> : undefined}
+        >
+          {visibleTemplates.map((template) => (
             <EmailListRow
               key={template.id}
               title={template.name}
@@ -144,8 +148,8 @@ export function EmailTemplates({
               deleteLabel={`Delete ${template.name}`}
               ariaLabel={`Edit template ${template.name}`}
             />
-          ))}</div>
-        )}
+          ))}
+        </EmailFolderList>
       </div>
     </section>
   )

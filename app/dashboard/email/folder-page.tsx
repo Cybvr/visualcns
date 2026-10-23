@@ -1,6 +1,6 @@
-import { EmailWorkspace } from "@/components/dashboard/email/email-workspace"
 import type { EmailTab } from "@/components/dashboard/email/types"
 
-export function EmailFolderPage({ folder }: { folder: EmailTab }) {
-  return <EmailWorkspace initialTab={folder} />
+/** Each folder's URL exists so it can be linked to; the layout shows the folder it names. */
+export function EmailFolderPage(_props: { folder: EmailTab }) {
+  return null
 }

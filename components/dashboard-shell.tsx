@@ -43,7 +43,7 @@ function DashboardMobileFooterNav({ unreadEmailCount }: { unreadEmailCount: numb
   const items: MobileFooterNavItem[] = [
     // Home only lights up on the home page itself, not on every page under /dashboard.
     { key: "home", label: "Home", icon: Home, href: "/dashboard", isActive: pathname === "/dashboard" },
-    { key: "email", label: "Emails", icon: FiMail, href: "/dashboard/email", badge: unreadEmailCount },
+    { key: "email", label: "Emails", icon: FiMail, href: "/dashboard/email/inbox", isActive: pathname.startsWith("/dashboard/email"), badge: unreadEmailCount },
     { key: "clients", label: "Clients", icon: Building2, href: "/dashboard/clients" },
     { key: "invoices", label: "Invoices", icon: Receipt, href: "/dashboard/invoices" },
     { key: "profile", label: "Profile", icon: FiUser, href: "/dashboard/account" },
@@ -87,7 +87,7 @@ export function DashboardShell({
   const isCompanyDetailRoute = /^\/dashboard\/(?:companies|clients)\/[^/]+(?:\/|$)/.test(pathname ?? "")
   // The dashboard home is Ngai too, so it gets the same full-height chat layout.
   const isAgentRoute = /^\/dashboard\/agent(?:\/[^/]+)?$/.test(pathname ?? "")
-  const isEmailRoute = pathname === "/dashboard/email"
+  const isEmailRoute = pathname?.startsWith("/dashboard/email") ?? false
   const hideHeader = isDocumentRoute
   const [sidebarOpen, setSidebarOpen] = useState(!isDocumentRoute)
   const { open: agentOpen } = useAgent()

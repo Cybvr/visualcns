@@ -22,7 +22,7 @@ async function showNewEmailNotifications(messages: InboxMessage[]) {
           icon: "/visualhqlogo.svg",
           badge: "/visualhqlogo.svg",
           tag: `visualcns-email:${message.id}`,
-          data: { url: "/dashboard/email" },
+          data: { url: "/dashboard/email/inbox" },
         })
       }
     } else {
@@ -34,7 +34,7 @@ async function showNewEmailNotifications(messages: InboxMessage[]) {
         })
         notification.onclick = () => {
           window.focus()
-          window.location.assign("/dashboard/email")
+          window.location.assign("/dashboard/email/inbox")
           notification.close()
         }
       }

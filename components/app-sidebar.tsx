@@ -194,10 +194,10 @@ export function AppSidebar({
                       </SidebarMenuButton>
                     ) : (
                       <SidebarMenuButton asChild isActive={isActive(pathname, link.href, rootHref, link.alsoActive)} tooltip={link.label} className={mobileNavButton}>
-                        <Link href={link.href} onClick={() => handleNavigate(link.adminOnly)} className={link.href === "/dashboard/email" ? "relative" : undefined} aria-label={link.href === "/dashboard/email" && unreadEmailCount > 0 ? `${link.label}, ${unreadEmailCount} unread` : undefined}>
+                        <Link href={link.href} onClick={() => handleNavigate(link.adminOnly)} className={link.href === "/dashboard/email/inbox" ? "relative" : undefined} aria-label={link.href === "/dashboard/email/inbox" && unreadEmailCount > 0 ? `${link.label}, ${unreadEmailCount} unread` : undefined}>
                           <link.icon className="h-4 w-4" />
-                          <span className={cn("sidebar-nav-label", link.href === "/dashboard/email" && unreadEmailCount > 0 && "font-semibold")}>{link.label}</span>
-                          {link.href === "/dashboard/email" && unreadEmailCount > 0 && (
+                          <span className={cn("sidebar-nav-label", link.href === "/dashboard/email/inbox" && unreadEmailCount > 0 && "font-semibold")}>{link.label}</span>
+                          {link.href === "/dashboard/email/inbox" && unreadEmailCount > 0 && (
                             <span className="ml-auto rounded-full bg-button px-1.5 py-0.5 text-[10px] font-bold leading-none tabular-nums text-button-foreground group-data-[collapsible=icon]:absolute group-data-[collapsible=icon]:-right-1 group-data-[collapsible=icon]:-top-1" aria-hidden="true">
                               {unreadEmailCount > 99 ? "99+" : unreadEmailCount}
                             </span>

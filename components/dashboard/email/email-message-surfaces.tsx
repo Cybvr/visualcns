@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { Archive, ArrowLeft, CheckCircle2, ChevronLeft, ChevronRight, Clock, FileText, Forward, Inbox, Mail, MailOpen, Paperclip, Reply, Trash2, X } from "lucide-react"
+import { Archive, CheckCircle2, ChevronLeft, ChevronRight, Clock, FileText, Forward, Inbox, Mail, MailOpen, Paperclip, Reply, Trash2, X } from "lucide-react"
 import type { ReactNode } from "react"
 
 import { Button } from "@/components/ui/button"
@@ -8,6 +8,7 @@ import { CompactListSkeleton } from "@/components/dashboard/compact-list-row"
 import { cn } from "@/lib/utils"
 import type { EmailDraftRecord } from "@/lib/email-drafts"
 import { EmailContentFrame } from "./email-content-frame"
+import { EmailReaderHeader } from "./email-reader-header"
 import { EmailListRow } from "./email-list-row"
 import { ReceivedAttachmentGallery } from "./received-attachment-gallery"
 import type { ReceivedAttachment, ReceivedMessage, SentMessage } from "./types"
@@ -231,65 +232,30 @@ export function EmailMessageSurfaces({
         </aside>
         {selectedReceived && (
           <div className={cn("flex-1 flex-col overflow-hidden rounded-lg border border-border bg-card max-lg:min-h-[calc(100svh-8rem)] max-sm:overflow-visible max-sm:rounded-none max-sm:border-0 max-sm:bg-transparent lg:min-h-0", mobileMessageView === "reader" ? "flex" : "hidden")}>
-            <div className="hidden shrink-0 lg:block">
-              <div className="flex min-h-14 items-center gap-1 border-b border-border px-4">
-                <Button type="button" variant="ghost" size="icon" className="size-9" onClick={onClearReceived} aria-label="Back to inbox" title="Back to inbox"><ArrowLeft className="size-5" aria-hidden="true" /></Button>
-                <span className="mx-2 h-6 w-px bg-border" aria-hidden="true" />
-                <Button type="button" variant="ghost" size="icon" className="size-9" onClick={() => onArchiveReceivedMessage(selectedReceived)} aria-label="Archive message" title="Archive"><Archive className="size-5" aria-hidden="true" /></Button>
-                <Button type="button" variant="ghost" size="icon" className="size-9" onClick={() => onDeleteReceived(selectedReceived)} aria-label="Delete message" title="Delete"><Trash2 className="size-5" aria-hidden="true" /></Button>
-                <Button type="button" variant="ghost" size="icon" className="size-9" onClick={() => onToggleReceivedRead(selectedReceived)} aria-label={selectedReceivedIsRead ? "Mark as unread" : "Mark as read"} title={selectedReceivedIsRead ? "Mark as unread" : "Mark as read"}>{selectedReceivedIsRead ? <Mail className="size-5" aria-hidden="true" /> : <MailOpen className="size-5" aria-hidden="true" />}</Button>
-                <div className="ml-auto flex items-center gap-1">
-                  {selectedReceivedIndex >= 0 && <span className="mr-3 text-sm tabular-nums text-muted-foreground">{selectedReceivedIndex + 1} of {visibleReceivedMessages.length}</span>}
-                  <Button type="button" variant="ghost" size="icon" className="size-9" onClick={() => onOpenReceived(visibleReceivedMessages[selectedReceivedIndex - 1])} disabled={selectedReceivedIndex <= 0} aria-label="Previous message" title="Previous message"><ChevronLeft className="size-5" aria-hidden="true" /></Button>
-                  <Button type="button" variant="ghost" size="icon" className="size-9" onClick={() => onOpenReceived(visibleReceivedMessages[selectedReceivedIndex + 1])} disabled={selectedReceivedIndex < 0 || selectedReceivedIndex >= visibleReceivedMessages.length - 1} aria-label="Next message" title="Next message"><ChevronRight className="size-5" aria-hidden="true" /></Button>
-                </div>
-              </div>
-              <div className="px-6 pb-4 pt-5">
-                <div className="flex items-center gap-3">
-                  <h2 className="min-w-0 text-2xl font-normal leading-tight tracking-tight">{selectedReceived.subject || "(No subject)"}</h2>
-                  <span className="shrink-0 rounded bg-muted px-2 py-0.5 text-xs text-muted-foreground">{tab === "updates" ? "Updates" : "Inbox"}</span>
-                </div>
-                <div className="mt-4 flex items-start gap-3">
-                  <span className={cn("flex size-10 shrink-0 items-center justify-center rounded-full text-sm font-semibold", contactAvatarTone(selectedReceived.from))} aria-hidden="true">{contactInitials(resolveName(selectedReceived.from), selectedReceived.from).slice(0, 1)}</span>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm"><span className="font-semibold">{resolveName(selectedReceived.from)}</span> <span className="text-muted-foreground">&lt;{senderAddress(selectedReceived.from)}&gt; · to {selectedReceived.to.join(", ") || "hello@mail.visualcns.com"}</span></p>
-                  </div>
-                  {selectedReceived.createdAt && <time dateTime={selectedReceived.createdAt} className="shrink-0 pt-0.5 text-xs text-muted-foreground">{formatMessageDate(selectedReceived.createdAt)}</time>}
-                  <Button type="button" variant="ghost" size="icon" className="size-9 shrink-0" onClick={() => onReplyReceived(selectedReceived)} aria-label="Reply" title="Reply"><Reply className="size-5" aria-hidden="true" /></Button>
-                  <Button type="button" variant="ghost" size="icon" className="size-9 shrink-0" onClick={() => onForwardReceived(selectedReceived)} aria-label="Forward" title="Forward"><Forward className="size-5" aria-hidden="true" /></Button>
-                </div>
-              </div>
-            </div>
-            <div className="shrink-0 border-b border-border px-4 py-4 max-sm:border-0 max-sm:px-1 max-sm:pt-1 sm:px-5 lg:hidden">
-              <div className="mb-2 flex items-center gap-1 max-sm:mb-5">
-                <Button type="button" variant="ghost" size="icon" className="-ml-2 size-10" onClick={onClearReceived} aria-label="Back to inbox"><ArrowLeft className="size-5" aria-hidden="true" /></Button>
-                <span className="flex-1" />
-                <Button type="button" variant="ghost" size="icon" className="size-10" onClick={() => onArchiveReceivedMessage(selectedReceived)} aria-label="Archive" title="Archive"><Archive className="size-5" aria-hidden="true" /></Button>
-                <Button type="button" variant="ghost" size="icon" className="size-10" onClick={() => onDeleteReceived(selectedReceived)} aria-label="Delete" title="Delete"><Trash2 className="size-5" aria-hidden="true" /></Button>
-              </div>
-              <h2 className="text-[1.375rem] leading-snug tracking-tight sm:truncate sm:text-base sm:font-semibold sm:tracking-normal">{selectedReceived.subject || "(No subject)"}</h2>
-              <div className="mt-4 flex items-center gap-3 sm:mt-2">
-                <span className={cn("flex size-11 shrink-0 items-center justify-center rounded-full text-base font-semibold sm:hidden", contactAvatarTone(selectedReceived.from))} aria-hidden="true">
-                  {contactInitials(resolveName(selectedReceived.from), selectedReceived.from).slice(0, 1)}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate font-semibold sm:hidden">{resolveName(selectedReceived.from)}</p>
-                  <p className="truncate text-sm text-muted-foreground max-sm:hidden">From {selectedReceived.from}</p>
-                  {selectedReceived.createdAt && <time dateTime={selectedReceived.createdAt} className="block truncate text-sm text-muted-foreground sm:hidden">{formatMessageDate(selectedReceived.createdAt)}</time>}
-                  <p className="truncate text-xs text-muted-foreground max-sm:hidden">To {selectedReceived.to.join(", ") || "hello@mail.visualcns.com"}</p>
-                </div>
-                {selectedReceived.createdAt && <time dateTime={selectedReceived.createdAt} className="shrink-0 self-start text-right text-xs text-muted-foreground max-sm:hidden">{formatMessageDate(selectedReceived.createdAt)}</time>}
-              </div>
-              <details className="mt-3 text-sm text-muted-foreground sm:hidden">
-                <summary className="cursor-pointer list-none font-medium [&::-webkit-details-marker]:hidden">Details</summary>
-                <p className="mt-2 break-all">From {selectedReceived.from}</p>
-                <p className="break-all">To {selectedReceived.to.join(", ") || "hello@mail.visualcns.com"}</p>
-              </details>
-              <div className="mt-4 flex flex-wrap items-center gap-2 max-sm:hidden">
-                <Button type="button" variant="outline" size="sm" onClick={() => onReplyReceived(selectedReceived)}><Reply className="size-4" aria-hidden="true" /> Reply</Button>
-                <Button type="button" variant="outline" size="sm" onClick={() => onForwardReceived(selectedReceived)}><Forward className="size-4" aria-hidden="true" /> Forward</Button>
-              </div>
-            </div>
+            <EmailReaderHeader
+              onBack={onClearReceived}
+              backLabel={tab === "updates" ? "Back to updates" : "Back to inbox"}
+              subject={selectedReceived.subject}
+              details={[`From ${resolveName(selectedReceived.from)} <${senderAddress(selectedReceived.from)}>`, `To ${selectedReceived.to.join(", ") || "hello@mail.visualcns.com"}`]}
+              date={selectedReceived.createdAt}
+              formatDate={formatMessageDate}
+              status={<span className="text-[11px] text-muted-foreground">{tab === "updates" ? "Updates" : "Inbox"}</span>}
+              actions={(
+                <>
+                  <Button type="button" variant="ghost" size="icon" className="size-10" onClick={() => onArchiveReceivedMessage(selectedReceived)} aria-label="Archive message" title="Archive"><Archive className="size-5" aria-hidden="true" /></Button>
+                  <Button type="button" variant="ghost" size="icon" className="size-10" onClick={() => onDeleteReceived(selectedReceived)} aria-label="Delete message" title="Delete"><Trash2 className="size-5" aria-hidden="true" /></Button>
+                  <Button type="button" variant="ghost" size="icon" className="size-10" onClick={() => onToggleReceivedRead(selectedReceived)} aria-label={selectedReceivedIsRead ? "Mark as unread" : "Mark as read"} title={selectedReceivedIsRead ? "Mark as unread" : "Mark as read"}>{selectedReceivedIsRead ? <Mail className="size-5" aria-hidden="true" /> : <MailOpen className="size-5" aria-hidden="true" />}</Button>
+                  <span className="hidden items-center lg:flex">
+                    {selectedReceivedIndex >= 0 && <span className="mx-3 text-sm tabular-nums text-muted-foreground">{selectedReceivedIndex + 1} of {visibleReceivedMessages.length}</span>}
+                    <Button type="button" variant="ghost" size="icon" className="size-10" onClick={() => onOpenReceived(visibleReceivedMessages[selectedReceivedIndex - 1])} disabled={selectedReceivedIndex <= 0} aria-label="Previous message" title="Previous message"><ChevronLeft className="size-5" aria-hidden="true" /></Button>
+                    <Button type="button" variant="ghost" size="icon" className="size-10" onClick={() => onOpenReceived(visibleReceivedMessages[selectedReceivedIndex + 1])} disabled={selectedReceivedIndex < 0 || selectedReceivedIndex >= visibleReceivedMessages.length - 1} aria-label="Next message" title="Next message"><ChevronRight className="size-5" aria-hidden="true" /></Button>
+                  </span>
+                </>
+              )}
+            >
+              <Button type="button" variant="outline" size="sm" onClick={() => onReplyReceived(selectedReceived)}><Reply className="size-4" aria-hidden="true" /> Reply</Button>
+              <Button type="button" variant="outline" size="sm" onClick={() => onForwardReceived(selectedReceived)}><Forward className="size-4" aria-hidden="true" /> Forward</Button>
+            </EmailReaderHeader>
             <div className="min-h-0 flex-1 overflow-y-auto bg-white max-sm:flex-none max-sm:overflow-visible max-sm:rounded-3xl max-sm:border max-sm:border-border max-sm:pb-[calc(10rem+env(safe-area-inset-bottom))]">
               {loadingReceivedId === selectedReceived.id ? <div className="space-y-4 p-6" role="status" aria-label="Loading message"><Skeleton className="h-6 w-2/3" /><Skeleton className="h-4 w-1/3" /><Skeleton className="h-32 w-full" /><Skeleton className="h-4 w-4/5" /><Skeleton className="h-4 w-3/5" /></div> : (
                 <>
@@ -381,7 +347,20 @@ export function EmailMessageSurfaces({
         )}
       </aside>
       {selectedSent && <div className={cn("flex-1 flex-col overflow-hidden rounded-lg border border-border bg-card max-lg:min-h-[calc(100svh-8rem)] max-sm:min-h-0 max-sm:overflow-visible lg:min-h-0", mobileMessageView === "reader" ? "flex" : "hidden")}>
-        <div className="shrink-0 border-b border-border px-4 py-4 sm:px-5"><div className="mb-2 flex items-center gap-2"><Button type="button" variant="ghost" size="icon" className="-ml-2 size-10" onClick={onClearSent} aria-label="Back to sent"><ArrowLeft className="size-5" aria-hidden="true" /></Button><span className="flex-1" /><Button type="button" variant="ghost" size="icon" className="size-10" onClick={() => onDeleteSent(selectedSent)} aria-label="Delete" title="Delete"><Trash2 className="size-5" aria-hidden="true" /></Button></div><div className="flex items-start justify-between gap-4"><div className="min-w-0"><h2 className="text-[1.375rem] leading-snug tracking-tight sm:truncate sm:text-base sm:font-semibold sm:tracking-normal">{selectedSent.subject}</h2><p className="mt-1 truncate text-sm text-muted-foreground">To {selectedSent.to}</p>{selectedSent.from && <p className="truncate text-xs text-muted-foreground">From {cleanSenderDisplay(selectedSent.from)}</p>}</div><div className="flex shrink-0 flex-col items-end gap-1 text-right"><time dateTime={selectedSent.createdAt} className="text-xs text-muted-foreground">{formatMessageDate(selectedSent.createdAt)}</time>{selectedSent.status === "scheduled" && !isScheduledPastDue(selectedSent) ? <span className="inline-flex items-center gap-1 text-[11px] text-amber-700 dark:text-amber-300"><Clock className="size-3" aria-hidden="true" />{selectedSent.scheduledAt ? `Scheduled · ${formatMessageDate(selectedSent.scheduledAt)}` : "Scheduled"}</span> : selectedSent.status === "failed" ? <span className="inline-flex items-center gap-1 text-[11px] text-destructive"><X className="size-3" aria-hidden="true" />Failed</span> : <span className="inline-flex items-center gap-1 text-[11px] text-emerald-700 dark:text-emerald-300"><CheckCircle2 className="size-3" aria-hidden="true" />Sent</span>}</div></div></div>
+        <EmailReaderHeader
+          onBack={onClearSent}
+          backLabel="Back to sent"
+          subject={selectedSent.subject}
+          details={[`To ${selectedSent.to}`, ...(selectedSent.from ? [`From ${cleanSenderDisplay(selectedSent.from)}`] : [])]}
+          date={selectedSent.createdAt}
+          formatDate={formatMessageDate}
+          status={selectedSent.status === "scheduled" && !isScheduledPastDue(selectedSent)
+            ? <span className="inline-flex items-center gap-1 text-[11px] text-amber-700 dark:text-amber-300"><Clock className="size-3" aria-hidden="true" />{selectedSent.scheduledAt ? `Scheduled · ${formatMessageDate(selectedSent.scheduledAt)}` : "Scheduled"}</span>
+            : selectedSent.status === "failed"
+              ? <span className="inline-flex items-center gap-1 text-[11px] text-destructive"><X className="size-3" aria-hidden="true" />Failed</span>
+              : <span className="inline-flex items-center gap-1 text-[11px] text-emerald-700 dark:text-emerald-300"><CheckCircle2 className="size-3" aria-hidden="true" />Sent</span>}
+          actions={<Button type="button" variant="ghost" size="icon" className="size-10" onClick={() => onDeleteSent(selectedSent)} aria-label="Delete" title="Delete"><Trash2 className="size-5" aria-hidden="true" /></Button>}
+        />
         {Boolean(selectedSent.attachments?.length) && <div className="flex shrink-0 flex-wrap gap-2 border-b border-border px-4 py-2 sm:px-5">{selectedSent.attachments?.map((file, index) => <span key={`${file.filename}-${index}`} className="inline-flex max-w-full items-center gap-1 rounded-md bg-muted px-2 py-1 text-xs" title={file.filename}><Paperclip className="size-3 shrink-0" aria-hidden="true" /><span className="truncate">{file.filename}</span></span>)}</div>}
         <div className="min-h-0 flex-1 overflow-hidden bg-white max-sm:flex-none max-sm:overflow-visible">{loadingMessageId === selectedSent.id ? <div className="space-y-4 p-6" role="status" aria-label="Loading message"><Skeleton className="h-6 w-2/3" /><Skeleton className="h-4 w-1/3" /><Skeleton className="h-32 w-full" /><Skeleton className="h-4 w-4/5" /><Skeleton className="h-4 w-3/5" /></div> : messageViewError ? <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center"><p className="text-sm font-medium text-destructive">Couldn’t load this email</p><p className="text-xs leading-5 text-muted-foreground">{messageViewError}</p><Button type="button" variant="outline" size="sm" onClick={() => onRetrySent(selectedSent)}>Try again</Button></div> : !selectedSent.bodyHtml && !selectedSent.bodyText ? <div className="flex h-full flex-col items-center justify-center gap-2 px-6 text-center text-muted-foreground"><Mail className="size-5" aria-hidden="true" /><p className="text-sm font-medium text-foreground">Message body unavailable</p><p className="text-xs leading-5">This email was sent before previews were saved.</p></div> : <EmailContentFrame key={selectedSent.id} title={`Sent email: ${selectedSent.subject}`} srcDoc={sentMessagePreview(selectedSent)} />}</div>
       </div>}

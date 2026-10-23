@@ -61,7 +61,6 @@ import { EMAIL_INBOX_REFRESH_EVENT, publishUnreadEmailCount } from "@/components
 import { contextualEmailBody, plainTextToEditorHtml, readEmailComposeContext } from "@/lib/email-composer"
 import { getBusinessProfile, type BusinessProfile } from "@/lib/business-profile"
 import { deleteEmailTemplate, getEmailTemplates, saveEmailTemplate } from "@/lib/email-templates-store"
-import { SIGNUP_WELCOME_TEMPLATE_ID } from "@/lib/email-templates"
 import { getUsers } from "@/lib/users"
 import { TRIAL_DAYS } from "@/lib/subscription"
 import { cn } from "@/lib/utils"
@@ -268,9 +267,11 @@ export function EmailWorkspace({ initialTab, initialMessageId }: { initialTab: E
   }
   const messageHref = (message: ReceivedMessage) => `${folderHref(tab)}/${encodeURIComponent(message.id)}`
 
+  // The URL decides the folder and open message, so Back and Forward move between them too.
   useEffect(() => {
     setTab(initialTab)
     setSelectedReceivedId(initialMessageId ?? null)
+    setMobileMessageView(initialMessageId ? "reader" : "list")
   }, [initialMessageId, initialTab])
   const [loadingReceivedId, setLoadingReceivedId] = useState<string | null>(null)
   const [downloadingAttachmentId, setDownloadingAttachmentId] = useState<string | null>(null)
@@ -296,7 +297,7 @@ export function EmailWorkspace({ initialTab, initialMessageId }: { initialTab: E
   const [templateSubject, setTemplateSubject] = useState("")
   const [templateBody, setTemplateBody] = useState("")
   const [templateNotice, setTemplateNotice] = useState<Notice>(null)
-  const [mobileMessageView, setMobileMessageView] = useState<"list" | "reader">("list")
+  const [mobileMessageView, setMobileMessageView] = useState<"list" | "reader">(initialMessageId ? "reader" : "list")
   const [mobileTemplateView, setMobileTemplateView] = useState<"list" | "editor">("list")
   const [listName, setListName] = useState("")
   const [listContactEmails, setListContactEmails] = useState<string[]>([])
@@ -450,9 +451,9 @@ export function EmailWorkspace({ initialTab, initialMessageId }: { initialTab: E
     setSelectedSentId((current) => current && visibleMessages.some((m) => m.id === current) ? current : null)
   }, [tab, messages])
 
+  // Ticked messages don't carry over between folders. The open message is left alone: openFolder
+  // closes it, and on a message's own page it is the one in the URL.
   useEffect(() => {
-    if (tab === "inbox" || tab === "updates" || tab === "messages") setMobileMessageView("list")
-    setSelectedReceivedId(null)
     setSelectedReceivedIds(new Set())
   }, [tab])
 
@@ -850,7 +851,7 @@ export function EmailWorkspace({ initialTab, initialMessageId }: { initialTab: E
     })
     // The request to compose is used once. Left in the URL, every refresh,
     // Back, or re-read of the URL would open the composer again.
-    router.replace("/dashboard/email", { scroll: false })
+    router.replace(folderHref(tab), { scroll: false })
   }, [router, searchParams])
 
   useEffect(() => {
@@ -1243,6 +1244,7 @@ export function EmailWorkspace({ initialTab, initialMessageId }: { initialTab: E
   function useTemplateInComposer(templateId: string) {
     if (!templates.some((template) => template.id === templateId)) return
     openCompose({ templateId })
+  }
 
   /** Shows the template being edited as an email, without opening the composer. */
   function previewEditingTemplate() {
@@ -1294,41 +1296,6 @@ export function EmailWorkspace({ initialTab, initialMessageId }: { initialTab: E
     } catch (error) {
       console.error("Error saving email template:", error)
       setTemplateNotice({ tone: "error", text: "The template could not be saved. Try again." })
-    }
-  }
-
-  async function addSignupWelcomeTemplate() {
-    if (!user?.uid) {
-      setTemplateNotice({ tone: "error", text: "Sign in before adding a template." })
-      return
-    }
-    // Sent automatically by /api/signup, which fills in [Name] and [Company] and adds the company page button.
-    const welcomeTemplate: EmailTemplate = {
-      id: SIGNUP_WELCOME_TEMPLATE_ID,
-      name: "Signup welcome",
-      subject: "Welcome to VisualCNS, [Company]",
-      body:
-        "<p>Hi [Name],</p>" +
-        "<p>Your [Company] account is ready. Open your company page to get started.</p>" +
-        "<p>If you need help, reply to this email and we’ll be happy to help.</p>" +
-        "<p>Best,<br />The VisualCNS team</p>",
-      updatedAt: new Date().toISOString(),
-    }
-    try {
-      const storedTemplate: EmailTemplate = {
-        ...welcomeTemplate,
-        id: `${workspaceId}__${welcomeTemplate.id}`,
-        templateId: welcomeTemplate.id,
-        companyId: workspaceId,
-        createdBy: user.uid,
-      }
-      await saveEmailTemplate(storedTemplate as EmailTemplate & { companyId: string; createdBy: string })
-      setTemplates((current) => [storedTemplate, ...current.filter((template) => template.id !== storedTemplate.id)])
-      editTemplate(storedTemplate)
-      setMobileTemplateView("editor")
-      setTemplateNotice({ tone: "success", text: "Signup welcome email added. New users get it when they sign up." })
-    } catch {
-      setTemplateNotice({ tone: "error", text: "The template could not be added. Try again." })
     }
   }
 
@@ -1796,7 +1763,6 @@ export function EmailWorkspace({ initialTab, initialMessageId }: { initialTab: E
             mobileTemplateView={mobileTemplateView}
             businessProfile={businessProfile}
             isAdmin={isAdmin}
-            addSignupWelcomeTemplate={addSignupWelcomeTemplate}
             addVisitorSalesTemplate={addVisitorSalesTemplate}
             resetTemplateEditor={resetTemplateEditor}
             deleteTemplate={(id) => setPendingDelete({ kind: "template", ids: [id] })}

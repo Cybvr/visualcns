@@ -30,7 +30,7 @@ export function buildEmailComposeHref(context: EmailComposeContext) {
     const value = context[key]
     if (typeof value === "string" && value) params.set(key, value)
   }
-  return `/dashboard/email?${params.toString()}`
+  return `/dashboard/email/inbox?${params.toString()}`
 }
 
 export function readEmailComposeContext(params: URLSearchParams): EmailComposeContext | null {

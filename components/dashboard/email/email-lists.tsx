@@ -4,8 +4,9 @@ import { ArrowLeft, List } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { MobileDataCard } from "@/components/dashboard/mobile-data-card"
 import { cn } from "@/lib/utils"
+import { EmailFolderEmpty, EmailFolderList } from "./email-folder-list"
+import { EmailListRow } from "./email-list-row"
 import type { ContactList, EmailContact } from "./types"
 
 export type EmailListsProps = {
@@ -40,50 +41,32 @@ export function EmailLists({
   editingListId,
   editList,
   deleteList,
+  contactInitials,
+  contactAvatarTone,
 }: EmailListsProps) {
   return (
     <section className="min-h-0 w-full min-w-0 max-w-full flex-1 overflow-visible" role="tabpanel">
       <div className="min-h-0 overflow-visible lg:overflow-y-auto">
-        {visibleLists.length === 0 ? (
-          <div className="px-4 py-10 text-center">
-            <List className="mx-auto size-5 text-muted-foreground" aria-hidden="true" />
-            <p className="mt-3 text-sm font-medium">No lists yet</p>
-            <p className="mt-1 text-xs leading-5 text-muted-foreground">No lists yet.</p>
-          </div>
-        ) : (
-          <>
-            <div className="space-y-2 sm:hidden">
-              {visibleLists.map((list) => (
-                <MobileDataCard
-                  key={list.id}
-                  title={list.name}
-                  subtitle={`${list.contactEmails.length} contact${list.contactEmails.length === 1 ? "" : "s"}`}
-                  icon={<List className="size-5 text-blue-600 dark:text-blue-400" aria-hidden="true" />}
-                  onClick={() => editList(list)}
-                  ariaLabel={`Open ${list.name}`}
-                  menuLabel={`Options for ${list.name}`}
-                  actions={{ noun: "list", name: list.name, onDelete: () => deleteList(list.id) }}
-                />
-              ))}
-            </div>
-            <div className="hidden space-y-2 sm:block">
-              {visibleLists.map((list) => (
-                <MobileDataCard
-                  key={list.id}
-                  surface="muted"
-                  title={list.name}
-                  subtitle={`${list.contactEmails.length} contact${list.contactEmails.length === 1 ? "" : "s"}`}
-                  icon={<List className="size-5 text-blue-600 dark:text-blue-400" aria-hidden="true" />}
-                  selected={editingListId === list.id}
-                  onClick={() => editList(list)}
-                  ariaLabel={`Open ${list.name}`}
-                  menuLabel={`Options for ${list.name}`}
-                  actions={{ noun: "list", name: list.name, onDelete: () => deleteList(list.id) }}
-                />
-              ))}
-            </div>
-          </>
-        )}
+        <EmailFolderList
+          label={`${visibleLists.length} ${visibleLists.length === 1 ? "list" : "lists"}`}
+          empty={visibleLists.length === 0 ? <EmailFolderEmpty icon={<List className="mx-auto size-5 text-muted-foreground" aria-hidden="true" />} title="No lists yet" /> : undefined}
+        >
+          {visibleLists.map((list) => (
+            <EmailListRow
+              key={list.id}
+              title={list.name}
+              subject={`${list.contactEmails.length} contact${list.contactEmails.length === 1 ? "" : "s"}`}
+              date={list.updatedAt}
+              avatarInitials={contactInitials(list.name, list.name)}
+              avatarTone={contactAvatarTone(list.name)}
+              selected={editingListId === list.id}
+              onOpen={() => editList(list)}
+              onDelete={() => deleteList(list.id)}
+              deleteLabel={`Delete ${list.name}`}
+              ariaLabel={`Open ${list.name}`}
+            />
+          ))}
+        </EmailFolderList>
       </div>
     </section>
   )
