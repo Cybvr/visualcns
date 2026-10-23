@@ -105,11 +105,10 @@ type MobileSearchBarProps = Pick<FilterBarProps, "query" | "onQueryChange" | "so
 export function MobileSearchBar({ query, onQueryChange, sorts, sortKey, onSortKeyChange, direction, onDirectionChange, placeholder = "Search", onOpenFilters, create, className }: MobileSearchBarProps) {
   const active = sorts.find((option) => option.value === sortKey)
   const directionLabel = direction === "asc" ? active?.ascLabel ?? "Ascending" : active?.descLabel ?? "Descending"
-  const chipClass = "flex h-10 shrink-0 items-center gap-1.5 rounded-xl bg-muted px-3 text-sm font-semibold outline-none focus-visible:ring-2 focus-visible:ring-ring"
+  const chipClass = "flex size-10 shrink-0 items-center justify-center rounded-xl bg-muted outline-none focus-visible:ring-2 focus-visible:ring-ring"
   const chipContent = (
     <>
       {direction === "asc" ? <ArrowUp className="size-4" aria-hidden="true" /> : <ArrowDown className="size-4" aria-hidden="true" />}
-      {directionLabel}
     </>
   )
 
@@ -368,11 +367,12 @@ export function FilterBar({
         onDirectionChange={onDirectionChange}
         placeholder={placeholder}
         onOpenFilters={mobileFilters || children ? () => setFilterOpen(true) : undefined}
-        create={(actions && !headerOnMobile) || mobileCreate ? <>{!headerOnMobile && actions && <div className="flex shrink-0 items-center gap-1">{actions}</div>}{mobileCreate}</> : undefined}
+        // On phones the view toggle and other controls share the search row instead of taking one of their own.
+        create={controls || (actions && !headerOnMobile) || mobileCreate ? <>{controls && <div className="flex shrink-0 items-center">{controls}</div>}{!headerOnMobile && actions && <div className="flex shrink-0 items-center gap-1">{actions}</div>}{mobileCreate}</> : undefined}
         className="mb-4 sm:hidden"
       />
     )}
-    <div className={cn("mb-6 flex flex-wrap items-center gap-3", showSearch && mobileSearch && !leading && !controls && "max-sm:hidden", className)}>
+    <div className={cn("mb-6 flex flex-wrap items-center gap-3", showSearch && mobileSearch && !leading && "max-sm:hidden", className)}>
       <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
       {leading}
       {sortMenu && <span className={cn(showSearch && "max-sm:hidden")}>{sortMenu}</span>}
@@ -405,7 +405,7 @@ export function FilterBar({
       {(children || controls || actions || desktopActions) && (
         <div className="ml-auto flex shrink-0 flex-wrap items-center justify-end gap-2">
           {children && <div className="hidden flex-wrap items-center gap-2 sm:flex">{children}</div>}
-          {controls}
+          {controls && <div className={cn(showSearch && mobileSearch && "max-sm:hidden")}>{controls}</div>}
           {actions && <div className={cn("flex flex-wrap items-center gap-2", (headerOnMobile || (showSearch && mobileSearch)) && "max-sm:hidden")}>{actions}</div>}
           {desktopActions && <div className="flex flex-wrap items-center gap-2 max-sm:hidden">{desktopActions}</div>}
         </div>
