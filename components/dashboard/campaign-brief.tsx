@@ -11,7 +11,7 @@ import { SettingsSection } from "@/components/dashboard/settings-section"
 import { TaskContent, taskContentHtml } from "@/components/dashboard/task-content"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { resolveOpenings } from "@/lib/campaign-brief"
+import { hiresCreators, resolveOpenings } from "@/lib/campaign-brief"
 import { renameProject, slugify, updateProject, type Project } from "@/lib/projects"
 
 /**
@@ -45,6 +45,7 @@ export function CampaignBrief({
   const openingsDirty = JSON.stringify(openings) !== savedOpeningsKey
   // An opening needs a role before it can be saved.
   const openingsReady = openings.every((opening) => opening.title.trim())
+  const jobCount = openings.length + (brief.draft.hireCreators ? 1 : 0)
   const textDirty = title.trim() !== project.title || about !== savedAbout || openingsDirty
   const dirty = textDirty || brief.dirty
 
@@ -106,9 +107,17 @@ export function CampaignBrief({
           )}
         </SettingsSection>
         {(canEdit || savedOpenings.length > 0) && (
-          <SettingsSection title={openings.length ? `Openings (${openings.length})` : "Openings"} icon={Briefcase} defaultOpen={savedOpenings.length > 0}>
+          <SettingsSection title={jobCount ? `Jobs (${jobCount})` : "Jobs"} icon={Briefcase} defaultOpen>
             {canEdit ? (
-              <CampaignOpeningsForm projectId={project.id} value={openings} savedIds={savedOpenings.map((opening) => opening.id)} currency={brief.draft.currency} onChange={setOpenings} />
+              <CampaignOpeningsForm
+                projectId={project.id}
+                value={openings}
+                savedIds={savedOpenings.map((opening) => opening.id)}
+                brief={brief.draft}
+                creatorsSaved={hiresCreators(project.brief)}
+                onChange={setOpenings}
+                onBriefChange={brief.set}
+              />
             ) : (
               <div className="space-y-6">
                 {savedOpenings.map((opening) => (
@@ -123,7 +132,7 @@ export function CampaignBrief({
         )}
       </div>
       {/* Settings: a side panel on wide screens, more sections below on phones. */}
-      <aside aria-label="Creator brief settings" className="min-w-0 lg:sticky lg:top-4">
+      <aside aria-label="Campaign settings" className="min-w-0 lg:sticky lg:top-4">
         <CreatorBriefForm project={project} canEdit={canEdit} value={brief.draft} onChange={brief.set} />
       </aside>
       {/* One Save for the title, the about and the creator brief. */}
@@ -133,7 +142,7 @@ export function CampaignBrief({
           {(textDirty || brief.changed) && (
             <Button type="button" variant="ghost" onClick={() => { setTitle(project.title); setAbout(savedAbout); setOpenings(savedOpenings); brief.reset() }}>Cancel</Button>
           )}
-          {!openingsReady && <p className="self-center text-sm text-muted-foreground">Give each opening a role to save.</p>}
+          {!openingsReady && <p className="self-center text-sm text-muted-foreground">Give each job a title to save.</p>}
         </div>
       )}
     </form>
@@ -141,4 +150,4 @@ export function CampaignBrief({
 }
 
 /** Shown in the empty editor, so whoever fills it in knows what to cover. */
-const ABOUT_PLACEHOLDER = "What it is, when and where, who it's for, why it's worth talking about, what people should do, and anything creators must mention or avoid."
+const ABOUT_PLACEHOLDER = "What it is, when and where, who it's for, and why it matters."

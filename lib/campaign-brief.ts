@@ -37,7 +37,7 @@ export const BRIEF_PAYMENT_METHODS = ["Bank transfer", "PayPal", "Wise", "Mobile
 export const BRIEF_CURRENCIES = ["NGN", "USD", "GBP", "EUR", "AED", "GHS", "KES", "ZAR"] as const
 
 export type CreatorBrief = {
-  /** Off: the campaign doesn't hire creators to post, only the openings below. Platform, goal and dates still describe the campaign. */
+  /** On: the campaign has a Creators job, for people who post. New campaigns start without one; older saved briefs had it. */
   hireCreators: boolean
   platform: string
   goal: string
@@ -75,7 +75,7 @@ export const CREATOR_DEFAULT_KEYS = ["platform", "gender", "age", "followers", "
 export type CreatorDefaults = Pick<CreatorBrief, (typeof CREATOR_DEFAULT_KEYS)[number]>
 
 export const EMPTY_BRIEF: CreatorBrief = {
-  hireCreators: true,
+  hireCreators: false,
   platform: "Instagram",
   goal: "awareness",
   fixedOffer: true,
@@ -110,7 +110,7 @@ const list = (value: unknown) => (Array.isArray(value) ? value.filter((item): it
 export function resolveBrief(saved?: Partial<CreatorBrief> | null, defaults?: Partial<CreatorDefaults> | null): CreatorBrief {
   const source: Record<string, unknown> = { ...(defaults ?? {}), ...(saved ?? {}) }
   return {
-    hireCreators: source.hireCreators !== false,
+    hireCreators: typeof source.hireCreators === "boolean" ? source.hireCreators : hasBrief(saved),
     platform: text(source.platform, EMPTY_BRIEF.platform),
     goal: text(source.goal, EMPTY_BRIEF.goal),
     fixedOffer: typeof source.fixedOffer === "boolean" ? source.fixedOffer : EMPTY_BRIEF.fixedOffer,

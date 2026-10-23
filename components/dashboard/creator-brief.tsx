@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState, type ReactNode } from "react"
-import { CalendarCheck, CalendarClock, CalendarRange, Clapperboard, CreditCard, Globe, ListChecks, Megaphone, MessageSquareText, Smartphone, Target, Users, Wallet, X, type LucideIcon } from "lucide-react"
+import { CalendarCheck, CalendarClock, CalendarRange, Clapperboard, CreditCard, Globe, ListChecks, Megaphone, Smartphone, Target, Users, Wallet, X, type LucideIcon } from "lucide-react"
 import { toast } from "sonner"
 
 import { SocialIcon } from "@/components/company/social-icon"
@@ -76,12 +76,11 @@ export function useCreatorBriefDraft(project: Project) {
   }
 }
 
-/** The creator brief's settings as + / − sections; plain facts for people who can't edit. */
+/** The campaign's own settings, shared by every job on it; plain facts for people who can't edit. */
 export function CreatorBriefForm({ project, canEdit, value, onChange }: { project: Project; canEdit: boolean; value: CreatorBrief; onChange: Patch }) {
   const draft = value
   const set = onChange
-  const saved = value
-  if (!canEdit) return project.brief ? <CreatorBriefSummary brief={saved} /> : <p className="text-[15px] text-muted-foreground">Not written yet.</p>
+  if (!canEdit) return project.brief ? <CreatorBriefSummary brief={draft} /> : <p className="text-[15px] text-muted-foreground">Not written yet.</p>
 
   return (
     <div>
@@ -89,66 +88,60 @@ export function CreatorBriefForm({ project, canEdit, value, onChange }: { projec
         <div className="space-y-4">
           <Pick label="Platform" value={draft.platform} options={BRIEF_PLATFORMS} onChange={(platform) => set({ platform })} />
           <Pick label="Goal" value={draft.goal} options={BRIEF_GOALS} onChange={(goal) => set({ goal })} />
-          <div className="flex items-center gap-2">
-            <Switch id="brief-hire-creators" checked={draft.hireCreators} onCheckedChange={(hireCreators) => set({ hireCreators })} />
-            <Label htmlFor="brief-hire-creators">Hire creators to post</Label>
-          </div>
-          {draft.hireCreators && <OfferField value={draft} onChange={set} />}
         </div>
       </SettingsSection>
-      {draft.hireCreators && (
-        <SettingsSection title="Content" icon={Clapperboard}>
-          <ContentFields value={draft} onChange={set} />
-        </SettingsSection>
-      )}
       <SettingsSection title="Dates" icon={CalendarRange}>
         <div className="space-y-4">
-          {draft.hireCreators && <DateField label="Apply by" value={draft.registerBy} onChange={(registerBy) => set({ registerBy })} />}
           {/* No browser min on End date: inside a collapsed section an invalid date silently blocks Save.
               A later start moves the end with it instead, and an earlier end pulls the start back. */}
           <DateField label="Start date" value={draft.postFrom} onChange={(postFrom) => set(postFrom && draft.postTo && draft.postTo < postFrom ? { postFrom, postTo: postFrom } : { postFrom })} />
           <DateField label="End date" value={draft.postTo} onChange={(postTo) => set(postTo && draft.postFrom && postTo < draft.postFrom ? { postTo, postFrom: postTo } : { postTo })} />
         </div>
       </SettingsSection>
-      {draft.hireCreators && <>
-      <SettingsSection title="Creators" icon={Users}>
-        <div className="space-y-4">
-          <Pick label="Gender" value={draft.gender} options={BRIEF_GENDERS} onChange={(gender) => set({ gender })} />
-          <Pick label="Age" value={draft.age} options={BRIEF_AGES} onChange={(age) => set({ age })} />
-          <Pick label="Followers" value={draft.followers} options={BRIEF_FOLLOWERS} onChange={(followers) => set({ followers })} />
-          <Chips label="Interests" values={draft.interests} options={BRIEF_INTERESTS} onChange={(interests) => set({ interests })} />
-          <Chips label="Countries" values={draft.countries} options={BRIEF_COUNTRIES} onChange={(countries) => set({ countries })} allowNew />
-          <div className="flex items-center gap-2 pt-2">
-            <Switch id="brief-show-creator-details" checked={draft.showCreatorDetails} onCheckedChange={(showCreatorDetails) => set({ showCreatorDetails })} />
-            <Label htmlFor="brief-show-creator-details">Show creator details and ask for handles on the shared page</Label>
-          </div>
+    </div>
+  )
+}
+
+/** The Creators job: what creators post, when, for how much, and who it wants. Shown in the campaign's Jobs. */
+export function CreatorsJobFields({ value, onChange }: { value: CreatorBrief; onChange: Patch }) {
+  const set = onChange
+  return (
+    <div className="space-y-5">
+      <ContentFields value={value} onChange={set} />
+      <DateField label="Apply by" value={value.registerBy} onChange={(registerBy) => set({ registerBy })} />
+      <OfferField value={value} onChange={set} />
+      <div className="space-y-4">
+        <p className="text-sm font-medium">Creators</p>
+        <div className="grid gap-4 sm:grid-cols-3">
+          <Pick label="Gender" value={value.gender} options={BRIEF_GENDERS} onChange={(gender) => set({ gender })} />
+          <Pick label="Age" value={value.age} options={BRIEF_AGES} onChange={(age) => set({ age })} />
+          <Pick label="Followers" value={value.followers} options={BRIEF_FOLLOWERS} onChange={(followers) => set({ followers })} />
         </div>
-      </SettingsSection>
-      <SettingsSection title="Payment" icon={CreditCard}>
-        <div className="space-y-4">
-          <Pick label="Payment method" value={draft.paymentMethod} options={BRIEF_PAYMENT_METHODS} onChange={(paymentMethod) => set({ paymentMethod })} />
-          <div className="flex items-center gap-2">
-            <Switch id="brief-paid-ads" checked={draft.paidAds} onCheckedChange={(paidAds) => set({ paidAds })} />
-            <Label htmlFor="brief-paid-ads">Featured in paid ads</Label>
-          </div>
+        <Chips label="Interests" values={value.interests} options={BRIEF_INTERESTS} onChange={(interests) => set({ interests })} />
+        <Chips label="Countries" values={value.countries} options={BRIEF_COUNTRIES} onChange={(countries) => set({ countries })} allowNew />
+        <div className="flex items-center gap-2">
+          <Switch id="brief-show-creator-details" checked={value.showCreatorDetails} onCheckedChange={(showCreatorDetails) => set({ showCreatorDetails })} />
+          <Label htmlFor="brief-show-creator-details">Ask for their social handle</Label>
         </div>
-      </SettingsSection>
-      <SettingsSection title="Application" icon={MessageSquareText}>
-        <div className="space-y-4">
-          {draft.questions.map((question, index) => (
-            <div key={index} className="space-y-2">
-              <Label htmlFor={`brief-question-${index}`}>Question {index + 1}</Label>
-              <Input
-                id={`brief-question-${index}`}
-                value={question}
-                maxLength={200}
-                onChange={(event) => set({ questions: draft.questions.map((item, at) => (at === index ? event.target.value : item)) })}
-              />
-            </div>
-          ))}
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Pick label="Payment method" value={value.paymentMethod} options={BRIEF_PAYMENT_METHODS} onChange={(paymentMethod) => set({ paymentMethod })} />
+        <div className="flex items-center gap-2 sm:pt-7">
+          <Switch id="brief-paid-ads" checked={value.paidAds} onCheckedChange={(paidAds) => set({ paidAds })} />
+          <Label htmlFor="brief-paid-ads">Featured in paid ads</Label>
         </div>
-      </SettingsSection>
-      </>}
+      </div>
+      {value.questions.map((question, index) => (
+        <div key={index} className="space-y-2">
+          <Label htmlFor={`brief-question-${index}`}>Question {index + 1}</Label>
+          <Input
+            id={`brief-question-${index}`}
+            value={question}
+            maxLength={200}
+            onChange={(event) => set({ questions: value.questions.map((item, at) => (at === index ? event.target.value : item)) })}
+          />
+        </div>
+      ))}
     </div>
   )
 }
@@ -206,7 +199,7 @@ function OfferField({ value, onChange }: { value: CreatorBrief; onChange: Patch 
       {value.fixedOffer && (
         <div className="flex items-center gap-2 pt-2">
           <Switch id="brief-show-offer" checked={value.showOffer} onCheckedChange={(showOffer) => onChange({ showOffer })} />
-          <Label htmlFor="brief-show-offer">Show offer and payment on the shared page</Label>
+          <Label htmlFor="brief-show-offer">Show the pay</Label>
         </div>
       )}
     </div>

@@ -3,34 +3,40 @@
 import { Link2, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 
-import { DateField, Pick } from "@/components/dashboard/creator-brief"
+import { CreatorsJobFields, DateField, Pick } from "@/components/dashboard/creator-brief"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
-import { BRIEF_CURRENCIES, BRIEF_PAYMENT_METHODS, campaignSharePath, newOpening, type CampaignOpening } from "@/lib/campaign-brief"
+import { BRIEF_CURRENCIES, BRIEF_PAYMENT_METHODS, campaignSharePath, CREATORS_ROLE, newOpening, type CampaignOpening, type CreatorBrief } from "@/lib/campaign-brief"
 import { siteUrl } from "@/lib/email-composer"
 
 /**
- * The campaign's openings, like a graphic designer or a strategist: each with
- * what they hand over, dates, pay and questions, and its own link to share.
- * Saved with the About campaign tab's one Save button.
+ * The campaign's jobs: openings like a graphic designer or a strategist, each with
+ * what they hand over, dates, pay and questions, and the Creators job for people
+ * who post. Each has its own link. Saved with the About campaign tab's one Save button.
  */
 export function CampaignOpeningsForm({
   projectId,
   value,
   savedIds,
-  currency,
+  brief,
+  creatorsSaved,
   onChange,
+  onBriefChange,
 }: {
   projectId: string
   value: CampaignOpening[]
   /** Openings already saved, whose links work. */
   savedIds: string[]
-  currency: string
+  /** The creator brief being edited; its hireCreators decides whether the Creators job is there. */
+  brief: CreatorBrief
+  /** The Creators job is saved, so its link works. */
+  creatorsSaved: boolean
   onChange: (openings: CampaignOpening[]) => void
+  onBriefChange: (patch: Partial<CreatorBrief>) => void
 }) {
   const update = (id: string, patch: Partial<CampaignOpening>) => onChange(value.map((opening) => (opening.id === id ? { ...opening, ...patch } : opening)))
 
@@ -45,21 +51,34 @@ export function CampaignOpeningsForm({
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-muted-foreground">Jobs on this campaign besides posting. Each gets its own link: people see the campaign, then only their job. The campaign's main link lists every job.</p>
+      {brief.hireCreators && (
+        <section aria-label="Creators" className="space-y-4 rounded-xs border border-border p-4">
+          <div className="flex items-center gap-2">
+            <h3 className="min-w-0 flex-1 text-sm font-semibold text-foreground">Creators</h3>
+            <Button type="button" variant="outline" size="icon" disabled={!creatorsSaved} onClick={() => void copyLink(CREATORS_ROLE)} aria-label="Copy job link" title={creatorsSaved ? "Copy job link" : "Save to get its link"}>
+              <Link2 className="size-4" />
+            </Button>
+            <Button type="button" variant="ghost" size="icon" onClick={() => onBriefChange({ hireCreators: false })} aria-label="Remove Creators" title="Remove">
+              <Trash2 className="size-4" />
+            </Button>
+          </div>
+          <CreatorsJobFields value={brief} onChange={onBriefChange} />
+        </section>
+      )}
       {value.map((opening, index) => {
         const id = `opening-${opening.id}`
         const saved = savedIds.includes(opening.id)
         return (
-          <section key={opening.id} aria-label={opening.title || `Opening ${index + 1}`} className="space-y-4 rounded-xs border border-border p-4">
+          <section key={opening.id} aria-label={opening.title || `Job ${index + 1}`} className="space-y-4 rounded-xs border border-border p-4">
             <div className="flex items-end gap-2">
               <div className="min-w-0 flex-1 space-y-2">
-                <Label htmlFor={`${id}-title`}>Role</Label>
+                <Label htmlFor={`${id}-title`}>Job title</Label>
                 <Input id={`${id}-title`} value={opening.title} maxLength={80} placeholder="e.g. Graphic designer" onChange={(event) => update(opening.id, { title: event.target.value })} />
               </div>
               <Button type="button" variant="outline" size="icon" disabled={!saved} onClick={() => void copyLink(opening.id)} aria-label="Copy job link" title={saved ? "Copy job link" : "Save to get its link"}>
                 <Link2 className="size-4" />
               </Button>
-              <Button type="button" variant="ghost" size="icon" onClick={() => onChange(value.filter((item) => item.id !== opening.id))} aria-label={`Remove ${opening.title || "opening"}`} title="Remove">
+              <Button type="button" variant="ghost" size="icon" onClick={() => onChange(value.filter((item) => item.id !== opening.id))} aria-label={`Remove ${opening.title || "job"}`} title="Remove">
                 <Trash2 className="size-4" />
               </Button>
             </div>
@@ -104,7 +123,7 @@ export function CampaignOpeningsForm({
               <Pick label="Payment method" value={opening.paymentMethod} options={BRIEF_PAYMENT_METHODS} onChange={(paymentMethod) => update(opening.id, { paymentMethod })} />
               <div className="flex items-center gap-2 sm:pt-7">
                 <Switch id={`${id}-show-pay`} checked={opening.showOffer} onCheckedChange={(showOffer) => update(opening.id, { showOffer })} />
-                <Label htmlFor={`${id}-show-pay`}>Show pay on the shared page</Label>
+                <Label htmlFor={`${id}-show-pay`}>Show the pay</Label>
               </div>
             </div>
             {opening.questions.map((question, at) => (
@@ -121,7 +140,10 @@ export function CampaignOpeningsForm({
           </section>
         )
       })}
-      <Button type="button" variant="outline" onClick={() => onChange([...value, newOpening(currency)])}>Add opening</Button>
+      <div className="flex flex-wrap gap-2">
+        <Button type="button" variant="outline" onClick={() => onChange([...value, newOpening(brief.currency)])}>Add job</Button>
+        {!brief.hireCreators && <Button type="button" variant="outline" onClick={() => onBriefChange({ hireCreators: true })}>Add creators</Button>}
+      </div>
     </div>
   )
 }
