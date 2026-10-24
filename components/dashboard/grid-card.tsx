@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { EllipsisVertical } from "lucide-react"
+import { Check, EllipsisVertical } from "lucide-react"
 import type { ComponentType, ReactNode } from "react"
 
 import { hasItemActions, ItemActionsMenu, type ItemActions } from "@/components/dashboard/item-menu"
@@ -24,6 +24,8 @@ export type GridCardProps = {
   /** Keep the menu button visible even when the card is not hovered. */
   menuAlwaysVisible?: boolean
   selected?: boolean
+  /** The list is picking items: show a tick circle on every card. */
+  selecting?: boolean
   href?: string
   onClick?: () => void
   ariaLabel?: string
@@ -45,6 +47,7 @@ export function GridCard({
   menuLabel = "More options",
   menuAlwaysVisible = false,
   selected = false,
+  selecting = false,
   href,
   onClick,
   ariaLabel,
@@ -93,6 +96,17 @@ export function GridCard({
           ) : (
             placeholder
           ))}
+        {selecting && (
+          <span
+            aria-hidden="true"
+            className={cn(
+              "absolute left-2 top-2 flex size-6 items-center justify-center rounded-full border-2 shadow-sm",
+              selected ? "border-primary bg-primary text-primary-foreground" : "border-white bg-black/30",
+            )}
+          >
+            {selected && <Check className="size-4" strokeWidth={3} />}
+          </span>
+        )}
       </div>
       {subtitle !== undefined && <p className="pointer-events-none relative truncate px-1 text-xs text-muted-foreground">{subtitle}</p>}
     </div>

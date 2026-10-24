@@ -1182,6 +1182,19 @@ function MediaLibrary({ files, scope, canEdit, startNew = false, onActionHandled
         }}
         card={(item) => item.type === "folder" ? folderCard(item) : mediaCard(item)}
         itemActions={itemActions}
+        selection={canEdit ? {
+          noun: "item",
+          onDelete: async (selectedItems) => {
+            if (selectedItems.some((item) => item.id === activeFolderId)) setActiveFolderId(null)
+            const results = await Promise.allSettled(selectedItems.map((item) => item.type === "folder" ? deleteCampaignMediaFolder(scope.projectId, item.id) : deleteCampaignCreative(item.id)))
+            const failures = results.filter((result) => result.status === "rejected").length
+            if (failures) {
+              toast.error(`${failures} ${failures === 1 ? "item" : "items"} couldn't be deleted.`)
+              throw new Error(`Failed to delete ${failures} media items`)
+            }
+            toast.success(`${selectedItems.length} ${selectedItems.length === 1 ? "item" : "items"} deleted.`)
+          },
+        } : undefined}
         date={(item) => item.updatedAt ?? item.createdAt}
         row={(item) => item.type === "folder"
           ? { subtitle: folderCountLabel(item) }

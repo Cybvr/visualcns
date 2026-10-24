@@ -14,6 +14,7 @@ import { TableBulkBar } from "@/components/dashboard/table-bulk-bar"
 import { ThumbnailListItem } from "@/components/dashboard/thumbnail-list-item"
 import { useViewMode, ViewToggle, type ViewMode } from "@/components/dashboard/view-toggle"
 import { Checkbox } from "@/components/ui/checkbox"
+import { useLongPress } from "@/hooks/use-long-press"
 import { useRowSelection } from "@/hooks/use-row-selection"
 import { formatTimestamp } from "@/lib/tasks"
 
@@ -114,7 +115,7 @@ export function CollectionView<T>({
   date?: (item: T) => unknown
   /** The item's menu, built in the standard order. Used in place of the card's own `actions`. */
   itemActions?: (item: T) => CollectionItemActions
-  /** Checkbox selection and confirmed bulk delete for compact list rows. */
+  /** Selection and confirmed bulk delete. Press and hold an item to start, then tap to add more; list rows also have checkboxes. */
   selection?: { noun: string; onDelete: (items: T[]) => Promise<void> }
 }) {
   const [savedView, setSavedView] = useViewMode(viewKey, initialView)
@@ -123,9 +124,13 @@ export function CollectionView<T>({
   const isEmpty = items.length === 0 && !hasExtraCards
   const selected = useRowSelection(results, getKey)
   const [deleting, setDeleting] = useState(false)
+  // Custom list rows and thumbnail rows can't show selection, so holding only selects in the grid and compact list.
+  const canSelect = Boolean(selection) && (view === "grid" ? !gridItem : listStyle === "compact" && !listItem)
+  const selecting = canSelect && selected.selectedCount > 0
+  const longPress = useLongPress(canSelect ? (id) => { if (!selected.isSelected(id)) selected.toggle(id) } : undefined)
 
   useEffect(() => {
-    if (view !== "list") selected.clear()
+    selected.clear()
   }, [view, selected.clear])
 
   async function deleteSelected() {
@@ -149,8 +154,16 @@ export function CollectionView<T>({
 
   function cardFor(item: T): GridCardProps {
     const base = card(item)
+    const id = getKey(item)
     return {
       ...base,
+      ...(selecting && {
+        href: undefined,
+        onClick: () => selected.toggle(id),
+        ariaLabel: `${selected.isSelected(id) ? "Deselect" : "Select"} ${typeof base.title === "string" ? base.title : selection?.noun ?? "item"}`,
+      }),
+      selected: canSelect ? selected.isSelected(id) : base.selected,
+      selecting,
       // Cards show no date line when the page has dates; the date is for list rows.
       subtitle: date ? undefined : base.subtitle,
       actions: itemActions ? itemActions(item) : base.actions,
@@ -174,9 +187,11 @@ export function CollectionView<T>({
         />
       )}
       {before}
-      {view === "list" && selection && listStyle === "compact" && !listItem && !loading && results.length > 0 && (
+      {selection && canSelect && !loading && results.length > 0 && (
+        <TableBulkBar count={selected.selectedCount} noun={selection.noun} deleting={deleting} onClear={selected.clear} onDelete={() => void deleteSelected()} />
+      )}
+      {view === "list" && selection && canSelect && !loading && results.length > 0 && (
         <>
-          <TableBulkBar count={selected.selectedCount} noun={selection.noun} deleting={deleting} onClear={selected.clear} onDelete={() => void deleteSelected()} />
           <label className="flex min-h-12 items-center gap-3 border-b border-border px-3 text-sm text-muted-foreground">
             <Checkbox aria-label={`Select all ${selection.noun}s`} checked={selected.allSelected} indeterminate={selected.someSelected} onChange={selected.toggleAll} />
             {selected.selectedCount ? `${selected.selectedCount} selected` : `${results.length} ${selection.noun}${results.length === 1 ? "" : "s"}`}
@@ -191,7 +206,11 @@ export function CollectionView<T>({
         <p className="px-3 py-8 text-center text-sm text-muted-foreground">Nothing matches your search.</p>
       ) : view === "grid" ? (
         <GridCardList className={gridClassName}>
-          {results.map((item) => <Fragment key={getKey(item)}>{gridItem ? gridItem(item) : <GridCard {...cardFor(item)} />}</Fragment>)}
+          {results.map((item) => gridItem ? <Fragment key={getKey(item)}>{gridItem(item)}</Fragment> : (
+            <div key={getKey(item)} className="contents select-none [-webkit-touch-callout:none]" {...longPress(getKey(item))}>
+              <GridCard {...cardFor(item)} />
+            </div>
+          ))}
           {cardsAfter?.(query)}
         </GridCardList>
       ) : listStyle === "thumbnail" ? (
@@ -227,11 +246,10 @@ export function CollectionView<T>({
             const extra = row?.(item)
             const id = getKey(item)
             const checked = selection ? selected.isSelected(id) : false
-            const selecting = Boolean(selection && selected.selectedCount > 0)
             const itemLabel = typeof title === "string" ? title : selection?.noun ?? "item"
             return (
+              <div key={id} className="contents select-none [-webkit-touch-callout:none]" {...longPress(id)}>
               <MobileDataCard
-                key={id}
                 surface="list"
                 variant="inline"
                 iconShape="circle"
@@ -254,6 +272,7 @@ export function CollectionView<T>({
                 selected={selection ? checked : undefined}
                 pressed={selection ? checked : undefined}
               />
+              </div>
             )
           })}
         </div>
