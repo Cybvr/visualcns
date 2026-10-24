@@ -968,7 +968,8 @@ function MediaLibrary({ files, scope, canEdit, startNew = false, onActionHandled
   const [linking, setLinking] = useState(false)
   const [activeFolderId, setActiveFolderId] = useState<string | null>(null)
   const [folderDialog, setFolderDialog] = useState<CampaignCreative | "new" | null>(null)
-  const [newMediaMenuOpen, setNewMediaMenuOpen] = useState(false)
+  // Bumped to open the New media menu from outside; a counter so repeat requests still fire.
+  const [newMediaRequest, setNewMediaRequest] = useState(0)
   const folders = files.filter((item) => item.type === "folder")
   const media = files.filter((item) => item.type !== "folder")
   const activeFolder = folders.find((item) => item.id === activeFolderId) ?? null
@@ -982,7 +983,7 @@ function MediaLibrary({ files, scope, canEdit, startNew = false, onActionHandled
 
   useEffect(() => {
     if (!canEdit || !startNew) return
-    setNewMediaMenuOpen(true)
+    setNewMediaRequest((n) => n + 1)
     onActionHandled?.()
   }, [canEdit, onActionHandled, startNew])
 
@@ -1146,16 +1147,14 @@ function MediaLibrary({ files, scope, canEdit, startNew = false, onActionHandled
         searchPlaceholder={activeFolder ? `Search ${activeFolder.title}` : "Search media"}
         viewKey="campaign-media"
         actions={canEdit ? (
-          <DropdownMenu open={newMediaMenuOpen} onOpenChange={setNewMediaMenuOpen}>
-            <DropdownMenuTrigger asChild>
-              <SectionAddButton label="New media" disabled={Boolean(uploading)} />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {!activeFolder && <DropdownMenuItem onSelect={() => setFolderDialog("new")}><Folder className="size-4" aria-hidden="true" />New folder</DropdownMenuItem>}
-              <DropdownMenuItem onSelect={() => fileInput.current?.click()}><ImagePlus className="size-4" aria-hidden="true" />Upload images or videos</DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => setLinking(true)}><Link2 className="size-4" aria-hidden="true" />Add link</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <NewMediaMenu
+            openRequest={newMediaRequest}
+            disabled={Boolean(uploading)}
+            showNewFolder={!activeFolder}
+            onNewFolder={() => setFolderDialog("new")}
+            onUpload={() => fileInput.current?.click()}
+            onAddLink={() => setLinking(true)}
+          />
         ) : undefined}
         before={<>
           {activeFolder && (
@@ -1291,5 +1290,35 @@ function AddLinkDialog({ open, onOpenChange, scope, folderId }: { open: boolean;
         </form>
       </DialogContent>
     </Dialog>
+  )
+}
+
+/** The page's New media menu. The filter bar renders its actions twice (phone header and desktop row), so each copy keeps its own open state and only the visible one answers an open request. */
+function NewMediaMenu({ openRequest, disabled, showNewFolder, onNewFolder, onUpload, onAddLink }: {
+  openRequest: number
+  disabled: boolean
+  showNewFolder: boolean
+  onNewFolder: () => void
+  onUpload: () => void
+  onAddLink: () => void
+}) {
+  const [open, setOpen] = useState(false)
+  const trigger = useRef<HTMLButtonElement>(null)
+
+  useEffect(() => {
+    if (openRequest && trigger.current?.offsetParent) setOpen(true)
+  }, [openRequest])
+
+  return (
+    <DropdownMenu open={open} onOpenChange={setOpen}>
+      <DropdownMenuTrigger asChild>
+        <SectionAddButton ref={trigger} label="New media" disabled={disabled} />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        {showNewFolder && <DropdownMenuItem onSelect={onNewFolder}><Folder className="size-4" aria-hidden="true" />New folder</DropdownMenuItem>}
+        <DropdownMenuItem onSelect={onUpload}><ImagePlus className="size-4" aria-hidden="true" />Upload images or videos</DropdownMenuItem>
+        <DropdownMenuItem onSelect={onAddLink}><Link2 className="size-4" aria-hidden="true" />Add link</DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   )
 }
