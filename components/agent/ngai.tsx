@@ -2,7 +2,8 @@
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react"
 import Image from "next/image"
-import { History, LogIn, Plus, X } from "lucide-react"
+import { ArrowLeft, History, LogIn, Plus, Trash2, X } from "lucide-react"
+import { toast } from "sonner"
 
 import { AgentChat } from "@/components/agent/agent-chat"
 import { AgentProvider, useAgent } from "@/components/agent/agent-context"
@@ -10,6 +11,7 @@ import { useAuth } from "@/components/auth-provider"
 import { useOptionalCompanyPage } from "@/components/company/company-page-context"
 import { DocumentArtifact, type ArtifactRef } from "@/components/dashboard/document-artifact"
 import { NgaiLoginDialog } from "@/components/company/ngai-login-dialog"
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
@@ -45,9 +47,24 @@ const STARTING_OPTIONS: Record<Exclude<NgaiScope["kind"], "app">, string[]> = {
 const iconButton = "flex size-8 items-center justify-center rounded-full text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
 
 /** New chat, past chats and (in a panel) close. The same buttons on every Ngai. */
-function NgaiHeader({ layout, onClose }: { layout: NgaiLayout; onClose?: () => void }) {
-  const { conversations, activeConversationId, sending, reset, selectConversation } = useAgent()
+function NgaiHeader({ layout, onClose, onBack }: { layout: NgaiLayout; onClose?: () => void; onBack?: () => void }) {
+  const { conversations, activeConversationId, sending, reset, selectConversation, deleteConversations } = useAgent()
   const chatted = conversations.filter((conversation) => conversation.messages.length > 0)
+  const [deleting, setDeleting] = useState<{ id: string; title: string } | null>(null)
+  const [deletingBusy, setDeletingBusy] = useState(false)
+
+  async function confirmDelete() {
+    if (!deleting || deletingBusy) return
+    setDeletingBusy(true)
+    try {
+      await deleteConversations([deleting.id])
+      setDeleting(null)
+    } catch {
+      toast.error("The chat could not be deleted. Try again.")
+    } finally {
+      setDeletingBusy(false)
+    }
+  }
   return (
     // A page already has its title, so the page header is just the buttons.
     <div className={cn("flex shrink-0 items-center justify-between gap-2", layout === "panel" ? "h-14 border-b border-border px-4" : "h-10 justify-end")}>
@@ -56,6 +73,11 @@ function NgaiHeader({ layout, onClose }: { layout: NgaiLayout; onClose?: () => v
           <Image src="/ngai-logo.png" alt="" width={20} height={20} className="rounded-full" />
           Ngai
         </div>
+      )}
+      {onBack && layout === "page" && (
+        <button type="button" onClick={onBack} aria-label="Back" title="Back" className={cn(iconButton, "mr-auto size-10 text-foreground md:hidden [&_svg]:size-5")}>
+          <ArrowLeft aria-hidden="true" />
+        </button>
       )}
       <div className="flex items-center gap-1">
         <button type="button" onClick={reset} disabled={sending} aria-label="New chat" title="New chat" className={iconButton}>
@@ -74,9 +96,20 @@ function NgaiHeader({ layout, onClose }: { layout: NgaiLayout; onClose?: () => v
               <DropdownMenuItem
                 key={conversation.id}
                 onSelect={() => selectConversation(conversation.id)}
-                className={cn("block truncate", conversation.id === activeConversationId && "font-medium")}
+                className={cn("group flex items-center gap-2 pr-1", conversation.id === activeConversationId && "font-medium")}
               >
-                {conversation.title}
+                <span className="min-w-0 flex-1 truncate">{conversation.title}</span>
+                {/* Shown on hover (always on touch screens); opens the confirm dialog rather than the chat. */}
+                <button
+                  type="button"
+                  onPointerDown={(event) => event.stopPropagation()}
+                  onClick={(event) => { event.preventDefault(); event.stopPropagation(); setDeleting({ id: conversation.id, title: conversation.title }) }}
+                  aria-label={`Delete ${conversation.title}`}
+                  title="Delete chat"
+                  className="flex size-7 shrink-0 items-center justify-center rounded-full text-muted-foreground opacity-0 outline-none transition-opacity hover:bg-muted hover:text-destructive focus-visible:opacity-100 group-hover:opacity-100 group-focus:opacity-100 [@media(hover:none)]:opacity-100"
+                >
+                  <Trash2 className="size-4" aria-hidden="true" />
+                </button>
               </DropdownMenuItem>
             ))}
           </DropdownMenuContent>
@@ -87,6 +120,20 @@ function NgaiHeader({ layout, onClose }: { layout: NgaiLayout; onClose?: () => v
           </button>
         )}
       </div>
+      <AlertDialog open={deleting !== null} onOpenChange={(open) => { if (!open && !deletingBusy) setDeleting(null) }}>
+        <AlertDialogContent className="z-[120]">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this chat?</AlertDialogTitle>
+            <AlertDialogDescription>&ldquo;{deleting?.title}&rdquo; will be deleted for good.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deletingBusy}>Cancel</AlertDialogCancel>
+            <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" disabled={deletingBusy} onClick={(event) => { event.preventDefault(); void confirmDelete() }}>
+              {deletingBusy ? "Deleting…" : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
@@ -191,7 +238,7 @@ function NgaiSignIn({ companyName }: { companyName: string }) {
  * gate on company pages and its own sizing. The parent only gives it room:
  * a page or tab of fixed height, or a panel.
  */
-export function Ngai({ scope, layout = "page", onClose, className }: { scope: NgaiScope; layout?: NgaiLayout; onClose?: () => void; className?: string }) {
+export function Ngai({ scope, layout = "page", onClose, onBack, className }: { scope: NgaiScope; layout?: NgaiLayout; onClose?: () => void; /** Shows a back arrow on phones, where the page has no header of its own. */ onBack?: () => void; className?: string }) {
   const access = useCompanyAccess()
   const pageRef = useRef<HTMLDivElement>(null)
 
@@ -240,7 +287,7 @@ export function Ngai({ scope, layout = "page", onClose, className }: { scope: Ng
   const chat = (startingOptions?: string[]) => (
     <div className="flex min-h-0 flex-1 gap-4">
       <div className={cn("flex min-w-0 flex-1 flex-col", artifact && (layout === "panel" ? "hidden" : "max-md:hidden"))}>
-        <NgaiHeader layout={layout} onClose={onClose} />
+        <NgaiHeader layout={layout} onClose={onClose} onBack={onBack} />
         <NgaiConversation layout={layout} startingOptions={startingOptions} onOpenArtifact={setArtifact} activeArtifactId={artifact?.id} />
       </div>
       {artifact && (

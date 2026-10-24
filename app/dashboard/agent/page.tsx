@@ -1,8 +1,8 @@
 "use client"
 
-import { Ngai } from "@/components/agent/ngai"
+import { NgaiPage } from "@/components/agent/ngai-page"
 
 /** Full-page Ngai surface for the dashboard navigation link. */
 export default function AgentPage() {
-  return <Ngai scope={{ kind: "app" }} className="sm:px-6" />
+  return <NgaiPage />
 }

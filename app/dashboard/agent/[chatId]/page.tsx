@@ -3,7 +3,7 @@
 import { useEffect } from "react"
 import { useParams } from "next/navigation"
 
-import { Ngai } from "@/components/agent/ngai"
+import { NgaiPage } from "@/components/agent/ngai-page"
 import { useAgent } from "@/components/agent/agent-context"
 
 export default function AgentConversationPage() {
@@ -15,5 +15,5 @@ export default function AgentConversationPage() {
     if (chatId) selectConversation(chatId)
   }, [chatId, selectConversation])
 
-  return <Ngai scope={{ kind: "app" }} className="sm:px-6" />
+  return <NgaiPage />
 }
