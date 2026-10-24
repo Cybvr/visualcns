@@ -177,12 +177,12 @@ export function CompanyPageProvider({
     const activity = find("activity")
     const order = [
       { ...about, label: "Home", icon: House },
+      find("ngai"),
       find("projects"),
       find("social"),
       find("visitors"),
       find("documents"),
       find("billings"),
-      find("ngai"),
       find("analytics"),
       // Reports sits under Account, not in the menu.
       find("pulse"),
