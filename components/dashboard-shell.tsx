@@ -123,8 +123,6 @@ export function DashboardShell({
             // --shell-header-h lets sticky content sit below the sticky header.
             "min-h-0 bg-card dark:bg-background [--shell-header-h:3.5rem] md:!m-0 md:!rounded-none md:bg-background md:!shadow-none md:[--shell-header-h:72px]",
             hideHeader && "md:[--shell-header-h:0px]",
-            // Ngai fills a phone screen with its own back arrow, so the app header steps aside.
-            isAgentRoute && "max-md:[--shell-header-h:0px]",
             isAgentRoute ? "overflow-y-auto md:overflow-hidden" : "overflow-y-auto",
             !hideMobileFooter && "max-md:pb-[calc(4.5rem+env(safe-area-inset-bottom))]",
             isEmailRoute && "lg:overflow-hidden",
@@ -134,7 +132,6 @@ export function DashboardShell({
             className={cn(
               "surface-nav sticky top-0 z-40 flex h-14 shrink-0 md:h-[72px] items-center gap-2 bg-card dark:bg-background px-4 text-foreground max-md:border-b max-md:border-border md:bg-background md:px-7",
               hideHeader && "md:hidden",
-              isAgentRoute && "max-md:hidden",
             )}
           >
             <div className="flex shrink-0 items-center gap-2 md:hidden">

@@ -2,7 +2,7 @@
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react"
 import Image from "next/image"
-import { ArrowLeft, History, LogIn, Plus, Trash2, X } from "lucide-react"
+import { History, LogIn, Plus, Trash2, X } from "lucide-react"
 import { toast } from "sonner"
 
 import { AgentChat } from "@/components/agent/agent-chat"
@@ -47,24 +47,10 @@ const STARTING_OPTIONS: Record<Exclude<NgaiScope["kind"], "app">, string[]> = {
 const iconButton = "flex size-8 items-center justify-center rounded-full text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
 
 /** New chat, past chats and (in a panel) close. The same buttons on every Ngai. */
-function NgaiHeader({ layout, onClose, onBack }: { layout: NgaiLayout; onClose?: () => void; onBack?: () => void }) {
-  const { conversations, activeConversationId, sending, reset, selectConversation, deleteConversations } = useAgent()
+function NgaiHeader({ layout, onClose }: { layout: NgaiLayout; onClose?: () => void }) {
+  const { conversations, activeConversationId, sending, reset, selectConversation } = useAgent()
   const chatted = conversations.filter((conversation) => conversation.messages.length > 0)
-  const [deleting, setDeleting] = useState<{ id: string; title: string } | null>(null)
-  const [deletingBusy, setDeletingBusy] = useState(false)
-
-  async function confirmDelete() {
-    if (!deleting || deletingBusy) return
-    setDeletingBusy(true)
-    try {
-      await deleteConversations([deleting.id])
-      setDeleting(null)
-    } catch {
-      toast.error("The chat could not be deleted. Try again.")
-    } finally {
-      setDeletingBusy(false)
-    }
-  }
+  const [deleting, setDeleting] = useState<NgaiChatRef | null>(null)
   return (
     // A page already has its title, so the page header is just the buttons.
     <div className={cn("flex shrink-0 items-center justify-between gap-2", layout === "panel" ? "h-14 border-b border-border px-4" : "h-10 justify-end")}>
@@ -73,11 +59,6 @@ function NgaiHeader({ layout, onClose, onBack }: { layout: NgaiLayout; onClose?:
           <Image src="/ngai-logo.png" alt="" width={20} height={20} className="rounded-full" />
           Ngai
         </div>
-      )}
-      {onBack && layout === "page" && (
-        <button type="button" onClick={onBack} aria-label="Back" title="Back" className={cn(iconButton, "mr-auto size-10 text-foreground md:hidden [&_svg]:size-5")}>
-          <ArrowLeft aria-hidden="true" />
-        </button>
       )}
       <div className="flex items-center gap-1">
         <button type="button" onClick={reset} disabled={sending} aria-label="New chat" title="New chat" className={iconButton}>
@@ -120,21 +101,46 @@ function NgaiHeader({ layout, onClose, onBack }: { layout: NgaiLayout; onClose?:
           </button>
         )}
       </div>
-      <AlertDialog open={deleting !== null} onOpenChange={(open) => { if (!open && !deletingBusy) setDeleting(null) }}>
-        <AlertDialogContent className="z-[120]">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete this chat?</AlertDialogTitle>
-            <AlertDialogDescription>&ldquo;{deleting?.title}&rdquo; will be deleted for good.</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={deletingBusy}>Cancel</AlertDialogCancel>
-            <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" disabled={deletingBusy} onClick={(event) => { event.preventDefault(); void confirmDelete() }}>
-              {deletingBusy ? "Deleting…" : "Delete"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <DeleteChatDialog chat={deleting} onClose={() => setDeleting(null)} />
     </div>
+  )
+}
+
+export type NgaiChatRef = { id: string; title: string }
+
+/** Asks before deleting a past chat, from the history menu or the sidebar. */
+export function DeleteChatDialog({ chat, onClose }: { chat: NgaiChatRef | null; onClose: () => void }) {
+  const { deleteConversations } = useAgent()
+  const [busy, setBusy] = useState(false)
+
+  async function confirmDelete() {
+    if (!chat || busy) return
+    setBusy(true)
+    try {
+      await deleteConversations([chat.id])
+      onClose()
+    } catch {
+      toast.error("The chat could not be deleted. Try again.")
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <AlertDialog open={chat !== null} onOpenChange={(open) => { if (!open && !busy) onClose() }}>
+      <AlertDialogContent className="z-[120]">
+        <AlertDialogHeader>
+          <AlertDialogTitle>Delete this chat?</AlertDialogTitle>
+          <AlertDialogDescription>&ldquo;{chat?.title}&rdquo; will be deleted for good.</AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={busy}>Cancel</AlertDialogCancel>
+          <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" disabled={busy} onClick={(event) => { event.preventDefault(); void confirmDelete() }}>
+            {busy ? "Deleting…" : "Delete"}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   )
 }
 
@@ -238,7 +244,7 @@ function NgaiSignIn({ companyName }: { companyName: string }) {
  * gate on company pages and its own sizing. The parent only gives it room:
  * a page or tab of fixed height, or a panel.
  */
-export function Ngai({ scope, layout = "page", onClose, onBack, className }: { scope: NgaiScope; layout?: NgaiLayout; onClose?: () => void; /** Shows a back arrow on phones, where the page has no header of its own. */ onBack?: () => void; className?: string }) {
+export function Ngai({ scope, layout = "page", onClose, menuInSidebar = false, className }: { scope: NgaiScope; layout?: NgaiLayout; onClose?: () => void; /** New chat and past chats are in the sidebar, so the page drops its own buttons for them. */ menuInSidebar?: boolean; className?: string }) {
   const access = useCompanyAccess()
   const pageRef = useRef<HTMLDivElement>(null)
 
@@ -287,7 +293,7 @@ export function Ngai({ scope, layout = "page", onClose, onBack, className }: { s
   const chat = (startingOptions?: string[]) => (
     <div className="flex min-h-0 flex-1 gap-4">
       <div className={cn("flex min-w-0 flex-1 flex-col", artifact && (layout === "panel" ? "hidden" : "max-md:hidden"))}>
-        <NgaiHeader layout={layout} onClose={onClose} onBack={onBack} />
+        {!menuInSidebar && <NgaiHeader layout={layout} onClose={onClose} />}
         <NgaiConversation layout={layout} startingOptions={startingOptions} onOpenArtifact={setArtifact} activeArtifactId={artifact?.id} />
       </div>
       {artifact && (

@@ -2,9 +2,9 @@
 
 import { createContext, useCallback, useContext, useEffect, useId, useMemo, useRef, useState, type ComponentType, type MouseEvent, type ReactNode } from "react"
 import { usePathname } from "next/navigation"
-import { ChevronLeft, ExternalLink } from "lucide-react"
+import { ChevronLeft, ExternalLink, Trash2 } from "lucide-react"
 
-import { SidebarMenuButton, SidebarMenuItem, useSidebar } from "@/components/ui/sidebar"
+import { SidebarMenuAction, SidebarMenuButton, SidebarMenuItem, useSidebar } from "@/components/ui/sidebar"
 import { cn } from "@/lib/utils"
 
 /** Lucide, react-icons or our own marks: anything drawn from a className. */
@@ -20,7 +20,10 @@ export type SidebarTakeover = {
   backLabel: string
   /** Leaves the page. Without it, Back just shows the main menu and the page stays open. */
   onBack?: () => void
-  items: { key: string; label: string; icon: SidebarIcon; count?: number }[]
+  /** onDelete adds a bin button that shows on hover, such as for a past Ngai chat. */
+  items: { key: string; label: string; icon: SidebarIcon; count?: number; onDelete?: () => void; deleteLabel?: string }[]
+  /** A button above the items, such as New chat. */
+  action?: { label: string; icon: SidebarIcon; onClick: () => void }
   active: string
   onSelect: (key: string) => void
   /**
@@ -80,7 +83,7 @@ export function useSidebarTakeover(takeover: SidebarTakeover | null) {
   const latest = useRef(takeover)
   latest.current = takeover
   const key = takeover
-    ? JSON.stringify([takeover.title, takeover.titleHref ?? "", takeover.backLabel, takeover.active, takeover.level ?? 1, takeover.items.map((item) => [item.key, item.label, item.count ?? 0])])
+    ? JSON.stringify([takeover.title, takeover.titleHref ?? "", takeover.backLabel, takeover.active, takeover.level ?? 1, takeover.action?.label ?? "", takeover.items.map((item) => [item.key, item.label, item.count ?? 0, Boolean(item.onDelete)])])
     : ""
 
   useEffect(() => {
@@ -94,6 +97,8 @@ export function useSidebarTakeover(takeover: SidebarTakeover | null) {
       ...current,
       onBack: current.onBack && (() => latest.current?.onBack?.()),
       onSelect: (next) => latest.current?.onSelect(next),
+      action: current.action && { ...current.action, onClick: () => latest.current?.action?.onClick() },
+      items: current.items.map((item) => ({ ...item, onDelete: item.onDelete && (() => latest.current?.items.find((next) => next.key === item.key)?.onDelete?.()) })),
     })
   }, [id, key, register])
 
@@ -173,6 +178,14 @@ function TakeoverItems({ takeover, closeMobile, onShowMain }: { takeover: Sideba
           </a>
         )}
       </li>
+      {takeover.action && (
+        <SidebarMenuItem>
+          <SidebarMenuButton type="button" tooltip={takeover.action.label} onClick={() => { closeMobile(); takeover.action?.onClick() }} className={SIDEBAR_ITEM_CLASS}>
+            <takeover.action.icon className="h-4 w-4" aria-hidden="true" />
+            <span className="sidebar-nav-label">{takeover.action.label}</span>
+          </SidebarMenuButton>
+        </SidebarMenuItem>
+      )}
       {takeover.items.map((item) => (
         <SidebarMenuItem key={item.key}>
           <SidebarMenuButton
@@ -180,12 +193,17 @@ function TakeoverItems({ takeover, closeMobile, onShowMain }: { takeover: Sideba
             isActive={takeover.active === item.key}
             tooltip={item.label}
             onClick={() => { closeMobile(); takeover.onSelect(item.key) }}
-            className={SIDEBAR_ITEM_CLASS}
+            className={cn(SIDEBAR_ITEM_CLASS, item.onDelete && "pr-8")}
           >
             <item.icon className="h-4 w-4" aria-hidden="true" />
             <span className="sidebar-nav-label">{item.label}</span>
             {item.count ? <span className="ml-auto text-xs tabular-nums text-muted-foreground group-data-[collapsible=icon]:hidden">{item.count}</span> : null}
           </SidebarMenuButton>
+          {item.onDelete && (
+            <SidebarMenuAction showOnHover onClick={item.onDelete} aria-label={item.deleteLabel ?? `Delete ${item.label}`} title={item.deleteLabel ?? "Delete"} className="top-1/2 -translate-y-1/2 hover:text-destructive">
+              <Trash2 aria-hidden="true" />
+            </SidebarMenuAction>
+          )}
         </SidebarMenuItem>
       ))}
     </>
