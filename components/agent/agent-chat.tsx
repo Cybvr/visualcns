@@ -4,6 +4,7 @@ import Image from "next/image"
 import { useEffect, useRef, useState, type ChangeEvent, type ClipboardEvent, type DragEvent, type FormEvent, type KeyboardEvent, type ReactNode } from "react"
 import { ArrowUp, Check, ChevronDown, ChevronRight, FileText, ListChecks, Loader2, Megaphone, MessageSquare, Mic, Plus, UploadCloud, X } from "lucide-react"
 
+import { NgaiMark } from "@/components/agent/ngai-mark"
 import type { AgentArtifact, AgentConversation, AgentFile, AgentForm, AgentMention, AgentMessage, AgentPlan } from "@/components/agent/agent-context"
 import { ArtifactCard } from "@/components/dashboard/document-artifact"
 import { uploadFileToStorage } from "@/lib/documents"
@@ -675,7 +676,7 @@ export function AgentChat({
       {messages.length === 0 ? (
         <div className={cn("scrollbar-none flex min-h-0 flex-1 flex-col overflow-y-auto text-center", compact ? "px-4 py-6" : "px-4 py-6 sm:px-6 sm:pb-16")}>
           <div className="m-auto flex w-full min-w-0 max-w-lg flex-col items-center">
-            <Image src="/ngai-logo.png" alt="Ngai" width={compact ? 36 : 48} height={compact ? 36 : 48} className={compact ? undefined : "size-10 sm:size-12"} priority />
+            <NgaiMark role="img" aria-hidden={false} aria-label="Ngai" className={compact ? "size-9" : "size-10 sm:size-12"} />
             <h1 className={cn("mt-4 font-sans tracking-[-0.02em] sm:mt-6", compact ? "text-xl" : "text-2xl sm:text-3xl")}>
               {welcome ?? `Welcome to Ngai, ${firstName}`}
             </h1>

@@ -1,11 +1,11 @@
 "use client"
 
 import { useCallback, useMemo, useState, type ComponentProps, type ReactNode } from "react"
-import Image from "next/image"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { LogIn, Search } from "lucide-react"
 
+import { NgaiMark } from "@/components/agent/ngai-mark"
 import { useAuth } from "@/components/auth-provider"
 import { BrandLockup } from "@/components/brand-lockup"
 import { useCompanyPage } from "@/components/company/company-page-context"
@@ -152,7 +152,7 @@ export function CompanyProfileShell({ children }: { children: ReactNode }) {
         >
           <CompanySidebarLink href={sectionHref(item.key)}>
             {item.key === "ngai" ? (
-              <Image src="/ngai-logo.png" alt="" width={18} height={18} className="size-[18px] shrink-0 rounded-full max-md:size-5" />
+              <NgaiMark className="size-[18px] shrink-0 max-md:size-5" />
             ) : Icon ? (
               <Icon className="h-4 w-4" aria-hidden="true" />
             ) : null}

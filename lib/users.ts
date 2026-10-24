@@ -212,7 +212,7 @@ export async function deleteUser(uid: string): Promise<void> {
 
 /**
  * Called on every sign-in. Creates the users/{uid} doc on first login and
- * refreshes profile fields (email/name/photo) on return visits. Uses merge so
+ * refreshes the email on return visits, filling in a missing name or photo. Uses merge so
  * it NEVER overwrites `role` or any other field set elsewhere. Returns the
  * doc after the write so callers can read the current role.
  */
@@ -232,8 +232,9 @@ export async function upsertUserOnLogin(profile: {
 
   const base: Record<string, unknown> = {
     email: profile.email ?? "",
-    displayName: profile.displayName || existingData.displayName || "",
-    photoURL: profile.photoURL || existingData.photoURL || "",
+    // A name or photo the person set in Profile Settings wins; the sign-in account's only fills a gap.
+    displayName: existingData.displayName || profile.displayName || "",
+    photoURL: existingData.photoURL || profile.photoURL || "",
     updatedAt: Timestamp.now(),
   }
   if (!existing.exists()) {

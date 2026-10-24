@@ -4,10 +4,11 @@ import dynamic from "next/dynamic"
 import { Suspense, useEffect, type ReactNode } from "react"
 import Image from "next/image"
 import { usePathname, useRouter } from "next/navigation"
-import { Bot, CalendarClock, Eye, FileText, House, LogOut, Megaphone, Receipt, UserRound } from "lucide-react"
+import { CalendarClock, Eye, FileText, House, LogOut, Megaphone, Receipt, UserRound } from "lucide-react"
 import { FiBriefcase, FiMail, FiTrendingUp, FiUsers } from "react-icons/fi"
 import { AuthProvider, useAuth } from "@/components/auth-provider"
 import { AgentProvider } from "@/components/agent/agent-context"
+import { NgaiMark } from "@/components/agent/ngai-mark"
 import { Button } from "@/components/ui/button"
 import { DashboardShell, type NavLink } from "@/components/dashboard-shell"
 import { PageTitleProvider } from "@/components/dashboard/page-title-context"
@@ -29,7 +30,7 @@ const DASHBOARD_NAV: NavLink[] = [
   // Estimates are a tab on Invoices, and Notes a tab on Documents.
   { label: "Invoices", href: "/dashboard/invoices", icon: Receipt, adminOnly: true, alsoActive: ["/dashboard/estimates"] },
   { label: "Documents", href: "/dashboard/documents", icon: FileText, adminOnly: true, alsoActive: ["/dashboard/notes"] },
-  { label: "Support", href: "/dashboard/agent", icon: Bot },
+  { label: "Support", href: "/dashboard/agent", icon: NgaiMark },
 ]
 
 /** Creators sign up by applying to a campaign: they see their campaigns and their account. */

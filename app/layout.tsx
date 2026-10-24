@@ -52,12 +52,13 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "VisualCNS",
+    // The name under the icon on an iPhone home screen.
+    title: "Ngai",
   },
   // --- FAVICON USING EXTERNAL URL ---
   icons: {
     icon: FAVICON_URL,
-    apple: "/apple-icon.png",
+    apple: "/ngai-apple-icon.png",
   },
   // ----------------------------------
 }

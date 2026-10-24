@@ -2,7 +2,8 @@
 
 import Link from "next/link"
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react"
-import { ChevronDown, DollarSign, FileText, House, Images, ListTodo, Mail, MoreVertical, Palette, Send, Settings, Sparkles, TrendingUp, Users, type LucideIcon } from "lucide-react"
+import { ChevronDown, Mail, MoreVertical, Send } from "lucide-react"
+import { MdAssignment, MdBarChart, MdDescription, MdHome, MdPayments, MdPeople, MdPalette, MdPhotoLibrary, MdSettings } from "react-icons/md"
 
 import { AnalyticsSkeleton, AnalyticsView } from "@/components/company/analytics-view"
 import { CampaignBrief } from "@/components/dashboard/campaign-brief"
@@ -14,6 +15,7 @@ import { CampaignGenerateButton } from "@/components/dashboard/campaign-generate
 import { CampaignSettings } from "@/components/dashboard/campaign-settings"
 import { CaseStudyForm } from "@/components/dashboard/case-study-form"
 import { Ngai } from "@/components/agent/ngai"
+import { NgaiMark } from "@/components/agent/ngai-mark"
 import { QuickEmailComposer } from "@/components/dashboard/email/quick-email-composer"
 import { ShareDialog } from "@/components/dashboard/share-dialog"
 import { ProjectShareButton } from "@/components/dashboard/project-share-button"
@@ -22,7 +24,7 @@ import { TasksView } from "@/components/dashboard/tasks-view"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { useOptionalSidebar } from "@/components/ui/sidebar"
-import { useSidebarTakeover } from "@/components/company/sidebar-takeover"
+import { useSidebarTakeover, type SidebarIcon } from "@/components/company/sidebar-takeover"
 import { watchCampaignCreatives, type CampaignCreative } from "@/lib/campaign-creatives"
 import { onRoster, watchCampaignPeople, type CampaignPerson } from "@/lib/campaign-people"
 import type { Invoice } from "@/lib/billing"
@@ -378,17 +380,17 @@ export function ProjectDetail({
   )
 
   const sections = [
-    { key: "home", label: "Home", icon: House },
-    { key: "about", label: "About campaign", icon: FileText },
-    { key: "people", label: "Creators", count: roster.length, icon: Users },
-    { key: "creatives", label: "Content", count: contentItems.length, icon: Palette },
-    { key: "media", label: "Media", count: mediaItems.length, icon: Images },
-    { key: "analytics", label: "Analytics", icon: TrendingUp },
-    { key: "payments", label: "Payments", icon: DollarSign },
-    ...(publicView && !publicTasks ? [] : [{ key: "tasks", label: "Tasks", icon: ListTodo }]),
-    ...(embedded && canEditCampaign ? [{ key: "build", label: "Ngai", icon: Sparkles }] : []),
-    ...(canEditCampaign ? [{ key: "settings", label: "Settings", icon: Settings }] : []),
-  ] as { key: CampaignTab; label: string; count?: number; icon: LucideIcon }[]
+    { key: "home", label: "Home", icon: MdHome },
+    { key: "about", label: "About campaign", icon: MdDescription },
+    { key: "people", label: "Creators", count: roster.length, icon: MdPeople },
+    { key: "creatives", label: "Content", count: contentItems.length, icon: MdPalette },
+    { key: "media", label: "Media", count: mediaItems.length, icon: MdPhotoLibrary },
+    { key: "analytics", label: "Analytics", icon: MdBarChart },
+    { key: "payments", label: "Payments", icon: MdPayments },
+    ...(publicView && !publicTasks ? [] : [{ key: "tasks", label: "Tasks", icon: MdAssignment }]),
+    ...(embedded && canEditCampaign ? [{ key: "build", label: "Ngai", icon: NgaiMark }] : []),
+    ...(canEditCampaign ? [{ key: "settings", label: "Settings", icon: MdSettings }] : []),
+  ] as { key: CampaignTab; label: string; count?: number; icon: SidebarIcon }[]
 
   // On the company page the campaign's sections replace the sidebar menu, with a way back to Campaigns.
   const inSidebar = useSidebarTakeover(onBack ? {

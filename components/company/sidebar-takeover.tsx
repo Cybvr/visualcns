@@ -1,11 +1,14 @@
 "use client"
 
-import { createContext, useCallback, useContext, useEffect, useId, useMemo, useRef, useState, type MouseEvent, type ReactNode } from "react"
+import { createContext, useCallback, useContext, useEffect, useId, useMemo, useRef, useState, type ComponentType, type MouseEvent, type ReactNode } from "react"
 import { usePathname } from "next/navigation"
-import { ChevronLeft, ExternalLink, type LucideIcon } from "lucide-react"
+import { ChevronLeft, ExternalLink } from "lucide-react"
 
 import { SidebarMenuButton, SidebarMenuItem, useSidebar } from "@/components/ui/sidebar"
 import { cn } from "@/lib/utils"
+
+/** Lucide, react-icons or our own marks: anything drawn from a className. */
+export type SidebarIcon = ComponentType<{ className?: string; "aria-hidden"?: boolean | "true" | "false" }>
 
 /** A page's own sections (a client, a campaign, email folders), shown in the sidebar in place of its links while it is open. */
 export type SidebarTakeover = {
@@ -17,7 +20,7 @@ export type SidebarTakeover = {
   backLabel: string
   /** Leaves the page. Without it, Back just shows the main menu and the page stays open. */
   onBack?: () => void
-  items: { key: string; label: string; icon: LucideIcon; count?: number }[]
+  items: { key: string; label: string; icon: SidebarIcon; count?: number }[]
   active: string
   onSelect: (key: string) => void
   /**
