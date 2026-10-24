@@ -2,7 +2,7 @@
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react"
 import Image from "next/image"
-import { History, LogIn, Plus, Trash2, X } from "lucide-react"
+import { History, LogIn, MessageSquare, Plus, SquarePen, Trash2, X } from "lucide-react"
 import { toast } from "sonner"
 
 import { AgentChat } from "@/components/agent/agent-chat"
@@ -11,6 +11,7 @@ import { useAuth } from "@/components/auth-provider"
 import { useOptionalCompanyPage } from "@/components/company/company-page-context"
 import { DocumentArtifact, type ArtifactRef } from "@/components/dashboard/document-artifact"
 import { NgaiLoginDialog } from "@/components/company/ngai-login-dialog"
+import { useSidebarTakeover } from "@/components/company/sidebar-takeover"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
@@ -290,10 +291,10 @@ export function Ngai({ scope, layout = "page", onClose, menuInSidebar = false, c
   // The chat, and beside it any document Ngai made, like an artifact in Claude or ChatGPT.
   // On a wide page they sit side by side; in a narrow panel or on a phone the document
   // takes the space, and closing it goes back to the chat.
-  const chat = (startingOptions?: string[]) => (
+  const chat = (startingOptions?: string[], chatsInSidebar = menuInSidebar) => (
     <div className="flex min-h-0 flex-1 gap-4">
       <div className={cn("flex min-w-0 flex-1 flex-col", artifact && (layout === "panel" ? "hidden" : "max-md:hidden"))}>
-        {!menuInSidebar && <NgaiHeader layout={layout} onClose={onClose} />}
+        {!chatsInSidebar && <NgaiHeader layout={layout} onClose={onClose} />}
         <NgaiConversation layout={layout} startingOptions={startingOptions} onOpenArtifact={setArtifact} activeArtifactId={artifact?.id} />
       </div>
       {artifact && (
@@ -328,8 +329,37 @@ export function Ngai({ scope, layout = "page", onClose, menuInSidebar = false, c
       companyContext={{ id: company.id, name: company.name }}
       campaignContext={scope.kind === "campaign" ? scope.campaign : undefined}
     >
-      {frame(chat(STARTING_OPTIONS[scope.kind]))}
+      {layout === "page" && scope.kind === "company"
+        ? <NgaiSidebarChats>{(inSidebar) => frame(chat(STARTING_OPTIONS[scope.kind], inSidebar))}</NgaiSidebarChats>
+        : frame(chat(STARTING_OPTIONS[scope.kind]))}
     </AgentProvider>
+  )
+}
+
+/** On the company page, New chat and past chats sit in the sidebar, as they do on the app's own Ngai page. */
+function NgaiSidebarChats({ children }: { children: (inSidebar: boolean) => ReactNode }) {
+  const { conversations, activeConversationId, reset, selectConversation } = useAgent()
+  const [deleting, setDeleting] = useState<NgaiChatRef | null>(null)
+  const chats = conversations.filter((conversation) => conversation.messages.length > 0)
+  const inSidebar = useSidebarTakeover({
+    title: "Assistant",
+    backLabel: "Back",
+    action: { label: "New chat", icon: SquarePen, onClick: reset },
+    items: chats.map((chat) => ({
+      key: chat.id,
+      label: chat.title,
+      icon: MessageSquare,
+      onDelete: () => setDeleting({ id: chat.id, title: chat.title }),
+      deleteLabel: `Delete ${chat.title}`,
+    })),
+    active: activeConversationId,
+    onSelect: selectConversation,
+  })
+  return (
+    <>
+      {children(inSidebar)}
+      <DeleteChatDialog chat={deleting} onClose={() => setDeleting(null)} />
+    </>
   )
 }
 
