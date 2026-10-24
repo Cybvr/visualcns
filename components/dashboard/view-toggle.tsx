@@ -43,7 +43,7 @@ export function ViewToggle({ view, onChange, className }: { view: ViewMode; onCh
     { value: "grid" as const, label: "Grid view", Icon: LayoutGrid },
   ]
   return (
-    <div role="group" aria-label="View" className={cn("flex shrink-0 items-center rounded-full bg-muted p-0.5", className)}>
+    <div role="group" aria-label="View" className={cn("flex h-11 shrink-0 items-center rounded-full bg-muted p-0.5", className)}>
       {options.map(({ value, label, Icon }) => (
         <button
           key={value}
@@ -53,7 +53,7 @@ export function ViewToggle({ view, onChange, className }: { view: ViewMode; onCh
           aria-pressed={view === value}
           title={label}
           className={cn(
-            "flex h-8 w-10 items-center justify-center rounded-full outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring",
+            "flex h-10 w-11 items-center justify-center rounded-full outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring",
             view === value ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
           )}
         >

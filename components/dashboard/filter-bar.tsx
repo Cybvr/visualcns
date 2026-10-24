@@ -114,7 +114,7 @@ export function MobileSearchBar({ query, onQueryChange, sorts, sortKey, onSortKe
 
   return (
     <div className={cn("flex items-center gap-2", className)}>
-      <div className="flex min-w-0 flex-1 items-center gap-2 rounded-2xl border border-border bg-card py-1.5 pr-1.5 pl-4">
+      <div className="flex h-11 min-w-0 flex-1 items-center gap-2 rounded-2xl border border-border bg-card pr-0.5 pl-4">
         <Search className="size-5 shrink-0 text-muted-foreground" aria-hidden="true" />
         <input
           type="search"
@@ -122,7 +122,7 @@ export function MobileSearchBar({ query, onQueryChange, sorts, sortKey, onSortKe
           onChange={(event) => onQueryChange(event.target.value)}
           placeholder={placeholder}
           aria-label={placeholder}
-          className="h-10 min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-muted-foreground [&::-webkit-search-cancel-button]:hidden"
+          className="h-full min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-muted-foreground [&::-webkit-search-cancel-button]:hidden"
         />
         {query && (
           <button type="button" onClick={() => onQueryChange("")} aria-label="Clear search" className="flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground">
