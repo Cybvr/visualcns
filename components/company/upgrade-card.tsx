@@ -1,12 +1,10 @@
 "use client"
 
-import { useState } from "react"
+import Link from "next/link"
 import { ScanLine, Sparkles } from "lucide-react"
 
 import { useCompanyPage } from "@/components/company/company-page-context"
 import { useSubscription } from "@/components/company/company-plan"
-import { useTeamSeats } from "@/components/company/team-seats"
-import { UpgradeModal } from "@/components/company/upgrade-modal"
 import { useLocalCurrency } from "@/components/use-local-currency"
 import { useSidebar } from "@/components/ui/sidebar"
 import { billingMoney, planAccess, planPrice } from "@/lib/subscription"
@@ -24,34 +22,33 @@ function Tile({ icon: Icon, className }: { icon: typeof Sparkles; className: str
 /**
  * The upgrade offer at the bottom of the company sidebar, for the people who
  * manage the team: a dark card with a purple glow, the starting price in the
- * visitor's money, and a button that opens the plans. Hidden once a plan is paid.
+ * visitor's money, and a button to the marketing services page. Hidden once a plan is paid.
  */
 export function UpgradeCard() {
   const { company, canManageTeam } = useCompanyPage()
   const { setOpenMobile } = useSidebar()
   const billing = useSubscription(company.id)
-  const teamSeats = useTeamSeats(company.id, canManageTeam)
   const currency = useLocalCurrency()
-  const [open, setOpen] = useState(false)
 
   const access = billing ? planAccess(billing) : null
   const paid = access?.state === "active" && billing?.status !== "cancelled"
   if (!canManageTeam || paid) return null
 
-  const openPlans = () => { setOpenMobile(false); setOpen(true) }
+  const servicesHref = `/${encodeURIComponent(company.slug || company.id)}/services`
+  const closeMenu = () => setOpenMobile(false)
 
   return (
     <>
       {/* Collapsed to icons, it's just the sparkle. */}
-      <button
-        type="button"
-        onClick={openPlans}
+      <Link
+        href={servicesHref}
+        onClick={closeMenu}
         aria-label="Upgrade"
         title="Upgrade"
         className="mx-auto mb-2 hidden size-8 place-items-center rounded-lg bg-neutral-950 text-violet-300 outline-none focus-visible:ring-2 focus-visible:ring-ring group-data-[collapsible=icon]:grid"
       >
         <Sparkles className="size-4" aria-hidden="true" />
-      </button>
+      </Link>
 
       <div className="relative m-2 overflow-hidden rounded-2xl bg-neutral-950 p-3 text-white group-data-[collapsible=icon]:hidden">
         <div className="pointer-events-none absolute -right-8 -top-10 size-32 rounded-full bg-[radial-gradient(circle,rgba(124,58,237,0.75)_0%,rgba(76,29,149,0.35)_45%,transparent_70%)]" aria-hidden="true" />
@@ -63,17 +60,15 @@ export function UpgradeCard() {
             <span className="text-base font-bold tracking-tight">{billingMoney(planPrice("starter", "monthly", currency), currency)}</span>
             <span className="text-xs text-white/60">/mo</span>
           </div>
-          <button
-            type="button"
-            onClick={openPlans}
-            className="h-8 shrink-0 rounded-full bg-white px-4 text-sm font-semibold text-neutral-900 outline-none transition-colors hover:bg-white/90 focus-visible:ring-2 focus-visible:ring-violet-400"
+          <Link
+            href={servicesHref}
+            onClick={closeMenu}
+            className="flex h-8 items-center shrink-0 rounded-full bg-white px-4 text-sm font-semibold text-neutral-900 outline-none transition-colors hover:bg-white/90 focus-visible:ring-2 focus-visible:ring-violet-400"
           >
             Upgrade
-          </button>
+          </Link>
         </div>
       </div>
-
-      <UpgradeModal open={open} onOpenChange={setOpen} companyId={company.id} companyName={company.name} billing={billing} seats={teamSeats.info?.seats ?? null} />
     </>
   )
 }
