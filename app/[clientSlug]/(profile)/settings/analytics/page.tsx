@@ -1,12 +1,7 @@
-import { CompanySettingsLayout } from "@/components/company/company-settings-layout"
-import { CompanySection } from "@/components/company/sections/company-section"
+import { redirect } from "next/navigation"
 
-export default function CompanyAnalyticsPage() {
-  return (
-    <CompanySettingsLayout wide>
-      <div className="min-w-0">
-        <CompanySection section="analytics" />
-      </div>
-    </CompanySettingsLayout>
-  )
+// Analytics moved out of Settings to its own menu item; old links still work.
+export default async function CompanyAnalyticsPage({ params }: { params: Promise<{ clientSlug: string }> }) {
+  const { clientSlug } = await params
+  redirect(`/${encodeURIComponent(clientSlug)}/analytics`)
 }

@@ -183,9 +183,9 @@ export function CompanyPageProvider({
       find("documents"),
       find("billings"),
       find("ngai"),
-      // Reports and Analytics sit under Account, not in the menu.
-      find("pulse"),
       find("analytics"),
+      // Reports sits under Account, not in the menu.
+      find("pulse"),
       activity && { ...activity, label: "Notifications", icon: Bell },
     ]
     return order.filter((item): item is NonNullable<typeof item> => Boolean(item))
@@ -196,9 +196,9 @@ export function CompanyPageProvider({
   // "brand-health" is Pulse's old key; keep links that still use it working.
   const requestedSection = requested === "brand-health"
     ? "pulse"
-    : requested === "tasks" || requested === "drive"
+    : requested === "tasks"
       ? "projects"
-      : requested === "documents" || requested === "media" || requested === "notes" || requested === "finance"
+      : requested === "drive" || requested === "documents" || requested === "media" || requested === "notes" || requested === "finance"
         ? "documents"
       : requested === "settings"
         ? "about"
@@ -214,9 +214,10 @@ export function CompanyPageProvider({
     const params = new URLSearchParams({ ...data.keepParams, ...query })
     let path = basePath
     if (mode === "routes") {
-      if (key !== "about") path = `${basePath}/${key === "activity" ? "notifications" : key}`
+      // Documents is called Drive, and so is its address.
+      if (key !== "about") path = `${basePath}/${key === "activity" ? "notifications" : key === "documents" ? "drive" : key}`
     } else if (key !== "activity") {
-      params.set("tab", key === "about" ? "settings" : key)
+      params.set("tab", key === "about" ? "settings" : key === "documents" ? "drive" : key)
     }
     const search = params.toString()
     return search ? `${path}?${search}` : path

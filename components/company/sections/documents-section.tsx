@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation"
 
 import { CompanyDocuments, type CompanyDocumentKind } from "@/components/company/company-documents"
 import { useCompanyPage } from "@/components/company/company-page-context"
-import { useCompanyFiles } from "@/components/company/sections/files-section"
+import { useCompanyCampaignMedia, useCompanyFiles } from "@/components/company/sections/files-section"
 import { useCompanyNotes } from "@/components/company/sections/notes-section"
 import { DocumentArtifact } from "@/components/dashboard/document-artifact"
 import { DocumentActions } from "@/components/dashboard/document-actions"
@@ -35,8 +35,10 @@ export function DocumentsSection() {
   useEffect(() => { setArtifactSlot(document.getElementById("company-artifact-slot")) }, [])
   // Notes sit in the same list as the documents and open in their own editor.
   const notes = useCompanyNotes()
+  // Every campaign's media sits in the Drive too.
+  const campaignMedia = useCompanyCampaignMedia()
   // Uploaded files sit in the same list too, and open in a new tab.
-  const files = useCompanyFiles()
+  const files = useCompanyFiles(campaignMedia.urls)
 
   // The open document is ?doc={kind}:{id}, so it can be linked to directly.
   const docParam = searchParams.get("doc") ?? ""
@@ -89,14 +91,15 @@ export function DocumentsSection() {
             contracts={contracts}
             estimates={estimates}
             documents={documents}
-            heading="Documents"
+            heading="Drive"
+            emptyTitle="Your drive is empty"
             addKinds={["document", "invoice", "contract", "estimate"]}
-            emptyDescription="Documents, invoices, estimates and contracts will appear here. Images and videos live in each campaign."
+            emptyDescription="Documents, invoices, estimates, contracts, files and campaign media will appear here."
             onSelect={(kind, id) => updateParams({ doc: `${kind}:${id}` })}
             onEdit={canEditDocuments ? (kind, id) => router.push(editHref(kind, id)) : undefined}
             canAdd={Boolean(admin)}
             onAdd={handleAdd}
-            extraEntries={[...notes.entries, ...files.entries]}
+            extraEntries={[...notes.entries, ...files.entries, ...campaignMedia.entries]}
             extraAddItems={files.addItem || notes.addItem ? <>{files.addItem}{notes.addItem}</> : undefined}
             canManage={canEditDocuments}
             onChanged={admin?.reload}

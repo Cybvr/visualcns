@@ -1103,7 +1103,7 @@ function MediaLibrary({ files, scope, canEdit, startNew = false, onActionHandled
         onOpen: () => setActiveFolderId(item.id),
         onRename: canEdit ? (title) => saveCreative(item.id, { title }) : undefined,
         onDelete: canEdit ? () => removeFolder(item) : undefined,
-        deleteMessage: `The media inside ${item.title || "this folder"} will move back to All media.`,
+        deleteMessage: `The media inside ${item.title || "this folder"} will move back to the main Drive.`,
       }
     }
     return {
@@ -1118,7 +1118,7 @@ function MediaLibrary({ files, scope, canEdit, startNew = false, onActionHandled
           <DropdownMenuSub>
             <DropdownMenuSubTrigger><FolderInput className="size-4" aria-hidden="true" />Move to</DropdownMenuSubTrigger>
             <DropdownMenuSubContent>
-              <DropdownMenuItem disabled={!item.folderId} onSelect={() => void moveMedia(item.id, "")}>All media</DropdownMenuItem>
+              <DropdownMenuItem disabled={!item.folderId} onSelect={() => void moveMedia(item.id, "")}>Drive</DropdownMenuItem>
               {folders.filter((folder) => folder.id !== item.folderId).map((folder) => (
                 <DropdownMenuItem key={folder.id} onSelect={() => void moveMedia(item.id, folder.id)}>{folder.title}</DropdownMenuItem>
               ))}
@@ -1144,7 +1144,7 @@ function MediaLibrary({ files, scope, canEdit, startNew = false, onActionHandled
         items={browsedItems}
         getKey={(item) => item.id}
         searchFields={(item) => [item.title, item.type]}
-        searchPlaceholder={activeFolder ? `Search ${activeFolder.title}` : "Search media"}
+        searchPlaceholder={activeFolder ? `Search ${activeFolder.title}` : "Search drive"}
         viewKey="campaign-media"
         actions={canEdit ? (
           <NewMediaMenu
@@ -1161,7 +1161,7 @@ function MediaLibrary({ files, scope, canEdit, startNew = false, onActionHandled
             <div className="mt-3 flex min-w-0 items-center gap-2 text-sm">
               <button type="button" onClick={() => setActiveFolderId(null)} className="flex shrink-0 items-center gap-1 rounded-md px-2 py-1.5 text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring">
                 <ChevronLeft className="size-4" aria-hidden="true" />
-                All media
+                Drive
               </button>
               <span className="text-muted-foreground/50">/</span>
               <span className="min-w-0 truncate font-medium text-foreground">{activeFolder.title}</span>
@@ -1176,7 +1176,7 @@ function MediaLibrary({ files, scope, canEdit, startNew = false, onActionHandled
           action: canEdit ? <SectionAddButton label="Upload images or videos" onClick={() => fileInput.current?.click()} /> : undefined,
         } : {
           icon: Images,
-          title: "No media yet",
+          title: "Drive is empty",
           description: canEdit ? "Create a folder or drop images and videos here." : undefined,
           action: canEdit ? <SectionAddButton label="Upload images or videos" onClick={() => fileInput.current?.click()} /> : undefined,
         }}
@@ -1325,7 +1325,7 @@ function NewMediaMenu({ openRequest, disabled, showNewFolder, onNewFolder, onUpl
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
-        <SectionAddButton ref={trigger} label="New media" disabled={disabled} />
+        <SectionAddButton ref={trigger} label="New" disabled={disabled} />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         {showNewFolder && <DropdownMenuItem onSelect={onNewFolder}><Folder className="size-4" aria-hidden="true" />New folder</DropdownMenuItem>}

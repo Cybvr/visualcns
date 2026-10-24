@@ -46,6 +46,10 @@ type Entry = {
   icon: ReactNode
   /** The big icon for its thumbnail. */
   thumbnail: ComponentType<{ className?: string }>
+  /** A picture for its card in place of the icon, e.g. an uploaded image. */
+  imageUrl?: string
+  /** Fills its card in place of the icon, e.g. a video's first frame. */
+  preview?: ReactNode
   /** When it was last changed, for sorting and the date on its card and row. */
   updatedMs: number
   searchText?: string[]
@@ -89,6 +93,7 @@ export function CompanyDocuments({
   heading = "Documents",
   addKinds = ["document", "invoice", "contract", "estimate"],
   emptyDescription = "Proposals, invoices and contracts will appear here.",
+  emptyTitle,
   media,
   mediaCount = 0,
   onUpload,
@@ -110,6 +115,8 @@ export function CompanyDocuments({
   /** Which kinds the add menu offers. */
   addKinds?: CompanyDocumentKind[]
   emptyDescription?: string
+  /** Defaults to "No {heading} yet". */
+  emptyTitle?: string
   /** Image and video tiles for the same grid as the documents, filtered by the search text. */
   media?: (query: string) => ReactNode
   mediaCount?: number
@@ -237,7 +244,7 @@ export function CompanyDocuments({
       ) : undefined}
       empty={{
         icon: FileText,
-        title: `No ${heading.toLowerCase()} yet`,
+        title: emptyTitle ?? `No ${heading.toLowerCase()} yet`,
         description: emptyDescription,
       }}
       date={(entry) => entry.updatedMs}
@@ -246,6 +253,8 @@ export function CompanyDocuments({
         icon: <span className="flex [&_svg]:size-4">{entry.icon}</span>,
         title: entry.title,
         placeholder: thumbnailIcon(entry.thumbnail),
+        imageUrl: entry.imageUrl,
+        preview: entry.preview,
         onClick: () => entry.actions.onOpen?.(),
         ariaLabel: `Open ${entry.title}`,
         menuLabel: `Options for ${entry.title}`,

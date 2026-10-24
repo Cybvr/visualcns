@@ -110,7 +110,7 @@ export function CompanyProfileShell({ children }: { children: ReactNode }) {
   const isServicesPage = pageSegment === "services"
   const isCartPage = pageSegment === "cart"
   const sectionLabel = sections.find((item) => item.key === section)?.label
-  const settingsPageLabel = settingsSubpage === "account" ? "Account" : settingsSubpage === "social" ? "Social" : settingsSubpage === "reports" ? "Reports" : settingsSubpage === "analytics" ? "Analytics" : "General"
+  const settingsPageLabel = settingsSubpage === "account" ? "Account" : settingsSubpage === "social" ? "Social" : settingsSubpage === "reports" ? "Reports" : "General"
   const pageLabel = isSettingsPage ? settingsPageLabel : isCheckoutPage ? "Checkout" : isServicesPage ? "Services" : isCartPage ? "Cart" : sectionLabel
   const companyPath = `/${encodeURIComponent(company.slug || company.id)}`
   const activity = useMemo(() => buildActivity({ projects, tasks, invoices, estimates, contracts, documents }, 20), [projects, tasks, invoices, estimates, contracts, documents])
@@ -128,16 +128,16 @@ export function CompanyProfileShell({ children }: { children: ReactNode }) {
   const searchResults = useMemo<SearchResult[]>(() => [
     ...sections.map((item) => ({ id: `section-${item.key}`, group: "Pages", label: item.label, href: sectionHref(item.key) })),
     ...projects.map((project) => ({ id: `project-${project.id}`, group: "Campaigns", label: project.title, sublabel: project.service || undefined, href: sectionHref("projects") })),
-    ...documents.map((doc) => ({ id: `document-${doc.id}`, group: "Documents", label: doc.title || "Document", href: sectionHref("documents", { doc: `document:${doc.id}` }) })),
-    ...invoices.map((invoice) => ({ id: `invoice-${invoice.id}`, group: "Documents", label: invoice.invoiceNumber || invoice.title || "Invoice", href: sectionHref("documents", { doc: `invoice:${invoice.id}` }) })),
-    ...estimates.map((estimate) => ({ id: `estimate-${estimate.id}`, group: "Documents", label: estimate.estimateNumber || estimate.title || "Estimate", href: sectionHref("documents", { doc: `estimate:${estimate.id}` }) })),
-    ...contracts.map((contract) => ({ id: `contract-${contract.id}`, group: "Documents", label: contract.title || "Contract", href: sectionHref("documents", { doc: `contract:${contract.id}` }) })),
+    ...documents.map((doc) => ({ id: `document-${doc.id}`, group: "Drive", label: doc.title || "Document", href: sectionHref("documents", { doc: `document:${doc.id}` }) })),
+    ...invoices.map((invoice) => ({ id: `invoice-${invoice.id}`, group: "Drive", label: invoice.invoiceNumber || invoice.title || "Invoice", href: sectionHref("documents", { doc: `invoice:${invoice.id}` }) })),
+    ...estimates.map((estimate) => ({ id: `estimate-${estimate.id}`, group: "Drive", label: estimate.estimateNumber || estimate.title || "Estimate", href: sectionHref("documents", { doc: `estimate:${estimate.id}` }) })),
+    ...contracts.map((contract) => ({ id: `contract-${contract.id}`, group: "Drive", label: contract.title || "Contract", href: sectionHref("documents", { doc: `contract:${contract.id}` }) })),
     // eslint-disable-next-line react-hooks/exhaustive-deps
   ], [sections, projects, documents, invoices, estimates, contracts])
 
   type SectionItem = (typeof sections)[number]
-  // Reports and Analytics live under Settings, so they leave the main menu.
-  const sidebarSections = sections.filter((item) => !["activity", "pulse", "analytics"].includes(item.key))
+  // Reports lives under Settings, so it leaves the main menu.
+  const sidebarSections = sections.filter((item) => !["activity", "pulse"].includes(item.key))
 
   function renderItem(item: SectionItem) {
     const Icon = item.icon

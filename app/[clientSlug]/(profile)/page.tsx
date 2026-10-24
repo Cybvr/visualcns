@@ -22,7 +22,7 @@ export default function CompanyHomePage() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const redirected = useRef(false)
-  // Uploads from the quick action go straight into the company's Documents.
+  // Uploads from the quick action go straight into the company's Drive.
   const files = useCompanyFiles()
 
   // Older links put the section in ?tab=, and shared document links used /{slug}?doc=.

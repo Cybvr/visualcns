@@ -4,7 +4,7 @@ import { Activity, Bot, ChartColumn, DollarSign, FileText, Fingerprint, Info, Li
 export const COMPANY_SECTIONS = [
   { key: "projects", label: "Campaigns", icon: Megaphone },
   { key: "social", label: "Social Media", icon: Share2 },
-  { key: "documents", label: "Documents", icon: FileText },
+  { key: "documents", label: "Drive", icon: FileText },
   { key: "ngai", label: "Support", icon: Bot },
   { key: "tasks", label: "Tasks", icon: ListTodo },
   { key: "about", label: "About", icon: Info },

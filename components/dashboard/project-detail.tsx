@@ -105,7 +105,10 @@ export function ProjectDetail({
   const [deleting, setDeleting] = useState<string | null>(null)
   // Each tab has its own address (?view=creators), so it can be linked, refreshed and gone back to.
   const [view, setView] = useUrlSelection("view")
-  const tab = TAB_FROM_VIEW[view ?? ""] ?? "home"
+  // On the company page campaigns have no Tasks tab, so an old ?view=tasks link opens Home.
+  const showTasks = !embedded && !(publicView && !publicTasks)
+  const requestedTab = TAB_FROM_VIEW[view ?? ""] ?? "home"
+  const tab = requestedTab === "tasks" && !showTasks ? "home" : requestedTab
   const setTab = (next: CampaignTab) => setView(next === "home" ? null : VIEW_FROM_TAB[next])
   // Where the campaign keeps its own section menu, the app menu folds to its icon rail while it is open.
   // On the company page the sections move into the sidebar instead, so it stays open.
@@ -141,7 +144,7 @@ export function ProjectDetail({
   }, [project.id])
   // Suggested creators wait in Roster matching; everything else counts only the roster.
   const roster = people.filter(onRoster)
-  // Content is the written posts; every image, video and link lives in Media, wherever it was first added.
+  // Content is the written posts; every image, video and link lives in Drive, wherever it was first added.
   const contentItems = creatives.filter((item) => item.type === "text")
   const campaignMedia = creatives.filter((item) => item.type !== "text")
   const mediaItems = campaignMedia.filter((item) => item.type !== "folder")
@@ -384,10 +387,10 @@ export function ProjectDetail({
     { key: "about", label: "About campaign", icon: MdDescription },
     { key: "people", label: "Creators", count: roster.length, icon: MdPeople },
     { key: "creatives", label: "Content", count: contentItems.length, icon: MdPalette },
-    { key: "media", label: "Media", count: mediaItems.length, icon: MdPhotoLibrary },
+    { key: "media", label: "Drive", count: mediaItems.length, icon: MdPhotoLibrary },
     { key: "analytics", label: "Analytics", icon: MdBarChart },
     { key: "payments", label: "Payments", icon: MdPayments },
-    ...(publicView && !publicTasks ? [] : [{ key: "tasks", label: "Tasks", icon: MdAssignment }]),
+    ...(showTasks ? [{ key: "tasks", label: "Tasks", icon: MdAssignment }] : []),
     ...(embedded && canEditCampaign ? [{ key: "build", label: "Ngai", icon: NgaiMark }] : []),
     ...(canEditCampaign ? [{ key: "settings", label: "Settings", icon: MdSettings }] : []),
   ] as { key: CampaignTab; label: string; count?: number; icon: SidebarIcon }[]
