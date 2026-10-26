@@ -2,7 +2,7 @@
 
 import { useEffect, useState, type ReactNode } from "react"
 import Link from "next/link"
-import { ClipboardList, ExternalLink, FileSignature, FileText, Loader2, Maximize2, Minimize2, Pencil, Receipt, X } from "lucide-react"
+import { ArrowLeft, ClipboardList, ExternalLink, FileSignature, FileText, Loader2, Maximize2, Minimize2, Pencil, Receipt, X } from "lucide-react"
 
 import { CompanyDocumentView } from "@/components/dashboard/company-document-view"
 import { ContractDocument } from "@/components/dashboard/contract-document"
@@ -90,6 +90,7 @@ export function DocumentArtifact({
   actions,
   onClose,
   className,
+  layout = "pane",
 }: {
   artifact: ArtifactRef
   record?: CompanyDocument | Invoice | Estimate | Contract
@@ -101,6 +102,7 @@ export function DocumentArtifact({
   actions?: ReactNode
   onClose: () => void
   className?: string
+  layout?: "pane" | "page"
 }) {
   const [loaded, setLoaded] = useState<ArtifactRecord | null>(record ? ({ kind: artifact.kind, record } as ArtifactRecord) : null)
   const [failed, setFailed] = useState(false)
@@ -146,10 +148,17 @@ export function DocumentArtifact({
   const Icon = meta.icon
   const title = loaded ? recordTitle(loaded) : artifact.title || meta.label
   const issuerProp = issuer ?? undefined
+  const page = layout === "page"
 
   return (
-    <section aria-label={title} className={cn("flex h-full min-h-0 flex-col overflow-hidden bg-card", className, expanded && "fixed inset-0 z-[60] h-svh w-full border-0 md:w-full md:border-0")}>
-      <header className="flex h-14 shrink-0 items-center gap-2 border-b border-border px-4 print:hidden">
+    <section aria-label={title} className={cn(page ? "min-w-0" : "flex h-full min-h-0 flex-col overflow-hidden bg-card", className, !page && expanded && "fixed inset-0 z-[60] h-svh w-full border-0 md:w-full md:border-0")}>
+      {page && (
+        <Button type="button" variant="ghost" onClick={onClose} className="mb-2 -ml-3 gap-2 print:hidden">
+          <ArrowLeft className="size-4" aria-hidden="true" />
+          Back to Drive
+        </Button>
+      )}
+      <header className={cn("flex h-14 shrink-0 items-center gap-2 border-b border-border print:hidden", page ? "px-0" : "px-4")}>
         <Icon className={cn("size-5 shrink-0", meta.color)} aria-hidden="true" />
         <div className="min-w-0 flex-1">
           <h2 className="truncate text-sm font-semibold text-foreground">{title}</h2>
@@ -161,20 +170,20 @@ export function DocumentArtifact({
             <Link href={artifactEditHref(artifact)} aria-label={`Edit ${meta.label.toLowerCase()}`}><Pencil className="size-4" aria-hidden="true" /></Link>
           </Button>
         )}
-        <Button type="button" variant="ghost" size="icon" className="size-8 max-md:hidden" onClick={() => setExpanded((current) => !current)} aria-label={expanded ? "Exit full screen" : "Expand to full screen"} title={expanded ? "Exit full screen" : "Expand to full screen"}>
+        {!page && <Button type="button" variant="ghost" size="icon" className="size-8 max-md:hidden" onClick={() => setExpanded((current) => !current)} aria-label={expanded ? "Exit full screen" : "Expand to full screen"} title={expanded ? "Exit full screen" : "Expand to full screen"}>
           {expanded ? <Minimize2 className="size-4" aria-hidden="true" /> : <Maximize2 className="size-4" aria-hidden="true" />}
-        </Button>
-        {fullHref && (
+        </Button>}
+        {!page && fullHref && (
           <Button asChild variant="ghost" size="icon" className="size-8" title="Open in full">
             <Link href={fullHref} aria-label="Open in full"><ExternalLink className="size-4" aria-hidden="true" /></Link>
           </Button>
         )}
-        <Button type="button" variant="ghost" size="icon" className="size-8" onClick={onClose} aria-label="Close" title="Close">
+        {!page && <Button type="button" variant="ghost" size="icon" className="size-8" onClick={onClose} aria-label="Close" title="Close">
           <X className="size-4" aria-hidden="true" />
-        </Button>
+        </Button>}
       </header>
       {/* Full screen keeps the page a readable width, centred. */}
-      <div className={cn("min-h-0 flex-1 overflow-auto p-4 sm:p-6", expanded && "sm:px-[max(1.5rem,calc((100%-56rem)/2))]")}>
+      <div className={cn(page ? "min-w-0 py-5 sm:py-6" : "min-h-0 flex-1 overflow-auto p-4 sm:p-6", !page && expanded && "sm:px-[max(1.5rem,calc((100%-56rem)/2))]")}>
         {failed ? (
           <p className="py-10 text-center text-sm text-muted-foreground">This {meta.label.toLowerCase()} couldn&apos;t be opened. It may have been deleted, or you may not have access.</p>
         ) : !loaded ? (

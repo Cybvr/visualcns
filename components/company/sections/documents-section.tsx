@@ -1,7 +1,6 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import { createPortal } from "react-dom"
 import { useRouter, useSearchParams } from "next/navigation"
 
 import { CompanyDocuments, type CompanyDocumentKind } from "@/components/company/company-documents"
@@ -12,7 +11,6 @@ import { DocumentArtifact } from "@/components/dashboard/document-artifact"
 import { DocumentActions } from "@/components/dashboard/document-actions"
 import { NewDocumentDialog } from "@/components/dashboard/new-document-dialog"
 import { getBusinessProfile, type BusinessProfile } from "@/lib/business-profile"
-import { cn } from "@/lib/utils"
 
 const KIND_LABELS: Record<CompanyDocumentKind, string> = {
   invoice: "Invoice",
@@ -26,13 +24,11 @@ function editHref(kind: CompanyDocumentKind, id: string) {
 }
 
 export function DocumentsSection() {
-  const { company, invoices, contracts, estimates, documents, admin, isAdmin, canEditDocuments, updateParams } = useCompanyPage()
+  const { company, invoices, contracts, estimates, documents, admin, isAdmin, canEditDocuments, updateParams, setRecordOpen } = useCompanyPage()
   const router = useRouter()
   const searchParams = useSearchParams()
   const [issuer, setIssuer] = useState<BusinessProfile | null>(null)
   const [creatingDocument, setCreatingDocument] = useState(false)
-  const [artifactSlot, setArtifactSlot] = useState<HTMLElement | null>(null)
-  useEffect(() => { setArtifactSlot(document.getElementById("company-artifact-slot")) }, [])
   // Notes sit in the same list as the documents and open in their own editor.
   const notes = useCompanyNotes()
   // Every campaign's media sits in the Drive too.
@@ -81,47 +77,44 @@ export function DocumentsSection() {
           : documents.find((d) => d.id === selected.id)
     : undefined
 
+  const documentOpen = Boolean(selected && selectedRecord)
+  useEffect(() => {
+    setRecordOpen(documentOpen)
+    return () => setRecordOpen(false)
+  }, [documentOpen, setRecordOpen])
+
   return (
-    <div className="mt-5">
-      {/* The list stays put; an open document sits beside it like an artifact, or over it on a phone. */}
-      <div className="flex min-w-0 items-start gap-4">
-        <div className={cn("min-w-0 flex-1", selected && "max-md:hidden")}>
-          <CompanyDocuments
-            invoices={invoices}
-            contracts={contracts}
-            estimates={estimates}
-            documents={documents}
-            heading="Drive"
-            emptyTitle="Your drive is empty"
-            addKinds={["document", "invoice", "contract", "estimate"]}
-            emptyDescription="Documents, invoices, estimates, contracts, files and campaign media will appear here."
-            onSelect={(kind, id) => updateParams({ doc: `${kind}:${id}` })}
-            onEdit={canEditDocuments ? (kind, id) => router.push(editHref(kind, id)) : undefined}
-            canAdd={Boolean(admin)}
-            onAdd={handleAdd}
-            extraEntries={[...notes.entries, ...files.entries, ...campaignMedia.entries]}
-            extraAddItems={files.addItem || notes.addItem ? <>{files.addItem}{notes.addItem}</> : undefined}
-            canManage={canEditDocuments}
-            onChanged={admin?.reload}
-          />
-        </div>
-        {selected && selectedRecord && (() => {
-          const pane = (
-            <DocumentArtifact
-              artifact={selected}
-              record={selectedRecord}
-              issuer={issuer}
-              canEdit={canEditDocuments}
-              fullHref={isAdmin ? `/dashboard/${selected.kind}s/${encodeURIComponent(selected.id)}` : undefined}
-              actions={!admin ? <DocumentActions title={`${company.name} ${KIND_LABELS[selected.kind]}`} iconOnly /> : undefined}
-              onClose={() => { setDismissed(docParam); updateParams({ doc: null }, true) }}
-              className="h-full md:border-l md:border-border"
-            />
-          )
-          // The company page keeps a full-height slot on the right for it; anywhere else it sits beside the list.
-          return artifactSlot ? createPortal(pane, artifactSlot) : <div className="max-md:fixed max-md:inset-0 max-md:z-50 md:sticky md:top-4 md:h-[calc(100svh-8rem)] md:w-[min(48rem,50%)] md:shrink-0">{pane}</div>
-        })()}
-      </div>
+    <div className={documentOpen ? "min-w-0" : "mt-5"}>
+      {selected && selectedRecord ? (
+        <DocumentArtifact
+          layout="page"
+          artifact={selected}
+          record={selectedRecord}
+          issuer={issuer}
+          canEdit={canEditDocuments}
+          actions={!admin ? <DocumentActions title={`${company.name} ${KIND_LABELS[selected.kind]}`} iconOnly /> : undefined}
+          onClose={() => { setDismissed(docParam); updateParams({ doc: null }, true) }}
+        />
+      ) : (
+        <CompanyDocuments
+          invoices={invoices}
+          contracts={contracts}
+          estimates={estimates}
+          documents={documents}
+          heading="Drive"
+          emptyTitle="Your drive is empty"
+          addKinds={["document", "invoice", "contract", "estimate"]}
+          emptyDescription="Documents, invoices, estimates, contracts, files and campaign media will appear here."
+          onSelect={(kind, id) => updateParams({ doc: `${kind}:${id}` })}
+          onEdit={canEditDocuments ? (kind, id) => router.push(editHref(kind, id)) : undefined}
+          canAdd={Boolean(admin)}
+          onAdd={handleAdd}
+          extraEntries={[...notes.entries, ...files.entries, ...campaignMedia.entries]}
+          extraAddItems={files.addItem || notes.addItem ? <>{files.addItem}{notes.addItem}</> : undefined}
+          canManage={canEditDocuments}
+          onChanged={admin?.reload}
+        />
+      )}
 
       {notes.dialogs}
       {files.dialogs}

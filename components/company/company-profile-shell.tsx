@@ -234,7 +234,7 @@ export function CompanyProfileShell({ children }: { children: ReactNode }) {
               <SidebarAccount header />
             </div>
           </header>
-          {/* Content, then an open document (an artifact) beside it, both under the header like Claude. */}
+          {/* The active section fills the content area below the header. */}
           <div className="flex min-w-0 flex-1">
             <main className={cn(
               "min-w-0 flex-1 bg-card dark:bg-background px-3 sm:px-6 md:m-3 md:mt-0 md:rounded-2xl md:shadow-[0_6px_24px_rgba(15,23,42,0.04)] lg:px-8",
@@ -251,12 +251,6 @@ export function CompanyProfileShell({ children }: { children: ReactNode }) {
               )}
               {children}
             </main>
-            {/* The open document is portalled here. It stays in view while the content scrolls,
-                takes no room when empty, and covers the screen on a phone. */}
-            <div
-              id="company-artifact-slot"
-              className="empty:hidden max-md:fixed max-md:inset-0 max-md:z-50 md:sticky md:top-[var(--shell-header-h,72px)] md:h-[calc(100svh-var(--shell-header-h,72px)-0.75rem)] md:w-[min(48rem,45vw)] md:shrink-0 md:self-start"
-            />
           </div>
         </SidebarInset>
 
