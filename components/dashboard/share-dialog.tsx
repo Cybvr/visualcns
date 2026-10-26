@@ -11,7 +11,8 @@ import { Dialog, DialogClose, DialogContent, DialogDescription, DialogHeader, Di
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { buildEmailComposeHref, parseEmailList, siteUrl } from "@/lib/email-composer"
+import { parseEmailList, plainTextToEditorHtml, siteUrl } from "@/lib/email-composer"
+import { saveEmailDraft, type EmailDraftRecord } from "@/lib/email-drafts"
 import { getUsers, type AppUser } from "@/lib/users"
 import { cn } from "@/lib/utils"
 
@@ -70,6 +71,7 @@ export function ShareDialog({
   const [messageStep, setMessageStep] = useState(false)
   const [recipients, setRecipients] = useState<string[]>([])
   const [message, setMessage] = useState<string | null>(null)
+  const [savingDraft, setSavingDraft] = useState(false)
   const isOpen = open ?? internalOpen
   const viewer = auth?.isAdmin && !auth.isViewingAs && auth.user?.email ? {
     name: auth.appUser?.displayName?.trim() || auth.user.displayName?.trim() || auth.user.email,
@@ -136,16 +138,42 @@ export function ShareDialog({
     }
   }
 
-  function emailLink() {
-    if (!canCopy || !recipients.length) return
+  async function emailLink() {
+    if (!canCopy || !recipients.length || savingDraft) return
     const subject = "Sharing " + itemTitle
     const body = [message?.trim(), `Here is the link to ${itemTitle}:\n${url}`].filter(Boolean).join("\n\n")
     if (emailMode === "system") {
       window.location.href = "mailto:" + recipients.join(",") + "?subject=" + encodeURIComponent(subject) + "&body=" + encodeURIComponent(body)
     } else {
-      router.push(buildEmailComposeHref({ recipientEmail: recipients[0], cc: recipients.slice(1).join(","), subject, body }))
+      if (!auth?.user) {
+        toast.error("Sign in to save this email draft.")
+        return
+      }
+      const draft: EmailDraftRecord = {
+        id: crypto.randomUUID(),
+        companyId: auth.appUser?.companyId || auth.user.uid,
+        createdBy: auth.user.uid,
+        to: recipients[0],
+        cc: recipients.slice(1).join(",") || undefined,
+        subject,
+        body: plainTextToEditorHtml(body),
+        messageKind: "transactional",
+        brandedEmail: true,
+        context: { recipientEmail: recipients[0], cc: recipients.slice(1).join(","), subject, body },
+        updatedAt: new Date().toISOString(),
+      }
+      setSavingDraft(true)
+      try {
+        await saveEmailDraft(draft)
+      } catch {
+        toast.error("Could not save the email draft. Please try again.")
+        setSavingDraft(false)
+        return
+      }
+      router.push(`/dashboard/email/drafts?openDraft=${encodeURIComponent(draft.id)}`)
     }
     handleOpenChange(false)
+    setSavingDraft(false)
   }
 
   return (
@@ -163,7 +191,7 @@ export function ShareDialog({
             {messageStep && <Button type="button" size="icon" variant="ghost" className="-ml-2 size-9 shrink-0" aria-label="Back to sharing options" onClick={() => setMessageStep(false)}><ArrowLeft className="size-5" aria-hidden="true" /></Button>}
             <DialogTitle className="text-2xl font-normal leading-snug tracking-tight">Share &lsquo;{itemTitle}&rsquo;</DialogTitle>
           </div>
-          <DialogDescription className="sr-only">{messageStep ? "Add a message before opening an email draft." : "Email a link or control who can open it."}</DialogDescription>
+          <DialogDescription className="sr-only">{messageStep ? emailMode === "system" ? "Add a message before opening your email app." : "Add a message before saving an email draft." : "Email a link or control who can open it."}</DialogDescription>
         </DialogHeader>
 
         {messageStep ? (
@@ -272,7 +300,7 @@ export function ShareDialog({
           {messageStep ? (
             <div className="flex items-center gap-2">
               <Button type="button" variant="ghost" className="h-10 rounded-full px-4" onClick={() => handleOpenChange(false)}>Cancel</Button>
-              <Button type="button" className="h-10 rounded-full px-5" onClick={emailLink}>Open draft</Button>
+              <Button type="button" className="h-10 rounded-full px-5" onClick={() => void emailLink()} disabled={savingDraft}>{savingDraft ? "Saving…" : emailMode === "system" ? "Open email app" : "Save and open draft"}</Button>
             </div>
           ) : (
             <DialogClose asChild>
