@@ -13,7 +13,7 @@ import { getProjects } from "@/lib/projects"
 import { getUsers } from "@/lib/users"
 
 /**
- * How many leads, contacts, clients, campaigns, Drive records and estimates the agency has,
+ * How many leads, contacts, clients, campaigns and Drive records the agency has,
  * keyed by the sidebar link they belong to. Campaigns includes archived items.
  * Only for the agency's own staff; anyone else gets none.
  */
@@ -40,14 +40,11 @@ export function useNavCounts(): Record<string, number> {
     let driveCount = 0
     let noteCount = 0
     const updateDriveCount = () => set("/dashboard/drive", driveCount + noteCount)
-    Promise.allSettled([getInvoices(), getCompanyDocuments()])
+    Promise.allSettled([getInvoices(), getEstimates(), getCompanyDocuments()])
       .then((results) => {
         driveCount = results.reduce((total, result) => total + (result.status === "fulfilled" ? result.value.length : 0), 0)
         updateDriveCount()
       })
-    getEstimates()
-      .then((rows) => set("/dashboard/estimates", rows.length))
-      .catch(() => {})
     getProjects()
       .then((rows) => set("/dashboard/projects", rows.length))
       .catch(() => {})

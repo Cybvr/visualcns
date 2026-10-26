@@ -17,7 +17,7 @@ export default function EditEstimatePage() {
   const [missing, setMissing] = useState(false)
 
   useEffect(() => {
-    if (!authLoading && user && !allowed) router.replace("/dashboard/estimates")
+    if (!authLoading && user && !allowed) router.replace("/dashboard/drive?type=estimate")
   }, [allowed, authLoading, router, user])
 
   useEffect(() => {

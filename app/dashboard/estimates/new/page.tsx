@@ -13,7 +13,7 @@ export default function NewEstimatePage() {
   const allowed = isAdmin && !isImpersonating
 
   useEffect(() => {
-    if (!loading && user && !allowed) router.replace("/dashboard/estimates")
+    if (!loading && user && !allowed) router.replace("/dashboard/drive?type=estimate")
   }, [allowed, loading, router, user])
 
   if (!user || loading || !allowed) {

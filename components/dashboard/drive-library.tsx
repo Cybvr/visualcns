@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { FileText, FileUp, Plus, Receipt, StickyNote } from "lucide-react"
+import { FileCheck2, FileText, FileUp, Plus, Receipt, StickyNote } from "lucide-react"
 import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
@@ -27,8 +27,9 @@ import { useCachedState } from "@/lib/page-cache"
 import { getCurrentAgencyId } from "@/lib/agency-scope"
 import { getExchangeRate } from "@/lib/currency"
 import {
-  createInvoice, deleteInvoice, formatMoney, getInvoices, invoiceStatusMeta,
-  nextInvoiceNumber, updateInvoice, type Invoice,
+  createEstimate, createInvoice, deleteEstimate, deleteInvoice, estimateStatusMeta, formatMoney,
+  getEstimates, getInvoices, invoiceStatusMeta, nextEstimateNumber, nextInvoiceNumber,
+  updateEstimate, updateInvoice, type Estimate, type Invoice,
 } from "@/lib/billing"
 import {
   companyDocumentKindMeta, companyDocumentStatusMeta, createCompanyDocument, deleteCompanyDocument,
@@ -39,15 +40,17 @@ import { formatTimestamp, tsToMillis } from "@/lib/tasks"
 
 type DriveItem =
   | { type: "invoice"; record: Invoice }
+  | { type: "estimate"; record: Estimate }
   | { type: "document"; record: CompanyDocument }
   | { type: "note"; record: Note }
 type DriveType = DriveItem["type"]
 type DriveFilter = "all" | DriveType
-type DuplicateTarget = Extract<DriveItem, { type: "invoice" | "document" }>
+type DuplicateTarget = Extract<DriveItem, { type: "invoice" | "estimate" | "document" }>
 
 const TYPES: { value: DriveFilter; label: string }[] = [
   { value: "all", label: "All" },
   { value: "invoice", label: "Invoices" },
+  { value: "estimate", label: "Estimates" },
   { value: "document", label: "Documents" },
   { value: "note", label: "Notes" },
 ]
@@ -58,7 +61,7 @@ const SORTS: SortOption<DriveItem>[] = [
   { value: "type", label: "Type", get: (item) => item.type, ascLabel: "A–Z", descLabel: "Z–A" },
 ]
 
-const ICONS = { invoice: Receipt, document: FileText, note: StickyNote }
+const ICONS = { invoice: Receipt, estimate: FileCheck2, document: FileText, note: StickyNote }
 
 function keyOf(item: DriveItem) { return `${item.type}:${item.record.id}` }
 function updatedAt(item: DriveItem) { return Math.max(tsToMillis(item.record.updatedAt), tsToMillis(item.record.createdAt)) }
@@ -68,26 +71,32 @@ function noteTitle(note: Note) {
 }
 function itemTitle(item: DriveItem) {
   if (item.type === "invoice") return item.record.title || item.record.invoiceNumber || "Untitled invoice"
+  if (item.type === "estimate") return item.record.title || item.record.estimateNumber || "Untitled estimate"
   if (item.type === "document") return item.record.title || "Untitled document"
   return noteTitle(item.record)
 }
 function itemHref(item: DriveItem) {
   const id = encodeURIComponent(item.record.id)
-  return item.type === "note" ? `/dashboard/notes?note=${id}` : `/dashboard/${item.type === "document" ? "documents" : "invoices"}/${id}`
+  if (item.type === "note") return `/dashboard/notes?note=${id}`
+  if (item.type === "estimate") return `/dashboard/estimates/${id}/edit`
+  return `/dashboard/${item.type === "document" ? "documents" : "invoices"}/${id}`
 }
 function itemStatus(item: DriveItem) {
   if (item.type === "invoice") return invoiceStatusMeta[item.record.status] ?? invoiceStatusMeta.draft
+  if (item.type === "estimate") return estimateStatusMeta[item.record.status] ?? estimateStatusMeta.draft
   if (item.type === "document") return companyDocumentStatusMeta[item.record.status] ?? companyDocumentStatusMeta.draft
   return null
 }
 function itemSubtitle(item: DriveItem) {
   if (item.type === "invoice") return formatMoney(item.record.amount, item.record.currency)
+  if (item.type === "estimate") return formatMoney(item.record.amount, item.record.currency)
   if (item.type === "document") return companyDocumentKindMeta[item.record.kind]?.label || "Document"
   return "Note"
 }
 function itemSearch(item: DriveItem) {
   const status = itemStatus(item)
   if (item.type === "invoice") return [itemTitle(item), item.record.invoiceNumber, item.record.client, item.record.project, status?.label, "invoice"]
+  if (item.type === "estimate") return [itemTitle(item), item.record.estimateNumber, item.record.client, item.record.project, status?.label, "estimate"]
   if (item.type === "document") return [itemTitle(item), item.record.client, item.record.project, itemSubtitle(item), status?.label, "document"]
   return [itemTitle(item), item.record.body.replace(/<[^>]*>/g, " "), "note"]
 }
@@ -130,10 +139,11 @@ export function DriveLibrary() {
   usePageTitle("Drive")
 
   const [invoices, setInvoices, invoicesCached] = useCachedState<Invoice[]>("invoices", [])
+  const [estimates, setEstimates, estimatesCached] = useCachedState<Estimate[]>("estimates", [])
   const [documents, setDocuments, documentsCached] = useCachedState<CompanyDocument[]>("drive:company-documents", [])
   const [notes, setNotes] = useState<Note[]>([])
   const [notesLoaded, setNotesLoaded] = useState(false)
-  const [loading, setLoading] = useState(!(invoicesCached && documentsCached))
+  const [loading, setLoading] = useState(!(invoicesCached && estimatesCached && documentsCached))
   const [loadError, setLoadError] = useState(false)
   const [filter, setFilter] = useState<DriveFilter>("all")
   const [view, setView] = useViewMode("drive-library", "list")
@@ -160,12 +170,13 @@ export function DriveLibrary() {
 
   const fetchData = useCallback(async () => {
     if (!adminView) return
-    const results = await Promise.allSettled([getInvoices(), getCompanyDocuments()])
+    const results = await Promise.allSettled([getInvoices(), getEstimates(), getCompanyDocuments()])
     if (results[0].status === "fulfilled") setInvoices(results[0].value)
-    if (results[1].status === "fulfilled") setDocuments(results[1].value)
+    if (results[1].status === "fulfilled") setEstimates(results[1].value)
+    if (results[2].status === "fulfilled") setDocuments(results[2].value)
     setLoadError(results.some((result) => result.status === "rejected"))
     setLoading(false)
-  }, [adminView, setDocuments, setInvoices])
+  }, [adminView, setDocuments, setEstimates, setInvoices])
 
   useEffect(() => { void fetchData() }, [fetchData])
   useEffect(() => {
@@ -181,9 +192,10 @@ export function DriveLibrary() {
 
   const items = useMemo<DriveItem[]>(() => [
     ...invoices.map((record) => ({ type: "invoice" as const, record })),
+    ...estimates.map((record) => ({ type: "estimate" as const, record })),
     ...documents.map((record) => ({ type: "document" as const, record })),
     ...notes.map((record) => ({ type: "note" as const, record })),
-  ], [invoices, documents, notes])
+  ], [invoices, estimates, documents, notes])
   const filteredItems = useMemo(() => filter === "all" ? items : items.filter((item) => item.type === filter), [filter, items])
   const { results: visibleItems, bar } = useFilterBar({ items: filteredItems, search: itemSearch, sorts: SORTS, defaultSort: "updatedAt", defaultDirection: "desc" })
   const busy = loading || !notesLoaded
@@ -193,6 +205,9 @@ export function DriveLibrary() {
       if (item.type === "invoice") {
         await updateInvoice(item.record.id, { title })
         setInvoices((current) => current.map((record) => record.id === item.record.id ? { ...record, title } : record))
+      } else if (item.type === "estimate") {
+        await updateEstimate(item.record.id, { title })
+        setEstimates((current) => current.map((record) => record.id === item.record.id ? { ...record, title } : record))
       } else if (item.type === "document") {
         await updateCompanyDocument(item.record.id, { title })
         setDocuments((current) => current.map((record) => record.id === item.record.id ? { ...record, title } : record))
@@ -212,6 +227,9 @@ export function DriveLibrary() {
       if (item.type === "invoice") {
         await deleteInvoice(item.record.id)
         setInvoices((current) => current.filter((record) => record.id !== item.record.id))
+      } else if (item.type === "estimate") {
+        await deleteEstimate(item.record.id)
+        setEstimates((current) => current.filter((record) => record.id !== item.record.id))
       } else if (item.type === "document") {
         await deleteCompanyDocument(item.record.id)
         setDocuments((current) => current.filter((record) => record.id !== item.record.id))
@@ -234,6 +252,9 @@ export function DriveLibrary() {
       if (item.type === "invoice") {
         await updateInvoice(item.record.id, { shareEnabled: enabled })
         setInvoices((current) => current.map((record) => record.id === item.record.id ? { ...record, shareEnabled: enabled } : record))
+      } else if (item.type === "estimate") {
+        await updateEstimate(item.record.id, { shareEnabled: enabled })
+        setEstimates((current) => current.map((record) => record.id === item.record.id ? { ...record, shareEnabled: enabled } : record))
       } else if (item.type === "document") {
         await updateCompanyDocument(item.record.id, { shareEnabled: enabled })
         setDocuments((current) => current.map((record) => record.id === item.record.id ? { ...record, shareEnabled: enabled } : record))
@@ -261,6 +282,7 @@ export function DriveLibrary() {
       onDuplicate: adminView && item.type !== "note" ? () => setDuplicateTarget(item as DuplicateTarget) : undefined,
       extra: adminView ? <>
         {item.type === "document" && <DropdownMenuItem onSelect={() => router.push(`${href}/edit`)}>Edit document</DropdownMenuItem>}
+        {item.type === "estimate" && <DropdownMenuItem onSelect={() => router.push(`/dashboard/invoices/new?estimateId=${encodeURIComponent(item.record.id)}`)}>Convert to invoice</DropdownMenuItem>}
         <DropdownMenuItem onSelect={() => setSharing(item)}>Share</DropdownMenuItem>
       </> : undefined,
       onDelete: adminView ? () => deleteItem(item) : undefined,
@@ -278,6 +300,11 @@ export function DriveLibrary() {
         const invoiceNumber = await nextInvoiceNumber()
         const id = await createInvoice({ ...rest, invoiceNumber, status: "draft", shareEnabled: false, companyId: selection.companyId, client: selection.client || target.record.client, projectId: selection.projectId, project: selection.project })
         router.push(`/dashboard/invoices/${encodeURIComponent(id)}`)
+      } else if (target.type === "estimate") {
+        const { id: _id, createdAt: _createdAt, updatedAt: _updatedAt, ...rest } = target.record
+        const estimateNumber = await nextEstimateNumber()
+        const id = await createEstimate({ ...rest, estimateNumber, status: "draft", shareEnabled: false, companyId: selection.companyId, client: selection.client || target.record.client, projectId: selection.projectId, project: selection.project })
+        router.push(`/dashboard/estimates/${encodeURIComponent(id)}/edit`)
       } else {
         const { id: _id, createdAt: _createdAt, updatedAt: _updatedAt, ...rest } = target.record
         const id = await createCompanyDocument({ ...rest, title: `${target.record.title || "Document"} (Copy)`, status: "draft", shareEnabled: false, companyId: selection.companyId, client: selection.client || target.record.client, projectId: selection.projectId, project: selection.project })
@@ -316,6 +343,7 @@ export function DriveLibrary() {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         <DropdownMenuItem onSelect={() => router.push("/dashboard/invoices/new")}>Invoice</DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => router.push("/dashboard/estimates/new")}>Estimate</DropdownMenuItem>
         <DropdownMenuItem onSelect={() => setCreatingDocument(true)}>Document</DropdownMenuItem>
         <DropdownMenuItem onSelect={() => void createNewNote()} disabled={creatingNote}>Note</DropdownMenuItem>
         <DropdownMenuItem onSelect={() => setImportingDocument(true)}><FileUp className="size-4" aria-hidden="true" />Import document</DropdownMenuItem>
@@ -337,7 +365,7 @@ export function DriveLibrary() {
       {!busy && items.length === 0 && !loadError ? (
         <>
           {toolbar}
-          <FirstRunState label="Drive" title="Your Drive is empty" description="Notes, documents and invoices will appear together here." action={<div className="flex flex-wrap justify-center gap-2"><Button asChild><Link href="/dashboard/invoices/new">New invoice</Link></Button><Button variant="outline" onClick={() => setCreatingDocument(true)}>New document</Button></div>} />
+          <FirstRunState label="Drive" title="Your Drive is empty" description="Estimates, invoices, documents and notes will appear together here." action={<div className="flex flex-wrap justify-center gap-2"><Button asChild><Link href="/dashboard/invoices/new">New invoice</Link></Button><Button variant="outline" onClick={() => setCreatingDocument(true)}>New document</Button></div>} />
         </>
       ) : (
         <DocumentSplitPane

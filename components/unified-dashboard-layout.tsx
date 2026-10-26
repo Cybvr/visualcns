@@ -4,7 +4,7 @@ import dynamic from "next/dynamic"
 import { Suspense, useEffect, type ReactNode } from "react"
 import Image from "next/image"
 import { usePathname, useRouter } from "next/navigation"
-import { CalendarClock, Eye, FileCheck2, FolderOpen, House, LogOut, Megaphone, UserRound } from "lucide-react"
+import { CalendarClock, Eye, FolderOpen, House, LogOut, Megaphone, UserRound } from "lucide-react"
 import { FiBriefcase, FiMail, FiTrendingUp, FiUsers } from "react-icons/fi"
 import { AuthProvider, useAuth } from "@/components/auth-provider"
 import { AgentProvider } from "@/components/agent/agent-context"
@@ -28,8 +28,7 @@ const DASHBOARD_NAV: NavLink[] = [
   { label: "Contacts", href: "/dashboard/users", icon: FiUsers, adminOnly: true },
   { label: "Clients", href: "/dashboard/clients", icon: FiBriefcase, adminOnly: true },
   { label: "Campaigns", href: "/dashboard/projects", icon: Megaphone, adminOnly: true },
-  { label: "Drive", href: "/dashboard/drive", icon: FolderOpen, adminOnly: true, alsoActive: ["/dashboard/invoices", "/dashboard/documents", "/dashboard/notes"] },
-  { label: "Estimates", href: "/dashboard/estimates", icon: FileCheck2, adminOnly: true },
+  { label: "Drive", href: "/dashboard/drive", icon: FolderOpen, adminOnly: true, alsoActive: ["/dashboard/invoices", "/dashboard/estimates", "/dashboard/documents", "/dashboard/notes"] },
 ]
 
 /** Creators sign up by applying to a campaign: they see their campaigns and their account. */

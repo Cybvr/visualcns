@@ -23,7 +23,7 @@ export default function EstimateDetailPage() {
   const [loading, setLoading] = useState(true)
   const [failed, setFailed] = useState(false)
 
-  usePageTitle(estimate ? (estimate.title || estimate.estimateNumber || "Estimate") : null, "/dashboard/estimates")
+  usePageTitle(estimate ? (estimate.title || estimate.estimateNumber || "Estimate") : null, "/dashboard/drive?type=estimate")
 
   useEffect(() => {
     if (!id || !user || !appUser) return
@@ -45,7 +45,7 @@ export default function EstimateDetailPage() {
 
   if (!user) return null
   if (loading) return <DashboardPageSkeleton variant="detail" />
-  if (failed || !estimate) return <main className="mx-auto w-full max-w-5xl px-4 py-10 sm:px-6"><Link href="/dashboard/estimates" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"><ArrowLeft className="size-4" aria-hidden="true" />Back to estimates</Link><p className="mt-12 text-sm text-muted-foreground">This estimate couldn’t be found or you don’t have access to it.</p></main>
+  if (failed || !estimate) return <main className="mx-auto w-full max-w-5xl px-4 py-10 sm:px-6"><Link href="/dashboard/drive?type=estimate" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"><ArrowLeft className="size-4" aria-hidden="true" />Back to Drive</Link><p className="mt-12 text-sm text-muted-foreground">This estimate couldn’t be found or you don’t have access to it.</p></main>
 
   if (adminView) {
     return (
@@ -58,7 +58,7 @@ export default function EstimateDetailPage() {
   return (
     <main className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6 sm:py-10">
       <div className="mb-6 flex items-center justify-between gap-4 print:hidden">
-        <Link href="/dashboard/estimates" className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"><ArrowLeft className="size-4" aria-hidden="true" />Back to estimates</Link>
+        <Link href="/dashboard/drive?type=estimate" className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"><ArrowLeft className="size-4" aria-hidden="true" />Back to Drive</Link>
         <DocumentActions />
       </div>
       <EstimateDocument estimate={estimate} issuer={issuer ?? undefined} />
