@@ -425,7 +425,6 @@ export function DriveLibrary() {
         showTrigger={false}
         path={sharing ? `/share/${sharing.type === "document" ? "documents" : `${sharing.type}s`}/${encodeURIComponent(sharing.record.id)}` : ""}
         title={sharing ? itemTitle(sharing) : "item"}
-        viewer={user ? { name: user.displayName, email: user.email } : undefined}
         access={{ enabled: Boolean(sharing?.record.shareEnabled), onEnabledChange: (enabled) => { void changeShareEnabled(enabled) }, disabled: shareSaving }}
       />
     </main>

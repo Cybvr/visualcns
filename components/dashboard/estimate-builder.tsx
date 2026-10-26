@@ -463,7 +463,6 @@ export function EstimateBuilder({ estimate, initialCompanyId, onSaved, onDeleted
           triggerClassName="size-8 bg-primary/10 text-primary hover:bg-primary/15"
           path={estimate ? `/share/estimates/${encodeURIComponent(estimate.id)}` : ""}
           title={estimate?.title || title || "estimate"}
-          viewer={user ? { name: user.displayName, email: user.email } : undefined}
           access={{ enabled: shareEnabled, onEnabledChange: (enabled) => { void changeShareEnabled(enabled) }, disabled: shareSaving }}
         />
       } />

@@ -22,8 +22,6 @@ type ShareDialogProps = {
   open?: boolean
   onOpenChange?: (open: boolean) => void
   showTrigger?: boolean
-  /** A signed-in person who can manage this item, when known. */
-  viewer?: { name?: string | null; email?: string | null }
   /** When provided, the public link follows the record's persisted share setting. */
   access?: {
     enabled: boolean
@@ -58,7 +56,6 @@ export function ShareDialog({
   open,
   onOpenChange,
   showTrigger = true,
-  viewer,
   access,
   emailMode = "internal",
   contentClassName,
@@ -97,8 +94,6 @@ export function ShareDialog({
   const itemTitle = title.replace(/^Share\s+/i, "")
   const canCopy = Boolean(path && (access?.enabled ?? true))
   const restricted = access?.enabled === false
-  const viewerName = viewer?.name?.trim() || viewer?.email?.trim() || "You"
-  const viewerEmail = viewer?.email?.trim() || ""
   const recipientParts = recipientInput.split(/[,;\n]/)
   const searchTerm = recipientParts[recipientParts.length - 1].trim().toLowerCase()
   const selectedEmails = new Set(recipientParts.slice(0, -1).map((part) => part.trim().toLowerCase()))
@@ -183,7 +178,6 @@ export function ShareDialog({
               <label htmlFor="share-message" className="text-sm font-medium">Message <span className="font-normal text-muted-foreground">(optional)</span></label>
               <Textarea id="share-message" value={message ?? ""} onChange={(event) => setMessage(event.target.value)} maxLength={1000} rows={6} placeholder="Add a message" className="min-h-36 resize-y" />
             </div>
-            <p className="text-xs text-muted-foreground">The email draft includes your message and a view link. Sending it does not grant individual access.</p>
           </div>
         ) : <div className="space-y-7 px-5 py-5 sm:px-6">
           <fieldset className="relative rounded-md border border-input px-3 pb-2 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary">
@@ -222,24 +216,7 @@ export function ShareDialog({
             )}
           </fieldset>
 
-          <section aria-labelledby="share-people-title" className="space-y-3">
-            <h3 id="share-people-title" className="text-base font-semibold text-foreground">People with access</h3>
-            {viewer ? (
-              <div className="flex items-center gap-3 rounded-lg py-1">
-                <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground" aria-hidden="true">{viewerName.charAt(0).toUpperCase()}</span>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium text-foreground">{viewerName} (you)</p>
-                  {viewerEmail && <p className="truncate text-xs text-muted-foreground">{viewerEmail}</p>}
-                </div>
-                <span className="text-sm text-muted-foreground">Can manage</span>
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground">Individual access is not available for this link.</p>
-            )}
-            <p className="text-xs text-muted-foreground">Contacts are available above for sending the link. Only recorded access appears here.</p>
-          </section>
-
-          <section aria-labelledby="share-general-title" className="space-y-3 border-t border-border pt-5">
+          <section aria-labelledby="share-general-title" className="space-y-3">
             <h3 id="share-general-title" className="text-base font-semibold text-foreground">General access</h3>
             <div className="flex items-center gap-3">
               <span className={cn("flex size-10 shrink-0 items-center justify-center rounded-full", restricted ? "bg-muted text-foreground" : "bg-primary/10 text-primary")} aria-hidden="true">
@@ -261,7 +238,6 @@ export function ShareDialog({
                 ) : <p className="text-sm font-medium text-foreground">Anyone with the link</p>}
                 <p className="text-xs text-muted-foreground">{!path ? "Save this item to generate a link." : restricted ? "Turn on the link to let others view this item." : "Anyone with the link can view this item."}</p>
               </div>
-              {canCopy && <span className="text-sm text-muted-foreground">Viewer</span>}
             </div>
           </section>
         </div>}

@@ -504,7 +504,6 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate, onS
           triggerClassName="size-8 bg-primary/10 text-primary hover:bg-primary/15"
           path={invoice ? `/share/invoices/${encodeURIComponent(invoice.id)}` : ""}
           title={invoice?.title || invoiceTitle || "invoice"}
-          viewer={user ? { name: user.displayName, email: user.email } : undefined}
           access={{ enabled: shareEnabled, onEnabledChange: (enabled) => { void changeShareEnabled(enabled) }, disabled: shareSaving }}
         />
       } />
