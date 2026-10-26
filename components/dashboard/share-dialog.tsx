@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { ChevronDown, Globe2, Link2, LockKeyhole, Mail, Send } from "lucide-react"
 import { toast } from "sonner"
@@ -10,6 +10,7 @@ import { Dialog, DialogClose, DialogContent, DialogDescription, DialogHeader, Di
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import { buildEmailComposeHref, parseEmailList, siteUrl } from "@/lib/email-composer"
+import { getUsers, type AppUser } from "@/lib/users"
 import { cn } from "@/lib/utils"
 
 type ShareDialogProps = {
@@ -51,12 +52,34 @@ export function ShareDialog({
   const router = useRouter()
   const [internalOpen, setInternalOpen] = useState(false)
   const [recipientInput, setRecipientInput] = useState("")
+  const [contacts, setContacts] = useState<AppUser[]>([])
+  const [showSuggestions, setShowSuggestions] = useState(false)
+  const isOpen = open ?? internalOpen
+  useEffect(() => {
+    if (!isOpen || emailMode !== "internal") return
+    let active = true
+    getUsers()
+      .then((people) => { if (active) setContacts(people.filter((person) => person.email?.trim())) })
+      .catch(() => { if (active) setContacts([]) })
+    return () => { active = false }
+  }, [isOpen, emailMode])
   const url = path ? siteUrl(path) : ""
   const itemTitle = title.replace(/^Share\s+/i, "")
   const canCopy = Boolean(path && (access?.enabled ?? true))
   const restricted = access?.enabled === false
   const viewerName = viewer?.name?.trim() || viewer?.email?.trim() || "You"
   const viewerEmail = viewer?.email?.trim() || ""
+  const recipientParts = recipientInput.split(/[,;\n]/)
+  const searchTerm = recipientParts[recipientParts.length - 1].trim().toLowerCase()
+  const selectedEmails = new Set(recipientParts.slice(0, -1).map((part) => part.trim().toLowerCase()))
+  const suggestions = showSuggestions && searchTerm
+    ? contacts.filter((person) => !selectedEmails.has(person.email.trim().toLowerCase()) && `${person.displayName ?? ""} ${person.company ?? ""} ${person.email}`.toLowerCase().includes(searchTerm)).slice(0, 5)
+    : []
+
+  function selectContact(person: AppUser) {
+    setRecipientInput([...recipientParts.slice(0, -1).map((part) => part.trim()).filter(Boolean), person.email.trim()].join(", ") + ", ")
+    setShowSuggestions(false)
+  }
 
   async function copyLink() {
     if (!canCopy) return
@@ -88,7 +111,7 @@ export function ShareDialog({
   }
 
   return (
-    <Dialog open={open ?? internalOpen} onOpenChange={onOpenChange ?? setInternalOpen}>
+    <Dialog open={isOpen} onOpenChange={onOpenChange ?? setInternalOpen}>
       {showTrigger && (
         <DialogTrigger asChild>
           <Button type="button" variant="ghost" size="icon" aria-label={triggerLabel} title={triggerLabel} className={cn("shrink-0 rounded-full text-foreground hover:bg-muted/50", triggerClassName)}>
@@ -103,14 +126,22 @@ export function ShareDialog({
         </DialogHeader>
 
         <div className="space-y-7 px-5 py-5 sm:px-6">
-          <fieldset className="rounded-md border border-input px-3 pb-2 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary">
-            <legend className="px-1 text-sm text-muted-foreground">Email people a link</legend>
+          <fieldset className="relative rounded-md border border-input px-3 pb-2 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary">
+            <legend className="px-1 text-sm text-muted-foreground">Send link to a Contact or email address</legend>
             <div className="flex items-center gap-2">
               <Input
                 value={recipientInput}
-                onChange={(event) => setRecipientInput(event.target.value)}
-                onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); emailLink() } }}
-                placeholder="Email address"
+                onChange={(event) => { setRecipientInput(event.target.value); setShowSuggestions(true) }}
+                onFocus={() => setShowSuggestions(true)}
+                onKeyDown={(event) => {
+                  if (event.key === "Escape") setShowSuggestions(false)
+                  if (event.key === "Enter") {
+                    event.preventDefault()
+                    if (suggestions.length) selectContact(suggestions[0])
+                    else emailLink()
+                  }
+                }}
+                placeholder="Name or email address"
                 aria-label="Email addresses to share with"
                 disabled={!canCopy}
                 className="h-9 min-w-0 flex-1 border-0 px-0 shadow-none focus-visible:ring-0"
@@ -119,6 +150,16 @@ export function ShareDialog({
                 <Mail className="size-4" aria-hidden="true" />
               </Button>
             </div>
+            {suggestions.length > 0 && (
+              <div role="listbox" aria-label="Contacts" className="absolute left-0 right-0 top-full z-50 mt-1 max-h-52 overflow-y-auto rounded-md border border-border bg-popover p-1 shadow-md">
+                {suggestions.map((person) => (
+                  <button key={person.uid} type="button" role="option" aria-selected="false" className="flex w-full flex-col rounded-sm px-3 py-2 text-left hover:bg-accent focus:bg-accent focus:outline-none" onClick={() => selectContact(person)}>
+                    <span className="text-sm font-medium">{person.displayName?.trim() || person.company?.trim() || person.email}</span>
+                    <span className="text-xs text-muted-foreground">{person.email}</span>
+                  </button>
+                ))}
+              </div>
+            )}
           </fieldset>
 
           <section aria-labelledby="share-people-title" className="space-y-3">
@@ -135,6 +176,7 @@ export function ShareDialog({
             ) : (
               <p className="text-sm text-muted-foreground">Individual access is not available for this link.</p>
             )}
+            <p className="text-xs text-muted-foreground">Contacts are available above for sending the link. Only recorded access appears here.</p>
           </section>
 
           <section aria-labelledby="share-general-title" className="space-y-3 border-t border-border pt-5">
