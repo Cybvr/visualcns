@@ -36,6 +36,19 @@ type ShareDialogProps = {
   contentClassName?: string
 }
 
+function suggestedMessage(path: string, title: string): string {
+  const pathname = path.split("?")[0].toLowerCase()
+  const query = path.includes("?") ? new URLSearchParams(path.split("?")[1]) : null
+  if (pathname.includes("/jobs/")) return `Hi,\n\nI thought you might be interested in the ${title} opportunity. You can view the details and apply using the link below.`
+  if (pathname.includes("/invoices/")) return `Hi,\n\nPlease find your invoice, ${title}, at the link below. Let me know if you have any questions.`
+  if (pathname.includes("/estimates/")) return `Hi,\n\nPlease review the estimate for ${title} using the link below. Let me know if you have any questions.`
+  if (pathname.includes("/documents/")) return `Hi,\n\nI've shared ${title} for your review. You can open it using the link below.`
+  if (pathname.includes("/notes/")) return `Hi,\n\nI'm sharing ${title} with you. You can read it using the link below.`
+  if (query?.has("post")) return `Hi,\n\nHere's ${title} for your review. You can view the post using the link below.`
+  if (pathname.includes("/campaigns/") || query?.has("campaign")) return `Hi,\n\nI'd like to share ${title} with you. You can view the campaign using the link below.`
+  return `Hi,\n\nI'm sharing ${title} with you. You can open it using the link below.`
+}
+
 /** The reusable share layout for emailing a link and controlling general access. */
 export function ShareDialog({
   path,
@@ -57,14 +70,14 @@ export function ShareDialog({
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [messageStep, setMessageStep] = useState(false)
   const [recipients, setRecipients] = useState<string[]>([])
-  const [message, setMessage] = useState("")
+  const [message, setMessage] = useState<string | null>(null)
   const isOpen = open ?? internalOpen
 
   function handleOpenChange(nextOpen: boolean) {
     if (!nextOpen) {
       setRecipientInput("")
       setRecipients([])
-      setMessage("")
+      setMessage(null)
       setMessageStep(false)
       setShowSuggestions(false)
     }
@@ -107,6 +120,7 @@ export function ShareDialog({
     }
     setRecipients(valid)
     setShowSuggestions(false)
+    if (message === null) setMessage(suggestedMessage(path, itemTitle))
     setMessageStep(true)
   }
 
@@ -123,7 +137,7 @@ export function ShareDialog({
   function emailLink() {
     if (!canCopy || !recipients.length) return
     const subject = "Sharing " + itemTitle
-    const body = [message.trim(), `Here is the link to ${itemTitle}:\n${url}`].filter(Boolean).join("\n\n")
+    const body = [message?.trim(), `Here is the link to ${itemTitle}:\n${url}`].filter(Boolean).join("\n\n")
     if (emailMode === "system") {
       window.location.href = "mailto:" + recipients.join(",") + "?subject=" + encodeURIComponent(subject) + "&body=" + encodeURIComponent(body)
     } else {
@@ -167,7 +181,7 @@ export function ShareDialog({
             </div>
             <div className="space-y-2">
               <label htmlFor="share-message" className="text-sm font-medium">Message <span className="font-normal text-muted-foreground">(optional)</span></label>
-              <Textarea id="share-message" value={message} onChange={(event) => setMessage(event.target.value)} maxLength={1000} rows={6} placeholder="Add a message" className="min-h-36 resize-y" />
+              <Textarea id="share-message" value={message ?? ""} onChange={(event) => setMessage(event.target.value)} maxLength={1000} rows={6} placeholder="Add a message" className="min-h-36 resize-y" />
             </div>
             <p className="text-xs text-muted-foreground">The email draft includes your message and a view link. Sending it does not grant individual access.</p>
           </div>

@@ -11,7 +11,7 @@ import { getCompanyDocument, type CompanyDocument } from "@/lib/company-document
 import { getOrganization, type Organization } from "@/lib/organizations"
 import type { Project } from "@/lib/projects"
 
-/** No login required: a shared document is public once sharing is on; drafts stay private. */
+/** No login required: a document is visible only when link sharing is enabled. */
 export default function SharedDocumentPage() {
   const { id } = useParams<{ id: string }>()
   const [record, setRecord] = useState<CompanyDocument | null>(null)
@@ -25,7 +25,7 @@ export default function SharedDocumentPage() {
     getCompanyDocument(id)
       .then(async (found) => {
         if (!active) return
-        const visible = found && found.status !== "draft" && found.shareEnabled ? found : null
+        const visible = found?.shareEnabled ? found : null
         setRecord(visible)
         setLoading(false)
         // The header is nice-to-have, so a failure here never hides the document.

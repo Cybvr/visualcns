@@ -11,7 +11,7 @@ import { getInvoice, type Invoice } from "@/lib/billing"
 import { getOrganization, type Organization } from "@/lib/organizations"
 import type { Project } from "@/lib/projects"
 
-/** No login required: issued company invoices are public; drafts stay private. */
+/** No login required: issued links remain available; drafts need link sharing enabled. */
 export default function SharedInvoicePage() {
   const { id } = useParams<{ id: string }>()
   const [invoice, setInvoice] = useState<Invoice | null>(null)
@@ -25,7 +25,7 @@ export default function SharedInvoicePage() {
     getInvoice(id)
       .then(async (record) => {
         if (!active) return
-        const visible = record && record.status !== "draft" ? record : null
+        const visible = record && (record.status !== "draft" || record.shareEnabled) ? record : null
         setInvoice(visible)
         setLoading(false)
         if (!visible) return

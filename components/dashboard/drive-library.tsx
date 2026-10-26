@@ -253,7 +253,6 @@ export function DriveLibrary() {
   function itemActions(item: DriveItem): ItemActions {
     const title = itemTitle(item)
     const href = itemHref(item)
-    const shareReady = item.type === "note" || item.record.status !== "draft"
     return {
       noun: item.type,
       name: title,
@@ -262,7 +261,7 @@ export function DriveLibrary() {
       onDuplicate: adminView && item.type !== "note" ? () => setDuplicateTarget(item as DuplicateTarget) : undefined,
       extra: adminView ? <>
         {item.type === "document" && <DropdownMenuItem onSelect={() => router.push(`${href}/edit`)}>Edit document</DropdownMenuItem>}
-        <DropdownMenuItem disabled={!shareReady} onSelect={() => setSharing(item)}>{shareReady ? "Share" : "Share (send first)"}</DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => setSharing(item)}>Share</DropdownMenuItem>
       </> : undefined,
       onDelete: adminView ? () => deleteItem(item) : undefined,
       deleteMessage: `${title} will be removed for good. This cannot be undone.`,
