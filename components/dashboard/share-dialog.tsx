@@ -124,7 +124,7 @@ export function ShareDialog({
     }
     setRecipients(valid)
     setShowSuggestions(false)
-    if (message === null) setMessage(suggestedMessage(path, itemTitle))
+    if (message === null) setMessage(`${suggestedMessage(path, itemTitle)}\n\n${url}`)
     setMessageStep(true)
   }
 
@@ -141,7 +141,11 @@ export function ShareDialog({
   async function emailLink() {
     if (!canCopy || !recipients.length || savingDraft) return
     const subject = "Sharing " + itemTitle
-    const body = [message?.trim(), `Here is the link to ${itemTitle}:\n${url}`].filter(Boolean).join("\n\n")
+    const body = message?.trim() || ""
+    if (!body.includes(url)) {
+      toast.error("Keep the share link in the message.")
+      return
+    }
     if (emailMode === "system") {
       window.location.href = "mailto:" + recipients.join(",") + "?subject=" + encodeURIComponent(subject) + "&body=" + encodeURIComponent(body)
     } else {
@@ -210,7 +214,7 @@ export function ShareDialog({
               ))}
             </div>
             <div className="space-y-2">
-              <label htmlFor="share-message" className="text-sm font-medium">Message <span className="font-normal text-muted-foreground">(optional)</span></label>
+              <label htmlFor="share-message" className="text-sm font-medium">Message</label>
               <Textarea id="share-message" value={message ?? ""} onChange={(event) => setMessage(event.target.value)} maxLength={1000} rows={6} placeholder="Add a message" className="min-h-36 resize-y" />
             </div>
           </div>
