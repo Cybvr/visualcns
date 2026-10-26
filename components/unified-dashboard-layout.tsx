@@ -21,6 +21,7 @@ const AgentDock = dynamic(() => import("@/components/agent/agent-dock").then((mo
 
 const DASHBOARD_NAV: NavLink[] = [
   { label: "Home", href: "/dashboard", icon: House },
+  { label: "Chat", href: "/dashboard/agent", icon: NgaiMark },
   { label: "Email", href: "/dashboard/email/inbox", icon: FiMail, alsoActive: ["/dashboard/email"] },
   { label: "Leads", href: "/dashboard/leads", icon: FiTrendingUp, adminOnly: true },
   { label: "Schedules", href: "/dashboard/schedules", icon: CalendarClock },
@@ -30,7 +31,6 @@ const DASHBOARD_NAV: NavLink[] = [
   // Estimates are a tab on Invoices, and Notes a tab on Documents.
   { label: "Invoices", href: "/dashboard/invoices", icon: Receipt, adminOnly: true, alsoActive: ["/dashboard/estimates"] },
   { label: "Documents", href: "/dashboard/documents", icon: FileText, adminOnly: true, alsoActive: ["/dashboard/notes"] },
-  { label: "Support", href: "/dashboard/agent", icon: NgaiMark },
 ]
 
 /** Creators sign up by applying to a campaign: they see their campaigns and their account. */
