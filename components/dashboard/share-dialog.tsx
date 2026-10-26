@@ -223,18 +223,18 @@ export function ShareDialog({
             )}
           </fieldset>
 
-          {viewer && (
+          {(viewer || (path && !restricted)) && (
             <section aria-labelledby="share-people-title" className="space-y-3">
               <h3 id="share-people-title" className="text-base font-semibold text-foreground">People with access</h3>
               <div className="flex items-center gap-3">
                 <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-medium text-primary" aria-hidden="true">
-                  {viewer.name.charAt(0).toUpperCase()}
+                  {viewer ? viewer.name.charAt(0).toUpperCase() : <Globe2 className="size-5" />}
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium text-foreground">{viewer.name} (you)</p>
-                  <p className="truncate text-xs text-muted-foreground">{viewer.email}</p>
+                  <p className="truncate text-sm font-medium text-foreground">{viewer ? `${viewer.name} (you)` : "People with the link"}</p>
+                  {viewer && <p className="truncate text-xs text-muted-foreground">{viewer.email}</p>}
                 </div>
-                <span className="shrink-0 text-xs text-muted-foreground">{viewer.role}</span>
+                <span className="shrink-0 text-xs text-muted-foreground">{viewer?.role || "Can view"}</span>
               </div>
             </section>
           )}
