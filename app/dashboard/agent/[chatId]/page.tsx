@@ -1,19 +1,6 @@
-"use client"
+import { permanentRedirect } from "next/navigation"
 
-import { useEffect } from "react"
-import { useParams } from "next/navigation"
-
-import { NgaiPage } from "@/components/agent/ngai-page"
-import { useAgent } from "@/components/agent/agent-context"
-
-export default function AgentConversationPage() {
-  const params = useParams<{ chatId: string }>()
-  const chatId = params?.chatId ?? ""
-  const { selectConversation } = useAgent()
-
-  useEffect(() => {
-    if (chatId) selectConversation(chatId)
-  }, [chatId, selectConversation])
-
-  return <NgaiPage />
+export default async function LegacyAgentConversationPage({ params }: { params: Promise<{ chatId: string }> }) {
+  const { chatId } = await params
+  permanentRedirect(`/dashboard/chat/${encodeURIComponent(chatId)}`)
 }

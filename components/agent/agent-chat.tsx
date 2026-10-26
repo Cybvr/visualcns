@@ -1,8 +1,8 @@
 "use client"
 
-import Image from "next/image"
 import { useEffect, useRef, useState, type ChangeEvent, type ClipboardEvent, type DragEvent, type FormEvent, type KeyboardEvent, type ReactNode } from "react"
-import { ArrowUp, Check, ChevronDown, ChevronRight, FileText, ListChecks, Loader2, Megaphone, MessageSquare, Mic, Plus, UploadCloud, X } from "lucide-react"
+import { ArrowUp, Check, ChevronDown, ChevronRight, Copy, Ellipsis, FileText, ListChecks, Loader2, Megaphone, Mic, Plus, RotateCcw, ThumbsDown, ThumbsUp, UploadCloud, X } from "lucide-react"
+import { toast } from "sonner"
 
 import { NgaiMark } from "@/components/agent/ngai-mark"
 import type { AgentArtifact, AgentConversation, AgentFile, AgentForm, AgentMention, AgentMessage, AgentPlan } from "@/components/agent/agent-context"
@@ -364,6 +364,71 @@ const DEFAULT_STARTING_OPTIONS = [
   "Add a task",
 ]
 
+const responseActionClass = "inline-flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-40"
+
+function ResponseActions({
+  message,
+  latest,
+  sending,
+  onFeedback,
+  onRetry,
+  onNewChat,
+}: {
+  message: AgentMessage
+  latest: boolean
+  sending: boolean
+  onFeedback?: (messageId: string, feedback: AgentMessage["feedback"] | null) => void
+  onRetry: () => void
+  onNewChat: () => void
+}) {
+  const [localFeedback, setLocalFeedback] = useState<AgentMessage["feedback"] | null>(null)
+  const feedback = onFeedback ? message.feedback ?? null : localFeedback
+
+  function rate(next: NonNullable<AgentMessage["feedback"]>) {
+    const value = feedback === next ? null : next
+    if (onFeedback) onFeedback(message.id, value)
+    else setLocalFeedback(value)
+  }
+
+  async function copyResponse() {
+    try {
+      await navigator.clipboard.writeText(message.content)
+      toast.success("Response copied")
+    } catch {
+      toast.error("Could not copy the response")
+    }
+  }
+
+  return (
+    <div className="mt-2 flex items-center gap-1" role="group" aria-label="Response actions">
+      <button type="button" aria-label="Good response" title="Good response" aria-pressed={feedback === "positive"} disabled={sending} onClick={() => rate("positive")} className={cn(responseActionClass, feedback === "positive" && "text-primary")}>
+        <ThumbsUp className="size-[18px]" aria-hidden="true" />
+      </button>
+      <button type="button" aria-label="Poor response" title="Poor response" aria-pressed={feedback === "negative"} disabled={sending} onClick={() => rate("negative")} className={cn(responseActionClass, feedback === "negative" && "text-primary")}>
+        <ThumbsDown className="size-[18px]" aria-hidden="true" />
+      </button>
+      <button type="button" aria-label="Try another response" title={latest ? "Try another response" : "Only the latest response can be retried"} disabled={sending || !latest} onClick={onRetry} className={responseActionClass}>
+        <RotateCcw className="size-[18px]" aria-hidden="true" />
+      </button>
+      <button type="button" aria-label="Copy response" title="Copy response" onClick={() => void copyResponse()} className={responseActionClass}>
+        <Copy className="size-[18px]" aria-hidden="true" />
+      </button>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button type="button" aria-label="More response actions" title="More response actions" className={responseActionClass}>
+            <Ellipsis className="size-[18px]" aria-hidden="true" />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start">
+          <DropdownMenuItem onSelect={() => void copyResponse()}>Copy response</DropdownMenuItem>
+          {latest && <DropdownMenuItem disabled={sending} onSelect={onRetry}>Try another response</DropdownMenuItem>}
+          <DropdownMenuItem disabled={sending} onSelect={onNewChat}>New chat</DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
+  )
+}
+
 type MentionTrigger = { start: number; end: number; query: string }
 
 function campaignMentionAt(value: string, cursor: number): MentionTrigger | null {
@@ -386,8 +451,8 @@ export function AgentChat({
   conversations,
   activeConversationId,
   sending,
-  firstName,
   onSend,
+  onFeedback,
   onSelectConversation,
   onNewChat,
   compact = false,
@@ -403,8 +468,8 @@ export function AgentChat({
   conversations: AgentConversation[]
   activeConversationId: string
   sending: boolean
-  firstName: string
   onSend: (text: string, images?: string[], files?: AgentFile[], mentions?: AgentMention[]) => void
+  onFeedback?: (messageId: string, feedback: AgentMessage["feedback"] | null) => void
   onSelectConversation: (id: string) => void
   onNewChat: () => void
   compact?: boolean
@@ -413,7 +478,7 @@ export function AgentChat({
   startingOptions?: string[]
   /** Off for signed-out visitors, who can't upload files. */
   allowAttachments?: boolean
-  /** Heading on a new chat. Defaults to welcoming the signed-in person by name. */
+  /** Heading on a new chat. */
   welcome?: string
   /** Campaigns available to the @ mention picker. Omit to disable campaign mentions. */
   campaignMentions?: AgentMention[]
@@ -675,19 +740,21 @@ export function AgentChat({
       )}
       {messages.length === 0 ? (
         <div className={cn("scrollbar-none flex min-h-0 flex-1 flex-col overflow-y-auto text-center", compact ? "px-4 py-6" : "px-4 py-6 sm:px-6 sm:pb-16")}>
-          <div className="m-auto flex w-full min-w-0 max-w-lg flex-col items-center">
-            <NgaiMark role="img" aria-hidden={false} aria-label="Ngai" className={compact ? "size-9" : "size-10 sm:size-12"} />
-            <h1 className={cn("mt-4 font-sans tracking-[-0.02em] sm:mt-6", compact ? "text-xl" : "text-2xl sm:text-3xl")}>
-              {welcome ?? `Welcome to Ngai, ${firstName}`}
-            </h1>
-            <div className={cn("mt-5 flex flex-wrap justify-center gap-2 sm:mt-6", compact ? "max-w-[20rem]" : "max-w-xl")}>
+          <div className="m-auto flex w-full min-w-0 max-w-2xl flex-col items-center">
+            <div className="flex items-center justify-center gap-3">
+              <NgaiMark role="img" aria-hidden={false} aria-label="Ngai" className={cn("shrink-0", compact ? "size-9" : "size-10 sm:size-12")} />
+              <h1 className={cn("font-sans text-left tracking-[-0.02em]", compact ? "text-xl" : "text-2xl sm:text-3xl")}>
+                {welcome ?? "How can I help you today?"}
+              </h1>
+            </div>
+            <div className="scrollbar-none mt-5 flex w-max max-w-full flex-nowrap gap-2 overflow-x-auto sm:mt-6">
               {startingOptions.map((option) => (
                 <button
                   key={option}
                   type="button"
                   onClick={() => onSend(option)}
                   disabled={sending}
-                  className="agent-start-option rounded-full border border-border bg-background px-4 py-2 text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
+                  className="agent-start-option shrink-0 whitespace-nowrap rounded-full border border-border bg-background px-4 py-2 text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {option}
                 </button>
@@ -696,15 +763,14 @@ export function AgentChat({
             {recentChats.length > 0 && (
               <div className={cn("mt-8 w-full min-w-0 text-left", compact ? "max-w-[20rem]" : "max-w-md")}>
                 <p className="agent-recent-label px-1 text-muted-foreground">Recent</p>
-                <ul className="mt-2 divide-y divide-border overflow-hidden rounded-2xl border border-border bg-background">
+                <ul className="mt-2 w-full">
                   {recentChats.map((conversation) => (
-                    <li key={conversation.id}>
+                    <li key={conversation.id} className="border-b border-border">
                       <button
                         type="button"
                         onClick={() => onSelectConversation(conversation.id)}
-                        className="agent-recent-item flex w-full items-center gap-3 px-4 py-3 text-left text-foreground outline-none transition-colors hover:bg-muted focus-visible:bg-muted"
+                        className="agent-recent-item flex w-full items-center px-4 py-3 text-left text-foreground outline-none transition-colors hover:bg-muted focus-visible:bg-muted"
                       >
-                        <MessageSquare className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
                         <span className="min-w-0 flex-1 truncate">{conversation.title}</span>
                         <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
                       </button>
@@ -725,11 +791,8 @@ export function AgentChat({
           {messages.map((message, messageIndex) => (
             <div
               key={message.id}
-              className={cn("flex w-full", message.role === "user" ? "justify-end" : "items-start gap-3")}
+              className={cn("flex w-full", message.role === "user" ? "justify-end" : "items-start")}
             >
-              {message.role === "assistant" && (
-                <Image src="/ngai-logo.png" alt="Ngai" width={28} height={28} className="mt-0.5 shrink-0 rounded-full" />
-              )}
               {message.role === "assistant" && !message.content ? (
                 message.steps?.length ? (
                   <AgentSteps steps={message.steps} live />
@@ -801,6 +864,16 @@ export function AgentChat({
                       ))}
                     </div>
                   ) : null}
+                  {message.role === "assistant" && message.content && !(sending && messageIndex === messages.length - 1) && (
+                    <ResponseActions
+                      message={message}
+                      latest={messageIndex === messages.length - 1}
+                      sending={sending}
+                      onFeedback={onFeedback}
+                      onRetry={() => onSend("Please give me a different response to my last request without repeating any actions already completed.")}
+                      onNewChat={onNewChat}
+                    />
+                  )}
                 </div>
               )}
             </div>
@@ -813,10 +886,10 @@ export function AgentChat({
         <form
           onSubmit={submit}
           className={cn(
-            "mx-auto flex w-full flex-col gap-2",
+            "mx-auto flex w-full flex-col gap-2 rounded-[16px] border border-border",
             compact
-              ? "rounded-[16px] bg-sidebar-accent/25 p-2 shadow-[0_8px_24px_rgba(15,23,42,0.08)]"
-              : "max-w-3xl rounded-[16px] bg-sidebar-accent/25 p-1.5",
+              ? "bg-sidebar-accent/25 p-2"
+              : "max-w-3xl bg-sidebar-accent/25 p-1.5",
           )}
         >
           {(attachments.length > 0 || uploading) && (
@@ -906,13 +979,13 @@ export function AgentChat({
               onBlur={() => setMentionTrigger(null)}
               onPaste={allowAttachments ? handlePaste : undefined}
               rows={1}
-              placeholder="Ask Ngai"
+              placeholder="How can I help you today?"
               aria-label="Message Ngai"
               aria-autocomplete={campaignMentions ? "list" : undefined}
               aria-expanded={campaignMentions ? Boolean(mentionTrigger) : undefined}
               aria-controls={mentionTrigger ? "ngai-campaign-mentions" : undefined}
               aria-activedescendant={mentionTrigger && matchingCampaigns[activeMentionIndex] ? `ngai-campaign-${matchingCampaigns[activeMentionIndex].id}` : undefined}
-              className="agent-composer-input h-auto min-h-0 max-h-40 w-full resize-none overflow-y-auto rounded-lg border-0 bg-transparent! px-2 py-1 text-sm !text-foreground placeholder:!text-foreground font-medium shadow-none outline-none focus:border-transparent focus-visible:border-transparent focus:ring-0 focus-visible:ring-0"
+              className="agent-composer-input h-auto min-h-0 max-h-40 w-full resize-none overflow-y-auto rounded-lg border-0 bg-transparent! px-2 py-1 text-sm !text-foreground placeholder:!text-muted-foreground font-medium shadow-none outline-none focus:border-transparent focus-visible:border-transparent focus:ring-0 focus-visible:ring-0"
             />
             <div className="flex items-center justify-between">
             {allowAttachments ? (

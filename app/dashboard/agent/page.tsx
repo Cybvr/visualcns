@@ -1,8 +1,5 @@
-"use client"
+import { permanentRedirect } from "next/navigation"
 
-import { NgaiPage } from "@/components/agent/ngai-page"
-
-/** Full-page Ngai surface for the dashboard navigation link. */
-export default function AgentPage() {
-  return <NgaiPage />
+export default function LegacyAgentPage() {
+  permanentRedirect("/dashboard/chat")
 }

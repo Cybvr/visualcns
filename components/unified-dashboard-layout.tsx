@@ -21,7 +21,7 @@ const AgentDock = dynamic(() => import("@/components/agent/agent-dock").then((mo
 
 const DASHBOARD_NAV: NavLink[] = [
   { label: "Home", href: "/dashboard", icon: House },
-  { label: "Chat", href: "/dashboard/agent", icon: NgaiMark },
+  { label: "Chat", href: "/dashboard/chat", icon: NgaiMark },
   { label: "Email", href: "/dashboard/email/inbox", icon: FiMail, alsoActive: ["/dashboard/email"] },
   { label: "Leads", href: "/dashboard/leads", icon: FiTrendingUp, adminOnly: true },
   { label: "Schedules", href: "/dashboard/schedules", icon: CalendarClock },

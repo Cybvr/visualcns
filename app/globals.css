@@ -49,6 +49,8 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: var(--primary);
+  --sidebar-scrollbar-thumb: #b0b0b0;
+  --sidebar-scrollbar-thumb-hover: #888;
 }
 
 /* Dashboard/portal text runs small on phones. Bump the shared typography
@@ -104,6 +106,8 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: var(--primary);
+  --sidebar-scrollbar-thumb: #4c4c4c;
+  --sidebar-scrollbar-thumb-hover: #666;
 }
 
 /* Dark mode cards are flat filled tiles on the near-black page, no outline. */
@@ -194,7 +198,7 @@
     color: var(--foreground) !important;
   }
   .dashboard-body.agent-chat-root .agent-composer-input::placeholder {
-    color: var(--foreground) !important;
+    color: var(--muted-foreground) !important;
     opacity: 1;
   }
   /* Invoice and estimate editors: white cards on a grey page, boxed fields. */
@@ -816,6 +820,37 @@
     font-size: 0.875rem !important;
     line-height: 1.5rem !important;
     font-weight: 400 !important;
+  }
+
+  .dashboard-sidebar .sidebar-chat-label {
+    font-size: 0.8125rem !important;
+    line-height: 1.25rem !important;
+  }
+
+  .dashboard-sidebar [data-slot="sidebar-content"] {
+    scrollbar-color: var(--sidebar-scrollbar-thumb) transparent;
+    scrollbar-width: thin;
+  }
+
+  .dashboard-sidebar [data-slot="sidebar-content"]::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  .dashboard-sidebar [data-slot="sidebar-content"]::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .dashboard-sidebar [data-slot="sidebar-content"]::-webkit-scrollbar-thumb {
+    border-radius: 9999px;
+    background: var(--sidebar-scrollbar-thumb);
+  }
+
+  .dashboard-sidebar [data-slot="sidebar-content"]::-webkit-scrollbar-thumb:hover {
+    background: var(--sidebar-scrollbar-thumb-hover);
+  }
+
+  .dashboard-sidebar [data-slot="sidebar-content"]::-webkit-scrollbar-button {
+    display: none;
   }
 
   .dashboard-sidebar :is([data-slot="sidebar-menu-button"], [data-slot="sidebar-menu-sub-button"])[data-active="true"] .sidebar-nav-label {

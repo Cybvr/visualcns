@@ -1,8 +1,8 @@
 import type { Metadata } from "next"
 import type { ReactNode } from "react"
 
-export const metadata: Metadata = { title: "Agent" }
+export const metadata: Metadata = { title: "Chat" }
 
-export default function AgentLayout({ children }: { children: ReactNode }) {
+export default function LegacyAgentLayout({ children }: { children: ReactNode }) {
   return children
 }

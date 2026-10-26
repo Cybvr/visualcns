@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { MessageSquare, SquarePen } from "lucide-react"
+import { SquarePen } from "lucide-react"
 
 import { DeleteChatDialog, Ngai, type NgaiChatRef } from "@/components/agent/ngai"
 import { useAgent } from "@/components/agent/agent-context"
@@ -25,20 +25,19 @@ export function NgaiPage() {
       icon: SquarePen,
       onClick: () => {
         reset()
-        router.push("/dashboard/agent")
+        router.push("/dashboard/chat")
       },
     },
     items: chats.map((chat) => ({
       key: chat.id,
       label: chat.title,
-      icon: MessageSquare,
       onDelete: () => setDeleting({ id: chat.id, title: chat.title }),
       deleteLabel: `Delete ${chat.title}`,
     })),
     active: activeConversationId,
     onSelect: (id) => {
       selectConversation(id)
-      router.push(`/dashboard/agent/${encodeURIComponent(id)}`)
+      router.push(`/dashboard/chat/${encodeURIComponent(id)}`)
     },
   })
 

@@ -125,7 +125,6 @@ export function HelpChat() {
       conversations={[]}
       activeConversationId=""
       sending={sending}
-      firstName={visitor.name.split(" ")[0]}
       onSend={(text) => void send(text)}
       onSelectConversation={() => undefined}
       onNewChat={() => setMessages([])}

@@ -20,7 +20,7 @@
   min-height: 0 !important;
 }
 .dashboard-body.agent-chat-root .agent-composer-input::placeholder {
-  color: var(--foreground) !important;
+  color: var(--muted-foreground) !important;
   opacity: 1;
 }
 .agent-chat-root .agent-recent-label {

@@ -87,7 +87,7 @@ export function AppSidebar({
   const { isImpersonating, stopViewingAs } = useAuth()
   const { open: agentOpen, setOpen: setAgentOpen, reset } = useAgent()
   const { isMobile, setOpenMobile } = useSidebar()
-  const brandHref = isMobile ? "/dashboard/agent" : rootHref
+  const brandHref = isMobile ? "/dashboard/chat" : rootHref
   const displayedBrandName = brandName?.trim() || "VisualCNS"
   const sidebarLogoUrl = displayedBrandName.toLowerCase() === "visualcns" ? undefined : brandLogoUrl
 

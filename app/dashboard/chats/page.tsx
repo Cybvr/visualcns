@@ -80,7 +80,7 @@ export default function AllChatsPage() {
 
   function openChat(chat: AgentConversation) {
     selectConversation(chat.id)
-    router.push(`/dashboard/agent/${encodeURIComponent(chat.id)}`)
+    router.push(`/dashboard/chat/${encodeURIComponent(chat.id)}`)
   }
 
   function chatActions(chat: AgentConversation): ItemActions {
@@ -95,7 +95,7 @@ export default function AllChatsPage() {
 
   function startChat() {
     reset()
-    router.push("/dashboard/agent")
+    router.push("/dashboard/chat")
   }
 
   return (

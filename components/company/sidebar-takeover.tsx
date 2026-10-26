@@ -21,7 +21,7 @@ export type SidebarTakeover = {
   /** Leaves the page. Without it, Back just shows the main menu and the page stays open. */
   onBack?: () => void
   /** onDelete adds a bin button that shows on hover, such as for a past Ngai chat. */
-  items: { key: string; label: string; icon: SidebarIcon; count?: number; onDelete?: () => void; deleteLabel?: string }[]
+  items: { key: string; label: string; icon?: SidebarIcon; count?: number; onDelete?: () => void; deleteLabel?: string }[]
   /** A button above the items, such as New chat. */
   action?: { label: string; icon: SidebarIcon; onClick: () => void }
   active: string
@@ -187,20 +187,20 @@ function TakeoverItems({ takeover, closeMobile, onShowMain }: { takeover: Sideba
         </SidebarMenuItem>
       )}
       {takeover.items.map((item) => (
-        <SidebarMenuItem key={item.key}>
+        <SidebarMenuItem key={item.key} className={!item.icon ? "group-data-[collapsible=icon]:hidden" : undefined}>
           <SidebarMenuButton
             type="button"
             isActive={takeover.active === item.key}
             tooltip={item.label}
             onClick={() => { closeMobile(); takeover.onSelect(item.key) }}
-            className={cn(SIDEBAR_ITEM_CLASS, item.onDelete && "pr-8")}
+            className={cn(SIDEBAR_ITEM_CLASS, !item.icon && "h-8 max-md:h-11 max-md:min-h-11", item.onDelete && "pr-8")}
           >
-            <item.icon className="h-4 w-4" aria-hidden="true" />
-            <span className="sidebar-nav-label">{item.label}</span>
+            {item.icon && <item.icon className="h-4 w-4" aria-hidden="true" />}
+            <span className={cn("sidebar-nav-label", !item.icon && "sidebar-chat-label")}>{item.label}</span>
             {item.count ? <span className="ml-auto text-xs tabular-nums text-muted-foreground group-data-[collapsible=icon]:hidden">{item.count}</span> : null}
           </SidebarMenuButton>
           {item.onDelete && (
-            <SidebarMenuAction showOnHover onClick={item.onDelete} aria-label={item.deleteLabel ?? `Delete ${item.label}`} title={item.deleteLabel ?? "Delete"} className="top-1/2 -translate-y-1/2 hover:text-destructive">
+            <SidebarMenuAction showOnHover onClick={item.onDelete} aria-label={item.deleteLabel ?? `Delete ${item.label}`} title={item.deleteLabel ?? "Delete"} className="top-1/2! -translate-y-1/2 hover:text-destructive">
               <Trash2 aria-hidden="true" />
             </SidebarMenuAction>
           )}

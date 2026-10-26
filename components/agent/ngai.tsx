@@ -2,7 +2,8 @@
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react"
 import Image from "next/image"
-import { History, LogIn, MessageSquare, Plus, SquarePen, Trash2, X } from "lucide-react"
+import { usePathname, useRouter } from "next/navigation"
+import { History, LogIn, Plus, SquarePen, Trash2, X } from "lucide-react"
 import { toast } from "sonner"
 
 import { AgentChat } from "@/components/agent/agent-chat"
@@ -146,8 +147,15 @@ export function DeleteChatDialog({ chat, onClose }: { chat: NgaiChatRef | null; 
 }
 
 function NgaiConversation({ layout, startingOptions, onOpenArtifact, activeArtifactId }: { layout: NgaiLayout; startingOptions?: string[]; onOpenArtifact: (artifact: ArtifactRef) => void; activeArtifactId?: string }) {
-  const { messages, conversations, activeConversationId, sending, firstName, send, reset, selectConversation } = useAgent()
+  const { messages, conversations, activeConversationId, sending, send, rateResponse, reset, selectConversation } = useAgent()
+  const pathname = usePathname()
+  const router = useRouter()
   const page = useOptionalCompanyPage()
+
+  function startNewChat() {
+    reset()
+    if (/^\/dashboard\/chat\/[^/]+$/.test(pathname ?? "")) router.push("/dashboard/chat")
+  }
 
   // A document Ngai has just made opens by itself; documents in older chats wait to be clicked.
   // The reply being written while `sending` is the one whose documents may open.
@@ -181,10 +189,10 @@ function NgaiConversation({ layout, startingOptions, onOpenArtifact, activeArtif
       conversations={conversations}
       activeConversationId={activeConversationId}
       sending={sending}
-      firstName={firstName}
       onSend={send}
+      onFeedback={rateResponse}
       onSelectConversation={selectConversation}
-      onNewChat={reset}
+      onNewChat={startNewChat}
       startingOptions={startingOptions}
       campaignMentions={campaignMentions}
       onOpenArtifact={onOpenArtifact}
@@ -348,7 +356,6 @@ function NgaiSidebarChats({ children }: { children: (inSidebar: boolean) => Reac
     items: chats.map((chat) => ({
       key: chat.id,
       label: chat.title,
-      icon: MessageSquare,
       onDelete: () => setDeleting({ id: chat.id, title: chat.title }),
       deleteLabel: `Delete ${chat.title}`,
     })),

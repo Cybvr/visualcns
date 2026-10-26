@@ -40,6 +40,8 @@ export type AgentMessage = {
   id: string
   role: "user" | "assistant"
   content: string
+  /** The user's rating of an assistant response. */
+  feedback?: "positive" | "negative"
   /** Storage URLs of images the user attached to this message. */
   images?: string[]
   /** Non-image files (PDFs, Word, Excel…) attached to this message. */
@@ -136,6 +138,7 @@ interface AgentContextValue {
   sending: boolean
   firstName: string
   send: (text: string, images?: string[], files?: AgentFile[], mentions?: AgentMention[]) => void
+  rateResponse: (messageId: string, feedback: AgentMessage["feedback"] | null) => void
   reset: () => void
   selectConversation: (id: string) => void
   deleteConversations: (ids: string[]) => Promise<void>
@@ -392,6 +395,21 @@ export function AgentProvider({
     [messages, sending, firstName, activeConversationId, conversations, rememberConversation, user, surface, companyContext, campaignContext, trackEvent],
   )
 
+  const rateResponse = useCallback((messageId: string, feedback: AgentMessage["feedback"] | null) => {
+    if (!activeConversationId || sending) return
+    const conversation = conversations.find((item) => item.id === activeConversationId)
+    if (!conversation) return
+    const updated = messages.map((message) => {
+      if (message.id !== messageId || message.role !== "assistant") return message
+      const next = { ...message }
+      if (feedback) next.feedback = feedback
+      else delete next.feedback
+      return next
+    })
+    setMessages(updated)
+    rememberConversation({ ...conversation, messages: updated })
+  }, [activeConversationId, conversations, messages, rememberConversation, sending])
+
   const reset = useCallback(() => {
     // A new chat is only persisted once the user sends the first message.
     // Keeping the id empty preserves the welcome state without creating a blank record.
@@ -427,8 +445,8 @@ export function AgentProvider({
   const toggle = useCallback(() => setOpen((current) => !current), [])
 
   const value = useMemo(
-    () => ({ open, setOpen, toggle, messages, conversations, conversationsLoading, activeConversationId, sending, firstName, send, reset, selectConversation, deleteConversations }),
-    [open, toggle, messages, conversations, conversationsLoading, activeConversationId, sending, firstName, send, reset, selectConversation, deleteConversations],
+    () => ({ open, setOpen, toggle, messages, conversations, conversationsLoading, activeConversationId, sending, firstName, send, rateResponse, reset, selectConversation, deleteConversations }),
+    [open, toggle, messages, conversations, conversationsLoading, activeConversationId, sending, firstName, send, rateResponse, reset, selectConversation, deleteConversations],
   )
 
   return <AgentContext.Provider value={value}>{children}</AgentContext.Provider>

@@ -86,7 +86,7 @@ export function DashboardShell({
   const isBackDetailRoute = isProjectDetailRoute || isTaskDetailRoute
   const isCompanyDetailRoute = /^\/dashboard\/(?:companies|clients)\/[^/]+(?:\/|$)/.test(pathname ?? "")
   // The dashboard home is Ngai too, so it gets the same full-height chat layout.
-  const isAgentRoute = /^\/dashboard\/agent(?:\/[^/]+)?$/.test(pathname ?? "")
+  const isChatRoute = /^\/dashboard\/chat(?:\/[^/]+)?$/.test(pathname ?? "")
   const isEmailRoute = pathname?.startsWith("/dashboard/email") ?? false
   const hideHeader = isDocumentRoute
   const [sidebarOpen, setSidebarOpen] = useState(!isDocumentRoute)
@@ -123,7 +123,7 @@ export function DashboardShell({
             // --shell-header-h lets sticky content sit below the sticky header.
             "min-h-0 bg-card dark:bg-background [--shell-header-h:3.5rem] md:!m-0 md:!rounded-none md:bg-background md:!shadow-none md:[--shell-header-h:72px]",
             hideHeader && "md:[--shell-header-h:0px]",
-            isAgentRoute ? "overflow-y-auto md:overflow-hidden" : "overflow-y-auto",
+            isChatRoute ? "overflow-y-auto md:overflow-hidden" : "overflow-y-auto",
             !hideMobileFooter && "max-md:pb-[calc(4.5rem+env(safe-area-inset-bottom))]",
             isEmailRoute && "lg:overflow-hidden",
           )}
@@ -211,8 +211,8 @@ export function DashboardShell({
             // relative keeps absolutely placed bits inside the card (hidden file inputs, screen-reader text) so they can't push the page longer than the card.
             "relative flex min-h-0 flex-1 flex-col bg-card dark:bg-background md:m-3 md:mt-0 md:rounded-2xl md:shadow-[0_6px_24px_rgba(15,23,42,0.04)]",
             // The card stays fitted to the screen and its content scrolls inside it. Chat and email manage their own scrolling.
-            !isAgentRoute && !isEmailRoute && "md:overflow-y-auto md:pb-6",
-            (isAgentRoute || isEmailRoute) && "lg:overflow-hidden",
+            !isChatRoute && !isEmailRoute && "md:overflow-y-auto md:pb-6",
+            (isChatRoute || isEmailRoute) && "lg:overflow-hidden",
             hideHeader && "md:mt-3",
           )}>
             {children}
