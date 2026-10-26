@@ -2,13 +2,14 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { ChevronDown, Globe2, Link2, LockKeyhole, Mail, Send } from "lucide-react"
+import { ArrowLeft, ChevronDown, Globe2, Link2, LockKeyhole, Send, X } from "lucide-react"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import { buildEmailComposeHref, parseEmailList, siteUrl } from "@/lib/email-composer"
 import { getUsers, type AppUser } from "@/lib/users"
 import { cn } from "@/lib/utils"
@@ -54,7 +55,23 @@ export function ShareDialog({
   const [recipientInput, setRecipientInput] = useState("")
   const [contacts, setContacts] = useState<AppUser[]>([])
   const [showSuggestions, setShowSuggestions] = useState(false)
+  const [messageStep, setMessageStep] = useState(false)
+  const [recipients, setRecipients] = useState<string[]>([])
+  const [message, setMessage] = useState("")
   const isOpen = open ?? internalOpen
+
+  function handleOpenChange(nextOpen: boolean) {
+    if (!nextOpen) {
+      setRecipientInput("")
+      setRecipients([])
+      setMessage("")
+      setMessageStep(false)
+      setShowSuggestions(false)
+    }
+    if (onOpenChange) onOpenChange(nextOpen)
+    else setInternalOpen(nextOpen)
+  }
+
   useEffect(() => {
     if (!isOpen || emailMode !== "internal") return
     let active = true
@@ -81,6 +98,18 @@ export function ShareDialog({
     setShowSuggestions(false)
   }
 
+  function reviewMessage() {
+    if (!canCopy) return
+    const { valid, invalid } = parseEmailList(recipientInput)
+    if (invalid.length || !valid.length) {
+      toast.error("Enter a valid email address.")
+      return
+    }
+    setRecipients(valid)
+    setShowSuggestions(false)
+    setMessageStep(true)
+  }
+
   async function copyLink() {
     if (!canCopy) return
     try {
@@ -92,26 +121,19 @@ export function ShareDialog({
   }
 
   function emailLink() {
-    if (!canCopy) return
-    const { valid, invalid } = parseEmailList(recipientInput)
-    if (invalid.length || !valid.length) {
-      toast.error("Enter a valid email address.")
-      return
-    }
+    if (!canCopy || !recipients.length) return
     const subject = "Sharing " + itemTitle
-    const body = "Hi,\n\nHere is the link to " + itemTitle + ":\n" + url
+    const body = [message.trim(), `Here is the link to ${itemTitle}:\n${url}`].filter(Boolean).join("\n\n")
     if (emailMode === "system") {
-      window.location.href = "mailto:" + valid.join(",") + "?subject=" + encodeURIComponent(subject) + "&body=" + encodeURIComponent(body)
+      window.location.href = "mailto:" + recipients.join(",") + "?subject=" + encodeURIComponent(subject) + "&body=" + encodeURIComponent(body)
     } else {
-      router.push(buildEmailComposeHref({ recipientEmail: valid[0], cc: valid.slice(1).join(","), subject, body }))
+      router.push(buildEmailComposeHref({ recipientEmail: recipients[0], cc: recipients.slice(1).join(","), subject, body }))
     }
-    setRecipientInput("")
-    onOpenChange?.(false)
-    setInternalOpen(false)
+    handleOpenChange(false)
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange ?? setInternalOpen}>
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       {showTrigger && (
         <DialogTrigger asChild>
           <Button type="button" variant="ghost" size="icon" aria-label={triggerLabel} title={triggerLabel} className={cn("shrink-0 rounded-full text-foreground hover:bg-muted/50", triggerClassName)}>
@@ -121,11 +143,35 @@ export function ShareDialog({
       )}
       <DialogContent className={cn("max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-lg gap-0 overflow-y-auto p-0", contentClassName)}>
         <DialogHeader className="px-5 pb-2 pt-6 pr-12 sm:px-6">
-          <DialogTitle className="text-2xl font-normal leading-snug tracking-tight">Share &lsquo;{itemTitle}&rsquo;</DialogTitle>
-          <DialogDescription className="sr-only">Email a link or control who can open it.</DialogDescription>
+          <div className="flex items-center gap-2">
+            {messageStep && <Button type="button" size="icon" variant="ghost" className="-ml-2 size-9 shrink-0" aria-label="Back to sharing options" onClick={() => setMessageStep(false)}><ArrowLeft className="size-5" aria-hidden="true" /></Button>}
+            <DialogTitle className="text-2xl font-normal leading-snug tracking-tight">Share &lsquo;{itemTitle}&rsquo;</DialogTitle>
+          </div>
+          <DialogDescription className="sr-only">{messageStep ? "Add a message before opening an email draft." : "Email a link or control who can open it."}</DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-7 px-5 py-5 sm:px-6">
+        {messageStep ? (
+          <div className="space-y-6 px-5 py-5 sm:px-6">
+            <div className="flex flex-wrap gap-2" aria-label="Recipients">
+              {recipients.map((email) => (
+                <span key={email} className="inline-flex max-w-full items-center gap-2 rounded-full border border-border px-3 py-1.5 text-sm">
+                  <span className="truncate">{email}</span>
+                  <button type="button" className="rounded-full text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label={`Remove ${email}`} onClick={() => {
+                    const remaining = recipients.filter((recipient) => recipient !== email)
+                    setRecipients(remaining)
+                    setRecipientInput(remaining.join(", "))
+                    if (!remaining.length) setMessageStep(false)
+                  }}><X className="size-4" aria-hidden="true" /></button>
+                </span>
+              ))}
+            </div>
+            <div className="space-y-2">
+              <label htmlFor="share-message" className="text-sm font-medium">Message <span className="font-normal text-muted-foreground">(optional)</span></label>
+              <Textarea id="share-message" value={message} onChange={(event) => setMessage(event.target.value)} maxLength={1000} rows={6} placeholder="Add a message" className="min-h-36 resize-y" />
+            </div>
+            <p className="text-xs text-muted-foreground">The email draft includes your message and a view link. Sending it does not grant individual access.</p>
+          </div>
+        ) : <div className="space-y-7 px-5 py-5 sm:px-6">
           <fieldset className="relative rounded-md border border-input px-3 pb-2 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary">
             <legend className="px-1 text-sm text-muted-foreground">Send link to a Contact or email address</legend>
             <div className="flex items-center gap-2">
@@ -138,7 +184,7 @@ export function ShareDialog({
                   if (event.key === "Enter") {
                     event.preventDefault()
                     if (suggestions.length) selectContact(suggestions[0])
-                    else emailLink()
+                    else reviewMessage()
                   }
                 }}
                 placeholder="Name or email address"
@@ -146,8 +192,8 @@ export function ShareDialog({
                 disabled={!canCopy}
                 className="h-9 min-w-0 flex-1 border-0 px-0 shadow-none focus-visible:ring-0"
               />
-              <Button type="button" size="icon" variant="ghost" className="size-8 shrink-0 text-primary" aria-label="Open email draft" title="Open email draft" onClick={emailLink} disabled={!canCopy || !recipientInput.trim()}>
-                <Mail className="size-4" aria-hidden="true" />
+              <Button type="button" size="sm" variant="ghost" className="shrink-0 text-primary" onClick={reviewMessage} disabled={!canCopy || !recipientInput.trim()}>
+                Next
               </Button>
             </div>
             {suggestions.length > 0 && (
@@ -204,15 +250,22 @@ export function ShareDialog({
               {canCopy && <span className="text-sm text-muted-foreground">Viewer</span>}
             </div>
           </section>
-        </div>
+        </div>}
 
         <div className="flex items-center justify-between gap-3 px-5 py-5 sm:px-6">
           <Button type="button" variant="outline" className="h-10 rounded-full px-4 text-primary" onClick={() => void copyLink()} disabled={!canCopy}>
             <Link2 className="size-4" aria-hidden="true" />Copy link
           </Button>
-          <DialogClose asChild>
-            <Button type="button" className="h-10 rounded-full px-6">Done</Button>
-          </DialogClose>
+          {messageStep ? (
+            <div className="flex items-center gap-2">
+              <Button type="button" variant="ghost" className="h-10 rounded-full px-4" onClick={() => handleOpenChange(false)}>Cancel</Button>
+              <Button type="button" className="h-10 rounded-full px-5" onClick={emailLink}>Open draft</Button>
+            </div>
+          ) : (
+            <DialogClose asChild>
+              <Button type="button" className="h-10 rounded-full px-6">Done</Button>
+            </DialogClose>
+          )}
         </div>
       </DialogContent>
     </Dialog>
