@@ -1,11 +1,11 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
+import { useEffect, useRef, useState } from "react"
 import { ArrowLeft, ChevronDown, Globe2, Link2, LockKeyhole, Send, X } from "lucide-react"
 import { toast } from "sonner"
 
 import { useOptionalAuth } from "@/components/auth-provider"
+import { getBusinessProfile } from "@/lib/business-profile"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
@@ -62,7 +62,6 @@ export function ShareDialog({
   emailMode = "internal",
   contentClassName,
 }: ShareDialogProps) {
-  const router = useRouter()
   const auth = useOptionalAuth()
   const [internalOpen, setInternalOpen] = useState(false)
   const [recipientInput, setRecipientInput] = useState("")
@@ -71,7 +70,8 @@ export function ShareDialog({
   const [messageStep, setMessageStep] = useState(false)
   const [recipients, setRecipients] = useState<string[]>([])
   const [message, setMessage] = useState<string | null>(null)
-  const [savingDraft, setSavingDraft] = useState(false)
+  const [pendingAction, setPendingAction] = useState<"draft" | "send" | null>(null)
+  const pendingRef = useRef(false)
   const isOpen = open ?? internalOpen
   const viewer = auth?.isAdmin && !auth.isViewingAs && auth.user?.email ? {
     name: auth.appUser?.displayName?.trim() || auth.user.displayName?.trim() || auth.user.email,
@@ -138,46 +138,104 @@ export function ShareDialog({
     }
   }
 
-  async function emailLink() {
-    if (!canCopy || !recipients.length || savingDraft) return
+  function emailContent() {
+    if (!canCopy || !recipients.length) return null
     const subject = "Sharing " + itemTitle
     const body = message?.trim() || ""
     if (!body.includes(url)) {
       toast.error("Keep the share link in the message.")
+      return null
+    }
+    return { subject, body }
+  }
+
+  async function saveDraft() {
+    if (pendingRef.current || emailMode === "system") return
+    const content = emailContent()
+    if (!content) return
+    if (!auth?.user) {
+      toast.error("Sign in to save this email draft.")
       return
     }
-    if (emailMode === "system") {
-      window.location.href = "mailto:" + recipients.join(",") + "?subject=" + encodeURIComponent(subject) + "&body=" + encodeURIComponent(body)
-    } else {
-      if (!auth?.user) {
-        toast.error("Sign in to save this email draft.")
-        return
-      }
+    pendingRef.current = true
+    setPendingAction("draft")
+    try {
       const draft: EmailDraftRecord = {
         id: crypto.randomUUID(),
         companyId: auth.appUser?.companyId || auth.user.uid,
         createdBy: auth.user.uid,
         to: recipients[0],
         cc: recipients.slice(1).join(",") || undefined,
-        subject,
-        body: plainTextToEditorHtml(body),
+        subject: content.subject,
+        body: plainTextToEditorHtml(content.body),
         messageKind: "transactional",
         brandedEmail: true,
-        context: { recipientEmail: recipients[0], cc: recipients.slice(1).join(","), subject, body },
+        context: { recipientEmail: recipients[0], cc: recipients.slice(1).join(","), subject: content.subject, body: content.body },
         updatedAt: new Date().toISOString(),
       }
-      setSavingDraft(true)
-      try {
-        await saveEmailDraft(draft)
-      } catch {
-        toast.error("Could not save the email draft. Please try again.")
-        setSavingDraft(false)
-        return
-      }
-      router.push(`/dashboard/email/drafts?openDraft=${encodeURIComponent(draft.id)}`)
+      await saveEmailDraft(draft)
+      toast.success("Saved to Email drafts")
+      handleOpenChange(false)
+    } catch {
+      toast.error("Could not save the email draft. Please try again.")
+    } finally {
+      pendingRef.current = false
+      setPendingAction(null)
     }
-    handleOpenChange(false)
-    setSavingDraft(false)
+  }
+
+  async function sendEmail() {
+    if (pendingRef.current) return
+    const content = emailContent()
+    if (!content) return
+    if (emailMode === "system") {
+      window.location.href = "mailto:" + recipients.join(",") + "?subject=" + encodeURIComponent(content.subject) + "&body=" + encodeURIComponent(content.body)
+      handleOpenChange(false)
+      return
+    }
+    if (!auth?.user) {
+      toast.error("Sign in to send this email.")
+      return
+    }
+    pendingRef.current = true
+    setPendingAction("send")
+    try {
+      const [idToken, brand] = await Promise.all([
+        auth.user.getIdToken(),
+        getBusinessProfile().catch(() => null),
+      ])
+      const response = await fetch("/api/email/send", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${idToken}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          to: [recipients[0]],
+          cc: recipients.slice(1),
+          type: "transactional",
+          subject: content.subject,
+          text: content.body,
+          html: plainTextToEditorHtml(content.body),
+          branded: true,
+          brand: brand || undefined,
+          history: {
+            companyId: auth.appUser?.companyId || auth.user.uid,
+            to: recipients[0],
+            createdAt: new Date().toISOString(),
+            recipients: [{ email: recipients[0] }],
+            documentTitle: itemTitle,
+          },
+        }),
+      })
+      const result = await response.json().catch(() => ({})) as { id?: string; error?: string; historySaved?: boolean }
+      if (!response.ok || !result.id) throw new Error(result.error || "The email could not be sent.")
+      if (result.historySaved === false) toast.error("Email sent, but it could not be saved to Sent.")
+      else toast.success("Email sent")
+      handleOpenChange(false)
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "The email could not be sent. Please try again.")
+    } finally {
+      pendingRef.current = false
+      setPendingAction(null)
+    }
   }
 
   return (
@@ -195,7 +253,7 @@ export function ShareDialog({
             {messageStep && <Button type="button" size="icon" variant="ghost" className="-ml-2 size-9 shrink-0" aria-label="Back to sharing options" onClick={() => setMessageStep(false)}><ArrowLeft className="size-5" aria-hidden="true" /></Button>}
             <DialogTitle className="text-2xl font-normal leading-snug tracking-tight">Share &lsquo;{itemTitle}&rsquo;</DialogTitle>
           </div>
-          <DialogDescription className="sr-only">{messageStep ? emailMode === "system" ? "Add a message before opening your email app." : "Add a message before saving an email draft." : "Email a link or control who can open it."}</DialogDescription>
+          <DialogDescription className="sr-only">{messageStep ? emailMode === "system" ? "Add a message before opening your email app." : "Send the message now or save it as a draft." : "Email a link or control who can open it."}</DialogDescription>
         </DialogHeader>
 
         {messageStep ? (
@@ -303,8 +361,8 @@ export function ShareDialog({
           </Button>
           {messageStep ? (
             <div className="flex items-center gap-2">
-              <Button type="button" variant="ghost" className="h-10 rounded-full px-4" onClick={() => handleOpenChange(false)}>Cancel</Button>
-              <Button type="button" className="h-10 rounded-full px-5" onClick={() => void emailLink()} disabled={savingDraft}>{savingDraft ? "Saving…" : emailMode === "system" ? "Open email app" : "Save and open draft"}</Button>
+              {emailMode === "internal" && <Button type="button" variant="ghost" className="h-10 rounded-full px-4" onClick={() => void saveDraft()} disabled={pendingAction !== null}>{pendingAction === "draft" ? "Saving…" : "Save draft"}</Button>}
+              <Button type="button" className="h-10 rounded-full px-5" onClick={() => void sendEmail()} disabled={pendingAction !== null}>{pendingAction === "send" ? "Sending…" : emailMode === "system" ? "Open email app" : "Send"}</Button>
             </div>
           ) : (
             <DialogClose asChild>

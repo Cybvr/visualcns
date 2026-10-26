@@ -54,7 +54,7 @@ import { SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@/components/ui
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { FilterBar, MOBILE_CREATE_BUTTON_CLASS, MobileSearchBar, useFilterBar, type SortOption } from "@/components/dashboard/filter-bar"
 import { deleteEmailList, getEmailLists, saveEmailList, type EmailContactList } from "@/lib/email-lists"
-import { deleteEmailDraft, getEmailDraft, getEmailDrafts, setEmailDraftTrashed, type EmailDraftRecord } from "@/lib/email-drafts"
+import { deleteEmailDraft, getEmailDrafts, setEmailDraftTrashed, type EmailDraftRecord } from "@/lib/email-drafts"
 import { deleteEmailMessage, getAllEmailMessages, getEmailMessages, saveEmailMessage, setEmailMessageTrashed, updateEmailMessageStatus, type EmailMessageRecord } from "@/lib/email-messages"
 import { getHiddenReceivedEmails, hideReceivedEmail, permanentlyHideReceivedEmail, restoreReceivedEmail, trashReceivedEmail, type HiddenReceivedEmail } from "@/lib/email-received-hidden"
 import { EMAIL_INBOX_REFRESH_EVENT, publishUnreadEmailCount } from "@/components/dashboard/email/use-unread-email-count"
@@ -853,25 +853,6 @@ export function EmailWorkspace({ initialTab, initialMessageId }: { initialTab: E
     // Back, or re-read of the URL would open the composer again.
     router.replace(folderHref(tab), { scroll: false })
   }, [router, searchParams])
-
-  const requestedDraftId = searchParams.get("openDraft")
-  useEffect(() => {
-    if (!requestedDraftId || !user?.uid) return
-    let active = true
-    void getEmailDraft(requestedDraftId)
-      .then((draft) => {
-        if (!active) return
-        if (draft && !draft.trashedAt) openCompose({ draft })
-        else setSendNotice({ tone: "error", text: "That email draft could not be found." })
-        router.replace("/dashboard/email/drafts", { scroll: false })
-      })
-      .catch(() => {
-        if (active) setSendNotice({ tone: "error", text: "The email draft could not be opened. Try again from Drafts." })
-      })
-    return () => { active = false }
-    // openCompose is a local state helper; the URL is consumed once.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [requestedDraftId, router, user?.uid])
 
   useEffect(() => {
     let active = true

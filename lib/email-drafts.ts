@@ -1,4 +1,4 @@
-import { collection, deleteDoc, doc, getDoc, getDocs, query, setDoc, updateDoc, where } from "firebase/firestore"
+import { collection, deleteDoc, doc, getDocs, query, setDoc, updateDoc, where } from "firebase/firestore"
 
 import { db } from "./firebase"
 import { getCurrentAgencyId } from "./agency-scope"
@@ -22,11 +22,6 @@ export type EmailDraftRecord = {
   context?: Record<string, unknown> | null
   updatedAt: string
   trashedAt?: string | null
-}
-
-export async function getEmailDraft(id: string): Promise<EmailDraftRecord | null> {
-  const snapshot = await getDoc(doc(db, COLLECTION_NAME, id))
-  return snapshot.exists() ? { ...(snapshot.data() as Omit<EmailDraftRecord, "id">), id: snapshot.id } : null
 }
 
 export async function getEmailDrafts(companyId: string, allAgencyDrafts = false): Promise<EmailDraftRecord[]> {

@@ -616,7 +616,9 @@ export async function POST(request: Request) {
   const brandSource = payload.brand && typeof payload.brand === "object" ? payload.brand as Record<string, unknown> : {}
   const ctaSource = payload.cta && typeof payload.cta === "object" ? payload.cta as Record<string, unknown> : {}
   const ctaText = safeBrandValue(ctaSource.text, "Open your company page") || "Open your company page"
-  const ctaUrl = absoluteWebUrl(safeBrandValue(ctaSource.url), `${SITE_ORIGIN}/`)
+  const ctaUrl = typeof ctaSource.url === "string" && ctaSource.url.trim()
+    ? absoluteWebUrl(safeBrandValue(ctaSource.url), `${SITE_ORIGIN}/`)
+    : ""
   const footerText = [
     safeBrandValue(brandSource.name, "VisualCNS") || "VisualCNS",
     safeBrandValue(brandSource.address, "Lagos, Nigeria"),
@@ -631,7 +633,7 @@ export async function POST(request: Request) {
     const plainHtml = `${messageContent}${unsubscribeLink ? `<p><a href="${escapeHtml(unsubscribeLink)}">Unsubscribe</a></p>` : ""}`
     const html = useBrandedLayout ? brandedEmail(messageContent, subject, payload.brand, from, payload.cta, unsubscribeLink) : plainHtml
     const brandedText = useBrandedLayout
-      ? `${text}\n\n${ctaText}: ${ctaUrl}\n\n---\n${footerText}\nX: ${X_URL}\nLinkedIn: ${LINKEDIN_URL}${unsubscribeLink ? `\nUnsubscribe: ${unsubscribeLink}` : ""}`
+      ? `${text}${ctaUrl ? `\n\n${ctaText}: ${ctaUrl}` : ""}\n\n---\n${footerText}\nX: ${X_URL}\nLinkedIn: ${LINKEDIN_URL}${unsubscribeLink ? `\nUnsubscribe: ${unsubscribeLink}` : ""}`
       : `${text}${unsubscribeLink ? `\n\nUnsubscribe: ${unsubscribeLink}` : ""}`
     if (useGmail) {
       const result = await sendGmailMessage(agencyId, { from, to, cc: copy, replyTo, subject, text: brandedText, html, attachments, ...threading })
