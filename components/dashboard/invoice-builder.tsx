@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, type FormEvent } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { ArrowLeft, Loader2, Plus, Printer, X } from "lucide-react"
+import { useAuth } from "@/components/auth-provider"
 
 import {
   EditorActionBar,
@@ -108,6 +109,7 @@ function today(): string {
  */
 export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate, onSaved, onDeleted }: { invoice?: Invoice | null; initialCompanyId?: string; initialEstimate?: Estimate; onSaved?: (invoice: Invoice) => void; onDeleted?: (id: string) => void }) {
   const router = useRouter()
+  const { user } = useAuth()
   const isEdit = Boolean(invoice)
 
   const [invoiceNumber, setInvoiceNumber] = useState(invoice?.invoiceNumber ?? "")
@@ -502,6 +504,7 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate, onS
           triggerClassName="size-8 bg-primary/10 text-primary hover:bg-primary/15"
           path={invoice ? `/share/invoices/${encodeURIComponent(invoice.id)}` : ""}
           title={invoice?.title || invoiceTitle || "invoice"}
+          viewer={user ? { name: user.displayName, email: user.email } : undefined}
           access={{ enabled: shareEnabled, onEnabledChange: (enabled) => { void changeShareEnabled(enabled) }, disabled: shareSaving }}
         />
       } />

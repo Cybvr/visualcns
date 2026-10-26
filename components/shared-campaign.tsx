@@ -161,6 +161,7 @@ export function SharedCampaignView({ id, jobId = "" }: { id: string; jobId?: str
             <ShareDialog
               path={ownPath}
               title={`Share ${job ? `${jobTitle} · ${project.title}` : project.title}`}
+              emailMode="system"
               contentClassName="dashboard-body font-sans"
             />
           </div>

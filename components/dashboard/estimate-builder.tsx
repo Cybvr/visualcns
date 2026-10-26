@@ -21,6 +21,7 @@ import {
 } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
 import { ArrowLeft, GripVertical, Loader2, Plus, Printer, X } from "lucide-react"
+import { useAuth } from "@/components/auth-provider"
 
 import {
   DepartmentField,
@@ -163,6 +164,7 @@ function SortableEstimateLine({
  */
 export function EstimateBuilder({ estimate, initialCompanyId, onSaved, onDeleted }: { estimate?: Estimate | null; initialCompanyId?: string; onSaved?: (estimate: Estimate) => void; onDeleted?: (id: string) => void }) {
   const router = useRouter()
+  const { user } = useAuth()
   const isEdit = Boolean(estimate)
 
   const [estimateNumber, setEstimateNumber] = useState(estimate?.estimateNumber ?? "")
@@ -461,6 +463,7 @@ export function EstimateBuilder({ estimate, initialCompanyId, onSaved, onDeleted
           triggerClassName="size-8 bg-primary/10 text-primary hover:bg-primary/15"
           path={estimate ? `/share/estimates/${encodeURIComponent(estimate.id)}` : ""}
           title={estimate?.title || title || "estimate"}
+          viewer={user ? { name: user.displayName, email: user.email } : undefined}
           access={{ enabled: shareEnabled, onEnabledChange: (enabled) => { void changeShareEnabled(enabled) }, disabled: shareSaving }}
         />
       } />
