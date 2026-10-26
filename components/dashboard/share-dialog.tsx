@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { ArrowLeft, ChevronDown, Globe2, Link2, LockKeyhole, Send, X } from "lucide-react"
 import { toast } from "sonner"
 
+import { useOptionalAuth } from "@/components/auth-provider"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
@@ -61,6 +62,7 @@ export function ShareDialog({
   contentClassName,
 }: ShareDialogProps) {
   const router = useRouter()
+  const auth = useOptionalAuth()
   const [internalOpen, setInternalOpen] = useState(false)
   const [recipientInput, setRecipientInput] = useState("")
   const [contacts, setContacts] = useState<AppUser[]>([])
@@ -69,6 +71,11 @@ export function ShareDialog({
   const [recipients, setRecipients] = useState<string[]>([])
   const [message, setMessage] = useState<string | null>(null)
   const isOpen = open ?? internalOpen
+  const viewer = auth?.isAdmin && !auth.isViewingAs && auth.user?.email ? {
+    name: auth.appUser?.displayName?.trim() || auth.user.displayName?.trim() || auth.user.email,
+    email: auth.user.email,
+    role: auth.role === "superadmin" ? "Super admin" : "Workspace admin",
+  } : null
 
   function handleOpenChange(nextOpen: boolean) {
     if (!nextOpen) {
@@ -215,6 +222,22 @@ export function ShareDialog({
               </div>
             )}
           </fieldset>
+
+          {viewer && (
+            <section aria-labelledby="share-people-title" className="space-y-3">
+              <h3 id="share-people-title" className="text-base font-semibold text-foreground">People with access</h3>
+              <div className="flex items-center gap-3">
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-medium text-primary" aria-hidden="true">
+                  {viewer.name.charAt(0).toUpperCase()}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium text-foreground">{viewer.name} (you)</p>
+                  <p className="truncate text-xs text-muted-foreground">{viewer.email}</p>
+                </div>
+                <span className="shrink-0 text-xs text-muted-foreground">{viewer.role}</span>
+              </div>
+            </section>
+          )}
 
           <section aria-labelledby="share-general-title" className="space-y-3">
             <h3 id="share-general-title" className="text-base font-semibold text-foreground">General access</h3>

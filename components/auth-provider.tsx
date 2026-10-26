@@ -313,3 +313,8 @@ export function useAuth() {
   if (!ctx) throw new Error("useAuth must be used within an AuthProvider")
   return ctx
 }
+
+/** Share controls can also appear on public pages without an auth provider. */
+export function useOptionalAuth() {
+  return useContext(AuthContext)
+}
