@@ -1,8 +1,8 @@
 "use client"
 
-import { RouteTabs, DOCUMENT_TABS } from "@/components/dashboard/route-tabs"
+import { useRouter } from "next/navigation"
 import { useEffect, useMemo, useRef, useState } from "react"
-import { Send, Trash2 } from "lucide-react"
+import { ArrowLeft, Send, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
@@ -74,6 +74,7 @@ function searchNote(note: Note) {
 
 /** Shared agency notes: a list on the left, the open note on the right. */
 export default function NotesPage() {
+  const router = useRouter()
   const { user } = useAuth()
   const uid = user?.uid || ""
   const [notes, setNotes] = useState<Note[] | null>(null)
@@ -92,6 +93,10 @@ export default function NotesPage() {
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
   // Which note the editor fields currently hold, so a note opened from the URL loads once.
   const loadedId = useRef("")
+
+  useEffect(() => {
+    if (!new URLSearchParams(window.location.search).has("note")) router.replace("/dashboard/drive?type=note")
+  }, [router, selectedId])
 
   useRecordTitle(openId ? noteTitle({ title, body }) : null)
 
@@ -193,7 +198,7 @@ export default function NotesPage() {
 
   function close() {
     void flush()
-    select(null)
+    router.push("/dashboard/drive?type=note")
   }
 
   async function remove() {
@@ -249,7 +254,7 @@ export default function NotesPage() {
   latest.current = { edit, close, askDelete, openShare }
 
   const headerBack = useMemo(
-    () => (headerOpen ? { label: "Back to notes", onClick: () => latest.current.close() } : null),
+    () => (headerOpen ? { label: "Back to Drive", onClick: () => latest.current.close() } : null),
     [headerOpen],
   )
   const headerTitle = useMemo(
@@ -297,7 +302,6 @@ export default function NotesPage() {
 
   return (
     <main className="notes-page mx-auto w-full max-w-6xl px-4 pt-4 pb-12 sm:px-6">
-      <RouteTabs tabs={DOCUMENT_TABS} />
       {error ? (
         <p role="alert" className="mt-10 text-sm text-destructive">Notes unavailable. Refresh to try again.</p>
       ) : notes === null ? (
@@ -319,8 +323,8 @@ export default function NotesPage() {
           />
         </>
       ) : (
-        <div className="lg:grid lg:grid-cols-[minmax(18rem,0.7fr)_minmax(0,1.3fr)] lg:items-start lg:gap-6">
-          <div className={cn("min-w-0", openId && "hidden sm:block")}>
+        <div className={cn(openId ? "mx-auto max-w-4xl" : "lg:grid lg:grid-cols-[minmax(18rem,0.7fr)_minmax(0,1.3fr)] lg:items-start lg:gap-6")}>
+          <div className={cn("min-w-0", openId && "hidden")}>
             {noteFilter}
             {visibleNotes.length === 0 ? (
               <EmptySearchState label="No notes match your search." />
@@ -355,12 +359,13 @@ export default function NotesPage() {
           </div>
 
           <section className={cn(
-            "min-w-0 lg:sticky lg:top-16 lg:flex lg:h-[calc(100svh-5rem)] lg:min-h-0 lg:flex-col lg:overflow-hidden",
-            !openId && "hidden sm:block",
+            "min-w-0 lg:flex lg:h-[calc(100svh-5rem)] lg:min-h-0 lg:flex-col lg:overflow-hidden",
+            !openId && "hidden",
           )}>
             {openId ? (
               <div className="flex min-h-[70svh] flex-1 flex-col lg:min-h-0">
                 <div className="flex h-16 items-center gap-3 border-b border-border py-0 max-sm:hidden">
+                  <Button type="button" variant="ghost" size="icon" onClick={close} aria-label="Back to Drive"><ArrowLeft className="size-4" aria-hidden="true" /></Button>
                   <input
                     value={title}
                     onChange={(event) => edit({ title: event.target.value })}

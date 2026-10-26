@@ -312,7 +312,6 @@ export function ProjectDetail({
         <ShareDialog
           path={`/share/campaigns/${encodeURIComponent(project.id)}`}
           title={`Share ${project.title}`}
-          shareText={`Apply for the ${project.title} campaign`}
         />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

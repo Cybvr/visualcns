@@ -281,7 +281,6 @@ export function CampaignCreatives({ creatives, agencyId, companyId, projectId, c
           <ShareDialog
             path={sharePath(selected)}
             title={`Share ${selected.title || "post"}`}
-            shareText={`See ${selected.title || "this post"}`}
             open={shareOpen}
             onOpenChange={setShareOpen}
             showTrigger={false}

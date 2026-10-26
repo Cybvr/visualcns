@@ -7,7 +7,7 @@ import dynamic from "next/dynamic"
 import { useEffect, useState, type ReactNode } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { ArrowLeft, Building2, Home, Receipt, Search, X } from "lucide-react"
+import { ArrowLeft, Building2, FolderOpen, Home, Search, X } from "lucide-react"
 import { FiMail, FiUser } from "react-icons/fi"
 
 import { useAgent } from "@/components/agent/agent-context"
@@ -45,7 +45,7 @@ function DashboardMobileFooterNav({ unreadEmailCount }: { unreadEmailCount: numb
     { key: "home", label: "Home", icon: Home, href: "/dashboard", isActive: pathname === "/dashboard" },
     { key: "email", label: "Emails", icon: FiMail, href: "/dashboard/email/inbox", isActive: pathname.startsWith("/dashboard/email"), badge: unreadEmailCount },
     { key: "clients", label: "Clients", icon: Building2, href: "/dashboard/clients" },
-    { key: "invoices", label: "Invoices", icon: Receipt, href: "/dashboard/invoices" },
+    { key: "drive", label: "Drive", icon: FolderOpen, href: "/dashboard/drive", isActive: pathname.startsWith("/dashboard/drive") || ["invoices", "documents", "notes"].some((section) => pathname.startsWith(`/dashboard/${section}`)) },
     { key: "profile", label: "Profile", icon: FiUser, href: "/dashboard/account" },
   ]
 

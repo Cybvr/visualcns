@@ -1,11 +1,12 @@
 "use client"
 
-import { ChevronDown, Link2, Trash2 } from "lucide-react"
+import { ChevronDown, Eye, Link2, Send, Trash2 } from "lucide-react"
 import { useId, useState, type ReactNode } from "react"
 import { toast } from "sonner"
 
 import { CreatorsJobFields, DateField, Pick } from "@/components/dashboard/creator-brief"
 import { RichTextEditor } from "@/components/dashboard/rich-text-editor"
+import { ShareDialog } from "@/components/dashboard/share-dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -41,6 +42,7 @@ export function CampaignOpeningsForm({
   onChange: (openings: CampaignOpening[]) => void
   onBriefChange: (patch: Partial<CreatorBrief>) => void
 }) {
+  const [sharing, setSharing] = useState<{ id: string; title: string } | null>(null)
   const update = (id: string, patch: Partial<CampaignOpening>) => onChange(value.map((opening) => (opening.id === id ? { ...opening, ...patch } : opening)))
 
   async function copyLink(id: string) {
@@ -52,10 +54,14 @@ export function CampaignOpeningsForm({
     }
   }
 
+  function viewPost(id: string) {
+    window.open(siteUrl(campaignSharePath(projectId, id)), "_blank", "noopener,noreferrer")
+  }
+
   return (
     <div className="space-y-4">
       {brief.hireCreators && (
-        <JobCard title="Creators" defaultOpen={!creatorsSaved} linkReady={creatorsSaved} onCopyLink={() => void copyLink(CREATORS_ROLE)} onRemove={() => onBriefChange({ hireCreators: false })}>
+        <JobCard title="Creators" defaultOpen={!creatorsSaved} linkReady={creatorsSaved} onView={() => viewPost(CREATORS_ROLE)} onShare={() => setSharing({ id: CREATORS_ROLE, title: "Creators" })} onCopyLink={() => void copyLink(CREATORS_ROLE)} onRemove={() => onBriefChange({ hireCreators: false })}>
           <CreatorsJobFields value={brief} onChange={onBriefChange} />
         </JobCard>
       )}
@@ -68,6 +74,8 @@ export function CampaignOpeningsForm({
             title={opening.title || `Job ${index + 1}`}
             defaultOpen={!saved}
             linkReady={saved}
+            onView={() => viewPost(opening.id)}
+            onShare={() => setSharing({ id: opening.id, title: opening.title || `Job ${index + 1}` })}
             onCopyLink={() => void copyLink(opening.id)}
             onRemove={() => onChange(value.filter((item) => item.id !== opening.id))}
           >
@@ -134,15 +142,24 @@ export function CampaignOpeningsForm({
         )
       })}
       <Button type="button" variant="outline" onClick={() => onChange([...value, newOpening(brief.currency)])}>Add job</Button>
+      <ShareDialog
+        open={sharing !== null}
+        onOpenChange={(nextOpen) => { if (!nextOpen) setSharing(null) }}
+        showTrigger={false}
+        path={sharing ? campaignSharePath(projectId, sharing.id) : ""}
+        title={`Share ${sharing?.title || "job post"}`}
+      />
     </div>
   )
 }
 
-/** One job, folded to its title row until opened, with its link and remove buttons always in reach. New jobs start open. */
-function JobCard({ title, defaultOpen, linkReady, onCopyLink, onRemove, children }: {
+/** One job, folded to its title row until opened, with its view, share, link and remove buttons always in reach. New jobs start open. */
+function JobCard({ title, defaultOpen, linkReady, onView, onShare, onCopyLink, onRemove, children }: {
   title: string
   defaultOpen: boolean
   linkReady: boolean
+  onView: () => void
+  onShare: () => void
   onCopyLink: () => void
   onRemove: () => void
   children: ReactNode
@@ -156,6 +173,12 @@ function JobCard({ title, defaultOpen, linkReady, onCopyLink, onRemove, children
           <ChevronDown className={cn("size-4 shrink-0 text-muted-foreground transition-transform", !open && "-rotate-90")} aria-hidden="true" />
           <span className="min-w-0 flex-1 truncate">{title}</span>
         </button>
+        <Button type="button" variant="outline" size="icon" disabled={!linkReady} onClick={onView} aria-label={`View ${title} post`} title={linkReady ? "View post" : "Save to view post"}>
+          <Eye className="size-4" aria-hidden="true" />
+        </Button>
+        <Button type="button" variant="outline" size="icon" disabled={!linkReady} onClick={onShare} aria-label={`Share ${title} post`} title={linkReady ? "Share post" : "Save to share post"}>
+          <Send className="size-4" aria-hidden="true" />
+        </Button>
         <Button type="button" variant="outline" size="icon" disabled={!linkReady} onClick={onCopyLink} aria-label="Copy job link" title={linkReady ? "Copy job link" : "Save to get its link"}>
           <Link2 className="size-4" />
         </Button>

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, type ReactNode } from "react"
 import Image from "next/image"
-import { ChevronRight, Download, Eye, Loader2, Mail, Printer, Send, Trash2 } from "lucide-react"
+import { ChevronRight, Download, Eye, Loader2, Mail, Printer, Trash2 } from "lucide-react"
 
 import {
   AlertDialog,
@@ -34,7 +34,7 @@ export function EditorHeader({
   status,
   onPrint,
   onDownload,
-  onShare,
+  shareAction,
   downloading = false,
 }: {
   issuer: BusinessProfile | null
@@ -44,7 +44,7 @@ export function EditorHeader({
   onPrint: () => void
   onDownload: () => void
   /** Shown beside Download when the record can be shared by link. */
-  onShare?: () => void
+  shareAction?: ReactNode
   downloading?: boolean
 }) {
   const round =
@@ -76,11 +76,7 @@ export function EditorHeader({
           <button type="button" onClick={onDownload} disabled={downloading} title="Download PDF" aria-label="Download PDF" className={round}>
             {downloading ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <Download className="size-4" aria-hidden="true" />}
           </button>
-          {onShare && (
-            <button type="button" onClick={onShare} title={`Share ${kind.toLowerCase()}`} aria-label={`Share ${kind.toLowerCase()}`} className={round}>
-                <Send className="size-4" aria-hidden="true" />
-            </button>
-          )}
+          {shareAction}
         </div>
       </div>
     </header>

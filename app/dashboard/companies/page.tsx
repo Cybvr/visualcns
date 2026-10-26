@@ -193,7 +193,6 @@ export default function CompaniesPage() {
       onOpen: () => router.push(companyHref(row)),
       extra: row.user ? <DropdownMenuItem onSelect={() => handleViewWorkspace(row)}>View workspace</DropdownMenuItem> : undefined,
       onDelete: () => handleDelete(row),
-      deleteLabel: "Remove client",
       deleteMessage: `This removes ${row.name}'s account. Their projects, tasks, and documents will remain in the database, but the client will no longer appear here. This cannot be undone.`,
     }
   }

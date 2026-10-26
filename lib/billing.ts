@@ -80,8 +80,6 @@ export interface Invoice {
   /** Days from issue to due. Drives dueOn rather than being typed by hand. */
   paymentTermsDays?: number
   dueOn: string
-  /** When the work was delivered (YYYY-MM-DD). Printed so the invoice states the service was rendered. */
-  serviceCompletedOn?: string
   notes?: string
   paymentInstructions?: string
   /** Link to the original invoice, when it lives elsewhere */

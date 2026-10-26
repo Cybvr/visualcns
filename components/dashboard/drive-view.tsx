@@ -291,8 +291,7 @@ function companyAndProjectMedia(): Promise<SharedDocument[]> {
  * gets a read-only view of what has been shared with them. Same grid, same
  * empty state, same preview - only the actions differ.
  *
- * Rendered as the "Media" view inside the unified Documents page, and from
- * the standalone /dashboard/drive redirect for old links.
+ * Rendered on the Media page for uploaded files and external links.
  */
 export function DriveView() {
   const { appUser, isAdmin, isImpersonating } = useAuth()

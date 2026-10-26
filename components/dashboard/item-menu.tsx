@@ -67,6 +67,8 @@ export function ItemActionsProvider({ children }: { children: ReactNode }) {
     try {
       await renaming.actions.onRename(next)
       setRenaming(null)
+    } catch (renameError) {
+      console.error("Error renaming item:", renameError)
     } finally {
       setBusy(false)
     }
@@ -78,6 +80,8 @@ export function ItemActionsProvider({ children }: { children: ReactNode }) {
     try {
       await deleting.onDelete()
       setDeleting(null)
+    } catch (deleteError) {
+      console.error("Error deleting item:", deleteError)
     } finally {
       setBusy(false)
     }

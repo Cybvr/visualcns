@@ -182,7 +182,7 @@ export default function DashboardPage() {
           <Metric label="Leads" value={leads?.length ?? 0} href="/dashboard/leads" />
           <Metric label="Reached out" value={reachedOut} href="/dashboard/leads" />
           <Metric label="Client campaigns" value={projects.length} href="/dashboard/projects" />
-          <Metric label="Outstanding invoices" value={outstandingInvoiceCount} href="/dashboard/invoices" />
+          <Metric label="Outstanding invoices" value={outstandingInvoiceCount} href="/dashboard/drive?type=invoice" />
         </div>
       </section>
 
@@ -246,10 +246,10 @@ export default function DashboardPage() {
           })}
         </HomeColumn>
 
-        <HomeColumn id="outstanding-invoices-heading" title="Outstanding invoices" href="/dashboard/invoices" empty="No outstanding invoices.">
+        <HomeColumn id="outstanding-invoices-heading" title="Outstanding invoices" href="/dashboard/drive?type=invoice" empty="No outstanding invoices.">
           {outstandingInvoices.map((invoice) => {
             const title = invoiceTitle(invoice)
-            const href = `/dashboard/invoices?invoice=${encodeURIComponent(invoice.id)}`
+            const href = `/dashboard/invoices/${encodeURIComponent(invoice.id)}`
             return (
               <ThumbnailListItem
                 key={invoice.id}

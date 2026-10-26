@@ -45,7 +45,7 @@ import {
 import { getBusinessProfile, type BusinessProfile } from "@/lib/business-profile"
 import { getProjects, type Project } from "@/lib/projects"
 import { getOrganizations, organizationRef, type Organization } from "@/lib/organizations"
-import { ShareLinkField } from "@/components/dashboard/share-link-field"
+import { ShareDialog } from "@/components/dashboard/share-dialog"
 import { InvoiceDocument } from "@/components/dashboard/invoice-document"
 import { downloadInvoicePdf } from "@/components/dashboard/invoice-pdf"
 import { DocumentPreviewFrame } from "@/components/dashboard/document-preview-frame"
@@ -177,10 +177,10 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate, onS
   const [termsDays, setTermsDays] = useState(invoice?.paymentTermsDays ?? 14)
   // An estimate's note says it "is not an invoice", so never carry it over.
   const [notes, setNotes] = useState(invoiceNotes(invoice?.notes))
-  const [serviceCompletedOn, setServiceCompletedOn] = useState(invoice?.serviceCompletedOn ?? "")
   const [paymentInstructions, setPaymentInstructions] = useState(invoice?.paymentInstructions ?? initialEstimate?.paymentDetails ?? "")
 
   const [shareEnabled, setShareEnabled] = useState(invoice?.shareEnabled ?? initialEstimate?.shareEnabled ?? false)
+  const [shareSaving, setShareSaving] = useState(false)
   const [autoReminders, setAutoReminders] = useState(invoice?.autoReminders ?? false)
   const [reminderCc, setReminderCc] = useState((invoice?.reminderCc ?? []).join(", "))
 
@@ -193,7 +193,6 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate, onS
   const [saving, setSaving] = useState(false)
   const [pdfDownloading, setPdfDownloading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [shareOpen, setShareOpen] = useState(false)
   const [previewOpen, setPreviewOpen] = useState(false)
 
   // The due date is a plain, editable date. Payment terms are just a shortcut
@@ -333,7 +332,6 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate, onS
     issuedOn,
     paymentTermsDays: termsDays,
     dueOn,
-    serviceCompletedOn,
     notes,
     paymentInstructions,
     url,
@@ -415,7 +413,6 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate, onS
         issuedOn,
         paymentTermsDays: termsDays,
         dueOn,
-        serviceCompletedOn,
         notes: notes.trim(),
         paymentInstructions: paymentInstructions.trim(),
         url: url.trim(),
@@ -433,7 +430,7 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate, onS
         onSaved({ ...invoice, ...payload, id: savedId } as Invoice)
         setSaving(false)
       } else {
-        router.push("/dashboard/invoices")
+        router.push("/dashboard/drive")
       }
     } catch (err) {
       console.error("Error saving invoice:", err)
@@ -451,7 +448,21 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate, onS
     if (!invoice) return
     await deleteInvoice(invoice.id)
     if (onDeleted) onDeleted(invoice.id)
-    else router.push("/dashboard/invoices")
+    else router.push("/dashboard/drive")
+  }
+
+  async function changeShareEnabled(enabled: boolean) {
+    if (!invoice || shareSaving) return
+    setShareSaving(true)
+    try {
+      await updateInvoice(invoice.id, { shareEnabled: enabled })
+      setShareEnabled(enabled)
+    } catch (shareError) {
+      console.error("Error updating invoice sharing:", shareError)
+      setError("Couldn't update invoice sharing. Try again.")
+    } finally {
+      setShareSaving(false)
+    }
   }
 
   async function handleDownloadPdf() {
@@ -477,15 +488,23 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate, onS
     <form onSubmit={submit} className="billing-editor mx-auto max-w-2xl space-y-3 bg-card px-2 pt-2 print:hidden sm:rounded-2xl sm:px-4 sm:pt-3">
       <div className="flex items-center gap-1">
         <Link
-          href="/dashboard/invoices"
-          aria-label="Back to invoices"
+          href="/dashboard/drive"
+          aria-label="Back to Drive"
           className="-ml-2 inline-flex size-9 shrink-0 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
         >
           <ArrowLeft className="size-4" aria-hidden="true" />
         </Link>
       </div>
 
-      <EditorHeader issuer={issuer} kind="Invoice" onPrint={() => window.print()} onDownload={() => void handleDownloadPdf()} onShare={() => setShareOpen(true)} downloading={pdfDownloading} number={invoiceNumber} status={statusMeta} />
+      <EditorHeader issuer={issuer} kind="Invoice" onPrint={() => window.print()} onDownload={() => void handleDownloadPdf()} downloading={pdfDownloading} number={invoiceNumber} status={statusMeta} shareAction={
+        <ShareDialog
+          triggerLabel="Share invoice"
+          triggerClassName="size-8 bg-primary/10 text-primary hover:bg-primary/15"
+          path={invoice ? `/share/invoices/${encodeURIComponent(invoice.id)}` : ""}
+          title={invoice?.title || invoiceTitle || "invoice"}
+          access={{ enabled: shareEnabled, onEnabledChange: (enabled) => { void changeShareEnabled(enabled) }, disabled: shareSaving }}
+        />
+      } />
 
       <EditorCard>
         <EditorField label="Title" htmlFor="invoice-title">
@@ -592,9 +611,6 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate, onS
                   ))}
                 </SelectContent>
               </Select>
-            </EditorField>
-            <EditorField label="Service completed" htmlFor="service-completed-on">
-              <Input id="service-completed-on" type="date" value={serviceCompletedOn} onChange={(event) => setServiceCompletedOn(event.target.value)} />
             </EditorField>
             <EditorField label="Currency" htmlFor="currency">
               <Select value={currency} onValueChange={setCurrency}>
@@ -859,21 +875,6 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate, onS
               Download PDF
             </Button>
           </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={shareOpen} onOpenChange={setShareOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Share invoice</DialogTitle>
-            <DialogDescription className="sr-only">Control access to this invoice with a public link.</DialogDescription>
-          </DialogHeader>
-          <ShareLinkField
-            enabled={shareEnabled}
-            onEnabledChange={setShareEnabled}
-            path={invoice ? `/share/invoices/${invoice.id}` : undefined}
-          />
-          {!invoice && <p className="text-sm text-muted-foreground">Save the invoice first to generate its public link.</p>}
         </DialogContent>
       </Dialog>
 

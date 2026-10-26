@@ -30,7 +30,6 @@ export function useCampaignShare() {
         showTrigger={false}
         path={sharing ? campaignSharePath(sharing) : ""}
         title={`Share ${sharing?.title || "campaign"}`}
-        shareText={`See the ${sharing?.title || ""} campaign`}
       />
     ),
   }

@@ -26,7 +26,7 @@ export default function DocumentDetailPage() {
   const adminView = isAdmin && !isImpersonating
   const companyRef = useCompanyRef(record?.companyId, adminView)
 
-  usePageTitle(record?.title ?? null, "/dashboard/documents")
+  usePageTitle(record?.title ?? null, "/dashboard/drive")
 
   useEffect(() => {
     if (!id || !user || !appUser) return
@@ -59,7 +59,7 @@ export default function DocumentDetailPage() {
   if (failed || !record) {
     return (
       <main className="mx-auto w-full max-w-4xl px-4 py-10 sm:px-6">
-        <Link href="/dashboard/documents" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"><ArrowLeft className="size-4" aria-hidden="true" />Back to documents</Link>
+        <Link href="/dashboard/drive" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"><ArrowLeft className="size-4" aria-hidden="true" />Back to Drive</Link>
         <p className="mt-12 text-sm text-muted-foreground">This document couldn&rsquo;t be found or you don&rsquo;t have access to it.</p>
       </main>
     )
@@ -68,7 +68,7 @@ export default function DocumentDetailPage() {
   return (
     <main className="mx-auto w-full max-w-4xl px-4 py-8 sm:px-6 sm:py-10">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3 print:hidden">
-        <Link href="/dashboard/documents" className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"><ArrowLeft className="size-4" aria-hidden="true" />Back to documents</Link>
+        <Link href="/dashboard/drive" className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"><ArrowLeft className="size-4" aria-hidden="true" />Back to Drive</Link>
         <div className="flex items-center gap-2">
           {adminView && (
             <Link

@@ -20,7 +20,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
-import { ArrowLeft, GripVertical, Loader2, Plus, Printer, Send, X } from "lucide-react"
+import { ArrowLeft, GripVertical, Loader2, Plus, Printer, X } from "lucide-react"
 
 import {
   DepartmentField,
@@ -35,7 +35,7 @@ import { EstimateDocument } from "@/components/dashboard/estimate-document"
 import { downloadEstimatePdf } from "@/components/dashboard/estimate-pdf"
 import { DocumentPreviewFrame } from "@/components/dashboard/document-preview-frame"
 import { RichTextEditor } from "@/components/dashboard/rich-text-editor"
-import { ShareLinkField } from "@/components/dashboard/share-link-field"
+import { ShareDialog } from "@/components/dashboard/share-dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -184,6 +184,7 @@ export function EstimateBuilder({ estimate, initialCompanyId, onSaved, onDeleted
   const [paymentDetails, setPaymentDetails] = useState(estimate?.paymentDetails ?? "")
   const [notes, setNotes] = useState(estimate?.notes ?? DEFAULT_ESTIMATE_NOTES)
   const [shareEnabled, setShareEnabled] = useState(estimate?.shareEnabled ?? false)
+  const [shareSaving, setShareSaving] = useState(false)
 
   const [clients, setClients] = useState<AppUser[]>([])
   const [organizations, setOrganizations] = useState<Organization[]>([])
@@ -195,7 +196,6 @@ export function EstimateBuilder({ estimate, initialCompanyId, onSaved, onDeleted
   const [saving, setSaving] = useState(false)
   const [pdfDownloading, setPdfDownloading] = useState(false)
   const [previewOpen, setPreviewOpen] = useState(false)
-  const [shareOpen, setShareOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const lineSensors = useSensors(
@@ -412,6 +412,20 @@ export function EstimateBuilder({ estimate, initialCompanyId, onSaved, onDeleted
     else router.push("/dashboard/estimates")
   }
 
+  async function changeShareEnabled(enabled: boolean) {
+    if (!estimate || shareSaving) return
+    setShareSaving(true)
+    try {
+      await updateEstimate(estimate.id, { shareEnabled: enabled })
+      setShareEnabled(enabled)
+    } catch (shareError) {
+      console.error("Error updating estimate sharing:", shareError)
+      setError("Couldn't update estimate sharing. Try again.")
+    } finally {
+      setShareSaving(false)
+    }
+  }
+
   async function handleDownloadPdf() {
     if (pdfDownloading) return
     setPdfDownloading(true)
@@ -439,13 +453,17 @@ export function EstimateBuilder({ estimate, initialCompanyId, onSaved, onDeleted
         >
           <ArrowLeft className="size-4" aria-hidden="true" />
         </Link>
-        <span className="flex-1" />
-        <Button type="button" variant="ghost" size="icon" title="Share estimate" aria-label="Share estimate" onClick={() => setShareOpen(true)}>
-            <Send className="size-4" aria-hidden="true" />
-        </Button>
       </div>
 
-      <EditorHeader issuer={issuer} kind="Estimate" onPrint={() => window.print()} onDownload={() => void handleDownloadPdf()} downloading={pdfDownloading} number={estimateNumber} status={statusMeta} />
+      <EditorHeader issuer={issuer} kind="Estimate" onPrint={() => window.print()} onDownload={() => void handleDownloadPdf()} downloading={pdfDownloading} number={estimateNumber} status={statusMeta} shareAction={
+        <ShareDialog
+          triggerLabel="Share estimate"
+          triggerClassName="size-8 bg-primary/10 text-primary hover:bg-primary/15"
+          path={estimate ? `/share/estimates/${encodeURIComponent(estimate.id)}` : ""}
+          title={estimate?.title || title || "estimate"}
+          access={{ enabled: shareEnabled, onEnabledChange: (enabled) => { void changeShareEnabled(enabled) }, disabled: shareSaving }}
+        />
+      } />
 
       <EditorCard>
         <EditorField label="Title" htmlFor="estimate-title">
@@ -641,21 +659,6 @@ export function EstimateBuilder({ estimate, initialCompanyId, onSaved, onDeleted
             Download PDF
           </Button>
         </DialogFooter>
-      </DialogContent>
-    </Dialog>
-
-    <Dialog open={shareOpen} onOpenChange={setShareOpen}>
-      <DialogContent className="w-[calc(100vw-0.5rem)] max-w-md p-3 sm:p-6">
-        <DialogHeader>
-          <DialogTitle>Share estimate</DialogTitle>
-          <DialogDescription className="sr-only">Control access to this estimate with a public link.</DialogDescription>
-        </DialogHeader>
-        <ShareLinkField
-          enabled={shareEnabled}
-          onEnabledChange={setShareEnabled}
-          path={estimate ? `/share/estimates/${estimate.id}` : undefined}
-        />
-        {!estimate && <p className="text-sm text-muted-foreground">Save the estimate first to generate its public link.</p>}
       </DialogContent>
     </Dialog>
 

@@ -13,11 +13,15 @@ import { siteUrl } from "@/lib/email-composer"
 export function ShareLinkField({
   enabled,
   onEnabledChange,
+  disabled = false,
+  showActions = true,
   /** Only set once the record has been saved and has an id. */
   path,
 }: {
   enabled: boolean
   onEnabledChange: (value: boolean) => void
+  disabled?: boolean
+  showActions?: boolean
   path?: string
 }) {
   const url = path ? siteUrl(path) : ""
@@ -28,9 +32,9 @@ export function ShareLinkField({
         <Label htmlFor="share-toggle" className="text-sm font-medium">
           Public link
         </Label>
-        <Switch id="share-toggle" checked={enabled} onCheckedChange={onEnabledChange} />
+        <Switch id="share-toggle" checked={enabled} onCheckedChange={onEnabledChange} disabled={disabled} />
       </div>
-      {enabled && path && <ShareLinkActions url={url} label="Public link" compact />}
+      {showActions && enabled && path && <ShareLinkActions url={url} label="Public link" compact />}
     </div>
   )
 }

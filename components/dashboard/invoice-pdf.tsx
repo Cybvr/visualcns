@@ -123,12 +123,6 @@ export function InvoicePdf({ invoice, issuer }: { invoice: Invoice; issuer?: Inv
                 </View>
               )}
             </View>
-            {invoice.serviceCompletedOn && (
-              <View>
-                <Text style={[styles.label, styles.metaItemRight]}>Service completed</Text>
-                <Text style={[styles.value, styles.metaItemRight]}>{formatDate(invoice.serviceCompletedOn)}</Text>
-              </View>
-            )}
             {invoice.poReference && (
               <View>
                 <Text style={[styles.label, styles.metaItemRight]}>PO reference</Text>

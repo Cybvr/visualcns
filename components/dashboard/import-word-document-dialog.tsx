@@ -161,7 +161,7 @@ export function ImportWordDocumentDialog({
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>Import document</DialogTitle>
-          <DialogDescription className="sr-only">Bring one or more Word .docx or Markdown .md/.markdown files into Documents as editable drafts.</DialogDescription>
+          <DialogDescription className="sr-only">Bring one or more Word .docx or Markdown .md/.markdown files into Drive as editable drafts.</DialogDescription>
         </DialogHeader>
         <form onSubmit={submit} className="space-y-5">
           <div className="space-y-2">
