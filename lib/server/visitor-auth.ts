@@ -23,5 +23,5 @@ export async function authorizeVisitorManager(request: NextRequest, companyId: s
     || (user.role === "admin" && user.agencyId === agencyId)
     || (user.agencyId === agencyId && user.companyId === companyId)
   if (!agencyId || !allowed) throw new VisitorRefused("You can't manage visitor sign-in for this company.")
-  return { db, uid: decoded.uid, agencyId, org, inviterName: String(user.displayName || decoded.name || decoded.email || "") }
+  return { auth, db, uid: decoded.uid, agencyId, org }
 }

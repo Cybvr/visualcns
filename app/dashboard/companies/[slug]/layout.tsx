@@ -25,13 +25,13 @@ function CompanyLayoutBody({ children }: { children: ReactNode }) {
     return (
       <main className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6">
         <Link
-          href="/dashboard/clients"
+          href="/dashboard/companies"
           className="inline-flex items-center gap-1.5 text-sm text-muted-foreground outline-none transition-colors hover:text-foreground"
         >
           <ArrowLeft className="size-4" aria-hidden="true" />
           Back
         </Link>
-        <p className="mt-8 text-sm text-muted-foreground">{error ?? "This client could not be loaded."}</p>
+        <p className="mt-8 text-sm text-muted-foreground">{error ?? "This company could not be loaded."}</p>
       </main>
     )
   }

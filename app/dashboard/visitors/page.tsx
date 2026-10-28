@@ -79,7 +79,7 @@ export default function VisitorsPage() {
       noun: "visitor",
       name: visitor.name,
       extra: onSite || (agencyView && companyName) ? <>
-        {agencyView && companyName && <DropdownMenuItem asChild><Link href={`/dashboard/clients/${encodeURIComponent(companyNames[visitor.companyId]?.slug || visitor.companyId)}?tab=visitors`}>View client</Link></DropdownMenuItem>}
+        {agencyView && companyName && <DropdownMenuItem asChild><Link href={`/dashboard/companies/${encodeURIComponent(companyNames[visitor.companyId]?.slug || visitor.companyId)}?tab=visitors`}>View company</Link></DropdownMenuItem>}
         {onSite && <DropdownMenuItem onSelect={() => void signOut(visitor)} disabled={busyId === visitor.id}>Sign out</DropdownMenuItem>}
       </> : undefined,
     }
@@ -133,7 +133,7 @@ export default function VisitorsPage() {
             description: agencyView ? "Set up a front desk link to start recording visits." : "Visits will appear here after someone signs in.",
             action: agencyView && companyId ? (
               <Button asChild>
-                <Link href={`/dashboard/clients/${encodeURIComponent(companyId)}?tab=visitors`}>Set up sign-in</Link>
+                <Link href={`/dashboard/companies/${encodeURIComponent(companyId)}?tab=visitors`}>Set up sign-in</Link>
               </Button>
             ) : undefined,
           }}

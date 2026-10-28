@@ -56,11 +56,11 @@ function companyRefOf(row: CompanyRow): string {
 }
 
 function companyHref(row: CompanyRow): string {
-  return `/dashboard/clients/${companyRefOf(row)}`
+  return `/dashboard/companies/${companyRefOf(row)}`
 }
 
 
-/** Clients list. Opening a client uses its full page instead of a split preview. */
+/** Companies list. Opening a company uses its full page instead of a split preview. */
 export default function CompaniesPage() {
   const router = useRouter()
   const { viewAsUser } = useAuth()
@@ -81,7 +81,7 @@ export default function CompaniesPage() {
       setOrganizations(allOrgs)
     } catch (fetchError) {
       console.error("Error fetching companies:", fetchError)
-      setError(fetchError instanceof Error ? fetchError.message : "Clients could not be loaded.")
+      setError(fetchError instanceof Error ? fetchError.message : "Companies could not be loaded.")
     } finally {
       setLoading(false)
     }
@@ -176,7 +176,7 @@ export default function CompaniesPage() {
       await fetchCompanies()
     } catch (deleteError) {
       console.error("Error deleting company:", deleteError)
-      setError(deleteError instanceof Error ? deleteError.message : "The client could not be removed. Try again.")
+      setError(deleteError instanceof Error ? deleteError.message : "The company could not be removed. Try again.")
     }
   }
 
@@ -188,12 +188,12 @@ export default function CompaniesPage() {
 
   function clientActions(row: CompanyRow): ItemActions {
     return {
-      noun: "client",
+      noun: "company",
       name: row.name,
       onOpen: () => router.push(companyHref(row)),
       extra: row.user ? <DropdownMenuItem onSelect={() => handleViewWorkspace(row)}>View workspace</DropdownMenuItem> : undefined,
       onDelete: () => handleDelete(row),
-      deleteMessage: `This removes ${row.name}'s account. Their projects, tasks, and documents will remain in the database, but the client will no longer appear here. This cannot be undone.`,
+      deleteMessage: `This removes ${row.name}'s account. Their projects, tasks, and documents will remain in the database, but the company will no longer appear here. This cannot be undone.`,
     }
   }
 
@@ -228,20 +228,20 @@ export default function CompaniesPage() {
         items={tabCompanies}
         getKey={companyRefOf}
         searchFields={search}
-        searchPlaceholder="Search clients"
+        searchPlaceholder="Search companies"
         viewKey="clients"
         initialView="list"
-        createAction={{ label: "New client", onClick: () => setCreating(true) }}
+        createAction={{ label: "New company", onClick: () => setCreating(true) }}
         sorts={sorts}
         defaultSort="updatedAt"
         defaultDirection="desc"
         loading={loading}
         empty={companies.length === 0 ? {
           icon: Building2,
-          title: "Let's add your first client",
-          description: "Add a client to create a company for their projects, tasks, and documents.",
-          action: <Button onClick={() => setCreating(true)}>Add client</Button>,
-        } : { icon: Building2, title: `No ${clientTab} clients.` }}
+          title: "Let's add your first company",
+          description: "Add a company to organize its projects, tasks, and documents.",
+          action: <Button onClick={() => setCreating(true)}>Add company</Button>,
+        } : { icon: Building2, title: `No ${clientTab} companies.` }}
         itemActions={clientActions}
         card={(row) => ({
           title: row.name,
@@ -277,13 +277,13 @@ export default function CompaniesPage() {
         )}
       />
 
-      {/* Creating stays a sheet; the new client opens on its full page once it saves. */}
+      {/* Creating stays a sheet; the new company opens on its full page once it saves. */}
       <CompanyCreateSheet
         open={creating}
         onClose={() => setCreating(false)}
         onSaved={(workspaceId) => {
           setCreating(false)
-          router.push(`/dashboard/clients/${encodeURIComponent(workspaceId)}`)
+          router.push(`/dashboard/companies/${encodeURIComponent(workspaceId)}`)
         }}
       />
     </main>

@@ -4,7 +4,7 @@ import dynamic from "next/dynamic"
 import { Suspense, useEffect, type ReactNode } from "react"
 import Image from "next/image"
 import { usePathname, useRouter } from "next/navigation"
-import { CalendarClock, Eye, FolderOpen, House, LogOut, Megaphone, UserRound } from "lucide-react"
+import { BarChart3, CalendarClock, Eye, FolderOpen, House, LogOut, Megaphone, UserRound } from "lucide-react"
 import { FiBriefcase, FiMail, FiTrendingUp, FiUsers } from "react-icons/fi"
 import { AuthProvider, useAuth } from "@/components/auth-provider"
 import { AgentProvider } from "@/components/agent/agent-context"
@@ -26,9 +26,10 @@ const DASHBOARD_NAV: NavLink[] = [
   { label: "Leads", href: "/dashboard/leads", icon: FiTrendingUp, adminOnly: true },
   { label: "Schedules", href: "/dashboard/schedules", icon: CalendarClock },
   { label: "Contacts", href: "/dashboard/users", icon: FiUsers, adminOnly: true },
-  { label: "Clients", href: "/dashboard/clients", icon: FiBriefcase, adminOnly: true },
+  { label: "Companies", href: "/dashboard/companies", icon: FiBriefcase, adminOnly: true },
   { label: "Campaigns", href: "/dashboard/projects", icon: Megaphone, adminOnly: true },
   { label: "Drive", href: "/dashboard/drive", icon: FolderOpen, adminOnly: true, alsoActive: ["/dashboard/invoices", "/dashboard/estimates", "/dashboard/documents", "/dashboard/notes"] },
+  { label: "Analytics", href: "/dashboard/analytics", icon: BarChart3, adminOnly: true },
 ]
 
 /** Creators sign up by applying to a campaign: they see their campaigns and their account. */

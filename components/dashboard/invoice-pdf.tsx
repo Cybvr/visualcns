@@ -176,12 +176,18 @@ export function InvoicePdf({ invoice, issuer }: { invoice: Invoice; issuer?: Inv
   )
 }
 
-export async function downloadInvoicePdf({ invoice, issuer }: { invoice: Invoice; issuer?: InvoicePdfIssuer }): Promise<void> {
+export async function createInvoicePdfFile({ invoice, issuer }: { invoice: Invoice; issuer?: InvoicePdfIssuer }): Promise<File> {
   const blob = await pdf(<InvoicePdf invoice={invoice} issuer={issuer} />).toBlob()
-  const url = URL.createObjectURL(blob)
+  const filename = `${(invoice.invoiceNumber || "invoice").replace(/[\\/:*?"<>|]/g, "-").slice(0, 240)}.pdf`
+  return new File([blob], filename, { type: "application/pdf" })
+}
+
+export async function downloadInvoicePdf({ invoice, issuer }: { invoice: Invoice; issuer?: InvoicePdfIssuer }): Promise<void> {
+  const file = await createInvoicePdfFile({ invoice, issuer })
+  const url = URL.createObjectURL(file)
   const link = document.createElement("a")
   link.href = url
-  link.download = `${invoice.invoiceNumber || "invoice"}.pdf`
+  link.download = file.name
   document.body.appendChild(link)
   link.click()
   link.remove()

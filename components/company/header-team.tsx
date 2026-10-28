@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { Send } from "lucide-react"
 
-import { TeamInvitePanel, useTeamSeats } from "@/components/company/team-seats"
+import { TeamMembersPanel, useTeamSeats } from "@/components/company/team-seats"
 import { ShareLinkActions } from "@/components/dashboard/share-link-actions"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -19,8 +19,8 @@ export interface HeaderTeamPerson {
 }
 
 /**
- * The Share button. Its window holds the link, inviting people to the team
- * (for the people who manage it) and who has access. Takes plain props
+ * The Share button. Its window holds the link, adding people to the team
+ * (for the people who manage it) and who is on the team. Takes plain props
  * rather than reading the company page, because the dashboard renders it in
  * its top bar, outside the page.
  */
@@ -33,7 +33,7 @@ export function HeaderTeam({ company, people, canManageTeam, shareUrl, className
 }) {
   const teamSeats = useTeamSeats(company.id, canManageTeam)
   const [shareOpen, setShareOpen] = useState(false)
-  const canInvite = canManageTeam && Boolean(teamSeats.info)
+  const canAdd = canManageTeam && Boolean(teamSeats.info)
 
   return (
     <div className={cn("flex shrink-0 items-center gap-2 print:hidden", className)}>
@@ -46,18 +46,18 @@ export function HeaderTeam({ company, people, canManageTeam, shareUrl, className
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Share {company.name}</DialogTitle>
-            <DialogDescription className="sr-only">Copy the link or invite people to the team.</DialogDescription>
+            <DialogDescription className="sr-only">Copy the link or add people to the team.</DialogDescription>
           </DialogHeader>
           <ShareLinkActions url={shareUrl} label="Company link" shareText={`See ${company.name}'s company page`} />
-          {canInvite && teamSeats.info && (
+          {canAdd && teamSeats.info && (
             <div className="space-y-2 border-t border-border pt-4">
-              <p className="text-sm font-medium text-foreground">Invite to the team</p>
-              <TeamInvitePanel info={teamSeats.info} call={teamSeats.call} onChange={() => void teamSeats.reload()} />
+              <p className="text-sm font-medium text-foreground">Add to the team</p>
+              <TeamMembersPanel info={teamSeats.info} call={teamSeats.call} onChange={() => void teamSeats.reload()} />
             </div>
           )}
           {people.length > 0 && (
             <div className="space-y-1 border-t border-border pt-4">
-              <p className="text-sm font-medium text-foreground">People with access</p>
+              <p className="text-sm font-medium text-foreground">Team members</p>
               <div className="max-h-56 overflow-y-auto">
                 {people.map((person) => (
                   <div key={person.id} className="flex items-center gap-3 py-1.5">

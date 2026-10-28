@@ -13,7 +13,7 @@ import { getProjects } from "@/lib/projects"
 import { getUsers } from "@/lib/users"
 
 /**
- * How many leads, contacts, clients, campaigns and Drive records the agency has,
+ * How many leads, contacts, companies, campaigns and Drive records the agency has,
  * keyed by the sidebar link they belong to. Campaigns includes archived items.
  * Only for the agency's own staff; anyone else gets none.
  */
@@ -33,9 +33,9 @@ export function useNavCounts(): Record<string, number> {
     getUsers()
       .then((rows) => set("/dashboard/users", rows.filter((row) => Boolean(row.displayName?.trim() || row.email?.trim())).length))
       .catch(() => {})
-    // The Clients page folds companies with the same name into one row.
+    // The Companies page folds companies with the same name into one row.
     getOrganizations()
-      .then((rows) => set("/dashboard/clients", new Set(rows.map((row) => (row.name || row.id).trim().toLowerCase())).size))
+      .then((rows) => set("/dashboard/companies", new Set(rows.map((row) => (row.name || row.id).trim().toLowerCase())).size))
       .catch(() => {})
     let driveCount = 0
     let noteCount = 0

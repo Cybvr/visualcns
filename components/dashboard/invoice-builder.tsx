@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState, type FormEvent } from "react"
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { ArrowLeft, Loader2, Plus, Printer, X } from "lucide-react"
@@ -16,6 +16,7 @@ import {
   ExpandableTextRow,
 } from "@/components/dashboard/billing-editor"
 import { Button } from "@/components/ui/button"
+import { Combobox, type ComboboxOption } from "@/components/ui/combobox"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
@@ -46,11 +47,14 @@ import {
 import { getBusinessProfile, type BusinessProfile } from "@/lib/business-profile"
 import { getProjects, type Project } from "@/lib/projects"
 import { getOrganizations, organizationRef, type Organization } from "@/lib/organizations"
+import { getUsers, type AppUser } from "@/lib/users"
 import { ShareDialog } from "@/components/dashboard/share-dialog"
 import { InvoiceDocument } from "@/components/dashboard/invoice-document"
-import { downloadInvoicePdf } from "@/components/dashboard/invoice-pdf"
+import { createInvoicePdfFile, downloadInvoicePdf } from "@/components/dashboard/invoice-pdf"
 import { DocumentPreviewFrame } from "@/components/dashboard/document-preview-frame"
-import { buildEmailComposeHref, parseEmailList } from "@/lib/email-composer"
+import { QuickEmailComposer } from "@/components/dashboard/email/quick-email-composer"
+import { MAX_EMAIL_ATTACHMENT_BYTES, MAX_EMAIL_ATTACHMENT_MEGABYTES } from "@/lib/email-attachments"
+import { contextualEmailBody, parseEmailList, type EmailComposeContext } from "@/lib/email-composer"
 import { invoiceEmailContext } from "@/lib/document-emails"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
@@ -103,6 +107,12 @@ function today(): string {
   return new Date().toISOString().slice(0, 10)
 }
 
+function clientEmail(client: Organization, people: AppUser[]): string {
+  const primary = people.find((person) => person.uid === client.primaryContactId && person.email?.trim())
+  const account = people.find((person) => person.companyId === client.id && person.role === "client" && person.email?.trim())
+  return primary?.email?.trim() || account?.email?.trim() || client.email?.trim() || ""
+}
+
 /**
  * `onSaved` and `onDeleted` are for the invoices split pane: the list updates
  * in place and the pane stays open, instead of navigating back to the list.
@@ -119,7 +129,7 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate, onS
   const [status, setStatus] = useState<InvoiceStatus>(invoice?.status ?? "draft")
   const [currency, setCurrency] = useState(invoice?.currency || initialEstimate?.currency || "USD")
 
-  const [billToEmail, setBillToEmail] = useState(invoice?.billTo?.email ?? initialEstimate?.preparedFor?.email ?? "")
+  const [billToEmail, setBillToEmail] = useState(invoice?.billTo?.email ?? "")
   const [billToAddress, setBillToAddress] = useState(invoice?.billTo?.address ?? "")
   const [billToTaxNumber, setBillToTaxNumber] = useState(invoice?.billTo?.taxNumber ?? "")
   const [poReference, setPoReference] = useState(invoice?.poReference ?? "")
@@ -187,12 +197,15 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate, onS
   const [reminderCc, setReminderCc] = useState((invoice?.reminderCc ?? []).join(", "))
 
   const [clients, setClients] = useState<Organization[]>([])
+  const [people, setPeople] = useState<AppUser[]>([])
   // Email links use the company's slug; a company that no longer exists falls back to its id.
   const companyRefFor = (id: string) => { const organization = clients.find((entry) => entry.id === id); return organization ? organizationRef(organization) : id }
   const [projects, setProjects] = useState<Project[]>([])
   const [issuer, setIssuer] = useState<BusinessProfile | null>(null)
   const [optionsLoading, setOptionsLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const savedInvoiceId = useRef(invoice?.id ?? null)
+  const [emailDraft, setEmailDraft] = useState<{ context: EmailComposeContext; attachment: File } | null>(null)
   const [pdfDownloading, setPdfDownloading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [previewOpen, setPreviewOpen] = useState(false)
@@ -203,10 +216,11 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate, onS
 
   useEffect(() => {
     let active = true
-    Promise.all([getOrganizations(), getProjects(), getBusinessProfile()])
-      .then(([organizationList, projectList, profile]) => {
+    Promise.all([getOrganizations(), getUsers(), getProjects(), getBusinessProfile()])
+      .then(([organizationList, userList, projectList, profile]) => {
         if (!active) return
         setClients(organizationList)
+        setPeople(userList)
         setProjects(projectList)
         setIssuer(profile)
         if (!isEdit) {
@@ -241,14 +255,21 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate, onS
     }
   }, [isEdit])
 
-  // Fill billing details from the chosen client unless they were already set.
+  // New invoices use the selected client's current contact, even when created from an estimate.
+  // On existing invoices, replace an accidentally saved sender address but keep other edits.
   useEffect(() => {
     if (!companyId) return
     const client = clients.find((entry) => entry.id === companyId)
     if (!client) return
-    setBillToEmail((current) => current || client.email || "")
+    const email = clientEmail(client, people)
+    const senderEmail = user?.email?.trim().toLowerCase()
+    setBillToEmail((current) => {
+      if (!isEdit) return email
+      if (!current || (email && senderEmail && current.trim().toLowerCase() === senderEmail)) return email || current
+      return current
+    })
     setBillToAddress((current) => current || client.address || "")
-  }, [companyId, clients])
+  }, [companyId, clients, people, isEdit, user?.email])
 
   useEffect(() => {
     if (optionsLoading || !projectId) return
@@ -299,11 +320,36 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate, onS
   const selectedProject = projects.find((entry) => entry.id === projectId)
   const clientName = selectedClient?.name
     ?? (companyId === invoice?.companyId ? invoice.client : companyId === initialEstimate?.companyId ? initialEstimate.client : "")
+  const contactOptions = useMemo<ComboboxOption[]>(() => {
+    if (!companyId) return []
+
+    const organization = clients.find((entry) => entry.id === companyId)
+    const contacts = people
+      .filter((person) => (person.companyId === companyId || person.companyIds?.includes(companyId)) && person.email?.trim())
+      .sort((a, b) => {
+        if (a.uid === organization?.primaryContactId) return -1
+        if (b.uid === organization?.primaryContactId) return 1
+        return (a.displayName || a.email).localeCompare(b.displayName || b.email, undefined, { sensitivity: "base" })
+      })
+    const options: ComboboxOption[] = []
+    const seen = new Set<string>()
+    for (const person of contacts) {
+      const email = person.email.trim()
+      if (seen.has(email.toLowerCase())) continue
+      seen.add(email.toLowerCase())
+      options.push({ value: email, label: person.displayName?.trim() ? `${person.displayName.trim()} · ${email}` : email })
+    }
+    const organizationEmail = organization?.email?.trim()
+    if (organizationEmail && !seen.has(organizationEmail.toLowerCase())) {
+      options.push({ value: organizationEmail, label: `Company email · ${organizationEmail}` })
+    }
+    return options
+  }, [companyId, clients, people])
 
   function selectClient(value: string) {
     setCompanyId(value)
     const client = clients.find((entry) => entry.id === value)
-    setBillToEmail(client?.email ?? "")
+    setBillToEmail(client ? clientEmail(client, people) : "")
     setBillToAddress(client?.address ?? "")
   }
   const draftInvoice: Invoice = {
@@ -423,13 +469,33 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate, onS
         reminderCc: parseEmailList(reminderCc).valid,
       }
 
-      const savedId = invoice?.id ?? await createInvoice(payload)
-      if (invoice) await updateInvoice(savedId, payload)
+      const existingId = invoice?.id ?? savedInvoiceId.current
+      const savedId = existingId ?? await createInvoice(payload)
+      if (existingId) await updateInvoice(savedId, payload)
+      savedInvoiceId.current = savedId
+      setInvoiceNumber(number)
+      const savedInvoice = { ...invoice, ...payload, id: savedId } as Invoice
 
       if (destination === "email") {
-        router.push(buildEmailComposeHref(invoiceEmailContext({ ...invoice, ...payload, id: savedId } as Invoice, companyRefFor(payload.companyId))))
+        let attachment: File
+        try {
+          attachment = await createInvoicePdfFile({ invoice: savedInvoice, issuer: issuer ?? undefined })
+        } catch (pdfError) {
+          console.error("Error creating invoice PDF for email:", pdfError)
+          setError("Invoice saved, but its PDF couldn't be prepared. Try Send again.")
+          setSaving(false)
+          return
+        }
+        if (!attachment.size || attachment.size > MAX_EMAIL_ATTACHMENT_BYTES) {
+          setError(`Invoice saved, but its PDF couldn't be attached. Email attachments must be no larger than ${MAX_EMAIL_ATTACHMENT_MEGABYTES} MB.`)
+          setSaving(false)
+          return
+        }
+        onSaved?.(savedInvoice)
+        setEmailDraft({ context: invoiceEmailContext(savedInvoice, companyRefFor(payload.companyId)), attachment })
+        setSaving(false)
       } else if (onSaved) {
-        onSaved({ ...invoice, ...payload, id: savedId } as Invoice)
+        onSaved(savedInvoice)
         setSaving(false)
       } else {
         router.push("/dashboard/drive")
@@ -534,6 +600,19 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate, onS
                 ))}
               </SelectContent>
             </Select>
+          </EditorField>
+          <EditorField label="Contact" htmlFor="bill-contact">
+            <Combobox
+              id="bill-contact"
+              options={contactOptions}
+              value={billToEmail}
+              onChange={setBillToEmail}
+              placeholder={companyId ? "Select a contact" : "Choose a client first"}
+              searchPlaceholder="Search contacts by name or email..."
+              emptyText={contactOptions.length ? "No contacts match your search." : "No contacts with an email for this client."}
+              disabled={!companyId}
+              loading={optionsLoading}
+            />
           </EditorField>
           <EditorField label="Email" htmlFor="bill-email">
             <Input
@@ -885,6 +964,25 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate, onS
     <div className="hidden print:block print:bg-white print:p-0">
       <InvoiceDocument invoice={draftInvoice} issuer={issuer ?? undefined} />
     </div>
+    {emailDraft && (
+      <QuickEmailComposer
+        key={emailDraft.context.documentId}
+        open
+        onOpenChange={(open) => { if (!open) setEmailDraft(null) }}
+        email={emailDraft.context.recipientEmail || ""}
+        name={emailDraft.context.recipientName}
+        companyName={emailDraft.context.companyName}
+        initialSubject={emailDraft.context.subject || ""}
+        initialBody={contextualEmailBody(emailDraft.context)}
+        initialAttachments={[emailDraft.attachment]}
+        context={{ ...emailDraft.context, ctaText: undefined, ctaUrl: undefined }}
+        onSent={(message) => {
+          if (message.status === "sent") {
+            setStatus((current) => current === "draft" ? "sent" : current)
+          }
+        }}
+      />
+    )}
     </>
   )
 }

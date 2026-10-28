@@ -80,7 +80,7 @@ export async function dashboardRequestMetadata(pathname: string, search: string,
   const sectionTitle = dashboardPageTitle(pathname, searchParams)
   const companyRef = dashboardClientRef(pathname, searchParams)
   const company = companyRef ? await publicCompanyPreview(companyRef, agencySubdomain) : null
-  const companyName = company?.name || (companyRef ? readableUrlPart(companyRef, "Client") : "")
+  const companyName = company?.name || (companyRef ? readableUrlPart(companyRef, "Company") : "")
   const pageTitle = companyName ? `${companyName} · ${sectionTitle}` : sectionTitle
   const description = companyName
     ? `Open ${companyName}'s ${sectionTitle.toLowerCase()} workspace in VisualCNS.`

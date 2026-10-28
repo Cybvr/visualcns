@@ -44,7 +44,7 @@ function DashboardMobileFooterNav({ unreadEmailCount }: { unreadEmailCount: numb
     // Home only lights up on the home page itself, not on every page under /dashboard.
     { key: "home", label: "Home", icon: Home, href: "/dashboard", isActive: pathname === "/dashboard" },
     { key: "email", label: "Emails", icon: FiMail, href: "/dashboard/email/inbox", isActive: pathname.startsWith("/dashboard/email"), badge: unreadEmailCount },
-    { key: "clients", label: "Clients", icon: Building2, href: "/dashboard/clients" },
+    { key: "companies", label: "Companies", icon: Building2, href: "/dashboard/companies" },
     { key: "drive", label: "Drive", icon: FolderOpen, href: "/dashboard/drive", isActive: pathname.startsWith("/dashboard/drive") || ["invoices", "documents", "notes"].some((section) => pathname.startsWith(`/dashboard/${section}`)) },
     { key: "profile", label: "Profile", icon: FiUser, href: "/dashboard/account" },
   ]

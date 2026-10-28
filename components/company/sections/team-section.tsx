@@ -9,7 +9,7 @@ import { useAuth } from "@/components/auth-provider"
 import { CompanyEmptyState } from "@/components/company/empty-state"
 import { useCompanyPage, type CompanyPagePerson } from "@/components/company/company-page-context"
 import { SectionAddButton } from "@/components/company/section-add-button"
-import { TeamInvitePanel, useTeamSeats } from "@/components/company/team-seats"
+import { TeamMembersPanel, useTeamSeats } from "@/components/company/team-seats"
 import { MobileDataCard } from "@/components/dashboard/mobile-data-card"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -28,7 +28,9 @@ export function TeamSection() {
   const [error, setError] = useState<string | null>(null)
 
   const members = useMemo<Array<{ person: CompanyPagePerson; projects: string[] }>>(
-    () => people
+    () => [...people, ...(teamSeats.info?.staff ?? [])
+      .filter((staff) => !people.some((person) => person.id === staff.id))
+      .map((staff) => ({ id: staff.id, name: staff.name || staff.email, email: staff.email }))]
       .filter((person) => !removedPersonIds.includes(person.id))
       .map((person) => ({
         person,
@@ -37,7 +39,7 @@ export function TeamSection() {
           .map((project) => project.title),
       }))
       .sort((a, b) => a.person.name.localeCompare(b.person.name)),
-    [people, projects, removedPersonIds],
+    [people, teamSeats.info?.staff, projects, removedPersonIds],
   )
 
   const availableContacts = (allContacts ?? []).filter((person) => !people.some((current) => current.id === person.id))
@@ -59,12 +61,21 @@ export function TeamSection() {
     setError(null)
     try {
       for (const contactId of contactIds) {
-        await admin.onAddExistingContact(contactId)
+        const contact = availableContacts.find((person) => person.id === contactId)
+        if (!contact) continue
+        if (contact.email?.trim() && contact.role === "client") {
+          await teamSeats.call("POST", { name: contact.name, email: contact.email })
+        } else {
+          await admin.onAddExistingContact(contactId)
+        }
       }
       await admin.reload()
+      await teamSeats.reload()
       setDialogOpen(false)
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : "Could not add the team members.")
+      void admin.reload()
+      void teamSeats.reload()
     } finally {
       setSaving(false)
     }
@@ -76,14 +87,14 @@ export function TeamSection() {
         {admin && <SectionAddButton label="Add team members" onClick={openDialog} />}
       </SectionHeader>
       {canManageTeam && teamSeats.info && (
-        <TeamInvitePanel info={teamSeats.info} call={teamSeats.call} onChange={() => void teamSeats.reload()} />
+        <TeamMembersPanel info={teamSeats.info} call={teamSeats.call} onChange={() => { void teamSeats.reload(); void admin?.reload() }} />
       )}
 
       {members.length === 0 ? (
         <CompanyEmptyState
           icon={UserIcon}
           title="No team members yet"
-          description={admin ? "Use the add button to add contacts, or invite someone by email." : canManageTeam ? "Invite colleagues by email above." : undefined}
+          description={admin ? "Add an existing contact or enter a name and email above." : canManageTeam ? "Enter a name and email above to add someone." : undefined}
         />
       ) : (
         <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">

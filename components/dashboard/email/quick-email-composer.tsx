@@ -65,6 +65,7 @@ export function QuickEmailComposer({
   initialSubject = "",
   initialBody,
   initialCc = "",
+  initialAttachments = [],
   initialMessageKind = "transactional",
   context,
   threading,
@@ -84,6 +85,8 @@ export function QuickEmailComposer({
   initialSubject?: string
   initialBody?: string
   initialCc?: string
+  /** Files supplied by the opening page, such as a generated invoice PDF. */
+  initialAttachments?: File[]
   initialMessageKind?: EmailMessageKind
   /** What the message is about (client, document, button), sent with it and kept on its draft. */
   context?: EmailComposeContext
@@ -121,7 +124,7 @@ export function QuickEmailComposer({
   const [cc, setCc] = useState(initialCc)
   const [selectedListId, setSelectedListId] = useState("")
   const [body, setBody] = useState(startingBody)
-  const [attachments, setAttachments] = useState<File[]>([])
+  const [attachments, setAttachments] = useState<File[]>(initialAttachments)
   const [preparingAttachments, setPreparingAttachments] = useState(false)
   const [sending, setSending] = useState(false)
   const [templates, setTemplates] = useState<EmailTemplateRecord[]>([])
@@ -164,6 +167,7 @@ export function QuickEmailComposer({
     setSelectedListId(start.listId)
     setSubject(start.subject)
     setBody(start.body)
+    setAttachments(draft ? [] : initialAttachments)
     if (draft) {
       setMessageKind(draft.messageKind === "marketing" ? "marketing" : "transactional")
       setBrandedEmail(draft.brandedEmail !== false)

@@ -614,7 +614,7 @@ function LeadSheet({ lead, onClose, onSave, onDelete }: { lead: Lead | "new" | n
           </div>
           {form.stage === "won" && (
             <p className="text-sm text-muted-foreground">
-              Won? <Link href="/dashboard/clients" className="text-foreground underline-offset-4 hover:underline">Add them as a client</Link> to start work.
+              Won? <Link href="/dashboard/companies" className="text-foreground underline-offset-4 hover:underline">Add their company</Link> to start work.
             </p>
           )}
           {lead && lead !== "new" && <StatusHistory events={history} loading={historyLoading} labels={Object.fromEntries(LEAD_STAGES.map((stage) => [stage.value, stage.label]))} />}

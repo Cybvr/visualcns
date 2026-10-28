@@ -41,10 +41,10 @@ export function useDashboardSearch() {
         setResults([
           ...orgs.map((org) => ({
             id: `company-${org.id}`,
-            group: "Clients",
+            group: "Companies",
             label: org.name,
             sublabel: join(org.industry, org.location) || undefined,
-            href: `/dashboard/clients/${organizationRef(org)}`,
+            href: `/dashboard/companies/${organizationRef(org)}`,
             keywords: keywords(org.industry, org.location, org.website, org.email, (org.tags || []).join(" "), org.slug),
           })),
           ...users.map((user) => ({
@@ -57,7 +57,7 @@ export function useDashboardSearch() {
           })),
         ])
 
-        // Clients and contacts make the palette useful immediately. The
+        // Companies and contacts make the palette useful immediately. The
         // larger collections continue loading in the background so opening
         // search does not block on every document in the workspace.
         return Promise.all([

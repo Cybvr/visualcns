@@ -38,7 +38,7 @@ function DashboardCompanyView({ embedded = false, onBack }: { embedded?: boolean
 
   // On phones an open campaign takes the whole pane: the client's tabs hide and the
   // header shows the campaign's name, with Back closing it. Otherwise the header
-  // shows the client's name, with Back to the clients list.
+  // shows the company's name, with Back to the companies list.
   const phone = usePhone()
   const campaignId = section === "projects" ? searchParams.get("campaign") : null
   const campaignTitle = campaignId ? projects.find((project) => project.id === campaignId)?.title : undefined
@@ -49,18 +49,18 @@ function DashboardCompanyView({ embedded = false, onBack }: { embedded?: boolean
   const headerBack = useMemo(() => {
     if (!phone) return null
     if (campaignOpen) return { label: "Back to campaigns", onClick: () => latest.current.updateParams({ campaign: null, view: null, task: null }) }
-    return onBack ? { label: "Back to clients", onClick: () => latest.current.onBack?.() } : null
+    return onBack ? { label: "Back to companies", onClick: () => latest.current.onBack?.() } : null
   }, [phone, campaignOpen, onBack])
   usePageHeaderTitle(useMemo(() => headerTitle ? <span className="block truncate">{headerTitle}</span> : null, [headerTitle]))
   usePageHeaderBack(headerBack)
 
-  // The client's sections replace the dashboard sidebar links, with a way back to Clients.
+  // The company's sections replace the dashboard sidebar links, with a way back to Companies.
   const router = useRouter()
   const inSidebar = useSidebarTakeover({
     title: company.name,
     titleHref: `/${encodeURIComponent(company.slug || company.id)}`,
-    backLabel: "Clients",
-    onBack: () => (latest.current.onBack ? latest.current.onBack() : router.push("/dashboard/clients")),
+    backLabel: "Companies",
+    onBack: () => (latest.current.onBack ? latest.current.onBack() : router.push("/dashboard/companies")),
     items: sections.map((item) => ({ key: item.key, label: item.label, icon: item.icon ?? Building2 })),
     active: section,
     onSelect: (key) => router.push(sectionHref(key as typeof section), { scroll: false }),

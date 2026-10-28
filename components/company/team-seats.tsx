@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { Loader2, UserPlus, X } from "lucide-react"
 import { toast } from "sonner"
 
@@ -12,9 +12,8 @@ import { Input } from "@/components/ui/input"
 import type { PlanKey } from "@/lib/subscription"
 
 /**
- * A company's team seats: its people plus pending invites, capped by the
- * Visitor Sign-in plan. The company's own staff and agency admins can invite
- * and remove people. Backed by /api/visitors/staff.
+ * A company's team seats: its people plus outstanding legacy invites, capped by
+ * the Visitor Sign-in plan. Staff and agency admins can add and remove people.
  */
 
 export type TeamSeatInfo = {
@@ -62,32 +61,30 @@ export function useTeamSeats(companyId: string, enabled = true) {
   return { info, reload, call, removePerson }
 }
 
-/** Seat count, invite by email, and pending invites. Sits at the top of the Team tab. */
-export function TeamInvitePanel({ info, call, onChange }: {
+/** Add team members directly and resolve outstanding invitations. */
+export function TeamMembersPanel({ info, call, onChange }: {
   info: TeamSeatInfo
   call: (method: "GET" | "POST" | "DELETE", body?: Record<string, string>) => Promise<Record<string, unknown>>
   onChange: () => void
 }) {
+  const [name, setName] = useState("")
   const [email, setEmail] = useState("")
   const [busy, setBusy] = useState("")
   const [error, setError] = useState("")
+  const nameInput = useRef<HTMLInputElement>(null)
   const full = info.limit !== null && info.seats >= info.limit
 
-  async function invite() {
-    setBusy("invite")
+  async function addMember() {
+    setBusy("add")
     setError("")
     try {
-      const result = await call("POST", { email: email.trim() })
+      await call("POST", { name: name.trim(), email: email.trim() })
+      setName("")
       setEmail("")
-      if (result.emailed) toast.success("Invite sent.")
-      else {
-        // Email isn't set up for this agency, so hand them the link to send themselves.
-        await navigator.clipboard.writeText(String(result.inviteUrl || "")).catch(() => undefined)
-        toast.success("Invite made. We couldn't email it, so the link is copied. Send it to them.")
-      }
+      toast.success("Team member added.")
       onChange()
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "Couldn't send the invite.")
+      setError(reason instanceof Error ? reason.message : "Couldn't add the team member.")
     } finally {
       setBusy("")
     }
@@ -105,16 +102,23 @@ export function TeamInvitePanel({ info, call, onChange }: {
     }
   }
 
+  function preparePending(address: string) {
+    setEmail(address)
+    setName("")
+    nameInput.current?.focus()
+  }
+
   return (
     <div className="mt-3 space-y-3">
-      <form onSubmit={(event) => { event.preventDefault(); void invite() }} className="flex gap-2">
-        <Input type="email" inputMode="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="colleague@company.com" aria-label="Email to invite" disabled={busy === "invite"} className="h-9" />
-        <Button type="submit" size="sm" className="h-9 shrink-0" disabled={busy === "invite" || !email.trim()}>
-          {busy === "invite" ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <UserPlus className="size-4" aria-hidden="true" />}
-          Invite
+      <form onSubmit={(event) => { event.preventDefault(); void addMember() }} className="flex flex-col gap-2 sm:flex-row">
+        <Input ref={nameInput} value={name} onChange={(event) => setName(event.target.value)} placeholder="Name" aria-label="Team member name" required disabled={busy === "add"} className="h-9 min-w-0" />
+        <Input type="email" inputMode="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="colleague@company.com" aria-label="Team member email" required disabled={busy === "add"} className="h-9 min-w-0" />
+        <Button type="submit" size="sm" className="h-9 shrink-0" disabled={busy === "add" || !name.trim() || !email.trim()}>
+          {busy === "add" ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <UserPlus className="size-4" aria-hidden="true" />}
+          Add
         </Button>
       </form>
-      {full && !error && <p className="text-xs text-muted-foreground">You&apos;ve used all {info.limit} seats. Upgrade your plan to add more people.</p>}
+      {full && !error && <p className="text-xs text-muted-foreground">{info.pending.length ? `You've used all ${info.limit} seats. You can still add someone who already has a pending invite.` : `You've used all ${info.limit} seats. Upgrade your plan to add more people.`}</p>}
       {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
       {info.pending.length > 0 && (
         <div className="space-y-2">
@@ -124,7 +128,8 @@ export function TeamInvitePanel({ info, call, onChange }: {
               surface="muted"
               icon={<UserPlus className="size-5 text-muted-foreground" aria-hidden="true" />}
               title={pending.email}
-              subtitle="Invited · waiting to accept"
+              subtitle="Pending invite · add directly or cancel"
+              trailing={<Button type="button" variant="outline" size="sm" onClick={() => preparePending(pending.email)}>Add now</Button>}
               menuLabel={`Actions for ${pending.email}`}
               actions={{
                 noun: "invite",

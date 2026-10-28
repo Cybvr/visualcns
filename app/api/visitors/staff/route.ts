@@ -1,10 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server"
-import { createHash, randomBytes } from "node:crypto"
-import { FieldValue, Timestamp } from "firebase-admin/firestore"
+import { FieldValue } from "firebase-admin/firestore"
 
-import { getAgencySecret } from "@/lib/server/agency-secrets"
 import { authorizeVisitorManager as authorize, VisitorRefused } from "@/lib/server/visitor-auth"
-import { brandedEmail, escapeHtml, normalizeEmailAddress, SITE_ORIGIN } from "@/lib/server/email-branding"
 import { visitorStaff } from "@/lib/server/visitor-staff"
 import { isPlanKey, planForStaff, PLANS, staffLimit } from "@/lib/subscription"
 
@@ -13,10 +10,10 @@ export const dynamic = "force-dynamic"
 
 /**
  * A company's Visitor Sign-in staff: the people visitors can pick and who get
- * arrival emails. Each staff member or pending invite is a seat, capped by the
+ * arrival emails. Each staff member or outstanding legacy invite is a seat, capped by the
  * site's plan. The company's own staff and the agency's admins can use it.
  * - GET ?companyId=   staff, pending invites, seats and the limit
- * - POST { email }    invite someone (emails them the link)
+ * - POST { name, email } add someone directly, converting a matching invite
  * - DELETE { inviteId } cancels an invite; DELETE { userId } removes someone
  */
 
@@ -43,22 +40,6 @@ function failure(error: unknown) {
   return json({ error: "Something went wrong. Please try again." }, 500)
 }
 
-async function sendInvite(agencyId: string, to: string, companyName: string, inviterName: string, url: string) {
-  const apiKey = await getAgencySecret(agencyId, "RESEND_API_KEY", process.env.RESEND_API_KEY || "")
-  const from = normalizeEmailAddress(await getAgencySecret(agencyId, "EMAIL_FROM", process.env.EMAIL_FROM || ""))
-  if (!apiKey || !from) return false
-  const subject = `${inviterName || companyName} invited you to ${companyName} on VisualCNS`
-  const text = `${inviterName || "Your colleague"} added you to ${companyName}'s visitor sign-in. Visitors can pick you when they arrive at the front desk, and you'll get an email when they do.\n\nAccept the invite to set up your account. The link works for 7 days.`
-  const html = brandedEmail(`<p>${escapeHtml(text).replace(/\n\n/g, "</p><p>")}</p>`, subject, { name: "VisualCNS" }, from, { text: "Accept invite", url })
-  const response = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ from, to: [to], subject, text: `${text}\n\nAccept invite: ${url}`, html }),
-    cache: "no-store",
-  }).catch(() => null)
-  return Boolean(response?.ok)
-}
-
 export async function GET(request: NextRequest) {
   try {
     const companyId = request.nextUrl.searchParams.get("companyId")?.trim() || ""
@@ -71,16 +52,18 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const body = (await request.json().catch(() => ({}))) as { companyId?: unknown; email?: unknown }
+    const body = (await request.json().catch(() => ({}))) as { companyId?: unknown; name?: unknown; email?: unknown }
     const companyId = typeof body.companyId === "string" ? body.companyId.trim() : ""
+    const name = typeof body.name === "string" ? body.name.trim() : ""
     const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : ""
-    const { db, uid, agencyId, org, inviterName } = await authorize(request, companyId)
+    const { auth, db, agencyId } = await authorize(request, companyId)
+    if (!name) return json({ error: "Enter the team member's name." }, 400)
     if (!EMAIL_PATTERN.test(email)) return json({ error: "Enter a valid email address." }, 400)
 
     const info = await seatInfo(db, agencyId, companyId)
     if (info.staff.some((person) => person.email.toLowerCase() === email)) return json({ error: "That person is already on your staff." }, 409)
-    if (info.pending.some((invite) => invite.email.toLowerCase() === email)) return json({ error: "That person already has an invite." }, 409)
-    if (info.limit !== null && info.seats >= info.limit) {
+    const pending = info.pending.find((invite) => invite.email.toLowerCase() === email)
+    if (!pending && info.limit !== null && info.seats >= info.limit) {
       const next = planForStaff(info.seats + 1)
       return json({
         error: `Your ${info.plan ? PLANS[info.plan].name : "current"} plan covers ${info.limit} staff. Upgrade to ${PLANS[next].name} to add more.`,
@@ -88,23 +71,51 @@ export async function POST(request: NextRequest) {
       }, 402)
     }
 
-    const rawToken = randomBytes(32).toString("hex")
-    const companyName = String(org.name || "your company")
-    await db.collection("invites").doc().set({
-      agencyId,
-      email,
-      role: "client",
-      companyId,
-      company: companyName,
-      tokenHash: createHash("sha256").update(rawToken).digest("hex"),
-      status: "pending",
-      createdBy: uid,
-      createdAt: FieldValue.serverTimestamp(),
-      expiresAt: Timestamp.fromMillis(Date.now() + 7 * 24 * 60 * 60 * 1000),
-    })
-    const inviteUrl = `${SITE_ORIGIN}/invite/${rawToken}`
-    const emailed = await sendInvite(agencyId, email, companyName, inviterName, inviteUrl)
-    return json({ ok: true, inviteUrl, emailed })
+    const agencyUsers = await db.collection("users").where("agencyId", "==", agencyId).get()
+    const contact = agencyUsers.docs.find((item) => String(item.data().email || "").trim().toLowerCase() === email)
+    let ref = contact?.ref
+    let existing = contact?.data()
+
+    if (!ref) {
+      let account
+      try {
+        account = await auth.getUserByEmail(email)
+      } catch (error) {
+        if ((error as { code?: string }).code !== "auth/user-not-found") throw error
+        account = await auth.createUser({ email, displayName: name })
+      }
+      ref = db.collection("users").doc(account.uid)
+      existing = (await ref.get()).data()
+    }
+
+    if (existing?.agencyId && existing.agencyId !== agencyId) return json({ error: "This person belongs to another agency." }, 409)
+    if (existing?.role && existing.role !== "client") return json({ error: "This person has a different role. Add them from Contacts." }, 409)
+    if (existing?.companyId === companyId || (Array.isArray(existing?.companyIds) && existing.companyIds.includes(companyId))) {
+      return json({ error: "That person is already on this team." }, 409)
+    }
+
+    const batch = db.batch()
+    if (existing?.companyId && existing.agencyId === agencyId) {
+      batch.update(ref, {
+        companyIds: FieldValue.arrayUnion(companyId),
+        role: "client",
+        displayName: existing.displayName || name,
+        updatedAt: FieldValue.serverTimestamp(),
+      })
+    } else {
+      batch.set(ref, {
+        agencyId,
+        companyId,
+        role: "client",
+        email,
+        displayName: existing?.displayName || name,
+        updatedAt: FieldValue.serverTimestamp(),
+        ...(!existing ? { createdAt: FieldValue.serverTimestamp() } : {}),
+      }, { merge: true })
+    }
+    if (pending) batch.update(db.collection("invites").doc(pending.id), { status: "cancelled", updatedAt: FieldValue.serverTimestamp() })
+    await batch.commit()
+    return json({ ok: true })
   } catch (error) {
     return failure(error)
   }
@@ -128,9 +139,19 @@ export async function DELETE(request: NextRequest) {
       if (body.userId === uid) return json({ error: "You can't remove yourself." }, 400)
       const ref = db.collection("users").doc(body.userId)
       const person = (await ref.get()).data()
-      if (!person || person.companyId !== companyId || person.agencyId !== agencyId || person.role !== "client") return json({ error: "We couldn't find that person." }, 404)
-      // They keep their login but lose access to this company.
-      await ref.update({ role: FieldValue.delete(), agencyId: FieldValue.delete(), companyId: FieldValue.delete(), company: FieldValue.delete(), updatedAt: FieldValue.serverTimestamp() })
+      const linked = person?.companyId === companyId || (Array.isArray(person?.companyIds) && person.companyIds.includes(companyId))
+      if (!person || !linked || person.agencyId !== agencyId || person.role !== "client") return json({ error: "We couldn't find that person." }, 404)
+      if (person.companyId !== companyId) {
+        await ref.update({ companyIds: FieldValue.arrayRemove(companyId), updatedAt: FieldValue.serverTimestamp() })
+      } else {
+        const otherCompanies = Array.isArray(person.companyIds) ? person.companyIds.filter((id: unknown) => typeof id === "string" && id !== companyId) as string[] : []
+        if (otherCompanies.length) {
+          await ref.update({ companyId: otherCompanies[0], companyIds: FieldValue.arrayRemove(companyId, otherCompanies[0]), company: FieldValue.delete(), updatedAt: FieldValue.serverTimestamp() })
+        } else {
+          // They keep their login but lose access to this company.
+          await ref.update({ role: FieldValue.delete(), agencyId: FieldValue.delete(), companyId: FieldValue.delete(), company: FieldValue.delete(), updatedAt: FieldValue.serverTimestamp() })
+        }
+      }
       return json({ ok: true })
     }
 

@@ -68,7 +68,7 @@ export function CompanyProfileSettings() {
     setDeleting(true)
     try {
       await deleteUser(client.uid)
-      router.push("/dashboard/clients")
+      router.push("/dashboard/companies")
     } catch (deleteError) {
       console.error("Error deleting company:", deleteError)
       setError(deleteError instanceof Error ? deleteError.message : "The company could not be removed.")

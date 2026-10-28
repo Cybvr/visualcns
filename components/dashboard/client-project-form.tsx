@@ -186,7 +186,7 @@ export function ClientProjectForm({ project, entityLabel = "project", initialCom
           </Select>
           {!clientsLoading && companies.length === 0 && (
             <p className="text-xs text-muted-foreground">
-              No clients yet. Add one under Clients first.
+              No companies yet. Add one under Companies first.
             </p>
           )}
         </div>

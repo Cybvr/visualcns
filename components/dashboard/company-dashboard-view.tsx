@@ -15,7 +15,7 @@ export function CompanyDashboardView({ embedded, keepParams, onBack }: { embedde
   const router = useRouter()
   const { viewAsUser, isAdmin } = useAuth()
   const [allContacts, setAllContacts] = useState<AppUser[]>([])
-  const goToClients = useCallback(() => router.push("/dashboard/clients"), [router])
+  const goToCompanies = useCallback(() => router.push("/dashboard/companies"), [router])
 
   useEffect(() => {
     if (!isAdmin) return
@@ -129,7 +129,7 @@ export function CompanyDashboardView({ embedded, keepParams, onBack }: { embedde
           : undefined
       }
       embedded={embedded}
-      onBack={onBack ?? goToClients}
+      onBack={onBack ?? goToCompanies}
       keepParams={keepParams}
     />
   )

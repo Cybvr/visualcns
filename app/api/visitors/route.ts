@@ -92,8 +92,12 @@ async function paused(kiosk: NonNullable<Awaited<ReturnType<typeof resolveKiosk>
 }
 
 async function hostsFor(db: ReturnType<typeof adminServices>["db"], agencyId: string, companyId: string) {
-  const people = await db.collection("users").where("agencyId", "==", agencyId).where("companyId", "==", companyId).limit(200).get()
-  return people.docs
+  const [workspacePeople, sharedPeople] = await Promise.all([
+    db.collection("users").where("agencyId", "==", agencyId).where("companyId", "==", companyId).limit(200).get(),
+    db.collection("users").where("agencyId", "==", agencyId).where("companyIds", "array-contains", companyId).limit(200).get(),
+  ])
+  const people = new Map([...workspacePeople.docs, ...sharedPeople.docs].map((person) => [person.id, person]))
+  return [...people.values()]
     .map((person) => ({ id: person.id, name: String(person.data().displayName || person.data().name || "").trim(), email: String(person.data().email || "") }))
     .filter((person) => person.name)
     .sort((a, b) => a.name.localeCompare(b.name))
