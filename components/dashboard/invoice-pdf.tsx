@@ -2,7 +2,7 @@
 
 import { pdf, Document, Image as PdfImage, Page, StyleSheet, Text, View } from "@react-pdf/renderer"
 
-import { formatDate, formatMoney, invoiceNotes, invoiceStatusMeta, type Invoice, type InvoiceParty } from "@/lib/billing"
+import { formatDate, formatMoney, INVOICE_ISSUER, invoiceNotes, invoiceStatusMeta, type Invoice, type InvoiceParty } from "@/lib/billing"
 
 type InvoicePdfIssuer = InvoiceParty & { logoUrl?: string }
 
@@ -24,8 +24,8 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingBottom: 22,
   },
-  issuerName: { fontSize: 13, fontWeight: 700, marginBottom: 5 },
-  logo: { height: 30, marginRight: 10, width: 30 },
+  issuerColumn: { width: "65%" },
+  logo: { height: 25, marginBottom: 8, width: 132 },
   muted: { color: "#667085", lineHeight: 1.45 },
   invoiceLabel: { color: "#667085", fontSize: 9, textAlign: "right" },
   invoiceNumber: { fontSize: 13, fontWeight: 700, marginTop: 4, textAlign: "right" },
@@ -80,20 +80,17 @@ const styles = StyleSheet.create({
 export function InvoicePdf({ invoice, issuer }: { invoice: Invoice; issuer?: InvoicePdfIssuer }) {
   const meta = invoiceStatusMeta[invoice.status] ?? invoiceStatusMeta.draft
   const balance = Math.max(0, invoice.amount - (invoice.amountPaid ?? 0))
-  const profile = issuer ?? { name: "VisualHQ", address: "" }
+  const profile = issuer ?? INVOICE_ISSUER
 
   return (
-    <Document title={`Invoice ${invoice.invoiceNumber}`} author={profile.name}>
+    <Document title={`Invoice ${invoice.invoiceNumber}`} author={INVOICE_ISSUER.name}>
       <Page size="A4" style={styles.page}>
         <View style={styles.header}>
-          <View style={{ flexDirection: "row" }}>
-            <PdfImage src={profile.logoUrl || "/visualhqlogo.svg"} style={styles.logo} />
-            <View>
-              <Text style={styles.issuerName}>{profile.name}</Text>
-              {profile.address && <Text style={styles.muted}>{profile.address}</Text>}
-              {profile.website && <Text style={styles.muted}>{profile.website}</Text>}
-              {profile.phone && <Text style={styles.muted}>{profile.phone}</Text>}
-            </View>
+          <View style={styles.issuerColumn}>
+            <PdfImage src="/visualcns-email-logo.png" style={styles.logo} />
+            {profile.address && <Text style={styles.muted}>{profile.address}</Text>}
+            <Text style={styles.muted}>{INVOICE_ISSUER.website}</Text>
+            {profile.phone && <Text style={styles.muted}>{profile.phone}</Text>}
           </View>
           <View>
             <Text style={styles.invoiceLabel}>INVOICE</Text>

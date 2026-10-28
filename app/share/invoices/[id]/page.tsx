@@ -7,7 +7,7 @@ import { DocumentActions } from "@/components/dashboard/document-actions"
 import { InvoiceDocument } from "@/components/dashboard/invoice-document"
 import { Skeleton } from "@/components/ui/skeleton"
 import { getBusinessProfile, type BusinessProfile } from "@/lib/business-profile"
-import { getInvoice, type Invoice } from "@/lib/billing"
+import { getInvoice, INVOICE_ISSUER, type Invoice } from "@/lib/billing"
 import { getOrganization, type Organization } from "@/lib/organizations"
 import type { Project } from "@/lib/projects"
 
@@ -88,7 +88,7 @@ export default function SharedInvoicePage() {
         </div>
         <InvoiceDocument invoice={invoice} issuer={issuer ?? undefined} />
         <p className="mt-6 text-center text-xs text-muted-foreground print:hidden">
-          Shared by {issuer?.name ?? "VisualCNS"} · {issuer?.website ?? "visualcns.com"}
+          Shared by {INVOICE_ISSUER.name} · {INVOICE_ISSUER.website}
         </p>
       </div>
     </main>

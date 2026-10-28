@@ -31,16 +31,11 @@ export function InvoiceDocument({ invoice, issuer = INVOICE_ISSUER }: { invoice:
       <header className="flex flex-col gap-8 border-b border-border px-3 py-5 sm:flex-row sm:items-start sm:justify-between sm:px-10 sm:py-8">
         <div>
           <div className="flex items-center gap-3">
-            {issuer.logoUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={issuer.logoUrl} alt="" width={30} height={30} className="size-[30px] rounded object-cover" />
-            ) : (
-              <Image src="/visualhqlogo.svg" alt="" width={30} height={30} />
-            )}
-            <p className="text-sm font-semibold tracking-[-0.02em]">{issuer.name}</p>
+            <Image src="/visualhqlogo.svg" alt="" width={30} height={30} />
+            <p className="text-sm font-semibold tracking-[-0.02em]">{INVOICE_ISSUER.name}</p>
           </div>
           <p className="mt-1 whitespace-pre-line text-sm leading-6 text-muted-foreground">{issuer.address}</p>
-          {issuer.website && <p className="text-sm text-muted-foreground">{issuer.website}</p>}
+          <p className="text-sm text-muted-foreground">{INVOICE_ISSUER.website}</p>
           {issuer.phone && <p className="text-sm text-muted-foreground">{issuer.phone}</p>}
         </div>
         <div className="sm:text-right">

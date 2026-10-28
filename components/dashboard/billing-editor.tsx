@@ -18,7 +18,7 @@ import { Button } from "@/components/ui/button"
 import { Combobox } from "@/components/ui/combobox"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { getEstimates, getInvoices } from "@/lib/billing"
+import { getEstimates, getInvoices, INVOICE_ISSUER } from "@/lib/billing"
 import type { BusinessProfile } from "@/lib/business-profile"
 import { cn } from "@/lib/utils"
 
@@ -36,6 +36,7 @@ export function EditorHeader({
   onDownload,
   shareAction,
   downloading = false,
+  visualCnsBrand = false,
 }: {
   issuer: BusinessProfile | null
   kind: string
@@ -46,21 +47,24 @@ export function EditorHeader({
   /** Shown beside Download when the record can be shared by link. */
   shareAction?: ReactNode
   downloading?: boolean
+  visualCnsBrand?: boolean
 }) {
   const round =
     "inline-flex size-8 items-center justify-center rounded-full bg-primary/10 text-primary outline-none transition-colors hover:bg-primary/15 focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
   return (
     <header className="flex items-start justify-between gap-4 px-1 py-2">
       <div className="flex min-w-0 items-center gap-3">
-        {issuer?.logoUrl ? (
+        {visualCnsBrand ? (
+          <Image src="/visualhqlogo.svg" alt="" width={44} height={44} className="size-11 shrink-0" />
+        ) : issuer?.logoUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={issuer.logoUrl} alt="" width={44} height={44} className="size-11 shrink-0 rounded object-cover" />
         ) : (
           <Image src="/visualhqlogo.svg" alt="" width={44} height={44} className="size-11 shrink-0" />
         )}
         <div className="min-w-0">
-          <p className="billing-editor-brand truncate">{issuer?.name || "Your company"}</p>
-          {issuer?.website && <p className="truncate text-muted-foreground">{issuer.website}</p>}
+          <p className="billing-editor-brand truncate">{visualCnsBrand ? INVOICE_ISSUER.name : issuer?.name || "Your company"}</p>
+          {(visualCnsBrand ? INVOICE_ISSUER.website : issuer?.website) && <p className="truncate text-muted-foreground">{visualCnsBrand ? INVOICE_ISSUER.website : issuer?.website}</p>}
         </div>
       </div>
       <div className="min-w-0 shrink-0 text-right">

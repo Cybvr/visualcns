@@ -498,7 +498,7 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate, onS
         </Link>
       </div>
 
-      <EditorHeader issuer={issuer} kind="Invoice" onPrint={() => window.print()} onDownload={() => void handleDownloadPdf()} downloading={pdfDownloading} number={invoiceNumber} status={statusMeta} shareAction={
+      <EditorHeader issuer={issuer} visualCnsBrand kind="Invoice" onPrint={() => window.print()} onDownload={() => void handleDownloadPdf()} downloading={pdfDownloading} number={invoiceNumber} status={statusMeta} shareAction={
         <ShareDialog
           triggerLabel="Share invoice"
           triggerClassName="size-8 bg-primary/10 text-primary hover:bg-primary/15"
