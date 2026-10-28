@@ -28,10 +28,10 @@ import { formatTimestamp, tsToMillis } from "@/lib/tasks"
 
 function Metric({ label, value, href, money = false }: { label: string; value: ReactNode; href: string; money?: boolean }) {
   return (
-    <Link href={href} className="block min-w-0 overflow-hidden rounded-xl border border-border bg-card p-5 max-sm:w-[78%] max-sm:shrink-0 max-sm:snap-start outline-none transition-colors hover:bg-muted/40 focus-visible:ring-2 focus-visible:ring-ring sm:p-6">
-      <p className="text-sm text-muted-foreground">{label}</p>
+    <Link href={href} className="block min-w-0 overflow-hidden rounded-xl bg-sidebar-accent p-5 max-sm:w-[78%] max-sm:shrink-0 max-sm:snap-start outline-none transition-colors hover:bg-sidebar-accent/90 focus-visible:ring-2 focus-visible:ring-ring sm:p-6">
+      <p className="text-sm text-sidebar-accent-foreground/75">{label}</p>
       {/* div, not p: the dashboard-body rule forces p to inherit its font size. Same size as the greeting. */}
-      <div className={`mt-6 min-w-0 overflow-hidden font-semibold tracking-tight text-foreground tabular-nums ${money ? "text-xl leading-tight sm:text-2xl" : "text-2xl leading-none sm:text-3xl"}`}>
+      <div className={`mt-6 min-w-0 overflow-hidden font-semibold tracking-tight text-sidebar-accent-foreground tabular-nums ${money ? "text-xl leading-tight sm:text-2xl" : "text-2xl leading-none sm:text-3xl"}`}>
         {typeof value === "number" ? value.toLocaleString() : value}
       </div>
     </Link>
