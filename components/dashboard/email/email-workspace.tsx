@@ -89,7 +89,7 @@ import type {
   SentMessage,
 } from "@/components/dashboard/email/types"
 import { QuickEmailComposer } from "@/components/dashboard/email/quick-email-composer"
-import { usePageHeaderSearch } from "@/components/dashboard/page-title-context"
+import { usePageHeaderSearch, useRecordTitle } from "@/components/dashboard/page-title-context"
 import { EmailListPicker, EmailLists } from "@/components/dashboard/email/email-lists"
 import { EmailMessageSurfaces } from "@/components/dashboard/email/email-message-surfaces"
 import { EmailBin, type EmailBinItem } from "@/components/dashboard/email/email-bin"
@@ -555,6 +555,13 @@ export function EmailWorkspace({ initialTab, initialMessageId }: { initialTab: E
   })
   const selectedReceived = activeReceivedMessages.find((message) => message.id === selectedReceivedId) || null
   const selectedSent = messages.find((message) => message.id === selectedSentId) || null
+  useRecordTitle(
+    tab === "inbox" || tab === "updates"
+      ? selectedReceived ? selectedReceived.subject || "(No subject)" : null
+      : tab === "messages"
+        ? selectedSent ? selectedSent.subject || "(No subject)" : null
+        : null,
+  )
 
   async function loadReceivedMessages() {
     if (!user) return
