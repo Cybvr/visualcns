@@ -8,10 +8,13 @@ export function EmailContentFrame({
   title,
   srcDoc,
   className,
+  autoHeight = false,
 }: {
   title: string
   srcDoc: string
   className?: string
+  /** Let the outer mail surface scroll the message and any attachments together. */
+  autoHeight?: boolean
 }) {
   const observerRef = useRef<ResizeObserver | null>(null)
   const [contentHeight, setContentHeight] = useState<number | null>(null)
@@ -27,7 +30,7 @@ export function EmailContentFrame({
     if (!body || !root) return
 
     const updateHeight = () => {
-      const nextHeight = Math.max(body.scrollHeight, root.scrollHeight, 384)
+      const nextHeight = Math.max(body.scrollHeight, root.scrollHeight, autoHeight ? 1 : 384)
       setContentHeight((current) => current === nextHeight ? current : nextHeight)
     }
 
@@ -45,10 +48,11 @@ export function EmailContentFrame({
       sandbox="allow-same-origin"
       onLoad={(event) => measure(event.currentTarget)}
       style={{
-        "--email-content-height": contentHeight ? `${contentHeight}px` : "60svh",
+        "--email-content-height": contentHeight ? `${contentHeight}px` : autoHeight ? "1px" : "60svh",
       } as CSSProperties}
       className={cn(
-        "block h-full min-h-96 w-full border-0 max-sm:h-[var(--email-content-height)] max-sm:min-h-0",
+        "block w-full border-0",
+        autoHeight ? "h-[var(--email-content-height)] min-h-0" : "h-full min-h-96 max-sm:h-[var(--email-content-height)] max-sm:min-h-0",
         className,
       )}
     />

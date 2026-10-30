@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
 import { EmailContentFrame } from "./email-content-frame"
-import { EmailReaderHeader } from "./email-reader-header"
+import { EmailReaderMessageHeader, EmailReaderToolbar } from "./email-reader-header"
 import { EmailFolderEmpty, EmailFolderList } from "./email-folder-list"
 import { EmailListRow } from "./email-list-row"
 
@@ -115,24 +115,28 @@ export function EmailBin({
         </aside>
         {selected && (
           <div className="flex min-h-[calc(100svh-8rem)] flex-1 flex-col overflow-hidden rounded-lg border border-border bg-card max-sm:min-h-0 max-sm:overflow-visible lg:min-h-0">
-            <EmailReaderHeader
+            <EmailReaderToolbar
               onBack={() => setSelectedKey(null)}
               backLabel="Back to bin"
-              subject={selected.subject}
-              details={[`${selected.kind === "received" ? "From" : "To"} ${selected.title}`]}
-              date={selected.deletedAt}
-              formatDate={formatMessageDate}
-              status={<span className="text-[11px] text-muted-foreground">Deleted from {selected.kind === "sent" ? "Sent" : selected.kind === "draft" ? "Drafts" : "Inbox"}</span>}
               actions={(
                 <>
-                  <Button type="button" variant="ghost" size="icon" className="size-10" onClick={() => void restore(selected)} disabled={busy} aria-label="Restore" title="Restore"><RotateCcw className="size-5" aria-hidden="true" /></Button>
-                  <Button type="button" variant="ghost" size="icon" className="size-10" onClick={() => setDeleteTarget([selected])} disabled={busy} aria-label="Delete permanently" title="Delete permanently"><Trash2 className="size-5" aria-hidden="true" /></Button>
+                  <Button type="button" variant="ghost" size="icon" className="size-10 sm:size-9" onClick={() => void restore(selected)} disabled={busy} aria-label="Restore" title="Restore"><RotateCcw className="size-[18px]" aria-hidden="true" /></Button>
+                  <Button type="button" variant="ghost" size="icon" className="size-10 sm:size-9" onClick={() => setDeleteTarget([selected])} disabled={busy} aria-label="Delete permanently" title="Delete permanently"><Trash2 className="size-[18px]" aria-hidden="true" /></Button>
                 </>
               )}
-            >
-              {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
-            </EmailReaderHeader>
-            <div className="min-h-0 flex-1 overflow-hidden bg-white max-sm:flex-none max-sm:overflow-visible">{loadingKey === selected.key ? <div className="space-y-4 p-6" role="status" aria-label="Loading email"><Skeleton className="h-4 w-1/3" /><Skeleton className="h-32 w-full" /><Skeleton className="h-4 w-4/5" /></div> : selected.previewHtml ? <EmailContentFrame key={selected.key} title={`Deleted email: ${selected.subject}`} srcDoc={selected.previewHtml} /> : selected.previewText ? <div className="h-full overflow-y-auto whitespace-pre-wrap p-6 text-sm text-neutral-900">{selected.previewText}</div> : <div className="flex h-full items-center justify-center px-6 text-center text-sm text-muted-foreground">Message preview unavailable.</div>}</div>
+            />
+            <div className="min-h-0 flex-1 overflow-y-auto bg-white max-sm:flex-none max-sm:overflow-visible">
+              <EmailReaderMessageHeader
+                subject={selected.subject}
+                details={[`${selected.kind === "received" ? "From" : "To"} ${selected.title}`]}
+                date={selected.deletedAt}
+                formatDate={formatMessageDate}
+                status={<span className="text-[11px] text-neutral-600">Deleted from {selected.kind === "sent" ? "Sent" : selected.kind === "draft" ? "Drafts" : "Inbox"}</span>}
+              >
+                {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
+              </EmailReaderMessageHeader>
+              {loadingKey === selected.key ? <div className="space-y-4 p-6" role="status" aria-label="Loading email"><Skeleton className="h-4 w-1/3" /><Skeleton className="h-32 w-full" /><Skeleton className="h-4 w-4/5" /></div> : selected.previewHtml ? <EmailContentFrame key={selected.key} title={`Deleted email: ${selected.subject}`} srcDoc={selected.previewHtml} autoHeight /> : selected.previewText ? <div className="whitespace-pre-wrap p-6 text-sm text-neutral-900">{selected.previewText}</div> : <div className="flex min-h-96 items-center justify-center px-6 text-center text-sm text-neutral-600">Message preview unavailable.</div>}
+            </div>
           </div>
         )}
       </section>

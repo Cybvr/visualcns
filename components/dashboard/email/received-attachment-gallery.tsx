@@ -125,8 +125,8 @@ export function ReceivedAttachmentGallery({ message, onDownload, downloadingAtta
   const previewUrl = previewFile && isPdf(previewFile) ? pdfPreviewUrl : imagePreviewUrl
 
   return (
-    <section className="border-t border-border bg-background px-4 py-5 sm:px-6" aria-label="Email attachments">
-      <div className="mb-4 flex items-center gap-2">
+    <section className="bg-white px-5 pb-6 pt-1 text-neutral-900" aria-label="Email attachments">
+      <div className="mb-3 flex items-center gap-2">
         <h3 className="text-sm font-semibold">{files.length} {files.length === 1 ? "attachment" : "attachments"}</h3>
       </div>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
@@ -134,23 +134,23 @@ export function ReceivedAttachmentGallery({ message, onDownload, downloadingAtta
           const canPreview = isImage(file) || isPdf(file)
           const thumbnail = thumbnails[file.id]
           return (
-            <div key={`${file.id}-${index}`} className="min-w-0 overflow-hidden rounded-lg border border-border bg-card">
+            <div key={`${file.id}-${index}`} className="min-w-0 overflow-hidden rounded-lg border border-neutral-200 bg-white">
               <button
                 type="button"
                 onClick={() => canPreview ? setPreviewFile(file) : onDownload(message, file)}
                 className="block w-full text-left outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
                 aria-label={`${canPreview ? "Preview" : "Download"} ${file.filename}`}
               >
-                <div className="flex aspect-[4/3] items-center justify-center overflow-hidden bg-muted/50">
-                  {thumbnail ? <img src={thumbnail} alt="" className="size-full object-cover" /> : isImage(file) ? <ImageIcon className="size-8 text-muted-foreground" aria-hidden="true" /> : isPdf(file) ? <FileText className="size-8 text-muted-foreground" aria-hidden="true" /> : <File className="size-8 text-muted-foreground" aria-hidden="true" />}
+                <div className="flex aspect-[4/3] items-center justify-center overflow-hidden bg-neutral-50">
+                  {thumbnail ? <img src={thumbnail} alt="" className="size-full object-cover" /> : isImage(file) ? <ImageIcon className="size-8 text-neutral-500" aria-hidden="true" /> : isPdf(file) ? <FileText className="size-8 text-neutral-500" aria-hidden="true" /> : <File className="size-8 text-neutral-500" aria-hidden="true" />}
                 </div>
                 <p className="truncate px-3 pt-2 text-xs font-medium" title={file.filename}>{file.filename}</p>
               </button>
               <div className="flex min-h-9 items-center justify-between gap-1 px-2 pb-1 pl-3">
-                <span className="truncate text-[11px] text-muted-foreground">{fileSize(file.size) || (isImage(file) ? "Image" : isPdf(file) ? "PDF" : "File")}</span>
+                <span className="truncate text-[11px] text-neutral-600">{fileSize(file.size) || (isImage(file) ? "Image" : isPdf(file) ? "PDF" : "File")}</span>
                 <div className="flex shrink-0 items-center">
-                  {canPreview && <Button type="button" variant="ghost" size="icon" className="size-8" onClick={() => setPreviewFile(file)} aria-label={`Preview ${file.filename}`} title="Preview"><Eye className="size-4" aria-hidden="true" /></Button>}
-                  <Button type="button" variant="ghost" size="icon" className="size-8" onClick={() => onDownload(message, file)} disabled={downloadingAttachmentId === file.id} aria-label={`Download ${file.filename}`} title="Download"><Download className="size-4" aria-hidden="true" /></Button>
+                  {canPreview && <Button type="button" variant="ghost" size="icon" className="size-8 text-neutral-700 hover:bg-neutral-100 hover:text-neutral-900" onClick={() => setPreviewFile(file)} aria-label={`Preview ${file.filename}`} title="Preview"><Eye className="size-4" aria-hidden="true" /></Button>}
+                  <Button type="button" variant="ghost" size="icon" className="size-8 text-neutral-700 hover:bg-neutral-100 hover:text-neutral-900" onClick={() => onDownload(message, file)} disabled={downloadingAttachmentId === file.id} aria-label={`Download ${file.filename}`} title="Download"><Download className="size-4" aria-hidden="true" /></Button>
                 </div>
               </div>
             </div>

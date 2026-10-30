@@ -37,12 +37,12 @@ export function withMessageImage(value: string, imageUrl?: string, imageAlt?: st
 
 export function sentMessagePreview(message: SentMessage) {
   const content = message.bodyHtml || `<p>${escapeHtml(message.bodyText || "").replaceAll("\n", "<br />")}</p>`
-  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>html{color-scheme:light}body{box-sizing:border-box;margin:0;padding:24px;color:#20232d;background:#fff;font:15px/1.65 Arial,sans-serif;overflow-wrap:anywhere}img{display:block;max-width:100%;height:auto}p{margin:0 0 1em}ul,ol{padding-left:1.5rem}a{color:#1649d8}</style></head><body>${content}</body></html>`
+  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>html{color-scheme:light}body{box-sizing:border-box;margin:0;padding:12px 20px 20px;color:#20232d;background:#fff;font:15px/1.65 Arial,sans-serif;overflow-wrap:anywhere}img{display:block;max-width:100%;height:auto}p{margin:0 0 1em}ul,ol{padding-left:1.5rem}a{color:#1649d8}</style></head><body>${content}</body></html>`
 }
 
 export function receivedMessagePreview(message: ReceivedMessage) {
   const content = message.html || `<p>${escapeHtml(message.text || "(This message has no text content.)").replaceAll("\n", "<br />")}</p>`
-  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>html{color-scheme:light}body{box-sizing:border-box;margin:0;padding:24px;color:#20232d;background:#fff;font:15px/1.65 Arial,sans-serif;overflow-wrap:anywhere}img{display:block;max-width:100%;height:auto}p{margin:0 0 1em}ul,ol{padding-left:1.5rem}a{color:#1649d8}</style></head><body>${content}</body></html>`
+  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>html{color-scheme:light}body{box-sizing:border-box;margin:0;padding:12px 20px 20px;color:#20232d;background:#fff;font:15px/1.65 Arial,sans-serif;overflow-wrap:anywhere}img{display:block;max-width:100%;height:auto}p{margin:0 0 1em}ul,ol{padding-left:1.5rem}a{color:#1649d8}</style></head><body>${content}</body></html>`
 }
 
 export function templatePreview(template: EmailTemplate) {

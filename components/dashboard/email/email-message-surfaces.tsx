@@ -1,14 +1,15 @@
 import Link from "next/link"
-import { Archive, CheckCircle2, ChevronLeft, ChevronRight, Clock, FileText, Forward, Inbox, Mail, MailOpen, Paperclip, Reply, Trash2, X } from "lucide-react"
+import { Archive, CheckCircle2, ChevronLeft, ChevronRight, Clock, EllipsisVertical, FileText, Forward, Inbox, Mail, MailOpen, Paperclip, Reply, Trash2, X } from "lucide-react"
 import type { ReactNode } from "react"
 
 import { Button } from "@/components/ui/button"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Skeleton } from "@/components/ui/skeleton"
 import { CompactListSkeleton } from "@/components/dashboard/compact-list-row"
 import { cn } from "@/lib/utils"
 import type { EmailDraftRecord } from "@/lib/email-drafts"
 import { EmailContentFrame } from "./email-content-frame"
-import { EmailReaderHeader } from "./email-reader-header"
+import { EmailReaderMessageHeader, EmailReaderToolbar } from "./email-reader-header"
 import { EmailListRow } from "./email-list-row"
 import { ReceivedAttachmentGallery } from "./received-attachment-gallery"
 import type { ReceivedAttachment, ReceivedMessage, SentMessage } from "./types"
@@ -232,38 +233,57 @@ export function EmailMessageSurfaces({
         </aside>
         {selectedReceived && (
           <div className={cn("flex-1 flex-col overflow-hidden rounded-lg border border-border bg-card max-lg:min-h-[calc(100svh-8rem)] max-sm:overflow-visible max-sm:rounded-none max-sm:border-0 max-sm:bg-transparent lg:min-h-0", mobileMessageView === "reader" ? "flex" : "hidden")}>
-            <EmailReaderHeader
+            <EmailReaderToolbar
               onBack={onClearReceived}
               backLabel={tab === "updates" ? "Back to updates" : "Back to inbox"}
-              subject={selectedReceived.subject}
-              summary={`From ${resolveName(selectedReceived.from)}`}
-              details={[`From ${resolveName(selectedReceived.from)} <${senderAddress(selectedReceived.from)}>`, `To ${selectedReceived.to.join(", ") || "hello@mail.visualcns.com"}`]}
-              date={selectedReceived.createdAt}
-              formatDate={formatMessageDate}
-              status={<span className="text-[11px] text-muted-foreground">{tab === "updates" ? "Updates" : "Inbox"}</span>}
               actions={(
                 <>
-                  <Button type="button" variant="ghost" size="icon" className="size-9 sm:size-10" onClick={() => onReplyReceived(selectedReceived)} aria-label="Reply" title="Reply"><Reply className="size-4 sm:size-5" aria-hidden="true" /></Button>
-                  <Button type="button" variant="ghost" size="icon" className="size-9 sm:size-10" onClick={() => onForwardReceived(selectedReceived)} aria-label="Forward" title="Forward"><Forward className="size-4 sm:size-5" aria-hidden="true" /></Button>
-                  <Button type="button" variant="ghost" size="icon" className="size-9 sm:size-10" onClick={() => onArchiveReceivedMessage(selectedReceived)} aria-label="Archive message" title="Archive"><Archive className="size-4 sm:size-5" aria-hidden="true" /></Button>
-                  <Button type="button" variant="ghost" size="icon" className="size-9 sm:size-10" onClick={() => onDeleteReceived(selectedReceived)} aria-label="Delete message" title="Delete"><Trash2 className="size-4 sm:size-5" aria-hidden="true" /></Button>
-                  <Button type="button" variant="ghost" size="icon" className="size-9 sm:size-10" onClick={() => onToggleReceivedRead(selectedReceived)} aria-label={selectedReceivedIsRead ? "Mark as unread" : "Mark as read"} title={selectedReceivedIsRead ? "Mark as unread" : "Mark as read"}>{selectedReceivedIsRead ? <Mail className="size-4 sm:size-5" aria-hidden="true" /> : <MailOpen className="size-4 sm:size-5" aria-hidden="true" />}</Button>
+                  <span className="flex items-center sm:hidden">
+                    <Button type="button" variant="ghost" size="icon" className="size-10" onClick={() => onReplyReceived(selectedReceived)} aria-label="Reply" title="Reply"><Reply className="size-[18px]" aria-hidden="true" /></Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button type="button" variant="ghost" size="icon" className="size-10" aria-label="More message actions" title="More actions"><EllipsisVertical className="size-[18px]" aria-hidden="true" /></Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onSelect={() => onForwardReceived(selectedReceived)}><Forward className="size-4" aria-hidden="true" />Forward</DropdownMenuItem>
+                        <DropdownMenuItem onSelect={() => onArchiveReceivedMessage(selectedReceived)}><Archive className="size-4" aria-hidden="true" />Archive</DropdownMenuItem>
+                        <DropdownMenuItem onSelect={() => onToggleReceivedRead(selectedReceived)}>{selectedReceivedIsRead ? <Mail className="size-4" aria-hidden="true" /> : <MailOpen className="size-4" aria-hidden="true" />}{selectedReceivedIsRead ? "Mark as unread" : "Mark as read"}</DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem variant="destructive" onSelect={() => onDeleteReceived(selectedReceived)}><Trash2 className="size-4" aria-hidden="true" />Delete</DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </span>
+                  <span className="hidden items-center sm:flex">
+                    <Button type="button" variant="ghost" size="icon" className="size-9" onClick={() => onReplyReceived(selectedReceived)} aria-label="Reply" title="Reply"><Reply className="size-[18px]" aria-hidden="true" /></Button>
+                    <Button type="button" variant="ghost" size="icon" className="size-9" onClick={() => onForwardReceived(selectedReceived)} aria-label="Forward" title="Forward"><Forward className="size-[18px]" aria-hidden="true" /></Button>
+                    <Button type="button" variant="ghost" size="icon" className="size-9" onClick={() => onArchiveReceivedMessage(selectedReceived)} aria-label="Archive message" title="Archive"><Archive className="size-[18px]" aria-hidden="true" /></Button>
+                    <Button type="button" variant="ghost" size="icon" className="size-9" onClick={() => onDeleteReceived(selectedReceived)} aria-label="Delete message" title="Delete"><Trash2 className="size-[18px]" aria-hidden="true" /></Button>
+                    <Button type="button" variant="ghost" size="icon" className="size-9" onClick={() => onToggleReceivedRead(selectedReceived)} aria-label={selectedReceivedIsRead ? "Mark as unread" : "Mark as read"} title={selectedReceivedIsRead ? "Mark as unread" : "Mark as read"}>{selectedReceivedIsRead ? <Mail className="size-[18px]" aria-hidden="true" /> : <MailOpen className="size-[18px]" aria-hidden="true" />}</Button>
+                  </span>
                   <span className="hidden items-center lg:flex">
-                    {selectedReceivedIndex >= 0 && <span className="mx-3 text-sm tabular-nums text-muted-foreground">{selectedReceivedIndex + 1} of {visibleReceivedMessages.length}</span>}
-                    <Button type="button" variant="ghost" size="icon" className="size-10" onClick={() => onOpenReceived(visibleReceivedMessages[selectedReceivedIndex - 1])} disabled={selectedReceivedIndex <= 0} aria-label="Previous message" title="Previous message"><ChevronLeft className="size-5" aria-hidden="true" /></Button>
-                    <Button type="button" variant="ghost" size="icon" className="size-10" onClick={() => onOpenReceived(visibleReceivedMessages[selectedReceivedIndex + 1])} disabled={selectedReceivedIndex < 0 || selectedReceivedIndex >= visibleReceivedMessages.length - 1} aria-label="Next message" title="Next message"><ChevronRight className="size-5" aria-hidden="true" /></Button>
+                    {selectedReceivedIndex >= 0 && <span className="mx-2 text-[13px] tabular-nums text-muted-foreground">{selectedReceivedIndex + 1} of {visibleReceivedMessages.length}</span>}
+                    <Button type="button" variant="ghost" size="icon" className="size-9" onClick={() => onOpenReceived(visibleReceivedMessages[selectedReceivedIndex - 1])} disabled={selectedReceivedIndex <= 0} aria-label="Previous message" title="Previous message"><ChevronLeft className="size-[18px]" aria-hidden="true" /></Button>
+                    <Button type="button" variant="ghost" size="icon" className="size-9" onClick={() => onOpenReceived(visibleReceivedMessages[selectedReceivedIndex + 1])} disabled={selectedReceivedIndex < 0 || selectedReceivedIndex >= visibleReceivedMessages.length - 1} aria-label="Next message" title="Next message"><ChevronRight className="size-[18px]" aria-hidden="true" /></Button>
                   </span>
                 </>
               )}
             />
             <div className="min-h-0 flex-1 overflow-y-auto bg-white max-sm:flex-none max-sm:overflow-visible max-sm:rounded-3xl max-sm:border max-sm:border-border max-sm:pb-4">
+              <EmailReaderMessageHeader
+                subject={selectedReceived.subject}
+                summary={`From ${resolveName(selectedReceived.from)}`}
+                details={[`From ${resolveName(selectedReceived.from)} <${senderAddress(selectedReceived.from)}>`, `To ${selectedReceived.to.join(", ") || "hello@mail.visualcns.com"}`]}
+                date={selectedReceived.createdAt}
+                formatDate={formatMessageDate}
+                status={<span className="text-[11px] text-neutral-600">{tab === "updates" ? "Updates" : "Inbox"}</span>}
+              />
               {loadingReceivedId === selectedReceived.id ? <div className="space-y-4 p-6" role="status" aria-label="Loading message"><Skeleton className="h-6 w-2/3" /><Skeleton className="h-4 w-1/3" /><Skeleton className="h-32 w-full" /><Skeleton className="h-4 w-4/5" /><Skeleton className="h-4 w-3/5" /></div> : (
                 <>
                   <EmailContentFrame
                     key={`${selectedReceived.id}:body`}
                     title={`Received email: ${selectedReceived.subject}`}
                     srcDoc={receivedMessagePreview(selectedReceived)}
-                    className={selectedReceived.attachments?.length ? "h-[42vh] min-h-80" : undefined}
+                    autoHeight
                   />
                   <ReceivedAttachmentGallery key={`${selectedReceived.id}:attachments`} message={selectedReceived} onDownload={onDownloadReceivedAttachment} downloadingAttachmentId={downloadingAttachmentId} />
                 </>
@@ -342,23 +362,32 @@ export function EmailMessageSurfaces({
         )}
       </aside>
       {selectedSent && <div className={cn("flex-1 flex-col overflow-hidden rounded-lg border border-border bg-card max-lg:min-h-[calc(100svh-8rem)] max-sm:min-h-0 max-sm:overflow-visible lg:min-h-0", mobileMessageView === "reader" ? "flex" : "hidden")}>
-        <EmailReaderHeader
+        <EmailReaderToolbar
           onBack={onClearSent}
           backLabel="Back to sent"
-          subject={selectedSent.subject}
-          summary={`To ${resolveName(selectedSent.to, selectedSent.recipients?.[0]?.name)}`}
-          details={[`To ${selectedSent.to}`, ...(selectedSent.from ? [`From ${cleanSenderDisplay(selectedSent.from)}`] : [])]}
-          date={selectedSent.createdAt}
-          formatDate={formatMessageDate}
-          status={selectedSent.status === "scheduled" && !isScheduledPastDue(selectedSent)
-            ? <span className="inline-flex items-center gap-1 text-[11px] text-amber-700 dark:text-amber-300"><Clock className="size-3" aria-hidden="true" />{selectedSent.scheduledAt ? `Scheduled · ${formatMessageDate(selectedSent.scheduledAt)}` : "Scheduled"}</span>
-            : selectedSent.status === "failed"
-              ? <span className="inline-flex items-center gap-1 text-[11px] text-destructive"><X className="size-3" aria-hidden="true" />Failed</span>
-              : <span className="inline-flex items-center gap-1 text-[11px] text-emerald-700 dark:text-emerald-300"><CheckCircle2 className="size-3" aria-hidden="true" />Sent</span>}
-          actions={<Button type="button" variant="ghost" size="icon" className="size-10" onClick={() => onDeleteSent(selectedSent)} aria-label="Delete" title="Delete"><Trash2 className="size-5" aria-hidden="true" /></Button>}
+          actions={<Button type="button" variant="ghost" size="icon" className="size-10 sm:size-9" onClick={() => onDeleteSent(selectedSent)} aria-label="Delete" title="Delete"><Trash2 className="size-[18px]" aria-hidden="true" /></Button>}
         />
-        {Boolean(selectedSent.attachments?.length) && <div className="flex shrink-0 flex-wrap gap-2 border-b border-border px-4 py-2 sm:px-5">{selectedSent.attachments?.map((file, index) => <span key={`${file.filename}-${index}`} className="inline-flex max-w-full items-center gap-1 rounded-md bg-muted px-2 py-1 text-xs" title={file.filename}><Paperclip className="size-3 shrink-0" aria-hidden="true" /><span className="truncate">{file.filename}</span></span>)}</div>}
-        <div className="min-h-0 flex-1 overflow-hidden bg-white max-sm:flex-none max-sm:overflow-visible">{loadingMessageId === selectedSent.id ? <div className="space-y-4 p-6" role="status" aria-label="Loading message"><Skeleton className="h-6 w-2/3" /><Skeleton className="h-4 w-1/3" /><Skeleton className="h-32 w-full" /><Skeleton className="h-4 w-4/5" /><Skeleton className="h-4 w-3/5" /></div> : messageViewError ? <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center"><p className="text-sm font-medium text-destructive">Couldn’t load this email</p><p className="text-xs leading-5 text-muted-foreground">{messageViewError}</p><Button type="button" variant="outline" size="sm" onClick={() => onRetrySent(selectedSent)}>Try again</Button></div> : !selectedSent.bodyHtml && !selectedSent.bodyText ? <div className="flex h-full flex-col items-center justify-center gap-2 px-6 text-center text-muted-foreground"><Mail className="size-5" aria-hidden="true" /><p className="text-sm font-medium text-foreground">Message body unavailable</p><p className="text-xs leading-5">This email was sent before previews were saved.</p></div> : <EmailContentFrame key={selectedSent.id} title={`Sent email: ${selectedSent.subject}`} srcDoc={sentMessagePreview(selectedSent)} />}</div>
+        <div className="min-h-0 flex-1 overflow-y-auto bg-white max-sm:flex-none max-sm:overflow-visible">
+          <EmailReaderMessageHeader
+            subject={selectedSent.subject}
+            summary={`To ${resolveName(selectedSent.to, selectedSent.recipients?.[0]?.name)}`}
+            details={[`To ${selectedSent.to}`, ...(selectedSent.from ? [`From ${cleanSenderDisplay(selectedSent.from)}`] : [])]}
+            date={selectedSent.createdAt}
+            formatDate={formatMessageDate}
+            status={selectedSent.status === "scheduled" && !isScheduledPastDue(selectedSent)
+              ? <span className="inline-flex items-center gap-1 text-[11px] text-amber-700"><Clock className="size-3" aria-hidden="true" />{selectedSent.scheduledAt ? `Scheduled · ${formatMessageDate(selectedSent.scheduledAt)}` : "Scheduled"}</span>
+              : selectedSent.status === "failed"
+                ? <span className="inline-flex items-center gap-1 text-[11px] text-red-700"><X className="size-3" aria-hidden="true" />Failed</span>
+                : <span className="inline-flex items-center gap-1 text-[11px] text-emerald-700"><CheckCircle2 className="size-3" aria-hidden="true" />Sent</span>}
+          />
+          {loadingMessageId === selectedSent.id ? <div className="space-y-4 p-6" role="status" aria-label="Loading message"><Skeleton className="h-6 w-2/3" /><Skeleton className="h-4 w-1/3" /><Skeleton className="h-32 w-full" /><Skeleton className="h-4 w-4/5" /><Skeleton className="h-4 w-3/5" /></div> : messageViewError ? <div className="flex min-h-96 flex-col items-center justify-center gap-3 px-6 text-center"><p className="text-sm font-medium text-red-700">Couldn’t load this email</p><p className="text-xs leading-5 text-neutral-600">{messageViewError}</p><Button type="button" variant="outline" size="sm" onClick={() => onRetrySent(selectedSent)}>Try again</Button></div> : !selectedSent.bodyHtml && !selectedSent.bodyText ? <div className="flex min-h-96 flex-col items-center justify-center gap-2 px-6 text-center text-neutral-600"><Mail className="size-5" aria-hidden="true" /><p className="text-sm font-medium text-neutral-900">Message body unavailable</p><p className="text-xs leading-5">This email was sent before previews were saved.</p></div> : <EmailContentFrame key={selectedSent.id} title={`Sent email: ${selectedSent.subject}`} srcDoc={sentMessagePreview(selectedSent)} autoHeight />}
+          {Boolean(selectedSent.attachments?.length) && (
+            <section className="bg-white px-5 pb-6 pt-1 text-neutral-900" aria-label="Email attachments">
+              <h3 className="mb-3 text-sm font-semibold">{selectedSent.attachments?.length} {selectedSent.attachments?.length === 1 ? "attachment" : "attachments"}</h3>
+              <div className="flex flex-wrap gap-2">{selectedSent.attachments?.map((file, index) => <span key={`${file.filename}-${index}`} className="inline-flex max-w-full items-center gap-2 rounded-md border border-neutral-200 bg-white px-3 py-2 text-sm" title={file.filename}><Paperclip className="size-4 shrink-0 text-neutral-500" aria-hidden="true" /><span className="truncate">{file.filename}</span></span>)}</div>
+            </section>
+          )}
+        </div>
       </div>}
     </section>
   )
