@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation"
 import { Building2 } from "lucide-react"
 import type { Timestamp } from "firebase/firestore"
 
-import { useAuth } from "@/components/auth-provider"
 import { CollectionView } from "@/components/dashboard/collection-view"
 import { CompactListRow, InitialAvatar } from "@/components/dashboard/compact-list-row"
 import { thumbnailIcon } from "@/components/dashboard/grid-card"
@@ -63,7 +62,6 @@ function companyHref(row: CompanyRow): string {
 /** Companies list. Opening a company uses its full page instead of a split preview. */
 export default function CompaniesPage() {
   const router = useRouter()
-  const { viewAsUser } = useAuth()
   const [users, setUsers, cached] = useCachedState<AppUser[]>("users", [])
   const [projects, setProjects] = useCachedState<Project[]>("projects", [])
   const [organizations, setOrganizations] = useCachedState<Organization[]>("organizations", [])
@@ -180,18 +178,12 @@ export default function CompaniesPage() {
     }
   }
 
-  function handleViewWorkspace(row: CompanyRow) {
-    if (!row.user || row.user.role !== "client" || !row.user.companyId) return
-    viewAsUser(row.user)
-    router.push(`/${encodeURIComponent(row.slug || row.user.companyId)}`)
-  }
-
   function clientActions(row: CompanyRow): ItemActions {
     return {
       noun: "company",
       name: row.name,
       onOpen: () => router.push(companyHref(row)),
-      extra: row.user ? <DropdownMenuItem onSelect={() => handleViewWorkspace(row)}>View workspace</DropdownMenuItem> : undefined,
+      extra: <DropdownMenuItem onSelect={() => router.push(`/${encodeURIComponent(row.slug || row.id)}`)}>Visit company page</DropdownMenuItem>,
       onDelete: () => handleDelete(row),
       deleteMessage: `This removes ${row.name}'s account. Their projects, tasks, and documents will remain in the database, but the company will no longer appear here. This cannot be undone.`,
     }

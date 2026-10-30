@@ -81,6 +81,10 @@ function UnifiedDashboardShell({ children, requireAdmin = false }: { children: R
     else if (requireAdmin && !isAdmin) router.replace("/dashboard")
   }, [loading, user, isAdmin, role, pathname, requireAdmin, router, isTaskDetailRoute])
 
+  useEffect(() => {
+    if (!loading && isAdmin && isImpersonating) stopViewingAs()
+  }, [loading, isAdmin, isImpersonating, stopViewingAs])
+
   if (loading) {
     return hasEntered
       ? <div className="min-h-screen bg-background p-6"><DashboardPageSkeleton variant="home" rows={4} /></div>
@@ -101,7 +105,8 @@ function UnifiedDashboardShell({ children, requireAdmin = false }: { children: R
     )
   }
 
-  if (role === "client" || isImpersonating) return <Suspense><LegacyClientRedirect /></Suspense>
+  if (isAdmin && isImpersonating) return <AppEntryLoader phase="workspace" message="Loading your dashboard" />
+  if (role === "client") return <Suspense><LegacyClientRedirect /></Suspense>
 
   if (role === "creator") {
     if (!CREATOR_PATHS.test(pathname ?? "")) return null
