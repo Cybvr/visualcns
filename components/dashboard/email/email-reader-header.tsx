@@ -1,7 +1,8 @@
 import type { ReactNode } from "react"
-import { ArrowLeft } from "lucide-react"
+import { ArrowLeft, ChevronDown } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 
 /** The top of an open email, the same in Inbox, Sent and Bin: back and actions, then subject, people, date and status. */
 export function EmailReaderHeader({
@@ -9,6 +10,7 @@ export function EmailReaderHeader({
   backLabel,
   actions,
   subject,
+  summary,
   details,
   date,
   formatDate,
@@ -20,7 +22,9 @@ export function EmailReaderHeader({
   /** Icon buttons on the right of the top row. */
   actions?: ReactNode
   subject: string
-  /** Lines under the subject, such as "To …" and "From …". */
+  /** Compact sender or recipient line; its chevron reveals the full addresses. */
+  summary?: string
+  /** Full address lines, such as "To …" and "From …". */
   details: string[]
   date?: string | null
   formatDate: (value: string) => string
@@ -39,7 +43,19 @@ export function EmailReaderHeader({
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
           <h2 className="break-words text-[1.375rem] leading-snug tracking-tight sm:text-base sm:font-semibold sm:tracking-normal">{subject || "(No subject)"}</h2>
-          {details.map((line, index) => <p key={line} className={index === 0 ? "mt-1 truncate text-sm text-muted-foreground" : "truncate text-xs text-muted-foreground"}>{line}</p>)}
+          {summary ? (
+            <div className="mt-1 flex min-w-0 items-center gap-1 text-sm text-muted-foreground">
+              <span className="min-w-0 truncate">{summary}</span>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button type="button" variant="ghost" size="icon" className="size-7 shrink-0 text-muted-foreground" aria-label="Show sender and recipient details" title="Show sender and recipient details"><ChevronDown className="size-4" aria-hidden="true" /></Button>
+                </PopoverTrigger>
+                <PopoverContent align="start" className="w-[min(24rem,calc(100vw-2rem))] space-y-2 p-3 text-sm">
+                  {details.map((line) => <p key={line} className="break-words text-popover-foreground">{line}</p>)}
+                </PopoverContent>
+              </Popover>
+            </div>
+          ) : details.map((line, index) => <p key={line} className={index === 0 ? "mt-1 truncate text-sm text-muted-foreground" : "truncate text-xs text-muted-foreground"}>{line}</p>)}
         </div>
         {(date || status) && (
           <div className="flex shrink-0 flex-col items-end gap-1 text-right">

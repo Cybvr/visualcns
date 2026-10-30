@@ -236,15 +236,18 @@ export function EmailMessageSurfaces({
               onBack={onClearReceived}
               backLabel={tab === "updates" ? "Back to updates" : "Back to inbox"}
               subject={selectedReceived.subject}
+              summary={`From ${resolveName(selectedReceived.from)}`}
               details={[`From ${resolveName(selectedReceived.from)} <${senderAddress(selectedReceived.from)}>`, `To ${selectedReceived.to.join(", ") || "hello@mail.visualcns.com"}`]}
               date={selectedReceived.createdAt}
               formatDate={formatMessageDate}
               status={<span className="text-[11px] text-muted-foreground">{tab === "updates" ? "Updates" : "Inbox"}</span>}
               actions={(
                 <>
-                  <Button type="button" variant="ghost" size="icon" className="size-10" onClick={() => onArchiveReceivedMessage(selectedReceived)} aria-label="Archive message" title="Archive"><Archive className="size-5" aria-hidden="true" /></Button>
-                  <Button type="button" variant="ghost" size="icon" className="size-10" onClick={() => onDeleteReceived(selectedReceived)} aria-label="Delete message" title="Delete"><Trash2 className="size-5" aria-hidden="true" /></Button>
-                  <Button type="button" variant="ghost" size="icon" className="size-10" onClick={() => onToggleReceivedRead(selectedReceived)} aria-label={selectedReceivedIsRead ? "Mark as unread" : "Mark as read"} title={selectedReceivedIsRead ? "Mark as unread" : "Mark as read"}>{selectedReceivedIsRead ? <Mail className="size-5" aria-hidden="true" /> : <MailOpen className="size-5" aria-hidden="true" />}</Button>
+                  <Button type="button" variant="ghost" size="icon" className="size-9 sm:size-10" onClick={() => onReplyReceived(selectedReceived)} aria-label="Reply" title="Reply"><Reply className="size-4 sm:size-5" aria-hidden="true" /></Button>
+                  <Button type="button" variant="ghost" size="icon" className="size-9 sm:size-10" onClick={() => onForwardReceived(selectedReceived)} aria-label="Forward" title="Forward"><Forward className="size-4 sm:size-5" aria-hidden="true" /></Button>
+                  <Button type="button" variant="ghost" size="icon" className="size-9 sm:size-10" onClick={() => onArchiveReceivedMessage(selectedReceived)} aria-label="Archive message" title="Archive"><Archive className="size-4 sm:size-5" aria-hidden="true" /></Button>
+                  <Button type="button" variant="ghost" size="icon" className="size-9 sm:size-10" onClick={() => onDeleteReceived(selectedReceived)} aria-label="Delete message" title="Delete"><Trash2 className="size-4 sm:size-5" aria-hidden="true" /></Button>
+                  <Button type="button" variant="ghost" size="icon" className="size-9 sm:size-10" onClick={() => onToggleReceivedRead(selectedReceived)} aria-label={selectedReceivedIsRead ? "Mark as unread" : "Mark as read"} title={selectedReceivedIsRead ? "Mark as unread" : "Mark as read"}>{selectedReceivedIsRead ? <Mail className="size-4 sm:size-5" aria-hidden="true" /> : <MailOpen className="size-4 sm:size-5" aria-hidden="true" />}</Button>
                   <span className="hidden items-center lg:flex">
                     {selectedReceivedIndex >= 0 && <span className="mx-3 text-sm tabular-nums text-muted-foreground">{selectedReceivedIndex + 1} of {visibleReceivedMessages.length}</span>}
                     <Button type="button" variant="ghost" size="icon" className="size-10" onClick={() => onOpenReceived(visibleReceivedMessages[selectedReceivedIndex - 1])} disabled={selectedReceivedIndex <= 0} aria-label="Previous message" title="Previous message"><ChevronLeft className="size-5" aria-hidden="true" /></Button>
@@ -252,11 +255,8 @@ export function EmailMessageSurfaces({
                   </span>
                 </>
               )}
-            >
-              <Button type="button" variant="outline" size="sm" onClick={() => onReplyReceived(selectedReceived)}><Reply className="size-4" aria-hidden="true" /> Reply</Button>
-              <Button type="button" variant="outline" size="sm" onClick={() => onForwardReceived(selectedReceived)}><Forward className="size-4" aria-hidden="true" /> Forward</Button>
-            </EmailReaderHeader>
-            <div className="min-h-0 flex-1 overflow-y-auto bg-white max-sm:flex-none max-sm:overflow-visible max-sm:rounded-3xl max-sm:border max-sm:border-border max-sm:pb-[calc(10rem+env(safe-area-inset-bottom))]">
+            />
+            <div className="min-h-0 flex-1 overflow-y-auto bg-white max-sm:flex-none max-sm:overflow-visible max-sm:rounded-3xl max-sm:border max-sm:border-border max-sm:pb-4">
               {loadingReceivedId === selectedReceived.id ? <div className="space-y-4 p-6" role="status" aria-label="Loading message"><Skeleton className="h-6 w-2/3" /><Skeleton className="h-4 w-1/3" /><Skeleton className="h-32 w-full" /><Skeleton className="h-4 w-4/5" /><Skeleton className="h-4 w-3/5" /></div> : (
                 <>
                   <EmailContentFrame
@@ -268,11 +268,6 @@ export function EmailMessageSurfaces({
                   <ReceivedAttachmentGallery key={`${selectedReceived.id}:attachments`} message={selectedReceived} onDownload={onDownloadReceivedAttachment} downloadingAttachmentId={downloadingAttachmentId} />
                 </>
               )}
-            </div>
-            {/* Mobile: reply and forward stay in reach at the bottom of the screen. */}
-            <div className="fixed inset-x-3 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-30 flex items-center gap-2 rounded-full border border-border bg-card p-1.5 shadow-lg sm:hidden">
-              <Button type="button" size="lg" className="h-12 flex-1 rounded-full text-base" onClick={() => onReplyReceived(selectedReceived)}><Reply className="size-5" aria-hidden="true" /> Reply</Button>
-              <Button type="button" variant="secondary" size="icon" className="size-12 rounded-full" onClick={() => onForwardReceived(selectedReceived)} aria-label="Forward" title="Forward"><Forward className="size-5" aria-hidden="true" /></Button>
             </div>
           </div>
         )}
@@ -351,6 +346,7 @@ export function EmailMessageSurfaces({
           onBack={onClearSent}
           backLabel="Back to sent"
           subject={selectedSent.subject}
+          summary={`To ${resolveName(selectedSent.to, selectedSent.recipients?.[0]?.name)}`}
           details={[`To ${selectedSent.to}`, ...(selectedSent.from ? [`From ${cleanSenderDisplay(selectedSent.from)}`] : [])]}
           date={selectedSent.createdAt}
           formatDate={formatMessageDate}
