@@ -1502,7 +1502,11 @@ export function EmailWorkspace({ initialTab, initialMessageId }: { initialTab: E
   )
 
   return (
-    <main className="mx-auto flex min-h-0 w-full min-w-0 max-w-6xl flex-1 flex-col overflow-visible px-3 pt-3 pb-5 sm:px-6 sm:pt-4 sm:pb-6 lg:flex-row lg:gap-6 lg:overflow-hidden">
+    <main className={cn(
+      "mx-auto flex min-h-0 w-full min-w-0 max-w-6xl flex-1 flex-col overflow-visible px-3 pt-3 pb-5 sm:px-6 sm:pt-4 sm:pb-6 lg:flex-row lg:gap-6 lg:overflow-hidden",
+      initialMessageId && (tab === "inbox" || tab === "updates") && "max-w-none px-0 pt-0 pb-0 sm:px-0 sm:pt-0 sm:pb-0 lg:gap-0",
+      mobileReaderOpen && "max-sm:px-0 max-sm:pt-0 max-sm:pb-0",
+    )}>
       <nav className={cn("dashboard-sidebar hidden shrink-0 text-foreground lg:w-52 lg:flex-col", !inSidebar && "lg:flex")} aria-label="Email folders">
         {!initialMessageId && !selectedReceived && <Button type="button" size="lg" className="mb-3 w-fit justify-start gap-2 rounded-full px-4 shadow-none" onClick={() => openCompose()}>
           <Plus aria-hidden="true" />Compose

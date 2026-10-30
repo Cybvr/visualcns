@@ -232,7 +232,7 @@ export function EmailMessageSurfaces({
           )}
         </aside>
         {selectedReceived && (
-          <div className={cn("flex-1 flex-col overflow-hidden rounded-lg border border-border bg-card max-lg:min-h-[calc(100svh-8rem)] max-sm:overflow-visible max-sm:rounded-none max-sm:border-0 max-sm:bg-transparent lg:min-h-0", mobileMessageView === "reader" ? "flex" : "hidden")}>
+          <div className={cn("flex-1 flex-col overflow-hidden bg-card max-lg:min-h-[calc(100svh-8rem)] max-sm:overflow-visible max-sm:rounded-none max-sm:border-0 max-sm:bg-transparent lg:min-h-0", detailOnly ? "rounded-none border-0" : "rounded-lg border border-border", mobileMessageView === "reader" ? "flex" : "hidden")}>
             <EmailReaderToolbar
               onBack={onClearReceived}
               backLabel={tab === "updates" ? "Back to updates" : "Back to inbox"}
@@ -361,7 +361,7 @@ export function EmailMessageSurfaces({
           ))}</div>
         )}
       </aside>
-      {selectedSent && <div className={cn("flex-1 flex-col overflow-hidden rounded-lg border border-border bg-card max-lg:min-h-[calc(100svh-8rem)] max-sm:min-h-0 max-sm:overflow-visible lg:min-h-0", mobileMessageView === "reader" ? "flex" : "hidden")}>
+      {selectedSent && <div className={cn("flex-1 flex-col overflow-hidden rounded-lg border border-border bg-card max-lg:min-h-[calc(100svh-8rem)] max-sm:min-h-0 max-sm:overflow-visible max-sm:rounded-none max-sm:border-0 lg:min-h-0", mobileMessageView === "reader" ? "flex" : "hidden")}>
         <EmailReaderToolbar
           onBack={onClearSent}
           backLabel="Back to sent"
