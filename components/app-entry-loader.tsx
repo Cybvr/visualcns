@@ -16,7 +16,7 @@ export function AppEntryLoader({
   return (
     <main className="fixed inset-0 z-[100] flex items-center justify-center bg-background px-6 text-foreground" role="status" aria-live="polite">
       <div className="flex w-full max-w-56 flex-col items-center text-center">
-        <Image src="/visualhqlogo.svg" alt="" width={112} height={112} priority className="mb-8 size-[5.5rem] sm:size-28" />
+        <Image src="/visualhqlogo.svg" alt="" width={112} height={112} priority className="mb-8 size-[5.5rem] dark:brightness-0 dark:invert sm:size-28" />
         <div className="h-0.5 w-full overflow-hidden bg-muted" aria-hidden="true">
           <div className={styles.indicator} data-phase={phase} />
         </div>
