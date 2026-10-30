@@ -81,7 +81,7 @@ function SidebarAccount({ header = false }: { header?: boolean }) {
   const { user } = useAuth()
 
   // On a company page, My Account opens that company's own account page rather than the dashboard's.
-  if (user) return <NavUser variant={header ? "header" : "sidebar"} accountLabel="My Account" accountHref={`/${encodeURIComponent(company.slug || company.id)}/settings/account`} />
+  if (user) return <NavUser variant={header ? "header" : "sidebar"} accountLabel="My Account" accountHref={`/${encodeURIComponent(company.slug || company.id)}/settings/account`} backToDashboard />
   if (!company.slug) return null
   return (
     <Button asChild className={header ? "h-9" : "w-full group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:p-0"}>

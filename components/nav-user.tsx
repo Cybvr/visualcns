@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { useEffect, useState } from "react"
 import { useTheme } from "next-themes"
-import { ChevronsUpDown, LogOut, Moon, UserCog } from "lucide-react"
+import { ArrowLeft, ChevronsUpDown, LogOut, Moon, UserCog } from "lucide-react"
 
 import { useAuth } from "@/components/auth-provider"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -25,9 +25,9 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar"
 
-export function NavUser({ variant = "sidebar", accountLabel = "Account", accountHref = "/dashboard/account" }: { variant?: "sidebar" | "header"; accountLabel?: string; accountHref?: string }) {
+export function NavUser({ variant = "sidebar", accountLabel = "Account", accountHref = "/dashboard/account", backToDashboard = false }: { variant?: "sidebar" | "header"; accountLabel?: string; accountHref?: string; backToDashboard?: boolean }) {
   const { isMobile } = useSidebar()
-  const { user, appUser, isViewingAs, signOut } = useAuth()
+  const { user, appUser, isAdmin, isViewingAs, stopViewingAs, signOut } = useAuth()
   const { resolvedTheme, setTheme } = useTheme()
   const [themeReady, setThemeReady] = useState(false)
 
@@ -64,6 +64,14 @@ export function NavUser({ variant = "sidebar", accountLabel = "Account", account
         </div>
       </DropdownMenuLabel>
       <DropdownMenuSeparator />
+      {backToDashboard && isAdmin && (
+        <DropdownMenuItem asChild>
+          <Link href="/dashboard" onClick={stopViewingAs}>
+            <ArrowLeft />
+            Back to Dashboard
+          </Link>
+        </DropdownMenuItem>
+      )}
       <DropdownMenuItem asChild>
         <Link href={accountHref}>
           <UserCog />

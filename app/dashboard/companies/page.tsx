@@ -183,7 +183,7 @@ export default function CompaniesPage() {
       noun: "company",
       name: row.name,
       onOpen: () => router.push(companyHref(row)),
-      extra: <DropdownMenuItem onSelect={() => router.push(`/${encodeURIComponent(row.slug || row.id)}`)}>Visit company page</DropdownMenuItem>,
+      extra: <DropdownMenuItem onSelect={() => router.push(`/${encodeURIComponent(row.slug || row.id)}`)}>Visit Page</DropdownMenuItem>,
       onDelete: () => handleDelete(row),
       deleteMessage: `This removes ${row.name}'s account. Their projects, tasks, and documents will remain in the database, but the company will no longer appear here. This cannot be undone.`,
     }
