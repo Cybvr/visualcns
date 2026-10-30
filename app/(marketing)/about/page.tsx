@@ -1,3 +1,5 @@
+import { publicPageMetadata } from "@/lib/public-page-metadata"
+
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { PageHeading } from "@/components/page-heading"
@@ -13,6 +15,12 @@ import {
 import Link from "next/link"
 import { ArrowRight, ArrowUpRight, Target, Users, Lightbulb, Globe } from "lucide-react"
 import { getTeamMembers, type TeamMember } from "@/lib/team"
+
+export const metadata = publicPageMetadata({
+  title: "About VisualCNS",
+  description: "Meet VisualCNS, a Lagos-based team building software systems, product businesses, and AI tools.",
+  path: "/about",
+})
 
 const values = [
   {

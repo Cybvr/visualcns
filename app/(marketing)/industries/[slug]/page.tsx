@@ -6,6 +6,18 @@ import { Footer } from "@/components/footer"
 import { Header } from "@/components/header"
 import { Button } from "@/components/ui/button"
 import { getIndustries, getIndustryBySlug } from "@/lib/industries"
+import { publicPageMetadata } from "@/lib/public-page-metadata"
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params
+  const industry = getIndustryBySlug(slug)
+  if (!industry) return {}
+  return publicPageMetadata({
+    title: `${industry.name} | VisualCNS`,
+    description: industry.description,
+    path: `/industries/${slug}`,
+  })
+}
 
 export function generateStaticParams() {
   return getIndustries().map((industry) => ({ slug: industry.slug }))

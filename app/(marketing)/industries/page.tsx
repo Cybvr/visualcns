@@ -1,9 +1,17 @@
+import { publicPageMetadata } from "@/lib/public-page-metadata"
+
 import Link from "next/link"
 import { ArrowUpRight } from "lucide-react"
 
 import { Footer } from "@/components/footer"
 import { Header } from "@/components/header"
 import { getIndustries } from "@/lib/industries"
+
+export const metadata = publicPageMetadata({
+  title: "Industries | VisualCNS",
+  description: "Explore the industries VisualCNS serves with design, software, and business systems.",
+  path: "/industries",
+})
 
 export default function IndustriesPage() {
   const industries = getIndustries()

@@ -7,6 +7,18 @@ import { Footer } from "@/components/footer"
 import { Header } from "@/components/header"
 import { Button } from "@/components/ui/button"
 import { getBrandItemBySlug, getBrandItems } from "@/lib/brands"
+import { publicPageMetadata } from "@/lib/public-page-metadata"
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params
+  const brand = getBrandItemBySlug(slug)
+  if (!brand) return {}
+  return publicPageMetadata({
+    title: `${brand.name} | VisualCNS`,
+    description: brand.description,
+    path: `/brands/${slug}`,
+  })
+}
 
 export function generateStaticParams() {
   return getBrandItems().map((item) => ({ slug: item.slug }))

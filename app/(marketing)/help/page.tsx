@@ -1,3 +1,4 @@
+import { publicPageMetadata } from "@/lib/public-page-metadata"
 import type { Metadata } from "next"
 import { Suspense } from "react"
 
@@ -8,10 +9,11 @@ import { HelpChat } from "./help-chat"
 import { HelpResources } from "./help-resources"
 import { HelpTabs } from "./help-tabs"
 
-export const metadata: Metadata = {
+export const metadata: Metadata = publicPageMetadata({
   title: "Help | VisualCNS",
   description: "Ask Ngai, read the FAQs, browse VisualCNS resources, or explore ready-made workflows.",
-}
+  path: "/help",
+})
 
 export default function HelpPage() {
   return (

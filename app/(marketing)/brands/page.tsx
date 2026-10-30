@@ -1,3 +1,5 @@
+import { publicPageMetadata } from "@/lib/public-page-metadata"
+
 import Image from "next/image"
 import Link from "next/link"
 import { ArrowUpRight } from "lucide-react"
@@ -5,6 +7,12 @@ import { ArrowUpRight } from "lucide-react"
 import { Footer } from "@/components/footer"
 import { Header } from "@/components/header"
 import { getBrandItems } from "@/lib/brands"
+
+export const metadata = publicPageMetadata({
+  title: "Brands | VisualCNS",
+  description: "Discover the product businesses and brands in the VisualCNS ecosystem.",
+  path: "/brands",
+})
 
 export default function BrandsPage() {
   const items = getBrandItems()

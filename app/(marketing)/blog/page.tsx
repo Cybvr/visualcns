@@ -1,9 +1,17 @@
+import { publicPageMetadata } from "@/lib/public-page-metadata"
+
 import Link from "next/link"
 import Image from "next/image"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { Card, CardHeader, CardTitle } from "@/components/ui/card"
 import { getBlogCategories, getBlogPosts } from "@/lib/blog"
+
+export const metadata = publicPageMetadata({
+  title: "VisualCNS Blog",
+  description: "Ideas and stories about brands, software, products, and business from VisualCNS.",
+  path: "/blog",
+})
 
 const posts = getBlogPosts()
 const categories = getBlogCategories()

@@ -1,11 +1,13 @@
+import { publicPageMetadata } from "@/lib/public-page-metadata"
 import type { Metadata } from "next"
 
 import { LegalPage, type LegalSection } from "@/components/legal-page"
 
-export const metadata: Metadata = {
+export const metadata: Metadata = publicPageMetadata({
   title: "Cookie Policy | VisualCNS",
   description: "How VisualCNS uses cookies and similar technologies across its websites and services.",
-}
+  path: "/cookies",
+})
 
 const sections: LegalSection[] = [
   {

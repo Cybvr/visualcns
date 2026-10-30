@@ -1,13 +1,15 @@
+import { publicPageMetadata } from "@/lib/public-page-metadata"
 import type { Metadata } from "next"
 
 import { Footer } from "@/components/footer"
 import { Header } from "@/components/header"
 import { FaqList, GENERAL_FAQS } from "@/components/faq-list"
 
-export const metadata: Metadata = {
+export const metadata: Metadata = publicPageMetadata({
   title: "FAQ | VisualCNS",
   description: "Answers to common questions about VisualCNS, our services, and how we work.",
-}
+  path: "/faq",
+})
 
 export default function FAQPage() {
   return (

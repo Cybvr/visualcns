@@ -5,6 +5,19 @@ import { notFound } from "next/navigation"
 import { Footer } from "@/components/footer"
 import { Header } from "@/components/header"
 import { getCapabilities, getCapabilityBySlug, type Capability } from "@/lib/capabilities"
+import { publicPageMetadata } from "@/lib/public-page-metadata"
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params
+  const capability = getCapabilityBySlug(slug)
+  if (!capability) return {}
+  return publicPageMetadata({
+    title: `${capability.title} | VisualCNS`,
+    description: capability.description,
+    path: `/capabilities/${slug}`,
+    ...(capability.image ? { image: capability.image } : {}),
+  })
+}
 
 export function generateStaticParams() {
   return getCapabilities().map((capability) => ({ slug: capability.slug }))

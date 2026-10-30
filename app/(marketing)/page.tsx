@@ -1,3 +1,5 @@
+import { publicPageMetadata } from "@/lib/public-page-metadata"
+
 import Link from "next/link"
 import { ArrowUpRight } from "lucide-react"
 
@@ -12,6 +14,12 @@ import { getCapabilities } from "@/lib/capabilities"
 import { getBlogPosts } from "@/lib/blog"
 
 import "./home.css"
+
+export const metadata = publicPageMetadata({
+  title: "VisualCNS - Software Systems for Modern Businesses",
+  description: "VisualCNS builds software systems, product businesses, and AI-enabled tools from Lagos for modern teams.",
+  path: "/",
+})
 
 const capabilities = getCapabilities()
 const products = getBrandItems().filter((b) => b.slug !== "visualhq")

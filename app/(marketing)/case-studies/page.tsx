@@ -1,13 +1,15 @@
+import { publicPageMetadata } from "@/lib/public-page-metadata"
 import type { Metadata } from "next"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
 import { PortfolioSection } from "@/components/portfolio-section"
 
-export const metadata: Metadata = {
+export const metadata: Metadata = publicPageMetadata({
   title: "Case Studies | VisualCNS",
   description: "Selected VisualCNS client projects across brand, product, and platform work.",
-}
+  path: "/case-studies",
+})
 
 export default function CaseStudiesPage() {
   return (

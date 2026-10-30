@@ -5,6 +5,19 @@ import { ArrowLeft, ArrowUpRight } from "lucide-react"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { getBlogPostBySlug, getBlogPosts } from "@/lib/blog"
+import { publicPageMetadata } from "@/lib/public-page-metadata"
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params
+  const post = getBlogPostBySlug(slug)
+  if (!post) return {}
+  return publicPageMetadata({
+    title: `${post.title} | VisualCNS`,
+    description: post.excerpt,
+    path: `/blog/${slug}`,
+    ...(post.image ? { image: post.image } : {}),
+  })
+}
 
 export function generateStaticParams() {
   return getBlogPosts().map((post) => ({ slug: post.slug }))

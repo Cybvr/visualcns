@@ -1,3 +1,4 @@
+import { publicPageMetadata } from "@/lib/public-page-metadata"
 import type { Metadata } from "next"
 import Image from "next/image"
 import Link from "next/link"
@@ -9,10 +10,11 @@ import { PageHeading } from "@/components/page-heading"
 import { Button } from "@/components/ui/button"
 import { customerStories } from "@/lib/stories"
 
-export const metadata: Metadata = {
+export const metadata: Metadata = publicPageMetadata({
   title: "Stories | VisualCNS",
   description: "Stories from the people and businesses VisualCNS works with.",
-}
+  path: "/stories",
+})
 
 export default function StoriesPage() {
   return (

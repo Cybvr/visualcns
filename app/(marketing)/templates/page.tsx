@@ -1,3 +1,4 @@
+import { publicPageMetadata } from "@/lib/public-page-metadata"
 import type { Metadata } from "next"
 
 import { Footer } from "@/components/footer"
@@ -5,10 +6,11 @@ import { Header } from "@/components/header"
 import { PageHeading } from "@/components/page-heading"
 import { TemplatesSection } from "@/components/templates-section"
 
-export const metadata: Metadata = {
+export const metadata: Metadata = publicPageMetadata({
   title: "Templates",
   description: "Ready-made workflows you can set up in your agency.",
-}
+  path: "/templates",
+})
 
 export default function TemplatesPage() {
   return (
