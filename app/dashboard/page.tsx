@@ -7,6 +7,7 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react
 import { useAuth } from "@/components/auth-provider"
 import { useCampaignShare } from "@/components/dashboard/campaign-grid-card"
 import { DashboardPageSkeleton } from "@/components/dashboard/dashboard-page-skeleton"
+import { useDashboardEntryReady } from "@/components/dashboard/dashboard-entry-context"
 import { SectionHeader } from "@/components/dashboard/section-header"
 import { ThumbnailListItem } from "@/components/dashboard/thumbnail-list-item"
 import { Card, CardContent } from "@/components/ui/card"
@@ -74,6 +75,7 @@ export default function DashboardPage() {
   const router = useRouter()
   const share = useCampaignShare()
   const { user, appUser } = useAuth()
+  const markDashboardEntryReady = useDashboardEntryReady()
   const [leads, setLeads, leadsCached] = useCachedState<Lead[] | null>("leads", null)
   const [projects, setProjects, cached] = useCachedState<Project[]>("projects", [])
   const [latestPosts, setLatestPosts] = useCachedState<CampaignCreative[]>("latest-posts", [])
@@ -84,6 +86,10 @@ export default function DashboardPage() {
   const [leadsLoading, setLeadsLoading] = useState(!leadsCached)
   const [error, setError] = useState<string | null>(null)
   const [greeting, setGreeting] = useState("Good morning")
+
+  useEffect(() => {
+    if (!loading && !leadsLoading) markDashboardEntryReady?.()
+  }, [loading, leadsLoading, markDashboardEntryReady])
 
   const fetchData = useCallback(async () => {
     setError(null)
