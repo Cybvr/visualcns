@@ -23,11 +23,12 @@ function slug(value: string) {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")
 }
 
-function fromRows(group: string, rows: (ServiceRow & { workflow?: string })[]): CartService[] {
+/** idPrefix keeps ids stable when a group is renamed, so saved carts still match. */
+function fromRows(group: string, rows: (ServiceRow & { workflow?: string })[], idPrefix = group): CartService[] {
   return rows.flatMap((row) => {
     if (row.price === "free" || row.price.suffix === "/hr") return []
     return [{
-      id: slug(`${group}-${row.service}`),
+      id: slug(`${idPrefix}-${row.service}`),
       group,
       name: row.service,
       scope: row.scope,
@@ -41,9 +42,9 @@ function fromRows(group: string, rows: (ServiceRow & { workflow?: string })[]): 
 export const CART_SERVICES: CartService[] = [
   // The generic retainer row is replaced by its three tiers below.
   ...fromRows("Development", customDevelopmentRows.filter((row) => row.service !== "Maintenance Retainer")),
-  ...fromRows("Platforms", platformRows),
+  ...fromRows("Design", platformRows, "Platforms"),
   ...fromRows("Growth", growthPlanRows),
-  ...fromRows("Workflows", workflowPlanRows),
+  ...fromRows("Growth", workflowPlanRows, "Workflows"),
   ...retainers.map((tier) => ({
     id: slug(`maintenance-${tier.name}`),
     group: "Maintenance",

@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { Check, Code2, Globe, Plus, TrendingUp, Workflow, Wrench, type LucideIcon } from "lucide-react"
+import { Check, Code2, Globe, Plus, TrendingUp, Wrench, type LucideIcon } from "lucide-react"
 
 import { useCart } from "@/components/dashboard/use-cart"
 import { useLocalCurrency } from "@/components/use-local-currency"
@@ -13,7 +13,7 @@ import { CART_SERVICES, type CartService } from "@/lib/cart"
 import { formatPrice } from "@/lib/plans"
 
 /** Each group's icon, for the featured cards. */
-const GROUP_ICON: Record<string, LucideIcon> = { Development: Code2, Platforms: Globe, Growth: TrendingUp, Workflows: Workflow, Maintenance: Wrench }
+const GROUP_ICON: Record<string, LucideIcon> = { Development: Code2, Design: Globe, Growth: TrendingUp, Maintenance: Wrench }
 
 /** The two offers shown large at the top. */
 const FEATURED_IDS = ["growth-visualhq-pro", "development-full-web-app"]

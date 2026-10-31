@@ -10,7 +10,6 @@ import {
   MonitorSmartphone,
   MousePointer2,
   Plug,
-  Radio,
   ShieldCheck,
   ShoppingCart,
   TrendingUp,
@@ -259,6 +258,6 @@ export function ServiceArt({ service, index = 0 }: { service: CartService; index
     if (service.name === "Signal") return <ChartArt label="Leads this month" value="+17.5%" />
     return <FlowArt steps={service.steps} tone={index % 2 ? "bright" : "night"} />
   }
-  const fallback: Record<string, LucideIcon> = { Development: Layers, Platforms: Globe, Growth: TrendingUp, Workflows: Radio, Maintenance: ShieldCheck }
+  const fallback: Record<string, LucideIcon> = { Development: Layers, Design: Globe, Growth: TrendingUp, Maintenance: ShieldCheck }
   return <SpotlightArt icon={fallback[service.group] ?? Users} />
 }
