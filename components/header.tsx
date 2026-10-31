@@ -40,9 +40,8 @@ const consultingNavItems = [
 const bookNowHref = "/contact"
 
 // Rendered after the Help dropdown so the order reads:
-// Customers, Products, Solutions, Help, Services, Pricing.
+// Customers, Products, Solutions, Help, Pricing.
 const trailingNavItems = [
-  { name: "Services", href: "/services" },
   { name: "Pricing", href: "/pricing" },
 ]
 
@@ -91,9 +90,8 @@ const mobileMoreRows: MenuRow[] = [
   { number: num(1), title: "Products", items: productNavItems },
   { number: num(2), title: "Solutions", items: solutionsRows.map(({ title, href }) => ({ name: title, href: href as string })) },
   { number: num(3), title: "Help", items: helpNavItems },
-  { number: num(4), title: "Services", href: "/services" },
-  { number: num(5), title: "Pricing", href: "/pricing" },
-  ...MENU_ROWS.map((row, i) => ({ ...row, number: num(i + 6) }) as MenuRow),
+  { number: num(4), title: "Pricing", href: "/pricing" },
+  ...MENU_ROWS.map((row, i) => ({ ...row, number: num(i + 5) }) as MenuRow),
 ]
 
 type MenuKind = "more" | "customers" | "products" | "solutions" | "help"
@@ -336,7 +334,7 @@ export function Header() {
           </div>
 
           <div className="flex items-center gap-2">
-            <CartButton cartHref="/cart" servicesHref="/services" />
+            <CartButton cartHref="/cart" servicesHref="/pricing" />
             {currentUser ? (
               <Link
                 href="/dashboard"

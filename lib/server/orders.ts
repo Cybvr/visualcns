@@ -1,4 +1,7 @@
-import { FieldValue, type Firestore } from "firebase-admin/firestore"
+import { FieldValue, Timestamp, type Firestore } from "firebase-admin/firestore"
+
+import { GROWTH_APP_PLAN } from "@/lib/cart"
+import { PLAN_KEYS, type PlanKey } from "@/lib/subscription"
 
 import { metadataOf } from "@/lib/server/paystack"
 
@@ -25,9 +28,39 @@ export async function applyOrderCharge(db: Firestore, charge: Charge) {
   if (Math.round(Number(order.total) * 100) !== charge.amount || (charge.currency && charge.currency !== (order.currency || "NGN"))) return ""
   if (order.status !== "paid") {
     await ref.set({ status: "paid", paidAt: FieldValue.serverTimestamp(), updatedAt: FieldValue.serverTimestamp() }, { merge: true })
+    await grantGrowthAccess(db, order).catch((error) => console.error("Growth access grant failed", error))
     await notifyPaidOrder(orderId, order).catch((error) => console.error("Paid order email failed", error))
   }
   return orderId
+}
+
+const MONTH_MS = 30 * 24 * 60 * 60 * 1000
+
+/**
+ * A paid Growth plan includes Pass, Pulse and Ngai: give the buyer's company a
+ * month of the matching app plan, added on to any time it already has.
+ */
+async function grantGrowthAccess(db: Firestore, order: Record<string, any>) {
+  const companyId = String(order.companyId || "")
+  const items = Array.isArray(order.items) ? order.items as { id?: string }[] : []
+  const plans = items.map((item) => GROWTH_APP_PLAN[String(item.id || "")]).filter((plan): plan is PlanKey => Boolean(plan))
+  if (!companyId || plans.length === 0) return
+  const plan = plans.reduce((best, next) => (PLAN_KEYS.indexOf(next) > PLAN_KEYS.indexOf(best) ? next : best))
+  const ref = db.collection("visitorBilling").doc(companyId)
+  await db.runTransaction(async (tx) => {
+    const current = (await tx.get(ref)).data() ?? {}
+    const from = Math.max(Date.now(), current.paidUntil?.toMillis?.() ?? 0)
+    const keep = PLAN_KEYS.indexOf(current.plan) > PLAN_KEYS.indexOf(plan) && (current.paidUntil?.toMillis?.() ?? 0) > Date.now()
+    tx.set(ref, {
+      agencyId: String(order.agencyId || current.agencyId || ""),
+      companyId,
+      status: "active",
+      plan: keep ? current.plan : plan,
+      interval: "monthly",
+      paidUntil: Timestamp.fromMillis(from + MONTH_MS),
+      updatedAt: FieldValue.serverTimestamp(),
+    }, { merge: true })
+  })
 }
 
 /**

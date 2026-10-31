@@ -103,6 +103,8 @@ export type OfferCardProps = {
   ctaHref: string
   /** Opens the CTA in a new tab, for payment links that leave the site. */
   ctaExternal?: boolean
+  /** Runs before following the CTA link, e.g. to add the item to the cart. */
+  onCtaClick?: () => void
   /** Rendered under the CTA, e.g. a secondary action on a template card. */
   footer?: ReactNode
 }
@@ -122,6 +124,7 @@ export function OfferCard({
   ctaLabel,
   ctaHref,
   ctaExternal,
+  onCtaClick,
   footer,
 }: OfferCardProps) {
   const Icon = icon ? (planIcons[icon] as ComponentType<{ className?: string }>) : undefined
@@ -191,7 +194,7 @@ export function OfferCard({
             {ctaLabel}
           </a>
         ) : (
-          <Link href={ctaHref}>{ctaLabel}</Link>
+          <Link href={ctaHref} onClick={onCtaClick}>{ctaLabel}</Link>
         )}
       </Button>
 

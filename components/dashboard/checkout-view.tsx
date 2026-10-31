@@ -140,13 +140,13 @@ function CheckoutContent({ checkoutPath, doneHref }: { checkoutPath: string; don
 
   const total = cartTotal(items, currency)
   const cartHref = checkoutPath.replace(/\/checkout$/, "/cart")
-  const servicesHref = checkoutPath.replace(/\/checkout$/, "/services")
+  const servicesHref = checkoutPath.replace(/\/checkout$/, "/pricing")
 
   if (items.length === 0) {
     return (
       <main className="mx-auto w-full max-w-lg px-4 pt-10 pb-12 text-center sm:px-6">
         <div className="text-sm text-foreground">Your cart is empty.</div>
-        <Button asChild variant="outline" className="mt-4"><Link href={servicesHref}>Browse services</Link></Button>
+        <Button asChild variant="outline" className="mt-4"><Link href={servicesHref}>See pricing</Link></Button>
       </main>
     )
   }

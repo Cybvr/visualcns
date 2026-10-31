@@ -71,7 +71,7 @@ export const PLANS: Record<PlanKey, Plan> = {
     staff: Infinity,
     pulseScans: Infinity,
     summary: "For larger companies that want everything.",
-    features: ["VisualCNS Pass visitor sign-in for unlimited staff", "VisualCNS Pulse: unlimited scans", "Ngai assistant", "Client portal for your team", "Slack, Teams and webhook alerts", "Growth workflows: Marketing, Orbit, Studio, Launch, Signal and Atlas", "Priority support"],
+    features: ["VisualCNS Pass visitor sign-in for unlimited staff", "VisualCNS Pulse: unlimited scans", "Ngai assistant", "Client portal for your team", "Slack, Teams and webhook alerts", "Priority support"],
   },
 }
 export const PLAN_KEYS: PlanKey[] = ["starter", "business", "pro"]

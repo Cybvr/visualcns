@@ -43,7 +43,7 @@ export function CartButton({ cartHref, servicesHref }: { cartHref: string; servi
           <div className="px-4 py-8 text-center">
             <p className="text-sm text-muted-foreground">Your cart is empty.</p>
             <Button asChild variant="outline" size="sm" className="mt-4">
-              <Link href={servicesHref} onClick={() => setOpen(false)}>Browse services</Link>
+              <Link href={servicesHref} onClick={() => setOpen(false)}>See pricing</Link>
             </Button>
           </div>
         ) : (

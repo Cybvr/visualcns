@@ -7,8 +7,11 @@ import { useCompanyPage } from "@/components/company/company-page-context"
 import { useSubscription } from "@/components/company/company-plan"
 import { useLocalCurrency } from "@/components/use-local-currency"
 import { useSidebar } from "@/components/ui/sidebar"
-import { billingMoney, planAccess, planPrice } from "@/lib/subscription"
+import { formatPrice, growthPlanRows } from "@/lib/plans"
+import { planAccess } from "@/lib/subscription"
 import { cn } from "@/lib/utils"
+
+const GROWTH_PRO_PRICE = growthPlanRows.find((row) => row.service === "Pro")?.price ?? "free"
 
 /** A tilted purple tile with an icon, floating over the card's glow. */
 function Tile({ icon: Icon, className }: { icon: typeof Sparkles; className: string }) {
@@ -22,7 +25,7 @@ function Tile({ icon: Icon, className }: { icon: typeof Sparkles; className: str
 /**
  * The upgrade offer at the bottom of the company sidebar, for the people who
  * manage the team: a dark card with a purple glow, the starting price in the
- * visitor's money, and a button to the marketing services page. Hidden once a plan is paid.
+ * visitor's money, and a button to the pricing page. Hidden once a plan is paid.
  */
 export function UpgradeCard() {
   const { company, canManageTeam } = useCompanyPage()
@@ -34,7 +37,7 @@ export function UpgradeCard() {
   const paid = access?.state === "active" && billing?.status !== "cancelled"
   if (!canManageTeam || paid) return null
 
-  const servicesHref = `/${encodeURIComponent(company.slug || company.id)}/services`
+  const servicesHref = `/${encodeURIComponent(company.slug || company.id)}/pricing`
   const closeMenu = () => setOpenMobile(false)
 
   return (
@@ -57,7 +60,7 @@ export function UpgradeCard() {
         <div className="relative pr-16 text-sm font-semibold leading-snug text-white">Unlock Pass, Reports and Ngai</div>
         <div className="relative mt-2.5 flex items-center justify-between gap-2">
           <div className="flex items-baseline gap-1 text-white">
-            <span className="text-base font-bold tracking-tight">{billingMoney(planPrice("starter", "monthly", currency), currency)}</span>
+            <span className="text-base font-bold tracking-tight">{formatPrice(GROWTH_PRO_PRICE, currency).replace(/\/mo$/, "")}</span>
             <span className="text-xs text-white/60">/mo</span>
           </div>
           <Link

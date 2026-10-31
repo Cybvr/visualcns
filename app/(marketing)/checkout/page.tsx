@@ -9,7 +9,7 @@ export default function CheckoutPage() {
     <div className="min-h-screen bg-background">
       <Header />
       <div className="pb-20 pt-32">
-        <CheckoutView checkoutPath="/checkout" doneHref="/services" />
+        <CheckoutView checkoutPath="/checkout" doneHref="/pricing" />
       </div>
       <Footer />
     </div>

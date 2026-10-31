@@ -57,7 +57,7 @@ export function CartView({ checkoutHref, servicesHref }: { checkoutHref: string;
             <div className="mt-4 rounded-2xl bg-muted/50 px-6 py-12 text-center">
               <ShoppingCart className="mx-auto size-6 text-muted-foreground" aria-hidden="true" />
               <div className="mt-3 text-sm text-foreground">Your cart is empty.</div>
-              <Button asChild variant="outline" className="mt-4"><Link href={servicesHref}>Browse services</Link></Button>
+              <Button asChild variant="outline" className="mt-4"><Link href={servicesHref}>See pricing</Link></Button>
             </div>
           ) : (
             <ul className="mt-4 divide-y divide-border border-y border-border">

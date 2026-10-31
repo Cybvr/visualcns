@@ -125,8 +125,8 @@ export const growthPlanRows: GrowthPlan[] = [
     scope: "One brand health check to see where you stand",
     price: "free",
     timeline: "One-off",
-    included: "Brand health check",
-    features: ["Brand health check across search, social and reviews"],
+    included: "Brand health check, 30-day trial of Pass, Pulse and Ngai",
+    features: ["Brand health check across search, social and reviews", "30-day free trial of Pass, Pulse and Ngai"],
   },
   {
     service: "Pro",
@@ -135,7 +135,7 @@ export const growthPlanRows: GrowthPlan[] = [
     price: { amount: 200000, suffix: "/mo" },
     timeline: "Monthly",
     included: "Social",
-    features: ["Social media content, posting and replies"],
+    features: ["Social media content, posting and replies", "Pass visitor sign-in for up to 25 staff", "Pulse: 4 scans a month", "Ngai assistant", "Client portal for your team", "Slack, Teams and webhook alerts"],
   },
   {
     service: "Max",
@@ -144,7 +144,7 @@ export const growthPlanRows: GrowthPlan[] = [
     price: { amount: 500000, suffix: "/mo" },
     timeline: "Monthly",
     included: "Social, ads, SEO",
-    features: ["Everything in Pro", "Paid ads management", "SEO"],
+    features: ["Everything in Pro", "Paid ads management", "SEO", "Pass for unlimited staff", "Pulse: unlimited scans"],
   },
   {
     service: "Ultra",
@@ -153,7 +153,7 @@ export const growthPlanRows: GrowthPlan[] = [
     price: { amount: 850000, suffix: "/mo" },
     timeline: "Monthly",
     included: "SEO, social, ads, brand health, monitoring",
-    features: ["Everything in Max", "Ongoing brand health", "Monitoring and alerts"],
+    features: ["Everything in Max", "Ongoing brand health", "Monitoring and alerts", "Priority support"],
   },
 ]
 

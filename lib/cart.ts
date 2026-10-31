@@ -1,3 +1,4 @@
+import type { PlanKey } from "@/lib/subscription"
 import { customDevelopmentRows, growthPlanRows, ngnToUsd, platformRows, retainers, type Currency, type Price, type ServiceRow } from "@/lib/plans"
 
 /**
@@ -13,6 +14,10 @@ export type CartService = {
   scope: string
   price: Exclude<Price, "free">
   tools?: string[]
+  icon?: string
+  timeline?: string
+  /** What the buyer gets, one line each. */
+  features?: string[]
   /** A retainer's headline numbers, e.g. ["5 hrs", "48-hour"]. */
   highlights?: string[]
 }
@@ -22,7 +27,7 @@ function slug(value: string) {
 }
 
 /** idPrefix keeps ids stable when a group is renamed, so saved carts still match. */
-function fromRows(group: string, rows: ServiceRow[], idPrefix = group): CartService[] {
+function fromRows(group: string, rows: (ServiceRow & { features?: string[] })[], idPrefix = group): CartService[] {
   return rows.flatMap((row) => {
     if (row.price === "free" || row.price.suffix === "/hr") return []
     return [{
@@ -32,6 +37,9 @@ function fromRows(group: string, rows: ServiceRow[], idPrefix = group): CartServ
       scope: row.scope,
       price: row.price,
       tools: row.tools,
+      icon: row.icon,
+      timeline: row.timeline,
+      features: row.features ?? [row.included],
     }]
   })
 }
@@ -48,8 +56,14 @@ export const CART_SERVICES: CartService[] = [
     scope: tier.specs.map((spec) => ("text" in spec ? spec.text : `${spec.strong} ${spec.rest ?? ""}`.trim())).join(" - "),
     price: { amount: tier.amount, suffix: "/mo" },
     highlights: tier.specs.flatMap((spec) => ("strong" in spec ? [spec.strong] : [])),
+    icon: tier.icon,
+    timeline: "Monthly",
+    features: tier.specs.map((spec) => ("text" in spec ? spec.text : `${spec.strong} ${spec.rest ?? ""}`.trim())),
   })),
 ]
+
+/** The app plan (Pass, Pulse and Ngai allowances) a paid Growth tier unlocks for a month. */
+export const GROWTH_APP_PLAN: Record<string, PlanKey> = { "growth-pro": "business", "growth-max": "pro", "growth-ultra": "pro" }
 
 const BY_ID = new Map(CART_SERVICES.map((service) => [service.id, service]))
 
