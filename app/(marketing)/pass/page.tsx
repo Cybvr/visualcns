@@ -5,7 +5,11 @@ import { ArrowRight, Bell, FileSignature, IdCard, ShieldAlert, Users } from "luc
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
+import { growthPlanRows } from "@/lib/plans"
 import { naira, PLANS, TRIAL_DAYS } from "@/lib/subscription"
+
+/** Growth plan prices in Naira, from the pricing page. */
+const GROWTH_NGN = Object.fromEntries(growthPlanRows.map((row) => [row.service.toLowerCase(), row.price === "free" ? 0 : row.price.amount])) as Record<string, number>
 import {
   AlertsIllustration,
   AuditReadyIllustration,
@@ -136,7 +140,7 @@ const FAQS = [
   },
   {
     question: "How much does it cost?",
-    answer: `Pass is part of every VisualCNS plan. Starter is ${naira(PLANS.starter.monthlyNaira)} a month for up to ${PLANS.starter.staff} staff, Business is ${naira(PLANS.business.monthlyNaira)} a month for up to ${PLANS.business.staff} staff, and Pro is ${naira(PLANS.pro.monthlyNaira)} a month for unlimited staff. Pay yearly and get 2 months free. Every plan also includes Pulse and Ngai.`,
+    answer: `Pass is part of every Growth plan. Pro is ${naira(GROWTH_NGN.pro)} a month for up to ${PLANS.business.staff} staff, Max is ${naira(GROWTH_NGN.max)} and Ultra is ${naira(GROWTH_NGN.ultra)} a month, both for unlimited staff. Every plan also includes Pulse and Ngai, and you can start free with a ${TRIAL_DAYS}-day trial.`,
   },
   {
     question: "Is there a free trial?",

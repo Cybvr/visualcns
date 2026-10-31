@@ -2,7 +2,11 @@ import type { ReactNode } from "react"
 import Link from "next/link"
 
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
-import { naira, PLANS, TRIAL_DAYS } from "@/lib/subscription"
+import { growthPlanRows } from "@/lib/plans"
+import { naira, TRIAL_DAYS } from "@/lib/subscription"
+
+/** Growth plan prices in Naira, from the pricing page. */
+const GROWTH_NGN = Object.fromEntries(growthPlanRows.map((row) => [row.service.toLowerCase(), row.price === "free" ? 0 : row.price.amount])) as Record<string, number>
 
 export type Faq = { question: string; answer: ReactNode }
 
@@ -10,7 +14,7 @@ export type Faq = { question: string; answer: ReactNode }
 export const PRODUCT_FAQS: Faq[] = [
   {
     question: "What plans do you have?",
-    answer: `One VisualCNS plan in three sizes: Starter (${naira(PLANS.starter.monthlyNaira)} a month), Business (${naira(PLANS.business.monthlyNaira)} a month) and Pro (${naira(PLANS.pro.monthlyNaira)} a month). Pay yearly and get 2 months free. Every plan includes Pass, Pulse and Ngai, and starts with a ${TRIAL_DAYS}-day free trial.`,
+    answer: `Growth comes in four plans: Free, Pro (${naira(GROWTH_NGN.pro)} a month), Max (${naira(GROWTH_NGN.max)} a month) and Ultra (${naira(GROWTH_NGN.ultra)} a month). Every paid plan includes Pass, Pulse and Ngai, and Free starts with a ${TRIAL_DAYS}-day trial.`,
   },
   {
     question: "What is Pass?",

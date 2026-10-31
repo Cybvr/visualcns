@@ -65,6 +65,9 @@ export const CART_SERVICES: CartService[] = [
 /** The app plan (Pass, Pulse and Ngai allowances) a paid Growth tier unlocks for a month. */
 export const GROWTH_APP_PLAN: Record<string, PlanKey> = { "growth-pro": "business", "growth-max": "pro", "growth-ultra": "pro" }
 
+/** The Growth plans someone can buy, cheapest first. */
+export const GROWTH_TIERS: CartService[] = CART_SERVICES.filter((service) => service.group === "Growth")
+
 const BY_ID = new Map(CART_SERVICES.map((service) => [service.id, service]))
 
 export function cartService(id: string) {

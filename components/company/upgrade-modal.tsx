@@ -5,7 +5,7 @@ import { Loader2 } from "lucide-react"
 import { toast } from "sonner"
 
 import { usePlanBilling } from "@/components/company/company-plan"
-import { PlanPricing } from "@/components/company/plan-pricing"
+import { activeGrowthTier, PlanPricing } from "@/components/company/plan-pricing"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import {
@@ -53,6 +53,7 @@ export function UpgradeModal({ open, onOpenChange, companyId, companyName, billi
   const cancelled = billing?.status === "cancelled"
   const current: PlanKey | null = access?.state === "active" && !cancelled && isPlanKey(billing?.plan) ? billing.plan : null
   const paidInterval: PlanInterval = isPlanInterval(billing?.interval) ? billing.interval : "monthly"
+  const growth = activeGrowthTier(billing)
 
   let badge = "Free trial"
   let headline = `${TRIAL_DAYS} days free`
@@ -63,13 +64,13 @@ export function UpgradeModal({ open, onOpenChange, companyId, companyName, billi
     detail = `Choose a plan to keep going after ${shortDate(access.endsAt)}.`
   } else if (access?.state === "active") {
     badge = cancelled ? "Cancelled" : "Active"
-    headline = cancelled ? `Works until ${shortDate(access.endsAt)}` : `${PLANS[current ?? "starter"].name} · ${paidInterval === "yearly" ? "yearly" : "monthly"}`
-    detail = cancelled ? "Choose a plan to keep it going." : `Next payment ${shortDate(billing?.nextPaymentAt?.toMillis?.() ?? access.endsAt)}.`
+    headline = cancelled ? `Works until ${shortDate(access.endsAt)}` : growth ? `${growth.name} · monthly` : `${PLANS[current ?? "starter"].name} · ${paidInterval === "yearly" ? "yearly" : "monthly"}`
+    detail = cancelled ? "Choose a plan to keep it going." : growth && !subscribed ? `Runs until ${shortDate(access.endsAt)}.` : `Next payment ${shortDate(billing?.nextPaymentAt?.toMillis?.() ?? access.endsAt)}.`
   } else if (access?.state === "grace") {
     const left = daysLeft(access.endsAt)
     badge = billing?.status === "past_due" ? "Payment failed" : "Ended"
     headline = `${left} ${left === 1 ? "day" : "days"} left`
-    detail = `Everything stops after the ${GRACE_DAYS}-day grace. Update your card or choose a plan.`
+    detail = `Everything stops after the ${GRACE_DAYS}-day grace. Choose a plan to keep going.`
   } else if (access?.state === "paused") {
     badge = "Paused"
     headline = "Switched off"

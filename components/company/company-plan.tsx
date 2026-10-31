@@ -2,14 +2,14 @@
 
 import { useEffect, useState } from "react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
-import { Check, Loader2 } from "lucide-react"
 import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { currentPlan, daysLeft, GRACE_DAYS, isPlanInterval, isPlanKey, naira, PLAN_KEYS, PLANS, planAccess, planPrice, staffLabel, TRIAL_DAYS, type PlanInterval, type PlanKey, type Subscription } from "@/lib/subscription"
+import { activeGrowthTier, PlanPricing } from "@/components/company/plan-pricing"
+import { useLocalCurrency } from "@/components/use-local-currency"
+import { formatPrice } from "@/lib/plans"
+import { currentPlan, daysLeft, GRACE_DAYS, isPlanInterval, isPlanKey, naira, PLANS, planAccess, planPrice, staffLabel, TRIAL_DAYS, type PlanInterval, type PlanKey, type Subscription } from "@/lib/subscription"
 import { watchSubscription } from "@/lib/visitors"
 import { cn } from "@/lib/utils"
 
@@ -71,25 +71,22 @@ export function usePaymentReturn(companyId: string, setBusy?: (busy: boolean) =>
 }
 
 /**
- * The company's VisualCNS plan: trial, paid or paused, with the three tiers
- * monthly or yearly. Also confirms a payment when Paystack sends the payer back.
+ * The company's VisualCNS plan: trial, paid or paused, with the Growth plans to
+ * buy through the cart. Also confirms a payment when Paystack sends a payer of
+ * an older subscription back.
  */
 export function CompanyPlan({ companyId, billing, seats = null, className, expanded = false, showSummary = true, showPlans = true }: { companyId: string; billing: Subscription | null | undefined; seats?: number | null; className?: string; /** Shows the plans straight away with no toggle, for use inside a modal. */ expanded?: boolean; /** Hides the current-plan summary when the plan picker is displayed separately. */ showSummary?: boolean; /** Hides the plan picker when only the current-plan summary is needed. */ showPlans?: boolean }) {
   const call = usePlanBilling(companyId)
-  const pathname = usePathname() ?? ""
-  const searchParams = useSearchParams()
+  const currency = useLocalCurrency()
   const [busy, setBusy] = useState(false)
   const [plansOpen, setPlansOpen] = useState(false)
-  const [interval, setInterval] = useState<PlanInterval>("monthly")
 
   usePaymentReturn(companyId, setBusy)
 
-  async function openPaystack(action: "subscribe" | "manage", plan?: PlanKey) {
+  async function manage() {
     setBusy(true)
     try {
-      const params = new URLSearchParams(searchParams?.toString())
-      const returnTo = params.size ? `${pathname}?${params}` : pathname
-      const { url } = await call(action, plan ? { plan, interval, returnTo } : {})
+      const { url } = await call("manage", {})
       if (url) window.location.assign(url)
     } catch (reason) {
       toast.error(reason instanceof Error ? reason.message : "Something went wrong. Please try again.")
@@ -103,7 +100,11 @@ export function CompanyPlan({ companyId, billing, seats = null, className, expan
   const cancelled = billing?.status === "cancelled"
   const plan: PlanKey | null = isPlanKey(billing?.plan) ? billing.plan : null
   const paidInterval: PlanInterval = isPlanInterval(billing?.interval) ? billing.interval : "monthly"
-  const planLabel = plan ? `${PLANS[plan].name} · ${naira(planPrice(plan, paidInterval))} a ${paidInterval === "yearly" ? "year" : "month"}` : ""
+  const growth = activeGrowthTier(billing)
+  // A Growth plan bought through the cart, or an older Starter/Business/Pro subscription.
+  const paidName = growth?.name ?? (plan ? PLANS[plan].name : "")
+  const paidPrice = growth ? formatPrice(growth.price, currency) : plan ? `${naira(planPrice(plan, paidInterval))}/${paidInterval === "yearly" ? "yr" : "mo"}` : ""
+  const endsLabel = (ms: number) => growth && !subscribed ? `Runs until ${shortDate(ms)}. Buy again to keep it going.` : `Next payment ${shortDate(billing?.nextPaymentAt?.toMillis?.() ?? ms)}.`
 
   let title = `${TRIAL_DAYS}-day free trial`
   let detail = "No card needed."
@@ -113,13 +114,13 @@ export function CompanyPlan({ companyId, billing, seats = null, className, expan
     title = `Free trial · ${left} ${left === 1 ? "day" : "days"} left`
     detail = `Choose a plan to keep going after ${shortDate(access.endsAt)}.`
   } else if (access?.state === "active") {
-    title = cancelled ? `Cancelled · works until ${shortDate(access.endsAt)}` : `Paid · ${planLabel}`
-    detail = cancelled ? "Choose a plan to keep it going." : `Next payment ${shortDate(billing?.nextPaymentAt?.toMillis?.() ?? access.endsAt)}.`
+    title = cancelled ? `Cancelled · works until ${shortDate(access.endsAt)}` : `Paid · ${paidName} · ${paidPrice}`
+    detail = cancelled ? "Choose a plan to keep it going." : endsLabel(access.endsAt)
     tone = cancelled ? "text-amber-600" : "text-emerald-600"
   } else if (access?.state === "grace") {
     const left = daysLeft(access.endsAt)
-    title = billing?.status === "past_due" ? "Payment didn't go through" : "Subscription ended"
-    detail = `Everything stops in ${left} ${left === 1 ? "day" : "days"} (${GRACE_DAYS}-day grace). Update your card or choose a plan.`
+    title = billing?.status === "past_due" ? "Payment didn't go through" : "Plan ended"
+    detail = `Everything stops in ${left} ${left === 1 ? "day" : "days"} (${GRACE_DAYS}-day grace). Choose a plan to keep going.`
     tone = "text-amber-600"
   } else if (access?.state === "paused") {
     title = "Paused"
@@ -127,16 +128,12 @@ export function CompanyPlan({ companyId, billing, seats = null, className, expan
     tone = "text-destructive"
   }
 
-  const choosePlan = !access || access.state === "trial" || access.state === "paused" || cancelled || (access.state === "grace" && !subscribed)
-  const upgrades = plan ? PLAN_KEYS.slice(PLAN_KEYS.indexOf(plan) + 1) : []
-  const plansToShow: PlanKey[] = expanded ? PLAN_KEYS : choosePlan ? PLAN_KEYS : access?.state === "active" ? upgrades : []
-  const currentPaidPlan = access && (access.state === "active" || access.state === "grace") ? plan : null
+  const paid = access && (access.state === "active" || access.state === "grace")
   const appliedPlan = currentPlan(billing)
-  const paidPlan = currentPaidPlan ? PLANS[appliedPlan] : null
-  const expandedPlanName = access?.state === "trial" ? "Free trial" : paidPlan?.name ?? "No active plan"
-  const expandedPrice = paidPlan ? naira(planPrice(appliedPlan, paidInterval)) : "Free"
-  const expandedCycle = paidPlan ? (paidInterval === "yearly" ? "Yearly" : "Monthly") : "Trial"
-  const expandedDateLabel = access?.state === "trial" ? `Ends ${shortDate(access.endsAt)}` : paidPlan ? `Next charge ${shortDate(billing?.nextPaymentAt?.toMillis?.() ?? access?.endsAt ?? Date.now())}` : "Choose a plan to continue"
+  const expandedPlanName = access?.state === "trial" ? "Free trial" : paid && paidName ? paidName : "No active plan"
+  const expandedPrice = paid && paidPrice ? paidPrice : "Free"
+  const expandedCycle = paid ? (growth || paidInterval === "monthly" ? "Monthly" : "Yearly") : "Trial"
+  const expandedDateLabel = access?.state === "trial" ? `Ends ${shortDate(access.endsAt)}` : paid && access ? (growth && !subscribed ? `Runs until ${shortDate(access.endsAt)}` : `Next charge ${shortDate(billing?.nextPaymentAt?.toMillis?.() ?? access.endsAt)}`) : "Choose a plan to continue"
   const seatLimit = PLANS[appliedPlan].staff
   const seatPercent = seats !== null && Number.isFinite(seatLimit) ? Math.min(100, Math.round((seats / seatLimit) * 100)) : 0
   const showManage = subscribed && !(cancelled && access?.state === "paused")
@@ -150,7 +147,7 @@ export function CompanyPlan({ companyId, billing, seats = null, className, expan
             {expanded ? (
               <>
                 <p className="surface-record-title mt-1">{expandedPlanName}</p>
-                <p className="surface-metric mt-3">{expandedPrice}{paidPlan && <span className="surface-body ml-1 font-normal">/ {paidInterval === "yearly" ? "year" : "month"}</span>}</p>
+                <p className="surface-metric mt-3">{expandedPrice}</p>
                 <p className={`surface-body mt-2 font-medium ${tone}`}>{title}</p>
                 <p className="surface-body mt-1">{detail}</p>
               </>
@@ -162,13 +159,13 @@ export function CompanyPlan({ companyId, billing, seats = null, className, expan
             )}
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            {plansToShow.length > 0 && !expanded && (
+            {!expanded && (
               <Button type="button" variant="ghost" size="sm" onClick={() => setPlansOpen((open) => !open)} aria-expanded={plansOpen}>
-                {plansOpen ? "Hide plans" : choosePlan ? "View plans" : "Upgrade plan"}
+                {plansOpen ? "Hide plans" : paid ? "Change plan" : "View plans"}
               </Button>
             )}
             {showManage && (
-              <Button type="button" variant="outline" size={expanded ? "default" : "sm"} onClick={() => void openPaystack("manage")} disabled={busy}>Manage billing</Button>
+              <Button type="button" variant="outline" size={expanded ? "default" : "sm"} onClick={() => void manage()} disabled={busy}>Manage billing</Button>
             )}
           </div>
         </div>
@@ -202,52 +199,9 @@ export function CompanyPlan({ companyId, billing, seats = null, className, expan
           )}
         </>
       )}
-      {showPlans && (plansOpen || expanded) && plansToShow.length > 0 && (
-        <div className="mt-5 space-y-3">
-          {expanded && showSummary && (
-            <div>
-              <h3 className="surface-body font-semibold text-foreground">Plans</h3>
-              <p className="surface-body mt-1">Upgrade or downgrade any time. Changes take effect on your next charge.</p>
-            </div>
-          )}
-          <Tabs value={interval} onValueChange={(value) => setInterval(value as typeof interval)}>
-            <TabsList>
-              <TabsTrigger value="monthly">Monthly</TabsTrigger>
-              <TabsTrigger value="yearly">Yearly · 2 months free</TabsTrigger>
-            </TabsList>
-          </Tabs>
-          <div className="grid gap-2 sm:grid-cols-3">
-            {plansToShow.map((key) => {
-              const option = PLANS[key]
-              const tooSmall = seats !== null && seats > option.staff
-              const isCurrentPlan = expanded && currentPaidPlan === key
-              return (
-                <div key={key} className={cn("flex h-full flex-col gap-2 rounded-xl border p-3", isCurrentPlan ? "border-primary bg-primary/5" : "border-border", tooSmall && "opacity-50")}>
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="surface-body font-semibold text-foreground">{option.name}</span>
-                    {isCurrentPlan && <Badge variant="secondary">Current</Badge>}
-                  </div>
-                  <span className="surface-body font-medium text-foreground">{naira(planPrice(key, interval))}<span className="font-normal text-muted-foreground">/{interval === "yearly" ? "yr" : "mo"}</span></span>
-                  <span className="surface-body">{tooSmall ? `You have ${seats} staff` : `VisualCNS Pass for ${staffLabel(option.staff).toLowerCase()}`}</span>
-                  <ul className="surface-body space-y-1">
-                    {option.features.slice(1).map((feature) => (
-                      <li key={feature} className="flex gap-1.5"><Check className="mt-0.5 size-3 shrink-0" aria-hidden="true" />{feature}</li>
-                    ))}
-                  </ul>
-                  <Button
-                    type="button"
-                    variant={isCurrentPlan ? "secondary" : "outline"}
-                    className="mt-auto w-full"
-                    onClick={() => void openPaystack("subscribe", key)}
-                    disabled={busy || tooSmall || isCurrentPlan}
-                  >
-                    {busy && !isCurrentPlan && <Loader2 className="size-4 animate-spin" aria-hidden="true" />}
-                    {isCurrentPlan ? "Your plan" : currentPaidPlan && PLAN_KEYS.indexOf(key) < PLAN_KEYS.indexOf(currentPaidPlan) ? "Downgrade" : currentPaidPlan ? "Upgrade" : "Choose plan"}
-                  </Button>
-                </div>
-              )
-            })}
-          </div>
+      {showPlans && (plansOpen || expanded) && (
+        <div className="mt-5">
+          <PlanPricing companyId={companyId} billing={billing} seats={seats} />
         </div>
       )}
     </div>

@@ -127,6 +127,8 @@ export interface Subscription {
   customerCode?: string
   plan?: PlanKey
   interval?: PlanInterval
+  /** The Growth plan bought through the cart, e.g. "growth-max". */
+  growthTier?: string
 }
 
 type Stamp = { toMillis: () => number } | null | undefined

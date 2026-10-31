@@ -43,19 +43,23 @@ const MONTH_MS = 30 * 24 * 60 * 60 * 1000
 async function grantGrowthAccess(db: Firestore, order: Record<string, any>) {
   const companyId = String(order.companyId || "")
   const items = Array.isArray(order.items) ? order.items as { id?: string }[] : []
-  const plans = items.map((item) => GROWTH_APP_PLAN[String(item.id || "")]).filter((plan): plan is PlanKey => Boolean(plan))
-  if (!companyId || plans.length === 0) return
-  const plan = plans.reduce((best, next) => (PLAN_KEYS.indexOf(next) > PLAN_KEYS.indexOf(best) ? next : best))
+  // The highest Growth plan in the order wins; GROWTH_APP_PLAN lists them cheapest first.
+  const tierIds = Object.keys(GROWTH_APP_PLAN)
+  const tier = items.map((item) => String(item.id || "")).filter((id) => GROWTH_APP_PLAN[id]).sort((a, b) => tierIds.indexOf(b) - tierIds.indexOf(a))[0]
+  if (!companyId || !tier) return
+  const plan: PlanKey = GROWTH_APP_PLAN[tier]
   const ref = db.collection("visitorBilling").doc(companyId)
   await db.runTransaction(async (tx) => {
     const current = (await tx.get(ref)).data() ?? {}
     const from = Math.max(Date.now(), current.paidUntil?.toMillis?.() ?? 0)
-    const keep = PLAN_KEYS.indexOf(current.plan) > PLAN_KEYS.indexOf(plan) && (current.paidUntil?.toMillis?.() ?? 0) > Date.now()
+    const stillPaid = (current.paidUntil?.toMillis?.() ?? 0) > Date.now()
+    const keep = stillPaid && (PLAN_KEYS.indexOf(current.plan) > PLAN_KEYS.indexOf(plan) || tierIds.indexOf(current.growthTier) > tierIds.indexOf(tier))
     tx.set(ref, {
       agencyId: String(order.agencyId || current.agencyId || ""),
       companyId,
       status: "active",
       plan: keep ? current.plan : plan,
+      growthTier: keep && current.growthTier ? current.growthTier : tier,
       interval: "monthly",
       paidUntil: Timestamp.fromMillis(from + MONTH_MS),
       updatedAt: FieldValue.serverTimestamp(),

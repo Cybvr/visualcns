@@ -97,7 +97,7 @@ export function CompanyBillings() {
             </div>
             <Button type="button" variant="outline" className="mt-4 w-full" onClick={() => void managePaymentMethod()} disabled={paymentBusy}>
               {billing?.subscriptionCode ? <CreditCard className="size-4" aria-hidden="true" /> : <Plus className="size-4" aria-hidden="true" />}
-              {billing?.subscriptionCode ? "Manage payment method" : "Add payment method"}
+              {billing?.subscriptionCode ? "Manage payment method" : "Choose a plan"}
             </Button>
           </BillingCard>
           <BillingCard title="Billing details">
@@ -117,7 +117,7 @@ export function CompanyBillings() {
       </div>
 
       <section id="billing-plans">
-        <SectionHeading title="Plans" description="Upgrade or downgrade any time. Changes take effect on your next charge." />
+        <SectionHeading title="Plans" description="Growth plans include Pass, Pulse and Ngai. Each runs for a month from payment." />
         {/* The plan options are cards already, so they sit on the page rather than inside another card. */}
         <CompanyPlan companyId={company.id} billing={billing} seats={people.length} expanded showSummary={false} className="border-0 p-0" />
       </section>
