@@ -110,7 +110,7 @@ function WorkflowTable({ rows, currency }: { rows: WorkflowPlan[]; currency: Cur
       <table>
         <thead>
           <tr>
-            <th>Workflow</th>
+            <th>Service</th>
             <th>Best For</th>
             <th>Price</th>
             <th>Timeline</th>
@@ -736,7 +736,7 @@ export function RateCardContent() {
                 <hr className="section-rule" />
 
                 <div className="section">
-                  <h4 className="section-title">Platforms</h4>
+                  <h4 className="section-title">Design</h4>
                   <div className="section-accent" />
                 </div>
 
