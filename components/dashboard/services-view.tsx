@@ -8,6 +8,7 @@ import { useLocalCurrency } from "@/components/use-local-currency"
 import { SectionHeader } from "@/components/dashboard/section-header"
 import { ServiceArt } from "@/components/dashboard/service-art"
 import { Button } from "@/components/ui/button"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { CART_SERVICES, type CartService } from "@/lib/cart"
 import { formatPrice } from "@/lib/plans"
 
@@ -65,6 +66,25 @@ function ServiceCard({ service, price, index, cartHref, inCart, onSelect }: { se
   )
 }
 
+function ServiceGroup({ group, cartHref, price, has, add }: {
+  group: string
+  cartHref: string
+  price: (service: CartService) => string
+  has: (id: string) => boolean
+  add: (id: string) => void
+}) {
+  return (
+    <section aria-labelledby={`services-${group}`}>
+      <SectionHeader id={`services-${group}`} title={group} />
+      <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {CART_SERVICES.filter((service) => service.group === group).map((service, index) => (
+          <ServiceCard key={service.id} service={service} price={price(service)} index={index} cartHref={cartHref} inCart={has(service.id)} onSelect={() => add(service.id)} />
+        ))}
+      </div>
+    </section>
+  )
+}
+
 /** Every service on the rate card as deal cards that lead to the cart. */
 export function ServicesView({ cartHref }: { cartHref: string }) {
   const { items, add, has } = useCart()
@@ -81,20 +101,29 @@ export function ServicesView({ cartHref }: { cartHref: string }) {
         </div>
       )}
 
-      {featured.length > 0 && (
-        <section className="grid gap-4 md:grid-cols-2" aria-label="Featured">
-          {featured.map((service) => <FeaturedCard key={service.id} service={service} price={price(service)} cartHref={cartHref} inCart={has(service.id)} onSelect={() => add(service.id)} />)}
-        </section>
-      )}
+      <Tabs defaultValue="all" className="gap-8">
+        <TabsList aria-label="Service categories" className="h-auto max-w-full justify-start gap-1 overflow-x-auto rounded-full border border-border bg-muted/70 p-1 [scrollbar-width:none]">
+          <TabsTrigger value="all" className="h-9 shrink-0 flex-none rounded-full px-4 text-muted-foreground data-[state=active]:bg-card data-[state=active]:text-foreground focus-visible:ring-2 focus-visible:ring-ring">All services</TabsTrigger>
+          {GROUPS.map((group) => (
+            <TabsTrigger key={group} value={group} className="h-9 shrink-0 flex-none rounded-full px-4 text-muted-foreground data-[state=active]:bg-card data-[state=active]:text-foreground focus-visible:ring-2 focus-visible:ring-ring">{group}</TabsTrigger>
+          ))}
+        </TabsList>
 
-      {GROUPS.map((group) => (
-        <section key={group} aria-labelledby={`services-${group}`}>
-          <SectionHeader id={`services-${group}`} title={group} />
-          <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {CART_SERVICES.filter((service) => service.group === group).map((service, index) => <ServiceCard key={service.id} service={service} price={price(service)} index={index} cartHref={cartHref} inCart={has(service.id)} onSelect={() => add(service.id)} />)}
-          </div>
-        </section>
-      ))}
+        <TabsContent value="all" className="space-y-10">
+          {featured.length > 0 && (
+            <section className="grid gap-4 md:grid-cols-2" aria-label="Featured">
+              {featured.map((service) => <FeaturedCard key={service.id} service={service} price={price(service)} cartHref={cartHref} inCart={has(service.id)} onSelect={() => add(service.id)} />)}
+            </section>
+          )}
+          {GROUPS.map((group) => <ServiceGroup key={group} group={group} cartHref={cartHref} price={price} has={has} add={add} />)}
+        </TabsContent>
+
+        {GROUPS.map((group) => (
+          <TabsContent key={group} value={group}>
+            <ServiceGroup group={group} cartHref={cartHref} price={price} has={has} add={add} />
+          </TabsContent>
+        ))}
+      </Tabs>
     </main>
   )
 }
