@@ -47,9 +47,12 @@ export type EmailMessageRecord = {
   trashedAt?: string | null
 }
 
-export async function getEmailMessages(companyId: string): Promise<EmailMessageRecord[]> {
+/** A company's sent emails. Pass createdBy for client accounts: they only see emails they sent themselves. */
+export async function getEmailMessages(companyId: string, createdBy?: string): Promise<EmailMessageRecord[]> {
   if (!companyId) return []
-  const snapshot = await getDocs(query(collection(db, COLLECTION_NAME), where("agencyId", "==", await getCurrentAgencyId()), where("companyId", "==", companyId)))
+  const filters = [where("agencyId", "==", await getCurrentAgencyId()), where("companyId", "==", companyId)]
+  if (createdBy) filters.push(where("createdBy", "==", createdBy))
+  const snapshot = await getDocs(query(collection(db, COLLECTION_NAME), ...filters))
   return snapshot.docs
     .map((message) => ({ ...(message.data() as Omit<EmailMessageRecord, "id">), id: message.id }))
     .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))

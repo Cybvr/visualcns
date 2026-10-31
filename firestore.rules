@@ -179,7 +179,8 @@ service cloud.firestore {
     }
 
     match /emailMessages/{id} {
-      allow read: if agencyAdmin(resource.data) || owns(resource.data);
+      // Clients only see emails they sent themselves, never the agency's.
+      allow read: if agencyAdmin(resource.data) || (owns(resource.data) && resource.data.createdBy == request.auth.uid);
       allow create: if (isAdmin() && sameAgency(request.resource.data)) || (owns(request.resource.data)
         && request.resource.data.createdBy == request.auth.uid
         && request.resource.data.keys().hasOnly([

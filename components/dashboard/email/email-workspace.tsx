@@ -722,7 +722,7 @@ export function EmailWorkspace({ initialTab, initialMessageId }: { initialTab: E
     let active = true
     const legacyMessages = readStoredList<SentMessage>(messageStorageKey)
 
-    void (showOpsDetail ? getAllEmailMessages() : getEmailMessages(workspaceId))
+    void (showOpsDetail ? getAllEmailMessages() : getEmailMessages(workspaceId, isAdmin ? undefined : user.uid))
       .then(async (storedMessages) => {
         const storedProviderIds = new Set(storedMessages.map((message) => message.providerId))
         const messagesToMigrate = legacyMessages.filter((message) => !storedProviderIds.has(message.providerId))
@@ -751,7 +751,7 @@ export function EmailWorkspace({ initialTab, initialMessageId }: { initialTab: E
     return () => {
       active = false
     }
-  }, [messageStorageKey, showOpsDetail, user?.uid, workspaceId])
+  }, [isAdmin, messageStorageKey, showOpsDetail, user?.uid, workspaceId])
 
   useEffect(() => {
     if (!user?.uid || !workspaceId) return
