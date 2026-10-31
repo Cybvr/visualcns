@@ -64,7 +64,7 @@ export function UpgradeModal({ open, onOpenChange, companyId, companyName, billi
     detail = `Choose a plan to keep going after ${shortDate(access.endsAt)}.`
   } else if (access?.state === "active") {
     badge = cancelled ? "Cancelled" : "Active"
-    headline = cancelled ? `Works until ${shortDate(access.endsAt)}` : growth ? `${growth.name} · monthly` : `${PLANS[current ?? "starter"].name} · ${paidInterval === "yearly" ? "yearly" : "monthly"}`
+    headline = cancelled ? `Works until ${shortDate(access.endsAt)}` : growth ? `${growth.name} · ${paidInterval}` : `${PLANS[current ?? "starter"].name} · ${paidInterval === "yearly" ? "yearly" : "monthly"}`
     detail = cancelled ? "Choose a plan to keep it going." : growth && !subscribed ? `Runs until ${shortDate(access.endsAt)}.` : `Next payment ${shortDate(billing?.nextPaymentAt?.toMillis?.() ?? access.endsAt)}.`
   } else if (access?.state === "grace") {
     const left = daysLeft(access.endsAt)

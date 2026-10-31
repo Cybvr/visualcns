@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import Link from "next/link"
 
 import { OfferCard } from "@/components/offer-card"
@@ -7,8 +8,9 @@ import { useCart } from "@/components/dashboard/use-cart"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useLocalCurrency } from "@/components/use-local-currency"
-import { CART_SERVICES, type CartService } from "@/lib/cart"
+import { LISTED_SERVICES, serviceFor, type BillingInterval, type CartService } from "@/lib/cart"
 import { formatPrice, growthPlanRows } from "@/lib/plans"
+import { cn } from "@/lib/utils"
 
 const GROUPS = ["Growth", "Development", "Maintenance"] as const
 const FEATURED_ID = "growth-pro"
@@ -23,20 +25,23 @@ const TRIGGER = "h-9 shrink-0 flex-none rounded-full px-4 text-muted-foreground 
 export function PricingView({ cartHref, freeHref }: { cartHref: string; freeHref: string }) {
   const { items, add, has } = useCart()
   const currency = useLocalCurrency()
+  const [tab, setTab] = useState<string>("Growth")
+  const [interval, setInterval] = useState<BillingInterval>("monthly")
 
-  function card(service: CartService) {
+  function card(listed: CartService) {
+    const service = serviceFor(listed, interval)
     const inCart = has(service.id)
-    const monthly = service.price.suffix === "/mo"
+    const recurring = service.price.suffix === "/mo" || service.price.suffix === "/yr"
     return (
       <OfferCard
-        key={service.id}
+        key={listed.id}
         eyebrow={service.group}
-        badge={service.id === FEATURED_ID ? "Most popular" : undefined}
-        featured={service.id === FEATURED_ID}
+        badge={listed.id === FEATURED_ID ? "Most popular" : undefined}
+        featured={listed.id === FEATURED_ID}
         title={service.name}
         icon={service.icon}
         price={formatPrice(service.price, currency)}
-        timeline={monthly ? "Billed monthly" : service.timeline || "One-off"}
+        timeline={recurring ? undefined : service.timeline || "One-off"}
         description={service.scope}
         features={service.features ?? []}
         ctaLabel={inCart ? "View cart" : "Add to cart"}
@@ -55,10 +60,27 @@ export function PricingView({ cartHref, freeHref }: { cartHref: string; freeHref
         </div>
       )}
 
-      <Tabs defaultValue="Growth" className="gap-8">
-        <TabsList aria-label="Pricing categories" className="h-auto max-w-full justify-start gap-1 overflow-x-auto rounded-full border border-border bg-muted/70 p-1 [scrollbar-width:none]">
-          {GROUPS.map((group) => <TabsTrigger key={group} value={group} className={TRIGGER}>{group}</TabsTrigger>)}
-        </TabsList>
+      <Tabs value={tab} onValueChange={setTab} className="gap-8">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <TabsList aria-label="Pricing categories" className="h-auto max-w-full justify-start gap-1 overflow-x-auto rounded-full border border-border bg-muted/70 p-1 [scrollbar-width:none]">
+            {GROUPS.map((group) => <TabsTrigger key={group} value={group} className={TRIGGER}>{group}</TabsTrigger>)}
+          </TabsList>
+          {tab !== "Development" && (
+            <div className="inline-flex rounded-full border border-border bg-muted p-[3px]" role="group" aria-label="Billing">
+              {(["monthly", "yearly"] as const).map((option) => (
+                <button
+                  key={option}
+                  type="button"
+                  aria-pressed={interval === option}
+                  onClick={() => setInterval(option)}
+                  className={cn("rounded-full px-[14px] py-[6px] text-xs font-bold outline-none focus-visible:ring-2 focus-visible:ring-ring", interval === option ? "bg-primary text-primary-foreground" : "text-muted-foreground")}
+                >
+                  {option === "monthly" ? "Monthly" : "Yearly · 2 months free"}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
 
         {GROUPS.map((group) => (
           <TabsContent key={group} value={group}>
@@ -69,14 +91,13 @@ export function PricingView({ cartHref, freeHref }: { cartHref: string; freeHref
                   title={FREE_GROWTH.service}
                   icon={FREE_GROWTH.icon}
                   price="Free"
-                  timeline="No card needed"
                   description={FREE_GROWTH.scope}
                   features={FREE_GROWTH.features}
                   ctaLabel="Start free"
                   ctaHref={freeHref}
                 />
               )}
-              {CART_SERVICES.filter((service) => service.group === group).map(card)}
+              {LISTED_SERVICES.filter((service) => service.group === group).map(card)}
             </div>
           </TabsContent>
         ))}

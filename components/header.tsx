@@ -189,16 +189,16 @@ export function Header() {
             className="group grid grid-cols-[2.5rem_minmax(0,1fr)_1.5rem] items-baseline gap-x-4 py-6 outline-none md:grid-cols-[4rem_minmax(0,1fr)_2rem] md:gap-x-10 md:py-8"
           >
             <span
-              className={`font-mono text-xs tabular-nums transition-colors group-hover:text-accent ${
-                isCurrent(row.href) ? "text-accent" : "text-muted-foreground"
+              className={`font-mono text-xs tabular-nums transition-colors group-hover:text-primary ${
+                isCurrent(row.href) ? "text-primary" : "text-muted-foreground"
               }`}
             >
               {row.number}
             </span>
-            <span className="text-3xl tracking-[-0.02em] text-foreground transition-colors group-hover:text-accent md:text-5xl">
+            <span className="text-3xl tracking-[-0.02em] text-foreground transition-colors group-hover:text-primary md:text-5xl">
               {row.title}
             </span>
-            <ArrowUpRight className="size-5 justify-self-end text-muted-foreground transition-[transform,color] duration-500 ease-out group-hover:-translate-y-1 group-hover:translate-x-1 group-hover:text-accent motion-reduce:transition-none" />
+            <ArrowUpRight className="size-5 justify-self-end text-muted-foreground transition-[transform,color] duration-500 ease-out group-hover:-translate-y-1 group-hover:translate-x-1 group-hover:text-primary motion-reduce:transition-none" />
           </Link>
         ) : (
           <div className="grid grid-cols-[2.5rem_minmax(0,1fr)] items-baseline gap-x-4 gap-y-4 py-6 md:grid-cols-[4rem_minmax(0,20rem)_minmax(0,1fr)] md:gap-x-10 md:py-8">
@@ -215,8 +215,8 @@ export function Header() {
                     href={item.href}
                     onClick={closeMenu}
                     aria-current={isCurrent(item.href) ? "page" : undefined}
-                    className={`transition-colors hover:text-accent ${MONO_LABEL} ${
-                      isCurrent(item.href) ? "text-accent" : "text-muted-foreground"
+                    className={`transition-colors hover:text-primary ${MONO_LABEL} ${
+                      isCurrent(item.href) ? "text-primary" : "text-muted-foreground"
                     }`}
                   >
                     {item.name}
@@ -253,8 +253,8 @@ export function Header() {
                 onClick={() => toggleMenu("customers")}
                 aria-expanded={activeMenu === "customers"}
                 aria-controls="site-menu"
-                className={`inline-flex items-center gap-1 outline-none transition-colors hover:text-accent focus-visible:text-accent ${NAV_LABEL} ${
-                  activeMenu === "customers" || isCurrent("/stories") || isCurrent("/case-studies") ? "text-accent" : ""
+                className={`inline-flex items-center gap-1 outline-none transition-colors hover:text-primary focus-visible:text-primary ${NAV_LABEL} ${
+                  activeMenu === "customers" || isCurrent("/stories") || isCurrent("/case-studies") ? "text-primary" : ""
                 }`}
               >
                 Customers
@@ -266,8 +266,8 @@ export function Header() {
                 onClick={() => toggleMenu("products")}
                 aria-expanded={activeMenu === "products"}
                 aria-controls="site-menu"
-                className={`inline-flex items-center gap-1 outline-none transition-colors hover:text-accent focus-visible:text-accent ${NAV_LABEL} ${
-                  activeMenu === "products" || productNavItems.some((item) => isCurrent(item.href)) ? "text-accent" : ""
+                className={`inline-flex items-center gap-1 outline-none transition-colors hover:text-primary focus-visible:text-primary ${NAV_LABEL} ${
+                  activeMenu === "products" || productNavItems.some((item) => isCurrent(item.href)) ? "text-primary" : ""
                 }`}
               >
                 Products
@@ -280,8 +280,8 @@ export function Header() {
                 onClick={() => toggleMenu("solutions")}
                 aria-expanded={activeMenu === "solutions"}
                 aria-controls="site-menu"
-                className={`inline-flex items-center gap-1 outline-none transition-colors hover:text-accent focus-visible:text-accent ${NAV_LABEL} ${
-                  activeMenu === "solutions" || isCurrent("/capabilities") ? "text-accent" : ""
+                className={`inline-flex items-center gap-1 outline-none transition-colors hover:text-primary focus-visible:text-primary ${NAV_LABEL} ${
+                  activeMenu === "solutions" || isCurrent("/capabilities") ? "text-primary" : ""
                 }`}
               >
                 Solutions
@@ -293,8 +293,8 @@ export function Header() {
                 onClick={() => toggleMenu("help")}
                 aria-expanded={activeMenu === "help"}
                 aria-controls="site-menu"
-                className={`inline-flex items-center gap-1 outline-none transition-colors hover:text-accent focus-visible:text-accent ${NAV_LABEL} ${
-                  activeMenu === "help" || isCurrent("/help") ? "text-accent" : ""
+                className={`inline-flex items-center gap-1 outline-none transition-colors hover:text-primary focus-visible:text-primary ${NAV_LABEL} ${
+                  activeMenu === "help" || isCurrent("/help") ? "text-primary" : ""
                 }`}
               >
                 Help
@@ -306,8 +306,8 @@ export function Header() {
                   key={item.href}
                   href={item.href}
                   aria-current={isCurrent(item.href) ? "page" : undefined}
-                  className={`transition-colors hover:text-accent ${NAV_LABEL} ${
-                    isCurrent(item.href) ? "text-accent" : ""
+                  className={`transition-colors hover:text-primary ${NAV_LABEL} ${
+                    isCurrent(item.href) ? "text-primary" : ""
                   }`}
                 >
                   {item.name}
@@ -322,7 +322,7 @@ export function Header() {
               aria-expanded={activeMenu === "more"}
               aria-controls="site-menu"
               aria-label={activeMenu === "more" ? "Close menu" : "Open more navigation"}
-              className={`order-1 inline-flex items-center outline-none transition-colors lg:order-none lg:hidden hover:text-accent focus-visible:text-accent ${NAV_LABEL} ${activeMenu === "more" ? "text-accent" : "text-foreground"}`}
+              className={`order-1 inline-flex items-center outline-none transition-colors lg:order-none lg:hidden hover:text-primary focus-visible:text-primary ${NAV_LABEL} ${activeMenu === "more" ? "text-primary" : "text-foreground"}`}
             >
               {activeMenu === "more" ? (
                 <X className="size-5 lg:hidden" aria-hidden="true" />

@@ -44,7 +44,8 @@ function fromRows(group: string, rows: (ServiceRow & { features?: string[] })[],
   })
 }
 
-export const CART_SERVICES: CartService[] = [
+/** Everything listed for sale, one entry each, billed as shown (one-off or monthly). */
+export const LISTED_SERVICES: CartService[] = [
   // The generic retainer row is replaced by its three tiers below.
   ...fromRows("Development", customDevelopmentRows.filter((row) => row.service !== "Maintenance Retainer")),
   ...fromRows("Development", platformRows, "Platforms"),
@@ -62,11 +63,41 @@ export const CART_SERVICES: CartService[] = [
   })),
 ]
 
-/** The app plan (Pass, Pulse and Ngai allowances) a paid Growth tier unlocks for a month. */
+export type BillingInterval = "monthly" | "yearly"
+
+const YEARLY = "-yearly"
+/** Paying yearly costs 10 months: 2 months free. */
+const MONTHS_PER_YEARLY_PRICE = 10
+
+/** The yearly version of a monthly service's id, and back. */
+export function yearlyId(id: string) {
+  return `${id}${YEARLY}`
+}
+export function baseServiceId(id: string) {
+  return id.endsWith(YEARLY) ? id.slice(0, -YEARLY.length) : id
+}
+export function isYearly(service: CartService) {
+  return service.price.suffix === "/yr"
+}
+
+/** Each monthly service can also be paid a year at a time. */
+const YEARLY_SERVICES: CartService[] = LISTED_SERVICES
+  .filter((service) => service.price.suffix === "/mo")
+  .map((service) => ({ ...service, id: yearlyId(service.id), price: { ...service.price, amount: service.price.amount * MONTHS_PER_YEARLY_PRICE, suffix: "/yr" } }))
+
+/** Every service the cart and checkout accept: the listed ones and their yearly versions. */
+export const CART_SERVICES: CartService[] = [...LISTED_SERVICES, ...YEARLY_SERVICES]
+
+/** The service to show for a listed one at the chosen billing: its yearly version if it has one. */
+export function serviceFor(service: CartService, interval: BillingInterval) {
+  return interval === "yearly" ? BY_ID.get(yearlyId(service.id)) ?? service : service
+}
+
+/** The app plan (Pass, Pulse and Ngai allowances) a paid Growth tier unlocks, cheapest first. */
 export const GROWTH_APP_PLAN: Record<string, PlanKey> = { "growth-pro": "business", "growth-max": "pro", "growth-ultra": "pro" }
 
-/** The Growth plans someone can buy, cheapest first. */
-export const GROWTH_TIERS: CartService[] = CART_SERVICES.filter((service) => service.group === "Growth")
+/** The Growth plans someone can buy, cheapest first, billed monthly. */
+export const GROWTH_TIERS: CartService[] = LISTED_SERVICES.filter((service) => service.group === "Growth")
 
 const BY_ID = new Map(CART_SERVICES.map((service) => [service.id, service]))
 

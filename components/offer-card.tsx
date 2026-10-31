@@ -94,7 +94,8 @@ export type OfferCardProps = {
   title: string
   icon?: string
   price: string
-  timeline: string
+  /** Shown as a pill (or beside the price when there is a badge). Leave out when a billing switch already says it. */
+  timeline?: string
   description?: string
   features: string[]
   featuresLabel?: string
@@ -132,26 +133,26 @@ export function OfferCard({
   return (
     <div
       className={`group flex h-full flex-col rounded-2xl border p-6 transition-colors ${
-        featured ? "border-accent bg-accent/10 shadow-sm" : "border-border bg-card hover:border-accent/50"
+        featured ? "border-primary bg-primary/5 shadow-sm" : "border-border bg-card hover:border-primary/50"
       }`}
     >
       <div className="flex-1">
         <div className="flex items-start justify-between gap-3">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">{eyebrow}</p>
           {badge ? (
-            <span className="rounded-full bg-accent px-3 py-1 text-xs font-semibold text-accent-foreground">
+            <span className="rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground">
               {badge}
             </span>
-          ) : (
+          ) : timeline ? (
             <span className="rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
               {timeline}
             </span>
-          )}
+          ) : null}
         </div>
 
         <div className="mt-4 flex items-center gap-3">
           {Icon && (
-            <span className="flex size-11 items-center justify-center rounded-full bg-accent/10 text-accent">
+            <span className="flex size-11 items-center justify-center rounded-full bg-primary/10 text-primary">
               {createElement(Icon, { className: "size-5" })}
             </span>
           )}
@@ -162,7 +163,7 @@ export function OfferCard({
 
         <div className="mt-3 flex items-baseline gap-2">
           <span className="text-3xl font-bold">{price}</span>
-          {badge && <span className="text-sm text-muted-foreground">{timeline}</span>}
+          {badge && timeline && <span className="text-sm text-muted-foreground">{timeline}</span>}
         </div>
 
         {chips && chips.length > 0 && (
@@ -179,7 +180,7 @@ export function OfferCard({
             <ul className="space-y-3">
               {features.map((feature) => (
                 <li key={feature} className="flex gap-3">
-                  <Check className="mt-0.5 h-5 w-5 flex-shrink-0 text-accent" />
+                  <Check className="mt-0.5 h-5 w-5 flex-shrink-0 text-emerald-600" />
                   <span className="text-sm text-muted-foreground">{feature}</span>
                 </li>
               ))}

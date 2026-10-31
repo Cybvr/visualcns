@@ -1,6 +1,6 @@
 import { FieldValue, Timestamp, type Firestore } from "firebase-admin/firestore"
 
-import { GROWTH_APP_PLAN } from "@/lib/cart"
+import { baseServiceId, GROWTH_APP_PLAN } from "@/lib/cart"
 import { PLAN_KEYS, type PlanKey } from "@/lib/subscription"
 
 import { metadataOf } from "@/lib/server/paystack"
@@ -38,15 +38,18 @@ const MONTH_MS = 30 * 24 * 60 * 60 * 1000
 
 /**
  * A paid Growth plan includes Pass, Pulse and Ngai: give the buyer's company a
- * month of the matching app plan, added on to any time it already has.
+ * month (or a year) of the matching app plan, added on to any time it already has.
  */
 async function grantGrowthAccess(db: Firestore, order: Record<string, any>) {
   const companyId = String(order.companyId || "")
   const items = Array.isArray(order.items) ? order.items as { id?: string }[] : []
   // The highest Growth plan in the order wins; GROWTH_APP_PLAN lists them cheapest first.
   const tierIds = Object.keys(GROWTH_APP_PLAN)
-  const tier = items.map((item) => String(item.id || "")).filter((id) => GROWTH_APP_PLAN[id]).sort((a, b) => tierIds.indexOf(b) - tierIds.indexOf(a))[0]
-  if (!companyId || !tier) return
+  const bought = items.map((item) => String(item.id || "")).filter((id) => GROWTH_APP_PLAN[baseServiceId(id)])
+    .sort((a, b) => tierIds.indexOf(baseServiceId(b)) - tierIds.indexOf(baseServiceId(a)))[0]
+  if (!companyId || !bought) return
+  const tier = baseServiceId(bought)
+  const yearly = bought !== tier
   const plan: PlanKey = GROWTH_APP_PLAN[tier]
   const ref = db.collection("visitorBilling").doc(companyId)
   await db.runTransaction(async (tx) => {
@@ -60,8 +63,8 @@ async function grantGrowthAccess(db: Firestore, order: Record<string, any>) {
       status: "active",
       plan: keep ? current.plan : plan,
       growthTier: keep && current.growthTier ? current.growthTier : tier,
-      interval: "monthly",
-      paidUntil: Timestamp.fromMillis(from + MONTH_MS),
+      interval: yearly ? "yearly" : "monthly",
+      paidUntil: Timestamp.fromMillis(from + (yearly ? 12 : 1) * MONTH_MS),
       updatedAt: FieldValue.serverTimestamp(),
     }, { merge: true })
   })

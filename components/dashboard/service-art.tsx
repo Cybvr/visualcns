@@ -19,7 +19,7 @@ import {
   type LucideIcon,
 } from "lucide-react"
 
-import type { CartService } from "@/lib/cart"
+import { baseServiceId, type CartService } from "@/lib/cart"
 import { cn } from "@/lib/utils"
 
 /**
@@ -218,7 +218,7 @@ function GaugeArt({ response, hours, sweep }: { response: string; hours: string;
 }
 
 export function ServiceArt({ service, index = 0 }: { service: CartService; index?: number }) {
-  switch (service.id) {
+  switch (baseServiceId(service.id)) {
     case "development-mvp-web-app": return <ScreensArt icons={[LayoutTemplate, MonitorSmartphone]} />
     case "development-full-web-app": return <StackArt chips={[{ icon: Lock, label: "Sign in & roles" }, { icon: Database, label: "Database" }, { icon: Plug, label: "Integrations" }]} />
     case "development-custom-web-app": return <SpotlightArt icon={Layers} tags={["Payments", "Real-time", "Streaming"]} />

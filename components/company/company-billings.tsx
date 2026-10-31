@@ -117,7 +117,7 @@ export function CompanyBillings() {
       </div>
 
       <section id="billing-plans">
-        <SectionHeading title="Plans" description="Growth plans include Pass, Pulse and Ngai. Each runs for a month from payment." />
+        <SectionHeading title="Plans" description="Growth plans include Pass, Pulse and Ngai. Pay monthly or yearly." />
         {/* The plan options are cards already, so they sit on the page rather than inside another card. */}
         <CompanyPlan companyId={company.id} billing={billing} seats={people.length} expanded showSummary={false} className="border-0 p-0" />
       </section>

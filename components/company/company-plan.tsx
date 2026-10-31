@@ -8,6 +8,7 @@ import { useAuth } from "@/components/auth-provider"
 import { Button } from "@/components/ui/button"
 import { activeGrowthTier, PlanPricing } from "@/components/company/plan-pricing"
 import { useLocalCurrency } from "@/components/use-local-currency"
+import { serviceFor } from "@/lib/cart"
 import { formatPrice } from "@/lib/plans"
 import { currentPlan, daysLeft, GRACE_DAYS, isPlanInterval, isPlanKey, naira, PLANS, planAccess, planPrice, staffLabel, TRIAL_DAYS, type PlanInterval, type PlanKey, type Subscription } from "@/lib/subscription"
 import { watchSubscription } from "@/lib/visitors"
@@ -103,7 +104,7 @@ export function CompanyPlan({ companyId, billing, seats = null, className, expan
   const growth = activeGrowthTier(billing)
   // A Growth plan bought through the cart, or an older Starter/Business/Pro subscription.
   const paidName = growth?.name ?? (plan ? PLANS[plan].name : "")
-  const paidPrice = growth ? formatPrice(growth.price, currency) : plan ? `${naira(planPrice(plan, paidInterval))}/${paidInterval === "yearly" ? "yr" : "mo"}` : ""
+  const paidPrice = growth ? formatPrice(serviceFor(growth, paidInterval).price, currency) : plan ? `${naira(planPrice(plan, paidInterval))}/${paidInterval === "yearly" ? "yr" : "mo"}` : ""
   const endsLabel = (ms: number) => growth && !subscribed ? `Runs until ${shortDate(ms)}. Buy again to keep it going.` : `Next payment ${shortDate(billing?.nextPaymentAt?.toMillis?.() ?? ms)}.`
 
   let title = `${TRIAL_DAYS}-day free trial`
@@ -132,7 +133,7 @@ export function CompanyPlan({ companyId, billing, seats = null, className, expan
   const appliedPlan = currentPlan(billing)
   const expandedPlanName = access?.state === "trial" ? "Free trial" : paid && paidName ? paidName : "No active plan"
   const expandedPrice = paid && paidPrice ? paidPrice : "Free"
-  const expandedCycle = paid ? (growth || paidInterval === "monthly" ? "Monthly" : "Yearly") : "Trial"
+  const expandedCycle = paid ? (paidInterval === "yearly" ? "Yearly" : "Monthly") : "Trial"
   const expandedDateLabel = access?.state === "trial" ? `Ends ${shortDate(access.endsAt)}` : paid && access ? (growth && !subscribed ? `Runs until ${shortDate(access.endsAt)}` : `Next charge ${shortDate(billing?.nextPaymentAt?.toMillis?.() ?? access.endsAt)}`) : "Choose a plan to continue"
   const seatLimit = PLANS[appliedPlan].staff
   const seatPercent = seats !== null && Number.isFinite(seatLimit) ? Math.min(100, Math.round((seats / seatLimit) * 100)) : 0

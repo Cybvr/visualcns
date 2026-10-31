@@ -10,7 +10,7 @@ import { useCart } from "@/components/dashboard/use-cart"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { useLocalCurrency } from "@/components/use-local-currency"
-import { GROWTH_APP_PLAN, GROWTH_TIERS } from "@/lib/cart"
+import { GROWTH_APP_PLAN, GROWTH_TIERS, serviceFor, type BillingInterval } from "@/lib/cart"
 import { formatPrice } from "@/lib/plans"
 import { PLANS, planAccess, type Subscription } from "@/lib/subscription"
 import { cn } from "@/lib/utils"
@@ -50,6 +50,7 @@ export function PlanPricing({ billing, seats = null, free, onBeforeSubscribe, he
   const { add, has } = useCart()
   const currency = useLocalCurrency()
   const [busy, setBusy] = useState("")
+  const [interval, setInterval] = useState<BillingInterval>("monthly")
   const cartHref = page ? `/${encodeURIComponent(page.company.slug || page.company.id)}/cart` : "/cart"
   const current = activeGrowthTier(billing)
 
@@ -67,7 +68,22 @@ export function PlanPricing({ billing, seats = null, free, onBeforeSubscribe, he
 
   return (
     <div className="space-y-3">
-      {header}
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        {header ?? <span />}
+        <div className="inline-flex shrink-0 rounded-lg bg-muted p-0.5 text-xs font-medium" role="group" aria-label="Billing">
+          {(["monthly", "yearly"] as const).map((option) => (
+            <button
+              key={option}
+              type="button"
+              onClick={() => setInterval(option)}
+              aria-pressed={interval === option}
+              className={cn("rounded-md px-3 py-1.5 outline-none focus-visible:ring-2 focus-visible:ring-ring", interval === option ? "bg-background text-foreground shadow-sm" : "text-muted-foreground")}
+            >
+              {option === "monthly" ? "Monthly" : <>Yearly <span className="ml-1 font-semibold text-emerald-600">2 months free</span></>}
+            </button>
+          ))}
+        </div>
+      </div>
 
       {free && (
         <Button type="button" variant="outline" className="h-10" disabled={busy !== "" || free.busy} onClick={() => void free.onSelect()}>
@@ -77,21 +93,21 @@ export function PlanPricing({ billing, seats = null, free, onBeforeSubscribe, he
       )}
 
       <div className="grid gap-3 pt-2 md:grid-cols-3">
-        {GROWTH_TIERS.map((tier) => {
-          const staff = PLANS[GROWTH_APP_PLAN[tier.id] ?? "business"].staff
-          const isCurrent = current?.id === tier.id
+        {GROWTH_TIERS.map((listed) => {
+          const tier = serviceFor(listed, interval)
+          const staff = PLANS[GROWTH_APP_PLAN[listed.id] ?? "business"].staff
+          const isCurrent = current?.id === listed.id
           const tooSmall = seats !== null && seats > staff
-          const popular = tier.id === POPULAR
+          const popular = listed.id === POPULAR
           const inCart = has(tier.id)
           return (
-            <div key={tier.id} className={cn("flex flex-col rounded-xl border p-5", popular ? "border-2 border-primary" : "border-border", isCurrent && "bg-primary/5")}>
+            <div key={listed.id} className={cn("flex flex-col rounded-xl border p-5", popular ? "border-2 border-primary" : "border-border", isCurrent && "bg-primary/5")}>
               <div className="flex items-center justify-between gap-2">
                 <h3 className="surface-record-title">{tier.name}</h3>
                 {isCurrent ? <Badge variant="secondary">Current</Badge> : popular && <Badge>Most popular</Badge>}
               </div>
               <div className="surface-body mt-0.5">{tier.scope}</div>
               <div className="surface-metric mt-4">{formatPrice(tier.price, currency)}</div>
-              <div className="surface-body mt-1">Billed monthly</div>
               <Button
                 type="button"
                 variant={popular ? "default" : "outline"}
@@ -116,7 +132,7 @@ export function PlanPricing({ billing, seats = null, free, onBeforeSubscribe, he
       </div>
 
       <p className="surface-caption text-center">
-        {currency === "USD" ? "Prices in US dollars. Tax may apply." : "Prices in Naira. VAT may apply."} Each plan runs for a month from payment.
+        {currency === "USD" ? "Prices in US dollars. Tax may apply." : "Prices in Naira. VAT may apply."} Each plan runs for the month or year you pay for.
       </p>
     </div>
   )

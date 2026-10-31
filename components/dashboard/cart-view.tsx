@@ -8,7 +8,7 @@ import { useCart } from "@/components/dashboard/use-cart"
 import { SectionHeader } from "@/components/dashboard/section-header"
 import { ServiceArt } from "@/components/dashboard/service-art"
 import { Button } from "@/components/ui/button"
-import { CART_SERVICES, cartTotal, formatMoney } from "@/lib/cart"
+import { baseServiceId, cartTotal, formatMoney, LISTED_SERVICES } from "@/lib/cart"
 import { useLocalCurrency } from "@/components/use-local-currency"
 import { formatPrice } from "@/lib/plans"
 
@@ -41,8 +41,9 @@ export function CartView({ checkoutHref, servicesHref }: { checkoutHref: string;
   const total = cartTotal(items, currency)
   // Others from the groups already in the cart first, then anything else.
   const groups = new Set(items.map((item) => item.group))
-  const recommendations = CART_SERVICES
-    .filter((service) => !ids.includes(service.id))
+  const inCart = new Set(ids.map(baseServiceId))
+  const recommendations = LISTED_SERVICES
+    .filter((service) => !inCart.has(service.id))
     .sort((a, b) => Number(groups.has(b.group)) - Number(groups.has(a.group)))
     .slice(0, RECOMMENDATION_COUNT)
 
@@ -66,7 +67,7 @@ export function CartView({ checkoutHref, servicesHref }: { checkoutHref: string;
                   <div className="min-w-0 flex-1">
                     <div className="surface-record-title">{item.name}</div>
                     <div className="surface-body mt-1">{item.scope}</div>
-                    <div className="surface-caption mt-2">{item.group}{item.price.suffix === "/mo" ? " · Billed monthly" : " · One-off"}</div>
+                    <div className="surface-caption mt-2">{item.group}{item.price.suffix === "/mo" ? " · Billed monthly" : item.price.suffix === "/yr" ? " · Billed yearly" : " · One-off"}</div>
                   </div>
                   <div className="shrink-0 text-right text-base font-semibold text-foreground">{formatPrice(item.price, currency)}</div>
                   <button
