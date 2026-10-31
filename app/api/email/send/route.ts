@@ -11,6 +11,7 @@ import { parseEmailList } from "@/lib/email-composer"
 import { MAX_EMAIL_ATTACHMENTS, MAX_EMAIL_ATTACHMENT_BYTES, MAX_EMAIL_ATTACHMENT_MEGABYTES, type EmailAttachment, type EmailAttachmentInfo, type StoredEmailAttachment } from "@/lib/email-attachments"
 import { SITE_ORIGIN, X_URL, LINKEDIN_URL, absoluteWebUrl, brandedEmail, escapeHtml, extractEmailAddress, normalizeEmailAddress, safeBrandValue } from "@/lib/server/email-branding"
 import { getGmailMessage, gmailSenders, hasGmailConnection, sendGmailMessage } from "@/lib/server/google-gmail"
+import { releaseEmails, reserveEmails } from "@/lib/server/email-limits"
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const MAX_CC = 20
@@ -737,15 +738,34 @@ export async function POST(request: Request) {
     })
   }
 
+  // Client companies send within their plan's monthly allowance; the agency's own staff aren't limited.
+  const limitedCompany = caller && !callerIsAdmin ? String(caller.data.companyId || "") : ""
+  const emailCount = recipients.length + cc.length
+  if (limitedCompany) {
+    const allowance = await reserveEmails(caller.db, limitedCompany, emailCount).catch(() => null)
+    if (!allowance) {
+      if (welcomeClaim) await releaseWelcomeEmail(welcomeClaim).catch(() => undefined)
+      return NextResponse.json({ error: "Your email allowance could not be checked. Try again." }, { status: 503 })
+    }
+    if (!allowance.ok) {
+      if (welcomeClaim) await releaseWelcomeEmail(welcomeClaim).catch(() => undefined)
+      const left = Math.max(0, allowance.limit - allowance.used)
+      return NextResponse.json({ error: `You've used ${allowance.used.toLocaleString("en-US")} of your ${allowance.limit.toLocaleString("en-US")} emails this month${left ? ` and this send needs ${emailCount}` : ""}. Upgrade your plan on the Pricing page to send more.` }, { status: 429 })
+    }
+  }
+  const giveBack = () => (limitedCompany ? releaseEmails(caller.db, limitedCompany, emailCount).catch(() => undefined) : undefined)
+
   let attempt: Awaited<ReturnType<typeof sendOne>>
   try {
     attempt = await sendOne(recipients, undefined, cc)
   } catch {
+    await giveBack()
     if (welcomeClaim) await releaseWelcomeEmail(welcomeClaim).catch(() => undefined)
     return NextResponse.json({ error: "The email provider could not be reached. Try again." }, { status: 502 })
   }
   if (!attempt.response.ok || !attempt.result.id) {
     const providerMessage = attempt.result.error?.message || attempt.result.message
+    await giveBack()
     if (welcomeClaim) await releaseWelcomeEmail(welcomeClaim).catch(() => undefined)
     return NextResponse.json(
       { error: providerMessage || "The email provider could not accept this message. Try again." },

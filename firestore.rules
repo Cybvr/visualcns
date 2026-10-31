@@ -284,6 +284,7 @@ service cloud.firestore {
     match /invites/{id} { allow read, write: if false; }
     match /agencySecrets/{id} { allow read, write: if false; }
     match /agencyUsage/{id} { allow read, write: if false; }
+    match /emailUsage/{id} { allow read, write: if false; }
     // Social accounts, inbox and webhook receipts go through /api/social only.
     match /socialAccounts/{id} { allow read, write: if false; }
     match /socialInbox/{id} { allow read, write: if false; }

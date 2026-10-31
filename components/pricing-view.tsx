@@ -4,6 +4,7 @@ import { useState } from "react"
 import Link from "next/link"
 
 import { OfferCard } from "@/components/offer-card"
+import { PricingCompare } from "@/components/pricing-compare"
 import { useCart } from "@/components/dashboard/use-cart"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -22,11 +23,18 @@ const TRIGGER = "h-9 shrink-0 flex-none rounded-full px-4 text-muted-foreground 
  * Everything VisualCNS sells, as cards that go in the cart: Growth plans (which
  * include Pass, Pulse and Ngai), development work and maintenance retainers.
  */
-export function PricingView({ cartHref, freeHref }: { cartHref: string; freeHref: string }) {
+export function PricingView({ cartHref, freeHref, stickyTop }: { cartHref: string; freeHref: string; /** Offset for the comparison table's sticky header. */ stickyTop?: string }) {
   const { items, add, has } = useCart()
   const currency = useLocalCurrency()
   const [tab, setTab] = useState<string>("Growth")
   const [interval, setInterval] = useState<BillingInterval>("monthly")
+
+  function ctaFor(plan: string) {
+    const listed = LISTED_SERVICES.find((service) => service.id === `growth-${plan.toLowerCase()}`)
+    if (!listed) return { href: freeHref, label: "Get started" }
+    const service = serviceFor(listed, interval)
+    return { href: cartHref, onClick: () => add(service.id), label: has(service.id) ? "View cart" : "Get started" }
+  }
 
   function card(listed: CartService) {
     const service = serviceFor(listed, interval)
@@ -99,6 +107,7 @@ export function PricingView({ cartHref, freeHref }: { cartHref: string; freeHref
               )}
               {LISTED_SERVICES.filter((service) => service.group === group).map(card)}
             </div>
+            {group === "Growth" && <div className="mt-16"><PricingCompare ctaFor={ctaFor} stickyTop={stickyTop} /></div>}
           </TabsContent>
         ))}
       </Tabs>

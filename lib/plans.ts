@@ -126,7 +126,7 @@ export const growthPlanRows: GrowthPlan[] = [
     price: "free",
     timeline: "One-off",
     included: "Brand health check, 30-day trial of Pass, Pulse and Ngai",
-    features: ["Brand health check across search, social and reviews", "30-day free trial of Pass, Pulse and Ngai"],
+    features: ["Brand health check across search, social and reviews", "30-day free trial of Pass, Pulse and Ngai", "100 emails a month"],
   },
   {
     service: "Pro",
@@ -135,7 +135,7 @@ export const growthPlanRows: GrowthPlan[] = [
     price: { amount: 200000, suffix: "/mo" },
     timeline: "Monthly",
     included: "Social",
-    features: ["Social media content, posting and replies", "Pass visitor sign-in for up to 25 staff", "Pulse: 4 scans a month", "Ngai assistant", "Client portal for your team", "Slack, Teams and webhook alerts"],
+    features: ["2 hrs consulting a month", "Social media content, posting and replies", "Pass visitor sign-in for up to 25 staff", "Pulse: 4 scans a month", "Ngai assistant", "1,000 emails a month", "Client portal for your team", "Slack, Teams and webhook alerts"],
   },
   {
     service: "Max",
@@ -144,7 +144,7 @@ export const growthPlanRows: GrowthPlan[] = [
     price: { amount: 500000, suffix: "/mo" },
     timeline: "Monthly",
     included: "Social, ads, SEO",
-    features: ["Everything in Pro", "Paid ads management", "SEO", "Pass for unlimited staff", "Pulse: unlimited scans"],
+    features: ["Everything in Pro", "5 hrs consulting a month", "Paid ads management", "SEO", "Pass for unlimited staff", "Pulse: unlimited scans", "5x Ngai usage", "5,000 emails a month", "10% off extra hours"],
   },
   {
     service: "Ultra",
@@ -153,7 +153,64 @@ export const growthPlanRows: GrowthPlan[] = [
     price: { amount: 850000, suffix: "/mo" },
     timeline: "Monthly",
     included: "SEO, social, ads, brand health, monitoring",
-    features: ["Everything in Max", "Ongoing brand health", "Monitoring and alerts", "Priority support"],
+    features: ["Everything in Max", "10 hrs consulting a month", "Ongoing brand health", "Monitoring and alerts", "10x Ngai usage", "20,000 emails a month", "20% off extra hours", "Priority support"],
+  },
+]
+
+/** Emails a client company can send a month on each Growth plan. The agency's own staff aren't limited. */
+export const EMAIL_LIMITS = { "growth-free": 100, "growth-pro": 1000, "growth-max": 5000, "growth-ultra": 20000 } as const
+export type GrowthTierId = keyof typeof EMAIL_LIMITS
+
+/** A cell in the plan comparison: a tick, a cross, or a short tag like "5 hrs a month". */
+export type ComparisonCell = boolean | string
+
+/** The Growth plan comparison table, one cell per plan in order: Free, Pro, Max, Ultra. */
+export const GROWTH_COMPARISON: { title: string; rows: { label: string; cells: [ComparisonCell, ComparisonCell, ComparisonCell, ComparisonCell] }[] }[] = [
+  {
+    title: "Development",
+    rows: [
+      { label: "Consulting time (apps, websites, design)", cells: [false, "2 hrs a month", "5 hrs a month", "10 hrs a month"] },
+      { label: "Extra hours", cells: ["Hourly rate", "Hourly rate", "10% off", "20% off"] },
+    ],
+  },
+  {
+    title: "Security (Visual Pass)",
+    rows: [
+      { label: "Visitor sign-in", cells: ["30-day trial", "Up to 25 staff", "Unlimited", "Unlimited"] },
+      { label: "Front-desk tablet", cells: [true, true, true, true] },
+      { label: "Slack, Teams and webhook alerts", cells: [false, true, true, true] },
+    ],
+  },
+  {
+    title: "Marketing",
+    rows: [
+      { label: "Brand health", cells: ["1 check", false, false, "Ongoing"] },
+      { label: "Pulse scans", cells: ["30-day trial", "4 a month", "Unlimited", "Unlimited"] },
+      { label: "Social", cells: [false, true, true, true] },
+      { label: "Ads", cells: [false, false, true, true] },
+      { label: "SEO", cells: [false, false, true, true] },
+      { label: "Monitoring and alerts", cells: [false, false, false, true] },
+    ],
+  },
+  {
+    title: "AI (Ngai)",
+    rows: [
+      { label: "Ngai assistant", cells: ["30-day trial", true, true, true] },
+      { label: "Usage", cells: ["Limited", "1x", "5x", "10x"] },
+    ],
+  },
+  {
+    title: "Email",
+    rows: [
+      { label: "Emails a month", cells: [EMAIL_LIMITS["growth-free"], EMAIL_LIMITS["growth-pro"], EMAIL_LIMITS["growth-max"], EMAIL_LIMITS["growth-ultra"]].map((count) => count.toLocaleString("en-US")) as [string, string, string, string] },
+      { label: "Scheduled sending", cells: [true, true, true, true] },
+    ],
+  },
+  {
+    title: "Support",
+    rows: [
+      { label: "Priority support", cells: [false, false, false, true] },
+    ],
   },
 ]
 
