@@ -47,7 +47,7 @@ export function TemplateGallery({
           <ProjectCard
             key={card.project.id}
             project={card.project}
-            subtitle={card.project.service || "Workflow"}
+            subtitle={card.project.service && card.project.service !== "Workflow" ? card.project.service : "Growth"}
             href={projectHref?.(card.project)}
             onClick={projectHref ? undefined : () => setOpenCard(card)}
             footer={

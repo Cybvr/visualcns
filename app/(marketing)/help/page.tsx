@@ -11,7 +11,7 @@ import { HelpTabs } from "./help-tabs"
 
 export const metadata: Metadata = publicPageMetadata({
   title: "Help | VisualCNS",
-  description: "Ask Ngai, read the FAQs, browse VisualCNS resources, or explore ready-made workflows.",
+  description: "Ask Ngai, read the FAQs, browse VisualCNS resources, or explore ready-made growth setups.",
   path: "/help",
 })
 

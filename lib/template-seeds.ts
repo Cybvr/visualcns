@@ -129,7 +129,7 @@ export async function publishTemplateSeed(seed: TemplateSeed): Promise<{ created
     companyId: TEMPLATE_OWNER_COMPANY_ID,
     client: TEMPLATE_OWNER_CLIENT_NAME,
     title: seed.title,
-    service: "Workflow",
+    service: "Growth",
     // A template is finished work, which is the point of publishing it.
     status: "done",
     progress: 100,

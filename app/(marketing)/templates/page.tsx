@@ -8,7 +8,7 @@ import { TemplatesSection } from "@/components/templates-section"
 
 export const metadata: Metadata = publicPageMetadata({
   title: "Templates",
-  description: "Ready-made workflows you can set up in your agency.",
+  description: "Ready-made growth setups you can add to your agency.",
   path: "/templates",
 })
 
@@ -20,7 +20,7 @@ export default function TemplatesPage() {
         <div className="mx-auto max-w-7xl space-y-12 px-4 sm:px-8 md:px-20">
           <PageHeading
             title="Templates"
-            subtitle="Ready-made workflows. Pick one and we set it up in your agency."
+            subtitle="Ready-made growth setups. Pick one and we set it up in your agency."
           />
 
           <TemplatesSection />
