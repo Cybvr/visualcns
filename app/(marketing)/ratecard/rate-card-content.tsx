@@ -55,7 +55,7 @@ const rateCardTabs = [
   },
   {
     id: "workflows",
-    label: "Workflows",
+    label: "Growth",
     title: "Growth systems for existing tools",
     description: "For businesses that need their existing tools connected into clear growth systems.",
   },

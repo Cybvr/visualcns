@@ -9,7 +9,7 @@ const TABS = [
   { id: "chat", label: "Ask Ngai" },
   { id: "faqs", label: "FAQs" },
   { id: "resources", label: "Resources" },
-  { id: "workflows", label: "Workflows" },
+  { id: "workflows", label: "Growth" },
 ] as const
 
 type HelpTab = (typeof TABS)[number]["id"]
