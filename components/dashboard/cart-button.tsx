@@ -17,6 +17,7 @@ export function CartButton({ cartHref, servicesHref }: { cartHref: string; servi
   const currency = useLocalCurrency()
   const [open, setOpen] = useState(false)
   const count = items.length
+  const total = formatMoney(cartTotal(items, currency), currency)
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -24,13 +25,16 @@ export function CartButton({ cartHref, servicesHref }: { cartHref: string; servi
         <Button
           type="button"
           variant="ghost"
-          size="icon"
-          aria-label={count ? `Cart, ${count} item${count === 1 ? "" : "s"}` : "Cart"}
+          size={count ? "default" : "icon"}
+          aria-label={count ? `Cart, ${count} item${count === 1 ? "" : "s"}, ${total}` : "Cart"}
           title="Cart"
-          className="relative rounded-full text-foreground hover:bg-muted/50 active:bg-muted/50"
+          className={`rounded-full text-foreground hover:bg-muted/50 active:bg-muted/50 ${count ? "gap-2 px-2.5" : ""}`}
         >
-          <ShoppingCart className="size-[18px]" aria-hidden="true" />
-          <span className="absolute -top-0.5 -right-0.5 grid min-w-4 place-items-center rounded-full bg-primary px-1 text-[10px] leading-4 font-semibold text-primary-foreground">{count}</span>
+          <span className="relative">
+            <ShoppingCart className="size-[18px]" aria-hidden="true" />
+            {count > 0 && <span className="absolute -top-2 -right-2 grid min-w-4 place-items-center rounded-full bg-primary px-1 text-[10px] leading-4 font-semibold text-primary-foreground">{count}</span>}
+          </span>
+          {count > 0 && <span className="text-sm font-semibold tabular-nums">{total}</span>}
         </Button>
       </PopoverTrigger>
       <PopoverContent align="end" className="w-80 p-0">
@@ -66,7 +70,7 @@ export function CartButton({ cartHref, servicesHref }: { cartHref: string; servi
             <div className="space-y-3 border-t border-border px-4 py-3">
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">Total</span>
-                <span className="font-semibold">{formatMoney(cartTotal(items, currency), currency)}</span>
+                <span className="font-semibold">{total}</span>
               </div>
               <Button asChild className="w-full">
                 <Link href={cartHref} onClick={() => setOpen(false)}>View cart</Link>
