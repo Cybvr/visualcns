@@ -120,25 +120,18 @@ async function updatePost(db: FirebaseFirestore.Firestore, event: string, post: 
   })
 }
 
-/** Emails the company's people and the agency's inbox about something new. */
+/** Emails the agency's inbox about something new. Clients are not emailed; they see it in their social inbox. */
 async function sendAlert(db: FirebaseFirestore.Firestore, agencyId: string, companyId: string, item: InboxItem) {
   const apiKey = await getAgencySecret(agencyId, "RESEND_API_KEY", process.env.RESEND_API_KEY || "")
   const from = normalizeEmailAddress(await getAgencySecret(agencyId, "EMAIL_FROM", process.env.EMAIL_FROM || ""))
   if (!apiKey || !from) return
-  const [org, users, agencyInbox] = await Promise.all([
+  const [org, agencyInbox] = await Promise.all([
     db.collection("organizations").doc(companyId).get().then((snapshot) => snapshot.data() ?? {}),
-    db.collection("users").where("companyId", "==", companyId).get(),
     getAgencySecret(agencyId, "EMAIL_REPLY_TO", process.env.EMAIL_REPLY_TO || ""),
   ])
   if (org.socialAlerts === false) return
-  const recipients = new Set<string>()
-  for (const user of users.docs) {
-    const data = user.data()
-    if (data.agencyId === agencyId && typeof data.email === "string" && data.email) recipients.add(data.email.toLowerCase())
-  }
-  const agencyAddress = normalizeEmailAddress(agencyInbox)
-  if (agencyAddress) recipients.add(agencyAddress.toLowerCase())
-  if (!recipients.size) return
+  const to = normalizeEmailAddress(agencyInbox).toLowerCase()
+  if (!to) return
 
   const companyName = String(org.name || "your account")
   const where = platformLabel(item.platform)
@@ -149,11 +142,10 @@ async function sendAlert(db: FirebaseFirestore.Firestore, agencyId: string, comp
   const stars = item.rating ? ` (${item.rating}★)` : ""
   const body = `${item.authorName}${stars} on ${where}:\n\n"${item.text || "(no text)"}"`
   const html = brandedEmail(`<p>${escapeHtml(body).replace(/\n\n/g, "</p><p>")}</p>`, subject, { name: "VisualCNS" }, from, { text: "Open inbox", url })
-  // One email each, so the client and the agency don't see each other's addresses.
-  await Promise.all([...recipients].map((to) => fetch("https://api.resend.com/emails", {
+  await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
     body: JSON.stringify({ from, to: [to], subject, text: `${body}\n\nOpen inbox: ${url}`, html }),
     cache: "no-store",
-  }).catch((error) => console.error("Social alert email failed", error))))
+  }).catch((error) => console.error("Social alert email failed", error))
 }
