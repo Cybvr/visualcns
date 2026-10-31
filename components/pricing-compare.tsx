@@ -54,8 +54,9 @@ export function PricingCompare({ ctaFor, stickyTop = "top-20" }: {
             {GROWTH_COMPARISON.map((section) => (
               <Fragment key={section.title}>
                 <tr>
-                  <th scope="colgroup" colSpan={5} className="bg-background pb-3 pt-10 text-left font-serif text-2xl font-normal tracking-tight text-foreground max-md:sticky max-md:left-0">
-                    {section.title}
+                  {/* The cell spans the whole table, so the title inside it is what stays put when the table scrolls sideways. */}
+                  <th scope="colgroup" colSpan={5} className="pb-3 pt-10 text-left font-serif text-2xl font-normal tracking-tight text-foreground">
+                    <span className="sticky left-0 inline-block">{section.title}</span>
                   </th>
                 </tr>
                 {section.rows.map((row) => (
