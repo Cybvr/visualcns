@@ -167,9 +167,9 @@ export type ComparisonCell = boolean | string
 /** The Growth plan comparison table, one cell per plan in order: Free, Pro, Max, Ultra. */
 export const GROWTH_COMPARISON: { title: string; rows: { label: string; cells: [ComparisonCell, ComparisonCell, ComparisonCell, ComparisonCell] }[] }[] = [
   {
-    title: "Development",
+    title: "Strategy",
     rows: [
-      { label: "Consulting time (apps, websites, design)", cells: [false, "2 hrs a month", "5 hrs a month", "10 hrs a month"] },
+      { label: "Consulting time", cells: [false, "2 hrs a month", "5 hrs a month", "10 hrs a month"] },
       { label: "Extra hours", cells: ["Hourly rate", "Hourly rate", "10% off", "20% off"] },
     ],
   },
