@@ -116,7 +116,7 @@ export function PlanPricing({ billing, seats = null, free, onBeforeSubscribe, he
                 onClick={() => void choose(tier.id)}
               >
                 {busy === tier.id && <Loader2 className="size-4 animate-spin" aria-hidden="true" />}
-                {tooSmall ? `You have ${seats} staff` : isCurrent ? "Renew" : inCart ? "View cart" : `Choose ${tier.name}`}
+                {tooSmall ? `You have ${seats} staff` : isCurrent ? "Renew" : inCart ? "View cart" : "Get started"}
               </Button>
               <ul className="surface-table-cell mt-4 space-y-2.5 text-foreground">
                 {(tier.features ?? []).map((feature) => (

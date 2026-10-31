@@ -44,7 +44,7 @@ export function PricingView({ cartHref, freeHref }: { cartHref: string; freeHref
         timeline={recurring ? undefined : service.timeline || "One-off"}
         description={service.scope}
         features={service.features ?? []}
-        ctaLabel={inCart ? "View cart" : "Add to cart"}
+        ctaLabel={inCart ? "View cart" : "Get started"}
         ctaHref={cartHref}
         onCtaClick={() => add(service.id)}
       />
@@ -93,7 +93,7 @@ export function PricingView({ cartHref, freeHref }: { cartHref: string; freeHref
                   price="Free"
                   description={FREE_GROWTH.scope}
                   features={FREE_GROWTH.features}
-                  ctaLabel="Start free"
+                  ctaLabel="Get started"
                   ctaHref={freeHref}
                 />
               )}

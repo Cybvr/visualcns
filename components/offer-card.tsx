@@ -166,6 +166,16 @@ export function OfferCard({
           {badge && timeline && <span className="text-sm text-muted-foreground">{timeline}</span>}
         </div>
 
+        <Button asChild className="mt-5 w-full" variant={featured ? "default" : "outline"}>
+          {ctaExternal ? (
+            <a href={ctaHref} target="_blank" rel="noopener noreferrer">
+              {ctaLabel}
+            </a>
+          ) : (
+            <Link href={ctaHref} onClick={onCtaClick}>{ctaLabel}</Link>
+          )}
+        </Button>
+
         {chips && chips.length > 0 && (
           <div className="mt-4 flex flex-wrap gap-2">
             {chips.map((chip) => (
@@ -188,16 +198,6 @@ export function OfferCard({
           </div>
         )}
       </div>
-
-      <Button asChild className="mt-6 w-full" variant={featured ? "default" : "outline"}>
-        {ctaExternal ? (
-          <a href={ctaHref} target="_blank" rel="noopener noreferrer">
-            {ctaLabel}
-          </a>
-        ) : (
-          <Link href={ctaHref} onClick={onCtaClick}>{ctaLabel}</Link>
-        )}
-      </Button>
 
       {footer}
     </div>

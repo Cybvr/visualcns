@@ -122,7 +122,7 @@ export const growthPlanRows: GrowthPlan[] = [
   {
     service: "Free",
     icon: "pulse",
-    scope: "One brand health check to see where you stand",
+    scope: "For Design",
     price: "free",
     timeline: "One-off",
     included: "Brand health check, 30-day trial of Pass, Pulse and Ngai",
@@ -131,7 +131,7 @@ export const growthPlanRows: GrowthPlan[] = [
   {
     service: "Pro",
     icon: "trending",
-    scope: "Social media run for you every month",
+    scope: "For Awareness",
     price: { amount: 200000, suffix: "/mo" },
     timeline: "Monthly",
     included: "Social",
@@ -140,7 +140,7 @@ export const growthPlanRows: GrowthPlan[] = [
   {
     service: "Max",
     icon: "rocket",
-    scope: "Social, ads and SEO working together every month",
+    scope: "For Visibility",
     price: { amount: 500000, suffix: "/mo" },
     timeline: "Monthly",
     included: "Social, ads, SEO",
@@ -149,7 +149,7 @@ export const growthPlanRows: GrowthPlan[] = [
   {
     service: "Ultra",
     icon: "chart",
-    scope: "SEO, social, ads, brand health and monitoring, all handled",
+    scope: "For Presence",
     price: { amount: 850000, suffix: "/mo" },
     timeline: "Monthly",
     included: "SEO, social, ads, brand health, monitoring",
