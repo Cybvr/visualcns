@@ -1,5 +1,6 @@
 import type { ReactNode } from "react"
 import {
+  Activity,
   BarChart3,
   Clock3,
   Database,
@@ -199,27 +200,6 @@ function ChartArt({ label, value }: { label: string; value: string }) {
   )
 }
 
-/** A workflow's steps as nodes joined by a line, ending on a highlighted step. */
-function FlowArt({ steps, tone }: { steps: string[]; tone: Tone }) {
-  const shown = steps.slice(0, 3)
-  return (
-    <Frame tone={tone}>
-      <div className="absolute inset-x-[8%] top-1/2 flex -translate-y-1/2 items-center">
-        {shown.map((step, index) => (
-          <div key={step} className="flex min-w-0 flex-1 items-center">
-            <span className={cn(
-              "min-w-0 truncate rounded-lg px-2.5 py-2 text-[11px] font-semibold shadow-lg",
-              index === shown.length - 1 ? "bg-white text-violet-700" : "bg-black/55 text-white ring-1 ring-violet-300/30",
-            )}>{step}</span>
-            {index < shown.length - 1 && <span className="mx-1 h-px min-w-3 flex-1 bg-violet-200/70" />}
-          </div>
-        ))}
-      </div>
-      {steps.length > 3 && <span className="absolute bottom-[12%] right-[8%] rounded-full bg-white/15 px-2.5 py-1 text-[10px] font-medium text-white">+{steps.length - 3} more steps</span>}
-    </Frame>
-  )
-}
-
 /** A speed dial with the response time under it: support you can count on. */
 function GaugeArt({ response, hours, sweep }: { response: string; hours: string; sweep: number }) {
   const length = 220
@@ -247,17 +227,16 @@ export function ServiceArt({ service, index = 0 }: { service: CartService; index
     case "platforms-framer-site": return <SiteArt mark="F" markClass="bg-neutral-950 text-white" />
     case "platforms-wordpress-site": return <SiteArt mark="W" markClass="bg-white text-[#21759b] ring-4 ring-[#21759b]" />
     case "platforms-add-on-woocommerce": return <StoreArt />
-    case "growth-visualhq-pro": return <ChartArt label="Campaign reach" value="+32%" />
+    case "growth-free": return <SpotlightArt icon={Activity} tags={["Search", "Social", "Reviews"]} />
+    case "growth-pro": return <ChartArt label="Social reach" value="+32%" />
+    case "growth-max": return <ChartArt label="Leads this month" value="+17.5%" />
+    case "growth-ultra": return <SpotlightArt icon={TrendingUp} tags={["SEO", "Social", "Ads", "Monitoring"]} />
   }
   if (service.group === "Maintenance") {
     const [hours = "", response = ""] = service.highlights ?? []
     const sweep = response.startsWith("Same") ? 0.95 : response.startsWith("24") ? 0.7 : 0.45
     return <GaugeArt response={response} hours={hours} sweep={sweep} />
   }
-  if (service.steps?.length) {
-    if (service.name === "Signal") return <ChartArt label="Leads this month" value="+17.5%" />
-    return <FlowArt steps={service.steps} tone={index % 2 ? "bright" : "night"} />
-  }
-  const fallback: Record<string, LucideIcon> = { Development: Layers, Design: Globe, Growth: TrendingUp, Maintenance: ShieldCheck }
+  const fallback: Record<string, LucideIcon> = { Development: Layers, Growth: TrendingUp, Maintenance: ShieldCheck }
   return <SpotlightArt icon={fallback[service.group] ?? Users} />
 }

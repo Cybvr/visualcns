@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { Check, Code2, Globe, Plus, TrendingUp, Wrench, type LucideIcon } from "lucide-react"
+import { ArrowRight, Check, Code2, Plus, TrendingUp, Wrench, type LucideIcon } from "lucide-react"
 
 import { useCart } from "@/components/dashboard/use-cart"
 import { useLocalCurrency } from "@/components/use-local-currency"
@@ -10,13 +10,13 @@ import { ServiceArt } from "@/components/dashboard/service-art"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { CART_SERVICES, type CartService } from "@/lib/cart"
-import { formatPrice } from "@/lib/plans"
+import { formatPrice, growthPlanRows } from "@/lib/plans"
 
 /** Each group's icon, for the featured cards. */
-const GROUP_ICON: Record<string, LucideIcon> = { Development: Code2, Design: Globe, Growth: TrendingUp, Maintenance: Wrench }
+const GROUP_ICON: Record<string, LucideIcon> = { Development: Code2, Growth: TrendingUp, Maintenance: Wrench }
 
 /** The two offers shown large at the top. */
-const FEATURED_IDS = ["growth-visualhq-pro", "development-full-web-app"]
+const FEATURED_IDS = ["growth-pro", "development-full-web-app"]
 
 const GROUPS = [...new Set(CART_SERVICES.map((service) => service.group))]
 
@@ -66,6 +66,29 @@ function ServiceCard({ service, price, index, cartHref, inCart, onSelect }: { se
   )
 }
 
+/** Free plans can't go in the cart, so their card leads to a conversation instead. */
+const FREE_GROWTH: CartService[] = growthPlanRows
+  .filter((row) => row.price === "free")
+  .map((row) => ({ id: `growth-${row.service.toLowerCase()}`, group: "Growth", name: row.service, scope: row.scope, price: { amount: 0 } }))
+
+function FreeCard({ service, index }: { service: CartService; index: number }) {
+  return (
+    <Link href="/contact" aria-label={`Get ${service.name}`} className="flex flex-col rounded-3xl border border-border bg-card p-3 outline-none transition-colors hover:border-violet-400 focus-visible:ring-2 focus-visible:ring-violet-500">
+      <ServiceArt service={service} index={index} />
+      <div className="flex flex-1 flex-col px-3 pb-3 pt-5">
+        <h3 className="surface-record-title">{service.name}</h3>
+        <div className="surface-body mt-2 line-clamp-3">{service.scope}</div>
+        <div className="mt-4 text-lg font-semibold text-foreground">Free</div>
+        <div className="mt-auto pt-4">
+          <span className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-md border border-input px-5 text-sm font-medium text-violet-700 dark:text-violet-300">
+            Get started <ArrowRight className="size-4" aria-hidden="true" />
+          </span>
+        </div>
+      </div>
+    </Link>
+  )
+}
+
 function ServiceGroup({ group, cartHref, price, has, add }: {
   group: string
   cartHref: string
@@ -77,6 +100,7 @@ function ServiceGroup({ group, cartHref, price, has, add }: {
     <section aria-labelledby={`services-${group}`}>
       <SectionHeader id={`services-${group}`} title={group} />
       <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {FREE_GROWTH.filter((service) => service.group === group).map((service, index) => <FreeCard key={service.id} service={service} index={index} />)}
         {CART_SERVICES.filter((service) => service.group === group).map((service, index) => (
           <ServiceCard key={service.id} service={service} price={price(service)} index={index} cartHref={cartHref} inCart={has(service.id)} onSelect={() => add(service.id)} />
         ))}

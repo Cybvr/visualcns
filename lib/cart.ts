@@ -1,4 +1,4 @@
-import { customDevelopmentRows, growthPlanRows, ngnToUsd, platformRows, retainers, workflowPlanRows, type Currency, type Price, type ServiceRow } from "@/lib/plans"
+import { customDevelopmentRows, growthPlanRows, ngnToUsd, platformRows, retainers, type Currency, type Price, type ServiceRow } from "@/lib/plans"
 
 /**
  * The rate-card services someone can buy from the dashboard checkout. Prices
@@ -12,8 +12,6 @@ export type CartService = {
   name: string
   scope: string
   price: Exclude<Price, "free">
-  /** The steps a workflow runs, e.g. ["New lead", "Auto-reply", "Qualify"]. */
-  steps?: string[]
   tools?: string[]
   /** A retainer's headline numbers, e.g. ["5 hrs", "48-hour"]. */
   highlights?: string[]
@@ -24,7 +22,7 @@ function slug(value: string) {
 }
 
 /** idPrefix keeps ids stable when a group is renamed, so saved carts still match. */
-function fromRows(group: string, rows: (ServiceRow & { workflow?: string })[], idPrefix = group): CartService[] {
+function fromRows(group: string, rows: ServiceRow[], idPrefix = group): CartService[] {
   return rows.flatMap((row) => {
     if (row.price === "free" || row.price.suffix === "/hr") return []
     return [{
@@ -33,7 +31,6 @@ function fromRows(group: string, rows: (ServiceRow & { workflow?: string })[], i
       name: row.service,
       scope: row.scope,
       price: row.price,
-      steps: row.workflow?.split("->").map((step) => step.trim()).filter(Boolean),
       tools: row.tools,
     }]
   })
@@ -42,9 +39,8 @@ function fromRows(group: string, rows: (ServiceRow & { workflow?: string })[], i
 export const CART_SERVICES: CartService[] = [
   // The generic retainer row is replaced by its three tiers below.
   ...fromRows("Development", customDevelopmentRows.filter((row) => row.service !== "Maintenance Retainer")),
-  ...fromRows("Design", platformRows, "Platforms"),
+  ...fromRows("Development", platformRows, "Platforms"),
   ...fromRows("Growth", growthPlanRows),
-  ...fromRows("Growth", workflowPlanRows, "Workflows"),
   ...retainers.map((tier) => ({
     id: slug(`maintenance-${tier.name}`),
     group: "Maintenance",

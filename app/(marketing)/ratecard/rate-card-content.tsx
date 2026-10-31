@@ -9,11 +9,11 @@ import {
   NGN_PER_USD,
   platformRows,
   retainers,
-  workflowPlanRows,
+  growthPlanRows,
   type Currency,
   type ServiceRow,
   type TierSpec,
-  type WorkflowPlan,
+  type GrowthPlan,
 } from "@/lib/plans"
 
 const terms = [
@@ -56,8 +56,8 @@ const rateCardTabs = [
   {
     id: "workflows",
     label: "Growth",
-    title: "Growth systems for existing tools",
-    description: "For businesses that need their existing tools connected into clear growth systems.",
+    title: "SEO, social, ads, brand health and monitoring",
+    description: "Monthly growth plans. Start free, then pick Pro, Max or Ultra. Each plan includes everything in the one before it.",
   },
   {
     id: "consulting",
@@ -104,16 +104,15 @@ function RateTable({
   )
 }
 
-function WorkflowTable({ rows, currency }: { rows: WorkflowPlan[]; currency: Currency }) {
+function GrowthTable({ rows, currency }: { rows: GrowthPlan[]; currency: Currency }) {
   return (
     <div className="rate-table-wrap">
       <table>
         <thead>
           <tr>
-            <th>Service</th>
+            <th>Plan</th>
             <th>Best For</th>
             <th>Price</th>
-            <th>Timeline</th>
             <th>What&apos;s Included</th>
           </tr>
         </thead>
@@ -121,10 +120,9 @@ function WorkflowTable({ rows, currency }: { rows: WorkflowPlan[]; currency: Cur
           {rows.map((row) => (
             <tr key={row.service}>
               <td>{row.service}</td>
-              <td>{row.outcome}</td>
+              <td>{row.scope}</td>
               <td>{formatPrice(row.price, currency)}</td>
-              <td>{row.timeline}</td>
-              <td>{row.included}</td>
+              <td>{row.features.join(", ")}</td>
             </tr>
           ))}
         </tbody>
@@ -721,7 +719,7 @@ export function RateCardContent() {
 
                 <RateTable
                   headers={["Service", "Scope", `Price (${currencySymbol})`, "Timeline", "What's Included"]}
-                  rows={customDevelopmentRows}
+                  rows={[...customDevelopmentRows.slice(0, 4), ...platformRows, ...customDevelopmentRows.slice(4)]}
                   currency={currency}
                 />
 
@@ -732,19 +730,6 @@ export function RateCardContent() {
                     or heavy traffic fall under <strong>Custom Web App</strong> and are quoted after a scoping call.
                   </span>
                 </div>
-
-                <hr className="section-rule" />
-
-                <div className="section">
-                  <h4 className="section-title">Design</h4>
-                  <div className="section-accent" />
-                </div>
-
-                <RateTable
-                  headers={["Service", "Scope", `Price (${currencySymbol})`, "Timeline", "What's Included"]}
-                  rows={platformRows}
-                  currency={currency}
-                />
 
                 <hr className="section-rule" />
 
@@ -765,7 +750,7 @@ export function RateCardContent() {
               </>
             )}
 
-            {activeTab === "workflows" && <WorkflowTable rows={workflowPlanRows} currency={currency} />}
+            {activeTab === "workflows" && <GrowthTable rows={growthPlanRows} currency={currency} />}
 
             {activeTab === "consulting" && (
               <div className="section">
