@@ -35,7 +35,7 @@ const footerGroups = [
       { name: "Ask Ngai", href: "/help" },
       { name: "FAQs", href: "/help?tab=faqs" },
       { name: "Resources", href: "/help?tab=resources" },
-      { name: "Workflows", href: "/help?tab=workflows" },
+      { name: "Growth", href: "/help?tab=workflows" },
     ],
   },
 ]
