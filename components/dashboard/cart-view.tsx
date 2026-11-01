@@ -2,24 +2,21 @@
 
 import Link from "next/link"
 import { useEffect, useRef } from "react"
-import { Plus, ShoppingCart, X } from "lucide-react"
+import { ShoppingCart, X } from "lucide-react"
 
 import { useCart } from "@/components/dashboard/use-cart"
 import { SectionHeader } from "@/components/dashboard/section-header"
-import { ServiceArt } from "@/components/dashboard/service-art"
 import { Button } from "@/components/ui/button"
-import { baseServiceId, cartTotal, formatMoney, LISTED_SERVICES } from "@/lib/cart"
+import { cartTotal, formatMoney } from "@/lib/cart"
 import { useLocalCurrency } from "@/components/use-local-currency"
 import { formatPrice } from "@/lib/plans"
 
-const RECOMMENDATION_COUNT = 3
-
 /**
  * The cart: each service in it with its price and a remove button, a subtotal
- * card with the way to checkout, then a few services to add.
+ * card with the way to checkout.
  */
 export function CartView({ checkoutHref, servicesHref }: { checkoutHref: string; servicesHref: string }) {
-  const { items, ids, add, remove, clear, replace } = useCart()
+  const { items, ids, remove, clear, replace } = useCart()
   const loaded = useRef(false)
 
   // The address carries the cart (?items=a,b), so a cart link opens the same cart.
@@ -39,13 +36,6 @@ export function CartView({ checkoutHref, servicesHref }: { checkoutHref: string;
   }, [ids, replace])
   const currency = useLocalCurrency()
   const total = cartTotal(items, currency)
-  // Others from the groups already in the cart first, then anything else.
-  const groups = new Set(items.map((item) => item.group))
-  const inCart = new Set(ids.map(baseServiceId))
-  const recommendations = LISTED_SERVICES
-    .filter((service) => !inCart.has(service.id))
-    .sort((a, b) => Number(groups.has(b.group)) - Number(groups.has(a.group)))
-    .slice(0, RECOMMENDATION_COUNT)
 
   return (
     <main className="mx-auto grid w-full max-w-6xl gap-8 px-4 pt-4 pb-12 sm:px-6 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">
@@ -84,27 +74,6 @@ export function CartView({ checkoutHref, servicesHref }: { checkoutHref: string;
             </ul>
           )}
         </section>
-
-        {recommendations.length > 0 && (
-          <section aria-labelledby="cart-recommended-heading">
-            <SectionHeader id="cart-recommended-heading" title="Recommended for you" href={servicesHref} linkLabel="See pricing" />
-            <div className="mt-4 grid gap-4 sm:grid-cols-3">
-              {recommendations.map((service, index) => (
-                <div key={service.id} className="flex flex-col rounded-2xl border border-border bg-card p-2.5">
-                  <ServiceArt service={service} index={index} />
-                  <div className="flex flex-1 flex-col px-1.5 pb-1 pt-3">
-                    <div className="truncate text-sm font-semibold text-foreground">{service.name}</div>
-                    <div className="surface-caption mt-0.5">{formatPrice(service.price, currency)}</div>
-                    <Button type="button" variant="outline" size="sm" className="mt-3" onClick={() => add(service.id)}>
-                      <Plus aria-hidden="true" />
-                      Add to cart
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
       </div>
 
       <aside className="overflow-hidden rounded-2xl bg-muted/50 lg:sticky lg:top-4">

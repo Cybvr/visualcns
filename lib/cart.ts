@@ -58,6 +58,9 @@ function fromRows(group: string, rows: ServiceRow[], idPrefix = group): CartServ
 /** The tab and group name for monthly upkeep: Growth and Development Support. */
 export const SUPPORT_GROUP = "G&D Support"
 
+/** The pricing tabs in order, by their address: /pricing/growth, /pricing/development, /pricing/support. */
+export const PRICING_TABS: Record<string, string> = { growth: "Growth", development: "Development", support: SUPPORT_GROUP }
+
 /** Everything listed for sale, one entry each, billed as shown (one-off or monthly). */
 export const LISTED_SERVICES: CartService[] = [
   // Apps, then websites, then add-ons.

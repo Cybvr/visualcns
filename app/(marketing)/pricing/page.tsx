@@ -4,7 +4,7 @@ import { PricingContent } from "./pricing-content"
 
 export const metadata: Metadata = publicPageMetadata({
   title: "Pricing",
-  description: "VisualCNS pricing: Growth plans with Pass, Pulse and Ngai, plus development and maintenance.",
+  description: "VisualCNS pricing: Growth plans with Pass, Pulse and Ngai, plus development and G&D Support.",
   path: "/pricing",
 })
 

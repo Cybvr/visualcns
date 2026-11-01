@@ -11,11 +11,12 @@ import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useLocalCurrency } from "@/components/use-local-currency"
 import { usePolarCheckout } from "@/components/use-polar-checkout"
-import { LISTED_SERVICES, SUPPORT_GROUP, serviceFor, type BillingInterval, type CartService } from "@/lib/cart"
+import { LISTED_SERVICES, PRICING_TABS, serviceFor, type BillingInterval, type CartService } from "@/lib/cart"
 import { formatPrice, growthPlanRows } from "@/lib/plans"
 import { cn } from "@/lib/utils"
 
-const GROUPS = ["Growth", "Development", SUPPORT_GROUP] as const
+const GROUPS = Object.values(PRICING_TABS)
+const TAB_SLUG: Record<string, string> = Object.fromEntries(Object.entries(PRICING_TABS).map(([slug, group]) => [group, slug]))
 const FEATURED_ID = "growth-pro"
 const FREE_GROWTH = growthPlanRows.find((row) => row.price === "free")
 
@@ -25,10 +26,25 @@ const TRIGGER = "h-9 shrink-0 flex-none rounded-full px-4 text-muted-foreground 
  * Everything VisualCNS sells, as cards that go in the cart: Growth plans (which
  * include Pass, Pulse and Ngai), development work and G&D (Growth and Development) Support.
  */
-export function PricingView({ cartHref, freeHref, stickyTop }: { cartHref: string; freeHref: string; /** Offset for the comparison table's sticky header. */ stickyTop?: string }) {
+export function PricingView({ cartHref, freeHref, stickyTop, basePath, initialTab }: {
+  cartHref: string
+  freeHref: string
+  /** Offset for the comparison table's sticky header. */
+  stickyTop?: string
+  /** The pricing page's address; switching tabs moves to basePath/<tab>. */
+  basePath: string
+  /** The tab's slug from the address, e.g. "development". */
+  initialTab?: string
+}) {
   const { items, add, has } = useCart()
   const currency = useLocalCurrency()
-  const [tab, setTab] = useState<string>("Growth")
+  const [tab, setTab] = useState<string>(PRICING_TABS[initialTab ?? ""] ?? "Growth")
+
+  function changeTab(next: string) {
+    setTab(next)
+    const slug = TAB_SLUG[next]
+    if (slug) window.history.replaceState(window.history.state, "", `${basePath}/${slug}${window.location.search}`)
+  }
   const [interval, setInterval] = useState<BillingInterval>("monthly")
   const polar = usePolarCheckout()
   // Dollar buyers go straight to Polar for the one item; Naira buyers use the cart.
@@ -96,7 +112,7 @@ export function PricingView({ cartHref, freeHref, stickyTop }: { cartHref: strin
         </div>
       )}
 
-      <Tabs value={tab} onValueChange={setTab} className="gap-8">
+      <Tabs value={tab} onValueChange={changeTab} className="gap-8">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <TabsList aria-label="Pricing categories" className="h-auto max-w-full justify-start gap-1 overflow-x-auto rounded-full border border-border bg-muted/70 p-1 [scrollbar-width:none]">
             {GROUPS.map((group) => <TabsTrigger key={group} value={group} className={TRIGGER}>{group}</TabsTrigger>)}
