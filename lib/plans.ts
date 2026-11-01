@@ -160,7 +160,7 @@ export const growthPlanRows: GrowthPlan[] = [
     price: { amount: 500000, suffix: "/mo", usd: 800 },
     timeline: "Monthly",
     included: "Social, ads, SEO",
-    features: ["Everything in Pro", "5 hrs consulting a month", "20 social media posts and replies a month", "Community management", "Influencer (creator) recommendations", "4 newsletters a month", "10 brand campaigns a month", "Paid ads management", "SEO", "Pass for up to 50 staff", "Pulse: unlimited scans", "5x Ngai usage", "5,000 emails a month", "10% off extra hours"],
+    features: ["Everything in Pro", "Dedicated manager", "5 hrs consulting a month", "20 social media posts and replies a month", "Community management", "Influencer (creator) recommendations", "4 newsletters a month", "10 brand campaigns a month", "Paid ads management", "SEO", "Pass for up to 50 staff", "Pulse: unlimited scans", "5x Ngai usage", "5,000 emails a month", "10% off extra hours"],
   },
   {
     service: "Ultra",
@@ -186,6 +186,7 @@ export const GROWTH_COMPARISON: { title: string; rows: { label: string; cells: [
     title: "Strategy",
     rows: [
       { label: "Consulting time", cells: [false, "2 hrs a month", "5 hrs a month", "10 hrs a month"] },
+      { label: "Dedicated manager", cells: [false, false, true, true] },
       { label: "Extra hours", cells: ["Hourly rate", "Hourly rate", "10% off", "20% off"] },
     ],
   },

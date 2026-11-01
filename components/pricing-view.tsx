@@ -17,7 +17,7 @@ import { cn } from "@/lib/utils"
 
 const GROUPS = Object.values(PRICING_TABS)
 const TAB_SLUG: Record<string, string> = Object.fromEntries(Object.entries(PRICING_TABS).map(([slug, group]) => [group, slug]))
-const FEATURED_ID = "growth-pro"
+const FEATURED_ID = "growth-max"
 const FREE_GROWTH = growthPlanRows.find((row) => row.price === "free")
 
 const TRIGGER = "h-9 shrink-0 flex-none rounded-full px-4 text-muted-foreground data-[state=active]:bg-card data-[state=active]:text-foreground focus-visible:ring-2 focus-visible:ring-ring"

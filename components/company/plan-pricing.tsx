@@ -16,7 +16,7 @@ import { formatPrice } from "@/lib/plans"
 import { PLANS, planAccess, type Subscription } from "@/lib/subscription"
 import { cn } from "@/lib/utils"
 
-const POPULAR = "growth-pro"
+const POPULAR = "growth-max"
 
 /** The Growth plan a company is on now, if it bought one and it hasn't run out. */
 export function activeGrowthTier(billing: Subscription | null | undefined) {
