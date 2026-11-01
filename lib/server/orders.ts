@@ -1,6 +1,7 @@
 import { FieldValue, Timestamp, type Firestore } from "firebase-admin/firestore"
 
 import { baseServiceId, GROWTH_APP_PLAN } from "@/lib/cart"
+import { countDiscountUse } from "@/lib/server/discounts"
 import { startGrowthSubscription } from "@/lib/server/growth-subscriptions"
 import { PLAN_KEYS, type PlanKey } from "@/lib/subscription"
 
@@ -38,6 +39,7 @@ export async function applyOrderCharge(db: Firestore, charge: Charge) {
   if (Math.round(Number(order.total) * 100) !== charge.amount || (charge.currency && charge.currency !== (order.currency || "NGN"))) return ""
   if (order.status !== "paid") {
     await ref.set({ status: "paid", paidAt: FieldValue.serverTimestamp(), updatedAt: FieldValue.serverTimestamp() }, { merge: true })
+    await countDiscountUse(db, String(order.discount?.code || "")).catch((error) => console.error("Discount count failed", error))
     const growth = await grantGrowthAccess(db, order).catch((error) => { console.error("Growth access grant failed", error); return null })
     // Growth plans paid in Naira then renew on their own through Paystack.
     if (growth && (order.currency || "NGN") === "NGN") {
@@ -102,6 +104,7 @@ export async function notifyPaidOrder(orderId: string, order: Record<string, any
     `New paid order from ${order.email}.`,
     "",
     ...lines,
+    ...(order.discount?.code ? [`Discount (${order.discount.code}): -${money(order.discount.amount)}`] : []),
     `Total: ${money(order.total)}`,
     order.note ? `\nNote: ${order.note}` : "",
     order.provider === "polar" ? `\nPolar order: ${order.reference}` : `\nPaystack reference: ${order.reference}`,

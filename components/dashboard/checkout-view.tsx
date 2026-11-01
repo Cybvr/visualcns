@@ -19,7 +19,8 @@ import { useLocalCurrency } from "@/components/use-local-currency"
 import { formatPrice } from "@/lib/plans"
 import { cn } from "@/lib/utils"
 
-type Paid = { items: Array<{ id: string; name: string; amount: number }>; total: number; currency: "NGN" | "USD" }
+type Discount = { code: string; amount: number }
+type Paid = { items: Array<{ id: string; name: string; amount: number }>; discount: Discount | null; total: number; currency: "NGN" | "USD" }
 
 const COUNTRIES = ["Nigeria", "Ghana", "Kenya", "South Africa", "United Kingdom", "United States", "Other"]
 
@@ -47,6 +48,10 @@ function CheckoutContent({ checkoutPath, doneHref }: { checkoutPath: string; don
   const [paying, setPaying] = useState(false)
   const [paid, setPaid] = useState<Paid | null>(null)
   const [verifyError, setVerifyError] = useState("")
+  const [codeInput, setCodeInput] = useState("")
+  const [discount, setDiscount] = useState<Discount | null>(null)
+  const [codeError, setCodeError] = useState("")
+  const [checkingCode, setCheckingCode] = useState(false)
   const verified = useRef("")
 
   // Start from what the account already knows.
@@ -81,18 +86,42 @@ function CheckoutContent({ checkoutPath, doneHref }: { checkoutPath: string; don
     verified.current = reference
     post({ action: "verify", reference })
       .then((payload) => {
-        setPaid({ items: payload.items ?? [], total: payload.total ?? 0, currency: payload.currency === "USD" ? "USD" : "NGN" })
+        setPaid({ items: payload.items ?? [], discount: payload.discount ?? null, total: payload.total ?? 0, currency: payload.currency === "USD" ? "USD" : "NGN" })
         clear()
       })
       .catch((error: Error) => setVerifyError(error.message))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reference, user, loading])
 
+  // A changed cart or currency changes what the code is worth: drop it so it's applied again.
+  const cartKey = `${currency}:${items.map((item) => item.id).join(",")}`
+  useEffect(() => {
+    setDiscount(null)
+    setCodeError("")
+  }, [cartKey])
+
+  async function applyCode() {
+    const code = codeInput.trim()
+    if (!code) return
+    setCheckingCode(true)
+    setCodeError("")
+    try {
+      const payload = await post({ action: "discount", code, items: items.map((item) => item.id), currency })
+      setDiscount({ code: payload.code, amount: payload.amount })
+      setCodeInput("")
+    } catch (error) {
+      setDiscount(null)
+      setCodeError(error instanceof Error ? error.message : "That code isn't valid.")
+    } finally {
+      setCheckingCode(false)
+    }
+  }
+
   async function pay(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setPaying(true)
     try {
-      const { url } = await post({ action: "pay", items: items.map((item) => item.id), note, details, currency, returnTo: checkoutPath })
+      const { url } = await post({ action: "pay", items: items.map((item) => item.id), note, details, currency, returnTo: checkoutPath, code: discount?.code ?? "" })
       window.location.assign(url)
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Couldn't start the payment.")
@@ -116,6 +145,12 @@ function CheckoutContent({ checkoutPath, doneHref }: { checkoutPath: string; don
                 </li>
               ))}
             </ul>
+            {paid.discount && (
+              <div className="mt-3 flex justify-between text-sm">
+                <span className="text-muted-foreground">Discount ({paid.discount.code})</span>
+                <span className="text-foreground">−{formatMoney(paid.discount.amount, paid.currency)}</span>
+              </div>
+            )}
             <div className="mt-3 flex justify-between text-sm font-semibold text-foreground">
               <span>Total paid</span>
               <span>{formatMoney(paid.total, paid.currency)}</span>
@@ -138,7 +173,8 @@ function CheckoutContent({ checkoutPath, doneHref }: { checkoutPath: string; don
     )
   }
 
-  const total = cartTotal(items, currency)
+  const subtotal = cartTotal(items, currency)
+  const total = subtotal - (discount?.amount ?? 0)
   const cartHref = checkoutPath.replace(/\/checkout$/, "/cart")
   const servicesHref = checkoutPath.replace(/\/checkout$/, "/pricing")
 
@@ -165,10 +201,38 @@ function CheckoutContent({ checkoutPath, doneHref }: { checkoutPath: string; don
         ))}
       </ul>
       <div className="space-y-2 border-t border-border pt-3 text-sm">
-        <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span className="text-foreground">{formatMoney(total, currency)}</span></div>
+        <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span className="text-foreground">{formatMoney(subtotal, currency)}</span></div>
+        {discount && (
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-muted-foreground">
+              Discount ({discount.code}){" "}
+              <button type="button" onClick={() => setDiscount(null)} className="text-foreground underline underline-offset-4">Remove</button>
+            </span>
+            <span className="text-foreground">−{formatMoney(discount.amount, currency)}</span>
+          </div>
+        )}
         <div className="flex justify-between"><span className="text-muted-foreground">Tax</span><span className="text-foreground">Included</span></div>
         <div className="flex items-baseline justify-between border-t border-border pt-3"><span className="font-semibold text-foreground">Total</span><span className="text-xl font-semibold text-foreground">{formatMoney(total, currency)}</span></div>
       </div>
+      {!discount && (
+        <div className="mt-3">
+          <div className="flex gap-2">
+            <Input
+              value={codeInput}
+              onChange={(event) => setCodeInput(event.target.value)}
+              onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); void applyCode() } }}
+              placeholder="Discount code"
+              aria-label="Discount code"
+              autoCapitalize="characters"
+              className="bg-background"
+            />
+            <Button type="button" variant="outline" onClick={applyCode} disabled={checkingCode || !codeInput.trim()}>
+              {checkingCode ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : "Apply"}
+            </Button>
+          </div>
+          {codeError && <div className="mt-1.5 text-sm text-destructive" role="alert">{codeError}</div>}
+        </div>
+      )}
       <Link href={cartHref} className="mt-3 inline-block text-sm font-medium text-foreground underline-offset-4 hover:underline">Edit cart</Link>
     </>
   )
