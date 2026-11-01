@@ -76,7 +76,7 @@ export default function DiscountCodesPage() {
     try {
       await call("POST", {
         code: form.code,
-        ...(form.kind === "percent" ? { percent: Number(form.percent) } : { amountNGN: Number(form.amountNGN), amountUSD: Number(form.amountUSD) }),
+        ...(form.kind === "percent" ? { percent: Number(form.percent) } : { amountNGN: Number(form.amountNGN) }),
         // The end of the chosen day, in the admin's own time.
         ...(form.expires ? { expiresAt: new Date(`${form.expires}T23:59:59`).getTime() } : {}),
         ...(form.maxUses ? { maxUses: Number(form.maxUses) } : {}),
@@ -107,7 +107,7 @@ export default function DiscountCodesPage() {
     <main className="mx-auto w-full max-w-4xl px-4 py-10 sm:px-6">
       <AccountNav />
       <h1 className="mt-7 text-xl font-semibold">Discount codes</h1>
-      <p className="mt-1 text-sm text-muted-foreground">Codes buyers can enter at the services checkout.</p>
+      <p className="mt-1 text-sm text-muted-foreground">Codes customers can enter at checkout when paying in Naira. For dollar payments, create codes in Polar.</p>
 
       <form onSubmit={create} className="mt-6 grid gap-4 rounded-2xl bg-muted/50 p-5 sm:grid-cols-2">
         <div className="space-y-1.5">
@@ -130,16 +130,10 @@ export default function DiscountCodesPage() {
             <Input id="discount-percent" type="number" min={1} max={100} value={form.percent} onChange={(event) => update("percent", event.target.value)} required className="bg-background" />
           </div>
         ) : (
-          <>
-            <div className="space-y-1.5">
-              <Label htmlFor="discount-ngn">Naira off</Label>
-              <Input id="discount-ngn" type="number" min={1} value={form.amountNGN} onChange={(event) => update("amountNGN", event.target.value)} placeholder="Leave empty for dollars only" className="bg-background" />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="discount-usd">Dollars off</Label>
-              <Input id="discount-usd" type="number" min={1} value={form.amountUSD} onChange={(event) => update("amountUSD", event.target.value)} placeholder="Leave empty for Naira only" className="bg-background" />
-            </div>
-          </>
+          <div className="space-y-1.5">
+            <Label htmlFor="discount-ngn">Naira off</Label>
+            <Input id="discount-ngn" type="number" min={1} value={form.amountNGN} onChange={(event) => update("amountNGN", event.target.value)} required className="bg-background" />
+          </div>
         )}
         <div className="space-y-1.5">
           <Label htmlFor="discount-expires">Ends</Label>
