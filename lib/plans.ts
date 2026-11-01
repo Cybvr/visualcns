@@ -245,7 +245,7 @@ export const retainers: Array<{
   {
     id: "maintenance-basic",
     name: "Basic",
-    description: "Keep your site running",
+    description: "Keep your business ticking over",
     icon: "tool",
     amount: 340000,
     highlights: ["5 hrs", "48-hour"],
@@ -269,7 +269,7 @@ export const retainers: Array<{
   {
     id: "maintenance-priority",
     name: "Priority",
-    description: "For a busy site that can't go down",
+    description: "For a busy business",
     icon: "zap",
     amount: 612000,
     highlights: ["12 hrs", "24-hour"],
@@ -293,7 +293,7 @@ export const retainers: Array<{
   {
     id: "maintenance-growth",
     name: "Pro",
-    description: "Keep your site and marketing moving",
+    description: "Hands-on help for a growing business",
     icon: "trending",
     amount: 800000,
     highlights: ["25 hrs", "Same-day"],
