@@ -19,7 +19,7 @@ So we've started **Growth plans**. You pick a plan, and every month our team wri
 **Here's what a month on Max looks like:**
 20 posts and replies across your social pages, 4 newsletters to your customers, creators picked for your brand, and one person on our side who knows your business and keeps it all moving.
 
-[One line about a real client result, e.g. "One client went from posting twice a month to 20 posts a month, and doubled their enquiries in 8 weeks."]
+We've written over [number] posts and [number] newsletters for our clients this year.
 
 **For the first month, use [CODE] for [X]% off.** It works until [date].
 
