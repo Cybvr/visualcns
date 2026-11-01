@@ -33,6 +33,7 @@ export async function POST(request: NextRequest) {
   const returnTo = typeof body.returnTo === "string" && /^(?:\/[A-Za-z0-9%._~-]+)*\/?$/.test(body.returnTo) ? body.returnTo : "/pricing"
   const back = new URL(`${origin}${returnTo}`)
   back.searchParams.set("paid", "polar")
+  back.searchParams.set("item", serviceId)
 
   try {
     const url = await polarCheckout(serviceId, {

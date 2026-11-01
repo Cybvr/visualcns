@@ -16,6 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea"
 import { cartTotal, formatMoney } from "@/lib/cart"
 import { useLocalCurrency } from "@/components/use-local-currency"
+import { usePolarCheckout } from "@/components/use-polar-checkout"
 import { formatPrice } from "@/lib/plans"
 import { cn } from "@/lib/utils"
 
@@ -40,8 +41,11 @@ function CheckoutContent({ checkoutPath, doneHref }: { checkoutPath: string; don
   const router = useRouter()
   const searchParams = useSearchParams()
   const reference = searchParams.get("reference") || searchParams.get("trxref") || ""
-  const { items, clear } = useCart()
+  const { items, clear, remove } = useCart()
   const currency = useLocalCurrency()
+  // Dollars go through Polar, one item at a time; Naira goes through Paystack for the whole cart.
+  const dollars = currency === "USD"
+  const polar = usePolarCheckout()
   const [details, setDetails] = useState<Details>({ name: "", email: "", phone: "", company: "", country: "Nigeria", address: "" })
   const [note, setNote] = useState("")
   const [agreed, setAgreed] = useState(false)
@@ -79,6 +83,18 @@ function CheckoutContent({ checkoutPath, doneHref }: { checkoutPath: string; don
     if (!response.ok) throw new Error(payload.error || "Something went wrong. Please try again.")
     return payload
   }
+
+  // Back from Polar: that item is paid, so it leaves the cart.
+  useEffect(() => {
+    const url = new URL(window.location.href)
+    if (url.searchParams.get("paid") !== "polar") return
+    const paidItem = url.searchParams.get("item")
+    if (paidItem) remove(paidItem)
+    toast.success("Payment received. We'll be in touch shortly to get started.")
+    for (const key of ["paid", "item", "checkout_id"]) url.searchParams.delete(key)
+    window.history.replaceState(window.history.state, "", url.toString())
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // Paystack sends the payer back here with the payment reference.
   useEffect(() => {
@@ -187,6 +203,38 @@ function CheckoutContent({ checkoutPath, doneHref }: { checkoutPath: string; don
     )
   }
 
+  // Dollars: each item is paid on its own Polar page, which takes the payer's details and any discount code.
+  if (dollars) {
+    return (
+      <main className="mx-auto w-full max-w-lg px-4 pt-4 pb-12 sm:px-6">
+        <Link href={cartHref} className="text-sm text-muted-foreground hover:text-foreground">Back to cart</Link>
+        <div className="mt-5 rounded-2xl bg-muted/50 p-5">
+          <div className="surface-record-title">Pay in dollars</div>
+          <div className="surface-body mt-1">{items.length > 1 ? "Dollar payments go one item at a time. Pay for each one below." : "You'll pay on Polar's secure page."}</div>
+          <ul className="mt-4 divide-y divide-border border-y border-border">
+            {items.map((item) => (
+              <li key={item.id} className="flex items-center justify-between gap-3 py-3">
+                <div className="min-w-0">
+                  <div className="truncate text-sm font-medium text-foreground">{item.name}</div>
+                  <div className="surface-caption">{formatPrice(item.price, currency)}</div>
+                </div>
+                <Button type="button" className="shrink-0" disabled={!agreed || Boolean(polar.opening)} onClick={() => void polar.open(item.id)}>
+                  {polar.opening === item.id ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <Lock className="size-4" aria-hidden="true" />}
+                  Pay
+                </Button>
+              </li>
+            ))}
+          </ul>
+          <label className="mt-4 flex items-start gap-3 text-sm text-foreground">
+            <input type="checkbox" checked={agreed} onChange={(event) => setAgreed(event.target.checked)} className="mt-0.5 size-4 accent-primary" />
+            <span>I agree to the <Link href="/terms" target="_blank" className="underline underline-offset-4">terms of service</Link>.</span>
+          </label>
+          <div className="surface-caption mt-3 flex items-center gap-1.5"><Lock className="size-3 shrink-0" aria-hidden="true" />Paid on Polar by card. Have a discount code? Enter it there.</div>
+        </div>
+      </main>
+    )
+  }
+
   const summary = (
     <>
       <ul className="divide-y divide-border">
@@ -248,7 +296,7 @@ function CheckoutContent({ checkoutPath, doneHref }: { checkoutPath: string; don
         {paying ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <Lock className="size-4" aria-hidden="true" />}
         Pay {formatMoney(total, currency)}
       </Button>
-      <div className="surface-caption flex items-center justify-center gap-1.5 text-center"><Lock className="size-3 shrink-0" aria-hidden="true" />Paid on Paystack by card, bank transfer or USSD.</div>
+      <div className="surface-caption flex items-center justify-center gap-1.5 text-center"><Lock className="size-3 shrink-0" aria-hidden="true" />Paid on Paystack by card, bank transfer or USSD. Paying in dollars? Switch the currency beside the cart.</div>
     </div>
   )
 

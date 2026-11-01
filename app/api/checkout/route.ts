@@ -55,8 +55,8 @@ export async function POST(request: NextRequest) {
     if (body.action === "discount") {
       const services = cartServices(body.items)
       if (services.length === 0) return NextResponse.json({ error: "Your cart is empty." }, { status: 400 })
-      const currency = body.currency === "USD" ? "USD" : "NGN"
-      const discount = await discountFor(db, body.code, cartTotal(services, currency), currency)
+      if (body.currency === "USD") return NextResponse.json({ error: "For dollar payments, enter your code on the Polar payment page." }, { status: 400 })
+      const discount = await discountFor(db, body.code, cartTotal(services, "NGN"), "NGN")
       return NextResponse.json(discount)
     }
 
@@ -70,8 +70,9 @@ export async function POST(request: NextRequest) {
       const channel = typeof body.channel === "string" && CHANNELS.has(body.channel) ? body.channel : ""
       const services = cartServices(body.items)
       if (services.length === 0) return NextResponse.json({ error: "Your cart is empty." }, { status: 400 })
-      // Naira, or dollars at the rate card's own conversion; Paystack charges in either.
-      const currency = body.currency === "USD" ? "USD" : "NGN"
+      // Paystack takes Naira only; dollar payments go through Polar (/api/checkout/polar).
+      if (body.currency === "USD") return NextResponse.json({ error: "Dollar payments go through Polar. Please refresh the page." }, { status: 400 })
+      const currency = "NGN"
       const subtotal = cartTotal(services, currency)
       const discount = body.code ? await discountFor(db, body.code, subtotal, currency) : null
       const total = subtotal - (discount?.amount ?? 0)
