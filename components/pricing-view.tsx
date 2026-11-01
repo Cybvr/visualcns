@@ -73,15 +73,13 @@ export function PricingView({ cartHref, freeHref, stickyTop }: { cartHref: strin
     return (
       <OfferCard
         key={listed.id}
-        eyebrow={service.group}
         badge={listed.id === FEATURED_ID ? "Most popular" : undefined}
         featured={listed.id === FEATURED_ID}
         title={service.name}
         icon={service.icon}
         price={formatPrice(service.price, currency)}
-        timeline={recurring ? undefined : service.timeline || "One-off"}
         description={service.description ?? service.scope}
-        features={service.features ?? []}
+        features={recurring || !service.timeline ? service.features ?? [] : [...(service.features ?? []), `Delivery: ${service.timeline}`]}
         excluded={service.excluded}
         ctaLabel={label(service.id)}
         ctaHref={cartHref}
@@ -126,7 +124,6 @@ export function PricingView({ cartHref, freeHref, stickyTop }: { cartHref: strin
             <div className={`grid grid-cols-1 gap-6 md:grid-cols-2 ${group === "Growth" ? "xl:grid-cols-4" : "lg:grid-cols-3"}`}>
               {group === "Growth" && FREE_GROWTH && (
                 <OfferCard
-                  eyebrow="Growth"
                   title={FREE_GROWTH.service}
                   icon={FREE_GROWTH.icon}
                   price="Free"

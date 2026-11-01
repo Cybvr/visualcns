@@ -88,7 +88,8 @@ export function ToolChip({ tool }: { tool: string }) {
 }
 
 export type OfferCardProps = {
-  eyebrow: string
+  /** Small label above the title. Leave out when the page already groups cards, e.g. by tab. */
+  eyebrow?: string
   badge?: string
   featured?: boolean
   title: string
@@ -140,8 +141,8 @@ export function OfferCard({
       }`}
     >
       <div className="flex-1">
-        <div className="flex items-start justify-between gap-3">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">{eyebrow}</p>
+        {(eyebrow || badge || timeline) && <div className="mb-4 flex items-start justify-between gap-3">
+          {eyebrow ? <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">{eyebrow}</p> : <span />}
           {badge ? (
             <span className="rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground">
               {badge}
@@ -151,9 +152,9 @@ export function OfferCard({
               {timeline}
             </span>
           ) : null}
-        </div>
+        </div>}
 
-        <div className="mt-4 flex items-center gap-3">
+        <div className="flex items-center gap-3">
           {Icon && (
             <span className="flex size-11 items-center justify-center rounded-full bg-primary/10 text-primary">
               {createElement(Icon, { className: "size-5" })}

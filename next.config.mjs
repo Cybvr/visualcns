@@ -9,6 +9,8 @@ const nextConfig = {
       // Services became Pricing; old links still land in the right place.
       { source: "/services", destination: "/pricing", permanent: true },
       { source: "/:clientSlug/services", destination: "/:clientSlug/pricing", permanent: true },
+      // The rate card page was removed; Pricing has the same services.
+      { source: "/ratecard", destination: "/pricing", permanent: true },
     ]
   },
 }

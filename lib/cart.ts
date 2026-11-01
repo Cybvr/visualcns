@@ -2,7 +2,7 @@ import type { PlanKey } from "@/lib/subscription"
 import { BUILD_FEATURES, customDevelopmentRows, growthPlanRows, ngnToUsd, platformRows, retainers, type Currency, type Price, type ServiceRow } from "@/lib/plans"
 
 /**
- * The rate-card services someone can buy from the dashboard checkout. Prices
+ * The services someone can buy from the dashboard checkout. Prices
  * come from lib/plans, so the server charges from this list and never trusts
  * an amount sent by the browser. Free and hourly rows can't be bought here.
  */
