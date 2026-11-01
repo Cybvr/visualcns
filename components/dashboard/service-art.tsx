@@ -233,9 +233,9 @@ export function ServiceArt({ service, index = 0 }: { service: CartService; index
     case "growth-ultra": return <SpotlightArt icon={TrendingUp} tags={["SEO", "Social", "Ads", "Monitoring"]} />
   }
   if (service.group === SUPPORT_GROUP) {
-    const [hours = "", response = ""] = service.highlights ?? []
+    const [meetings = "", response = ""] = service.highlights ?? []
     const sweep = response.startsWith("Same") ? 0.95 : response.startsWith("24") ? 0.7 : 0.45
-    return <GaugeArt response={response} hours={hours} sweep={sweep} />
+    return <GaugeArt response={response} hours={meetings} sweep={sweep} />
   }
   const fallback: Record<string, LucideIcon> = { Development: Layers, Growth: TrendingUp, [SUPPORT_GROUP]: ShieldCheck }
   return <SpotlightArt icon={fallback[service.group] ?? Users} />
