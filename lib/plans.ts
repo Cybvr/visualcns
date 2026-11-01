@@ -160,7 +160,7 @@ export const growthPlanRows: GrowthPlan[] = [
     price: { amount: 500000, suffix: "/mo", usd: 800 },
     timeline: "Monthly",
     included: "Social, ads, SEO",
-    features: ["Everything in Pro", "5 hrs consulting a month", "20 social media posts and replies a month", "Community management", "4 newsletters a month", "10 brand campaigns a month", "Paid ads management", "SEO", "Pass for up to 50 staff", "Pulse: unlimited scans", "5x Ngai usage", "5,000 emails a month", "10% off extra hours"],
+    features: ["Everything in Pro", "5 hrs consulting a month", "20 social media posts and replies a month", "Community management", "Influencer (creator) recommendations", "4 newsletters a month", "10 brand campaigns a month", "Paid ads management", "SEO", "Pass for up to 50 staff", "Pulse: unlimited scans", "5x Ngai usage", "5,000 emails a month", "10% off extra hours"],
   },
   {
     service: "Ultra",
@@ -169,7 +169,7 @@ export const growthPlanRows: GrowthPlan[] = [
     price: { amount: 850000, suffix: "/mo", usd: 1000 },
     timeline: "Monthly",
     included: "SEO, social, ads, brand health, monitoring",
-    features: ["Everything in Max", "10 hrs consulting a month", "100 social media posts and replies a month", "8 newsletters a month", "20 brand campaigns a month", "Pass for unlimited staff", "Ongoing brand health", "Monitoring and alerts", "10x Ngai usage", "20,000 emails a month", "20% off extra hours", "Priority support"],
+    features: ["Everything in Max", "10 hrs consulting a month", "100 social media posts and replies a month", "Influencer (creator) management", "8 newsletters a month", "20 brand campaigns a month", "Pass for unlimited staff", "Ongoing brand health", "Monitoring and alerts", "10x Ngai usage", "20,000 emails a month", "20% off extra hours", "Priority support"],
   },
 ]
 
@@ -204,6 +204,7 @@ export const GROWTH_COMPARISON: { title: string; rows: { label: string; cells: [
       { label: "Pulse scans", cells: ["30-day trial", "4 a month", "Unlimited", "Unlimited"] },
       { label: "Social media posts and replies", cells: [false, "5 a month", "20 a month", "100 a month"] },
       { label: "Community management", cells: [false, false, true, true] },
+      { label: "Influencers (creators)", cells: [false, false, "Recommendations", "Management"] },
       { label: "Newsletters, written for you", cells: ["1 a month", "2 a month", "4 a month", "8 a month"] },
       { label: "Brand campaigns, built for you", cells: ["1 a month", "5 a month", "10 a month", "20 a month"] },
       { label: "Ads", cells: [false, false, true, true] },
