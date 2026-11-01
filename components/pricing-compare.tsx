@@ -1,6 +1,6 @@
 "use client"
 
-import { Fragment } from "react"
+import { Fragment, type MouseEvent } from "react"
 import Link from "next/link"
 import { Check, X } from "lucide-react"
 
@@ -20,7 +20,7 @@ function Cell({ value }: { value: ComparisonCell }) {
  */
 export function PricingCompare({ ctaFor, stickyTop = "top-20" }: {
   /** Where each plan's "Get started" goes, and what it does on the way (e.g. add to cart). */
-  ctaFor: (plan: string) => { href: string; onClick?: () => void; label: string }
+  ctaFor: (plan: string) => { href: string; onClick?: (event: MouseEvent<HTMLAnchorElement>) => void; label: string }
   /** The sticky header's offset under the page's own header. */
   stickyTop?: string
 }) {

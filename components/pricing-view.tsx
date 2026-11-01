@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState, type MouseEvent } from "react"
+import { toast } from "sonner"
 import Link from "next/link"
 
 import { OfferCard } from "@/components/offer-card"
@@ -9,6 +10,7 @@ import { useCart } from "@/components/dashboard/use-cart"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useLocalCurrency } from "@/components/use-local-currency"
+import { usePolarCheckout } from "@/components/use-polar-checkout"
 import { LISTED_SERVICES, serviceFor, type BillingInterval, type CartService } from "@/lib/cart"
 import { formatPrice, growthPlanRows } from "@/lib/plans"
 import { cn } from "@/lib/utils"
@@ -28,17 +30,45 @@ export function PricingView({ cartHref, freeHref, stickyTop }: { cartHref: strin
   const currency = useLocalCurrency()
   const [tab, setTab] = useState<string>("Growth")
   const [interval, setInterval] = useState<BillingInterval>("monthly")
+  const polar = usePolarCheckout()
+  // Dollar buyers go straight to Polar for the one item; Naira buyers use the cart.
+  const dollars = currency === "USD"
+
+  // Back from Polar: say it worked and tidy the address.
+  useEffect(() => {
+    const url = new URL(window.location.href)
+    if (url.searchParams.get("paid") !== "polar") return
+    toast.success("Payment received. Your plan will be on in a moment.")
+    url.searchParams.delete("paid")
+    url.searchParams.delete("checkout_id")
+    window.history.replaceState(window.history.state, "", url.toString())
+  }, [])
+
+  function buy(serviceId: string) {
+    return (event: MouseEvent<HTMLAnchorElement>) => {
+      if (dollars) {
+        event.preventDefault()
+        if (!polar.opening) void polar.open(serviceId)
+        return
+      }
+      add(serviceId)
+    }
+  }
+
+  function label(serviceId: string) {
+    if (dollars) return polar.opening === serviceId ? "Opening checkout…" : "Get started"
+    return has(serviceId) ? "View cart" : "Get started"
+  }
 
   function ctaFor(plan: string) {
     const listed = LISTED_SERVICES.find((service) => service.id === `growth-${plan.toLowerCase()}`)
     if (!listed) return { href: freeHref, label: "Get started" }
     const service = serviceFor(listed, interval)
-    return { href: cartHref, onClick: () => add(service.id), label: has(service.id) ? "View cart" : "Get started" }
+    return { href: cartHref, onClick: buy(service.id), label: label(service.id) }
   }
 
   function card(listed: CartService) {
     const service = serviceFor(listed, interval)
-    const inCart = has(service.id)
     const recurring = service.price.suffix === "/mo" || service.price.suffix === "/yr"
     return (
       <OfferCard
@@ -52,16 +82,16 @@ export function PricingView({ cartHref, freeHref, stickyTop }: { cartHref: strin
         timeline={recurring ? undefined : service.timeline || "One-off"}
         description={service.scope}
         features={service.features ?? []}
-        ctaLabel={inCart ? "View cart" : "Get started"}
+        ctaLabel={label(service.id)}
         ctaHref={cartHref}
-        onCtaClick={() => add(service.id)}
+        onCtaClick={buy(service.id)}
       />
     )
   }
 
   return (
     <div className="space-y-8">
-      {items.length > 0 && (
+      {items.length > 0 && !dollars && (
         <div className="flex items-center justify-between gap-3 rounded-2xl bg-muted/50 px-4 py-3">
           <span className="text-sm text-foreground">{items.length} in your cart</span>
           <Button asChild><Link href={cartHref}>View cart</Link></Button>

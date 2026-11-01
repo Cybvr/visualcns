@@ -49,7 +49,7 @@ export function UpgradeModal({ open, onOpenChange, companyId, companyName, billi
   }
 
   const access = billing ? planAccess(billing) : null
-  const subscribed = Boolean(billing?.subscriptionCode)
+  const subscribed = Boolean(billing?.subscriptionCode || billing?.polarSubscriptionId)
   const cancelled = billing?.status === "cancelled"
   const current: PlanKey | null = access?.state === "active" && !cancelled && isPlanKey(billing?.plan) ? billing.plan : null
   const paidInterval: PlanInterval = isPlanInterval(billing?.interval) ? billing.interval : "monthly"

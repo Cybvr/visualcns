@@ -97,7 +97,7 @@ export function CompanyPlan({ companyId, billing, seats = null, className, expan
 
   if (billing === undefined) return null
   const access = billing ? planAccess(billing) : null
-  const subscribed = Boolean(billing?.subscriptionCode)
+  const subscribed = Boolean(billing?.subscriptionCode || billing?.polarSubscriptionId)
   const cancelled = billing?.status === "cancelled"
   const plan: PlanKey | null = isPlanKey(billing?.plan) ? billing.plan : null
   const paidInterval: PlanInterval = isPlanInterval(billing?.interval) ? billing.interval : "monthly"

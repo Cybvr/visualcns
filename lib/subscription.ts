@@ -129,6 +129,9 @@ export interface Subscription {
   interval?: PlanInterval
   /** The Growth plan bought through the cart, e.g. "growth-max". */
   growthTier?: string
+  /** Set when the plan was bought in dollars through Polar. */
+  polarCustomerId?: string
+  polarSubscriptionId?: string
 }
 
 type Stamp = { toMillis: () => number } | null | undefined

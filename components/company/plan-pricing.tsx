@@ -6,6 +6,7 @@ import { Check, Loader2 } from "lucide-react"
 import { toast } from "sonner"
 
 import { useOptionalCompanyPage } from "@/components/company/company-page-context"
+import { usePolarCheckout } from "@/components/use-polar-checkout"
 import { useCart } from "@/components/dashboard/use-cart"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -51,6 +52,7 @@ export function PlanPricing({ billing, seats = null, free, onBeforeSubscribe, he
   const currency = useLocalCurrency()
   const [busy, setBusy] = useState("")
   const [interval, setInterval] = useState<BillingInterval>("monthly")
+  const polar = usePolarCheckout()
   const cartHref = page ? `/${encodeURIComponent(page.company.slug || page.company.id)}/cart` : "/cart"
   const current = activeGrowthTier(billing)
 
@@ -58,6 +60,12 @@ export function PlanPricing({ billing, seats = null, free, onBeforeSubscribe, he
     setBusy(id)
     try {
       await onBeforeSubscribe?.()
+      // Dollars go straight to Polar for the plan; Naira goes through the cart.
+      if (currency === "USD") {
+        await polar.open(id)
+        setBusy("")
+        return
+      }
       add(id)
       router.push(cartHref)
     } catch (reason) {
@@ -101,7 +109,7 @@ export function PlanPricing({ billing, seats = null, free, onBeforeSubscribe, he
           const popular = listed.id === POPULAR
           const inCart = has(tier.id)
           // On auto-renew already: buying the same plan again would charge twice.
-          const renewing = isCurrent && Boolean(billing?.subscriptionCode) && billing?.status !== "cancelled"
+          const renewing = isCurrent && Boolean(billing?.subscriptionCode || billing?.polarSubscriptionId) && billing?.status !== "cancelled"
           return (
             <div key={listed.id} className={cn("flex flex-col rounded-xl border p-5", popular ? "border-2 border-primary" : "border-border", isCurrent && "bg-primary/5")}>
               <div className="flex items-center justify-between gap-2">

@@ -1,6 +1,6 @@
 "use client"
 
-import { createElement, type ComponentType, type ReactNode } from "react"
+import { createElement, type ComponentType, type MouseEvent, type ReactNode } from "react"
 import Link from "next/link"
 import { Check } from "lucide-react"
 import type { IconType } from "react-icons"
@@ -105,7 +105,7 @@ export type OfferCardProps = {
   /** Opens the CTA in a new tab, for payment links that leave the site. */
   ctaExternal?: boolean
   /** Runs before following the CTA link, e.g. to add the item to the cart. */
-  onCtaClick?: () => void
+  onCtaClick?: (event: MouseEvent<HTMLAnchorElement>) => void
   /** Rendered under the CTA, e.g. a secondary action on a template card. */
   footer?: ReactNode
 }

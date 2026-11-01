@@ -54,7 +54,7 @@ const MONTH_MS = 30 * 24 * 60 * 60 * 1000
  * A paid Growth plan includes Pass, Pulse and Ngai: give the buyer's company a
  * month (or a year) of the matching app plan, added on to any time it already has.
  */
-async function grantGrowthAccess(db: Firestore, order: Record<string, any>) {
+export async function grantGrowthAccess(db: Firestore, order: Record<string, any>) {
   const companyId = String(order.companyId || "")
   const items = Array.isArray(order.items) ? order.items as { id?: string }[] : []
   // The highest Growth plan in the order wins; GROWTH_APP_PLAN lists them cheapest first.
@@ -89,7 +89,7 @@ async function grantGrowthAccess(db: Firestore, order: Record<string, any>) {
  * Tells the agency a service order was paid. The webhook and the payer's
  * return can both get here; Resend drops the repeat by its idempotency key.
  */
-async function notifyPaidOrder(orderId: string, order: Record<string, any>) {
+export async function notifyPaidOrder(orderId: string, order: Record<string, any>) {
   const apiKey = process.env.RESEND_API_KEY
   const from = process.env.EMAIL_FROM?.trim()
   const to = process.env.BOOKING_NOTIFY_EMAIL?.trim() || process.env.EMAIL_REPLY_TO?.trim() || from
@@ -104,7 +104,7 @@ async function notifyPaidOrder(orderId: string, order: Record<string, any>) {
     ...lines,
     `Total: ${money(order.total)}`,
     order.note ? `\nNote: ${order.note}` : "",
-    `\nPaystack reference: ${order.reference}`,
+    order.provider === "polar" ? `\nPolar order: ${order.reference}` : `\nPaystack reference: ${order.reference}`,
   ].join("\n")
   await fetch("https://api.resend.com/emails", {
     method: "POST",

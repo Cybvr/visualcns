@@ -68,7 +68,7 @@ export function CompanyBillings() {
   const billingState = access.state === "trial" ? "Free trial" : access.state === "active" ? "Active" : access.state === "grace" ? "Payment attention needed" : "Paused"
 
   async function managePaymentMethod() {
-    if (!billing?.subscriptionCode) {
+    if (!billing?.subscriptionCode && !billing?.polarSubscriptionId) {
       document.getElementById("billing-plans")?.scrollIntoView({ behavior: "smooth", block: "start" })
       return
     }
@@ -96,8 +96,8 @@ export function CompanyBillings() {
               <div><p className="surface-caption uppercase">Next charge</p><p className="surface-body mt-1 font-medium text-foreground">{nextPaymentDate}</p></div>
             </div>
             <Button type="button" variant="outline" className="mt-4 w-full" onClick={() => void managePaymentMethod()} disabled={paymentBusy}>
-              {billing?.subscriptionCode ? <CreditCard className="size-4" aria-hidden="true" /> : <Plus className="size-4" aria-hidden="true" />}
-              {billing?.subscriptionCode ? "Manage payment method" : "Choose a plan"}
+              {billing?.subscriptionCode || billing?.polarSubscriptionId ? <CreditCard className="size-4" aria-hidden="true" /> : <Plus className="size-4" aria-hidden="true" />}
+              {billing?.subscriptionCode || billing?.polarSubscriptionId ? "Manage payment method" : "Choose a plan"}
             </Button>
           </BillingCard>
           <BillingCard title="Billing details">

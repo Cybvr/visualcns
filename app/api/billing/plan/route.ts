@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server"
 
 import { adminServices } from "@/lib/firebase-admin"
+import { polarPortal, PolarError } from "@/lib/server/polar"
 import { applyCharge, CHARGE_KIND, ensureSubscription, linkSubscription, paystack, PaystackError, paystackPlan } from "@/lib/server/paystack"
 import { isPlanInterval, isPlanKey, PLANS, planPrice } from "@/lib/subscription"
 import { visitorStaff } from "@/lib/server/visitor-staff"
@@ -98,6 +99,8 @@ export async function POST(request: NextRequest) {
 
     if (body.action === "manage") {
       const billing = (await db.collection("visitorBilling").doc(companyId).get()).data()
+      // Paid in dollars: Polar's own portal manages the subscription.
+      if (billing && !billing.subscriptionCode && billing.polarCustomerId) return NextResponse.json({ url: await polarPortal(String(billing.polarCustomerId)) })
       if (billing && !billing.subscriptionCode) await linkSubscription(db, companyId)
       const code = String((await db.collection("visitorBilling").doc(companyId).get()).data()?.subscriptionCode || "")
       if (!code) return NextResponse.json({ error: "There's no subscription for this company yet." }, { status: 404 })
@@ -108,7 +111,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Unknown action." }, { status: 400 })
   } catch (error) {
     if (error instanceof Refused) return NextResponse.json({ error: error.message }, { status: 403 })
-    if (error instanceof PaystackError) return NextResponse.json({ error: error.message }, { status: 502 })
+    if (error instanceof PaystackError || error instanceof PolarError) return NextResponse.json({ error: error.message }, { status: 502 })
     console.error("Plan billing failed", error)
     return NextResponse.json({ error: "Something went wrong. Please try again." }, { status: 500 })
   }
