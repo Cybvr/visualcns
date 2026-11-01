@@ -65,7 +65,7 @@ export function CartView({ checkoutHref, servicesHref }: { checkoutHref: string;
               {items.map((item) => (
                 <li key={item.id} className="flex items-start gap-4 py-5">
                   <div className="min-w-0 flex-1">
-                    <div className="surface-record-title">{item.name}</div>
+                    <Link href={servicesHref} className="surface-record-title rounded-sm outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring">{item.name}</Link>
                     <div className="surface-body mt-1">{item.scope}</div>
                     <div className="surface-caption mt-2">{item.group}{item.price.suffix === "/mo" ? " · Billed monthly" : item.price.suffix === "/yr" ? " · Billed yearly" : " · One-off"}</div>
                   </div>
@@ -87,7 +87,7 @@ export function CartView({ checkoutHref, servicesHref }: { checkoutHref: string;
 
         {recommendations.length > 0 && (
           <section aria-labelledby="cart-recommended-heading">
-            <SectionHeader id="cart-recommended-heading" title="Recommended for you" href={servicesHref} linkLabel="See all services" />
+            <SectionHeader id="cart-recommended-heading" title="Recommended for you" href={servicesHref} linkLabel="See pricing" />
             <div className="mt-4 grid gap-4 sm:grid-cols-3">
               {recommendations.map((service, index) => (
                 <div key={service.id} className="flex flex-col rounded-2xl border border-border bg-card p-2.5">
