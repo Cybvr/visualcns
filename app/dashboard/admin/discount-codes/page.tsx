@@ -107,7 +107,6 @@ export default function DiscountCodesPage() {
     <main className="mx-auto w-full max-w-4xl px-4 py-10 sm:px-6">
       <AccountNav />
       <h1 className="mt-7 text-xl font-semibold">Discount codes</h1>
-      <p className="mt-1 text-sm text-muted-foreground">Codes customers can enter at checkout when paying in Naira. For dollar payments, create codes in Polar.</p>
 
       <form onSubmit={create} className="mt-6 grid gap-4 rounded-2xl bg-muted/50 p-5 sm:grid-cols-2">
         <div className="space-y-1.5">
