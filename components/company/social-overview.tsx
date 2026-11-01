@@ -7,7 +7,7 @@ import { toast } from "sonner"
 
 import { useCompanyPage } from "@/components/company/company-page-context"
 import { formatWhen, PlatformPreviews, PublishPostDialog } from "@/components/company/publish-post-dialog"
-import { CampaignBrandContext, CampaignPostViewDialog, postMediaType } from "@/components/dashboard/campaign-creatives"
+import { CampaignBrandContext, CampaignPostViewDialog, postLabel, postMediaType } from "@/components/dashboard/campaign-creatives"
 import { SocialIcon } from "@/components/company/social-icon"
 import { CollectionView } from "@/components/dashboard/collection-view"
 import { thumbnailIcon } from "@/components/dashboard/grid-card"
@@ -60,7 +60,7 @@ function stageLabel(post: CampaignCreative) {
 }
 
 function searchPost(post: CampaignCreative) {
-  return [post.title, post.body, stageLabel(post)]
+  return [post.body, stageLabel(post)]
 }
 
 /** The post's picture or video, filling whatever holds it. */
@@ -148,7 +148,7 @@ export function SocialOverview() {
       await addCampaignCreative(
         { agencyId: post.agencyId, companyId: post.companyId, projectId: post.projectId },
         {
-          title: `${post.title || "Post"} (copy)`,
+          title: post.title || "Post",
           url: "",
           type: "text",
           kind: "content",
@@ -182,15 +182,17 @@ export function SocialOverview() {
     }
   }
 
-  function postActions(post: CampaignCreative) {
+  // The same menu in the list and the post viewer. The viewer adds its own Edit, which edits in place.
+  function postActions(post: CampaignCreative, onEdit?: () => void) {
     const status = creativeStatus(post)
     return {
       noun: "post",
-      name: post.title || "Post",
+      name: postLabel(post),
       onOpen: () => setOpenId(post.id),
       onDuplicate: canEdit ? () => duplicatePost(post) : undefined,
       extra: (canEdit || canReview) ? (
         <>
+          {onEdit && <DropdownMenuItem onSelect={onEdit}>{canEdit ? "Edit" : "Edit text"}</DropdownMenuItem>}
           {canReview && status !== "Approved" && <DropdownMenuItem onSelect={() => void updatePostStatus(post.id, "Approved")}>Approve</DropdownMenuItem>}
           {canReview && status !== "Approved" && <DropdownMenuItem onSelect={() => void updatePostStatus(post.id, "Changes requested")}>Request changes</DropdownMenuItem>}
           {canReview && status === "Approved" && !post.publish && <DropdownMenuItem onSelect={() => void updatePostStatus(post.id, READY_FOR_REVIEW)}>Undo approval</DropdownMenuItem>}
@@ -260,14 +262,14 @@ export function SocialOverview() {
           loading={!loaded}
           empty={{ icon: ImageIcon, title: allPosts.length ? "No posts here" : "No posts yet" }}
           card={(post) => ({
-            title: post.body?.trim() || post.title || "Post",
+            title: postLabel(post),
             preview: post.mediaUrl ? <PostMedia post={post} /> : thumbnailIcon(ImageIcon),
-            ariaLabel: `Open ${post.title || "post"}`,
-            menuLabel: `Options for ${post.title || "post"}`,
+            ariaLabel: `Open ${postLabel(post)}`,
+            menuLabel: `Options for ${postLabel(post)}`,
             ...openPost(post),
           })}
           row={(post) => ({ subtitle: subtitle(post), description: statsLine(post) })}
-          itemActions={postActions}
+          itemActions={(post) => postActions(post)}
         />
         )}
       </section>
@@ -282,6 +284,7 @@ export function SocialOverview() {
           canReview={canReview}
           posts={allPosts}
           onNavigate={(post) => setOpenId(post.id)}
+          actions={canEdit || canReview ? (onEdit) => { const post = allPosts.find((item) => item.id === openId); return post ? postActions(post, onEdit) : { noun: "post", name: "Post" } } : undefined}
         />
       </CampaignBrandContext.Provider>
       <PublishPostDialog post={allPosts.find((post) => post.id === publishingId) ?? null} companyId={company.id} open={publishingId !== null} onOpenChange={(open) => { if (!open) setPublishingId(null) }} />

@@ -127,15 +127,18 @@ export function ItemActionsProvider({ children }: { children: ReactNode }) {
   )
 }
 
-/** The menu items for one card or row, in the standard order. Drawn inside the card's own dropdown. */
-export function ItemActionsMenu({ actions }: { actions: ItemActions }) {
+/**
+ * The menu items for one card or row, in the standard order. Drawn inside the card's own dropdown.
+ * beforeDialog runs before Rename or Delete opens its dialog, e.g. to close a full-screen viewer that would cover it.
+ */
+export function ItemActionsMenu({ actions, beforeDialog }: { actions: ItemActions; beforeDialog?: () => void }) {
   const dialogs = useContext(ItemActionsContext)
   // Rename and Delete need the shell's dialogs; without them they would do nothing, so they're left out.
   const canRename = Boolean(actions.onRename && dialogs)
   const canDelete = Boolean(actions.onDelete && dialogs)
   return (
     <>
-      {canRename && <DropdownMenuItem onSelect={() => dialogs?.rename(actions)}>Rename</DropdownMenuItem>}
+      {canRename && <DropdownMenuItem onSelect={() => { beforeDialog?.(); dialogs?.rename(actions) }}>Rename</DropdownMenuItem>}
       {actions.onDuplicate && <DropdownMenuItem onSelect={() => void actions.onDuplicate?.()}>Duplicate</DropdownMenuItem>}
       {actions.onArchive && <DropdownMenuItem onSelect={() => void actions.onArchive?.()}>Archive</DropdownMenuItem>}
       {actions.onRestore && <DropdownMenuItem onSelect={() => void actions.onRestore?.()}>Restore</DropdownMenuItem>}
@@ -143,7 +146,7 @@ export function ItemActionsMenu({ actions }: { actions: ItemActions }) {
       {canDelete && (
         <>
           <DropdownMenuSeparator />
-          <DropdownMenuItem variant="destructive" onSelect={() => dialogs?.remove(actions)}>{actions.deleteLabel ?? "Delete"}</DropdownMenuItem>
+          <DropdownMenuItem variant="destructive" onSelect={() => { beforeDialog?.(); dialogs?.remove(actions) }}>{actions.deleteLabel ?? "Delete"}</DropdownMenuItem>
         </>
       )}
     </>

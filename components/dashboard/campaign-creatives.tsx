@@ -15,6 +15,7 @@ import { CollectionView, type CollectionItemActions } from "@/components/dashboa
 import { filterBySearch } from "@/components/dashboard/list-search"
 import { ReactIcon } from "@/components/react-icon"
 import { ShareDialog } from "@/components/dashboard/share-dialog"
+import { ItemActionsMenu, type ItemActions } from "@/components/dashboard/item-menu"
 import { Input } from "@/components/ui/input"
 import { MediaLightbox } from "@/components/ui/media-lightbox"
 import { Textarea } from "@/components/ui/textarea"
@@ -140,7 +141,7 @@ export function CampaignCreatives({ creatives, agencyId, companyId, projectId, c
   async function duplicatePost(post: CampaignCreative) {
     try {
       await addCampaignCreative(scope, {
-        title: `${post.title} (copy)`,
+        title: post.title,
         url: "",
         type: "text",
         kind: "content",
@@ -178,12 +179,13 @@ export function CampaignCreatives({ creatives, agencyId, companyId, projectId, c
   }
 
   // The post's own actions, which go between Duplicate and Delete in the shared menu.
-  function postExtra(post: CampaignCreative) {
+  // The viewer passes its own onEdit, so Edit opens the editor in place.
+  function postExtra(post: CampaignCreative, onEdit: () => void = () => setEditing(post)) {
     const status = creativeStatus(post)
     const setStatus = (next: string) => void saveCreative(post.id, { status: next })
     return (
       <>
-        {(canEdit || canReview) && <DropdownMenuItem onSelect={() => setEditing(post)}>{canEdit ? "Edit" : "Edit text"}</DropdownMenuItem>}
+        {(canEdit || canReview) && <DropdownMenuItem onSelect={onEdit}>{canEdit ? "Edit" : "Edit text"}</DropdownMenuItem>}
         {sharePath && <DropdownMenuItem onSelect={() => { openPost(post); setShareOpen(true) }}>Share</DropdownMenuItem>}
         {canReview && status !== "Approved" && <DropdownMenuItem onSelect={() => setStatus("Approved")}>Approve</DropdownMenuItem>}
         {canReview && status !== "Approved" && <DropdownMenuItem onSelect={() => setStatus("Changes requested")}>Request changes</DropdownMenuItem>}
@@ -193,6 +195,18 @@ export function CampaignCreatives({ creatives, agencyId, companyId, projectId, c
         )}
       </>
     )
+  }
+
+  // One menu for a post, the same in the grid, the list and the viewer. Posts have no title, so no Rename.
+  function postActions(post: CampaignCreative, onEdit?: () => void): ItemActions {
+    return {
+      noun: "post",
+      name: postLabel(post),
+      onOpen: () => openPost(post),
+      onDuplicate: canEdit ? () => duplicatePost(post) : undefined,
+      extra: postExtra(post, onEdit),
+      onDelete: canEdit ? () => removeCreative(post.id) : undefined,
+    }
   }
 
   if (kind === "content") {
@@ -212,7 +226,7 @@ export function CampaignCreatives({ creatives, agencyId, companyId, projectId, c
             <button
               type="button"
               onClick={() => openPost(post)}
-              aria-label={`Preview ${post.title || "post"}`}
+              aria-label={`Preview ${postLabel(post)}`}
               className="aspect-square w-full overflow-hidden bg-muted outline-none transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring"
             >
               {post.mediaUrl ? (
@@ -235,21 +249,13 @@ export function CampaignCreatives({ creatives, agencyId, companyId, projectId, c
           }}
           card={(post) => ({
             icon: <Palette className="size-4 text-muted-foreground" aria-hidden="true" />,
-            title: post.title || "Post",
+            title: postLabel(post),
             onClick: () => openPost(post),
-            ariaLabel: `Preview ${post.title}`,
-            menuLabel: `Options for ${post.title}`,
+            ariaLabel: `Preview ${postLabel(post)}`,
+            menuLabel: `Options for ${postLabel(post)}`,
           })}
           date={(post) => post.updatedAt ?? post.createdAt}
-          itemActions={(post) => ({
-            noun: "post",
-            name: post.title || "Post",
-            onOpen: () => openPost(post),
-            onRename: canEdit ? (title) => saveCreative(post.id, { title }) : undefined,
-            onDuplicate: canEdit ? () => duplicatePost(post) : undefined,
-            extra: postExtra(post),
-            onDelete: canEdit ? () => removeCreative(post.id) : undefined,
-          })}
+          itemActions={(post) => postActions(post)}
           selection={canEdit && limit === undefined ? {
             noun: "post",
             onDelete: async (selectedPosts) => {
@@ -262,7 +268,7 @@ export function CampaignCreatives({ creatives, agencyId, companyId, projectId, c
               toast.success(`${selectedPosts.length} ${selectedPosts.length === 1 ? "post" : "posts"} deleted.`)
             },
           } : undefined}
-          row={(post) => ({ subtitle: post.body?.trim() || post.title, description: `${post.publish ? `${creativeStatus(post)} · ${PUBLISH_LABELS[post.publish.state]}` : creativeStatus(post)}${plannedDateLabel(post.plannedPublishAt) ? ` · Publishes ${plannedDateLabel(post.plannedPublishAt)}` : ""}` })}
+          row={(post) => ({ subtitle: `${post.publish ? `${creativeStatus(post)} · ${PUBLISH_LABELS[post.publish.state]}` : creativeStatus(post)}${plannedDateLabel(post.plannedPublishAt) ? ` · Publishes ${plannedDateLabel(post.plannedPublishAt)}` : ""}` })}
         />
 
         <CampaignPostViewDialog
@@ -274,13 +280,14 @@ export function CampaignCreatives({ creatives, agencyId, companyId, projectId, c
           posts={visiblePosts}
           onNavigate={openPost}
           onShare={sharePath ? () => setShareOpen(true) : undefined}
+          actions={selected && (canEdit || canReview) ? (onEdit) => postActions(selected, onEdit) : undefined}
           library={library.filter((item) => item.type === "image" || item.type === "video")}
         />
 
         {sharePath && selected && (
           <ShareDialog
             path={sharePath(selected)}
-            title={`Share ${selected.title || "post"}`}
+            title="Share post"
             open={shareOpen}
             onOpenChange={setShareOpen}
             showTrigger={false}
@@ -310,7 +317,13 @@ export function CampaignCreatives({ creatives, agencyId, companyId, projectId, c
   return <MediaLibrary files={files} scope={scope} canEdit={canEdit} startNew={startNew} onActionHandled={onActionHandled} />
 }
 
-const postSearchFields = (post: CampaignCreative) => [post.title, post.body, creativeStatus(post)]
+const postSearchFields = (post: CampaignCreative) => [post.body, creativeStatus(post)]
+
+/** Posts have no title: they're named by the start of their caption. */
+export function postLabel(post: Pick<CampaignCreative, "body">) {
+  const caption = post.body?.trim().replace(/\s+/g, " ") ?? ""
+  return caption ? (caption.length > 60 ? `${caption.slice(0, 60).trimEnd()}…` : caption) : "Post without a caption"
+}
 
 async function saveCreative(id: string, patch: Partial<Pick<CampaignCreative, "title" | "status" | "body" | "postedBy" | "mediaUrl" | "mediaType" | "plannedPublishAt">>) {
   try {
@@ -408,8 +421,8 @@ function PostCaption({ name, body }: { name: string; body?: string }) {
   )
 }
 
-function PostContextMenu({ canEdit, canReview, onEdit, className }: { canEdit: boolean; canReview: boolean; onEdit: () => void; className?: string }) {
-  if (!canEdit && !canReview) return <MoreHorizontal className={cn("size-5 text-muted-foreground", className)} aria-hidden="true" />
+function PostContextMenu({ actions, onClose, className }: { actions?: ItemActions; onClose: () => void; className?: string }) {
+  if (!actions) return <MoreHorizontal className={cn("size-5 text-muted-foreground", className)} aria-hidden="true" />
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -418,7 +431,8 @@ function PostContextMenu({ canEdit, canReview, onEdit, className }: { canEdit: b
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className={VIEWER_POPOVER}>
-        <DropdownMenuItem onSelect={onEdit}>{canEdit ? "Edit post" : "Edit text"}</DropdownMenuItem>
+        {/* Rename and Delete ask in a dialog, which the viewer would cover, so it closes first. */}
+        <ItemActionsMenu actions={actions} beforeDialog={onClose} />
       </DropdownMenuContent>
     </DropdownMenu>
   )
@@ -434,6 +448,7 @@ export function CampaignPostViewDialog({
   posts = [],
   onNavigate,
   onShare,
+  actions,
   library = [],
 }: {
   post: CampaignCreative | null
@@ -444,6 +459,8 @@ export function CampaignPostViewDialog({
   posts?: CampaignCreative[]
   onNavigate?: (post: CampaignCreative) => void
   onShare?: () => void
+  /** The post's menu, the same as in the list. Takes the viewer's own Edit, which edits in place. */
+  actions?: (onEdit: () => void) => ItemActions
   /** The campaign's images and videos, to pick from when editing the post. */
   library?: CampaignCreative[]
 }) {
@@ -500,6 +517,8 @@ export function CampaignPostViewDialog({
   }, [open, post])
 
   if (!open || !post) return null
+  const menuActions = actions?.(() => setEditing(true))
+  const brandName = post.postedBy === "Roster" ? "Creators" : brand.name || "Post"
 
   return (
     <div
@@ -525,7 +544,7 @@ export function CampaignPostViewDialog({
         role="dialog"
         aria-modal="true"
         data-post-viewer=""
-        aria-label={post.title || "Post"}
+        aria-label={postLabel(post)}
         className="fixed inset-0 z-[101] overflow-y-auto overscroll-contain bg-background md:hidden"
       >
         <div
@@ -556,7 +575,7 @@ export function CampaignPostViewDialog({
             </div>
           )}
           <BrandAvatar className="absolute bottom-3 left-3 size-9 shadow-md" />
-          <PostContextMenu canEdit={canEdit} canReview={canReview} onEdit={() => setEditing(true)} className="absolute right-14 top-3 text-white hover:bg-white/15 hover:text-white" />
+          <PostContextMenu actions={menuActions} onClose={onClose} className="absolute right-14 top-3 text-white hover:bg-white/15 hover:text-white" />
         </div>
 
         {editing ? (
@@ -583,7 +602,6 @@ export function CampaignPostViewDialog({
               <button type="button" onClick={() => setCaptionOpen(true)} className="mt-0.5 text-[15px] text-muted-foreground outline-none">more</button>
             )}
             <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
-              <span className="min-w-0 truncate">{post.title || "Post"}</span>
               <StatusPill status={creativeStatus(post)} />
               <PublishPill post={post} />
               {plannedDateLabel(post.plannedPublishAt) && <span className="shrink-0">Planned {plannedDateLabel(post.plannedPublishAt)}</span>}
@@ -619,13 +637,13 @@ export function CampaignPostViewDialog({
             <BrandAvatar className="size-9" />
             <div className="min-w-0 flex-1">
               <h2 id={`post-view-title-${post.id}`} className="flex min-w-0 items-center gap-2 text-sm font-semibold">
-                <span className="min-w-0 truncate">{post.title || "Post"}</span>
+                <span className="min-w-0 truncate">{brandName}</span>
                 <StatusPill status={creativeStatus(post)} />
                 <PublishPill post={post} />
               </h2>
               <p className="text-xs text-muted-foreground">{post.plannedPublishAt ? `Planned for ${plannedDateLabel(post.plannedPublishAt)}` : postDate(post) || "Campaign"}</p>
             </div>
-            <PostContextMenu canEdit={canEdit} canReview={canReview} onEdit={() => setEditing(true)} className="-mr-1.5" />
+            <PostContextMenu actions={menuActions} onClose={onClose} className="-mr-1.5" />
           </header>
           {editing ? (
             <InlinePostEditor post={post} canEdit={canEdit} canReview={canReview} library={library} onMediaChange={setDraftMedia} onCancel={() => setEditing(false)} onSaved={() => setEditing(false)} onDeleted={onClose} />
@@ -664,15 +682,16 @@ export function CampaignPostViewDialog({
 function MediaLibraryStrip({ library, selectedUrl, onPick }: { library: CampaignCreative[]; selectedUrl?: string; onPick: (media: { url: string; type: "image" | "video" }) => void }) {
   if (library.length === 0) return null
   return (
-    <div className="grid grid-cols-5 gap-1">
-      {library.slice(0, 10).map((item) => (
+    // Every image and video in the campaign: two rows of five, scrolling sideways for the rest.
+    <div className="grid snap-x auto-cols-[calc((100%-1rem)/5)] grid-flow-col grid-rows-2 gap-1 overflow-x-auto overscroll-x-contain pb-1">
+      {library.map((item) => (
         <button
           key={item.id}
           type="button"
           onClick={() => onPick({ url: item.url, type: item.type === "video" ? "video" : "image" })}
           aria-label={`Use ${item.title}`}
           title={item.title}
-          className={cn("aspect-square overflow-hidden rounded-md bg-muted outline-none focus-visible:ring-2 focus-visible:ring-ring", selectedUrl === item.url ? "ring-2 ring-foreground" : "opacity-70 hover:opacity-100")}
+          className={cn("aspect-square snap-start overflow-hidden rounded-md bg-muted outline-none focus-visible:ring-2 focus-visible:ring-ring", selectedUrl === item.url ? "ring-2 ring-foreground" : "opacity-70 hover:opacity-100")}
         >
           {item.type === "video" ? (
             <VideoThumbnail src={item.url} />
