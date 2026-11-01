@@ -22,9 +22,9 @@ export async function POST(request: Request) {
   const raw = await request.text()
   const problem = polarSignatureProblem(raw, request.headers)
   if (problem) {
-    // Shows in the server logs, so a 401 in Polar can be traced to its cause.
+    // Shows in the logs and in Polar's delivery response, so a 401 can be traced. It never includes the secret.
     console.error("Polar webhook refused:", problem)
-    return NextResponse.json({ error: "Invalid signature" }, { status: 401 })
+    return NextResponse.json({ error: `Invalid signature: ${problem}` }, { status: 401 })
   }
   let event: Event
   try {
