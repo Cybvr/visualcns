@@ -101,8 +101,7 @@ export async function polarPortal(customerId: string) {
 /**
  * Polar signs webhooks the Standard Webhooks way: HMAC-SHA256 of
  * "{webhook-id}.{webhook-timestamp}.{body}", base64, sent as "v1,<signature>"
- * (several may be listed). Like Polar's own SDK, the key is the secret's text
- * as is, whatever it starts with. Rejects anything over 5 minutes old.
+ * (several may be listed). Rejects anything over 5 minutes old.
  * Returns why it failed, or "" when the signature is good.
  */
 export function polarSignatureProblem(rawBody: string, headers: Headers) {
@@ -113,10 +112,14 @@ export function polarSignatureProblem(rawBody: string, headers: Headers) {
   const signatures = headers.get("webhook-signature") || ""
   if (!id || !timestamp || !signatures) return "signature headers missing"
   if (Math.abs(Date.now() / 1000 - Number(timestamp)) > 300) return "timestamp too old"
-  const expected = createHmac("sha256", Buffer.from(secret, "utf8")).update(`${id}.${timestamp}.${rawBody}`).digest("base64")
+  // Polar's SDK signs with the secret's text. A "whsec_" secret can also mean the
+  // base64 key after the prefix (plain Standard Webhooks), so either is accepted.
+  const keys = [Buffer.from(secret, "utf8")]
+  if (secret.startsWith("whsec_")) keys.push(Buffer.from(secret.slice(6), "base64"))
+  const expected = keys.map((key) => createHmac("sha256", key).update(`${id}.${timestamp}.${rawBody}`).digest("base64"))
   const matches = signatures.split(" ").some((entry) => {
     const [version, signature] = entry.split(",")
-    return version === "v1" && signature?.length === expected.length && timingSafeEqual(Buffer.from(signature), Buffer.from(expected))
+    return version === "v1" && expected.some((value) => signature?.length === value.length && timingSafeEqual(Buffer.from(signature), Buffer.from(value)))
   })
   return matches ? "" : "signature doesn't match POLAR_WEBHOOK_SECRET"
 }
