@@ -100,20 +100,23 @@ export async function polarPortal(customerId: string) {
 
 /**
  * Polar signs webhooks the Standard Webhooks way: HMAC-SHA256 of
- * "{webhook-id}.{webhook-timestamp}.{body}" with the secret, base64, sent as
- * "v1,<signature>" (several may be listed). Rejects anything over 5 minutes old.
+ * "{webhook-id}.{webhook-timestamp}.{body}", base64, sent as "v1,<signature>"
+ * (several may be listed). Like Polar's own SDK, the key is the secret's text
+ * as is, whatever it starts with. Rejects anything over 5 minutes old.
+ * Returns why it failed, or "" when the signature is good.
  */
-export function validPolarSignature(rawBody: string, headers: Headers) {
-  const secret = process.env.POLAR_WEBHOOK_SECRET?.trim()
+export function polarSignatureProblem(rawBody: string, headers: Headers) {
+  const secret = process.env.POLAR_WEBHOOK_SECRET?.trim().replace(/^["']|["']$/g, "")
+  if (!secret) return "POLAR_WEBHOOK_SECRET isn't set"
   const id = headers.get("webhook-id") || ""
   const timestamp = headers.get("webhook-timestamp") || ""
   const signatures = headers.get("webhook-signature") || ""
-  if (!secret || !id || !timestamp || !signatures) return false
-  if (Math.abs(Date.now() / 1000 - Number(timestamp)) > 300) return false
-  const key = secret.startsWith("whsec_") ? Buffer.from(secret.slice(6), "base64") : Buffer.from(secret, "utf8")
-  const expected = createHmac("sha256", key).update(`${id}.${timestamp}.${rawBody}`).digest("base64")
-  return signatures.split(" ").some((entry) => {
+  if (!id || !timestamp || !signatures) return "signature headers missing"
+  if (Math.abs(Date.now() / 1000 - Number(timestamp)) > 300) return "timestamp too old"
+  const expected = createHmac("sha256", Buffer.from(secret, "utf8")).update(`${id}.${timestamp}.${rawBody}`).digest("base64")
+  const matches = signatures.split(" ").some((entry) => {
     const [version, signature] = entry.split(",")
     return version === "v1" && signature?.length === expected.length && timingSafeEqual(Buffer.from(signature), Buffer.from(expected))
   })
+  return matches ? "" : "signature doesn't match POLAR_WEBHOOK_SECRET"
 }

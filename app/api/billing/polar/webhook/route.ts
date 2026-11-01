@@ -4,7 +4,7 @@ import { FieldValue } from "firebase-admin/firestore"
 import { cartService } from "@/lib/cart"
 import { adminServices } from "@/lib/firebase-admin"
 import { grantGrowthAccess, notifyPaidOrder } from "@/lib/server/orders"
-import { validPolarSignature } from "@/lib/server/polar"
+import { polarSignatureProblem } from "@/lib/server/polar"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -20,7 +20,12 @@ type Event = { type?: string; data?: Record<string, any> }
 
 export async function POST(request: Request) {
   const raw = await request.text()
-  if (!validPolarSignature(raw, request.headers)) return NextResponse.json({ error: "Invalid signature" }, { status: 401 })
+  const problem = polarSignatureProblem(raw, request.headers)
+  if (problem) {
+    // Shows in the server logs, so a 401 in Polar can be traced to its cause.
+    console.error("Polar webhook refused:", problem)
+    return NextResponse.json({ error: "Invalid signature" }, { status: 401 })
+  }
   let event: Event
   try {
     event = JSON.parse(raw) as Event
