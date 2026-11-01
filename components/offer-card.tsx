@@ -133,18 +133,20 @@ export function OfferCard({
 
   return (
     <div
-      className={`group flex h-full flex-col rounded-2xl border p-6 transition-colors ${
+      className={`group relative flex h-full flex-col rounded-2xl border p-6 transition-colors ${
         featured ? "border-primary bg-primary/5 shadow-sm" : "border-border bg-card hover:border-primary/50"
       }`}
     >
+      {/* Sits on the top border, so the card's contents line up with the cards beside it. */}
+      {badge && (
+        <span className="absolute -top-3 left-6 rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground">
+          {badge}
+        </span>
+      )}
       <div className="flex-1">
-        {(eyebrow || badge || timeline) && <div className="mb-4 flex items-start justify-between gap-3">
+        {(eyebrow || (timeline && !badge)) && <div className="mb-4 flex items-start justify-between gap-3">
           {eyebrow ? <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">{eyebrow}</p> : <span />}
-          {badge ? (
-            <span className="rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground">
-              {badge}
-            </span>
-          ) : timeline ? (
+          {!badge && timeline ? (
             <span className="rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
               {timeline}
             </span>
@@ -167,7 +169,7 @@ export function OfferCard({
           {badge && timeline && <span className="text-sm text-muted-foreground">{timeline}</span>}
         </div>
 
-        <Button asChild className="mt-5 w-full" variant={featured ? "default" : "outline"}>
+        <Button asChild className="mt-5 h-12 w-full text-base" variant={featured ? "default" : "outline"}>
           {ctaExternal ? (
             <a href={ctaHref} target="_blank" rel="noopener noreferrer">
               {ctaLabel}
@@ -186,7 +188,7 @@ export function OfferCard({
         )}
 
         {features.length > 0 && (
-          <div className="mt-6 border-t border-border pt-5">
+          <div className="mt-6">
             <p className="mb-3 font-semibold">{featuresLabel}</p>
             <ul className="space-y-3">
               {features.map((feature) => (

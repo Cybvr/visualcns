@@ -136,7 +136,7 @@ export function PricingView({ cartHref, freeHref, stickyTop, basePath, initialTa
 
         {GROUPS.map((group) => (
           <TabsContent key={group} value={group}>
-            <div className={`grid grid-cols-1 gap-6 md:grid-cols-2 ${group === "Growth" ? "xl:grid-cols-4" : "lg:grid-cols-3"}`}>
+            <div className={`grid grid-cols-1 gap-6 pt-3 md:grid-cols-2 ${group === "Growth" ? "xl:grid-cols-4" : "lg:grid-cols-3"}`}>
               {group === "Growth" && FREE_GROWTH && (
                 <OfferCard
                   title={FREE_GROWTH.service}
