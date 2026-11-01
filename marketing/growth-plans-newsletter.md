@@ -17,7 +17,7 @@ It keeps slipping, because there's always something more urgent.
 So we've started **Growth plans**. You pick a plan, and every month our team writes your posts, sends your newsletters and builds your campaigns. You approve them, and we do the rest.
 
 **Here's what a month on Max looks like:**
-20 posts and replies across your social pages, 4 newsletters to your customers, creators picked for your brand, and one person on our side who knows your business and keeps it all moving.
+15 posts and replies across your social pages, 4 newsletters to your customers, creators picked for your brand, and one person on our side who knows your business and keeps it all moving.
 
 We've written over [number] posts and [number] newsletters for our clients this year.
 
