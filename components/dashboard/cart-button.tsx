@@ -4,6 +4,7 @@ import Link from "next/link"
 import { useState } from "react"
 import { ShoppingCart, X } from "lucide-react"
 
+import { CurrencySelect } from "@/components/currency-select"
 import { useCart } from "@/components/dashboard/use-cart"
 import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
@@ -11,7 +12,7 @@ import { cartTotal, formatMoney } from "@/lib/cart"
 import { useLocalCurrency } from "@/components/use-local-currency"
 import { formatPrice } from "@/lib/plans"
 
-/** The cart in the header: what's in it, the total, and the way to the cart page. */
+/** The cart in the header, with the currency picker beside it: what's in it, the total, and the way to the cart page. */
 export function CartButton({ cartHref, servicesHref }: { cartHref: string; servicesHref: string }) {
   const { items, remove } = useCart()
   const currency = useLocalCurrency()
@@ -20,6 +21,8 @@ export function CartButton({ cartHref, servicesHref }: { cartHref: string; servi
   const total = formatMoney(cartTotal(items, currency), currency)
 
   return (
+    <div className="flex items-center gap-1">
+    <CurrencySelect />
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
@@ -80,5 +83,6 @@ export function CartButton({ cartHref, servicesHref }: { cartHref: string; servi
         )}
       </PopoverContent>
     </Popover>
+    </div>
   )
 }

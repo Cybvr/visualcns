@@ -7,8 +7,8 @@ import { currencyForCountry, type BillingCurrency } from "@/lib/subscription"
 /**
  * Naira for visitors in Nigeria, dollars for everyone else, decided by IP
  * country (so a VPN changes it). Looked up once per page load; the browser's
- * time zone is only used if the lookup fails. A currency picked in the footer
- * wins and is remembered in this browser.
+ * time zone is only used if the lookup fails. Dollars until it's known. A
+ * currency picked beside the cart wins and is remembered in this browser.
  */
 
 const CHOICE_KEY = "visualcns.currency"
@@ -19,7 +19,7 @@ function fromTimeZone(): BillingCurrency {
   try {
     return Intl.DateTimeFormat().resolvedOptions().timeZone === "Africa/Lagos" ? "NGN" : "USD"
   } catch {
-    return "NGN"
+    return "USD"
   }
 }
 
@@ -50,7 +50,7 @@ function currencyLookup() {
   return lookup
 }
 
-/** The footer's picker: switches every price on the page and remembers it. */
+/** The picker beside the cart: switches every price on the page and remembers it. */
 export function chooseCurrency(currency: BillingCurrency) {
   try { window.localStorage.setItem(CHOICE_KEY, currency) } catch { /* Storage blocked; this page only. */ }
   lookup = Promise.resolve(currency)
@@ -58,7 +58,7 @@ export function chooseCurrency(currency: BillingCurrency) {
 }
 
 export function useLocalCurrency(): BillingCurrency {
-  const [currency, setCurrency] = useState<BillingCurrency>("NGN")
+  const [currency, setCurrency] = useState<BillingCurrency>("USD")
 
   useEffect(() => {
     let active = true
