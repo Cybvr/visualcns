@@ -1,5 +1,5 @@
 export type Currency = "NGN" | "USD"
-export type Price = "free" | { amount: number; prefix?: string; suffix?: string }
+export type Price = "free" | { amount: number; prefix?: string; suffix?: string; /** A set dollar price, instead of converting the Naira one. */ usd?: number }
 
 export type ServiceRow = {
   service: string
@@ -132,7 +132,7 @@ export const growthPlanRows: GrowthPlan[] = [
     service: "Pro",
     icon: "trending",
     scope: "For Awareness",
-    price: { amount: 200000, suffix: "/mo" },
+    price: { amount: 200000, suffix: "/mo", usd: 500 },
     timeline: "Monthly",
     included: "Social",
     features: ["2 hrs consulting a month", "Social media content, posting and replies", "Pass visitor sign-in for up to 25 staff", "Pulse: 4 scans a month", "Ngai assistant", "1,000 emails a month", "Client portal for your team", "Slack, Teams and webhook alerts"],
@@ -141,7 +141,7 @@ export const growthPlanRows: GrowthPlan[] = [
     service: "Max",
     icon: "rocket",
     scope: "For Visibility",
-    price: { amount: 500000, suffix: "/mo" },
+    price: { amount: 500000, suffix: "/mo", usd: 800 },
     timeline: "Monthly",
     included: "Social, ads, SEO",
     features: ["Everything in Pro", "5 hrs consulting a month", "Paid ads management", "SEO", "Pass for unlimited staff", "Pulse: unlimited scans", "5x Ngai usage", "5,000 emails a month", "10% off extra hours"],
@@ -150,7 +150,7 @@ export const growthPlanRows: GrowthPlan[] = [
     service: "Ultra",
     icon: "chart",
     scope: "For Presence",
-    price: { amount: 850000, suffix: "/mo" },
+    price: { amount: 850000, suffix: "/mo", usd: 1000 },
     timeline: "Monthly",
     included: "SEO, social, ads, brand health, monitoring",
     features: ["Everything in Max", "10 hrs consulting a month", "Ongoing brand health", "Monitoring and alerts", "10x Ngai usage", "20,000 emails a month", "20% off extra hours", "Priority support"],
@@ -271,7 +271,7 @@ export function formatPrice(price: Price, currency: Currency) {
   if (price === "free") return "Free"
   const { amount, prefix = "", suffix = "" } = price
   if (currency === "USD") {
-    return `${prefix}$${ngnToUsd(amount).toLocaleString("en-US")}${suffix}`
+    return `${prefix}$${(price.usd ?? ngnToUsd(amount)).toLocaleString("en-US")}${suffix}`
   }
   return `${prefix}₦${amount.toLocaleString("en-NG")}${suffix}`
 }

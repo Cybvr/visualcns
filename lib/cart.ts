@@ -83,7 +83,7 @@ export function isYearly(service: CartService) {
 /** Each monthly service can also be paid a year at a time. */
 const YEARLY_SERVICES: CartService[] = LISTED_SERVICES
   .filter((service) => service.price.suffix === "/mo")
-  .map((service) => ({ ...service, id: yearlyId(service.id), price: { ...service.price, amount: service.price.amount * MONTHS_PER_YEARLY_PRICE, suffix: "/yr" } }))
+  .map((service) => ({ ...service, id: yearlyId(service.id), price: { ...service.price, amount: service.price.amount * MONTHS_PER_YEARLY_PRICE, ...(service.price.usd ? { usd: service.price.usd * MONTHS_PER_YEARLY_PRICE } : {}), suffix: "/yr" } }))
 
 /** Every service the cart and checkout accept: the listed ones and their yearly versions. */
 export const CART_SERVICES: CartService[] = [...LISTED_SERVICES, ...YEARLY_SERVICES]
@@ -119,7 +119,7 @@ export function cartServices(ids: unknown): CartService[] {
 
 /** A service's price in naira, or in dollars as the rate card rounds it. */
 export function servicePrice(service: CartService, currency: Currency = "NGN") {
-  return currency === "USD" ? ngnToUsd(service.price.amount) : service.price.amount
+  return currency === "USD" ? service.price.usd ?? ngnToUsd(service.price.amount) : service.price.amount
 }
 
 /** Total in the given currency: the sum of the prices shown, so it adds up on screen. */

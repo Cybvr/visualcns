@@ -42,8 +42,26 @@ export async function polar<T = Record<string, unknown>>(path: string, init: { m
 
 type Product = { id: string; name: string; is_archived?: boolean; recurring_interval?: string | null; metadata?: Record<string, unknown> }
 
+/**
+ * The Growth plan products made in Polar. Each id is checked against the
+ * product's billing interval, so a monthly product never sells as yearly.
+ */
+const PRODUCT_IDS: Record<string, string[]> = {
+  "growth-pro": ["eb82092a-43b3-4841-beb6-a30130f77692"],
+  "growth-pro-yearly": ["00c4821d-934b-44f5-a230-f1d9718775b5"],
+  "growth-max": ["441ea069-995b-4202-856d-a8d18e66a3b2", "2edc9f88-89c9-485b-9f48-15bc2399f9c5"],
+  "growth-max-yearly": ["441ea069-995b-4202-856d-a8d18e66a3b2", "2edc9f88-89c9-485b-9f48-15bc2399f9c5"],
+  "growth-ultra": ["dec20409-07b7-46f9-afef-2d9dd3f3a93a"],
+  "growth-ultra-yearly": ["73079954-47e7-49b7-9f26-2098416c375c"],
+}
+
 /** The Polar product for one of our items. */
 export async function polarProduct(service: CartService): Promise<Product | null> {
+  const wanted = isYearly(service) ? "year" : service.price.suffix === "/mo" ? "month" : null
+  for (const id of PRODUCT_IDS[service.id] ?? []) {
+    const product = await polar<Product>(`/products/${id}`).catch(() => null)
+    if (product && !product.is_archived && (product.recurring_interval ?? null) === wanted) return product
+  }
   const { items = [] } = await polar<{ items?: Product[] }>("/products/?limit=100&is_archived=false")
   const live = items.filter((product) => !product.is_archived)
   const byId = live.find((product) => String(product.metadata?.service_id || "") === service.id)
