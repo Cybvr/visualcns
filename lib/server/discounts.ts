@@ -2,7 +2,7 @@ import { FieldValue, type Firestore } from "firebase-admin/firestore"
 
 /**
  * Discount codes for the services checkout. Server only: each code is a doc in
- * `discountCodes`, its id the code in capitals, added in the Firebase console.
+ * `discountCodes`, its id the code in capitals, managed at /dashboard/admin/discount-codes.
  * Fields:
  * - percent: 1–100, off the cart total; or
  * - amountNGN / amountUSD: a fixed amount off, in that currency (whole units)
