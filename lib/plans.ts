@@ -142,7 +142,7 @@ export const growthPlanRows: GrowthPlan[] = [
     price: "free",
     timeline: "One-off",
     included: "Brand health check, Pass for 5 staff, Ngai",
-    features: ["Brand health check across search, social and reviews", "Pass visitor sign-in for up to 5 staff", "Ngai assistant", "30-day free trial of Pulse", "100 emails a month"],
+    features: ["Brand health check across search, social and reviews", "Pass visitor sign-in for up to 5 staff", "Ngai assistant", "30-day free trial of Pulse", "1 newsletter a month, written for you", "1 brand campaign a month, built for you", "100 emails a month"],
   },
   {
     service: "Pro",
@@ -151,7 +151,7 @@ export const growthPlanRows: GrowthPlan[] = [
     price: { amount: 200000, suffix: "/mo", usd: 500 },
     timeline: "Monthly",
     included: "Social",
-    features: ["2 hrs consulting a month", "Social media: 5 posts a month, plus replies", "Pass visitor sign-in for up to 25 staff", "Pulse: 4 scans a month", "Ngai assistant", "1,000 emails a month", "Client portal for your team", "Slack, Teams and webhook alerts"],
+    features: ["2 hrs consulting a month", "Social media: 5 posts a month, plus replies", "2 newsletters a month, written for you", "5 brand campaigns a month, built for you", "Pass visitor sign-in for up to 25 staff", "Pulse: 4 scans a month", "Ngai assistant", "1,000 emails a month", "Client portal for your team", "Slack, Teams and webhook alerts"],
   },
   {
     service: "Max",
@@ -160,7 +160,7 @@ export const growthPlanRows: GrowthPlan[] = [
     price: { amount: 500000, suffix: "/mo", usd: 800 },
     timeline: "Monthly",
     included: "Social, ads, SEO",
-    features: ["Everything in Pro", "5 hrs consulting a month", "Social media: 20 posts a month", "Paid ads management", "SEO", "Pass for up to 50 staff", "Pulse: unlimited scans", "5x Ngai usage", "5,000 emails a month", "10% off extra hours"],
+    features: ["Everything in Pro", "5 hrs consulting a month", "Social media: 20 posts a month", "4 newsletters a month", "10 brand campaigns a month", "Paid ads management", "SEO", "Pass for up to 50 staff", "Pulse: unlimited scans", "5x Ngai usage", "5,000 emails a month", "10% off extra hours"],
   },
   {
     service: "Ultra",
@@ -169,7 +169,7 @@ export const growthPlanRows: GrowthPlan[] = [
     price: { amount: 850000, suffix: "/mo", usd: 1000 },
     timeline: "Monthly",
     included: "SEO, social, ads, brand health, monitoring",
-    features: ["Everything in Max", "10 hrs consulting a month", "Social media: 100 posts a month", "Pass for unlimited staff", "Ongoing brand health", "Monitoring and alerts", "10x Ngai usage", "20,000 emails a month", "20% off extra hours", "Priority support"],
+    features: ["Everything in Max", "10 hrs consulting a month", "Social media: 100 posts a month", "8 newsletters a month", "20 brand campaigns a month", "Pass for unlimited staff", "Ongoing brand health", "Monitoring and alerts", "10x Ngai usage", "20,000 emails a month", "20% off extra hours", "Priority support"],
   },
 ]
 
@@ -203,6 +203,8 @@ export const GROWTH_COMPARISON: { title: string; rows: { label: string; cells: [
       { label: "Brand health", cells: ["1 check", false, false, "Ongoing"] },
       { label: "Pulse scans", cells: ["30-day trial", "4 a month", "Unlimited", "Unlimited"] },
       { label: "Social posts", cells: [false, "5 a month", "20 a month", "100 a month"] },
+      { label: "Newsletters, written for you", cells: ["1 a month", "2 a month", "4 a month", "8 a month"] },
+      { label: "Brand campaigns, built for you", cells: ["1 a month", "5 a month", "10 a month", "20 a month"] },
       { label: "Ads", cells: [false, false, true, true] },
       { label: "SEO", cells: [false, false, true, true] },
       { label: "Monitoring and alerts", cells: [false, false, false, true] },
