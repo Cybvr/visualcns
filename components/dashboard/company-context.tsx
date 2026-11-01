@@ -126,7 +126,8 @@ export function CompanyProvider({ children, companyRef, publicView = false }: { 
         ? await Promise.all([
             Promise.resolve(resolvedOrg),
             Promise.resolve([] as AppUser[]),
-            getPublicProjectsByCompanyId(workspace),
+            // The agency's own admins see every campaign and record on the client page, drafts included.
+            isAdmin ? getProjectsByCompanyId(workspace) : getPublicProjectsByCompanyId(workspace),
             // The agency's own admins also see drafts on the client page, so they can check what the client will get.
             isAdmin ? getInvoicesByCompanyId(workspace, true) : getPublicInvoicesByCompanyId(workspace),
             isAdmin ? getContractsByCompanyId(workspace, true) : getPublicContractsByCompanyId(workspace),

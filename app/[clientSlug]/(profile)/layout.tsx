@@ -3,16 +3,20 @@
 import { useEffect, useState, type ReactNode } from "react"
 import { useParams } from "next/navigation"
 
-import { AuthProvider } from "@/components/auth-provider"
+import { AuthProvider, useAuth } from "@/components/auth-provider"
 import { AppEntryLoader } from "@/components/app-entry-loader"
 import { CompanyPageProvider } from "@/components/company/company-page-context"
 import { CompanyProfileShell } from "@/components/company/company-profile-shell"
 import { CompanyProvider, useCompanyState } from "@/components/dashboard/company-context"
 import { PageTitleProvider } from "@/components/dashboard/page-title-context"
+import { updateOrganization } from "@/lib/organizations"
 
 function PublicCompany({ children }: { children: ReactNode }) {
   const params = useParams<{ clientSlug: string }>()
-  const { loading, error, client, organization, projects, invoices, contracts, estimates, documents, workspaceId, name, categoryLabel } = useCompanyState()
+  const { loading, error, client, organization, projects, invoices, contracts, estimates, documents, workspaceId, name, categoryLabel, reload } = useCompanyState()
+  const { appUser, role, isImpersonating } = useAuth()
+  // The agency's own admins get the same menus and edit controls here as on the dashboard.
+  const agencyAdmin = !isImpersonating && (role === "superadmin" || (role === "admin" && Boolean(appUser?.agencyId) && appUser?.agencyId === organization?.agencyId))
   const [hasOpened, setHasOpened] = useState(false)
   const [entryComplete, setEntryComplete] = useState(false)
 
@@ -66,6 +70,20 @@ function PublicCompany({ children }: { children: ReactNode }) {
         contracts={contracts}
         estimates={estimates}
         documents={documents}
+        admin={agencyAdmin ? {
+          sharePath: `/${encodeURIComponent(params?.clientSlug ?? workspaceId)}`,
+          // People here come from the public team, so there is no account to switch into.
+          onViewWorkspace: () => {},
+          onMediaChange: async (media) => {
+            await updateOrganization(workspaceId, { media })
+            await reload()
+          },
+          onUpdateCompany: async (patch) => {
+            await updateOrganization(workspaceId, patch)
+            await reload()
+          },
+          reload,
+        } : undefined}
       >
         <CompanyProfileShell>{children}</CompanyProfileShell>
       </CompanyPageProvider>
