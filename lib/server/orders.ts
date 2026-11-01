@@ -1,6 +1,7 @@
 import { FieldValue, Timestamp, type Firestore } from "firebase-admin/firestore"
 
 import { baseServiceId, GROWTH_APP_PLAN } from "@/lib/cart"
+import { startGrowthSubscription } from "@/lib/server/growth-subscriptions"
 import { PLAN_KEYS, type PlanKey } from "@/lib/subscription"
 
 import { metadataOf } from "@/lib/server/paystack"
@@ -14,7 +15,16 @@ import { metadataOf } from "@/lib/server/paystack"
 /** Marks checkout payments in Paystack metadata, apart from subscriptions. */
 export const ORDER_KIND = "order"
 
-type Charge = { reference: string; status: string; amount: number; currency?: string; paid_at?: string; metadata?: unknown }
+type Charge = {
+  reference: string
+  status: string
+  amount: number
+  currency?: string
+  paid_at?: string
+  metadata?: unknown
+  customer?: { customer_code?: string; id?: number; email?: string }
+  authorization?: { authorization_code?: string; reusable?: boolean }
+}
 
 /** Marks the order paid if this charge is for it. Returns the order id it applied to, if any. */
 export async function applyOrderCharge(db: Firestore, charge: Charge) {
@@ -28,7 +38,11 @@ export async function applyOrderCharge(db: Firestore, charge: Charge) {
   if (Math.round(Number(order.total) * 100) !== charge.amount || (charge.currency && charge.currency !== (order.currency || "NGN"))) return ""
   if (order.status !== "paid") {
     await ref.set({ status: "paid", paidAt: FieldValue.serverTimestamp(), updatedAt: FieldValue.serverTimestamp() }, { merge: true })
-    await grantGrowthAccess(db, order).catch((error) => console.error("Growth access grant failed", error))
+    const growth = await grantGrowthAccess(db, order).catch((error) => { console.error("Growth access grant failed", error); return null })
+    // Growth plans paid in Naira then renew on their own through Paystack.
+    if (growth && (order.currency || "NGN") === "NGN") {
+      await startGrowthSubscription(db, growth.companyId, growth.serviceId, charge).catch((error) => console.error("Growth subscription failed", error))
+    }
     await notifyPaidOrder(orderId, order).catch((error) => console.error("Paid order email failed", error))
   }
   return orderId
@@ -47,7 +61,7 @@ async function grantGrowthAccess(db: Firestore, order: Record<string, any>) {
   const tierIds = Object.keys(GROWTH_APP_PLAN)
   const bought = items.map((item) => String(item.id || "")).filter((id) => GROWTH_APP_PLAN[baseServiceId(id)])
     .sort((a, b) => tierIds.indexOf(baseServiceId(b)) - tierIds.indexOf(baseServiceId(a)))[0]
-  if (!companyId || !bought) return
+  if (!companyId || !bought) return null
   const tier = baseServiceId(bought)
   const yearly = bought !== tier
   const plan: PlanKey = GROWTH_APP_PLAN[tier]
@@ -68,6 +82,7 @@ async function grantGrowthAccess(db: Firestore, order: Record<string, any>) {
       updatedAt: FieldValue.serverTimestamp(),
     }, { merge: true })
   })
+  return { companyId, serviceId: bought }
 }
 
 /**

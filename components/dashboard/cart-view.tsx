@@ -114,6 +114,9 @@ export function CartView({ checkoutHref, servicesHref }: { checkoutHref: string;
             <span className="surface-body">Subtotal</span>
             <span className="text-lg font-semibold text-foreground">{formatMoney(total, currency)}</span>
           </div>
+          {currency === "NGN" && items.some((item) => item.group === "Growth") && (
+            <p className="surface-caption">Growth plans renew automatically at the same price. Cancel any time from your billing page.</p>
+          )}
           <div className="border-t border-border" />
           {items.length > 0 ? (
             <Button asChild className="h-11 w-full"><Link href={checkoutHref}>Checkout</Link></Button>

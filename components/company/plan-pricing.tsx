@@ -100,6 +100,8 @@ export function PlanPricing({ billing, seats = null, free, onBeforeSubscribe, he
           const tooSmall = seats !== null && seats > staff
           const popular = listed.id === POPULAR
           const inCart = has(tier.id)
+          // On auto-renew already: buying the same plan again would charge twice.
+          const renewing = isCurrent && Boolean(billing?.subscriptionCode) && billing?.status !== "cancelled"
           return (
             <div key={listed.id} className={cn("flex flex-col rounded-xl border p-5", popular ? "border-2 border-primary" : "border-border", isCurrent && "bg-primary/5")}>
               <div className="flex items-center justify-between gap-2">
@@ -112,11 +114,11 @@ export function PlanPricing({ billing, seats = null, free, onBeforeSubscribe, he
                 type="button"
                 variant={popular ? "default" : "outline"}
                 className="mt-4 h-10 w-full text-sm"
-                disabled={busy !== "" || Boolean(free?.busy) || tooSmall}
+                disabled={busy !== "" || Boolean(free?.busy) || tooSmall || renewing}
                 onClick={() => void choose(tier.id)}
               >
                 {busy === tier.id && <Loader2 className="size-4 animate-spin" aria-hidden="true" />}
-                {tooSmall ? `You have ${seats} staff` : isCurrent ? "Renew" : inCart ? "View cart" : "Get started"}
+                {tooSmall ? `You have ${seats} staff` : renewing ? "Your plan" : isCurrent ? "Renew" : inCart ? "View cart" : "Get started"}
               </Button>
               <ul className="surface-table-cell mt-4 space-y-2.5 text-foreground">
                 {(tier.features ?? []).map((feature) => (
@@ -132,7 +134,7 @@ export function PlanPricing({ billing, seats = null, free, onBeforeSubscribe, he
       </div>
 
       <p className="surface-caption text-center">
-        {currency === "USD" ? "Prices in US dollars. Tax may apply." : "Prices in Naira. VAT may apply."} Each plan runs for the month or year you pay for.
+        {currency === "USD" ? "Prices in US dollars. Tax may apply." : "Prices in Naira. VAT may apply."} Plans renew automatically. Cancel any time from Manage billing.
       </p>
     </div>
   )
