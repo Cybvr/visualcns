@@ -21,8 +21,7 @@ export function CartButton({ cartHref, servicesHref }: { cartHref: string; servi
   const total = formatMoney(cartTotal(items, currency), currency)
 
   return (
-    <div className="flex items-center gap-1">
-    <CurrencySelect />
+    <div className="flex items-center">
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
@@ -83,6 +82,7 @@ export function CartButton({ cartHref, servicesHref }: { cartHref: string; servi
         )}
       </PopoverContent>
     </Popover>
+    <CurrencySelect />
     </div>
   )
 }

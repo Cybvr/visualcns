@@ -1,24 +1,37 @@
 "use client"
 
+import { Check } from "lucide-react"
+
 import { chooseCurrency, useLocalCurrency } from "@/components/use-local-currency"
+import { Button } from "@/components/ui/button"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import type { BillingCurrency } from "@/lib/subscription"
 
-/** Naira or dollars for every price on the site; starts from the visitor's location. Sits beside the cart. */
+const OPTIONS: { value: BillingCurrency; sign: string; name: string }[] = [
+  { value: "NGN", sign: "₦", name: "Naira" },
+  { value: "USD", sign: "$", name: "US dollar" },
+]
+
+/** Naira or dollars for every price on the site; starts from the visitor's location. Just the sign, after the cart. */
 export function CurrencySelect() {
   const currency = useLocalCurrency()
+  const current = OPTIONS.find((option) => option.value === currency) ?? OPTIONS[1]
   return (
-    <label className="flex items-center gap-2">
-      <span className="sr-only">Currency</span>
-      <select
-        value={currency}
-        onChange={(event) => chooseCurrency(event.target.value as BillingCurrency)}
-        aria-label="Currency"
-        title="Currency"
-        className="h-9 cursor-pointer rounded-full bg-transparent px-2 text-sm font-medium text-foreground outline-none hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring"
-      >
-        <option value="NGN">₦ NGN</option>
-        <option value="USD">$ USD</option>
-      </select>
-    </label>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button type="button" variant="ghost" size="icon" aria-label={`Currency: ${current.name}`} title="Currency" className="rounded-full text-base font-semibold text-foreground hover:bg-muted/50 active:bg-muted/50">
+          {current.sign}
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        {OPTIONS.map((option) => (
+          <DropdownMenuItem key={option.value} onSelect={() => chooseCurrency(option.value)}>
+            <span className="w-4 font-semibold">{option.sign}</span>
+            {option.name}
+            {option.value === currency && <Check className="ml-auto size-4" aria-hidden="true" />}
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
   )
 }
