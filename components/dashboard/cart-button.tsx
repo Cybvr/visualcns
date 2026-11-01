@@ -30,13 +30,14 @@ export function CartButton({ cartHref, servicesHref }: { cartHref: string; servi
           size={count ? "default" : "icon"}
           aria-label={count ? `Cart, ${count} item${count === 1 ? "" : "s"}, ${total}` : "Cart"}
           title="Cart"
-          className={`rounded-full text-foreground hover:bg-muted/50 active:bg-muted/50 ${count ? "gap-2 px-2.5" : ""}`}
+          className={`rounded-full text-foreground hover:bg-muted/50 active:bg-muted/50 ${count ? "gap-2 px-2.5 max-sm:size-9 max-sm:px-0" : ""}`}
         >
           <span className="relative">
             <ShoppingCart className="size-[18px]" aria-hidden="true" />
             {count > 0 && <span className="absolute -top-2 -right-2 grid min-w-4 place-items-center rounded-full bg-primary px-1 text-[10px] leading-4 font-semibold text-primary-foreground">{count}</span>}
           </span>
-          {count > 0 && <span className="text-sm font-semibold tabular-nums">{total}</span>}
+          {/* Phones show just the icon and count; the total is in the popup. */}
+          {count > 0 && <span className="text-sm font-semibold tabular-nums max-sm:hidden">{total}</span>}
         </Button>
       </PopoverTrigger>
       <PopoverContent align="end" className="w-80 p-0">
