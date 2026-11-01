@@ -33,7 +33,8 @@ function slug(value: string) {
 function featuresOf(row: ServiceRow) {
   const build = row.build
   if (!build) return row.features ?? [row.included]
-  return BUILD_FEATURES.flatMap((label) => build[label] === false ? [] : [build[label] === true ? label : `${label}: ${build[label]}`])
+  // Builds start with a discovery call and end with a month of support; add-ons don't need either.
+  return ["Discovery call", ...BUILD_FEATURES.flatMap((label) => build[label] === false ? [] : [build[label] === true ? label : `${label}: ${build[label]}`]), "1 month support"]
 }
 
 function fromRows(group: string, rows: ServiceRow[], idPrefix = group): CartService[] {
