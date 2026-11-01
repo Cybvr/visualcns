@@ -12,6 +12,7 @@ const PLAN_CODES: Record<string, string> = {
   "growth-pro": "PLN_wwhw4pe333thxbk",
   "growth-pro-yearly": "PLN_b7s8ibmefza5urz",
   "growth-max": "PLN_ubsgxnee70m1wfu",
+  "growth-max-yearly": "PLN_8sg1275e19wlkxr",
   "growth-ultra": "PLN_n2jhql0p3e4zpjz",
   "growth-ultra-yearly": "PLN_vwzywzl5govgv4i",
 }
