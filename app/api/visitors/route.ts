@@ -6,7 +6,6 @@ import { adminServices } from "@/lib/firebase-admin"
 import { getAgencySecret } from "@/lib/server/agency-secrets"
 import { ensureSubscription } from "@/lib/server/paystack"
 import { activeAgreement, announceArrival, announceDeparture, getVisitorSettings } from "@/lib/server/visitor-connections"
-import { planAccess } from "@/lib/subscription"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -83,12 +82,9 @@ async function resolveKiosk(slug: string, key: string) {
   return null
 }
 
-const PAUSED = "Visitor sign-in is paused for this office. Please sign in at reception."
-
-/** The trial has ended and the site isn't paid up (beyond the grace days). */
-async function paused(kiosk: NonNullable<Awaited<ReturnType<typeof resolveKiosk>>>) {
-  const billing = await ensureSubscription(kiosk.db, kiosk.agencyId, kiosk.orgId)
-  return !planAccess(billing).allowed
+/** Starts the office's free trial the first time it's used. Sign-in works on every plan, the free one included. */
+async function startTrial(kiosk: NonNullable<Awaited<ReturnType<typeof resolveKiosk>>>) {
+  await ensureSubscription(kiosk.db, kiosk.agencyId, kiosk.orgId)
 }
 
 async function hostsFor(db: ReturnType<typeof adminServices>["db"], agencyId: string, companyId: string) {
@@ -144,7 +140,7 @@ export async function GET(request: Request) {
   const params = new URL(request.url).searchParams
   const kiosk = await resolveKiosk(params.get("slug") || "", params.get("key") || "")
   if (!kiosk) return json({ error: "This sign-in link isn't active. Ask the office for a new one." }, 404)
-  if (await paused(kiosk)) return json({ error: PAUSED, paused: true }, 402)
+  await startTrial(kiosk)
   const phone = kiosk.mode === "phone"
   const [hosts, visitors] = await Promise.all([hostsFor(kiosk.db, kiosk.agencyId, kiosk.orgId), phone ? [] : onSite(kiosk.db, kiosk.agencyId, kiosk.orgId)])
   return json({
@@ -182,7 +178,7 @@ export async function POST(request: Request) {
   }
   const kiosk = await resolveKiosk(text(body.slug, 200), text(body.key, 200))
   if (!kiosk) return json({ error: "This sign-in link isn't active. Ask the office for a new one." }, 404)
-  if (await paused(kiosk)) return json({ error: PAUSED, paused: true }, 402)
+  await startTrial(kiosk)
   const { db, orgId, org, agencyId, settings, mode } = kiosk
 
   if (body.action === "sign_in") {

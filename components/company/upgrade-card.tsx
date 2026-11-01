@@ -57,7 +57,7 @@ export function UpgradeCard() {
         <div className="pointer-events-none absolute -right-8 -top-10 size-32 rounded-full bg-[radial-gradient(circle,rgba(124,58,237,0.75)_0%,rgba(76,29,149,0.35)_45%,transparent_70%)]" aria-hidden="true" />
         <Tile icon={ScanLine} className="right-9 top-2 -rotate-12" />
         <Tile icon={Sparkles} className="right-2 top-4 rotate-12" />
-        <div className="relative pr-16 text-sm font-semibold leading-snug text-white">Unlock Pass, Reports and Ngai</div>
+        <div className="relative pr-16 text-sm font-semibold leading-snug text-white">Get Reports and more Pass staff</div>
         <div className="relative mt-2.5 flex items-center justify-between gap-2">
           <div className="flex items-baseline gap-1 text-white">
             <span className="text-base font-bold tracking-tight">{formatPrice(GROWTH_PRO_PRICE, currency).replace(/\/mo$/, "")}</span>

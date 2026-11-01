@@ -10,7 +10,7 @@ import { activeGrowthTier, PlanPricing } from "@/components/company/plan-pricing
 import { useLocalCurrency } from "@/components/use-local-currency"
 import { serviceFor } from "@/lib/cart"
 import { formatPrice } from "@/lib/plans"
-import { currentPlan, daysLeft, GRACE_DAYS, isPlanInterval, isPlanKey, naira, PLANS, planAccess, planPrice, staffLabel, TRIAL_DAYS, type PlanInterval, type PlanKey, type Subscription } from "@/lib/subscription"
+import { daysLeft, FREE_STAFF, GRACE_DAYS, staffLimit, isPlanInterval, isPlanKey, naira, PLANS, planAccess, planPrice, staffLabel, TRIAL_DAYS, type PlanInterval, type PlanKey, type Subscription } from "@/lib/subscription"
 import { watchSubscription } from "@/lib/visitors"
 import { cn } from "@/lib/utils"
 
@@ -124,18 +124,16 @@ export function CompanyPlan({ companyId, billing, seats = null, className, expan
     detail = `Everything stops in ${left} ${left === 1 ? "day" : "days"} (${GRACE_DAYS}-day grace). Choose a plan to keep going.`
     tone = "text-amber-600"
   } else if (access?.state === "paused") {
-    title = "Paused"
-    detail = "Choose a plan to switch Pass and Reports back on. Your records are kept."
-    tone = "text-destructive"
+    title = "Free plan"
+    detail = `Pass for up to ${FREE_STAFF} staff and Ngai. Choose a plan for Reports and more staff.`
   }
 
   const paid = access && (access.state === "active" || access.state === "grace")
-  const appliedPlan = currentPlan(billing)
-  const expandedPlanName = access?.state === "trial" ? "Free trial" : paid && paidName ? paidName : "No active plan"
+  const expandedPlanName = access?.state === "trial" ? "Free trial" : paid && paidName ? paidName : "Free"
   const expandedPrice = paid && paidPrice ? paidPrice : "Free"
-  const expandedCycle = paid ? (paidInterval === "yearly" ? "Yearly" : "Monthly") : "Trial"
-  const expandedDateLabel = access?.state === "trial" ? `Ends ${shortDate(access.endsAt)}` : paid && access ? (growth && !subscribed ? `Runs until ${shortDate(access.endsAt)}` : `Next charge ${shortDate(billing?.nextPaymentAt?.toMillis?.() ?? access.endsAt)}`) : "Choose a plan to continue"
-  const seatLimit = PLANS[appliedPlan].staff
+  const expandedCycle = paid ? (paidInterval === "yearly" ? "Yearly" : "Monthly") : access?.state === "trial" ? "Trial" : "Free"
+  const expandedDateLabel = access?.state === "trial" ? `Ends ${shortDate(access.endsAt)}` : paid && access ? (growth && !subscribed ? `Runs until ${shortDate(access.endsAt)}` : `Next charge ${shortDate(billing?.nextPaymentAt?.toMillis?.() ?? access.endsAt)}`) : "No end date"
+  const seatLimit = staffLimit(billing)
   const seatPercent = seats !== null && Number.isFinite(seatLimit) ? Math.min(100, Math.round((seats / seatLimit) * 100)) : 0
   const showManage = subscribed && !(cancelled && access?.state === "paused")
 

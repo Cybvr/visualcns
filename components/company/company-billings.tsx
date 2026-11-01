@@ -65,7 +65,7 @@ export function CompanyBillings() {
   const contactName = primaryContact?.name || primaryContact?.adminUser?.displayName
   const nextPayment = billing?.nextPaymentAt?.toMillis?.()
   const nextPaymentDate = nextPayment ? formatDate(new Date(nextPayment).toISOString().slice(0, 10)) : "Not scheduled"
-  const billingState = access.state === "trial" ? "Free trial" : access.state === "active" ? "Active" : access.state === "grace" ? "Payment attention needed" : "Paused"
+  const billingState = access.state === "trial" ? "Free trial" : access.state === "active" ? "Active" : access.state === "grace" ? "Payment attention needed" : "Free plan"
 
   async function managePaymentMethod() {
     if (!billing?.subscriptionCode && !billing?.polarSubscriptionId) {

@@ -110,6 +110,10 @@ export function planForStaff(count: number): PlanKey {
 export const TRIAL_DAYS = 30
 /** During the free trial a company gets the Business allowances. */
 export const TRIAL_PLAN: PlanKey = "business"
+/** Pass staff on the free plan, once the trial is over. Pass and Ngai keep working; Pulse needs a plan. */
+export const FREE_STAFF = 5
+/** Pass staff on the Growth Max plan. Its app plan is Pro, which otherwise has no limit. */
+export const GROWTH_MAX_STAFF = 50
 /** Days things keep working after a missed or cancelled payment. */
 export const GRACE_DAYS = 3
 
@@ -160,8 +164,12 @@ export function currentPlan(billing: { plan?: string; paidUntil?: Stamp; trialEn
 }
 
 /** How many Pass staff a company may have right now. */
-export function staffLimit(billing: { plan?: string; paidUntil?: Stamp; trialEndsAt?: Stamp } | null | undefined, now = Date.now()): number {
-  return PLANS[currentPlan(billing, now)].staff
+export function staffLimit(billing: { plan?: string; growthTier?: string; paidUntil?: Stamp; trialEndsAt?: Stamp } | null | undefined, now = Date.now()): number {
+  const access = planAccess(billing, now)
+  if (access.state === "paused") return FREE_STAFF
+  const staff = PLANS[currentPlan(billing, now)].staff
+  if ((access.state === "active" || access.state === "grace") && billing?.growthTier === "growth-max") return Math.min(staff, GROWTH_MAX_STAFF)
+  return staff
 }
 
 export function daysLeft(until: number, now = Date.now()) {

@@ -72,9 +72,9 @@ export function UpgradeModal({ open, onOpenChange, companyId, companyName, billi
     headline = `${left} ${left === 1 ? "day" : "days"} left`
     detail = `Everything stops after the ${GRACE_DAYS}-day grace. Choose a plan to keep going.`
   } else if (access?.state === "paused") {
-    badge = "Paused"
-    headline = "Switched off"
-    detail = "Choose a plan to switch Pass and Reports back on. Your records are kept."
+    badge = "Free"
+    headline = "Free plan"
+    detail = "Pass for up to 5 staff and Ngai. Choose a plan for Reports and more staff."
   }
 
   return (

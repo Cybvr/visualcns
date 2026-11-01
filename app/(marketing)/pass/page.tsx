@@ -6,7 +6,7 @@ import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { growthPlanRows } from "@/lib/plans"
-import { naira, PLANS, TRIAL_DAYS } from "@/lib/subscription"
+import { FREE_STAFF, GROWTH_MAX_STAFF, naira, PLANS, TRIAL_DAYS } from "@/lib/subscription"
 
 /** Growth plan prices in Naira, from the pricing page. */
 const GROWTH_NGN = Object.fromEntries(growthPlanRows.map((row) => [row.service.toLowerCase(), row.price === "free" ? 0 : row.price.amount])) as Record<string, number>
@@ -140,11 +140,11 @@ const FAQS = [
   },
   {
     question: "How much does it cost?",
-    answer: `Pass is part of every Growth plan. Pro is ${naira(GROWTH_NGN.pro)} a month for up to ${PLANS.business.staff} staff, Max is ${naira(GROWTH_NGN.max)} and Ultra is ${naira(GROWTH_NGN.ultra)} a month, both for unlimited staff. Every plan also includes Pulse and Ngai, and you can start free with a ${TRIAL_DAYS}-day trial.`,
+    answer: `Pass is free for up to ${FREE_STAFF} staff. Beyond that it's part of every Growth plan: Pro is ${naira(GROWTH_NGN.pro)} a month for up to ${PLANS.business.staff} staff, Max is ${naira(GROWTH_NGN.max)} a month for up to ${GROWTH_MAX_STAFF} staff, and Ultra is ${naira(GROWTH_NGN.ultra)} a month for unlimited staff. Paid plans also include Pulse, and every plan includes Ngai.`,
   },
   {
     question: "Is there a free trial?",
-    answer: `Yes. ${TRIAL_DAYS} days, no card needed.`,
+    answer: `Yes. Every new office gets a ${TRIAL_DAYS}-day trial with Pulse, no card needed. After that, Pass stays free for up to ${FREE_STAFF} staff.`,
   },
   {
     question: "What does \"staff\" mean?",

@@ -7,7 +7,6 @@ import { adminServices } from "@/lib/firebase-admin"
 import { requireAgencyId } from "@/lib/require-agency-id"
 import { getAgencySecret, recordAgencyUsage } from "@/lib/server/agency-secrets"
 import { ensureSubscription } from "@/lib/server/paystack"
-import { planAccess } from "@/lib/subscription"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -196,11 +195,8 @@ export async function POST(request: Request) {
   const isClient = user.agencyId === agencyId && user.companyId === project.companyId
   if (!isAgency && !isClient) return json({ error: "You can't change this campaign." }, 403)
 
-  // Clients use it as part of their plan; the agency's own admins aren't limited.
-  if (!isAgency) {
-    const billing = await ensureSubscription(db, agencyId, project.companyId)
-    if (!planAccess(billing as Parameters<typeof planAccess>[0]).allowed) return json({ error: "Upgrade to use Ngai.", upgrade: true }, 402)
-  }
+  // Ngai is on every plan, the free one included. A client's first use starts their trial.
+  if (!isAgency) await ensureSubscription(db, agencyId, project.companyId)
 
   const about = String(project.about || "").trim()
   if (!about) return json({ error: "Write the About first." }, 400)
