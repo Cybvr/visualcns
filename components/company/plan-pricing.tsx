@@ -7,6 +7,7 @@ import { toast } from "sonner"
 
 import { useOptionalCompanyPage } from "@/components/company/company-page-context"
 import { usePolarCheckout } from "@/components/use-polar-checkout"
+import { usePaystackCheckout } from "@/components/use-paystack-checkout"
 import { useCart } from "@/components/dashboard/use-cart"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -54,18 +55,20 @@ export function PlanPricing({ billing, seats = null, free, onBeforeSubscribe, he
   const [interval, setInterval] = useState<BillingInterval>("monthly")
   const polar = usePolarCheckout()
   const cartHref = page ? `/${encodeURIComponent(page.company.slug || page.company.id)}/cart` : "/cart"
+  const paystack = usePaystackCheckout(cartHref.replace(/\/cart$/, "/checkout"))
   const current = activeGrowthTier(billing)
 
   async function choose(id: string) {
     setBusy(id)
     try {
       await onBeforeSubscribe?.()
-      // Dollars go straight to Polar for the plan; Naira goes through the cart.
+      // Dollars go straight to Polar for the plan; Naira straight to Paystack, or the cart for guests.
       if (currency === "USD") {
         await polar.open(id)
         setBusy("")
         return
       }
+      if (await paystack.open(id)) return
       add(id)
       router.push(cartHref)
     } catch (reason) {

@@ -41,7 +41,7 @@ function CheckoutContent({ checkoutPath, doneHref }: { checkoutPath: string; don
   const router = useRouter()
   const searchParams = useSearchParams()
   const reference = searchParams.get("reference") || searchParams.get("trxref") || ""
-  const { items, clear, remove } = useCart()
+  const { items, remove } = useCart()
   const currency = useLocalCurrency()
   // Dollars go through Polar, one item at a time; Naira goes through Paystack for the whole cart.
   const dollars = currency === "USD"
@@ -103,7 +103,8 @@ function CheckoutContent({ checkoutPath, doneHref }: { checkoutPath: string; don
     post({ action: "verify", reference })
       .then((payload) => {
         setPaid({ items: payload.items ?? [], discount: payload.discount ?? null, total: payload.total ?? 0, currency: payload.currency === "USD" ? "USD" : "NGN" })
-        clear()
+        // Only what was paid for leaves the cart; a plan bought straight from pricing leaves the rest alone.
+        for (const item of (payload.items ?? []) as Array<{ id: string }>) remove(item.id)
       })
       .catch((error: Error) => setVerifyError(error.message))
     // eslint-disable-next-line react-hooks/exhaustive-deps

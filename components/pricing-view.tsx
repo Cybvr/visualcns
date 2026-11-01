@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useLocalCurrency } from "@/components/use-local-currency"
 import { usePolarCheckout } from "@/components/use-polar-checkout"
+import { usePaystackCheckout } from "@/components/use-paystack-checkout"
 import { LISTED_SERVICES, PRICING_TABS, serviceFor, type BillingInterval, type CartService } from "@/lib/cart"
 import { formatPrice, growthPlanRows } from "@/lib/plans"
 import { cn } from "@/lib/utils"
@@ -47,6 +48,8 @@ export function PricingView({ cartHref, freeHref, stickyTop, basePath, initialTa
   }
   const [interval, setInterval] = useState<BillingInterval>("monthly")
   const polar = usePolarCheckout()
+  // Naira Growth plans go straight to Paystack for signed-in buyers; everything else uses the cart.
+  const paystack = usePaystackCheckout(cartHref.replace(/\/cart$/, "/checkout"))
   // Dollar buyers go straight to Polar for the one item; Naira buyers use the cart.
   const dollars = currency === "USD"
 
@@ -67,12 +70,23 @@ export function PricingView({ cartHref, freeHref, stickyTop, basePath, initialTa
         if (!polar.opening) void polar.open(serviceId)
         return
       }
+      if (serviceId.startsWith("growth-")) {
+        event.preventDefault()
+        if (paystack.opening) return
+        void paystack.open(serviceId).then((opened) => {
+          if (opened) return
+          add(serviceId)
+          window.location.assign(cartHref)
+        })
+        return
+      }
       add(serviceId)
     }
   }
 
   function label(serviceId: string) {
     if (dollars) return polar.opening === serviceId ? "Opening checkout…" : "Get started"
+    if (paystack.opening === serviceId) return "Opening checkout…"
     return has(serviceId) ? "View cart" : "Get started"
   }
 
