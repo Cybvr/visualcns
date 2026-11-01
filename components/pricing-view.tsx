@@ -11,11 +11,11 @@ import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useLocalCurrency } from "@/components/use-local-currency"
 import { usePolarCheckout } from "@/components/use-polar-checkout"
-import { LISTED_SERVICES, serviceFor, type BillingInterval, type CartService } from "@/lib/cart"
+import { LISTED_SERVICES, SUPPORT_GROUP, serviceFor, type BillingInterval, type CartService } from "@/lib/cart"
 import { formatPrice, growthPlanRows } from "@/lib/plans"
 import { cn } from "@/lib/utils"
 
-const GROUPS = ["Growth", "Development", "Maintenance"] as const
+const GROUPS = ["Growth", "Development", SUPPORT_GROUP] as const
 const FEATURED_ID = "growth-pro"
 const FREE_GROWTH = growthPlanRows.find((row) => row.price === "free")
 
@@ -23,7 +23,7 @@ const TRIGGER = "h-9 shrink-0 flex-none rounded-full px-4 text-muted-foreground 
 
 /**
  * Everything VisualCNS sells, as cards that go in the cart: Growth plans (which
- * include Pass, Pulse and Ngai), development work and maintenance retainers.
+ * include Pass, Pulse and Ngai), development work and G&D (Growth and Development) Support.
  */
 export function PricingView({ cartHref, freeHref, stickyTop }: { cartHref: string; freeHref: string; /** Offset for the comparison table's sticky header. */ stickyTop?: string }) {
   const { items, add, has } = useCart()
@@ -80,7 +80,6 @@ export function PricingView({ cartHref, freeHref, stickyTop }: { cartHref: strin
         price={formatPrice(service.price, currency)}
         description={service.description ?? service.scope}
         features={recurring || !service.timeline ? service.features ?? [] : [...(service.features ?? []), `Delivery: ${service.timeline}`]}
-        excluded={service.excluded}
         ctaLabel={label(service.id)}
         ctaHref={cartHref}
         onCtaClick={buy(service.id)}

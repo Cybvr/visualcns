@@ -21,8 +21,6 @@ export type ServiceRow = {
   tools?: string[]
 }
 
-export type TierSpec = { text: string } | { strong: string; rest?: string }
-
 export type GrowthPlan = ServiceRow & {
   features: string[]
 }
@@ -77,14 +75,6 @@ export const customDevelopmentRows: ServiceRow[] = [
     price: { amount: 1020000 },
     timeline: "3-5 days",
     included: "Auth, DB, endpoints",
-  },
-  {
-    service: "Maintenance Retainer",
-    icon: "shield",
-    scope: "Live site upkeep - Basic / Priority / Growth tiers",
-    price: { amount: 340000, prefix: "From ", suffix: "/mo" },
-    timeline: "Ongoing",
-    included: "Updates, fixes & priority support",
   },
   {
     service: "Additional / Out-of-scope",
@@ -240,53 +230,89 @@ export const GROWTH_COMPARISON: { title: string; rows: { label: string; cells: [
   },
 ]
 
+/** G&D (Growth and Development) Support: monthly upkeep. Every tier has the same features, with more of each going up. */
 export const retainers: Array<{
-  flag: string
+  /** Kept from the old tier names so saved carts still match. */
+  id: string
   name: string
   description: string
   amount: number
   icon?: string
-  featured?: boolean
-  specs: TierSpec[]
+  /** Hours and reply time, for the cart artwork. */
+  highlights: [string, string]
+  features: string[]
 }> = [
   {
-    flag: "",
+    id: "maintenance-basic",
     name: "Basic",
-    description: "For a site that needs the odd fix",
+    description: "Keep your site running",
     icon: "tool",
     amount: 340000,
-    specs: [
-      { strong: "5 hrs", rest: "of work / month" },
-      { strong: "48-hour", rest: "response time" },
-      { text: "Updates, patches & bug fixes" },
-      { text: "Email support" },
+    highlights: ["5 hrs", "48-hour"],
+    features: [
+      "5 hrs of work a month",
+      "Reply within 48 hours",
+      "Content edits",
+      "Bug fixes",
+      "Updates and security patches",
+      "Backups: monthly",
+      "Uptime checks: daily",
+      "Site health audit: every 3 months",
+      "Social media audit: every 3 months",
+      "Meta ad changes: 1 a month",
+      "Google Business profile updates: 1 a month",
+      "Landing page and email tweaks: 1 a month",
+      "Report: every 3 months",
+      "Check-in call: every 3 months",
     ],
   },
   {
-    flag: "Most popular",
+    id: "maintenance-priority",
     name: "Priority",
-    description: "For a busy live product",
+    description: "For a busy site that can't go down",
     icon: "zap",
     amount: 612000,
-    featured: true,
-    specs: [
-      { strong: "12 hrs", rest: "of work / month" },
-      { strong: "24-hour", rest: "response time" },
-      { text: "Everything in Basic" },
-      { text: "Priority queue & monthly check-in" },
+    highlights: ["12 hrs", "24-hour"],
+    features: [
+      "12 hrs of work a month",
+      "Reply within 24 hours",
+      "Content edits",
+      "Bug fixes",
+      "Updates and security patches",
+      "Backups: weekly",
+      "Uptime checks: hourly",
+      "Site health audit: monthly",
+      "Social media audit: monthly",
+      "Meta ad changes: 4 a month",
+      "Google Business profile updates: 4 a month",
+      "Landing page and email tweaks: 4 a month",
+      "Report: monthly",
+      "Check-in call: monthly",
     ],
   },
   {
-    flag: "",
-    name: "Growth",
-    description: "For ongoing new features",
+    id: "maintenance-growth",
+    name: "Pro",
+    description: "Keep your site and marketing moving",
     icon: "trending",
     amount: 800000,
-    specs: [
-      { strong: "25 hrs", rest: "of work / month" },
-      { strong: "Same-day", rest: "response time" },
-      { text: "Everything in Priority" },
-      { text: "Feature development & monthly strategy call" },
+    highlights: ["25 hrs", "Same-day"],
+    features: [
+      "25 hrs of work a month",
+      "Same-day reply",
+      "Content edits",
+      "Bug fixes",
+      "Updates and security patches",
+      "Backups: daily",
+      "Uptime checks: every 5 minutes",
+      "Site health audit: monthly",
+      "Social media audit: monthly",
+      "Meta ad changes: unlimited (within your hours)",
+      "Google Business profile updates: unlimited (within your hours)",
+      "Landing page and email tweaks: unlimited (within your hours)",
+      "New features",
+      "Report: monthly",
+      "Strategy call: monthly",
     ],
   },
 ]

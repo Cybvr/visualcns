@@ -19,7 +19,7 @@ import {
   type LucideIcon,
 } from "lucide-react"
 
-import { baseServiceId, type CartService } from "@/lib/cart"
+import { baseServiceId, SUPPORT_GROUP, type CartService } from "@/lib/cart"
 import { cn } from "@/lib/utils"
 
 /**
@@ -232,11 +232,11 @@ export function ServiceArt({ service, index = 0 }: { service: CartService; index
     case "growth-max": return <ChartArt label="Leads this month" value="+17.5%" />
     case "growth-ultra": return <SpotlightArt icon={TrendingUp} tags={["SEO", "Social", "Ads", "Monitoring"]} />
   }
-  if (service.group === "Maintenance") {
+  if (service.group === SUPPORT_GROUP) {
     const [hours = "", response = ""] = service.highlights ?? []
     const sweep = response.startsWith("Same") ? 0.95 : response.startsWith("24") ? 0.7 : 0.45
     return <GaugeArt response={response} hours={hours} sweep={sweep} />
   }
-  const fallback: Record<string, LucideIcon> = { Development: Layers, Growth: TrendingUp, Maintenance: ShieldCheck }
+  const fallback: Record<string, LucideIcon> = { Development: Layers, Growth: TrendingUp, [SUPPORT_GROUP]: ShieldCheck }
   return <SpotlightArt icon={fallback[service.group] ?? Users} />
 }

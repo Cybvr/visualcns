@@ -20,8 +20,6 @@ export type CartService = {
   timeline?: string
   /** What the buyer gets, one line each. */
   features?: string[]
-  /** What the buyer doesn't get, shown crossed on the pricing cards. */
-  excluded?: string[]
   /** A retainer's headline numbers, e.g. ["5 hrs", "48-hour"]. */
   highlights?: string[]
 }
@@ -31,14 +29,11 @@ function slug(value: string) {
 }
 
 /** idPrefix keeps ids stable when a group is renamed, so saved carts still match. */
-/** A build's shared feature list, split into what it has (with any value) and what it doesn't. */
-function buildFeatures(row: ServiceRow) {
-  if (!row.build) return { features: row.features ?? [row.included], excluded: undefined }
+/** What a service includes. Builds use the shared feature list, leaving out what they don't have. */
+function featuresOf(row: ServiceRow) {
   const build = row.build
-  return {
-    features: BUILD_FEATURES.flatMap((label) => build[label] === false ? [] : [build[label] === true ? label : `${label}: ${build[label]}`]),
-    excluded: BUILD_FEATURES.filter((label) => build[label] === false),
-  }
+  if (!build) return row.features ?? [row.included]
+  return BUILD_FEATURES.flatMap((label) => build[label] === false ? [] : [build[label] === true ? label : `${label}: ${build[label]}`])
 }
 
 function fromRows(group: string, rows: ServiceRow[], idPrefix = group): CartService[] {
@@ -54,30 +49,33 @@ function fromRows(group: string, rows: ServiceRow[], idPrefix = group): CartServ
       tools: row.tools,
       icon: row.icon,
       timeline: row.timeline,
-      ...buildFeatures(row),
+      features: featuresOf(row),
     }]
   })
 }
 
+/** The tab and group name for monthly upkeep: Growth and Development Support. */
+export const SUPPORT_GROUP = "G&D Support"
+
 /** Everything listed for sale, one entry each, billed as shown (one-off or monthly). */
 export const LISTED_SERVICES: CartService[] = [
-  // Apps, then websites, then add-ons. The generic retainer row is replaced by its three tiers below.
-  ...fromRows("Development", customDevelopmentRows.filter((row) => row.service !== "Maintenance Retainer" && !row.service.startsWith("Add-on"))),
+  // Apps, then websites, then add-ons.
+  ...fromRows("Development", customDevelopmentRows.filter((row) => !row.service.startsWith("Add-on"))),
   ...fromRows("Development", platformRows.filter((row) => !row.service.startsWith("Add-on")), "Platforms"),
   ...fromRows("Development", customDevelopmentRows.filter((row) => row.service.startsWith("Add-on"))),
   ...fromRows("Development", platformRows.filter((row) => row.service.startsWith("Add-on")), "Platforms"),
   ...fromRows("Growth", growthPlanRows),
   ...retainers.map((tier) => ({
-    id: slug(`maintenance-${tier.name}`),
-    group: "Maintenance",
-    name: `${tier.name} retainer`,
+    id: tier.id,
+    group: SUPPORT_GROUP,
+    name: tier.name,
+    scope: tier.features.slice(0, 2).join(" - "),
     description: tier.description,
-    scope: tier.specs.map((spec) => ("text" in spec ? spec.text : `${spec.strong} ${spec.rest ?? ""}`.trim())).join(" - "),
     price: { amount: tier.amount, suffix: "/mo" },
-    highlights: tier.specs.flatMap((spec) => ("strong" in spec ? [spec.strong] : [])),
+    highlights: tier.highlights,
     icon: tier.icon,
     timeline: "Monthly",
-    features: tier.specs.map((spec) => ("text" in spec ? spec.text : `${spec.strong} ${spec.rest ?? ""}`.trim())),
+    features: tier.features,
   })),
 ]
 
