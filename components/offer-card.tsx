@@ -2,7 +2,7 @@
 
 import { createElement, type ComponentType, type MouseEvent, type ReactNode } from "react"
 import Link from "next/link"
-import { Check } from "lucide-react"
+import { Check, X } from "lucide-react"
 import type { IconType } from "react-icons"
 import {
   FiActivity,
@@ -98,6 +98,8 @@ export type OfferCardProps = {
   timeline?: string
   description?: string
   features: string[]
+  /** Shown crossed out after the features: what this option doesn't include. */
+  excluded?: string[]
   featuresLabel?: string
   chips?: string[]
   ctaLabel: string
@@ -120,6 +122,7 @@ export function OfferCard({
   timeline,
   description,
   features,
+  excluded = [],
   featuresLabel = "What's included",
   chips,
   ctaLabel,
@@ -192,6 +195,12 @@ export function OfferCard({
                 <li key={feature} className="flex gap-3">
                   <Check className="mt-0.5 h-5 w-5 flex-shrink-0 text-emerald-600" />
                   <span className="text-sm text-muted-foreground">{feature}</span>
+                </li>
+              ))}
+              {excluded.map((feature) => (
+                <li key={feature} className="flex gap-3">
+                  <X className="mt-0.5 h-5 w-5 flex-shrink-0 text-muted-foreground/60" />
+                  <span className="text-sm text-muted-foreground/60">{feature}</span>
                 </li>
               ))}
             </ul>

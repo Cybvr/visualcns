@@ -1,9 +1,19 @@
 export type Currency = "NGN" | "USD"
 export type Price = "free" | { amount: number; prefix?: string; suffix?: string; /** A set dollar price, instead of converting the Naira one. */ usd?: number }
 
+/** The one feature list every build card shows, in this order: a tick, a cross, or a short value. */
+export const BUILD_FEATURES = ["Pages / screens", "Content editor", "Blog", "Login", "Database", "Payments", "Animations", "SEO", "Launch"] as const
+export type BuildFeatures = Record<(typeof BUILD_FEATURES)[number], boolean | string>
+
 export type ServiceRow = {
   service: string
   scope: string
+  /** Who it's for, shown under the name on the pricing cards. */
+  description?: string
+  /** For website and app builds: the shared feature list. */
+  build?: BuildFeatures
+  /** For add-ons: what they add, one line each. */
+  features?: string[]
   price: Price
   timeline: string
   included: string
@@ -30,6 +40,8 @@ export const customDevelopmentRows: ServiceRow[] = [
   },
   {
     service: "MVP Web App",
+    description: "Test an idea with a clickable product",
+    build: { "Pages / screens": "5", "Content editor": false, "Blog": false, "Login": false, "Database": false, "Payments": false, "Animations": "Basic", "SEO": "Basic", "Launch": true },
     icon: "layout",
     scope: "Up to 5 screens - 1 user role - frontend only",
     price: { amount: 1632000 },
@@ -38,6 +50,8 @@ export const customDevelopmentRows: ServiceRow[] = [
   },
   {
     service: "Full Web App",
+    description: "A working app for a small business or startup",
+    build: { "Pages / screens": "12", "Content editor": true, "Blog": false, "Login": true, "Database": true, "Payments": false, "Animations": "Basic", "SEO": "Basic", "Launch": true },
     icon: "layers",
     scope: "Up to 12 screens - 2-3 roles - auth, DB, integrations",
     price: { amount: 3808000 },
@@ -46,6 +60,8 @@ export const customDevelopmentRows: ServiceRow[] = [
   },
   {
     service: "Custom Web App",
+    description: "Complex products: marketplaces, streaming, real-time, payments",
+    build: { "Pages / screens": "Unlimited", "Content editor": true, "Blog": true, "Login": true, "Database": true, "Payments": true, "Animations": "Custom", "SEO": "Full", "Launch": true },
     icon: "code",
     scope: "Marketplaces, streaming, real-time, payments",
     price: { amount: 6120000, prefix: "From " },
@@ -54,6 +70,8 @@ export const customDevelopmentRows: ServiceRow[] = [
   },
   {
     service: "Add-on: Backend/API",
+    description: "Add a backend to a site or app you already have",
+    features: ["Login", "Database", "API endpoints"],
     icon: "server",
     scope: "Extends an existing build",
     price: { amount: 1020000 },
@@ -81,6 +99,8 @@ export const customDevelopmentRows: ServiceRow[] = [
 export const platformRows: ServiceRow[] = [
   {
     service: "Webflow Site",
+    description: "A fast marketing site you can edit yourself",
+    build: { "Pages / screens": "7", "Content editor": true, "Blog": true, "Login": false, "Database": false, "Payments": false, "Animations": true, "SEO": "Basic", "Launch": true },
     icon: "globe",
     scope: "Up to 7 pages - CMS - responsive",
     price: { amount: 1292000 },
@@ -90,6 +110,8 @@ export const platformRows: ServiceRow[] = [
   },
   {
     service: "Framer Site",
+    description: "A site with rich animation",
+    build: { "Pages / screens": "7", "Content editor": true, "Blog": true, "Login": false, "Database": false, "Payments": false, "Animations": "Advanced", "SEO": "Basic", "Launch": true },
     icon: "zap",
     scope: "Up to 7 pages - interactive & animated",
     price: { amount: 1156000 },
@@ -99,6 +121,8 @@ export const platformRows: ServiceRow[] = [
   },
   {
     service: "WordPress Site",
+    description: "A content site with a blog",
+    build: { "Pages / screens": "7", "Content editor": true, "Blog": true, "Login": false, "Database": true, "Payments": false, "Animations": "Basic", "SEO": "Basic", "Launch": true },
     icon: "edit",
     scope: "Up to 7 pages - blog - custom theme",
     price: { amount: 1088000 },
@@ -108,6 +132,8 @@ export const platformRows: ServiceRow[] = [
   },
   {
     service: "Add-on: WooCommerce",
+    description: "Add a shop to your WordPress site",
+    features: ["Product catalogue", "Cart and checkout", "Payments"],
     icon: "cart",
     scope: "E-commerce layer on WordPress",
     price: { amount: 612000, prefix: "+" },
@@ -217,6 +243,7 @@ export const GROWTH_COMPARISON: { title: string; rows: { label: string; cells: [
 export const retainers: Array<{
   flag: string
   name: string
+  description: string
   amount: number
   icon?: string
   featured?: boolean
@@ -225,6 +252,7 @@ export const retainers: Array<{
   {
     flag: "",
     name: "Basic",
+    description: "For a site that needs the odd fix",
     icon: "tool",
     amount: 340000,
     specs: [
@@ -237,6 +265,7 @@ export const retainers: Array<{
   {
     flag: "Most popular",
     name: "Priority",
+    description: "For a busy live product",
     icon: "zap",
     amount: 612000,
     featured: true,
@@ -250,6 +279,7 @@ export const retainers: Array<{
   {
     flag: "",
     name: "Growth",
+    description: "For ongoing new features",
     icon: "trending",
     amount: 800000,
     specs: [

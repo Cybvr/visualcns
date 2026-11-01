@@ -1,5 +1,5 @@
 import type { PlanKey } from "@/lib/subscription"
-import { customDevelopmentRows, growthPlanRows, ngnToUsd, platformRows, retainers, type Currency, type Price, type ServiceRow } from "@/lib/plans"
+import { BUILD_FEATURES, customDevelopmentRows, growthPlanRows, ngnToUsd, platformRows, retainers, type Currency, type Price, type ServiceRow } from "@/lib/plans"
 
 /**
  * The rate-card services someone can buy from the dashboard checkout. Prices
@@ -12,12 +12,16 @@ export type CartService = {
   group: string
   name: string
   scope: string
+  /** Who it's for, shown under the name on the pricing cards. */
+  description?: string
   price: Exclude<Price, "free">
   tools?: string[]
   icon?: string
   timeline?: string
   /** What the buyer gets, one line each. */
   features?: string[]
+  /** What the buyer doesn't get, shown crossed on the pricing cards. */
+  excluded?: string[]
   /** A retainer's headline numbers, e.g. ["5 hrs", "48-hour"]. */
   highlights?: string[]
 }
@@ -27,7 +31,17 @@ function slug(value: string) {
 }
 
 /** idPrefix keeps ids stable when a group is renamed, so saved carts still match. */
-function fromRows(group: string, rows: (ServiceRow & { features?: string[] })[], idPrefix = group): CartService[] {
+/** A build's shared feature list, split into what it has (with any value) and what it doesn't. */
+function buildFeatures(row: ServiceRow) {
+  if (!row.build) return { features: row.features ?? [row.included], excluded: undefined }
+  const build = row.build
+  return {
+    features: BUILD_FEATURES.flatMap((label) => build[label] === false ? [] : [build[label] === true ? label : `${label}: ${build[label]}`]),
+    excluded: BUILD_FEATURES.filter((label) => build[label] === false),
+  }
+}
+
+function fromRows(group: string, rows: ServiceRow[], idPrefix = group): CartService[] {
   return rows.flatMap((row) => {
     if (row.price === "free" || row.price.suffix === "/hr") return []
     return [{
@@ -35,25 +49,29 @@ function fromRows(group: string, rows: (ServiceRow & { features?: string[] })[],
       group,
       name: row.service,
       scope: row.scope,
+      description: row.description,
       price: row.price,
       tools: row.tools,
       icon: row.icon,
       timeline: row.timeline,
-      features: row.features ?? [row.included],
+      ...buildFeatures(row),
     }]
   })
 }
 
 /** Everything listed for sale, one entry each, billed as shown (one-off or monthly). */
 export const LISTED_SERVICES: CartService[] = [
-  // The generic retainer row is replaced by its three tiers below.
-  ...fromRows("Development", customDevelopmentRows.filter((row) => row.service !== "Maintenance Retainer")),
-  ...fromRows("Development", platformRows, "Platforms"),
+  // Apps, then websites, then add-ons. The generic retainer row is replaced by its three tiers below.
+  ...fromRows("Development", customDevelopmentRows.filter((row) => row.service !== "Maintenance Retainer" && !row.service.startsWith("Add-on"))),
+  ...fromRows("Development", platformRows.filter((row) => !row.service.startsWith("Add-on")), "Platforms"),
+  ...fromRows("Development", customDevelopmentRows.filter((row) => row.service.startsWith("Add-on"))),
+  ...fromRows("Development", platformRows.filter((row) => row.service.startsWith("Add-on")), "Platforms"),
   ...fromRows("Growth", growthPlanRows),
   ...retainers.map((tier) => ({
     id: slug(`maintenance-${tier.name}`),
     group: "Maintenance",
     name: `${tier.name} retainer`,
+    description: tier.description,
     scope: tier.specs.map((spec) => ("text" in spec ? spec.text : `${spec.strong} ${spec.rest ?? ""}`.trim())).join(" - "),
     price: { amount: tier.amount, suffix: "/mo" },
     highlights: tier.specs.flatMap((spec) => ("strong" in spec ? [spec.strong] : [])),

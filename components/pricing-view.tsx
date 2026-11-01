@@ -80,8 +80,9 @@ export function PricingView({ cartHref, freeHref, stickyTop }: { cartHref: strin
         icon={service.icon}
         price={formatPrice(service.price, currency)}
         timeline={recurring ? undefined : service.timeline || "One-off"}
-        description={service.scope}
+        description={service.description ?? service.scope}
         features={service.features ?? []}
+        excluded={service.excluded}
         ctaLabel={label(service.id)}
         ctaHref={cartHref}
         onCtaClick={buy(service.id)}
