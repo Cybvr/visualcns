@@ -316,10 +316,8 @@ export default function DashboardPage() {
                 subtitle={<span className="text-sm font-semibold tabular-nums text-foreground">{amount}</span>}
                 description={<>{formatTimestamp(invoice.updatedAt ?? invoice.createdAt)} <span aria-hidden="true">·</span> <span className={overdue ? "font-medium text-destructive" : "text-muted-foreground"}>{status}</span></>}
                 preview={logoUrl ? (
-                  <span className="flex size-full items-center justify-center bg-card p-1.5">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={logoUrl} alt="" loading="lazy" referrerPolicy="no-referrer" className="max-h-full max-w-full object-contain" />
-                  </span>
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={logoUrl} alt="" loading="lazy" referrerPolicy="no-referrer" className="size-full object-cover" />
                 ) : undefined}
                 href={href}
                 ariaLabel={`Open ${title}, ${amount}, ${status}`}
