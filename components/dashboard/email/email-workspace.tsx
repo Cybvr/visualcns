@@ -1028,6 +1028,13 @@ export function EmailWorkspace({ initialTab, initialMessageId }: { initialTab: E
     setSelectedReceivedIds(new Set())
   }
 
+  async function deleteSelectedReceived() {
+    const ids = new Set(selectedReceivedIds)
+    if (ids.size === 0) return
+    setSelectedReceivedIds(new Set())
+    await Promise.all(receivedMessages.filter((message) => ids.has(message.id)).map((message) => deleteReceivedMessage(message)))
+  }
+
   async function archiveSelectedReceived() {
     await archiveReceivedIds([...selectedReceivedIds])
   }
@@ -1642,6 +1649,7 @@ export function EmailWorkspace({ initialTab, initialMessageId }: { initialTab: E
             onToggleAllReceived={toggleAllReceivedSelection}
             onToggleReceived={toggleReceivedSelection}
             onArchiveReceived={() => void archiveSelectedReceived()}
+            onDeleteSelectedReceived={() => void deleteSelectedReceived()}
             onArchiveReceivedMessage={(message) => void archiveReceivedIds([message.id])}
             onMarkReceivedRead={() => markSelectedReceived(true)}
             onMarkReceivedUnread={() => markSelectedReceived(false)}

@@ -51,6 +51,7 @@ export type EmailMessageSurfacesProps = {
   onToggleAllReceived: (checked: boolean) => void
   onToggleReceived: (id: string, checked: boolean) => void
   onArchiveReceived: () => void
+  onDeleteSelectedReceived: () => void
   onArchiveReceivedMessage: (message: ReceivedMessage) => void
   onMarkReceivedRead: () => void
   onMarkReceivedUnread: () => void
@@ -117,6 +118,7 @@ export function EmailMessageSurfaces({
   onToggleAllReceived,
   onToggleReceived,
   onArchiveReceived,
+  onDeleteSelectedReceived,
   onArchiveReceivedMessage,
   onMarkReceivedRead,
   onMarkReceivedUnread,
@@ -195,6 +197,7 @@ export function EmailMessageSurfaces({
             <Button type="button" variant="ghost" size="icon" className="size-8" onClick={onArchiveReceived} disabled={selectedReceivedIds.length === 0} aria-label="Archive selected messages" title="Archive selected messages"><Archive className="size-4" aria-hidden="true" /></Button>
             <Button type="button" variant="ghost" size="icon" className="size-8" onClick={onMarkReceivedRead} disabled={selectedReceivedIds.length === 0} aria-label="Mark selected messages as read" title="Mark as read"><MailOpen className="size-4" aria-hidden="true" /></Button>
             <Button type="button" variant="ghost" size="icon" className="size-8" onClick={onMarkReceivedUnread} disabled={selectedReceivedIds.length === 0} aria-label="Mark selected messages as unread" title="Mark as unread"><Mail className="size-4" aria-hidden="true" /></Button>
+            <Button type="button" variant="ghost" size="icon" className="size-8" onClick={onDeleteSelectedReceived} disabled={selectedReceivedIds.length === 0} aria-label="Delete selected messages" title="Delete selected messages"><Trash2 className="size-4" aria-hidden="true" /></Button>
           </div>
           {receivedLoading && receivedMessages.length === 0 ? (
             <CompactListSkeleton rows={5} />
