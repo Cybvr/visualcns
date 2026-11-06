@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto"
+
 import { getAgencySecret } from "@/lib/server/agency-secrets"
 import type { EmailAttachment } from "@/lib/email-attachments"
 import { cidReferences, inlineCidImages, normalizeCid } from "@/lib/server/inline-email-images"
@@ -10,6 +12,7 @@ export const GOOGLE_GMAIL_SCOPES = [GOOGLE_GMAIL_SEND_SCOPE, GOOGLE_GMAIL_MODIFY
 
 const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
 const GMAIL_API_URL = "https://gmail.googleapis.com/gmail/v1/users/me"
+const GMAIL_UPLOAD_URL = "https://gmail.googleapis.com/upload/gmail/v1/users/me"
 
 type GmailToken = {
   access_token: string
@@ -179,7 +182,9 @@ function encodedSubject(subject: string) {
   return `=?UTF-8?B?${Buffer.from(subject, "utf8").toString("base64")}?=`
 }
 
-export function buildRawGmailMessage(input: { from: string; to: string[]; cc?: string[]; replyTo?: string; inReplyTo?: string; references?: string[]; subject: string; text: string; html?: string; attachments?: EmailAttachment[] }) {
+type GmailMessageInput = { from: string; to: string[]; cc?: string[]; replyTo?: string; inReplyTo?: string; references?: string[]; subject: string; text: string; html?: string; attachments?: EmailAttachment[] }
+
+function buildGmailMimeMessage(input: GmailMessageInput) {
   const hasAttachments = Boolean(input.attachments?.length)
   const headers = [
     mimeHeader("From", input.from),
@@ -194,7 +199,7 @@ export function buildRawGmailMessage(input: { from: string; to: string[]; cc?: s
   ]
   const plain = Buffer.from(input.text, "utf8").toString("base64")
   const html = Buffer.from(input.html || `<p>${input.text.replace(/\n/g, "<br />")}</p>`, "utf8").toString("base64")
-  const body = [
+  return [
     ...headers,
     "",
     ...(hasAttachments ? ["--visualhq_mixed", "Content-Type: multipart/alternative; boundary=visualhq_boundary", ""] : []),
@@ -212,22 +217,43 @@ export function buildRawGmailMessage(input: { from: string; to: string[]; cc?: s
     ...(input.attachments || []).flatMap((attachment) => {
       const filename = attachment.filename.replace(/[\r\n"\\]/g, "_")
       const contentType = attachment.contentType.replace(/[\r\n]/g, "") || "application/octet-stream"
-      return ["--visualhq_mixed", `Content-Type: ${contentType}; name="${filename}"`, `Content-Disposition: attachment; filename="${filename}"`, "Content-Transfer-Encoding: base64", "", attachment.content]
+      return ["--visualhq_mixed", `Content-Type: ${contentType}; name="${filename}"`, `Content-Disposition: attachment; filename="${filename}"`, "Content-Transfer-Encoding: base64", "", attachment.content.replace(/.{76}(?=.)/g, "$&\r\n")]
     }),
     ...(hasAttachments ? ["--visualhq_mixed--"] : []),
     "",
   ].join("\r\n")
-  return base64UrlEncode(body)
+}
+
+export function buildRawGmailMessage(input: GmailMessageInput) {
+  return base64UrlEncode(buildGmailMimeMessage(input))
 }
 
 export async function sendGmailMessage(agencyId: string, input: Parameters<typeof buildRawGmailMessage>[0] & { threadId?: string }) {
   const token = await googleAccessTokenForAgency(agencyId)
   if (!token) throw new Error("Google mailbox is not connected.")
-  return gmailFetch<{ id?: string; threadId?: string }>(token, "/messages/send", {
+  // The upload endpoint takes messages up to Gmail's 25 MB cap; the plain JSON endpoint rejects large attachments.
+  const boundary = `visualhq_upload_${randomUUID()}`
+  const body = [
+    `--${boundary}`,
+    "Content-Type: application/json; charset=UTF-8",
+    "",
+    JSON.stringify(input.threadId ? { threadId: input.threadId } : {}),
+    `--${boundary}`,
+    "Content-Type: message/rfc822",
+    "",
+    buildGmailMimeMessage(input),
+    `--${boundary}--`,
+    "",
+  ].join("\r\n")
+  const response = await fetch(`${GMAIL_UPLOAD_URL}/messages/send?uploadType=multipart`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ raw: buildRawGmailMessage(input), ...(input.threadId ? { threadId: input.threadId } : {}) }),
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": `multipart/related; boundary=${boundary}` },
+    body,
+    cache: "no-store",
   })
+  const result = await response.json().catch(() => ({})) as { id?: string; threadId?: string; error?: { message?: string } }
+  if (!response.ok) throw new Error(result.error?.message || `Gmail API request failed (${response.status}).`)
+  return result
 }
 
 function headerMap(headers: GmailHeader[] = []) {

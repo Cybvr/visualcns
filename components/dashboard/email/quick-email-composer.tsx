@@ -396,7 +396,7 @@ export function QuickEmailComposer({
         return
       }
       if (next.reduce((total, file) => total + file.size, 0) > MAX_EMAIL_ATTACHMENT_BYTES) {
-        setSendNotice({ tone: "error", text: `Attachments can total up to ${MAX_EMAIL_ATTACHMENT_MEGABYTES} MB after image optimization.` })
+        setSendNotice({ tone: "error", text: `Attachments can total up to ${MAX_EMAIL_ATTACHMENT_MEGABYTES} MB.` })
         return
       }
       setAttachments(next)
