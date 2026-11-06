@@ -1113,6 +1113,31 @@ function MediaLibrary({ files, scope, canEdit, startNew = false, onActionHandled
     link.remove()
   }
 
+  const downloadable = media.filter((item) => item.type === "image" || item.type === "video")
+  const [downloadingAll, setDownloadingAll] = useState(false)
+
+  // Saves every picture and video in the campaign, folders included, one file after another.
+  async function downloadAllMedia() {
+    if (downloadingAll || downloadable.length === 0) return
+    setDownloadingAll(true)
+    try {
+      for (const item of downloadable) {
+        try {
+          const response = await fetch(item.url)
+          if (!response.ok) throw new Error(String(response.status))
+          const blobUrl = URL.createObjectURL(await response.blob())
+          downloadMedia({ ...item, url: blobUrl })
+          setTimeout(() => URL.revokeObjectURL(blobUrl), 10_000)
+        } catch {
+          downloadMedia(item)
+        }
+        await new Promise((resolve) => setTimeout(resolve, 300))
+      }
+    } finally {
+      setDownloadingAll(false)
+    }
+  }
+
   function itemActions(item: CampaignCreative): CollectionItemActions {
     if (item.type === "folder") {
       return {
@@ -1164,15 +1189,24 @@ function MediaLibrary({ files, scope, canEdit, startNew = false, onActionHandled
         searchFields={(item) => [item.title, item.type]}
         searchPlaceholder={activeFolder ? `Search ${activeFolder.title}` : "Search drive"}
         viewKey="campaign-media"
-        actions={canEdit ? (
-          <NewMediaMenu
-            openRequest={newMediaRequest}
-            disabled={Boolean(uploading)}
-            showNewFolder={!activeFolder}
-            onNewFolder={() => setFolderDialog("new")}
-            onUpload={() => fileInput.current?.click()}
-            onAddLink={() => setLinking(true)}
-          />
+        actions={canEdit || downloadable.length > 0 ? (
+          <div className="flex items-center gap-1">
+            {downloadable.length > 0 && (
+              <Button type="button" variant="ghost" size="icon" onClick={() => void downloadAllMedia()} disabled={downloadingAll} aria-label="Download all media" title="Download all">
+                <Download className="size-4" aria-hidden="true" />
+              </Button>
+            )}
+            {canEdit && (
+              <NewMediaMenu
+                openRequest={newMediaRequest}
+                disabled={Boolean(uploading)}
+                showNewFolder={!activeFolder}
+                onNewFolder={() => setFolderDialog("new")}
+                onUpload={() => fileInput.current?.click()}
+                onAddLink={() => setLinking(true)}
+              />
+            )}
+          </div>
         ) : undefined}
         before={<>
           {activeFolder && (
