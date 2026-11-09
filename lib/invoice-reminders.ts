@@ -67,8 +67,8 @@ export function reminderSubject(invoice: Invoice, today = todayIso()): string {
   return `Reminder: Invoice ${number} is due ${readableDate(invoice.dueOn)}`
 }
 
-/** `payUrl` is the full link to the invoice page where the client can pay; it goes in the text so it works with or without the branded layout. */
-export function reminderBody(invoice: Invoice, payUrl: string, today = todayIso()): string {
+/** With `payUrl` the link is written into the text (automatic reminders); without it the text points to a pay button placed in the message. */
+export function reminderBody(invoice: Invoice, payUrl?: string, today = todayIso()): string {
   const name = invoice.billTo?.name?.trim() || "there"
   const number = invoice.invoiceNumber || "your invoice"
   const owed = formatMoney(invoiceBalance(invoice), invoice.currency)
@@ -80,5 +80,5 @@ export function reminderBody(invoice: Invoice, payUrl: string, today = todayIso(
       : days === 0
         ? " is due today"
         : ` is due on ${readableDate(invoice.dueOn)}`
-  return `Hi ${name},\n\nThis is a friendly reminder that invoice ${number} for ${owed}${when}. You can view and pay it here: ${payUrl}\n\nIf you've already paid, thank you, and please ignore this email.\n\nBest regards`
+  return `Hi ${name},\n\nThis is a friendly reminder that invoice ${number} for ${owed}${when}. ${payUrl ? `You can view and pay it here: ${payUrl}` : "You can view and pay it using the button below."}\n\nIf you've already paid, thank you, and please ignore this email.\n\nBest regards`
 }

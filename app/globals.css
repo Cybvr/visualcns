@@ -929,3 +929,16 @@
     display: none;
   }
 }
+
+/* A button written into an email (link with class "email-button"), shown as it will be sent. */
+.ProseMirror a.email-button {
+  display: inline-block;
+  background: #111318;
+  color: #ffffff !important;
+  border-radius: 999px;
+  padding: 10px 18px;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 20px;
+  text-decoration: none !important;
+}

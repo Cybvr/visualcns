@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react"
-import { EditorContent, useEditor, type Editor } from "@tiptap/react"
+import { EditorContent, Extension, useEditor, type Editor } from "@tiptap/react"
 import { NodeSelection } from "@tiptap/pm/state"
 import { Image } from "@tiptap/extension-image"
 import StarterKit from "@tiptap/starter-kit"
@@ -39,6 +39,23 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+
+// Links keep their class, so a button link (class "email-button") stays a button.
+const LinkClass = Extension.create({
+  name: "linkClass",
+  addGlobalAttributes() {
+    return [{
+      types: ["link"],
+      attributes: {
+        class: {
+          default: null,
+          parseHTML: (element) => element.getAttribute("class"),
+          renderHTML: (attributes) => (attributes.class ? { class: attributes.class } : {}),
+        },
+      },
+    }]
+  },
+})
 
 type ToolbarButton = {
   label: string
@@ -271,7 +288,7 @@ export function RichTextEditor({
   }
 
   const editor = useEditor({
-    extensions: [StarterKit.configure({ link: { openOnClick: false, autolink: true, linkOnPaste: true } }), Image, TaskList, TaskItem.configure({ nested: true }), TableKit.configure({ table: { resizable: true } })],
+    extensions: [StarterKit.configure({ link: { openOnClick: false, autolink: true, linkOnPaste: true } }), LinkClass, Image, TaskList, TaskItem.configure({ nested: true }), TableKit.configure({ table: { resizable: true } })],
     content: value,
     // Next renders this on the server first, and tiptap needs the DOM.
     immediatelyRender: false,

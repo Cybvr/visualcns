@@ -8,6 +8,7 @@ import { markdownToHtml } from "@/lib/markdown"
 import { getAgencySecret, recordAgencyUsage } from "@/lib/server/agency-secrets"
 import { requireAgencyId } from "@/lib/require-agency-id"
 import { parseEmailList } from "@/lib/email-composer"
+import { styleEmailButtons } from "@/lib/email-buttons"
 import { MAX_EMAIL_ATTACHMENTS, MAX_EMAIL_ATTACHMENT_BYTES, MAX_EMAIL_ATTACHMENT_MEGABYTES, type EmailAttachment, type EmailAttachmentInfo, type StoredEmailAttachment } from "@/lib/email-attachments"
 import { SITE_ORIGIN, X_URL, LINKEDIN_URL, absoluteWebUrl, brandedEmail, escapeHtml, extractEmailAddress, normalizeEmailAddress, safeBrandValue } from "@/lib/server/email-branding"
 import { getGmailMessage, gmailSenders, hasGmailConnection, sendGmailMessage } from "@/lib/server/google-gmail"
@@ -607,7 +608,7 @@ export async function POST(request: Request) {
   const removeStoredAttachments = () => Promise.all(storedAttachments.map((attachment) =>
     caller.storage.bucket().file(attachment.storagePath).delete({ ignoreNotFound: true }).catch(() => undefined)))
 
-  const richHtml = linkifyHtml(requestedHtml.replace(/(src=["'])\/([^"']*)/gi, `$1${SITE_ORIGIN}/$2`))
+  const richHtml = styleEmailButtons(linkifyHtml(requestedHtml.replace(/(src=["'])\/([^"']*)/gi, `$1${SITE_ORIGIN}/$2`)))
   const messageContent = [
     richHtml || text.split(/\n\s*\n/).map((paragraph) => `<p>${linkify(escapeHtml(paragraph)).replace(/\n/g, "<br />")}</p>`).join(""),
     imagePath && !requestedHtml

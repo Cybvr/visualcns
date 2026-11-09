@@ -53,7 +53,8 @@ import { createInvoicePdfFile, downloadInvoicePdf } from "@/components/dashboard
 import { DocumentPreviewFrame } from "@/components/dashboard/document-preview-frame"
 import { QuickEmailComposer } from "@/components/dashboard/email/quick-email-composer"
 import { MAX_EMAIL_ATTACHMENT_BYTES, MAX_EMAIL_ATTACHMENT_MEGABYTES } from "@/lib/email-attachments"
-import { contextualEmailBody, parseEmailList, type EmailComposeContext } from "@/lib/email-composer"
+import { contextualEmailBody, parseEmailList, plainTextToEditorHtml, siteUrl, type EmailComposeContext } from "@/lib/email-composer"
+import { emailButtonHtml } from "@/lib/email-buttons"
 import { invoiceEmailContext } from "@/lib/document-emails"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
@@ -942,7 +943,10 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate, onS
         name={emailDraft.context.recipientName}
         companyName={emailDraft.context.companyName}
         initialSubject={emailDraft.context.subject || ""}
-        initialBody={contextualEmailBody(emailDraft.context)}
+        // The pay button sits inside the message, where it can be seen and edited.
+        initialBody={emailDraft.context.ctaUrl
+          ? `${plainTextToEditorHtml(contextualEmailBody({ ...emailDraft.context, ctaUrl: undefined }))}${emailButtonHtml(emailDraft.context.ctaText || "View invoice", siteUrl(emailDraft.context.ctaUrl))}`
+          : contextualEmailBody(emailDraft.context)}
         initialAttachments={[emailDraft.attachment]}
         context={{ ...emailDraft.context, ctaText: undefined, ctaUrl: undefined }}
         onSent={(message) => {

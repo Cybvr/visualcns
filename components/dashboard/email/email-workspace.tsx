@@ -59,7 +59,8 @@ import { deleteEmailMessage, getAllEmailMessages, getEmailMessages, saveEmailMes
 import { getHiddenReceivedEmails, hideReceivedEmail, permanentlyHideReceivedEmail, restoreReceivedEmail, trashReceivedEmail, type HiddenReceivedEmail } from "@/lib/email-received-hidden"
 import { EMAIL_INBOX_REFRESH_EVENT, publishUnreadEmailCount } from "@/components/dashboard/email/use-unread-email-count"
 import { openEmailLinksInNewTab } from "@/components/dashboard/email/email-content-frame"
-import { contextualEmailBody, plainTextToEditorHtml, readEmailComposeContext } from "@/lib/email-composer"
+import { contextualEmailBody, plainTextToEditorHtml, readEmailComposeContext, siteUrl } from "@/lib/email-composer"
+import { emailButtonHtml } from "@/lib/email-buttons"
 import { getBusinessProfile, type BusinessProfile } from "@/lib/business-profile"
 import { deleteEmailTemplate, getEmailTemplates, saveEmailTemplate } from "@/lib/email-templates-store"
 import { getUsers } from "@/lib/users"
@@ -846,16 +847,22 @@ export function EmailWorkspace({ initialTab, initialMessageId }: { initialTab: E
   useEffect(() => {
     const nextContext = readEmailComposeContext(searchParams)
     if (!nextContext) return
+    const invoiceButton = nextContext.documentType === "invoice" && nextContext.ctaUrl
+      ? emailButtonHtml(nextContext.ctaText || "View invoice", siteUrl(nextContext.ctaUrl))
+      : ""
     openCompose({
       email: nextContext.recipientEmail || "",
       name: nextContext.recipientName,
       initialCc: nextContext.cc || "",
       initialSubject: nextContext.subject || "",
       // Messages written for a record are plain text; the editor needs paragraphs and real links.
-      initialBody: plainTextToEditorHtml(nextContext.body || contextualEmailBody(nextContext)),
+      // Invoices get their pay button inside the message, where it can be seen and edited.
+      initialBody: invoiceButton
+        ? `${plainTextToEditorHtml(nextContext.body || contextualEmailBody({ ...nextContext, ctaUrl: undefined }))}${invoiceButton}`
+        : plainTextToEditorHtml(nextContext.body || contextualEmailBody(nextContext)),
       initialMessageKind: nextContext.messageKind === "marketing" ? "marketing" : "transactional",
-      // A message we write for them carries the link in its text, so it gets no button as well.
-      context: nextContext.body ? nextContext : { ...nextContext, ctaText: undefined, ctaUrl: undefined },
+      // A message we write for them carries the link in its text or as a button in it, so it gets no button as well.
+      context: nextContext.body && !invoiceButton ? nextContext : { ...nextContext, ctaText: undefined, ctaUrl: undefined },
     })
     // The request to compose is used once. Left in the URL, every refresh,
     // Back, or re-read of the URL would open the composer again.
