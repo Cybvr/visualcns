@@ -1,7 +1,6 @@
 "use client"
 
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react"
-import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { ArrowLeft, Loader2, Plus, Printer, X } from "lucide-react"
 import { useAuth } from "@/components/auth-provider"
