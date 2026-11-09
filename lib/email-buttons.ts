@@ -13,9 +13,10 @@ function escapeHtml(value: string) {
   return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;")
 }
 
-/** A paragraph holding one button link, for the editor. */
+/** A paragraph holding one button link, then the same address written out for when the button doesn't show. */
 export function emailButtonHtml(text: string, url: string) {
-  return `<p><a class="${EMAIL_BUTTON_CLASS}" href="${escapeHtml(url)}">${escapeHtml(text)}</a></p>`
+  const href = escapeHtml(url)
+  return `<p><a class="${EMAIL_BUTTON_CLASS}" href="${href}">${escapeHtml(text)}</a></p><p>If the button doesn't work, use this link: <a href="${href}">${href}</a></p>`
 }
 
 /** Gives every button link in the message its inline button styling. */
