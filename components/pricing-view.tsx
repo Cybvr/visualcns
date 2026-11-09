@@ -32,8 +32,8 @@ export function PricingView({ cartHref, freeHref, stickyTop, basePath, initialTa
   freeHref: string
   /** Offset for the comparison table's sticky header. */
   stickyTop?: string
-  /** The pricing page's address; switching tabs moves to basePath/<tab>. */
-  basePath: string
+  /** The pricing page's address; switching tabs moves to basePath/<tab>. Leave out where the address should stay put, as on the home page. */
+  basePath?: string
   /** The tab's slug from the address, e.g. "development". */
   initialTab?: string
 }) {
@@ -44,7 +44,7 @@ export function PricingView({ cartHref, freeHref, stickyTop, basePath, initialTa
   function changeTab(next: string) {
     setTab(next)
     const slug = TAB_SLUG[next]
-    if (slug) window.history.replaceState(window.history.state, "", `${basePath}/${slug}${window.location.search}`)
+    if (slug && basePath) window.history.replaceState(window.history.state, "", `${basePath}/${slug}${window.location.search}`)
   }
   const [interval, setInterval] = useState<BillingInterval>("monthly")
   const polar = usePolarCheckout()

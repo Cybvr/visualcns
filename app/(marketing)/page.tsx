@@ -7,6 +7,7 @@ import { BookNowModal } from "@/components/book-now-modal"
 import { Footer } from "@/components/footer"
 import { Header } from "@/components/header"
 import { PwaRedirect } from "@/components/pwa-redirect"
+import { HomePricing } from "@/components/home-pricing"
 import { HomeSections } from "@/components/home-sections"
 import { HomeLogoCarousel } from "@/components/home-logo-carousel"
 import { getBrandItems } from "@/lib/brands"
@@ -80,7 +81,9 @@ export default function HomePage() {
           </div>
         </section>
 
-        <div className="mt-10 md:mt-14">
+        <HomePricing />
+
+        <div className="mt-4 md:mt-6">
           <HomeLogoCarousel />
         </div>
 
