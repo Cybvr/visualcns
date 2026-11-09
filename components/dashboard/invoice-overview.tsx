@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input"
 import { formatDate, invoiceAmountDue, invoiceStatusMeta, updateInvoice, type Invoice } from "@/lib/billing"
 import type { BusinessProfile } from "@/lib/business-profile"
 import { invoiceEmailContext } from "@/lib/document-emails"
-import { buildEmailComposeHref } from "@/lib/email-composer"
+import { buildEmailComposeHref, siteUrl } from "@/lib/email-composer"
 import { daysUntilDue, reminderBody, reminderSubject } from "@/lib/invoice-reminders"
 import { formatMoney } from "@/lib/money"
 import { cn } from "@/lib/utils"
@@ -75,7 +75,7 @@ export function InvoiceOverview({
   const reminderHref = buildEmailComposeHref({
     ...invoiceEmailContext(invoice, invoice.companyId),
     subject: reminderSubject(invoice),
-    body: reminderBody(invoice),
+    body: reminderBody(invoice, siteUrl(shareHref)),
     intent: "reminder",
   })
 
