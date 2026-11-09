@@ -40,7 +40,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       const email = EMAIL_PATTERN.test(typed) ? typed : String(invoice.billTo?.email || "").trim()
       if (!EMAIL_PATTERN.test(email)) return NextResponse.json({ error: "Enter your email address to pay." }, { status: 400 })
       const currency = String(invoice.currency || "NGN").toUpperCase()
-      const reference = `vcns_inv_${id}_${Date.now()}`
+      // Paystack references allow only letters, numbers, "-", "." and "=".
+      const reference = `vcns-inv-${id}-${Date.now()}`
       await ref.set({ paymentReference: reference, paymentAmount: due, updatedAt: FieldValue.serverTimestamp() }, { merge: true })
       const checkout = await paystack<{ authorization_url: string }>("/transaction/initialize", {
         method: "POST",
@@ -71,7 +72,10 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     return NextResponse.json({ error: "Unknown action." }, { status: 400 })
   } catch (error) {
-    if (error instanceof PaystackError) return NextResponse.json({ error: error.message }, { status: 502 })
+    if (error instanceof PaystackError) {
+      console.error("Paystack refused invoice payment", id, error.message)
+      return NextResponse.json({ error: `Paystack: ${error.message}` }, { status: 502 })
+    }
     console.error("Invoice payment failed", error)
     return NextResponse.json({ error: "Something went wrong. Please try again." }, { status: 500 })
   }
