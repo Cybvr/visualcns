@@ -80,7 +80,7 @@ export async function GET(request: Request) {
     const cc = parseEmailList(invoice.reminderCc ?? []).valid.filter((email) => email !== to)
     const subject = reminderSubject(invoice, today)
     // Reminders go to open invoices, so the link and button open the public page with Pay now.
-    const cta = { text: "View and pay invoice", url: `${SITE_ORIGIN}/share/invoices/${encodeURIComponent(invoice.id)}` }
+    const cta = { text: "Pay invoice", url: `${SITE_ORIGIN}/share/invoices/${encodeURIComponent(invoice.id)}` }
     const text = reminderBody(invoice, cta.url, today)
     const html = brandedEmail(markdownToHtml(text), subject, sender.brand, sender.from, cta)
     const footer = [sender.brand.name || "VisualCNS", extractEmailAddress(sender.from)].filter(Boolean).join(" · ")

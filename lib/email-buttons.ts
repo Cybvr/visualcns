@@ -1,5 +1,5 @@
 /**
- * A button written into an email's own text, such as "View and pay invoice".
+ * A button written into an email's own text, such as "Pay invoice".
  * In the editor it is a link with the `email-button` class, shown as a pill;
  * when the email is sent or previewed it gets inline styles, since email apps
  * ignore style sheets.
