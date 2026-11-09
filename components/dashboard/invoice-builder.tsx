@@ -554,13 +554,15 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate, onS
     <>
     <form onSubmit={submit} className="billing-editor mx-auto max-w-2xl space-y-3 bg-card px-2 pt-2 print:hidden sm:rounded-2xl sm:px-4 sm:pt-3">
       <div className="flex items-center gap-1">
-        <Link
-          href="/dashboard/drive"
-          aria-label="Back to Drive"
+        <button
+          type="button"
+          // Back to wherever they came from; straight to the list when the page was opened directly.
+          onClick={() => (window.history.length > 1 ? router.back() : router.push("/dashboard/drive"))}
+          aria-label="Back"
           className="-ml-2 inline-flex size-9 shrink-0 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
         >
           <ArrowLeft className="size-4" aria-hidden="true" />
-        </Link>
+        </button>
       </div>
 
       <EditorHeader issuer={issuer} visualCnsBrand kind="Invoice" onPrint={() => window.print()} onDownload={() => void handleDownloadPdf()} downloading={pdfDownloading} number={invoiceNumber} status={statusMeta} shareAction={

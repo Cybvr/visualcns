@@ -156,13 +156,15 @@ export function ContractBuilder({ contract, initialCompanyId }: { contract?: Con
     <form onSubmit={submit} className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <Link
-            href="/dashboard/contracts"
-            aria-label="Back to contracts"
+          <button
+            type="button"
+            // Back to wherever they came from; straight to the list when the page was opened directly.
+            onClick={() => (window.history.length > 1 ? router.back() : router.push("/dashboard/contracts"))}
+            aria-label="Back"
             className="inline-flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
           >
             <ArrowLeft className="size-4" aria-hidden="true" />
-          </Link>
+          </button>
           <h1 className="text-base font-semibold tracking-[-0.01em]">
             {isEdit ? "Edit contract" : "New contract"}
           </h1>

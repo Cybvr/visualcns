@@ -1,7 +1,6 @@
 "use client"
 
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react"
-import Link from "next/link"
 import { useRouter } from "next/navigation"
 import {
   DndContext,
@@ -448,13 +447,15 @@ export function EstimateBuilder({ estimate, initialCompanyId, onSaved, onDeleted
     <>
     <form onSubmit={submit} className="billing-editor mx-auto max-w-2xl space-y-3 bg-card px-2 pt-2 print:hidden sm:rounded-2xl sm:px-4 sm:pt-3">
       <div className="flex items-center gap-1">
-        <Link
-          href="/dashboard/drive?type=estimate"
-          aria-label="Back to Drive"
+        <button
+          type="button"
+          // Back to wherever they came from; straight to the list when the page was opened directly.
+          onClick={() => (window.history.length > 1 ? router.back() : router.push("/dashboard/drive?type=estimate"))}
+          aria-label="Back"
           className="-ml-2 inline-flex size-9 shrink-0 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
         >
           <ArrowLeft className="size-4" aria-hidden="true" />
-        </Link>
+        </button>
       </div>
 
       <EditorHeader issuer={issuer} kind="Estimate" onPrint={() => window.print()} onDownload={() => void handleDownloadPdf()} downloading={pdfDownloading} number={estimateNumber} status={statusMeta} shareAction={
