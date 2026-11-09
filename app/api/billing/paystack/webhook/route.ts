@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { FieldValue, Timestamp } from "firebase-admin/firestore"
 
 import { adminServices } from "@/lib/firebase-admin"
+import { applyInvoiceCharge } from "@/lib/server/invoice-payments"
 import { applyOrderCharge } from "@/lib/server/orders"
 import { applyCharge, planForCode, saveSubscription, validPaystackSignature } from "@/lib/server/paystack"
 
@@ -43,6 +44,8 @@ export async function POST(request: Request) {
         await applyCharge(db, data as Parameters<typeof applyCharge>[1])
         // Dashboard checkout orders; each helper ignores the other's charges.
         await applyOrderCharge(db, data as Parameters<typeof applyOrderCharge>[1])
+        // Shared invoices paid from their public link.
+        await applyInvoiceCharge(db, data as Parameters<typeof applyInvoiceCharge>[1])
         break
       }
       case "subscription.create": {
