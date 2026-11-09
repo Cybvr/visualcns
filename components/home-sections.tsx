@@ -59,9 +59,9 @@ export function HomeSections({
   capabilities: Capability[]
   news: BlogPost[]
 }) {
-  // Consulting shows four services as quick links; the full list is on the services page.
-  const consulting = capabilities.filter((c) => c.slug !== "visualcns-ventures").slice(0, 4)
-  const ConsultingIllustration = consulting[0] ? SERVICE_ILLUSTRATIONS[consulting[0].slug] : undefined
+  // Consulting borrows the first service's illustration; the services themselves are on the services page.
+  const firstService = capabilities.find((c) => c.slug !== "visualcns-ventures")
+  const ConsultingIllustration = firstService ? SERVICE_ILLUSTRATIONS[firstService.slug] : undefined
   const container = "mx-auto max-w-7xl px-4 sm:px-8 md:px-20"
 
   return (
@@ -77,13 +77,10 @@ export function HomeSections({
             </div>
             <div>
               <h3 className="text-2xl tracking-[-0.02em] text-foreground md:text-3xl">Visitor Sign-in</h3>
-              <p className="mt-2 max-w-md text-muted-foreground">Guests sign in at the front desk. Hosts get an email. Free for 30 days, no card needed.</p>
+              <p className="mt-3 max-w-lg text-base leading-7 text-muted-foreground md:text-lg md:leading-8">Replace the paper visitor book with a quick sign-in at the front desk. Guests check in on a tablet or their own phone, their host gets an email straight away, and you keep a clear record of who came in and when. Free for 30 days, no card needed.</p>
               <div className="mt-6 flex flex-wrap gap-3">
                 <Button asChild className="rounded-full">
                   <Link href={VISITOR_SIGN_UP}>Start free trial</Link>
-                </Button>
-                <Button asChild variant="outline" className="rounded-full">
-                  <Link href="/visitors/demo">Try the demo</Link>
                 </Button>
                 <Button asChild variant="ghost" className="rounded-full">
                   <Link href="/pass">Learn more</Link>
@@ -97,7 +94,7 @@ export function HomeSections({
             </div>
             <div className="md:order-1">
               <h3 className="text-2xl tracking-[-0.02em] text-foreground md:text-3xl">Pulse</h3>
-              <p className="mt-2 max-w-md text-muted-foreground">See how you show up online, and what to fix first.</p>
+              <p className="mt-3 max-w-lg text-base leading-7 text-muted-foreground md:text-lg md:leading-8">Find out how your business shows up online, from search and maps to your website and social pages. Pulse scores what customers see, shows what is holding you back, and gives you a short list of what to fix first. Your first report takes about two minutes.</p>
               <div className="mt-6 flex flex-wrap gap-3">
                 <Button asChild className="rounded-full">
                   <Link href="/signup">Get your audit</Link>
@@ -114,20 +111,11 @@ export function HomeSections({
             </div>
             <div>
               <h3 className="text-2xl tracking-[-0.02em] text-foreground md:text-3xl">Consulting</h3>
-              <p className="mt-2 max-w-md text-muted-foreground">Work with our team on your brand, product, campaigns and customer experience.</p>
-              <ul className="mt-4 flex flex-wrap gap-2">
-                {consulting.map((c) => (
-                  <li key={c.slug}>
-                    <Link href={`/capabilities/${c.slug}`} className="inline-flex rounded-full bg-muted/60 px-3 py-1.5 text-sm text-foreground transition-colors hover:text-primary">
-                      {c.title}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
+              <p className="mt-3 max-w-lg text-base leading-7 text-muted-foreground md:text-lg md:leading-8">Work with our team on your brand, product, campaigns and customer experience. We help you decide what to do, design it properly and launch it, whether that is a new identity, a website or app, or a campaign. Each piece can stand alone or be part of one connected project.</p>
               <div className="mt-6 flex flex-wrap gap-3">
-                <BookNowModal triggerLabel="Start a project" triggerClassName="rounded-full" />
+                <BookNowModal triggerLabel="Get started" triggerClassName="rounded-full" />
                 <Button asChild variant="ghost" className="rounded-full">
-                  <Link href="/capabilities">See all services</Link>
+                  <Link href="/capabilities">Learn more</Link>
                 </Button>
               </div>
             </div>

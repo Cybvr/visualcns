@@ -102,30 +102,28 @@ export function BookNowModal({
           {triggerLabel}
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>Book now</DialogTitle>
           <DialogDescription>Tell us a little about your project and we&apos;ll get back to you.</DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <Input
-            placeholder="Name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            required
-          />
-          <Input
-            type="email"
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-          <Input
-            placeholder="Company name"
-            value={company}
-            onChange={(e) => setCompany(e.target.value)}
-          />
+          {/* Short fields sit in pairs on wider screens so the form fits without scrolling. */}
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Input
+              placeholder="Name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+            />
+            <Input
+              type="email"
+              placeholder="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+          </div>
           <div className="grid gap-2">
             <span className="text-sm text-muted-foreground">What do you need?</span>
             <div className="flex flex-wrap gap-2">
@@ -150,46 +148,53 @@ export function BookNowModal({
               })}
             </div>
           </div>
-          <div className="grid gap-2">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Budget</span>
-              <div className="inline-flex rounded-full border border-border p-0.5 text-xs">
-                {(["USD", "NGN"] as const).map((option) => (
-                  <button
-                    key={option}
-                    type="button"
-                    onClick={() => {
-                      setCurrency(option)
-                      setBudget("")
-                    }}
-                    className={cn(
-                      "rounded-full px-3 py-1 font-medium transition-colors",
-                      currency === option ? "bg-foreground text-background" : "text-muted-foreground",
-                    )}
-                  >
-                    {option}
-                  </button>
-                ))}
+          <div className="grid gap-4 sm:grid-cols-2 sm:items-end">
+            <Input
+              placeholder="Company name"
+              value={company}
+              onChange={(e) => setCompany(e.target.value)}
+            />
+            <div className="grid gap-2">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Budget</span>
+                <div className="inline-flex rounded-full border border-border p-0.5 text-xs">
+                  {(["USD", "NGN"] as const).map((option) => (
+                    <button
+                      key={option}
+                      type="button"
+                      onClick={() => {
+                        setCurrency(option)
+                        setBudget("")
+                      }}
+                      className={cn(
+                        "rounded-full px-3 py-1 font-medium transition-colors",
+                        currency === option ? "bg-foreground text-background" : "text-muted-foreground",
+                      )}
+                    >
+                      {option}
+                    </button>
+                  ))}
+                </div>
               </div>
+              <Select value={budget} onValueChange={setBudget}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select a budget range" />
+                </SelectTrigger>
+                <SelectContent>
+                  {BUDGET_RANGES[currency].map((range) => (
+                    <SelectItem key={range} value={range}>
+                      {range}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-            <Select value={budget} onValueChange={setBudget}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select a budget range" />
-              </SelectTrigger>
-              <SelectContent>
-                {BUDGET_RANGES[currency].map((range) => (
-                  <SelectItem key={range} value={range}>
-                    {range}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
           </div>
           <Textarea
             placeholder="Anything else? (optional)"
             value={message}
             onChange={(e) => setMessage(e.target.value)}
-            rows={3}
+            rows={2}
           />
           <Button type="submit" className="w-full" size="lg" disabled={submitting}>
             {submitting ? "Sending…" : "Send request"}
