@@ -9,7 +9,7 @@ import { thumbnailIcon } from "@/components/dashboard/grid-card"
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { invoiceStatusMeta, type Invoice } from "@/lib/billing"
 import { formatPay, payCurrency, updateCampaignPerson, type CampaignPerson } from "@/lib/campaign-people"
-import { formatMoney } from "@/lib/money"
+import { formatMoney, invoiceListAmount } from "@/lib/money"
 
 interface CampaignPaymentsProps {
   people: CampaignPerson[]
@@ -57,7 +57,7 @@ export function CampaignPayments({ people, invoices, canEdit, invoiceHref }: Cam
       kind: "invoice" as const,
       title: invoice.title?.trim() || invoice.invoiceNumber || "Invoice",
       status: invoiceStatusMeta[invoice.status]?.label ?? invoice.status,
-      amount: formatMoney(invoice.amount, invoice.currency),
+      amount: invoiceListAmount(invoice),
       invoice,
     })),
   ]

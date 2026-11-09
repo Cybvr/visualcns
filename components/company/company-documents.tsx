@@ -12,6 +12,7 @@ import {
   deleteInvoice,
   estimateStatusMeta,
   formatMoney,
+  invoiceListAmount,
   invoiceStatusMeta,
   nextEstimateNumber,
   nextInvoiceNumber,
@@ -160,7 +161,7 @@ export function CompanyDocuments({
       title: invoice.title?.trim() || invoice.invoiceNumber || "Invoice",
       kindLabel: "Invoice",
       statusLabel: invoiceStatusMeta[invoice.status].label,
-      amount: formatMoney(invoice.amount, invoice.currency),
+      amount: invoiceListAmount(invoice),
       icon: <Receipt className="size-5 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />,
       thumbnail: Receipt,
       actions: {

@@ -27,7 +27,7 @@ import { useCachedState } from "@/lib/page-cache"
 import { getCurrentAgencyId } from "@/lib/agency-scope"
 import { getExchangeRate } from "@/lib/currency"
 import {
-  createEstimate, createInvoice, deleteEstimate, deleteInvoice, estimateStatusMeta, formatMoney,
+  createEstimate, createInvoice, deleteEstimate, deleteInvoice, estimateStatusMeta, formatMoney, invoiceAmountDue, invoiceListAmount,
   getEstimates, getInvoices, invoiceStatusMeta, nextEstimateNumber, nextInvoiceNumber,
   updateEstimate, updateInvoice, type Estimate, type Invoice,
 } from "@/lib/billing"
@@ -88,7 +88,7 @@ function itemStatus(item: DriveItem) {
   return null
 }
 function itemSubtitle(item: DriveItem) {
-  if (item.type === "invoice") return formatMoney(item.record.amount, item.record.currency)
+  if (item.type === "invoice") return invoiceListAmount(item.record)
   if (item.type === "estimate") return formatMoney(item.record.amount, item.record.currency)
   if (item.type === "document") return companyDocumentKindMeta[item.record.kind]?.label || "Document"
   return "Note"
@@ -116,7 +116,7 @@ function OutstandingSummary({ invoices }: { invoices: Invoice[] }) {
     async function calculate() {
       try {
         const rates = Object.fromEntries(await Promise.all(currencies.filter((currency) => currency !== targetCurrency).map(async (currency) => [currency, await getExchangeRate(currency, targetCurrency)] as const)))
-        const amount = unpaid.reduce((total, invoice) => total + Math.round((invoice.amount ?? 0) * (rates[invoice.currency || "USD"] ?? 1)), 0)
+        const amount = unpaid.reduce((total, invoice) => total + Math.round(invoiceAmountDue(invoice) * (rates[invoice.currency || "USD"] ?? 1)), 0)
         if (active) setSummary(amount)
       } catch {
         if (active) setConversionError(true)
@@ -128,7 +128,7 @@ function OutstandingSummary({ invoices }: { invoices: Invoice[] }) {
 
   if (!unpaid.length) return null
   const className = "mb-4 mt-2 rounded-sm bg-primary px-3 py-2 text-lg font-medium leading-7 text-primary-foreground"
-  if (conversionError) return <p className={className}>Outstanding {currencies.map((currency) => formatMoney(unpaid.filter((invoice) => (invoice.currency || "USD") === currency).reduce((total, invoice) => total + (invoice.amount ?? 0), 0), currency)).join(" · ")}</p>
+  if (conversionError) return <p className={className}>Outstanding {currencies.map((currency) => formatMoney(unpaid.filter((invoice) => (invoice.currency || "USD") === currency).reduce((total, invoice) => total + invoiceAmountDue(invoice), 0), currency)).join(" · ")}</p>
   return <p className={className}>Outstanding {summary === null ? "…" : formatMoney(summary, targetCurrency)}</p>
 }
 
