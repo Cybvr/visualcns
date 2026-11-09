@@ -213,7 +213,7 @@ export default function PassPage() {
 
         {/* Problem */}
         <section className="mx-auto max-w-6xl px-4 py-16 md:px-8 md:py-24">
-          <h2 className="max-w-2xl text-3xl font-semibold tracking-tight md:text-4xl">
+          <h2 className="max-w-2xl font-semibold tracking-tight">
             A paper visitor book causes more problems than it solves
           </h2>
           <p className="mt-4 max-w-2xl text-muted-foreground">
@@ -233,7 +233,7 @@ export default function PassPage() {
         {/* Features */}
         <section className="bg-muted/40">
           <div className="mx-auto max-w-6xl px-4 py-16 md:px-8 md:py-24">
-            <h2 className="max-w-2xl text-3xl font-semibold tracking-tight md:text-4xl">
+            <h2 className="max-w-2xl font-semibold tracking-tight">
               Everything your front desk needs
             </h2>
             <p className="mt-4 max-w-2xl text-muted-foreground">
@@ -260,7 +260,7 @@ export default function PassPage() {
 
         {/* Verticals */}
         <section className="mx-auto max-w-6xl px-4 py-16 md:px-8 md:py-24">
-          <h2 className="text-3xl font-semibold tracking-tight md:text-4xl">Made for offices, events, estates and secure sites</h2>
+          <h2 className="font-semibold tracking-tight">Made for offices, events, estates and secure sites</h2>
           <div className="mt-10 grid gap-4 md:grid-cols-2 lg:grid-cols-5">
             {VERTICALS.map((vertical) => (
               <div key={vertical.title} className="border-t border-foreground pt-4">
@@ -278,7 +278,7 @@ export default function PassPage() {
         {/* Setup */}
         <section className="bg-muted/40">
           <div className="mx-auto max-w-6xl px-4 py-16 md:px-8 md:py-24">
-            <h2 className="text-3xl font-semibold tracking-tight md:text-4xl">Getting started is simple</h2>
+            <h2 className="font-semibold tracking-tight">Getting started is simple</h2>
             <ol className="mt-10 grid gap-4 md:grid-cols-3">
               {STEPS.map((step, index) => {
                 const Illustration = STEP_ILLUSTRATIONS[index]
@@ -316,7 +316,7 @@ export default function PassPage() {
 
         {/* FAQs */}
         <section className="mx-auto max-w-6xl px-4 py-16 md:px-8 md:py-24">
-          <h2 className="text-3xl font-semibold tracking-tight md:text-4xl">Questions</h2>
+          <h2 className="font-semibold tracking-tight">Questions</h2>
           <Accordion type="multiple" className="mt-8 max-w-4xl">
             {FAQS.map((faq, index) => (
               <AccordionItem key={faq.question} value={`pass-faq-${index}`}>
@@ -330,7 +330,7 @@ export default function PassPage() {
         {/* Final CTA */}
         <section className="px-4 py-16 md:px-8 md:py-24">
           <div className="mx-auto max-w-6xl rounded-3xl bg-foreground px-6 py-14 text-center text-background md:px-12">
-            <h2 className="text-3xl font-semibold tracking-tight md:text-4xl">Ready to replace your paper visitor book?</h2>
+            <h2 className="font-semibold tracking-tight">Ready to replace your paper visitor book?</h2>
             <p className="mx-auto mt-4 max-w-xl opacity-80">
               Try the demo to see how your visitors will sign in.
             </p>

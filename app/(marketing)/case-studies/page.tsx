@@ -20,7 +20,7 @@ export default function CaseStudiesPage() {
 
       <section className="bg-foreground px-4 py-16 text-primary-foreground sm:px-8 md:px-20 md:py-20">
         <div className="mx-auto max-w-7xl text-center">
-          <h2 className="mb-4 text-3xl tracking-tight md:text-4xl">Have a project in mind?</h2>
+          <h2 className="mb-4 tracking-tight">Have a project in mind?</h2>
           <p className="mx-auto mb-8 max-w-xl text-primary-foreground/70">
             We'd love to hear about it. Let's discuss how we can help bring your vision to life.
           </p>

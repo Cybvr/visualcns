@@ -59,8 +59,8 @@ function TeamMemberCard({ member }: { member: TeamMember }) {
               className="size-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
             />
           </div>
-          <h3 className="mt-5 text-lg font-semibold transition-colors group-hover:text-accent">{member.name}</h3>
-          <p className="text-xs text-accent">{member.role}</p>
+          <h3 className="mt-5 text-lg font-semibold transition-colors group-hover:text-primary">{member.name}</h3>
+          <p className="text-xs text-primary">{member.role}</p>
         </button>
       </DialogTrigger>
       <DialogContent className="max-w-4xl overflow-hidden rounded-none border-0 p-0">
@@ -74,7 +74,7 @@ function TeamMemberCard({ member }: { member: TeamMember }) {
           </div>
           <div className="flex flex-col justify-center p-6 sm:p-10 md:p-12">
             <DialogHeader>
-              <p className="text-sm text-accent">{member.role}</p>
+              <p className="text-sm text-primary">{member.role}</p>
               <DialogTitle className="mt-2 text-4xl tracking-[-0.03em] sm:text-5xl">{member.name}</DialogTitle>
             </DialogHeader>
             <DialogDescription className="mt-8 whitespace-pre-line text-base leading-7 text-muted-foreground">
@@ -85,7 +85,7 @@ function TeamMemberCard({ member }: { member: TeamMember }) {
                 href={member.profileUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="mt-8 inline-flex w-fit items-center gap-2 border-b border-foreground pb-1 text-sm transition-colors hover:border-accent hover:text-accent"
+                className="mt-8 inline-flex w-fit items-center gap-2 border-b border-foreground pb-1 text-sm transition-colors hover:border-primary hover:text-primary"
               >
                 View external profile
                 <ArrowUpRight className="size-3.5" aria-hidden="true" />
@@ -119,7 +119,7 @@ export default function AboutPage() {
           <PageHeading
             title={
               <>
-                Building brands that <span className="text-accent">matter</span>
+                Building brands that <span className="text-primary">matter</span>
               </>
             }
             subtitle="A global creative consultancy that develops digital experiences, brand systems, and technology solutions for modern businesses."
@@ -132,7 +132,7 @@ export default function AboutPage() {
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div>
-              <h2 className="font-serif text-3xl md:text-4xl font-bold mb-6">Our Story</h2>
+              <h2 className="font-serif font-bold mb-6">Our Story</h2>
               <div className="space-y-4 text-muted-foreground">
                 <p>
                   Founded in Lagos, Nigeria, VisualHQ emerged from a passion for design excellence and technical
@@ -162,7 +162,7 @@ export default function AboutPage() {
         <div className="max-w-7xl mx-auto">
           <div className="mb-12">
             <p className="text-sm font-medium text-muted-foreground mb-2">Our Approach</p>
-            <h2 className="font-serif text-3xl md:text-4xl font-bold">What We Stand For</h2>
+            <h2 className="font-serif font-bold">What We Stand For</h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             {values.map((value) => (
@@ -181,7 +181,7 @@ export default function AboutPage() {
         <div className="max-w-7xl mx-auto">
           <div className="mb-12">
             <p className="text-sm font-medium text-muted-foreground mb-2">Our Team</p>
-            <h2 className="font-serif text-3xl md:text-4xl font-bold">The people behind the work</h2>
+            <h2 className="font-serif font-bold">The people behind the work</h2>
           </div>
           <TeamLightbox />
         </div>
@@ -190,7 +190,7 @@ export default function AboutPage() {
       {/* CTA Section */}
       <section className="px-4 py-20 sm:px-8 md:px-20">
         <div className="max-w-7xl mx-auto text-center">
-          <h2 className="font-serif text-3xl md:text-4xl font-bold mb-4">Let's work together</h2>
+          <h2 className="font-serif font-bold mb-4">Let's work together</h2>
           <p className="text-muted-foreground max-w-xl mx-auto mb-8">
             We're always excited to collaborate with ambitious brands and businesses.
           </p>

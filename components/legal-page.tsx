@@ -55,7 +55,7 @@ export function LegalPage({ title, summary, lastUpdated, sections }: LegalPagePr
                   className={`scroll-mt-28 ${index === 0 ? "" : "mt-12 border-t border-border pt-12"}`}
                 >
                   <h2 className="text-3xl tracking-[-0.02em] text-foreground">{section.title}</h2>
-                  <div className="mt-5 space-y-4 text-base leading-7 text-muted-foreground [&_a]:text-foreground [&_a]:underline [&_a]:underline-offset-4 [&_a]:transition-colors [&_a:hover]:text-accent [&_li]:pl-1 [&_strong]:font-semibold [&_strong]:text-foreground [&_ul]:list-disc [&_ul]:space-y-2 [&_ul]:pl-5">
+                  <div className="mt-5 space-y-4 text-base leading-7 text-muted-foreground [&_a]:text-foreground [&_a]:underline [&_a]:underline-offset-4 [&_a]:transition-colors [&_a:hover]:text-primary [&_li]:pl-1 [&_strong]:font-semibold [&_strong]:text-foreground [&_ul]:list-disc [&_ul]:space-y-2 [&_ul]:pl-5">
                     {section.content}
                   </div>
                 </section>

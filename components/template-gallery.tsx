@@ -117,7 +117,7 @@ export function TemplateGallery({
                     <ul className="grid gap-x-4 gap-y-2 sm:grid-cols-2">
                       {openCard.steps.map((step) => (
                         <li key={step} className="flex gap-2">
-                          <Check className="mt-0.5 size-4 flex-shrink-0 text-accent" />
+                          <Check className="mt-0.5 size-4 flex-shrink-0 text-primary" />
                           <span className="text-sm text-muted-foreground">{step}</span>
                         </li>
                       ))}

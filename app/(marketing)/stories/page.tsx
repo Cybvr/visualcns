@@ -35,7 +35,7 @@ export default function StoriesPage() {
           <div className="mx-auto max-w-7xl">
             <div className="mb-12">
               <p className="mb-2 text-sm font-medium text-muted-foreground">Customer stories</p>
-              <h2 className="font-serif text-3xl font-bold md:text-4xl">What the work makes possible</h2>
+              <h2 className="font-serif font-bold">What the work makes possible</h2>
             </div>
 
             <div aria-label="Customer stories" className="grid grid-cols-1 gap-8 lg:grid-cols-3">
@@ -77,7 +77,7 @@ export default function StoriesPage() {
 
         <section className="px-4 py-20 sm:px-8 md:px-20">
           <div className="mx-auto max-w-7xl text-center">
-            <h2 className="mb-4 font-serif text-3xl font-bold md:text-4xl">Have a story to build?</h2>
+            <h2 className="mb-4 font-serif font-bold">Have a story to build?</h2>
             <p className="mx-auto mb-8 max-w-xl text-muted-foreground">
               Bring us the question, the ambition, or the unfinished idea. We will help shape what comes next.
             </p>

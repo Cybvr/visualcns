@@ -19,18 +19,21 @@ function Section({
   index,
   title,
   kicker,
+  card = false,
   children,
 }: {
   id: string
   index: string
   title: string
   kicker: string
+  /** Sits on a raised panel so it stands apart from the plain sections around it. */
+  card?: boolean
   children: ReactNode
 }) {
   return (
-    <section aria-labelledby={`home-${id}`} className="py-14 md:py-20">
+    <section aria-labelledby={`home-${id}`} className={card ? "my-6 rounded-3xl bg-card px-5 py-12 shadow-sm ring-1 ring-border/60 md:my-10 md:px-12 md:py-16" : "py-14 md:py-20"}>
       <div className="mb-10 flex flex-wrap items-end justify-between gap-x-6 gap-y-2 border-b border-border pb-5 md:mb-14">
-        <h2 id={`home-${id}`} className="text-3xl tracking-[-0.03em] text-foreground md:text-5xl">
+        <h2 id={`home-${id}`} className="tracking-[-0.03em] text-foreground">
           {title}
         </h2>
         <span className="font-mono text-xs uppercase tracking-[0.24em] text-muted-foreground">
@@ -64,16 +67,16 @@ function BigRow({
         rel={external ? "noopener noreferrer" : undefined}
         className="group grid grid-cols-[2.5rem_minmax(0,1fr)_1.5rem] items-baseline gap-x-4 py-6 md:grid-cols-[4rem_minmax(0,1fr)_2rem] md:gap-x-10 md:py-8"
       >
-        <span className="font-mono text-xs tabular-nums text-muted-foreground transition-colors group-hover:text-accent">
+        <span className="font-mono text-xs tabular-nums text-muted-foreground transition-colors group-hover:text-primary">
           {number}
         </span>
         <span className="min-w-0">
-          <span className="block truncate text-3xl tracking-[-0.02em] text-foreground transition-colors group-hover:text-accent md:text-5xl">
+          <span className="block truncate text-2xl tracking-[-0.02em] text-foreground transition-colors group-hover:text-primary md:text-3xl">
             {title}
           </span>
           {meta ? <span className="mt-2 block text-sm text-muted-foreground">{meta}</span> : null}
         </span>
-        <ArrowUpRight className="size-5 justify-self-end text-muted-foreground transition-[transform,color] duration-500 ease-out group-hover:-translate-y-1 group-hover:translate-x-1 group-hover:text-accent motion-reduce:transition-none" />
+        <ArrowUpRight className="size-5 justify-self-end text-muted-foreground transition-[transform,color] duration-500 ease-out group-hover:-translate-y-1 group-hover:translate-x-1 group-hover:text-primary motion-reduce:transition-none" />
       </Link>
     </li>
   )
@@ -95,7 +98,7 @@ export function HomeSections({
         <div className="mt-10">
           <Link
             href="/case-studies"
-            className="group inline-flex items-center gap-2 font-mono text-xs uppercase tracking-[0.24em] text-muted-foreground transition-colors hover:text-accent"
+            className="group inline-flex items-center gap-2 font-mono text-xs uppercase tracking-[0.24em] text-muted-foreground transition-colors hover:text-primary"
           >
             All case studies
             <ArrowUpRight className="size-4 transition-transform duration-500 ease-out group-hover:-translate-y-0.5 group-hover:translate-x-0.5 motion-reduce:transition-none" />
@@ -104,7 +107,7 @@ export function HomeSections({
       </Section>
 
       {/* Products: large image cards so the work carries the section. */}
-      <Section id="products" index="02" title="Products" kicker="What we ship">
+      <Section card id="products" index="02" title="Products" kicker="What we ship">
         <div className="grid grid-cols-1 gap-x-8 gap-y-12 sm:grid-cols-2">
           {products.map((p) => (
             <Link key={p.slug} href={p.href} className="group block">
@@ -121,12 +124,12 @@ export function HomeSections({
               </div>
               <div className="mt-5 flex items-baseline justify-between gap-4">
                 <div className="min-w-0">
-                  <h3 className="truncate text-2xl tracking-[-0.02em] text-foreground transition-colors group-hover:text-accent md:text-3xl">
+                  <h3 className="truncate text-2xl tracking-[-0.02em] text-foreground transition-colors group-hover:text-primary md:text-3xl">
                     {p.name}
                   </h3>
                   <p className="mt-1 text-sm text-muted-foreground">{p.product}</p>
                 </div>
-                <ArrowUpRight className="size-5 shrink-0 text-muted-foreground transition-[transform,color] duration-500 ease-out group-hover:-translate-y-1 group-hover:translate-x-1 group-hover:text-accent motion-reduce:transition-none" />
+                <ArrowUpRight className="size-5 shrink-0 text-muted-foreground transition-[transform,color] duration-500 ease-out group-hover:-translate-y-1 group-hover:translate-x-1 group-hover:text-primary motion-reduce:transition-none" />
               </div>
             </Link>
           ))}
@@ -158,7 +161,7 @@ export function HomeSections({
       </Section>
 
       {/* Two self-serve tools: picture first, one line, one action. */}
-      <Section id="tools" index="04" title="Tools You Can Use Today" kicker="Self-serve">
+      <Section card id="tools" index="04" title="Tools You Can Use Today" kicker="Self-serve">
         <div className="grid grid-cols-1 gap-12 md:grid-cols-2 md:gap-8">
           <div className="flex flex-col">
             <div className="aspect-[16/11] overflow-hidden rounded-[0.75rem] bg-muted/50 p-6">
@@ -211,7 +214,7 @@ export function HomeSections({
         <div className="mt-10">
           <Link
             href="/blog"
-            className="group inline-flex items-center gap-2 font-mono text-xs uppercase tracking-[0.24em] text-muted-foreground transition-colors hover:text-accent"
+            className="group inline-flex items-center gap-2 font-mono text-xs uppercase tracking-[0.24em] text-muted-foreground transition-colors hover:text-primary"
           >
             All articles
             <ArrowUpRight className="size-4 transition-transform duration-500 ease-out group-hover:-translate-y-0.5 group-hover:translate-x-0.5 motion-reduce:transition-none" />
@@ -226,13 +229,13 @@ export function HomeSections({
           className="text-[clamp(2.5rem,9vw,7rem)] font-medium leading-[0.9] tracking-[-0.04em] text-foreground"
         >
           Let&apos;s build
-          <span className="text-accent">.</span>
+          <span className="text-primary">.</span>
         </h2>
         <div className="mt-10 flex flex-wrap items-center gap-3">
           <BookNowModal triggerLabel="Start a project" triggerClassName="rounded-full" />
           <Link
             href="/contact"
-            className="group inline-flex items-center gap-2 rounded-full border border-border px-6 py-3 text-sm font-medium transition-colors hover:text-accent"
+            className="group inline-flex items-center gap-2 rounded-full border border-border px-6 py-3 text-sm font-medium transition-colors hover:text-primary"
           >
             Talk to us
             <ArrowUpRight className="size-4 transition-transform duration-500 ease-out group-hover:-translate-y-0.5 group-hover:translate-x-0.5 motion-reduce:transition-none" />

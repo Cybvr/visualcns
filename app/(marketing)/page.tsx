@@ -33,30 +33,26 @@ export default function HomePage() {
         <main className="pt-28 sm:pt-32 md:pt-36">
         {/* Hero: the tagline is the page, not a caption on a video. */}
         <section aria-labelledby="home-hero-heading" className="mx-auto max-w-7xl px-4 sm:px-8 md:px-20">
-          <p className="home-rise font-mono text-xs uppercase tracking-[0.24em] text-muted-foreground md:text-sm">
-            Creative consultancy &amp; software studio — Lagos
-          </p>
           <h1
             id="home-hero-heading"
-            className="home-rise home-rise-2 mt-6 text-[clamp(3.25rem,15vw,12rem)] font-medium leading-[0.82] tracking-[-0.04em] text-foreground"
+            className="home-rise home-rise-2 text-[clamp(3.25rem,15vw,12rem)] font-medium leading-[0.82] tracking-[-0.04em] text-foreground"
           >
             Dream.
             <br />
-            <span className="italic text-accent" style={{ fontFamily: "var(--font-serif)" }}>
+            <span className="italic text-primary" style={{ fontFamily: "var(--font-serif)" }}>
               Execute
             </span>
             .
           </h1>
           <div className="home-rise home-rise-3 mt-10 flex flex-col gap-8 md:flex-row md:items-end md:justify-between">
             <p className="max-w-xl text-lg text-muted-foreground md:text-xl">
-              A global creative consultancy building digital experiences, brand systems, and technology products for
-              modern businesses.
+              VisualCNS is a creative innovation, branding, and digital design agency for modern business.
             </p>
             <div className="flex shrink-0 flex-wrap items-center gap-3">
               <BookNowModal triggerLabel="Start a project" triggerClassName="rounded-full" />
               <Link
                 href="/case-studies"
-                className="group inline-flex items-center gap-2 rounded-full border border-border px-6 py-3 text-sm font-medium transition-colors hover:text-accent"
+                className="group inline-flex items-center gap-2 rounded-full border border-border px-6 py-3 text-sm font-medium transition-colors hover:text-primary"
               >
                 See the work
                 <ArrowUpRight className="size-4 transition-transform duration-500 ease-out group-hover:-translate-y-0.5 group-hover:translate-x-0.5 motion-reduce:transition-none" />

@@ -37,7 +37,7 @@ export default async function BlogPage({
             className={`border px-3 py-1.5 text-xs uppercase tracking-[0.14em] transition-colors ${
               !active
                 ? "border-foreground bg-foreground text-background"
-                : "border-border text-muted-foreground hover:border-accent hover:text-accent"
+                : "border-border text-muted-foreground hover:border-primary hover:text-primary"
             }`}
           >
             All
@@ -49,7 +49,7 @@ export default async function BlogPage({
               className={`border px-3 py-1.5 text-xs uppercase tracking-[0.14em] transition-colors ${
                 active === c
                   ? "border-foreground bg-foreground text-background"
-                  : "border-border text-muted-foreground hover:border-accent hover:text-accent"
+                  : "border-border text-muted-foreground hover:border-primary hover:text-primary"
               }`}
             >
               {c}
@@ -60,7 +60,7 @@ export default async function BlogPage({
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {visible.map((post) => (
             <Link key={post.slug} href={`/blog/${post.slug}`} className="block">
-              <Card className="h-full gap-0 overflow-hidden bg-transparent p-0 text-left transition-colors hover:border-accent">
+              <Card className="h-full gap-0 overflow-hidden bg-transparent p-0 text-left transition-colors hover:border-primary">
                 {post.image ? (
                   <div className="relative aspect-[16/10] overflow-hidden bg-muted">
                     <Image
@@ -78,7 +78,7 @@ export default async function BlogPage({
                   </div>
                 )}
                 <CardHeader className="py-6 text-left">
-                  <p className="text-xs uppercase tracking-[0.14em] text-accent">
+                  <p className="text-xs uppercase tracking-[0.14em] text-primary">
                     {post.categories.join(" · ")}
                   </p>
                   <CardTitle className="mt-2 text-base font-normal">{post.title}</CardTitle>

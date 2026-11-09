@@ -12,7 +12,7 @@ export default function CapabilitiesPage() {
       <main className="px-4 pb-24 pt-28 sm:px-8 md:px-20 md:pt-32">
         <div className="mx-auto max-w-7xl">
           <h1 className="max-w-4xl text-balance text-5xl tracking-[-0.02em] md:text-7xl">
-            Services VisualCNS brings to <span className="text-accent">market</span>.
+            Services VisualCNS brings to <span className="text-primary">market</span>.
           </h1>
 
           <CapabilitiesIndex capabilities={capabilities} />

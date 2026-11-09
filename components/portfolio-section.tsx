@@ -155,7 +155,7 @@ export function PortfolioSection({ showHero = true, inset = false, limit }: Port
                 <div className="mt-12 border-t border-border pt-6">
                   <Link
                     href="/case-studies"
-                    className="group inline-flex items-center gap-3 font-mono text-[0.6875rem] uppercase tracking-[0.24em] text-muted-foreground transition-colors hover:text-accent"
+                    className="group inline-flex items-center gap-3 font-mono text-[0.6875rem] uppercase tracking-[0.24em] text-muted-foreground transition-colors hover:text-primary"
                   >
                     View all {filteredProjects.length} case studies
                     <ArrowRight className="size-3.5 transition-transform duration-500 ease-out group-hover:translate-x-1 motion-reduce:transition-none" />

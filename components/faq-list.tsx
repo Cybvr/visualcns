@@ -32,8 +32,8 @@ export const PRODUCT_FAQS: Faq[] = [
     question: "How do I get started?",
     answer: (
       <>
-        <Link href="/signup" className="text-foreground underline underline-offset-4 hover:text-accent">Create an account</Link> to start your free trial, or{" "}
-        <Link href="/contact" className="text-foreground underline underline-offset-4 hover:text-accent">book a call</Link> if you need us to build something.
+        <Link href="/signup" className="text-foreground underline underline-offset-4 hover:text-primary">Create an account</Link> to start your free trial, or{" "}
+        <Link href="/contact" className="text-foreground underline underline-offset-4 hover:text-primary">book a call</Link> if you need us to build something.
       </>
     ),
   },
@@ -93,7 +93,7 @@ export const GENERAL_FAQS: Faq[] = [
     answer: (
       <>
         Yes. You can explore selected work in our{" "}
-        <Link href="/case-studies" className="text-foreground underline underline-offset-4 hover:text-accent">
+        <Link href="/case-studies" className="text-foreground underline underline-offset-4 hover:text-primary">
           case studies
         </Link>
         . For a relevant example, share the kind of problem you are solving and we will point you to the closest work.
@@ -150,11 +150,11 @@ export const GENERAL_FAQS: Faq[] = [
     answer: (
       <>
         Start with our{" "}
-        <Link href="/contact" className="text-foreground underline underline-offset-4 hover:text-accent">
+        <Link href="/contact" className="text-foreground underline underline-offset-4 hover:text-primary">
           contact page
         </Link>
         , or email us at{" "}
-        <a href="mailto:hello@visualcns.com" className="text-foreground underline underline-offset-4 hover:text-accent">
+        <a href="mailto:hello@visualcns.com" className="text-foreground underline underline-offset-4 hover:text-primary">
           hello@visualcns.com
         </a>
         . Tell us what you are building, where you are in the process, and what kind of help you need.

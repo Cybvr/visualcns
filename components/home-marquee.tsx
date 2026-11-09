@@ -12,7 +12,7 @@ export function HomeMarquee({ items }: { items: string[] }) {
           <span className="px-6 font-mono text-xs uppercase tracking-[0.24em] text-muted-foreground md:px-8 md:text-sm">
             {item}
           </span>
-          <span aria-hidden="true" className="text-accent">
+          <span aria-hidden="true" className="text-primary">
             {SEPARATOR}
           </span>
         </span>

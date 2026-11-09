@@ -159,7 +159,7 @@ export default function SignupPage() {
 
           <div className="mb-8">
             {inviteToken && <p className="mb-3 text-sm font-medium text-primary">Accept invitation</p>}
-            <h2 className="text-3xl font-medium tracking-[-0.035em] sm:text-4xl">
+            <h2 className="font-medium tracking-[-0.035em]">
               Create your account
             </h2>
             {inviteToken && <p className="mt-3 text-sm leading-6 text-muted-foreground">Create an account to join your team.</p>}

@@ -94,16 +94,16 @@ export function CapabilitiesIndex({ capabilities }: { capabilities: Capability[]
               onPointerMove={peekEnabled ? trackPointer : undefined}
               onPointerEnter={peekEnabled ? enterRow(index) : undefined}
             >
-              <span className="col-start-1 row-start-1 font-mono text-xs tabular-nums text-muted-foreground transition-colors group-hover:text-accent md:text-sm">
+              <span className="col-start-1 row-start-1 font-mono text-xs tabular-nums text-muted-foreground transition-colors group-hover:text-primary md:text-sm">
                 {String(index + 1).padStart(2, "0")}
               </span>
 
-              <h2 className="col-start-2 row-start-1 text-balance text-3xl tracking-[-0.02em] text-foreground transition-colors group-hover:text-accent md:text-5xl lg:text-6xl">
+              <h2 className="col-start-2 row-start-1 text-balance text-3xl tracking-[-0.02em] text-foreground transition-colors group-hover:text-primary md:text-5xl lg:text-6xl">
                 {capability.title}
               </h2>
 
               <span className="col-start-3 row-start-1 justify-self-end md:col-start-4">
-                <ArrowUpRight className="size-5 text-muted-foreground transition-[transform,color] duration-500 ease-out group-hover:-translate-y-1 group-hover:translate-x-1 group-hover:text-accent motion-reduce:transition-none md:size-6" />
+                <ArrowUpRight className="size-5 text-muted-foreground transition-[transform,color] duration-500 ease-out group-hover:-translate-y-1 group-hover:translate-x-1 group-hover:text-primary motion-reduce:transition-none md:size-6" />
               </span>
 
               {/* Pointer users get the image on the cursor; everyone else gets it here. */}

@@ -45,13 +45,13 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
       <main className="mx-auto max-w-7xl px-6 pb-24 pt-32 sm:px-12 md:px-20">
         <div className="grid gap-16 lg:grid-cols-[minmax(0,1fr)_18rem] lg:gap-20">
           <article>
-            <Link href="/blog" className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.14em] text-muted-foreground transition-colors hover:text-accent">
+            <Link href="/blog" className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.14em] text-muted-foreground transition-colors hover:text-primary">
               <ArrowLeft className="size-3.5" aria-hidden="true" />
               Blog
             </Link>
 
             <header className="mt-10 max-w-4xl">
-              <p className="text-xs uppercase tracking-[0.14em] text-accent">{post.categories.join(" · ")}</p>
+              <p className="text-xs uppercase tracking-[0.14em] text-primary">{post.categories.join(" · ")}</p>
               <h1 className="mt-3 text-5xl leading-[0.95] tracking-[-0.03em] md:text-7xl">{post.title}</h1>
               <p className="mt-6 text-xs uppercase tracking-[0.14em] text-muted-foreground">
                 {post.date}
@@ -84,7 +84,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
                 <div className="mt-10">
                   {post.body.map((section, i) => (
                     <section key={i} className="mt-10 first:mt-0">
-                      {section.heading ? <h2 className="mb-4 text-3xl tracking-[-0.02em]">{section.heading}</h2> : null}
+                      {section.heading ? <h2 className="mb-4 tracking-[-0.02em]">{section.heading}</h2> : null}
                       {section.paragraphs.map((paragraph, j) => (
                         <p key={j} className="mt-4 leading-7 text-muted-foreground first:mt-0">{paragraph}</p>
                       ))}
@@ -96,7 +96,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
                   href={post.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="mt-8 inline-flex items-center gap-2 text-sm uppercase tracking-[0.14em] transition-colors hover:text-accent"
+                  className="mt-8 inline-flex items-center gap-2 text-sm uppercase tracking-[0.14em] transition-colors hover:text-primary"
                 >
                   Read the full article
                   <ArrowUpRight className="size-3.5" aria-hidden="true" />
@@ -114,10 +114,10 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
                   {relatedPosts.map((relatedPost) => (
                     <li key={relatedPost.slug} className="border-t border-border py-5 last:border-b">
                       <Link href={`/blog/${relatedPost.slug}`} className="group block">
-                        <p className="text-xs uppercase tracking-[0.12em] text-muted-foreground transition-colors group-hover:text-accent">
+                        <p className="text-xs uppercase tracking-[0.12em] text-muted-foreground transition-colors group-hover:text-primary">
                           {relatedPost.categories[0]}
                         </p>
-                        <h3 className="mt-2 text-xl leading-tight tracking-[-0.01em] transition-colors group-hover:text-accent">
+                        <h3 className="mt-2 text-xl leading-tight tracking-[-0.01em] transition-colors group-hover:text-primary">
                           {relatedPost.title}
                         </h3>
                         <p className="mt-3 text-xs text-muted-foreground">{relatedPost.date}</p>

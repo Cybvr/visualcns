@@ -192,7 +192,7 @@ export default function LoginPage() {
 
         <p className="mt-5 text-center text-sm text-muted-foreground">
           Don’t have an account?{" "}
-          <Link href={signupHref} className="font-medium text-foreground underline underline-offset-4 hover:text-accent">
+          <Link href={signupHref} className="font-medium text-foreground underline underline-offset-4 hover:text-primary">
             Sign up
           </Link>
         </p>

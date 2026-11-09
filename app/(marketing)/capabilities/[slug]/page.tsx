@@ -40,9 +40,9 @@ function SiblingNav({ siblings }: { siblings: Array<Capability & { index: number
           <li key={sibling.slug}>
             <Link
               href={`/capabilities/${sibling.slug}`}
-              className="group flex items-baseline gap-4 border-t border-border py-4 text-lg text-foreground transition-colors hover:text-accent md:text-base"
+              className="group flex items-baseline gap-4 border-t border-border py-4 text-lg text-foreground transition-colors hover:text-primary md:text-base"
             >
-              <span className="font-mono text-xs tabular-nums text-muted-foreground transition-colors group-hover:text-accent">
+              <span className="font-mono text-xs tabular-nums text-muted-foreground transition-colors group-hover:text-primary">
                 {pad(sibling.index)}
               </span>
               <span className="text-balance">{sibling.title}</span>
@@ -74,7 +74,7 @@ export default async function CapabilityDetailPage({ params }: { params: Promise
           <aside className="md:sticky md:top-28 md:self-start">
             <Link
               href="/capabilities"
-              className="font-mono text-[0.6875rem] uppercase tracking-[0.24em] text-muted-foreground transition-colors hover:text-accent"
+              className="font-mono text-[0.6875rem] uppercase tracking-[0.24em] text-muted-foreground transition-colors hover:text-primary"
             >
               ← Services
             </Link>
@@ -137,7 +137,7 @@ export default async function CapabilityDetailPage({ params }: { params: Promise
 
             <p className="mt-16 max-w-[62ch] text-lg leading-8 text-muted-foreground">
               If this is the kind of work you need,{" "}
-              <Link href="/contact" className="text-foreground underline underline-offset-4 hover:text-accent">
+              <Link href="/contact" className="text-foreground underline underline-offset-4 hover:text-primary">
                 tell us what you are building
               </Link>
               .

@@ -87,7 +87,7 @@ export default function SingleProjectPage() {
       <Header />
 
       <section className={`${CONTAINER} pb-6 pt-24 md:pt-28`}>
-        <Link href="/case-studies" className={`${LABEL} transition-colors hover:text-accent`}>
+        <Link href="/case-studies" className={`${LABEL} transition-colors hover:text-primary`}>
           ← Case Studies
         </Link>
       </section>
@@ -188,7 +188,7 @@ export default function SingleProjectPage() {
                     <img src={related.imageUrl || PLACEHOLDER} alt="" loading="lazy" />
                   </div>
                   <div className="pf-rule mt-4 border-t border-border pt-3">
-                    <h3 className="text-xl transition-colors group-hover:text-accent">{related.title}</h3>
+                    <h3 className="text-xl transition-colors group-hover:text-primary">{related.title}</h3>
                     {related.category?.length ? (
                       <p className={`mt-2 ${LABEL}`}>{related.category.join(" & ")}</p>
                     ) : null}
@@ -202,7 +202,7 @@ export default function SingleProjectPage() {
 
       <section className="bg-foreground px-4 py-16 text-primary-foreground sm:px-8 md:px-20 md:py-20">
         <div className="mx-auto max-w-7xl text-center">
-          <h2 className="mb-4 text-3xl tracking-tight md:text-4xl">Like what you see?</h2>
+          <h2 className="mb-4 tracking-tight">Like what you see?</h2>
           <p className="mx-auto mb-8 max-w-xl text-primary-foreground/70">
             Let's discuss how we can create something amazing for your brand.
           </p>

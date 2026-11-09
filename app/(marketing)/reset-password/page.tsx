@@ -135,7 +135,7 @@ function ResetPasswordForm() {
           </form>
         )}
 
-        {!complete && <p className="mt-5 text-center text-sm text-muted-foreground">Remember your password? <Link href="/login" className="font-medium text-foreground underline underline-offset-4 hover:text-accent">Sign in</Link></p>}
+        {!complete && <p className="mt-5 text-center text-sm text-muted-foreground">Remember your password? <Link href="/login" className="font-medium text-foreground underline underline-offset-4 hover:text-primary">Sign in</Link></p>}
       </section>
     </main>
   )

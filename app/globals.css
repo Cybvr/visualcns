@@ -168,6 +168,16 @@
   * {
     @apply border-border;
   }
+  /* Section titles on the public site. A size class on a heading still wins. */
+  .marketing-surface h2 {
+    font-size: 1.75rem;
+    line-height: 1.15;
+  }
+  @media (width >= 48rem) {
+    .marketing-surface h2 {
+      font-size: 2.25rem;
+    }
+  }
   body {
     @apply bg-background text-foreground;
   }

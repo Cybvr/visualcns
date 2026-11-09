@@ -85,11 +85,11 @@ export function PortfolioGrid({
                 <figcaption className="pf-rule mt-5 border-t border-border pt-4">
                   <div className="flex items-baseline gap-4">
                     {showNumbers && (
-                      <span className="font-mono text-xs tabular-nums text-muted-foreground transition-colors group-hover:text-accent">
+                      <span className="font-mono text-xs tabular-nums text-muted-foreground transition-colors group-hover:text-primary">
                         {String(index + 1).padStart(2, "0")}
                       </span>
                     )}
-                    <h2 className="text-balance text-2xl tracking-[-0.01em] text-foreground transition-colors group-hover:text-accent md:text-3xl">
+                    <h2 className="text-balance text-2xl tracking-[-0.01em] text-foreground transition-colors group-hover:text-primary md:text-3xl">
                       {project.title}
                     </h2>
                   </div>

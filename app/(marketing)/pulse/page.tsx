@@ -125,7 +125,7 @@ export default function PulsePage() {
 
         {/* Problem */}
         <section className="mx-auto max-w-6xl px-4 py-16 md:px-8 md:py-24">
-          <h2 className="max-w-2xl text-3xl font-semibold tracking-tight md:text-4xl">
+          <h2 className="max-w-2xl font-semibold tracking-tight">
             Most businesses are guessing about their own health
           </h2>
           <p className="mt-4 max-w-2xl text-muted-foreground">
@@ -145,7 +145,7 @@ export default function PulsePage() {
         {/* Features */}
         <section className="bg-muted/40">
           <div className="mx-auto max-w-6xl px-4 py-16 md:px-8 md:py-24">
-            <h2 className="max-w-2xl text-3xl font-semibold tracking-tight md:text-4xl">Everything in one scan</h2>
+            <h2 className="max-w-2xl font-semibold tracking-tight">Everything in one scan</h2>
             <p className="mt-4 max-w-2xl text-muted-foreground">
               Pulse reads your website and public sources, then turns what it finds into a short list of things to do.
             </p>
@@ -166,7 +166,7 @@ export default function PulsePage() {
 
         {/* Included */}
         <section className="mx-auto max-w-6xl px-4 py-16 md:px-8 md:py-24">
-          <h2 className="text-3xl font-semibold tracking-tight md:text-4xl">What every report includes</h2>
+          <h2 className="font-semibold tracking-tight">What every report includes</h2>
           <div className="mt-10 grid gap-8 sm:grid-cols-2 md:grid-cols-4">
             {INCLUDED.map((item) => (
               <div key={item.title} className="border-t border-foreground pt-4">
@@ -181,7 +181,7 @@ export default function PulsePage() {
         {/* How it works */}
         <section id="how" className="scroll-mt-24 bg-muted/40">
           <div className="mx-auto max-w-6xl px-4 py-16 md:px-8 md:py-24">
-            <h2 className="text-3xl font-semibold tracking-tight md:text-4xl">Your first report in about two minutes</h2>
+            <h2 className="font-semibold tracking-tight">Your first report in about two minutes</h2>
             <ol className="mt-10 grid gap-4 md:grid-cols-3">
               {STEPS.map((step, index) => (
                 <li key={step.title} className="relative rounded-2xl border border-border bg-background p-6">
@@ -207,7 +207,7 @@ export default function PulsePage() {
 
         {/* Teams */}
         <section className="mx-auto max-w-6xl px-4 py-16 md:px-8 md:py-24">
-          <h2 className="text-3xl font-semibold tracking-tight md:text-4xl">Built for the people who run the business</h2>
+          <h2 className="font-semibold tracking-tight">Built for the people who run the business</h2>
           <div className="mt-10 grid gap-4 md:grid-cols-3">
             {TEAMS.map((team) => (
               <div key={team.title} className="rounded-2xl border border-border p-6">
@@ -221,7 +221,7 @@ export default function PulsePage() {
         {/* Final CTA */}
         <section className="px-4 pb-16 md:px-8 md:pb-24">
           <div className="mx-auto max-w-6xl rounded-3xl bg-foreground px-6 py-14 text-center text-background md:px-12">
-            <h2 className="text-3xl font-semibold tracking-tight md:text-4xl">See your score today</h2>
+            <h2 className="font-semibold tracking-tight">See your score today</h2>
             <p className="mx-auto mt-4 max-w-xl opacity-80">
               Add your website and run your first scan. Pulse is part of every VisualCNS plan, free for the first 30
               days.
