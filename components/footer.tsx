@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { Linkedin, Twitter, type LucideIcon } from "lucide-react"
 import { BrandLockup } from "@/components/brand-lockup"
+import { CurrencySelect } from "@/components/currency-select"
 
 const footerGroups = [
   {
@@ -171,6 +172,8 @@ export function Footer() {
                 </span>
               ))}
             </nav>
+            <span aria-hidden="true">·</span>
+            <CurrencySelect labeled />
           </div>
           <div className="flex gap-8 text-sm font-semibold tracking-[0.16em] text-foreground">
             {socialLinks.map((item) => (

@@ -13,7 +13,7 @@ import { useLocalCurrency } from "@/components/use-local-currency"
 import { formatPrice } from "@/lib/plans"
 
 /** The cart in the header, with the currency picker beside it: what's in it, the total, and the way to the cart page. */
-export function CartButton({ cartHref, servicesHref }: { cartHref: string; servicesHref: string }) {
+export function CartButton({ cartHref, servicesHref, showCurrency = true }: { cartHref: string; servicesHref: string; /** The public site keeps the currency picker in its footer instead. */ showCurrency?: boolean }) {
   const { items, remove } = useCart()
   const currency = useLocalCurrency()
   const [open, setOpen] = useState(false)
@@ -83,7 +83,7 @@ export function CartButton({ cartHref, servicesHref }: { cartHref: string; servi
         )}
       </PopoverContent>
     </Popover>
-    <CurrencySelect />
+    {showCurrency && <CurrencySelect />}
     </div>
   )
 }

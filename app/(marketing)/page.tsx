@@ -16,7 +16,7 @@ import { getBlogPosts } from "@/lib/blog"
 import "./home.css"
 
 export const metadata = publicPageMetadata({
-  title: "VisualCNS - Software Systems for Modern Businesses",
+  title: "VisualCNS - Bring Your Ideas To Life",
   description: "VisualCNS builds software systems, product businesses, and AI-enabled tools from Lagos for modern teams.",
   path: "/",
 })
@@ -35,17 +35,16 @@ export default function HomePage() {
         <section aria-labelledby="home-hero-heading" className="mx-auto max-w-7xl px-4 sm:px-8 md:px-20">
           <h1
             id="home-hero-heading"
-            className="home-rise home-rise-2 text-[clamp(3.25rem,15vw,12rem)] font-medium leading-[0.82] tracking-[-0.04em] text-foreground"
+            className="home-rise home-rise-2 text-[clamp(2.25rem,8vw,5.5rem)] font-medium leading-none tracking-[-0.04em] text-foreground"
           >
-            Dream.
-            <br />
+            Dream.{" "}
             <span className="italic text-primary" style={{ fontFamily: "var(--font-serif)" }}>
               Execute
             </span>
             .
           </h1>
           <div className="home-rise home-rise-3 mt-10 flex flex-col gap-8 md:flex-row md:items-end md:justify-between">
-            <p className="max-w-xl text-lg text-muted-foreground md:text-xl">
+            <p className="max-w-lg text-base text-muted-foreground md:text-lg">
               VisualCNS is a creative innovation, branding, and digital design agency for modern business.
             </p>
             <div className="flex shrink-0 flex-wrap items-center gap-3">

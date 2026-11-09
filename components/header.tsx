@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useEffect, useRef, useState, type CSSProperties } from "react"
-import { ArrowUpRight, ChevronDown, LogIn, Menu, Phone, X } from "lucide-react"
+import { ArrowUpRight, ChevronDown, CircleUserRound, Menu, Phone, X } from "lucide-react"
 import { onAuthStateChanged, type User } from "firebase/auth"
 import { BrandLockup } from "@/components/brand-lockup"
 import { CartButton } from "@/components/dashboard/cart-button"
@@ -330,7 +330,7 @@ export function Header() {
           </div>
 
           <div className="flex items-center gap-2">
-            <CartButton cartHref="/cart" servicesHref="/pricing" />
+            <CartButton cartHref="/cart" servicesHref="/pricing" showCurrency={false} />
             {currentUser ? (
               <Link
                 href="/dashboard"
@@ -343,16 +343,11 @@ export function Header() {
                 </Avatar>
               </Link>
             ) : (
-              <>
-                <Button asChild variant="ghost" size="icon-lg" className="lg:hidden">
-                  <Link href="/login" aria-label="Sign in">
-                    <LogIn aria-hidden="true" />
-                  </Link>
-                </Button>
-                <Button asChild variant="ghost" size="lg" className="hidden lg:inline-flex">
-                  <Link href="/login">Sign in</Link>
-                </Button>
-              </>
+              <Button asChild variant="ghost" size="icon-lg" className="rounded-full">
+                <Link href="/login" aria-label="Sign in" title="Sign in">
+                  <CircleUserRound aria-hidden="true" />
+                </Link>
+              </Button>
             )}
             <Button asChild size="icon-lg" className="lg:hidden">
               <Link href="/contact" aria-label="Talk to sales">

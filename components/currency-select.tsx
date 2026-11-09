@@ -13,15 +13,23 @@ const OPTIONS: { value: BillingCurrency; sign: string; name: string }[] = [
 ]
 
 /** Naira or dollars for every price on the site; starts from the visitor's location. Just the sign, after the cart. */
-export function CurrencySelect() {
+export function CurrencySelect({ labeled = false }: { /** Show the currency name and a "Currency" label, as in the footer. */ labeled?: boolean }) {
   const currency = useLocalCurrency()
   const current = OPTIONS.find((option) => option.value === currency) ?? OPTIONS[1]
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button type="button" variant="ghost" size="icon" aria-label={`Currency: ${current.name}`} title="Currency" className="rounded-full text-base font-semibold text-foreground hover:bg-muted/50 active:bg-muted/50">
-          {current.sign}
-        </Button>
+        {labeled ? (
+          <Button type="button" variant="ghost" size="sm" aria-label={`Currency: ${current.name}`} className="h-auto gap-2 rounded-full px-3 py-1.5 text-sm font-normal text-foreground hover:bg-muted/50 active:bg-muted/50">
+            <span className="text-foreground/55">Currency</span>
+            <span className="font-semibold">{current.sign}</span>
+            {current.name}
+          </Button>
+        ) : (
+          <Button type="button" variant="ghost" size="icon" aria-label={`Currency: ${current.name}`} title="Currency" className="rounded-full text-base font-semibold text-foreground hover:bg-muted/50 active:bg-muted/50">
+            {current.sign}
+          </Button>
+        )}
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         {OPTIONS.map((option) => (

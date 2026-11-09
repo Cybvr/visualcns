@@ -24,7 +24,7 @@ const FAVICON_URL = "/visualhqlogo.svg"
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://visualcns.com"),
-  title: "VisualCNS - Software Systems for Modern Businesses",
+  title: "VisualCNS - Bring Your Ideas To Life",
   description:
     "VisualCNS builds software systems, product businesses, and AI-enabled tools from Lagos for modern teams.",
   keywords: ["software development", "AI", "VisualHQ", "VisualCNS", "Lagos", "Nigeria", "product company"],
