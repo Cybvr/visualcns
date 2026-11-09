@@ -45,6 +45,16 @@ const socialLinks: Array<{ name: string; href: string; icon: LucideIcon }> = [
   { name: "LinkedIn", href: "https://www.linkedin.com/company/visualng", icon: Linkedin },
 ]
 
+// Card brands accepted at checkout. Icons from the payment-icons package (MPL-2.0), in public/payment-icons.
+const paymentCards = [
+  { name: "Visa", src: "/payment-icons/visa.svg" },
+  { name: "Mastercard", src: "/payment-icons/mastercard.svg" },
+  { name: "American Express", src: "/payment-icons/amex.svg" },
+  { name: "Discover", src: "/payment-icons/discover.svg" },
+  { name: "JCB", src: "/payment-icons/jcb.svg" },
+  { name: "Diners Club", src: "/payment-icons/diners.svg" },
+]
+
 const legalLinks = [
   { name: "Privacy", href: "/privacy" },
   { name: "Cookies", href: "/cookies" },
@@ -114,7 +124,16 @@ export function Footer() {
           </div>
         </div>
 
-        <div className="mt-10 flex flex-col gap-4 border-t border-border pt-6 text-xs text-foreground/55 md:flex-row md:items-center md:justify-between">
+        <ul className="mt-10 flex flex-wrap items-center gap-2" aria-label="Cards we accept">
+          {paymentCards.map((card) => (
+            <li key={card.name}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={card.src} alt={card.name} title={card.name} width={48} height={30} className="h-[30px] w-12 rounded" />
+            </li>
+          ))}
+        </ul>
+
+        <div className="mt-6 flex flex-col gap-4 border-t border-border pt-6 text-xs text-foreground/55 md:flex-row md:items-center md:justify-between">
           <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
             <span>© {year} Visual Core Nine Systems</span>
             <span aria-hidden="true">·</span>
