@@ -234,6 +234,19 @@ export function Header() {
     // When the index is open the header owns the viewport, so the panel can be a
     // flex child instead of chasing the bar's height with a hard-coded offset.
     <header ref={headerRef} className={`fixed inset-x-0 top-0 z-50 flex flex-col ${open ? "bottom-0" : ""}`}>
+      {/* Promo strip for Pasive, above the bar. */}
+      <a
+        href="https://pasive.cc"
+        target="_blank"
+        rel="noopener"
+        className="group block shrink-0 bg-foreground px-4 py-2 text-center text-xs text-background outline-none transition-colors hover:bg-foreground/90 focus-visible:underline sm:text-sm"
+      >
+        Build a business you own, with commerce tools. Get 50% off your first 2 months.
+        <span className="ml-2 inline-flex items-center gap-1 font-semibold underline-offset-4 group-hover:underline">
+          Start now
+          <ArrowUpRight className="size-3.5" aria-hidden="true" />
+        </span>
+      </a>
       <div
         className="shrink-0 border-b border-border bg-background/90 text-foreground backdrop-blur-md"
       >
