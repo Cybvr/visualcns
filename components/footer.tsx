@@ -75,7 +75,7 @@ export function Footer() {
         <div className="grid gap-6 md:grid-cols-[1fr_420px] md:items-end">
           <div className="flex flex-col gap-3">
             <Link href="/" className="group inline-flex items-center gap-4" aria-label="VisualCNS home">
-              <BrandLockup logoSize={52} gapClassName="gap-1.5" wordmarkScale={0.98} />
+              <BrandLockup logoSize={32} gapClassName="gap-1.5" wordmarkScale={0.85} wordmarkWeight={700} />
             </Link>
             <p className="text-lg font-medium tracking-tight text-foreground md:text-xl">Dream.Execute</p>
           </div>

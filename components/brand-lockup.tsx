@@ -10,6 +10,8 @@ type BrandLockupProps = {
   gapClassName?: string
   textClassName?: string
   wordmarkScale?: number
+  /** Wordmark font weight; regular unless a place asks for bold. */
+  wordmarkWeight?: number
   logoUrl?: string
   brandName?: string
 }
@@ -21,6 +23,7 @@ export function BrandLockup({
   gapClassName = "gap-0.5",
   textClassName,
   wordmarkScale = 0.92,
+  wordmarkWeight = 400,
   logoUrl = "/visualhqlogo.svg",
   brandName = "VisualCNS",
 }: BrandLockupProps) {
@@ -42,7 +45,7 @@ export function BrandLockup({
         style={{
           fontSize: `${Math.round(logoSize * wordmarkScale)}px`,
           lineHeight: "0.82",
-          fontWeight: 400,
+          fontWeight: wordmarkWeight,
         }}
       >
         {brandName}
