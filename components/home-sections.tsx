@@ -4,7 +4,7 @@ import { ArrowUpRight } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { BookNowModal } from "@/components/book-now-modal"
-import { PortfolioGrid } from "@/components/portfolio-grid"
+import { HomeCaseStudies } from "@/components/home-case-studies"
 import { SERVICE_ILLUSTRATIONS, VisitorIllustration, AuditIllustration } from "@/components/home-illustrations"
 import type { BrandItem } from "@/lib/brands"
 import type { Capability } from "@/lib/capabilities"
@@ -96,12 +96,14 @@ export function HomeSections({
   capabilities: Capability[]
   news: BlogPost[]
 }) {
+  // Consulting shows four services as quick links; the full list is on the services page.
+  const consulting = capabilities.filter((c) => c.slug !== "visualcns-ventures").slice(0, 4)
+  const ConsultingIllustration = consulting[0] ? SERVICE_ILLUSTRATIONS[consulting[0].slug] : undefined
+  const container = "mx-auto max-w-7xl px-4 sm:px-8 md:px-20"
+
   return (
     <div className="w-full">
-      <Section id="work" title="Case Studies" viewAllHref="/case-studies">
-        <PortfolioGrid compact minimal limit={4} showNumbers={false} />
-      </Section>
-
+      <div className={container}>
       {/* Products: large image cards so the work carries the section. */}
       <Section card id="products" title="Products" viewAllHref="/brands">
         <div className="grid grid-cols-1 gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-4">
@@ -172,33 +174,38 @@ export function HomeSections({
               </div>
             </div>
           </div>
+          <div className="grid grid-cols-1 items-center gap-8 md:grid-cols-2 md:gap-12">
+            <div className="aspect-[16/11] overflow-hidden rounded-[0.75rem] bg-muted/50 p-6">
+              {ConsultingIllustration ? <ConsultingIllustration className="size-full" /> : null}
+            </div>
+            <div>
+              <h3 className="text-2xl tracking-[-0.02em] text-foreground md:text-3xl">Consulting</h3>
+              <p className="mt-2 max-w-md text-muted-foreground">Work with our team on your brand, product, campaigns and customer experience.</p>
+              <ul className="mt-4 flex flex-wrap gap-2">
+                {consulting.map((c) => (
+                  <li key={c.slug}>
+                    <Link href={`/capabilities/${c.slug}`} className="inline-flex rounded-full bg-muted/60 px-3 py-1.5 text-sm text-foreground transition-colors hover:text-primary">
+                      {c.title}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+              <div className="mt-6 flex flex-wrap gap-3">
+                <BookNowModal triggerLabel="Start a project" triggerClassName="rounded-full" />
+                <Button asChild variant="ghost" className="rounded-full">
+                  <Link href="/capabilities">See all services</Link>
+                </Button>
+              </div>
+            </div>
+          </div>
         </div>
       </Section>
+      </div>
 
-      {/* Services: four, each an illustration with its title underneath. */}
-      <Section id="services" title="Services" viewAllHref="/capabilities">
-        <div className="grid grid-cols-1 gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-4">
-          {capabilities.filter((c) => c.slug !== "visualcns-ventures").slice(0, 4).map((c) => {
-            const Illustration = SERVICE_ILLUSTRATIONS[c.slug]
-            return (
-              <Link key={c.slug} href={`/capabilities/${c.slug}`} className="group block">
-                <div className="aspect-[16/11] overflow-hidden rounded-[0.75rem] bg-muted/50 p-4">
-                  {Illustration ? (
-                    <Illustration className="size-full transition-transform duration-700 ease-out group-hover:scale-[1.04] motion-reduce:transition-none" />
-                  ) : null}
-                </div>
-                <div className="mt-4 flex items-baseline justify-between gap-4">
-                  <h3 className="text-xl tracking-[-0.02em] text-foreground transition-colors group-hover:text-primary">
-                    {c.title}
-                  </h3>
-                  <ArrowUpRight className="size-5 shrink-0 text-muted-foreground transition-[transform,color] duration-500 ease-out group-hover:-translate-y-1 group-hover:translate-x-1 group-hover:text-primary motion-reduce:transition-none" />
-                </div>
-              </Link>
-            )
-          })}
-        </div>
-      </Section>
+      {/* Case studies run edge to edge, outside the page width. */}
+      <HomeCaseStudies />
 
+      <div className={`${container} pb-8`}>
       <Section id="news" title="News & Insights" viewAllHref="/blog">
         <ul>
           {news.slice(0, 6).map((item, i) => (
@@ -233,6 +240,7 @@ export function HomeSections({
           </Link>
         </div>
       </section>
+      </div>
     </div>
   )
 }

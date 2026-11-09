@@ -84,9 +84,7 @@ export default function HomePage() {
           <HomeLogoCarousel />
         </div>
 
-        <div className="mx-auto max-w-7xl px-4 pb-8 sm:px-8 md:px-20">
-          <HomeSections products={products} capabilities={capabilities} news={news} />
-        </div>
+        <HomeSections products={products} capabilities={capabilities} news={news} />
         </main>
         <Footer />
       </div>
