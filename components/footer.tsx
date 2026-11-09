@@ -40,21 +40,6 @@ const footerGroups = [
   },
 ]
 
-const offices = [
-  {
-    country: "United States",
-    lines: ["30 N Gould St Ste R", "Sheridan, WY 82801", "USA"],
-  },
-  {
-    country: "Nigeria",
-    lines: [
-      "Plot 1 Block, Marwa Bus Stop",
-      "128 Remi Olowude St, Lekki Phase I",
-      "Lekki 105102, Lagos, Nigeria",
-    ],
-  },
-]
-
 const socialLinks: Array<{ name: string; href: string; icon: LucideIcon }> = [
   { name: "X", href: "https://x.com/visualcns", icon: Twitter },
   { name: "LinkedIn", href: "https://www.linkedin.com/company/visualng", icon: Linkedin },
@@ -126,32 +111,6 @@ export function Footer() {
               </span>
               <span className="text-sm uppercase tracking-[0.18em]">Join -&gt;</span>
             </a>
-          </div>
-        </div>
-
-        <div className="mt-10 grid gap-8 border-t border-border pt-6 md:grid-cols-4 md:gap-8">
-          {offices.map((office) => (
-            <address key={office.country} className="not-italic">
-              <h3 className="mb-3 flex items-baseline gap-2 text-xs uppercase tracking-[0.18em] text-foreground">
-                <span>{office.country}</span>
-              </h3>
-              <p className="text-sm leading-6 text-foreground/65">
-                {office.lines.map((line) => (
-                  <span key={line} className="block">
-                    {line}
-                  </span>
-                ))}
-              </p>
-            </address>
-          ))}
-          <div>
-            <h3 className="mb-3 flex items-baseline gap-2 text-xs uppercase tracking-[0.18em] text-foreground">
-              <span>Office hours</span>
-            </h3>
-            <p className="text-sm leading-6 text-foreground/65">
-              <span className="block">Monday to Friday</span>
-              <span className="block">9am to 5pm</span>
-            </p>
           </div>
         </div>
 
