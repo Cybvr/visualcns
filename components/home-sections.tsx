@@ -50,43 +50,6 @@ function Section({
   )
 }
 
-// Big numbered link row, matching the site's nav overlay: index, title, arrow.
-function BigRow({
-  href,
-  number,
-  title,
-  meta,
-  external,
-}: {
-  href: string
-  number: string
-  title: string
-  meta?: string
-  external?: boolean
-}) {
-  return (
-    <li className="border-t border-border last:border-b">
-      <Link
-        href={href}
-        target={external ? "_blank" : undefined}
-        rel={external ? "noopener noreferrer" : undefined}
-        className="group grid grid-cols-[2.5rem_minmax(0,1fr)_1.5rem] items-baseline gap-x-4 py-6 md:grid-cols-[4rem_minmax(0,1fr)_2rem] md:gap-x-10 md:py-8"
-      >
-        <span className="font-mono text-xs tabular-nums text-muted-foreground transition-colors group-hover:text-primary">
-          {number}
-        </span>
-        <span className="min-w-0">
-          <span className="block truncate text-2xl tracking-[-0.02em] text-foreground transition-colors group-hover:text-primary md:text-3xl">
-            {title}
-          </span>
-          {meta ? <span className="mt-2 block text-sm text-muted-foreground">{meta}</span> : null}
-        </span>
-        <ArrowUpRight className="size-5 justify-self-end text-muted-foreground transition-[transform,color] duration-500 ease-out group-hover:-translate-y-1 group-hover:translate-x-1 group-hover:text-primary motion-reduce:transition-none" />
-      </Link>
-    </li>
-  )
-}
-
 export function HomeSections({
   products,
   capabilities,
@@ -208,15 +171,26 @@ export function HomeSections({
 
       <div className={`${container} pb-8`}>
       <Section id="news" title="News & Insights" viewAllHref="/blog">
-        <ul>
-          {news.slice(0, 6).map((item, i) => (
-            <BigRow
-              key={item.slug}
-              href={`/blog/${item.slug}`}
-              number={String(i + 1).padStart(2, "0")}
-              title={item.title}
-              meta={item.categories?.join(" · ")}
-            />
+        <ul className="grid grid-cols-1 gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-4">
+          {news.slice(0, 4).map((item) => (
+            <li key={item.slug}>
+              <Link href={`/blog/${item.slug}`} className="group block">
+                <div className="aspect-[16/10] overflow-hidden rounded-[0.75rem] bg-muted">
+                  {item.image ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={item.image}
+                      alt={item.imageAlt || ""}
+                      loading="lazy"
+                      className="size-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.04] motion-reduce:transition-none"
+                      style={item.imagePosition ? { objectPosition: item.imagePosition } : undefined}
+                    />
+                  ) : null}
+                </div>
+                {item.categories?.length ? <p className="mt-4 text-xs uppercase tracking-[0.18em] text-muted-foreground">{item.categories[0]}</p> : null}
+                <h3 className="mt-2 line-clamp-2 text-lg tracking-[-0.01em] text-foreground transition-colors group-hover:text-primary">{item.title}</h3>
+              </Link>
+            </li>
           ))}
         </ul>
       </Section>
