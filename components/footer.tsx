@@ -69,7 +69,8 @@ export function Footer() {
   const year = new Date().getFullYear()
 
   return (
-    <footer className="bg-background text-foreground">
+    {/* Always the dark theme, whatever the page uses: "dark" re-scopes the colour tokens to this footer. */}
+    <footer className="dark bg-background text-foreground">
       <div className="mx-auto max-w-7xl px-4 py-10 sm:px-8 md:px-20 md:py-12">
         <div className="grid gap-6 md:grid-cols-[1fr_420px] md:items-end">
           <div className="flex flex-col gap-3">
