@@ -104,38 +104,9 @@ export function HomeSections({
   return (
     <div className="w-full">
       <div className={container}>
-      {/* Products: large image cards so the work carries the section. */}
-      <Section card id="products" title="Products" viewAllHref="/brands">
-        <div className="grid grid-cols-1 gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-4">
-          {products.map((p) => (
-            <Link key={p.slug} href={p.href} className="group block">
-              <div className="aspect-[4/3] overflow-hidden bg-muted">
-                <img
-                  src={p.screenshot || p.logo || "/placeholder.svg?height=600&width=800&query=visualcns"}
-                  alt={`${p.name} ${p.product}`}
-                  className={
-                    p.screenshot
-                      ? "h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.03]"
-                      : "h-full w-full object-contain p-6 transition-transform duration-700 ease-out group-hover:scale-[1.03]"
-                  }
-                />
-              </div>
-              <div className="mt-5 flex items-baseline justify-between gap-4">
-                <div className="min-w-0">
-                  <h3 className="truncate text-xl tracking-[-0.02em] text-foreground transition-colors group-hover:text-primary">
-                    {p.name}
-                  </h3>
-                  <p className="mt-1 text-sm text-muted-foreground">{p.product}</p>
-                </div>
-                <ArrowUpRight className="size-5 shrink-0 text-muted-foreground transition-[transform,color] duration-500 ease-out group-hover:-translate-y-1 group-hover:translate-x-1 group-hover:text-primary motion-reduce:transition-none" />
-              </div>
-            </Link>
-          ))}
-        </div>
-      </Section>
 
-      {/* Features: one per row, picture and words swapping sides down the page. */}
-      <Section card id="features" title="Features">
+      {/* Features (no heading): one per row, picture and words swapping sides down the page. */}
+      <section aria-label="Features" className="py-14 md:py-20">
         <div className="space-y-14 md:space-y-20">
           <div className="grid grid-cols-1 items-center gap-8 md:grid-cols-2 md:gap-12">
             <div className="aspect-[16/11] overflow-hidden rounded-[0.75rem] bg-muted/50 p-6">
@@ -198,6 +169,36 @@ export function HomeSections({
               </div>
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* Products: large image cards so the work carries the section. */}
+      <Section id="products" title="Products" viewAllHref="/brands">
+        <div className="grid grid-cols-1 gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-4">
+          {products.map((p) => (
+            <Link key={p.slug} href={p.href} className="group block">
+              <div className="aspect-[4/3] overflow-hidden bg-muted">
+                <img
+                  src={p.screenshot || p.logo || "/placeholder.svg?height=600&width=800&query=visualcns"}
+                  alt={`${p.name} ${p.product}`}
+                  className={
+                    p.screenshot
+                      ? "h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.03]"
+                      : "h-full w-full object-contain p-6 transition-transform duration-700 ease-out group-hover:scale-[1.03]"
+                  }
+                />
+              </div>
+              <div className="mt-5 flex items-baseline justify-between gap-4">
+                <div className="min-w-0">
+                  <h3 className="truncate text-xl tracking-[-0.02em] text-foreground transition-colors group-hover:text-primary">
+                    {p.name}
+                  </h3>
+                  <p className="mt-1 text-sm text-muted-foreground">{p.product}</p>
+                </div>
+                <ArrowUpRight className="size-5 shrink-0 text-muted-foreground transition-[transform,color] duration-500 ease-out group-hover:-translate-y-1 group-hover:translate-x-1 group-hover:text-primary motion-reduce:transition-none" />
+              </div>
+            </Link>
+          ))}
         </div>
       </Section>
       </div>
