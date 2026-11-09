@@ -30,8 +30,10 @@ export function invoiceEmailContext(invoice: Invoice, companyRef: string): Email
     documentId: invoice.id,
     documentTitle: title,
     subject: title,
-    ctaText: "View invoice",
-    ctaUrl: companyDocumentPath(companyRef, "invoice", invoice.id),
+    // Unpaid invoices link to the public invoice page, which has a Pay now button and needs no sign-in.
+    ...(invoice.status === "paid" || invoice.status === "void"
+      ? { ctaText: "View invoice", ctaUrl: companyDocumentPath(companyRef, "invoice", invoice.id) }
+      : { ctaText: "View and pay invoice", ctaUrl: `/share/invoices/${encodeURIComponent(invoice.id)}` }),
   }
 }
 
