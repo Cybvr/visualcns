@@ -37,7 +37,7 @@
   --company-banner: #172554;
   --page: #f7f8fa;
   --chart-1: oklch(0.567 0.237 267.896);
-  --chart-2: oklch(0.556 0 0);
+  --chart-2: oklch(0.705 0.191 47.604);
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
@@ -94,7 +94,7 @@
   --destructive-foreground: oklch(0.985 0 0);
   --ring: oklch(0.567 0.237 267.896);
   --chart-1: oklch(0.567 0.237 267.896);
-  --chart-2: oklch(0.556 0 0);
+  --chart-2: oklch(0.705 0.191 47.604);
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);

@@ -280,6 +280,7 @@ export function Header() {
                 }`}
               >
                 Products
+                <span className="rounded-full bg-chart-2 px-1.5 py-0.5 text-[10px] font-semibold uppercase leading-none tracking-wide text-white">New</span>
                 <ChevronDown className={`size-3.5 transition-transform ${activeMenu === "products" ? "rotate-180" : ""}`} aria-hidden="true" />
               </button>
 
