@@ -15,6 +15,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
 import type { EmailDraftRecord } from "@/lib/email-drafts"
 import type { ContactList, EmailContact, EmailMessageKind, EmailTemplate } from "./types"
+import { openEmailLinksInNewTab } from "@/components/dashboard/email/email-content-frame"
 
 type Notice = { tone: "success" | "error"; text: string } | null
 
@@ -508,7 +509,7 @@ export function EmailComposer({
         </div>
       </div>
 
-      {composerPreviewOpen && <div className="fixed inset-0 z-50 flex flex-col bg-black/70 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label="Email preview" onClick={() => setComposerPreviewOpen(false)}><div className="flex shrink-0 items-center justify-between gap-3 px-4 py-3 text-white sm:px-6" onClick={(event) => event.stopPropagation()}><div className="min-w-0"><p className="text-sm font-semibold">Email preview</p><p className="truncate text-xs text-white/70">{subject || "(No subject)"}</p></div><button type="button" onClick={() => setComposerPreviewOpen(false)} aria-label="Close email preview" className="flex size-9 items-center justify-center rounded-full text-white/80 outline-none transition-colors hover:bg-white/15 hover:text-white focus-visible:ring-2 focus-visible:ring-white/60"><X className="size-5" aria-hidden="true" /></button></div><div className="min-h-0 flex-1 overflow-hidden px-2 pb-6 sm:px-6" onClick={(event) => event.stopPropagation()}><iframe title="Email preview" srcDoc={composerPreviewHtml()} sandbox="allow-same-origin" className="h-full w-full border-0 bg-[#f3f4f7]" /></div></div>}
+      {composerPreviewOpen && <div className="fixed inset-0 z-50 flex flex-col bg-black/70 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label="Email preview" onClick={() => setComposerPreviewOpen(false)}><div className="flex shrink-0 items-center justify-between gap-3 px-4 py-3 text-white sm:px-6" onClick={(event) => event.stopPropagation()}><div className="min-w-0"><p className="text-sm font-semibold">Email preview</p><p className="truncate text-xs text-white/70">{subject || "(No subject)"}</p></div><button type="button" onClick={() => setComposerPreviewOpen(false)} aria-label="Close email preview" className="flex size-9 items-center justify-center rounded-full text-white/80 outline-none transition-colors hover:bg-white/15 hover:text-white focus-visible:ring-2 focus-visible:ring-white/60"><X className="size-5" aria-hidden="true" /></button></div><div className="min-h-0 flex-1 overflow-hidden px-2 pb-6 sm:px-6" onClick={(event) => event.stopPropagation()}><iframe title="Email preview" srcDoc={composerPreviewHtml()} sandbox="allow-same-origin" onLoad={(event) => openEmailLinksInNewTab(event.currentTarget)} className="h-full w-full border-0 bg-[#f3f4f7]" /></div></div>}
     </>
   )
 }

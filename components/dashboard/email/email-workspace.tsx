@@ -58,6 +58,7 @@ import { deleteEmailDraft, getEmailDrafts, setEmailDraftTrashed, type EmailDraft
 import { deleteEmailMessage, getAllEmailMessages, getEmailMessages, saveEmailMessage, setEmailMessageTrashed, updateEmailMessageStatus, type EmailMessageRecord } from "@/lib/email-messages"
 import { getHiddenReceivedEmails, hideReceivedEmail, permanentlyHideReceivedEmail, restoreReceivedEmail, trashReceivedEmail, type HiddenReceivedEmail } from "@/lib/email-received-hidden"
 import { EMAIL_INBOX_REFRESH_EVENT, publishUnreadEmailCount } from "@/components/dashboard/email/use-unread-email-count"
+import { openEmailLinksInNewTab } from "@/components/dashboard/email/email-content-frame"
 import { contextualEmailBody, plainTextToEditorHtml, readEmailComposeContext } from "@/lib/email-composer"
 import { getBusinessProfile, type BusinessProfile } from "@/lib/business-profile"
 import { deleteEmailTemplate, getEmailTemplates, saveEmailTemplate } from "@/lib/email-templates-store"
@@ -1817,7 +1818,7 @@ export function EmailWorkspace({ initialTab, initialMessageId }: { initialTab: E
             </button>
           </div>
           <div className="min-h-0 flex-1 overflow-hidden px-2 pb-6 sm:px-6" onClick={(event) => event.stopPropagation()}>
-            <iframe title="Template preview" srcDoc={composedEmailPreview({ subject: templateSubject, body: withMessageImage(templateBody), branded: true, brand: businessProfile })} sandbox="allow-same-origin" className="h-full w-full border-0 bg-[#f3f4f7]" />
+            <iframe title="Template preview" srcDoc={composedEmailPreview({ subject: templateSubject, body: withMessageImage(templateBody), branded: true, brand: businessProfile })} sandbox="allow-same-origin" onLoad={(event) => openEmailLinksInNewTab(event.currentTarget)} className="h-full w-full border-0 bg-[#f3f4f7]" />
           </div>
         </div>
       )}
@@ -1880,6 +1881,7 @@ export function EmailWorkspace({ initialTab, initialMessageId }: { initialTab: E
                   scrolling="no"
                   srcDoc={templatePreview(previewTemplate)}
                   onLoad={(event) => {
+                    openEmailLinksInNewTab(event.currentTarget)
                     const doc = event.currentTarget.contentDocument
                     if (doc?.body) setPreviewHeight(doc.body.scrollHeight)
                   }}

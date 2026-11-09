@@ -4,6 +4,26 @@ import { useEffect, useRef, useState, type CSSProperties } from "react"
 
 import { cn } from "@/lib/utils"
 
+/**
+ * Email bodies sit in a sandboxed frame, so a clicked link would load inside
+ * the frame. Open http(s) and mailto links in a new tab instead; in-page
+ * anchors (#...) still scroll the message.
+ */
+export function openEmailLinksInNewTab(frame: HTMLIFrameElement) {
+  const documentNode = frame.contentDocument
+  if (!documentNode) return
+  documentNode.addEventListener("click", (event) => {
+    const target = event.target as Element | null
+    const link = target?.closest?.("a[href]") as HTMLAnchorElement | null
+    if (!link) return
+    const href = link.getAttribute("href") || ""
+    if (href.startsWith("#")) return
+    event.preventDefault()
+    if (!/^(?:https?:|mailto:|tel:)/i.test(link.href)) return
+    window.open(link.href, "_blank", "noopener,noreferrer")
+  })
+}
+
 export function EmailContentFrame({
   title,
   srcDoc,
@@ -46,7 +66,7 @@ export function EmailContentFrame({
       title={title}
       srcDoc={srcDoc}
       sandbox="allow-same-origin"
-      onLoad={(event) => measure(event.currentTarget)}
+      onLoad={(event) => { openEmailLinksInNewTab(event.currentTarget); measure(event.currentTarget) }}
       style={{
         "--email-content-height": contentHeight ? `${contentHeight}px` : autoHeight ? "1px" : "60svh",
       } as CSSProperties}
