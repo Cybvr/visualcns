@@ -18,6 +18,8 @@ export interface PortfolioGridProps {
   limit?: number
   /** The full portfolio index keeps its editorial numbering; home does not. */
   showNumbers?: boolean
+  /** Picture, title and tags only: no rule above the title and no summary (the home page). */
+  minimal?: boolean
 }
 
 function metaLine(project: CaseStudyProject) {
@@ -30,6 +32,7 @@ export function PortfolioGrid({
   compact = false,
   limit,
   showNumbers = true,
+  minimal = false,
 }: PortfolioGridProps) {
   const [fetchedProjects, setFetchedProjects] = useState<CaseStudyProject[]>([])
   const [loading, setLoading] = useState(providedProjects === undefined)
@@ -82,7 +85,7 @@ export function PortfolioGrid({
                   <img src={project.imageUrl || PLACEHOLDER} alt="" loading="lazy" />
                 </div>
 
-                <figcaption className="pf-rule mt-5 border-t border-border pt-4">
+                <figcaption className={minimal ? "mt-5" : "pf-rule mt-5 border-t border-border pt-4"}>
                   <div className="flex items-baseline gap-4">
                     {showNumbers && (
                       <span className="font-mono text-xs tabular-nums text-muted-foreground transition-colors group-hover:text-primary">
@@ -94,7 +97,7 @@ export function PortfolioGrid({
                     </h2>
                   </div>
 
-                  {project.excerpt && (
+                  {project.excerpt && !minimal && (
                     <p className={`mt-2 max-w-[48ch] text-sm leading-6 text-muted-foreground ${showNumbers ? "pl-8" : ""}`}>
                       {project.excerpt}
                     </p>

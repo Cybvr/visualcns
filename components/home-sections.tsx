@@ -16,29 +16,34 @@ const VISITOR_SIGN_UP = `/signup?next=${encodeURIComponent("/onboarding")}`
 // right, a hairline underneath. Every block on the page shares it.
 function Section({
   id,
-  index,
   title,
-  kicker,
+  viewAllHref,
   card = false,
   children,
 }: {
   id: string
-  index: string
   title: string
-  kicker: string
+  /** Where "View all" goes; leave out for no link. */
+  viewAllHref?: string
   /** Sits on a raised panel so it stands apart from the plain sections around it. */
   card?: boolean
   children: ReactNode
 }) {
   return (
     <section aria-labelledby={`home-${id}`} className={card ? "my-6 rounded-3xl bg-card px-5 py-12 md:my-10 md:px-12 md:py-16" : "py-14 md:py-20"}>
-      <div className="mb-10 flex flex-wrap items-end justify-between gap-x-6 gap-y-2 border-b border-border pb-5 md:mb-14">
+      <div className="mb-10 flex flex-wrap items-end justify-between gap-x-6 gap-y-2 md:mb-14">
         <h2 id={`home-${id}`} className="tracking-[-0.03em] text-foreground">
           {title}
         </h2>
-        <span className="font-mono text-xs uppercase tracking-[0.24em] text-muted-foreground">
-          {index} — {kicker}
-        </span>
+        {viewAllHref && (
+          <Link
+            href={viewAllHref}
+            className="group inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
+          >
+            View all
+            <ArrowUpRight className="size-4 transition-transform duration-500 ease-out group-hover:-translate-y-0.5 group-hover:translate-x-0.5 motion-reduce:transition-none" />
+          </Link>
+        )}
       </div>
       {children}
     </section>
@@ -93,21 +98,12 @@ export function HomeSections({
 }) {
   return (
     <div className="w-full">
-      <Section id="work" index="01" title="Selected Work" kicker="Case studies">
-        <PortfolioGrid compact limit={4} showNumbers={false} />
-        <div className="mt-10">
-          <Link
-            href="/case-studies"
-            className="group inline-flex items-center gap-2 font-mono text-xs uppercase tracking-[0.24em] text-muted-foreground transition-colors hover:text-primary"
-          >
-            All case studies
-            <ArrowUpRight className="size-4 transition-transform duration-500 ease-out group-hover:-translate-y-0.5 group-hover:translate-x-0.5 motion-reduce:transition-none" />
-          </Link>
-        </div>
+      <Section id="work" title="Case Studies" viewAllHref="/case-studies">
+        <PortfolioGrid compact minimal limit={4} showNumbers={false} />
       </Section>
 
       {/* Products: large image cards so the work carries the section. */}
-      <Section card id="products" index="02" title="Products" kicker="What we ship">
+      <Section card id="products" title="Products" viewAllHref="/brands">
         <div className="grid grid-cols-1 gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-4">
           {products.map((p) => (
             <Link key={p.slug} href={p.href} className="group block">
@@ -136,10 +132,53 @@ export function HomeSections({
         </div>
       </Section>
 
-      {/* Services: an illustration per service, title underneath. */}
-      <Section id="services" index="03" title="Services" kicker="How we help">
-        <div className="grid grid-cols-1 gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
-          {capabilities.map((c) => {
+      {/* Features: one per row, picture and words swapping sides down the page. */}
+      <Section card id="features" title="Features">
+        <div className="space-y-14 md:space-y-20">
+          <div className="grid grid-cols-1 items-center gap-8 md:grid-cols-2 md:gap-12">
+            <div className="aspect-[16/11] overflow-hidden rounded-[0.75rem] bg-muted/50 p-6">
+              <VisitorIllustration className="size-full" />
+            </div>
+            <div>
+              <h3 className="text-2xl tracking-[-0.02em] text-foreground md:text-3xl">Visitor Sign-in</h3>
+              <p className="mt-2 max-w-md text-muted-foreground">Guests sign in at the front desk. Hosts get an email. Free for 30 days, no card needed.</p>
+              <div className="mt-6 flex flex-wrap gap-3">
+                <Button asChild className="rounded-full">
+                  <Link href={VISITOR_SIGN_UP}>Start free trial</Link>
+                </Button>
+                <Button asChild variant="outline" className="rounded-full">
+                  <Link href="/visitors/demo">Try the demo</Link>
+                </Button>
+                <Button asChild variant="ghost" className="rounded-full">
+                  <Link href="/pass">Learn more</Link>
+                </Button>
+              </div>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 items-center gap-8 md:grid-cols-2 md:gap-12">
+            <div className="aspect-[16/11] overflow-hidden rounded-[0.75rem] bg-muted/50 p-6 md:order-2">
+              <AuditIllustration className="size-full" />
+            </div>
+            <div className="md:order-1">
+              <h3 className="text-2xl tracking-[-0.02em] text-foreground md:text-3xl">Pulse</h3>
+              <p className="mt-2 max-w-md text-muted-foreground">See how you show up online, and what to fix first.</p>
+              <div className="mt-6 flex flex-wrap gap-3">
+                <Button asChild className="rounded-full">
+                  <Link href="/signup">Get your audit</Link>
+                </Button>
+                <Button asChild variant="ghost" className="rounded-full">
+                  <Link href="/pulse">Learn more</Link>
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </Section>
+
+      {/* Services: four, each an illustration with its title underneath. */}
+      <Section id="services" title="Services" viewAllHref="/capabilities">
+        <div className="grid grid-cols-1 gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-4">
+          {capabilities.filter((c) => c.slug !== "visualcns-ventures").slice(0, 4).map((c) => {
             const Illustration = SERVICE_ILLUSTRATIONS[c.slug]
             return (
               <Link key={c.slug} href={`/capabilities/${c.slug}`} className="group block">
@@ -149,7 +188,7 @@ export function HomeSections({
                   ) : null}
                 </div>
                 <div className="mt-4 flex items-baseline justify-between gap-4">
-                  <h3 className="text-xl tracking-[-0.02em] text-foreground transition-colors group-hover:text-primary md:text-2xl">
+                  <h3 className="text-xl tracking-[-0.02em] text-foreground transition-colors group-hover:text-primary">
                     {c.title}
                   </h3>
                   <ArrowUpRight className="size-5 shrink-0 text-muted-foreground transition-[transform,color] duration-500 ease-out group-hover:-translate-y-1 group-hover:translate-x-1 group-hover:text-primary motion-reduce:transition-none" />
@@ -160,46 +199,7 @@ export function HomeSections({
         </div>
       </Section>
 
-      {/* Two self-serve tools: picture first, one line, one action. */}
-      <Section card id="tools" index="04" title="Tools You Can Use Today" kicker="Self-serve">
-        <div className="grid grid-cols-1 gap-12 md:grid-cols-2 md:gap-8">
-          <div className="flex flex-col">
-            <div className="aspect-[16/11] overflow-hidden rounded-[0.75rem] bg-muted/50 p-6">
-              <VisitorIllustration className="size-full" />
-            </div>
-            <h3 className="mt-6 text-2xl tracking-[-0.02em] text-foreground md:text-3xl">Visitor Sign-in</h3>
-            <p className="mt-2 max-w-md text-muted-foreground">Guests sign in at the front desk. Hosts get an email. Free for 30 days, no card needed.</p>
-            <div className="mt-6 flex flex-wrap gap-3">
-              <Button asChild className="rounded-full">
-                <Link href={VISITOR_SIGN_UP}>Start free trial</Link>
-              </Button>
-              <Button asChild variant="outline" className="rounded-full">
-                <Link href="/visitors/demo">Try the demo</Link>
-              </Button>
-              <Button asChild variant="ghost" className="rounded-full">
-                <Link href="/pass">Learn more</Link>
-              </Button>
-            </div>
-          </div>
-          <div className="flex flex-col">
-            <div className="aspect-[16/11] overflow-hidden rounded-[0.75rem] bg-muted/50 p-6">
-              <AuditIllustration className="size-full" />
-            </div>
-            <h3 className="mt-6 text-2xl tracking-[-0.02em] text-foreground md:text-3xl">Pulse</h3>
-            <p className="mt-2 max-w-md text-muted-foreground">See how you show up online, and what to fix first.</p>
-            <div className="mt-6 flex flex-wrap gap-3">
-              <Button asChild className="rounded-full">
-                <Link href="/signup">Get your audit</Link>
-              </Button>
-              <Button asChild variant="ghost" className="rounded-full">
-                <Link href="/pulse">Learn more</Link>
-              </Button>
-            </div>
-          </div>
-        </div>
-      </Section>
-
-      <Section id="news" index="05" title="News & Insights" kicker="From the studio">
+      <Section id="news" title="News & Insights" viewAllHref="/blog">
         <ul>
           {news.slice(0, 6).map((item, i) => (
             <BigRow
@@ -211,15 +211,6 @@ export function HomeSections({
             />
           ))}
         </ul>
-        <div className="mt-10">
-          <Link
-            href="/blog"
-            className="group inline-flex items-center gap-2 font-mono text-xs uppercase tracking-[0.24em] text-muted-foreground transition-colors hover:text-primary"
-          >
-            All articles
-            <ArrowUpRight className="size-4 transition-transform duration-500 ease-out group-hover:-translate-y-0.5 group-hover:translate-x-0.5 motion-reduce:transition-none" />
-          </Link>
-        </div>
       </Section>
 
       {/* Closing statement — the tagline turned into an invitation. */}
