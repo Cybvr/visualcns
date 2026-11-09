@@ -732,8 +732,8 @@
     .kiosk-badge-line { font-size: 11pt; }
   }
   h1, h2, h3, h4, h5, h6 {
-    font-family: var(--font-eb-garamond), ui-serif, Georgia, serif;
-    font-weight: 400 !important;
+    font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+    font-weight: 500 !important;
   }
   .portal-surface h1, .portal-surface h2, .portal-surface h3 {
     font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;

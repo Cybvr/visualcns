@@ -28,7 +28,7 @@ export function PricingCompare({ ctaFor, stickyTop = "top-20" }: {
 
   return (
     <section aria-labelledby="compare-heading" className="space-y-4">
-      <h2 id="compare-heading" className="font-serif text-3xl tracking-tight">Compare plans</h2>
+      <h2 id="compare-heading" className="text-3xl tracking-tight">Compare plans</h2>
       <div className="max-md:overflow-x-auto">
         <table className="w-full min-w-[640px] border-collapse text-sm">
           <thead>
@@ -40,7 +40,7 @@ export function PricingCompare({ ctaFor, stickyTop = "top-20" }: {
                 const cta = ctaFor(plan.service)
                 return (
                   <th key={plan.service} scope="col" className={cn("sticky z-10 w-[18%] bg-background px-2 py-4 text-center align-bottom font-normal", stickyTop)}>
-                    <div className="font-serif text-2xl text-foreground">{plan.service}</div>
+                    <div className="text-2xl text-foreground">{plan.service}</div>
                     <div className="mt-0.5 text-xs text-muted-foreground">{plan.scope}</div>
                     <Button asChild size="sm" variant={plan.service === "Pro" ? "default" : "outline"} className="mt-3 w-full max-w-36">
                       <Link href={cta.href} onClick={cta.onClick}>{cta.label}</Link>
@@ -55,7 +55,7 @@ export function PricingCompare({ ctaFor, stickyTop = "top-20" }: {
               <Fragment key={section.title}>
                 <tr>
                   {/* The cell spans the whole table, so the title inside it is what stays put when the table scrolls sideways. */}
-                  <th scope="colgroup" colSpan={5} className="pb-3 pt-10 text-left font-serif text-2xl font-normal tracking-tight text-foreground">
+                  <th scope="colgroup" colSpan={5} className="pb-3 pt-10 text-left text-2xl font-normal tracking-tight text-foreground">
                     <span className="sticky left-0 inline-block">{section.title}</span>
                   </th>
                 </tr>

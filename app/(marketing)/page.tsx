@@ -38,7 +38,7 @@ export default function HomePage() {
             className="home-rise home-rise-2 text-[clamp(2.25rem,8vw,5.5rem)] font-medium leading-none tracking-[-0.04em] text-foreground"
           >
             Dream.{" "}
-            <span className="italic text-primary" style={{ fontFamily: "var(--font-serif)" }}>
+            <span className="text-primary">
               Execute
             </span>
             .
@@ -60,9 +60,9 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* Full-bleed Lagos film. Breaks the container edge-to-edge for scale. */}
-        <section aria-label="Lagos" className="home-rise home-rise-4 mt-14 md:mt-20">
-          <div className="relative aspect-[16/9] max-h-[42rem] w-full overflow-hidden bg-muted sm:aspect-[21/9]">
+        {/* Lagos film on a rounded card inside the page width. */}
+        <section aria-label="Lagos" className="home-rise home-rise-4 mx-auto mt-14 max-w-7xl px-4 sm:px-8 md:mt-20 md:px-20">
+          <div className="relative aspect-[16/9] max-h-[42rem] w-full overflow-hidden rounded-3xl bg-muted sm:aspect-[21/9]">
             <video
               className="size-full object-cover"
               src="/herov2.mp4"
@@ -74,7 +74,7 @@ export default function HomePage() {
               aria-label="Lagos video"
             />
             <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" aria-hidden="true" />
-            <span className="absolute bottom-5 left-4 font-mono text-xs uppercase tracking-[0.24em] text-white/90 sm:left-8 md:bottom-8 md:left-20">
+            <span className="absolute bottom-5 left-5 font-mono text-xs uppercase tracking-[0.24em] text-white/90 md:bottom-8 md:left-8">
               Lagos, Nigeria → Worldwide
             </span>
           </div>

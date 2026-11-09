@@ -132,7 +132,7 @@ export default function AboutPage() {
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div>
-              <h2 className="font-serif font-bold mb-6">Our Story</h2>
+              <h2 className="font-bold mb-6">Our Story</h2>
               <div className="space-y-4 text-muted-foreground">
                 <p>
                   Founded in Lagos, Nigeria, VisualHQ emerged from a passion for design excellence and technical
@@ -162,7 +162,7 @@ export default function AboutPage() {
         <div className="max-w-7xl mx-auto">
           <div className="mb-12">
             <p className="text-sm font-medium text-muted-foreground mb-2">Our Approach</p>
-            <h2 className="font-serif font-bold">What We Stand For</h2>
+            <h2 className="font-bold">What We Stand For</h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             {values.map((value) => (
@@ -181,7 +181,7 @@ export default function AboutPage() {
         <div className="max-w-7xl mx-auto">
           <div className="mb-12">
             <p className="text-sm font-medium text-muted-foreground mb-2">Our Team</p>
-            <h2 className="font-serif font-bold">The people behind the work</h2>
+            <h2 className="font-bold">The people behind the work</h2>
           </div>
           <TeamLightbox />
         </div>
@@ -190,7 +190,7 @@ export default function AboutPage() {
       {/* CTA Section */}
       <section className="px-4 py-20 sm:px-8 md:px-20">
         <div className="max-w-7xl mx-auto text-center">
-          <h2 className="font-serif font-bold mb-4">Let's work together</h2>
+          <h2 className="font-bold mb-4">Let's work together</h2>
           <p className="text-muted-foreground max-w-xl mx-auto mb-8">
             We're always excited to collaborate with ambitious brands and businesses.
           </p>

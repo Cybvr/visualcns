@@ -17,7 +17,7 @@ export function PageHeading({
 }) {
   return (
     <div className={cn("max-w-3xl", className)}>
-      <h1 className="text-balance font-serif text-3xl font-normal leading-[1.15] tracking-tight md:text-5xl">
+      <h1 className="text-balance text-3xl font-normal leading-[1.15] tracking-tight md:text-5xl">
         {title}
       </h1>
       {subtitle && <p className="mt-4 max-w-2xl text-base leading-7 text-muted-foreground md:text-lg">{subtitle}</p>}

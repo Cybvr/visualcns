@@ -20,7 +20,7 @@ export default function ContactPage() {
         <div className="max-w-7xl mx-auto">
           <div className="max-w-3xl">
             <p className="text-sm font-medium text-muted-foreground mb-4">Contact</p>
-            <h1 className="font-serif text-4xl font-normal leading-[1.1] tracking-tight md:text-6xl">
+            <h1 className="text-4xl font-normal leading-[1.1] tracking-tight md:text-6xl">
               Let&apos;s start a <span className="text-primary">project</span>
             </h1>
             <p className="mt-6 text-lg text-muted-foreground">
