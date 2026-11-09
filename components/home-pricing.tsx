@@ -23,7 +23,7 @@ export function HomePricing() {
       </div>
       {/* Signed-in buyers pay for Naira Growth plans straight through Paystack, as on the pricing page. */}
       <AuthProvider>
-        <PricingView cartHref="/cart" freeHref="/signup" />
+        <PricingView cartHref="/cart" freeHref="/signup" showCompare={false} />
       </AuthProvider>
     </section>
   )

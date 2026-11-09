@@ -27,7 +27,7 @@ const TRIGGER = "h-9 shrink-0 flex-none rounded-full px-4 text-muted-foreground 
  * Everything VisualCNS sells, as cards that go in the cart: Growth plans (which
  * include Pass, Pulse and Ngai), development work and G&D (Growth and Development) Support.
  */
-export function PricingView({ cartHref, freeHref, stickyTop, basePath, initialTab }: {
+export function PricingView({ cartHref, freeHref, stickyTop, basePath, initialTab, showCompare = true }: {
   cartHref: string
   freeHref: string
   /** Offset for the comparison table's sticky header. */
@@ -36,6 +36,8 @@ export function PricingView({ cartHref, freeHref, stickyTop, basePath, initialTa
   basePath?: string
   /** The tab's slug from the address, e.g. "development". */
   initialTab?: string
+  /** The full "Compare plans" table under the Growth plans; off where only the plan cards fit, as on the home page. */
+  showCompare?: boolean
 }) {
   const { items, add, has } = useCart()
   const currency = useLocalCurrency()
@@ -164,7 +166,7 @@ export function PricingView({ cartHref, freeHref, stickyTop, basePath, initialTa
               )}
               {LISTED_SERVICES.filter((service) => service.group === group).map(card)}
             </div>
-            {group === "Growth" && <div className="mt-16"><PricingCompare ctaFor={ctaFor} stickyTop={stickyTop} /></div>}
+            {group === "Growth" && showCompare && <div className="mt-16"><PricingCompare ctaFor={ctaFor} stickyTop={stickyTop} /></div>}
           </TabsContent>
         ))}
       </Tabs>
