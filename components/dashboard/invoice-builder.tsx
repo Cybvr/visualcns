@@ -20,7 +20,6 @@ import { Combobox, type ComboboxOption } from "@/components/ui/combobox"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
-import { Switch } from "@/components/ui/switch"
 import {
   Select,
   SelectContent,
@@ -193,8 +192,8 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate, onS
 
   const [shareEnabled, setShareEnabled] = useState(invoice?.shareEnabled ?? initialEstimate?.shareEnabled ?? false)
   const [shareSaving, setShareSaving] = useState(false)
-  const [autoReminders, setAutoReminders] = useState(invoice?.autoReminders ?? false)
-  const [reminderCc, setReminderCc] = useState((invoice?.reminderCc ?? []).join(", "))
+  const [autoReminders] = useState(invoice?.autoReminders ?? false)
+  const [reminderCc] = useState((invoice?.reminderCc ?? []).join(", "))
 
   const [clients, setClients] = useState<Organization[]>([])
   const [people, setPeople] = useState<AppUser[]>([])
@@ -548,7 +547,6 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate, onS
   }
 
   const statusMeta = invoiceStatusMeta[status]
-  const reminderCcCheck = parseEmailList(reminderCc)
 
 
   return (
@@ -723,35 +721,6 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate, onS
             </EditorField>
           </div>
           {!dueOn && <p className="text-muted-foreground">No due date — this invoice won&apos;t go overdue.</p>}
-        </div>
-      </EditorCard>
-
-      <EditorCard title="Reminders">
-        <div className="space-y-3">
-          <div className="flex items-start justify-between gap-4">
-            <div className="min-w-0">
-              <Label htmlFor="auto-reminders">Send reminders automatically</Label>
-              <p className="mt-1 text-muted-foreground">3 days before the due date, on the due date, then 7 and 14 days late. Stops once it’s paid.</p>
-            </div>
-            <Switch id="auto-reminders" checked={autoReminders} onCheckedChange={setAutoReminders} />
-          </div>
-          <EditorField label="Copy on reminders" htmlFor="reminder-cc">
-            <Input
-              id="reminder-cc"
-              type="text"
-              inputMode="email"
-              value={reminderCc}
-              onChange={(event) => setReminderCc(event.target.value)}
-              placeholder="Add emails, separated by commas"
-            />
-          </EditorField>
-          {reminderCcCheck.invalid.length > 0 && <p className="text-destructive">Not an email: {reminderCcCheck.invalid.join(", ")}</p>}
-          {invoice?.lastReminderAt && (
-            <p className="text-muted-foreground">
-              Last reminder {new Date(invoice.lastReminderAt).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}
-              {invoice.reminderCount ? ` · ${invoice.reminderCount} sent` : ""}
-            </p>
-          )}
         </div>
       </EditorCard>
 

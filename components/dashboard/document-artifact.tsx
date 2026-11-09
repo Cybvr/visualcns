@@ -8,6 +8,7 @@ import { CompanyDocumentView } from "@/components/dashboard/company-document-vie
 import { ContractDocument } from "@/components/dashboard/contract-document"
 import { EstimateDocument } from "@/components/dashboard/estimate-document"
 import { InvoiceDocument } from "@/components/dashboard/invoice-document"
+import { InvoiceOverview } from "@/components/dashboard/invoice-overview"
 import { Button } from "@/components/ui/button"
 import { getContract, getEstimate, getInvoice, type Contract, type Estimate, type Invoice } from "@/lib/billing"
 import { getBusinessProfile, type BusinessProfile } from "@/lib/business-profile"
@@ -158,6 +159,19 @@ export function DocumentArtifact({
           Back to Drive
         </Button>
       )}
+      {/* An invoice opened on its own page gets its own layout: header actions, amount due and timeline. */}
+      {page && loaded?.kind === "invoice" ? (
+        <div className="py-4">
+          <InvoiceOverview
+            invoice={loaded.record}
+            issuer={issuerProp}
+            canEdit={canEdit}
+            editHref={artifactEditHref(artifact)}
+            actions={actions}
+            onChange={(next) => setLoaded({ kind: "invoice", record: next })}
+          />
+        </div>
+      ) : <>
       <header className={cn("flex h-14 shrink-0 items-center gap-2 border-b border-border print:hidden", page ? "px-0" : "px-4")}>
         <Icon className={cn("size-5 shrink-0", meta.color)} aria-hidden="true" />
         <div className="min-w-0 flex-1">
@@ -200,6 +214,7 @@ export function DocumentArtifact({
           <ContractDocument contract={loaded.record} issuer={issuerProp} />
         )}
       </div>
+      </>}
     </section>
   )
 }

@@ -8,8 +8,7 @@ import { ArrowLeft } from "lucide-react"
 import { useAuth } from "@/components/auth-provider"
 import { DashboardPageSkeleton } from "@/components/dashboard/dashboard-page-skeleton"
 import { DocumentActions } from "@/components/dashboard/document-actions"
-import { InvoiceBuilder } from "@/components/dashboard/invoice-builder"
-import { InvoiceDocument } from "@/components/dashboard/invoice-document"
+import { InvoiceOverview } from "@/components/dashboard/invoice-overview"
 import { usePageTitle } from "@/components/dashboard/page-title-context"
 import { getBusinessProfile, type BusinessProfile } from "@/lib/business-profile"
 import { getInvoice, type Invoice } from "@/lib/billing"
@@ -62,24 +61,16 @@ export default function InvoiceDetailPage() {
     )
   }
 
-  if (adminView) {
-    return (
-      <main className="mx-auto w-full max-w-5xl sm:px-6 sm:py-9">
-        <InvoiceBuilder invoice={invoice} />
-      </main>
-    )
-  }
-
   return (
-    <main className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6 sm:py-10">
-      <div className="mb-6 flex items-center justify-between gap-4 print:hidden">
-        <Link href="/dashboard/drive" className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"><ArrowLeft className="size-4" />Back to Drive</Link>
-        <div className="flex items-center gap-2">
-          <DocumentActions url={invoice.url} />
-        </div>
-      </div>
-
-      <InvoiceDocument invoice={invoice} issuer={issuer ?? undefined} />
+    <main className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-9">
+      <InvoiceOverview
+        invoice={invoice}
+        issuer={issuer ?? undefined}
+        canEdit={adminView}
+        editHref={`/dashboard/invoices/${encodeURIComponent(invoice.id)}/edit`}
+        actions={invoice.url ? <DocumentActions url={invoice.url} /> : undefined}
+        onChange={setInvoice}
+      />
     </main>
   )
 }
