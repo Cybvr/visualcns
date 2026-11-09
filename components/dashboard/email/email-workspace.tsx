@@ -60,7 +60,7 @@ import { getHiddenReceivedEmails, hideReceivedEmail, permanentlyHideReceivedEmai
 import { EMAIL_INBOX_REFRESH_EVENT, publishUnreadEmailCount } from "@/components/dashboard/email/use-unread-email-count"
 import { openEmailLinksInNewTab } from "@/components/dashboard/email/email-content-frame"
 import { contextualEmailBody, plainTextToEditorHtml, readEmailComposeContext, siteUrl } from "@/lib/email-composer"
-import { emailButtonHtml } from "@/lib/email-buttons"
+import { emailButtonHtml, withEmailButton } from "@/lib/email-buttons"
 import { getBusinessProfile, type BusinessProfile } from "@/lib/business-profile"
 import { deleteEmailTemplate, getEmailTemplates, saveEmailTemplate } from "@/lib/email-templates-store"
 import { getUsers } from "@/lib/users"
@@ -858,7 +858,7 @@ export function EmailWorkspace({ initialTab, initialMessageId }: { initialTab: E
       // Messages written for a record are plain text; the editor needs paragraphs and real links.
       // Invoices get their pay button inside the message, where it can be seen and edited.
       initialBody: invoiceButton
-        ? `${plainTextToEditorHtml(nextContext.body || contextualEmailBody({ ...nextContext, ctaUrl: undefined }))}${invoiceButton}`
+        ? withEmailButton(plainTextToEditorHtml(nextContext.body || contextualEmailBody({ ...nextContext, ctaUrl: undefined })), invoiceButton)
         : plainTextToEditorHtml(nextContext.body || contextualEmailBody(nextContext)),
       initialMessageKind: nextContext.messageKind === "marketing" ? "marketing" : "transactional",
       // A message we write for them carries the link in its text or as a button in it, so it gets no button as well.

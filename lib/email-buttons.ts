@@ -25,3 +25,13 @@ export function styleEmailButtons(html: string) {
     return `<a${withoutStyle} style="${BUTTON_STYLE}">`
   })
 }
+
+/**
+ * Places a button in a message after the main point and before the closing
+ * lines ("If you've already paid…", "Best regards"), or at the end when
+ * there are none.
+ */
+export function withEmailButton(html: string, button: string) {
+  const closing = html.search(/<p>\s*(?:If you(?:&#39;|'|&#x27;)ve already paid|Best regards|Kind regards|Thanks|Thank you)/i)
+  return closing === -1 ? `${html}${button}` : `${html.slice(0, closing)}${button}${html.slice(closing)}`
+}

@@ -67,7 +67,7 @@ export function reminderSubject(invoice: Invoice, today = todayIso()): string {
   return `Reminder: Invoice ${number} is due ${readableDate(invoice.dueOn)}`
 }
 
-/** With `payUrl` the link is written into the text (automatic reminders); without it the text points to a pay button placed in the message. */
+/** With `payUrl` the link is written into the text (automatic reminders); without it a Pay invoice button is placed in the message instead. */
 export function reminderBody(invoice: Invoice, payUrl?: string, today = todayIso()): string {
   const name = invoice.billTo?.name?.trim() || "there"
   const number = invoice.invoiceNumber || "your invoice"
@@ -80,5 +80,5 @@ export function reminderBody(invoice: Invoice, payUrl?: string, today = todayIso
       : days === 0
         ? " is due today"
         : ` is due on ${readableDate(invoice.dueOn)}`
-  return `Hi ${name},\n\nThis is a friendly reminder that invoice ${number} for ${owed}${when}. ${payUrl ? `You can view and pay it here: ${payUrl}` : "You can view and pay it using the button below."}\n\nIf you've already paid, thank you, and please ignore this email.\n\nBest regards`
+  return `Hi ${name},\n\nThis is a friendly reminder that invoice ${number} for ${owed}${when}.${payUrl ? ` You can view and pay it here: ${payUrl}` : ""}\n\nIf you've already paid, thank you, and please ignore this email.\n\nBest regards`
 }
