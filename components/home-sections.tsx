@@ -31,7 +31,7 @@ function Section({
   children: ReactNode
 }) {
   return (
-    <section aria-labelledby={`home-${id}`} className={card ? "my-6 rounded-3xl bg-card px-5 py-12 shadow-sm ring-1 ring-border/60 md:my-10 md:px-12 md:py-16" : "py-14 md:py-20"}>
+    <section aria-labelledby={`home-${id}`} className={card ? "my-6 rounded-3xl bg-card px-5 py-12 md:my-10 md:px-12 md:py-16" : "py-14 md:py-20"}>
       <div className="mb-10 flex flex-wrap items-end justify-between gap-x-6 gap-y-2 border-b border-border pb-5 md:mb-14">
         <h2 id={`home-${id}`} className="tracking-[-0.03em] text-foreground">
           {title}
@@ -108,7 +108,7 @@ export function HomeSections({
 
       {/* Products: large image cards so the work carries the section. */}
       <Section card id="products" index="02" title="Products" kicker="What we ship">
-        <div className="grid grid-cols-1 gap-x-8 gap-y-12 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-4">
           {products.map((p) => (
             <Link key={p.slug} href={p.href} className="group block">
               <div className="aspect-[4/3] overflow-hidden bg-muted">
@@ -118,13 +118,13 @@ export function HomeSections({
                   className={
                     p.screenshot
                       ? "h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.03]"
-                      : "h-full w-full object-contain p-10 transition-transform duration-700 ease-out group-hover:scale-[1.03]"
+                      : "h-full w-full object-contain p-6 transition-transform duration-700 ease-out group-hover:scale-[1.03]"
                   }
                 />
               </div>
               <div className="mt-5 flex items-baseline justify-between gap-4">
                 <div className="min-w-0">
-                  <h3 className="truncate text-2xl tracking-[-0.02em] text-foreground transition-colors group-hover:text-primary md:text-3xl">
+                  <h3 className="truncate text-xl tracking-[-0.02em] text-foreground transition-colors group-hover:text-primary">
                     {p.name}
                   </h3>
                   <p className="mt-1 text-sm text-muted-foreground">{p.product}</p>
