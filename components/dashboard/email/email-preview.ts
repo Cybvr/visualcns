@@ -55,6 +55,8 @@ export function templatePreview(template: EmailTemplate) {
 export function htmlToText(value: string) {
   if (!value.includes("<")) return value
   return value
+    // A button keeps its address in the plain-text copy: "Pay invoice: https://…".
+    .replace(/<a\b[^>]*\bclass="[^"]*\bemail-button\b[^"]*"[^>]*\bhref="([^"]*)"[^>]*>([\s\S]*?)<\/a>|<a\b[^>]*\bhref="([^"]*)"[^>]*\bclass="[^"]*\bemail-button\b[^"]*"[^>]*>([\s\S]*?)<\/a>/gi, (_match, href1, text1, href2, text2) => `${text1 ?? text2}: ${href1 ?? href2}`)
     .replace(/<br\s*\/?>/gi, "\n")
     .replace(/<\/(p|li|h[1-6])>/gi, "\n")
     .replace(/<[^>]+>/g, "")
