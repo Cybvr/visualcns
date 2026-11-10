@@ -344,7 +344,7 @@ export function Header() {
           </div>
 
           <div className="flex items-center gap-2">
-            <CartButton cartHref="/cart" servicesHref="/pricing" showCurrency={false} />
+            <CartButton cartHref="/cart" servicesHref="/pricing" />
             {currentUser ? (
               <Link
                 href="/dashboard"
