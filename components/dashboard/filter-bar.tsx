@@ -165,7 +165,7 @@ export function MobileSearchBar({ query, onQueryChange, sorts, sortKey, onSortKe
 }
 
 /** Square + beside the mobile search field. Pass a href, an onClick, or wrap it in a menu trigger. */
-export const MOBILE_CREATE_BUTTON_CLASS = "size-14 shrink-0 rounded-2xl bg-card"
+export const MOBILE_CREATE_BUTTON_CLASS = "size-11 shrink-0 rounded-2xl bg-card"
 
 function compare(a: string | number | null | undefined, b: string | number | null | undefined) {
   const aEmpty = a === null || a === undefined || a === ""

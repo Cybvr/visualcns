@@ -91,7 +91,7 @@ import type {
   SentMessage,
 } from "@/components/dashboard/email/types"
 import { QuickEmailComposer } from "@/components/dashboard/email/quick-email-composer"
-import { usePageHeaderSearch, useRecordTitle } from "@/components/dashboard/page-title-context"
+import { useRecordTitle } from "@/components/dashboard/page-title-context"
 import { EmailListPicker, EmailLists } from "@/components/dashboard/email/email-lists"
 import { EmailMessageSurfaces } from "@/components/dashboard/email/email-message-surfaces"
 import { EmailBin, type EmailBinItem } from "@/components/dashboard/email/email-bin"
@@ -1487,12 +1487,6 @@ export function EmailWorkspace({ initialTab, initialMessageId }: { initialTab: E
 
   const mobileReaderOpen = mobileMessageView === "reader" && (((tab === "inbox" || tab === "updates") && Boolean(selectedReceived)) || (tab === "messages" && Boolean(selectedSent)))
   const searchPlaceholder = tab === "inbox" ? "Search inbox" : tab === "updates" ? "Search updates" : tab === "drafts" ? "Search drafts" : tab === "messages" ? "Search sent" : tab === "bin" ? "Search bin" : tab === "templates" ? "Search templates" : "Search lists"
-  const headerSearch = useMemo(() => ({
-    query: activeFilterBar.query,
-    onQueryChange: activeFilterBar.onQueryChange,
-    placeholder: searchPlaceholder,
-  }), [activeFilterBar.query, activeFilterBar.onQueryChange, searchPlaceholder])
-  usePageHeaderSearch(headerSearch)
   const activeReceivedSort = receivedFilterBar.sorts.find((option) => option.value === receivedFilterBar.sortKey)
   const receivedSortDirectionLabel = receivedFilterBar.direction === "asc" ? activeReceivedSort?.ascLabel ?? "Ascending" : activeReceivedSort?.descLabel ?? "Descending"
   const receivedSortControl = (
@@ -1578,11 +1572,10 @@ export function EmailWorkspace({ initialTab, initialMessageId }: { initialTab: E
         )}
         <FilterBar
           {...activeFilterBar}
-          showSearch={false}
           sorts={tab === "inbox" || tab === "updates" ? [] : activeFilterBar.sorts}
           mobileVariant="drawer"
           mobileSearch={false}
-          className={cn("mb-2 max-sm:hidden", (tab === "inbox" || tab === "updates") && "lg:hidden")}
+          className={cn("mb-2 max-sm:hidden", initialMessageId && "hidden")}
           placeholder={searchPlaceholder}
           searchClassName={tab === "messages" || tab === "inbox" || tab === "updates" || tab === "bin" ? "sm:max-w-[16rem]" : undefined}
           actions={
