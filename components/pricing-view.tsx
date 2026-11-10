@@ -27,7 +27,7 @@ const TRIGGER = "h-9 shrink-0 flex-none rounded-full px-4 text-muted-foreground 
  * Everything VisualCNS sells, as cards that go in the cart: Growth plans (which
  * include Pass, Pulse and Ngai), development work and G&D (Growth and Development) Support.
  */
-export function PricingView({ cartHref, freeHref, stickyTop, basePath, initialTab, showCompare = true }: {
+export function PricingView({ cartHref, freeHref, stickyTop, basePath, initialTab, showCompare = true, compact = false }: {
   cartHref: string
   freeHref: string
   /** Offset for the comparison table's sticky header. */
@@ -38,6 +38,8 @@ export function PricingView({ cartHref, freeHref, stickyTop, basePath, initialTa
   initialTab?: string
   /** The full "Compare plans" table under the Growth plans; off where only the plan cards fit, as on the home page. */
   showCompare?: boolean
+  /** Home page version: no cart bar or custom quote box, and the cards swipe sideways on phones. */
+  compact?: boolean
 }) {
   const { items, add, has } = useCart()
   const currency = useLocalCurrency()
@@ -121,7 +123,7 @@ export function PricingView({ cartHref, freeHref, stickyTop, basePath, initialTa
 
   return (
     <div className="space-y-8">
-      {items.length > 0 && !dollars && (
+      {!compact && items.length > 0 && !dollars && (
         <div className="flex items-center justify-between gap-3 rounded-2xl bg-muted/50 px-4 py-3">
           <span className="text-sm text-foreground">{items.length} in your cart</span>
           <Button asChild><Link href={cartHref}>View cart</Link></Button>
@@ -152,7 +154,13 @@ export function PricingView({ cartHref, freeHref, stickyTop, basePath, initialTa
 
         {GROUPS.map((group) => (
           <TabsContent key={group} value={group}>
-            <div className={`grid grid-cols-1 gap-6 pt-3 md:grid-cols-2 ${group === "Growth" ? "xl:grid-cols-4" : "lg:grid-cols-3"}`}>
+            <div
+              className={cn(
+                "grid grid-cols-1 gap-6 pt-3 md:grid-cols-2",
+                group === "Growth" ? "xl:grid-cols-4" : "lg:grid-cols-3",
+                compact && "-mx-4 flex snap-x snap-mandatory scroll-px-4 gap-4 overflow-x-auto px-4 pb-2 [scrollbar-width:none] sm:-mx-8 sm:scroll-px-8 sm:px-8 md:mx-0 md:grid md:gap-6 md:overflow-visible md:px-0 md:pb-0 [&>*]:w-[85%] [&>*]:shrink-0 [&>*]:snap-start md:[&>*]:w-auto",
+              )}
+            >
               {group === "Growth" && FREE_GROWTH && (
                 <OfferCard
                   title={FREE_GROWTH.service}
@@ -171,6 +179,7 @@ export function PricingView({ cartHref, freeHref, stickyTop, basePath, initialTa
         ))}
       </Tabs>
 
+      {!compact && (
       <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-border bg-card p-6">
         <div>
           <p className="text-lg font-semibold">Need something custom?</p>
@@ -178,6 +187,7 @@ export function PricingView({ cartHref, freeHref, stickyTop, basePath, initialTa
         </div>
         <Button asChild><Link href="/contact">Book a call</Link></Button>
       </div>
+      )}
     </div>
   )
 }

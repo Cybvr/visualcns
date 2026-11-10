@@ -64,11 +64,11 @@ export default function HomePage() {
           </div>
         </section>
 
-        <HomePricing />
-
-        <div className="mt-4 md:mt-6">
+        <div className="mt-10 md:mt-14">
           <HomeLogoCarousel />
         </div>
+
+        <HomePricing />
 
         <HomeSections products={products} capabilities={capabilities} news={news} />
         </main>

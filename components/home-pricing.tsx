@@ -12,7 +12,7 @@ export function HomePricing() {
   return (
     <section aria-labelledby="home-pricing" className="mx-auto max-w-7xl px-4 py-14 sm:px-8 md:px-20 md:py-20">
       <div className="mb-10 flex flex-wrap items-end justify-between gap-x-6 gap-y-2 md:mb-14">
-        <h2 id="home-pricing" className="tracking-[-0.03em] text-foreground">Pricing</h2>
+        <h2 id="home-pricing" className="tracking-[-0.03em] text-foreground">Services</h2>
         <Link
           href="/pricing"
           className="group inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
@@ -23,7 +23,7 @@ export function HomePricing() {
       </div>
       {/* Signed-in buyers pay for Naira Growth plans straight through Paystack, as on the pricing page. */}
       <AuthProvider>
-        <PricingView cartHref="/cart" freeHref="/signup" showCompare={false} />
+        <PricingView cartHref="/cart" freeHref="/signup" showCompare={false} compact />
       </AuthProvider>
     </section>
   )
