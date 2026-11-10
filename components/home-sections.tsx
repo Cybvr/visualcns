@@ -1,6 +1,6 @@
 import Link from "next/link"
 import type { ReactNode } from "react"
-import { ArrowUpRight } from "lucide-react"
+import { ArrowUpRight, Check } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { BookNowModal } from "@/components/book-now-modal"
@@ -9,7 +9,6 @@ import { SERVICE_ILLUSTRATIONS, VisitorIllustration, AuditIllustration } from "@
 import type { Capability } from "@/lib/capabilities"
 import type { BlogPost } from "@/lib/blog"
 
-const VISITOR_SIGN_UP = `/signup?next=${encodeURIComponent("/onboarding")}`
 
 // Editorial section frame: a big title on the left, a mono index tag on the
 // right, a hairline underneath. Every block on the page shares it.
@@ -60,6 +59,38 @@ export function HomeSections({
   const firstService = capabilities.find((c) => c.slug !== "visualcns-ventures")
   const ConsultingIllustration = firstService ? SERVICE_ILLUSTRATIONS[firstService.slug] : undefined
   const container = "mx-auto max-w-7xl px-4 sm:px-8 md:px-20"
+  const AiIllustration = SERVICE_ILLUSTRATIONS["ai-design"]
+
+  const features: { title: string; description: string; points: string[]; href: string; illustration: ReactNode }[] = [
+    {
+      title: "Visitor Sign-in",
+      description: "Replace the paper visitor book with a quick sign-in at the front desk.",
+      points: ["Guests check in on a tablet or their phone", "Hosts get an email straight away", "A clear record of who came and when", "Free for 30 days, no card needed"],
+      href: "/pass",
+      illustration: <VisitorIllustration className="size-full" />,
+    },
+    {
+      title: "Ngai",
+      description: "An AI assistant that knows your business and does the writing for you.",
+      points: ["Answers questions from your business info", "Writes newsletters, campaigns and emails", "Plans tasks you approve before it acts", "Included on every plan"],
+      href: "/help",
+      illustration: AiIllustration ? <AiIllustration className="size-full" /> : null,
+    },
+    {
+      title: "Pulse",
+      description: "See how your business shows up online and what to fix first.",
+      points: ["Checks search, maps, your website and social pages", "Scores what customers see", "A short list of fixes, in order", "First report in about two minutes"],
+      href: "/pulse",
+      illustration: <AuditIllustration className="size-full" />,
+    },
+    {
+      title: "Consulting",
+      description: "Work with our team on your brand, product, campaigns and customer experience.",
+      points: ["Decide what to do and why", "Design it properly", "Launch a new identity, website, app or campaign"],
+      href: "/capabilities",
+      illustration: ConsultingIllustration ? <ConsultingIllustration className="size-full" /> : null,
+    },
+  ]
 
   return (
     <div className="w-full">
@@ -68,55 +99,28 @@ export function HomeSections({
       {/* Features (no heading): one per row, picture and words swapping sides down the page. */}
       <section aria-label="Features" className="py-14 md:py-20">
         <div className="space-y-14 md:space-y-20">
-          <div className="grid grid-cols-1 items-center gap-8 md:grid-cols-2 md:gap-12">
-            <div className="aspect-[16/11] overflow-hidden rounded-[0.75rem] bg-muted/50 p-6">
-              <VisitorIllustration className="size-full" />
-            </div>
-            <div>
-              <h3 className="text-2xl tracking-[-0.02em] text-foreground md:text-3xl">Visitor Sign-in</h3>
-              <p className="mt-3 max-w-lg text-base leading-7 text-muted-foreground md:text-lg md:leading-8">Replace the paper visitor book with a quick sign-in at the front desk. Guests check in on a tablet or their own phone, their host gets an email straight away, and you keep a clear record of who came in and when. Free for 30 days, no card needed.</p>
-              <div className="mt-6 flex flex-wrap gap-3">
-                <Button asChild className="rounded-full">
-                  <Link href={VISITOR_SIGN_UP}>Start free trial</Link>
-                </Button>
-                <Button asChild variant="ghost" className="rounded-full">
-                  <Link href="/pass">Learn more</Link>
+          {features.map((feature, index) => (
+            <div key={feature.title} className="grid grid-cols-1 items-center gap-8 md:grid-cols-2 md:gap-12">
+              <div className={`aspect-[16/11] overflow-hidden rounded-[0.75rem] bg-muted/50 p-6 ${index % 2 ? "md:order-2" : ""}`}>
+                {feature.illustration}
+              </div>
+              <div className={index % 2 ? "md:order-1" : ""}>
+                <h3 className="text-2xl tracking-[-0.02em] text-foreground md:text-3xl">{feature.title}</h3>
+                <p className="mt-3 max-w-lg text-base leading-7 text-muted-foreground md:text-lg md:leading-8">{feature.description}</p>
+                <ul className="mt-5 space-y-2.5">
+                  {feature.points.map((point) => (
+                    <li key={point} className="flex gap-3 text-sm text-muted-foreground md:text-base">
+                      <Check className="mt-0.5 size-4 shrink-0 text-primary md:size-5" aria-hidden="true" />
+                      <span>{point}</span>
+                    </li>
+                  ))}
+                </ul>
+                <Button asChild variant="outline" className="mt-6 rounded-full">
+                  <Link href={feature.href}>Learn more</Link>
                 </Button>
               </div>
             </div>
-          </div>
-          <div className="grid grid-cols-1 items-center gap-8 md:grid-cols-2 md:gap-12">
-            <div className="aspect-[16/11] overflow-hidden rounded-[0.75rem] bg-muted/50 p-6 md:order-2">
-              <AuditIllustration className="size-full" />
-            </div>
-            <div className="md:order-1">
-              <h3 className="text-2xl tracking-[-0.02em] text-foreground md:text-3xl">Pulse</h3>
-              <p className="mt-3 max-w-lg text-base leading-7 text-muted-foreground md:text-lg md:leading-8">Find out how your business shows up online, from search and maps to your website and social pages. Pulse scores what customers see, shows what is holding you back, and gives you a short list of what to fix first. Your first report takes about two minutes.</p>
-              <div className="mt-6 flex flex-wrap gap-3">
-                <Button asChild className="rounded-full">
-                  <Link href="/signup">Get your audit</Link>
-                </Button>
-                <Button asChild variant="ghost" className="rounded-full">
-                  <Link href="/pulse">Learn more</Link>
-                </Button>
-              </div>
-            </div>
-          </div>
-          <div className="grid grid-cols-1 items-center gap-8 md:grid-cols-2 md:gap-12">
-            <div className="aspect-[16/11] overflow-hidden rounded-[0.75rem] bg-muted/50 p-6">
-              {ConsultingIllustration ? <ConsultingIllustration className="size-full" /> : null}
-            </div>
-            <div>
-              <h3 className="text-2xl tracking-[-0.02em] text-foreground md:text-3xl">Consulting</h3>
-              <p className="mt-3 max-w-lg text-base leading-7 text-muted-foreground md:text-lg md:leading-8">Work with our team on your brand, product, campaigns and customer experience. We help you decide what to do, design it properly and launch it, whether that is a new identity, a website or app, or a campaign. Each piece can stand alone or be part of one connected project.</p>
-              <div className="mt-6 flex flex-wrap gap-3">
-                <BookNowModal triggerLabel="Get started" triggerClassName="rounded-full" />
-                <Button asChild variant="ghost" className="rounded-full">
-                  <Link href="/capabilities">Learn more</Link>
-                </Button>
-              </div>
-            </div>
-          </div>
+          ))}
         </div>
       </section>
 
