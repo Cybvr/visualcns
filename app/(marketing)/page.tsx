@@ -1,6 +1,8 @@
 import { publicPageMetadata } from "@/lib/public-page-metadata"
 
-import { BookNowModal } from "@/components/book-now-modal"
+import Link from "next/link"
+
+import { Button } from "@/components/ui/button"
 import { Footer } from "@/components/footer"
 import { Header } from "@/components/header"
 import { PwaRedirect } from "@/components/pwa-redirect"
@@ -41,11 +43,12 @@ export default function HomePage() {
                 Business Growth software for modern brands.
               </p>
               <div className="flex shrink-0 flex-wrap items-center gap-3">
-                <BookNowModal
-                  triggerLabel="Start trial"
-                  triggerClassName="rounded-full bg-primary-foreground text-primary hover:bg-primary-foreground/90"
-                />
-              </div>
+                <Button asChild size="lg" className="rounded-full bg-primary-foreground text-primary hover:bg-primary-foreground/90">
+                  <Link href="/pricing">Get started</Link>
+                </Button>
+                <Button asChild size="lg" variant="outline" className="rounded-full border-primary-foreground/60 bg-transparent text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground dark:border-primary-foreground/60 dark:bg-transparent dark:hover:bg-primary-foreground/10">
+                  <Link href="/contact">Book a call</Link>
+                </Button>              </div>
             </div>
             <div className="home-rise home-rise-4 relative mt-10 aspect-[16/9] max-h-[42rem] w-full overflow-hidden rounded-3xl bg-black/20 sm:aspect-[21/9] md:mt-14">
               <video

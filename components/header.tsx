@@ -6,7 +6,6 @@ import { useEffect, useRef, useState, type CSSProperties } from "react"
 import { ArrowUpRight, ChevronDown, CircleUserRound, Menu, Phone, X } from "lucide-react"
 import { onAuthStateChanged, type User } from "firebase/auth"
 import { BrandLockup } from "@/components/brand-lockup"
-import { CartButton } from "@/components/dashboard/cart-button"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { auth } from "@/lib/firebase"
@@ -344,7 +343,6 @@ export function Header() {
           </div>
 
           <div className="flex items-center gap-2">
-            <CartButton cartHref="/cart" servicesHref="/pricing" />
             {currentUser ? (
               <Link
                 href="/dashboard"
@@ -363,8 +361,8 @@ export function Header() {
                 </Link>
               </Button>
             )}
-            <Button asChild size="icon-lg" className="lg:hidden">
-              <Link href="/contact" aria-label="Talk to sales">
+            <Button asChild variant="ghost" size="icon-lg" className="rounded-full lg:hidden">
+              <Link href="/contact" aria-label="Talk to sales" title="Talk to sales">
                 <Phone aria-hidden="true" />
               </Link>
             </Button>
