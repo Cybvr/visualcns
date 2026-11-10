@@ -162,7 +162,7 @@ export function PricingView({ cartHref, freeHref, stickyTop, basePath, initialTa
               className={cn(
                 "grid grid-cols-1 gap-6 pt-3 md:grid-cols-2",
                 group === "Growth" ? "xl:grid-cols-4" : "lg:grid-cols-3",
-                compact && "-mx-4 flex snap-x snap-mandatory scroll-px-4 gap-4 overflow-x-auto px-4 pb-2 [scrollbar-width:none] sm:-mx-8 sm:scroll-px-8 sm:px-8 md:mx-0 md:grid md:gap-6 md:overflow-visible md:px-0 md:pb-0 [&>*]:w-[85%] [&>*]:shrink-0 [&>*]:snap-start md:[&>*]:w-auto",
+                compact && "-mx-4 flex snap-x snap-mandatory scroll-px-4 gap-4 overflow-x-auto px-4 pb-2 [scrollbar-width:none] sm:-mx-8 sm:scroll-px-8 sm:px-8 md:mx-0 md:grid md:gap-6 md:overflow-visible md:px-0 md:pb-0 [&>*]:h-auto [&>*]:w-[85%] [&>*]:shrink-0 [&>*]:snap-start md:[&>*]:w-auto",
               )}
             >
               {group === "Growth" && FREE_GROWTH && (
