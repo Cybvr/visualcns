@@ -162,13 +162,6 @@ export function HomeSections({
         </h2>
         <div className="mt-10 flex flex-wrap items-center gap-3">
           <EmailStartForm id="cta-email" className="border-border bg-card" />
-          <Link
-            href="/contact"
-            className="group inline-flex items-center gap-2 rounded-full border border-border px-6 py-3 text-sm font-medium transition-colors hover:text-primary"
-          >
-            Talk to us
-            <ArrowUpRight className="size-4 transition-transform duration-500 ease-out group-hover:-translate-y-0.5 group-hover:translate-x-0.5 motion-reduce:transition-none" />
-          </Link>
         </div>
       </section>
       </div>
