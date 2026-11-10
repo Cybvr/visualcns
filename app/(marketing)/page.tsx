@@ -7,7 +7,6 @@ import { PwaRedirect } from "@/components/pwa-redirect"
 import { HomePricing } from "@/components/home-pricing"
 import { HomeSections } from "@/components/home-sections"
 import { HomeLogoCarousel } from "@/components/home-logo-carousel"
-import { getBrandItems } from "@/lib/brands"
 import { getCapabilities } from "@/lib/capabilities"
 import { getBlogPosts } from "@/lib/blog"
 
@@ -20,7 +19,6 @@ export const metadata = publicPageMetadata({
 })
 
 const capabilities = getCapabilities()
-const products = getBrandItems().filter((b) => b.slug !== "visualhq")
 const news = getBlogPosts()
 
 export default function HomePage() {
@@ -70,7 +68,7 @@ export default function HomePage() {
 
         <HomePricing />
 
-        <HomeSections products={products} capabilities={capabilities} news={news} />
+        <HomeSections capabilities={capabilities} news={news} />
         </main>
         <Footer />
       </div>

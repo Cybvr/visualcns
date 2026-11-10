@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button"
 import { BookNowModal } from "@/components/book-now-modal"
 import { HomeCaseStudies } from "@/components/home-case-studies"
 import { SERVICE_ILLUSTRATIONS, VisitorIllustration, AuditIllustration } from "@/components/home-illustrations"
-import type { BrandItem } from "@/lib/brands"
 import type { Capability } from "@/lib/capabilities"
 import type { BlogPost } from "@/lib/blog"
 
@@ -51,11 +50,9 @@ function Section({
 }
 
 export function HomeSections({
-  products,
   capabilities,
   news,
 }: {
-  products: BrandItem[]
   capabilities: Capability[]
   news: BlogPost[]
 }) {
@@ -123,35 +120,6 @@ export function HomeSections({
         </div>
       </section>
 
-      {/* Products: large image cards so the work carries the section. */}
-      <Section id="products" title="Products" viewAllHref="/brands">
-        <div className="grid grid-cols-1 gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-4">
-          {products.map((p) => (
-            <Link key={p.slug} href={p.href} className="group block">
-              <div className="aspect-[4/3] overflow-hidden bg-muted">
-                <img
-                  src={p.screenshot || p.logo || "/placeholder.svg?height=600&width=800&query=visualcns"}
-                  alt={`${p.name} ${p.product}`}
-                  className={
-                    p.screenshot
-                      ? "h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.03]"
-                      : "h-full w-full object-contain p-6 transition-transform duration-700 ease-out group-hover:scale-[1.03]"
-                  }
-                />
-              </div>
-              <div className="mt-5 flex items-baseline justify-between gap-4">
-                <div className="min-w-0">
-                  <h3 className="truncate text-xl tracking-[-0.02em] text-foreground transition-colors group-hover:text-primary">
-                    {p.name}
-                  </h3>
-                  <p className="mt-1 text-sm text-muted-foreground">{p.product}</p>
-                </div>
-                <ArrowUpRight className="size-5 shrink-0 text-muted-foreground transition-[transform,color] duration-500 ease-out group-hover:-translate-y-1 group-hover:translate-x-1 group-hover:text-primary motion-reduce:transition-none" />
-              </div>
-            </Link>
-          ))}
-        </div>
-      </Section>
       </div>
 
       {/* Case studies run edge to edge, outside the page width. */}
