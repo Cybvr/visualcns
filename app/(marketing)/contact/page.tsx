@@ -8,7 +8,7 @@ import Cal, { getCalApi } from "@calcom/embed-react";
 export default function ContactPage() {
   useEffect(() => {
     (async function () {
-      const cal = await getCalApi({ "namespace": "30min" });
+      const cal = await getCalApi({ "namespace": "quick-chat" });
       cal("ui", { "hideEventTypeDetails": false, "layout": "month_view" });
     })();
   }, []);
@@ -34,8 +34,8 @@ export default function ContactPage() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-16">
             <div className="lg:col-span-2">
               <Cal
-                namespace="30min"
-                calLink="pinheirojide/30min"
+                namespace="quick-chat"
+                calLink="visual-cns-d9xef2/quick-chat"
                 style={{ width: "100%", height: "100%", overflow: "scroll" }}
                 config={{ "layout": "month_view" }}
               />
