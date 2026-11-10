@@ -36,11 +36,11 @@ export default function HomePage() {
               id="home-hero-heading"
               className="home-rise home-rise-2 max-w-4xl text-[clamp(2.25rem,8vw,5.5rem)] font-medium leading-none tracking-[-0.04em]"
             >
-              Business Growth software for modern brands.
+              Dream. <span className="text-primary-foreground/70">Execute</span>.
             </h1>
             <div className="home-rise home-rise-3 mt-5 flex flex-col gap-6 md:mt-6 md:flex-row md:items-end md:justify-between">
               <p className="max-w-lg text-base text-primary-foreground/80 md:text-lg">
-                VisualCNS is a creative innovation, branding, and digital design agency for modern business.
+                Business Growth software for modern brands.
               </p>
               <div className="flex shrink-0 flex-wrap items-center gap-3">
                 <BookNowModal

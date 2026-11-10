@@ -77,7 +77,7 @@ export function Footer() {
           </div>
 
           <p className="max-w-md text-sm leading-6 text-foreground/70 md:ml-auto md:text-right md:text-base">
-            VisualCNS is a creative innovation, branding, and digital design agency for modern business.
+            Business Growth software for modern brands.
           </p>
         </div>
 
