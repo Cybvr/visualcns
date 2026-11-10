@@ -5,7 +5,7 @@ import { ArrowUpRight, Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { BookNowModal } from "@/components/book-now-modal"
 import { HomeCaseStudies } from "@/components/home-case-studies"
-import { SERVICE_ILLUSTRATIONS, VisitorIllustration, AuditIllustration } from "@/components/home-illustrations"
+import { ConsultingScene, NgaiScene, PulseScene, VisitorScene } from "@/components/home-feature-illustrations"
 import type { Capability } from "@/lib/capabilities"
 import type { BlogPost } from "@/lib/blog"
 
@@ -55,11 +55,7 @@ export function HomeSections({
   capabilities: Capability[]
   news: BlogPost[]
 }) {
-  // Consulting borrows the first service's illustration; the services themselves are on the services page.
-  const firstService = capabilities.find((c) => c.slug !== "visualcns-ventures")
-  const ConsultingIllustration = firstService ? SERVICE_ILLUSTRATIONS[firstService.slug] : undefined
   const container = "mx-auto max-w-7xl px-4 sm:px-8 md:px-20"
-  const AiIllustration = SERVICE_ILLUSTRATIONS["ai-design"]
 
   const features: { title: string; description: string; points: string[]; href: string; illustration: ReactNode }[] = [
     {
@@ -67,28 +63,28 @@ export function HomeSections({
       description: "Replace the paper visitor book with a quick sign-in at the front desk.",
       points: ["Guests check in on a tablet or their phone", "Hosts get an email straight away", "A clear record of who came and when", "Free for 30 days, no card needed"],
       href: "/pass",
-      illustration: <VisitorIllustration className="size-full" />,
+      illustration: <VisitorScene className="size-full" />,
     },
     {
       title: "Ngai",
       description: "An AI assistant that knows your business and does the writing for you.",
       points: ["Answers questions from your business info", "Writes newsletters, campaigns and emails", "Plans tasks you approve before it acts", "Included on every plan"],
       href: "/help",
-      illustration: AiIllustration ? <AiIllustration className="size-full" /> : null,
+      illustration: <NgaiScene className="size-full" />,
     },
     {
       title: "Pulse",
       description: "See how your business shows up online and what to fix first.",
       points: ["Checks search, maps, your website and social pages", "Scores what customers see", "A short list of fixes, in order", "First report in about two minutes"],
       href: "/pulse",
-      illustration: <AuditIllustration className="size-full" />,
+      illustration: <PulseScene className="size-full" />,
     },
     {
       title: "Consulting",
       description: "Work with our team on your brand, product, campaigns and customer experience.",
       points: ["Decide what to do and why", "Design it properly", "Launch a new identity, website, app or campaign"],
       href: "/capabilities",
-      illustration: ConsultingIllustration ? <ConsultingIllustration className="size-full" /> : null,
+      illustration: <ConsultingScene className="size-full" />,
     },
   ]
 
