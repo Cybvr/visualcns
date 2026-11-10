@@ -19,6 +19,8 @@ import { cn } from "@/lib/utils"
 const GROUPS = Object.values(PRICING_TABS)
 const TAB_SLUG: Record<string, string> = Object.fromEntries(Object.entries(PRICING_TABS).map(([slug, group]) => [group, slug]))
 const FEATURED_ID = "growth-max"
+/** Features per card on the home page; the rest are behind "+N more". */
+const HOME_FEATURES = 5
 const FREE_GROWTH = growthPlanRows.find((row) => row.price === "free")
 
 const TRIGGER = "h-9 shrink-0 flex-none rounded-full px-4 text-muted-foreground data-[state=active]:bg-card data-[state=active]:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
@@ -117,6 +119,8 @@ export function PricingView({ cartHref, freeHref, stickyTop, basePath, initialTa
         ctaLabel={label(service.id)}
         ctaHref={cartHref}
         onCtaClick={buy(service.id)}
+        maxFeatures={compact ? HOME_FEATURES : undefined}
+        moreHref={compact ? "/pricing" : undefined}
       />
     )
   }
@@ -170,6 +174,8 @@ export function PricingView({ cartHref, freeHref, stickyTop, basePath, initialTa
                   features={FREE_GROWTH.features}
                   ctaLabel="Get started"
                   ctaHref={freeHref}
+                  maxFeatures={compact ? HOME_FEATURES : undefined}
+                  moreHref={compact ? "/pricing" : undefined}
                 />
               )}
               {LISTED_SERVICES.filter((service) => service.group === group).map(card)}

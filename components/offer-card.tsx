@@ -109,6 +109,9 @@ export type OfferCardProps = {
   onCtaClick?: (event: MouseEvent<HTMLAnchorElement>) => void
   /** Rendered under the CTA, e.g. a secondary action on a template card. */
   footer?: ReactNode
+  /** Shows only this many features, with a "+N more" link to moreHref, and keeps the description to 2 lines so cards line up. */
+  maxFeatures?: number
+  moreHref?: string
 }
 
 export function OfferCard({
@@ -128,7 +131,11 @@ export function OfferCard({
   ctaExternal,
   onCtaClick,
   footer,
+  maxFeatures,
+  moreHref,
 }: OfferCardProps) {
+  const shown = maxFeatures ? features.slice(0, maxFeatures) : features
+  const hidden = features.length - shown.length
   const Icon = icon ? (planIcons[icon] as ComponentType<{ className?: string }>) : undefined
 
   return (
@@ -162,7 +169,9 @@ export function OfferCard({
           <h3 className="text-2xl font-bold">{title}</h3>
         </div>
 
-        {description && <p className="mt-3 text-sm leading-6 text-muted-foreground">{description}</p>}
+        {description && (
+          <p className={`mt-3 text-sm leading-6 text-muted-foreground ${maxFeatures ? "line-clamp-2 min-h-12" : ""}`}>{description}</p>
+        )}
 
         <div className="mt-3 flex items-baseline gap-2">
           <span className="text-3xl font-bold">{price}</span>
@@ -191,13 +200,18 @@ export function OfferCard({
           <div className="mt-6">
             <p className="mb-3 font-semibold">{featuresLabel}</p>
             <ul className="space-y-3">
-              {features.map((feature) => (
+              {shown.map((feature) => (
                 <li key={feature} className="flex gap-3">
                   <Check className="mt-0.5 h-5 w-5 flex-shrink-0 text-emerald-600" />
                   <span className="text-sm text-muted-foreground">{feature}</span>
                 </li>
               ))}
             </ul>
+            {hidden > 0 && moreHref && (
+              <Link href={moreHref} className="mt-4 inline-block text-sm font-medium text-primary underline-offset-4 hover:underline">
+                +{hidden} more
+              </Link>
+            )}
           </div>
         )}
       </div>
