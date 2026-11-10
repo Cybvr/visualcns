@@ -55,7 +55,9 @@ export default function SignupPage() {
     const invite = params.get("invite") || ""
     setInviteToken(invite)
     setReturnTo(safeReturnTo(params.get("next")))
-    if (invite) setEmailFormOpen(true)
+    const prefilledEmail = params.get("email") || ""
+    if (prefilledEmail) setEmail(prefilledEmail)
+    if (invite || prefilledEmail) setEmailFormOpen(true)
     setQueryReady(true)
   }, [])
 

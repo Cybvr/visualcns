@@ -3,7 +3,7 @@ import type { ReactNode } from "react"
 import { ArrowUpRight, Check } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
-import { BookNowModal } from "@/components/book-now-modal"
+import { EmailStartForm } from "@/components/email-start-form"
 import { HomeCaseStudies } from "@/components/home-case-studies"
 import { ConsultingScene, NgaiScene, PulseScene, VisitorScene } from "@/components/home-feature-illustrations"
 import type { Capability } from "@/lib/capabilities"
@@ -97,7 +97,7 @@ export function HomeSections({
         <div className="space-y-14 md:space-y-20">
           {features.map((feature, index) => (
             <div key={feature.title} className="grid grid-cols-1 items-center gap-8 md:grid-cols-2 md:gap-12">
-              <div className={`aspect-[16/11] overflow-hidden rounded-[0.75rem] bg-muted/50 p-6 ${index % 2 ? "md:order-2" : ""}`}>
+              <div className={`aspect-[16/11] overflow-hidden rounded-[0.75rem] bg-gradient-to-br from-primary/30 via-primary/10 to-white p-6 dark:from-primary/35 dark:via-primary/10 dark:to-white/10 ${index % 2 ? "md:order-2" : ""}`}>
                 {feature.illustration}
               </div>
               <div className={index % 2 ? "md:order-1" : ""}>
@@ -161,7 +161,7 @@ export function HomeSections({
           <span className="text-primary">.</span>
         </h2>
         <div className="mt-10 flex flex-wrap items-center gap-3">
-          <BookNowModal triggerLabel="Start a project" triggerClassName="rounded-full" />
+          <EmailStartForm id="cta-email" className="border-border bg-card" />
           <Link
             href="/contact"
             className="group inline-flex items-center gap-2 rounded-full border border-border px-6 py-3 text-sm font-medium transition-colors hover:text-primary"

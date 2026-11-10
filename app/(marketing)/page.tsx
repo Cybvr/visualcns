@@ -3,6 +3,7 @@ import { publicPageMetadata } from "@/lib/public-page-metadata"
 import Link from "next/link"
 
 import { Button } from "@/components/ui/button"
+import { EmailStartForm } from "@/components/email-start-form"
 import { Footer } from "@/components/footer"
 import { Header } from "@/components/header"
 import { PwaRedirect } from "@/components/pwa-redirect"
@@ -53,12 +54,14 @@ export default function HomePage() {
               <p className="max-w-lg text-base text-white/80 md:text-lg">
                 Business Growth software for modern brands.
               </p>
-              <div className="flex shrink-0 flex-wrap items-center gap-3">
-                <Button asChild size="lg" className="rounded-full">
-                  <Link href="/pricing">Get started</Link>
-                </Button>
-                <Button asChild size="lg" variant="outline" className="rounded-full border-white/70 bg-transparent text-white hover:bg-white/10 hover:text-white dark:border-white/70 dark:bg-transparent dark:hover:bg-white/10">
-                  <Link href="/contact">Book a call</Link>
+              <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center md:w-auto">
+                <EmailStartForm
+                  id="hero-email"
+                  className="border-white/30 bg-white/10 backdrop-blur-sm md:w-[26rem]"
+                  inputClassName="text-white placeholder:text-white/60"
+                />
+                <Button asChild size="lg" variant="outline" className="w-fit rounded-full border-white/70 bg-transparent text-white hover:bg-white/10 hover:text-white dark:border-white/70 dark:bg-transparent dark:hover:bg-white/10">
+                  <Link href="/contact">Talk to us</Link>
                 </Button>
               </div>
             </div>

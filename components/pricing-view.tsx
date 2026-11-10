@@ -139,7 +139,7 @@ export function PricingView({ cartHref, freeHref, stickyTop, basePath, initialTa
           <TabsList aria-label="Pricing categories" className="h-auto max-w-full justify-start gap-1 overflow-x-auto rounded-full border border-border bg-muted/70 p-1 [scrollbar-width:none]">
             {GROUPS.map((group) => <TabsTrigger key={group} value={group} className={TRIGGER}>{group}</TabsTrigger>)}
           </TabsList>
-          {tab !== "Development" && (
+          {!compact && tab !== "Development" && (
             <div className="inline-flex rounded-full border border-border bg-muted p-[3px]" role="group" aria-label="Billing">
               {(["monthly", "yearly"] as const).map((option) => (
                 <button
@@ -191,7 +191,7 @@ export function PricingView({ cartHref, freeHref, stickyTop, basePath, initialTa
           <p className="text-lg font-semibold">Need something custom?</p>
           <p className="text-sm text-muted-foreground">Tell us what you need and we&apos;ll send a fixed quote.</p>
         </div>
-        <Button asChild><Link href="/contact">Book a call</Link></Button>
+        <Button asChild><Link href="/contact">Talk to us</Link></Button>
       </div>
       )}
     </div>

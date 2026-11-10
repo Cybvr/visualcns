@@ -82,7 +82,7 @@ export function Footer() {
 
         <div className="my-8 border-t border-border" />
 
-        <div className="grid gap-8 md:grid-cols-4 md:gap-8">
+        <div className="grid gap-8 md:grid-cols-3 md:gap-8">
           {footerGroups.map((group) => (
             <div key={group.title}>
               <h3 className="mb-4 flex items-baseline gap-2 text-xs uppercase tracking-[0.18em] text-foreground">
@@ -103,24 +103,6 @@ export function Footer() {
             </div>
           ))}
 
-          <div>
-            <h3 className="mb-4 flex items-baseline gap-2 text-xs uppercase tracking-[0.18em] text-foreground">
-              <span className="font-mono text-xs text-primary">04</span>
-              <span>Stay looped in</span>
-            </h3>
-            <p className="mb-4 text-sm leading-6 text-foreground/65">
-              Send a note when you are ready to build, price, or ship the next system.
-            </p>
-            <a
-              href="mailto:hello@visualcns.com?subject=VisualCNS%20project%20inquiry"
-              className="group flex items-center justify-between border-b border-border pb-3 text-foreground transition-colors hover:border-primary hover:text-primary"
-            >
-              <span className="text-sm text-foreground/70 transition-colors group-hover:text-primary">
-                hello@visualcns.com
-              </span>
-              <span className="text-sm uppercase tracking-[0.18em]">Join -&gt;</span>
-            </a>
-          </div>
         </div>
 
         <ul className="mt-10 flex flex-wrap items-center gap-2" aria-label="Cards we accept">
