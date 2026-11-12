@@ -528,6 +528,16 @@ export async function POST(request: Request) {
     useGmail = gmailConnected && !scheduledAtIso && gmailSenderEmails.has(extractEmailAddress(selectedSender).toLowerCase())
     replyTo = configuredReplyTo || from
   }
+  // Gmail can't hold a message for later, so a scheduled send goes through Resend, which only
+  // accepts addresses on its verified domains. Stop here instead of letting Resend reject it.
+  const fromIsResendSender = resendAvailableSenders.some((candidate) => extractEmailAddress(candidate).toLowerCase() === extractEmailAddress(from).toLowerCase())
+  if (scheduledAtIso && from && !fromIsResendSender) {
+    const resendChoice = resendAvailableSenders[0] ? extractEmailAddress(resendAvailableSenders[0]) : ""
+    return NextResponse.json(
+      { error: `Scheduling only works from a VisualCNS sender address. ${extractEmailAddress(from)} is your Gmail address, so it can only send now.${resendChoice ? ` Pick ${resendChoice} to schedule, or click Send now.` : " Click Send now instead."}` },
+      { status: 400 },
+    )
+  }
   if ((!apiKey && !useGmail) || !from) {
     return NextResponse.json({ error: "Email sending is not configured for this agency." }, { status: 503 })
   }
