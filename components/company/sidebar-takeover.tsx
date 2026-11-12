@@ -23,7 +23,7 @@ export type SidebarTakeover = {
   /** onDelete adds a bin button that shows on hover, such as for a past Ngai chat. */
   items: { key: string; label: string; icon?: SidebarIcon; count?: number; onDelete?: () => void; deleteLabel?: string }[]
   /** A button above the items, such as New chat. */
-  action?: { label: string; icon: SidebarIcon; onClick: () => void }
+  action?: { label: string; icon: SidebarIcon; onClick: () => void; /** Shows it as a filled pill, like Email's Compose. */ prominent?: boolean }
   active: string
   onSelect: (key: string) => void
   /**
@@ -179,8 +179,16 @@ function TakeoverItems({ takeover, closeMobile, onShowMain }: { takeover: Sideba
         )}
       </li>
       {takeover.action && (
-        <SidebarMenuItem>
-          <SidebarMenuButton type="button" tooltip={takeover.action.label} onClick={() => { closeMobile(); takeover.action?.onClick() }} className={SIDEBAR_ITEM_CLASS}>
+        <SidebarMenuItem className={takeover.action.prominent ? "pb-2" : undefined}>
+          <SidebarMenuButton
+            type="button"
+            tooltip={takeover.action.label}
+            onClick={() => { closeMobile(); takeover.action?.onClick() }}
+            className={cn(
+              SIDEBAR_ITEM_CLASS,
+              takeover.action.prominent && "h-11 w-fit rounded-full bg-sidebar-accent px-4 font-medium text-sidebar-accent-foreground hover:bg-sidebar-accent/80 max-md:h-12 group-data-[collapsible=icon]:w-8 group-data-[collapsible=icon]:px-2",
+            )}
+          >
             <takeover.action.icon className="h-4 w-4" aria-hidden="true" />
             <span className="sidebar-nav-label">{takeover.action.label}</span>
           </SidebarMenuButton>

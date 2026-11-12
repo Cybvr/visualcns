@@ -554,6 +554,7 @@ export function EmailWorkspace({ initialTab, initialMessageId }: { initialTab: E
     items: EMAIL_FOLDERS.map((folder) => ({ key: folder.key, label: folder.label, icon: folder.icon, count: folder.count() })),
     active: tab,
     onSelect: (key) => openFolder(key as EmailTab),
+    action: { label: "Compose", icon: Plus, onClick: () => openCompose(), prominent: true },
   })
   const selectedReceived = activeReceivedMessages.find((message) => message.id === selectedReceivedId) || null
   const selectedSent = messages.find((message) => message.id === selectedSentId) || null
@@ -1540,12 +1541,6 @@ export function EmailWorkspace({ initialTab, initialMessageId }: { initialTab: E
       </nav>
 
       <div className="flex h-full min-h-0 w-full min-w-0 flex-1 flex-col">
-        {/* With the folders in the sidebar, Compose remains available from the list. */}
-        {inSidebar && !initialMessageId && !selectedReceived && (
-          <Button type="button" size="lg" className="mb-3 hidden w-fit justify-start gap-2 rounded-full px-4 shadow-none lg:inline-flex" onClick={() => openCompose()}>
-            <Plus aria-hidden="true" />Compose
-          </Button>
-        )}
         {/* Mobile: search with a create button beside it, then pill folders, hidden while reading a message. */}
         {!mobileReaderOpen && (
           <div className="sm:hidden">
