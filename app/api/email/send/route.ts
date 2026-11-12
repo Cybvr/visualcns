@@ -529,14 +529,20 @@ export async function POST(request: Request) {
     replyTo = configuredReplyTo || from
   }
   // Gmail can't hold a message for later, so a scheduled send goes through Resend, which only
-  // accepts addresses on its verified domains. Stop here instead of letting Resend reject it.
+  // accepts addresses on its verified domains. Swap a Gmail sender for the Resend sender with the
+  // same name (jide@visualcns.com -> jide@mail.visualcns.com) and keep replies going to Gmail.
   const fromIsResendSender = resendAvailableSenders.some((candidate) => extractEmailAddress(candidate).toLowerCase() === extractEmailAddress(from).toLowerCase())
   if (scheduledAtIso && from && !fromIsResendSender) {
-    const resendChoice = resendAvailableSenders[0] ? extractEmailAddress(resendAvailableSenders[0]) : ""
-    return NextResponse.json(
-      { error: `Scheduling only works from a VisualCNS sender address. ${extractEmailAddress(from)} is your Gmail address, so it can only send now.${resendChoice ? ` Pick ${resendChoice} to schedule, or click Send now.` : " Click Send now instead."}` },
-      { status: 400 },
-    )
+    const gmailAddress = extractEmailAddress(from)
+    const localPart = gmailAddress.split("@")[0]?.toLowerCase()
+    const resendSender = resendAvailableSenders.find((candidate) => extractEmailAddress(candidate).split("@")[0]?.toLowerCase() === localPart) || resendAvailableSenders[0]
+    if (!resendSender || !apiKey) {
+      return NextResponse.json({ error: `${gmailAddress} can only send now, not on a schedule. Click Send now instead.` }, { status: 400 })
+    }
+    const displayName = from.includes("<") ? from.slice(0, from.indexOf("<")).trim().replace(/^"|"$/g, "") : ""
+    from = displayName ? `${displayName} <${extractEmailAddress(resendSender)}>` : resendSender
+    replyTo = configuredReplyTo || gmailAddress
+    useGmail = false
   }
   if ((!apiKey && !useGmail) || !from) {
     return NextResponse.json({ error: "Email sending is not configured for this agency." }, { status: 503 })
