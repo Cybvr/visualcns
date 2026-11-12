@@ -1,6 +1,6 @@
 "use client"
 
-import { EllipsisVertical } from "lucide-react"
+import { EllipsisVertical, Trash2 } from "lucide-react"
 
 import { CheckAvatar, MobileListRow, shortListDate } from "@/components/dashboard/compact-list-row"
 import { hasItemActions, ItemActionsMenu } from "@/components/dashboard/item-menu"
@@ -90,7 +90,7 @@ export function EmailListRow({
   return (
     <>
     {mobileRow}
-    <div className={cn("relative hidden min-w-0 items-center gap-3 border-b border-border px-4 py-3 sm:flex", (selected || checked || read) && "bg-muted")}> 
+    <div className={cn("group relative hidden min-w-0 items-center gap-3 border-b border-border px-4 py-3 sm:flex", (selected || checked || read) && "bg-muted")}> 
       <button type="button" onClick={() => selectionMode && onCheckedChange ? onCheckedChange(!checked) : onOpen()} aria-label={unread ? `Unread. ${ariaLabel}` : ariaLabel} aria-pressed={checked} className="absolute inset-0 z-0 outline-none focus-visible:ring-2 focus-visible:ring-ring" />
       {canSelect && (
         <input
@@ -107,7 +107,21 @@ export function EmailListRow({
         <p className={cn("w-40 shrink-0 truncate text-sm text-foreground", unread && "font-semibold")}>{title}</p>
         <p className="min-w-0 flex-1 truncate text-sm text-muted-foreground"><span className={cn("text-foreground", unread && "font-semibold")}>{subject || "(No subject)"}</span>{preview && <><span> — </span>{preview}</>}</p>
       </div>
-      <time dateTime={date ?? undefined} className={cn("relative z-10 w-24 shrink-0 text-right text-xs font-semibold tabular-nums", unread ? "text-foreground" : "text-muted-foreground")}>{date ? shortListDate(date) : formattedDate || "No date"}</time>
+      {/* The date gives way to a delete button while the row is hovered or focused. */}
+      <div className="relative z-10 flex w-16 shrink-0 items-center justify-end">
+        <time dateTime={date ?? undefined} className={cn("text-right text-xs font-semibold tabular-nums", unread ? "text-foreground" : "text-muted-foreground", onDelete && "group-focus-within:hidden group-hover:hidden")}>{date ? shortListDate(date) : formattedDate || "No date"}</time>
+        {onDelete && (
+          <button
+            type="button"
+            onClick={onDelete}
+            aria-label={deleteLabel}
+            title={deleteText}
+            className="hidden size-8 items-center justify-center rounded-full text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-destructive focus-visible:flex focus-visible:ring-2 focus-visible:ring-ring group-focus-within:flex group-hover:flex"
+          >
+            <Trash2 className="size-[18px]" aria-hidden="true" />
+          </button>
+        )}
+      </div>
       {hasItemActions(actions) && (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
