@@ -310,7 +310,9 @@ function gmailMessagePayload(message: GmailMessage) {
   }
 }
 
-type GmailInbox = { data: ReturnType<typeof gmailMessagePayload>[]; hasMore: boolean; partial?: boolean }
+type GmailMessagePayload = ReturnType<typeof gmailMessagePayload>
+type GmailInbox = { data: GmailMessagePayload[]; hasMore: boolean; partial?: boolean }
+const gmailMessageCache = new Map<string, Map<string, GmailMessagePayload>>()
 const inboxRequests = new Map<string, { promise: Promise<GmailInbox>; expiresAt: number }>()
 
 export function invalidateGmailInbox(agencyId: string) {
@@ -336,13 +338,26 @@ export async function changeGmailMessage(agencyId: string, id: string, action: "
 async function fetchGmailInbox(agencyId: string): Promise<GmailInbox> {
   const token = await googleAccessTokenForAgency(agencyId)
   if (!token) return { data: [], hasMore: false }
-  const list = await gmailFetch<GmailListResponse>(token, "/messages?labelIds=INBOX&maxResults=100")
+  // Each full message read costs Gmail quota, so only new messages are read in full. Read/unread
+  // state comes from one extra list call: an unread message among the newest 100 in the inbox is
+  // always among the newest 100 unread ones.
+  const [list, unreadList] = await Promise.all([
+    gmailFetch<GmailListResponse>(token, "/messages?labelIds=INBOX&maxResults=100"),
+    gmailFetch<GmailListResponse>(token, "/messages?labelIds=INBOX&labelIds=UNREAD&maxResults=100"),
+  ])
   const ids = (list.messages || []).map((item) => item.id).filter((id): id is string => Boolean(id))
-  const results = await settleInBatches(ids, 10, async (id) => gmailMessagePayload(
-    await gmailFetch<GmailMessage>(token, `/messages/${encodeURIComponent(id)}?format=full`),
-  ))
-  const messages = results.filter((result): result is PromiseFulfilledResult<ReturnType<typeof gmailMessagePayload>> => result.status === "fulfilled")
-    .map((result) => result.value)
+  const unreadIds = new Set((unreadList.messages || []).map((item) => item.id).filter(Boolean))
+  const cache = gmailMessageCache.get(agencyId) || new Map<string, GmailMessagePayload>()
+  const missing = ids.filter((id) => !cache.has(id))
+  const results = await settleInBatches(missing, 10, async (id) => {
+    const payload = gmailMessagePayload(await gmailFetch<GmailMessage>(token, `/messages/${encodeURIComponent(id)}?format=full`))
+    cache.set(id, payload)
+    return payload
+  })
+  // Keep only what is still in the inbox, so the cache stays small.
+  const kept = new Map(ids.filter((id) => cache.has(id)).map((id) => [id, cache.get(id)!]))
+  gmailMessageCache.set(agencyId, kept)
+  const messages = [...kept.entries()].map(([id, payload]) => ({ ...payload, unread: unreadIds.has(id) }))
   const failed = results.find((result): result is PromiseRejectedResult => result.status === "rejected")
   if (failed && messages.length === 0) throw failed.reason
   return { data: messages, hasMore: Boolean(list.nextPageToken), partial: Boolean(failed) }
@@ -353,7 +368,7 @@ export function listGmailInbox(agencyId: string) {
   const cached = inboxRequests.get(agencyId)
   if (cached && cached.expiresAt > Date.now()) return cached.promise
   const promise = fetchGmailInbox(agencyId)
-  inboxRequests.set(agencyId, { promise, expiresAt: Date.now() + 10_000 })
+  inboxRequests.set(agencyId, { promise, expiresAt: Date.now() + 30_000 })
   promise.then(
     (result) => { if (result.partial && inboxRequests.get(agencyId)?.promise === promise) inboxRequests.delete(agencyId) },
     () => { if (inboxRequests.get(agencyId)?.promise === promise) inboxRequests.delete(agencyId) },
