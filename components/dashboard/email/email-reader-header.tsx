@@ -37,7 +37,7 @@ export function EmailReaderMessageHeader({ subject, summary, details, date, form
     <header className="bg-white px-5 pt-4 text-neutral-900">
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <h2 className="break-words text-[1.375rem] leading-snug tracking-tight sm:text-base sm:font-semibold sm:tracking-normal">{subject || "(No subject)"}</h2>
+          <h2 className="break-words text-neutral-900 text-[1.375rem] leading-snug tracking-tight sm:text-base sm:font-semibold sm:tracking-normal">{subject || "(No subject)"}</h2>
           {summary ? (
             <div className="mt-1 flex min-w-0 items-center gap-1 text-sm text-neutral-600">
               <span className="min-w-0 truncate">{summary}</span>

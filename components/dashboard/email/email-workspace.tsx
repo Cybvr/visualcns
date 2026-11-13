@@ -912,6 +912,16 @@ export function EmailWorkspace({ initialTab, initialMessageId }: { initialTab: E
     })
   }
 
+  /** Reply follows up with the same recipients; forward starts with no recipient. */
+  function composeSentMessage(message: SentMessage, mode: "reply" | "forward") {
+    const originalBody = (message.bodyText || htmlToText(message.bodyHtml || "")).trim()
+    openCompose({
+      email: mode === "reply" ? message.to : "",
+      initialSubject: `${mode === "reply" ? "Re" : "Fwd"}: ${message.subject.replace(/^(re|fwd):\s*/i, "")}`,
+      initialBody: plainTextToEditorHtml(originalBody ? `\n\n--- Original message ---\n${originalBody}` : ""),
+    })
+  }
+
   function loadDraft(draft: EmailDraftRecord) {
     openCompose({ draft })
   }
@@ -1682,6 +1692,8 @@ export function EmailWorkspace({ initialTab, initialMessageId }: { initialTab: E
             onOpenSent={openSentMessage}
             onClearSent={() => { setSelectedSentId(null); setMobileMessageView("list") }}
             onDeleteSent={(message) => void deleteSentMessage(message)}
+            onReplySent={(message) => composeSentMessage(message, "reply")}
+            onForwardSent={(message) => composeSentMessage(message, "forward")}
             mobileMessageView={mobileMessageView}
             setMobileMessageView={setMobileMessageView}
             loadingMessageId={loadingMessageId}

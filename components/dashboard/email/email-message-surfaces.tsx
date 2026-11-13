@@ -77,6 +77,8 @@ export type EmailMessageSurfacesProps = {
   onOpenSent: (message: SentMessage) => void
   onClearSent: () => void
   onDeleteSent: (message: SentMessage) => void
+  onReplySent: (message: SentMessage) => void
+  onForwardSent: (message: SentMessage) => void
   mobileMessageView: MessageView
   setMobileMessageView: (view: MessageView) => void
   loadingMessageId: string | null
@@ -144,6 +146,8 @@ export function EmailMessageSurfaces({
   onOpenSent,
   onClearSent,
   onDeleteSent,
+  onReplySent,
+  onForwardSent,
   mobileMessageView,
   setMobileMessageView,
   loadingMessageId,
@@ -334,6 +338,7 @@ export function EmailMessageSurfaces({
     )
   }
 
+  const selectedSentIndex = selectedSent ? visibleMessages.findIndex((message) => message.id === selectedSent.id) : -1
   return (
     <section className={cn("flex min-h-0 w-full min-w-0 max-w-full flex-1 flex-col gap-4 lg:gap-6", selectedSent && mobileMessageView === "list" ? "lg:grid lg:grid-cols-[18rem_minmax(0,1fr)] lg:grid-rows-[minmax(0,1fr)] lg:overflow-hidden" : "lg:overflow-y-auto")} role="tabpanel">
       <aside className={cn("min-h-0 shrink-0 overflow-hidden", mobileMessageView === "list" || !selectedSent ? "block" : "hidden")}>
@@ -368,7 +373,33 @@ export function EmailMessageSurfaces({
         <EmailReaderToolbar
           onBack={onClearSent}
           backLabel="Back to sent"
-          actions={<Button type="button" variant="ghost" size="icon" className="size-10 sm:size-9" onClick={() => onDeleteSent(selectedSent)} aria-label="Delete" title="Delete"><Trash2 className="size-[18px]" aria-hidden="true" /></Button>}
+          actions={(
+            <>
+              <span className="flex items-center sm:hidden">
+                <Button type="button" variant="ghost" size="icon" className="size-10" onClick={() => onReplySent(selectedSent)} aria-label="Reply" title="Reply"><Reply className="size-[18px]" aria-hidden="true" /></Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button type="button" variant="ghost" size="icon" className="size-10" aria-label="More message actions" title="More actions"><EllipsisVertical className="size-[18px]" aria-hidden="true" /></Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onSelect={() => onForwardSent(selectedSent)}><Forward className="size-4" aria-hidden="true" />Forward</DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem variant="destructive" onSelect={() => onDeleteSent(selectedSent)}><Trash2 className="size-4" aria-hidden="true" />Delete</DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </span>
+              <span className="hidden items-center sm:flex">
+                <Button type="button" variant="ghost" size="icon" className="size-9" onClick={() => onReplySent(selectedSent)} aria-label="Reply" title="Reply"><Reply className="size-[18px]" aria-hidden="true" /></Button>
+                <Button type="button" variant="ghost" size="icon" className="size-9" onClick={() => onForwardSent(selectedSent)} aria-label="Forward" title="Forward"><Forward className="size-[18px]" aria-hidden="true" /></Button>
+                <Button type="button" variant="ghost" size="icon" className="size-9" onClick={() => onDeleteSent(selectedSent)} aria-label="Delete message" title="Delete"><Trash2 className="size-[18px]" aria-hidden="true" /></Button>
+              </span>
+              <span className="hidden items-center lg:flex">
+                {selectedSentIndex >= 0 && <span className="mx-2 text-[13px] tabular-nums text-muted-foreground">{selectedSentIndex + 1} of {visibleMessages.length}</span>}
+                <Button type="button" variant="ghost" size="icon" className="size-9" onClick={() => onOpenSent(visibleMessages[selectedSentIndex - 1])} disabled={selectedSentIndex <= 0} aria-label="Previous message" title="Previous message"><ChevronLeft className="size-[18px]" aria-hidden="true" /></Button>
+                <Button type="button" variant="ghost" size="icon" className="size-9" onClick={() => onOpenSent(visibleMessages[selectedSentIndex + 1])} disabled={selectedSentIndex < 0 || selectedSentIndex >= visibleMessages.length - 1} aria-label="Next message" title="Next message"><ChevronRight className="size-[18px]" aria-hidden="true" /></Button>
+              </span>
+            </>
+          )}
         />
         <div className="min-h-0 flex-1 overflow-y-auto bg-white max-sm:flex-none max-sm:overflow-visible">
           <EmailReaderMessageHeader
