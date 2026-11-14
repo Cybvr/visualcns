@@ -137,11 +137,16 @@ export function CompanyProfileShell({ children }: { children: ReactNode }) {
 
   type SectionItem = (typeof sections)[number]
   // Reports lives under Settings, so it leaves the main menu.
-  const sidebarSections = sections.filter((item) => !["activity", "pulse"].includes(item.key))
+  // Campaigns and Social Media share one Marketing entry; Social is a tab inside it.
+  const hasMarketing = sections.some((item) => item.key === "projects")
+  const sidebarSections = sections
+    .filter((item) => !["activity", "pulse"].includes(item.key))
+    .filter((item) => !(hasMarketing && item.key === "social"))
+    .map((item) => item.key === "projects" ? { ...item, label: "Marketing" } : item)
 
   function renderItem(item: SectionItem) {
     const Icon = item.icon
-    const isActive = !isSettingsPage && !isCheckoutPage && !isPricingPage && !isCartPage && section === item.key
+    const isActive = !isSettingsPage && !isCheckoutPage && !isPricingPage && !isCartPage && (section === item.key || (item.key === "projects" && hasMarketing && section === "social"))
     return (
       <SidebarMenuItem key={item.key}>
         <SidebarMenuButton
