@@ -26,6 +26,8 @@ import { getAllVisitors, kioskUrl, resetKioskKey, visitorsCsv, visitDay as day, 
 export function CompanyVisitors({ agencyId, companyId, slug }: { agencyId: string; companyId: string; slug: string }) {
   const [visitors, setVisitors] = useState<Visitor[] | null>(null)
   const [kiosk, setKiosk] = useState<VisitorKiosk | null>(null)
+  // Plans only show once the sign-in setting has loaded, so they don't flash on pages where it's on.
+  const [kioskLoaded, setKioskLoaded] = useState(false)
   const [error, setError] = useState("")
   const [retryCount, setRetryCount] = useState(0)
   const [busyId, setBusyId] = useState("")
@@ -46,7 +48,7 @@ export function CompanyVisitors({ agencyId, companyId, slug }: { agencyId: strin
       (rows) => { setVisitors(rows); setError("") },
       (reason) => { console.error("Visitor list subscription failed", reason); setError("Visitor list unavailable.") },
     )
-    const stopKiosk = watchKiosk(companyId, setKiosk, () => undefined)
+    const stopKiosk = watchKiosk(companyId, (next) => { setKiosk(next); setKioskLoaded(true) }, () => undefined)
     return () => {
       stopVisitors()
       stopKiosk()
@@ -187,7 +189,7 @@ export function CompanyVisitors({ agencyId, companyId, slug }: { agencyId: strin
       </Dialog>
 
       {/* Until front desk sign-in is on, Pass opens on its plans, with a free start first. */}
-      {!kiosk?.enabled && (
+      {kioskLoaded && !kiosk?.enabled && (
         <section aria-labelledby="pass-pricing-heading">
           <PlanPricing
             companyId={companyId}
