@@ -248,7 +248,7 @@ export function ProjectsSection() {
         <>
           <h2 className="sr-only">Campaigns</h2>
           <CollectionView
-            className=""
+            className="mt-4"
             items={projects}
             getKey={(project) => project.id}
             searchFields={(project) => [project.title, project.service, project.status, project.dueDate]}

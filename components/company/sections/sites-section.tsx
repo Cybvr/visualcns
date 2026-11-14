@@ -32,10 +32,10 @@ export function SitesSection() {
   const newSite = () => window.location.assign(NGAI_APP_URL)
 
   return (
-    <>
+    <div className="mt-5">
       <h2 className="sr-only">Websites</h2>
       <CollectionView
-        className=""
+        className="mt-4"
         items={chats ?? []}
         loading={!authReady || chats === null}
         getKey={(chat) => chat.id}
@@ -83,6 +83,6 @@ export function SitesSection() {
           </a>
         </p>
       )}
-    </>
+    </div>
   )
 }
