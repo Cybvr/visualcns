@@ -8,7 +8,6 @@ import { MessageCircle, Megaphone, Palette } from "lucide-react"
 
 import { useAuth } from "@/components/auth-provider"
 import { isCompanySection, useCompanyPage } from "@/components/company/company-page-context"
-import { HomeOverview } from "@/components/company/home-overview"
 import { SectionHeader } from "@/components/dashboard/section-header"
 
 /** Things from the pricing page worth suggesting, each opening its pricing tab. */
@@ -109,7 +108,6 @@ export default function CompanyHomePage() {
           ))}
         </div>
       </section>
-      <HomeOverview />
     </>
   )
 }
