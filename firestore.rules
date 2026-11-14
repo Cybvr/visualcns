@@ -422,6 +422,13 @@ service cloud.firestore {
       allow delete: if jujuAdmin() || (signedIn() && resource.data.userId == request.auth.uid);
     }
 
+    // Custom domains: domains/{name} = { companyId, agencyId, siteSlug, status }. The builder
+    // looks a domain up by name without signing in; only the visualcns server (admin SDK) writes.
+    match /domains/{name} {
+      allow get: if true;
+      allow list, write: if false;
+    }
+
     match /userSettings/{uid} {
       allow read, write: if signedIn() && request.auth.uid == uid;
     }
