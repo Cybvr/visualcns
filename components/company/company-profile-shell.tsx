@@ -110,7 +110,7 @@ export function CompanyProfileShell({ children }: { children: ReactNode }) {
   const isPricingPage = pageSegment === "pricing"
   const isCartPage = pageSegment === "cart"
   const sectionLabel = sections.find((item) => item.key === section)?.label
-  const settingsPageLabel = settingsSubpage === "account" ? "Account" : settingsSubpage === "social" ? "Social" : settingsSubpage === "reports" ? "Reports" : "General"
+  const settingsPageLabel = settingsSubpage === "account" ? "Account" : settingsSubpage === "social" ? "Social" : settingsSubpage === "reports" ? "Reports" : settingsSubpage === "analytics" ? "Analytics" : "General"
   const pageLabel = isSettingsPage ? settingsPageLabel : isCheckoutPage ? "Checkout" : isPricingPage ? "Pricing" : isCartPage ? "Cart" : sectionLabel
   const companyPath = `/${encodeURIComponent(company.slug || company.id)}`
   const activity = useMemo(() => buildActivity({ projects, tasks, invoices, estimates, contracts, documents }, 20), [projects, tasks, invoices, estimates, contracts, documents])
@@ -136,11 +136,11 @@ export function CompanyProfileShell({ children }: { children: ReactNode }) {
   ], [sections, projects, documents, invoices, estimates, contracts])
 
   type SectionItem = (typeof sections)[number]
-  // Reports lives under Settings, so it leaves the main menu.
+  // Reports and Analytics live under Settings, so they leave the main menu.
   // Campaigns and Social Media share one Marketing entry; Social is a tab inside it.
   const hasMarketing = sections.some((item) => item.key === "projects")
   const sidebarSections = sections
-    .filter((item) => !["activity", "pulse"].includes(item.key))
+    .filter((item) => !["activity", "pulse", "analytics"].includes(item.key))
     .filter((item) => !(hasMarketing && item.key === "social"))
     .map((item) => item.key === "projects" ? { ...item, label: "Marketing" } : item)
 

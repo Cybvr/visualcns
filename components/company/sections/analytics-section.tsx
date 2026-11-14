@@ -9,7 +9,7 @@ import { SocialAnalytics } from "@/components/company/social-analytics"
 import { watchCompanyCampaignCreatives, type CampaignCreative } from "@/lib/campaign-creatives"
 import { onRoster, watchCompanyCampaignPeople, type CampaignPerson } from "@/lib/campaign-people"
 
-/** Client-wide analytics at /{companySlug}/analytics. */
+/** Client-wide analytics at /{companySlug}/settings/analytics. */
 export function AnalyticsSection() {
   const { company, projects, invoices, canSeeVisitors } = useCompanyPage()
   const { user } = useAuth()

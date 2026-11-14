@@ -32,6 +32,7 @@ export default async function CompanySectionPage({ params, searchParams }: { par
   if (section === "documents" || section === "finance" || section === "media") redirect(`/${encodeURIComponent(clientSlug)}/drive${doc ? `?doc=${encodeURIComponent(doc)}` : ""}`)
   if (section === "tasks") redirect(`/${encodeURIComponent(clientSlug)}/projects${task ? `?task=${encodeURIComponent(task)}` : ""}`)
   if (section === "brand-health" || section === "pulse") redirect(`/${encodeURIComponent(clientSlug)}/settings/reports`)
+  if (section === "analytics") redirect(`/${encodeURIComponent(clientSlug)}/settings/analytics`)
   if (section === "activity") redirect(`/${encodeURIComponent(clientSlug)}/notifications`)
   if (section === "team") redirect(`/${encodeURIComponent(clientSlug)}`)
   if (section === "about") redirect(`/${encodeURIComponent(clientSlug)}/settings`)
