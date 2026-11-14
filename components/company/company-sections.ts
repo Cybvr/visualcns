@@ -1,4 +1,4 @@
-import { Activity, Bot, ChartColumn, CreditCard, FileText, Fingerprint, Globe, Info, ListTodo, Megaphone, Share2, TrendingUp, Users } from "lucide-react"
+import { Activity, Bot, ChartColumn, CreditCard, FileText, Fingerprint, Globe, Info, Link2, ListTodo, Megaphone, Share2, TrendingUp, Users } from "lucide-react"
 
 /** The sections of a company page, in menu order. Plain module so server routes can check a section too. */
 export const COMPANY_SECTIONS = [
@@ -7,6 +7,7 @@ export const COMPANY_SECTIONS = [
   { key: "documents", label: "Drive", icon: FileText },
   { key: "ngai", label: "Help", icon: Bot },
   // The viewer's own Ngai builder chats (apps and websites), opened in the builder.
+  { key: "domains", label: "Domains", icon: Link2 },
   { key: "sites", label: "Websites", icon: Globe },
   { key: "tasks", label: "Tasks", icon: ListTodo },
   { key: "about", label: "About", icon: Info },

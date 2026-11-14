@@ -163,6 +163,8 @@ export function CompanyPageProvider({
       .filter((item) => mode === "routes" || item.key !== "ngai")
       // Sites lists the viewer's own builder chats, so it only belongs on the company page itself.
       .filter((item) => mode === "routes" || item.key !== "sites")
+      // Domains belong to the company's own websites, and only its staff and the agency manage them.
+      .filter((item) => (mode === "routes" && canSeeVisitors) || item.key !== "domains")
       // Social holds private DMs and posting, so it follows the same rule as Visitors.
       .filter((item) => !["visitors", "messages", "social"].includes(item.key) || canSeeVisitors)
     if (mode !== "routes") {
@@ -182,6 +184,7 @@ export function CompanyPageProvider({
     const order = [
       { ...about, label: "Home", icon: House },
       find("ngai"),
+      find("domains"),
       find("sites"),
       find("projects"),
       find("social"),
