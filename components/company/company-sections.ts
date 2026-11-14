@@ -5,7 +5,7 @@ export const COMPANY_SECTIONS = [
   { key: "projects", label: "Campaigns", icon: Megaphone },
   { key: "social", label: "Social Media", icon: Share2 },
   { key: "documents", label: "Drive", icon: FileText },
-  { key: "ngai", label: "Assistant", icon: Bot },
+  { key: "ngai", label: "Help", icon: Bot },
   // The viewer's own Ngai builder chats (apps and websites), opened in the builder.
   { key: "sites", label: "Websites", icon: Globe },
   { key: "tasks", label: "Tasks", icon: ListTodo },

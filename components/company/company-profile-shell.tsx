@@ -15,7 +15,6 @@ import { SidebarTakeoverMenu, SidebarTakeoverProvider } from "@/components/compa
 import { CartButton } from "@/components/dashboard/cart-button"
 import { NotificationsButton } from "@/components/dashboard/notifications-button"
 import { buildActivity, type ActivityItem } from "@/lib/activity"
-import { UpgradeCard } from "@/components/company/upgrade-card"
 import { NavUser } from "@/components/nav-user"
 import { GlobalSearchDialog, useSearchHotkey, type SearchResult } from "@/components/search/global-search"
 import { Button } from "@/components/ui/button"
@@ -143,6 +142,10 @@ export function CompanyProfileShell({ children }: { children: ReactNode }) {
     .filter((item) => !["activity", "pulse", "analytics"].includes(item.key))
     .filter((item) => !(hasMarketing && item.key === "social"))
     .map((item) => item.key === "projects" ? { ...item, label: "Marketing" } : item)
+  // Help and Billing sit at the bottom of the menu as plain text links.
+  const footerKeys = ["ngai", "billings"]
+  const menuSections = sidebarSections.filter((item) => !footerKeys.includes(item.key))
+  const footerSections = sidebarSections.filter((item) => footerKeys.includes(item.key))
 
   function renderItem(item: SectionItem) {
     const Icon = item.icon
@@ -199,11 +202,33 @@ export function CompanyProfileShell({ children }: { children: ReactNode }) {
             <SidebarContent>
               <SidebarGroup className="group-data-[collapsible=icon]:p-1">
                 <SidebarMenu className="gap-0.5 max-md:gap-1.5">
-                  <SidebarTakeoverMenu sections={<>{sidebarSections.map(renderItem)}</>} />
+                  <SidebarTakeoverMenu sections={<>{menuSections.map(renderItem)}</>} />
                 </SidebarMenu>
               </SidebarGroup>
             </SidebarContent>
-            <UpgradeCard />
+            {footerSections.length > 0 && (
+              <nav aria-label="Help and billing" className="mt-auto flex flex-col gap-1 px-4 pt-3 pb-5 group-data-[collapsible=icon]:hidden">
+                {footerSections.map((item) => {
+                  const isActive = !isSettingsPage && !isCheckoutPage && !isPricingPage && !isCartPage && section === item.key
+                  return (
+                    <CompanySidebarLink
+                      key={item.key}
+                      href={sectionHref(item.key)}
+                      aria-current={isActive ? "page" : undefined}
+                      className={cn(
+                        "flex items-center gap-2 rounded-sm py-1.5 text-sm outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring",
+                        isActive ? "font-medium text-foreground" : "text-muted-foreground",
+                      )}
+                    >
+                      {item.label}
+                      {item.key === "billings" && overdueInvoiceCount > 0 && (
+                        <span className="text-xs font-medium text-destructive">{overdueInvoiceCount} overdue</span>
+                      )}
+                    </CompanySidebarLink>
+                  )
+                })}
+              </nav>
+            )}
           </div>
           <SidebarRail />
         </Sidebar>
