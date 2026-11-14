@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { Menu, X } from "lucide-react"
 import { NGAI_APP_URL } from "@/lib/ngai"
 import { Button } from "@/components/ui/button"
@@ -13,32 +13,15 @@ const LINKS = [
 ]
 
 /**
- * Second-level product bar for /ngai. The site <Header /> is position: fixed, so we
- * measure its bar and expose the height as --site-header-h for the spacer + sticky offset.
+ * Second-level product bar for /ngai. The page renders the site <Header pinned={false} />,
+ * so that bar scrolls away and this one sticks to the top of the viewport.
  */
 export function NgaiProductHeader() {
   const [open, setOpen] = useState(false)
 
-  useEffect(() => {
-    const bar = document.querySelector<HTMLElement>("header > div:first-child")
-    if (!bar) return
-    const update = () => document.documentElement.style.setProperty("--site-header-h", `${bar.offsetHeight}px`)
-    update()
-    const observer = new ResizeObserver(update)
-    observer.observe(bar)
-    return () => {
-      observer.disconnect()
-      document.documentElement.style.removeProperty("--site-header-h")
-    }
-  }, [])
-
   return (
     <>
-      <div aria-hidden style={{ height: "var(--site-header-h, 64px)" }} />
-      <div
-        className="sticky z-40 border-b border-border bg-background/95 backdrop-blur-md"
-        style={{ top: "var(--site-header-h, 64px)" }}
-      >
+      <div className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur-md">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-2 sm:px-8 md:px-20">
           <a href="#overview" className="text-lg font-semibold tracking-tight">
             Ngai

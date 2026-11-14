@@ -5,7 +5,7 @@
       "name": "visualhq-dev",
       "runtimeExecutable": "cmd.exe",
       "runtimeArgs": ["/c", ".claude\\dev.cmd"],
-      "port": 3000,
+      "port": 3069,
       "autoPort": true
     }
   ]

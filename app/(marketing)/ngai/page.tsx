@@ -98,13 +98,13 @@ const FAQS = [
 
 export default function NgaiPage() {
   return (
-    <div className="min-h-screen overflow-x-hidden bg-background text-foreground">
-      <Header />
+    <div className="min-h-screen overflow-x-clip bg-background text-foreground">
+      <Header pinned={false} />
       <NgaiProductHeader />
 
       <main>
         {/* Hero */}
-        <section id="overview" className="scroll-mt-40 px-4 pb-16 pt-16 text-center md:px-8 md:pb-24 md:pt-24">
+        <section id="overview" className="scroll-mt-16 px-4 pb-16 pt-16 text-center md:px-8 md:pb-24 md:pt-24">
           <p className="mb-4 text-sm font-medium text-muted-foreground">Ngai AI builder</p>
           <h1 className="mx-auto max-w-3xl text-5xl font-semibold leading-[1.05] tracking-tight md:text-7xl">
             No code. No limits.
@@ -177,7 +177,7 @@ export default function NgaiPage() {
         </section>
 
         {/* Templates */}
-        <section id="templates" className="scroll-mt-40 bg-muted/40">
+        <section id="templates" className="scroll-mt-16 bg-muted/40">
           <div className="mx-auto max-w-6xl px-4 py-16 md:px-8 md:py-24">
             <div className="flex flex-wrap items-end justify-between gap-4">
               <div>
@@ -207,7 +207,7 @@ export default function NgaiPage() {
         </section>
 
         {/* Pricing */}
-        <section id="pricing" className="scroll-mt-40 mx-auto max-w-6xl px-4 py-16 md:px-8 md:py-24">
+        <section id="pricing" className="scroll-mt-16 mx-auto max-w-6xl px-4 py-16 md:px-8 md:py-24">
           <h2 className="text-center text-3xl font-semibold tracking-tight md:text-4xl">Simple pricing</h2>
           <p className="mx-auto mt-4 max-w-xl text-center text-muted-foreground">Start free. Upgrade when you&apos;re ready.</p>
           <NgaiPricing />

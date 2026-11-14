@@ -107,7 +107,11 @@ const MONO_LABEL = "font-mono text-[0.6875rem] uppercase tracking-[0.24em]"
 // Top-nav links use the body (sans) font, not the mono label style.
 const NAV_LABEL = "text-sm font-medium"
 
-export function Header() {
+/**
+ * `pinned` (default) keeps the bar fixed to the top of the viewport. Pages with their
+ * own sticky sub-header (e.g. /ngai) pass `pinned={false}` so this bar scrolls away.
+ */
+export function Header({ pinned = true }: { pinned?: boolean } = {}) {
   const [activeMenu, setActiveMenu] = useState<MenuKind | null>(null)
   const [currentUser, setCurrentUser] = useState<User | null>(null)
   const open = activeMenu !== null
@@ -232,7 +236,12 @@ export function Header() {
   return (
     // When the index is open the header owns the viewport, so the panel can be a
     // flex child instead of chasing the bar's height with a hard-coded offset.
-    <header ref={headerRef} className={`fixed inset-x-0 top-0 z-50 flex flex-col ${open ? "bottom-0" : ""}`}>
+    <header
+      ref={headerRef}
+      className={`z-50 flex flex-col ${
+        open ? "fixed inset-0" : pinned ? "fixed inset-x-0 top-0" : "relative"
+      }`}
+    >
       {/* Promo strip for Pasive, above the bar. */}
       <a
         href="https://pasive.cc"
