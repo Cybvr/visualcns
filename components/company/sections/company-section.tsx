@@ -15,6 +15,7 @@ import { DocumentsSection } from "@/components/company/sections/documents-sectio
 import { ProjectsSection } from "@/components/company/sections/projects-section"
 import { SocialSection } from "@/components/company/sections/social-section"
 import { NgaiSection } from "@/components/company/sections/ngai-section"
+import { SitesSection } from "@/components/company/sections/sites-section"
 import { TeamSection } from "@/components/company/sections/team-section"
 
 /** Documents and media in one grid. An open document takes the whole page. */
@@ -92,6 +93,7 @@ const SECTION_COMPONENTS: Record<CompanySectionKey, ComponentType> = {
   projects: ProjectsSection,
   social: SocialSection,
   ngai: NgaiSection,
+  sites: SitesSection,
   analytics: AnalyticsSection,
   tasks: ProjectsSection,
   about: SettingsSection,

@@ -1,11 +1,8 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { onAuthStateChanged, type User } from "firebase/auth"
-import { collection, getDocs, limit, query, where } from "firebase/firestore"
 import { ChevronDown } from "lucide-react"
-import { auth, db } from "@/lib/firebase"
 import { NGAI_PROJECTS_URL, ngaiChatUrl } from "@/lib/ngai"
+import { useNgaiChats } from "./use-ngai-chats"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -16,63 +13,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 
-type Chat = { id: string; title: string; updatedAt: number }
-
-function toMillis(value: unknown): number {
-  if (!value) return 0
-  if (typeof value === "number") return value
-  if (typeof value === "string") return Date.parse(value) || 0
-  if (typeof value === "object" && value && "toMillis" in value && typeof value.toMillis === "function") {
-    return value.toMillis()
-  }
-  return 0
-}
-
 export function NgaiProjectsMenu({ className }: { className?: string }) {
-  const [user, setUser] = useState<User | null>(null)
-  const [authReady, setAuthReady] = useState(false)
-  const [chats, setChats] = useState<Chat[] | null>(null)
-  const [failed, setFailed] = useState(false)
-
-  useEffect(
-    () =>
-      onAuthStateChanged(auth, (next) => {
-        setUser(next)
-        setAuthReady(true)
-      }),
-    [],
-  )
-
-  useEffect(() => {
-    if (!user) {
-      setChats(null)
-      return
-    }
-    let cancelled = false
-    setFailed(false)
-    // Equality filter only, sorted here, so no composite index is needed.
-    getDocs(query(collection(db, "jujuChats"), where("userId", "==", user.uid), limit(50)))
-      .then((snapshot) => {
-        if (cancelled) return
-        const list = snapshot.docs
-          .map((doc) => ({ id: doc.id, data: doc.data() }))
-          .filter(({ data }) => data.isTemplate !== true)
-          .map(({ id, data }) => ({
-            id,
-            title: typeof data.title === "string" && data.title.trim() ? data.title : "Untitled project",
-            updatedAt: toMillis(data.updatedAt),
-          }))
-          .sort((a, b) => b.updatedAt - a.updatedAt)
-          .slice(0, 8)
-        setChats(list)
-      })
-      .catch(() => {
-        if (!cancelled) setFailed(true)
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [user])
+  const { user, authReady, chats, failed } = useNgaiChats()
 
   return (
     <DropdownMenu>

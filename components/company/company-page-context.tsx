@@ -159,6 +159,8 @@ export function CompanyPageProvider({
       // Team sits on Account in the dashboard tabs.
       .filter((item) => mode === "routes" || item.key !== "team")
       .filter((item) => mode === "routes" || item.key !== "ngai")
+      // Sites lists the viewer's own builder chats, so it only belongs on the company page itself.
+      .filter((item) => mode === "routes" || item.key !== "sites")
       // Social holds private DMs and posting, so it follows the same rule as Visitors.
       .filter((item) => !["visitors", "messages", "social"].includes(item.key) || canSeeVisitors)
     if (mode !== "routes") {
@@ -178,6 +180,7 @@ export function CompanyPageProvider({
     const order = [
       { ...about, label: "Home", icon: House },
       find("ngai"),
+      find("sites"),
       find("projects"),
       find("social"),
       find("visitors"),
