@@ -11,9 +11,10 @@ import { ListSkeleton } from "@/components/dashboard/list-search"
 import { MobileDataCard, type MobileDataCardProps } from "@/components/dashboard/mobile-data-card"
 import { TableFilterBar, type TableFilterBarProps } from "@/components/dashboard/table-filter-bar"
 import { TableBulkBar } from "@/components/dashboard/table-bulk-bar"
-import { ThumbnailListItem } from "@/components/dashboard/thumbnail-list-item"
+import { PhoneListItem, ThumbnailListItem } from "@/components/dashboard/thumbnail-list-item"
 import { useViewMode, ViewToggle, type ViewMode } from "@/components/dashboard/view-toggle"
 import { Checkbox } from "@/components/ui/checkbox"
+import { useIsMobile } from "@/hooks/use-mobile"
 import { useLongPress } from "@/hooks/use-long-press"
 import { useRowSelection } from "@/hooks/use-row-selection"
 import { formatTimestamp } from "@/lib/tasks"
@@ -119,13 +120,15 @@ export function CollectionView<T>({
   selection?: { noun: string; onDelete: (items: T[]) => Promise<void> }
 }) {
   const [savedView, setSavedView] = useViewMode(viewKey, initialView)
+  // Phones always get one row per item: thumbnail, title and details, and a menu.
+  const phone = useIsMobile()
   const view = fixedView ?? savedView
   const { query, results, bar } = useFilterBar({ items, search: searchFields, sorts, defaultSort, defaultDirection })
   const isEmpty = items.length === 0 && !hasExtraCards
   const selected = useRowSelection(results, getKey)
   const [deleting, setDeleting] = useState(false)
   // Custom list rows and thumbnail rows can't show selection, so holding only selects in the grid and compact list.
-  const canSelect = Boolean(selection) && (view === "grid" ? !gridItem : listStyle === "compact" && !listItem)
+  const canSelect = Boolean(selection) && (phone || (view === "grid" ? !gridItem : listStyle === "compact" && !listItem))
   const selecting = canSelect && selected.selectedCount > 0
   const longPress = useLongPress(canSelect ? (id) => { if (!selected.isSelected(id)) selected.toggle(id) } : undefined)
 
@@ -176,10 +179,10 @@ export function CollectionView<T>({
         <TableFilterBar
           {...bar}
           placeholder={searchPlaceholder}
-          controls={(filters || !fixedView) && (
+          controls={(filters || (!fixedView && !phone)) && (
             <>
               {filters}
-              {!fixedView && <ViewToggle view={view} onChange={setSavedView} />}
+              {!fixedView && !phone && <ViewToggle view={view} onChange={setSavedView} />}
             </>
           )}
           actions={actions}
@@ -190,7 +193,7 @@ export function CollectionView<T>({
       {selection && canSelect && !loading && results.length > 0 && (
         <TableBulkBar count={selected.selectedCount} noun={selection.noun} deleting={deleting} onClear={selected.clear} onDelete={() => void deleteSelected()} />
       )}
-      {view === "list" && selection && canSelect && !loading && results.length > 0 && (
+      {!phone && view === "list" && selection && canSelect && !loading && results.length > 0 && (
         <>
           <label className="flex min-h-12 items-center gap-3 border-b border-border px-3 text-sm text-muted-foreground">
             <Checkbox aria-label={`Select all ${selection.noun}s`} checked={selected.allSelected} indeterminate={selected.someSelected} onChange={selected.toggleAll} />
@@ -204,6 +207,36 @@ export function CollectionView<T>({
         <CompanyEmptyState {...empty} />
       ) : results.length === 0 && !(view === "grid" && cardsAfter && hasExtraCards) ? (
         <p className="px-3 py-8 text-center text-sm text-muted-foreground">Nothing matches your search.</p>
+      ) : phone ? (
+        <div className="flex flex-col gap-1">
+          {results.map((item) => {
+            const props = cardFor(item)
+            const extra = row?.(item)
+            const when = date ? collectionDate(date(item)) : undefined
+            const text = (value: unknown) => (typeof value === "string" || typeof value === "number" ? String(value) : undefined)
+            const detail = text(extra?.subtitle) ?? text(props.subtitle)
+            const id = getKey(item)
+            return (
+              <div key={id} className="contents select-none [-webkit-touch-callout:none]" {...longPress(id)}>
+                <PhoneListItem
+                  title={props.title}
+                  subtitle={[detail, when].filter(Boolean).join(" · ") || undefined}
+                  preview={props.preview}
+                  imageUrl={props.imageUrl}
+                  imageAlt={props.imageAlt}
+                  icon={props.placeholder ?? props.icon}
+                  href={props.href}
+                  onClick={props.onClick ? () => props.onClick?.() : undefined}
+                  ariaLabel={props.ariaLabel}
+                  actions={props.actions}
+                  menuLabel={props.menuLabel}
+                  selected={props.selected}
+                />
+              </div>
+            )
+          })}
+          {cardsAfter?.(query)}
+        </div>
       ) : view === "grid" ? (
         <GridCardList className={gridClassName}>
           {results.map((item) => gridItem ? <Fragment key={getKey(item)}>{gridItem(item)}</Fragment> : (
