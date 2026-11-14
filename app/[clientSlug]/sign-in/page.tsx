@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react"
-import { useParams, useSearchParams } from "next/navigation"
+import { useParams, useRouter, useSearchParams } from "next/navigation"
 import { Building2, Check, CloudOff, FileText, Loader2, LogOut, Phone, Printer, User, Users } from "lucide-react"
 
 import { KioskField, KioskHero, KioskNameList, KioskSubmit, KioskTabs } from "@/components/visitors/kiosk-parts"
@@ -37,6 +37,7 @@ const RETRY_EVERY_MS = 30000
 export default function VisitorSignInPage() {
   const { clientSlug = "" } = useParams<{ clientSlug: string }>()
   const searchParams = useSearchParams()
+  const router = useRouter()
   const [key, setKey] = useState("")
   const [info, setInfo] = useState<KioskInfo | null>(null)
   const [loadError, setLoadError] = useState("")
@@ -70,7 +71,9 @@ export default function VisitorSignInPage() {
       // Private mode: the key in the URL still works.
     }
     setKey(fromUrl || stored)
-  }, [clientSlug, searchParams])
+    // No kiosk code: this is someone signing in to the company page, not a visitor.
+    if (!fromUrl && !stored) router.replace(`/login?next=${encodeURIComponent(`/${clientSlug}`)}`)
+  }, [clientSlug, searchParams, router])
 
   const load = useCallback(async () => {
     if (!key) {

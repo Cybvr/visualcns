@@ -358,7 +358,7 @@ service cloud.firestore {
     }
 
     // ---------------------------------------------------------------
-    // Juju (juju.visualcns.com). Shares this project's accounts and
+    // Juju, the Ngai builder (sites.visualcns.com). Shares this project's accounts and
     // the basic users/{uid} profile; its own data lives below.
     // ---------------------------------------------------------------
     function jujuAdmin() {

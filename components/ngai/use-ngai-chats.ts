@@ -5,7 +5,8 @@ import { onAuthStateChanged, type User } from "firebase/auth"
 import { collection, getDocs, limit, query, where } from "firebase/firestore"
 import { auth, db } from "@/lib/firebase"
 
-export type NgaiChat = { id: string; title: string; updatedAt: number }
+/** `slug` is the published subdomain, or null when the chat isn't published. */
+export type NgaiChat = { id: string; title: string; updatedAt: number; slug: string | null }
 
 function toMillis(value: unknown): number {
   if (!value) return 0
@@ -36,6 +37,7 @@ function loadChats(uid: string): Promise<NgaiChat[]> {
           id,
           title: typeof data.title === "string" && data.title.trim() ? data.title : "Untitled project",
           updatedAt: toMillis(data.updatedAt),
+          slug: data.published === true && typeof data.slug === "string" && data.slug ? data.slug : null,
         }))
         .sort((a, b) => b.updatedAt - a.updatedAt),
   )

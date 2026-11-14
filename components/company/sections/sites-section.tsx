@@ -10,7 +10,7 @@ import { useNgaiChats } from "@/components/ngai/use-ngai-chats"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
-import { NGAI_APP_URL, NGAI_PROJECTS_URL, ngaiChatUrl } from "@/lib/ngai"
+import { NGAI_APP_URL, NGAI_PROJECTS_URL, ngaiChatUrl, ngaiPublishedUrl } from "@/lib/ngai"
 
 function editedLabel(ms: number) {
   if (!ms) return "Not edited yet"
@@ -83,24 +83,45 @@ export function SitesSection() {
       ) : (
         <>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {shown.map((chat) => (
-              <a
-                key={chat.id}
-                href={ngaiChatUrl(chat.id)}
-                className="group flex flex-col overflow-hidden rounded-xl border border-border bg-card outline-none transition-colors hover:border-foreground/20 focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                <div className="grid aspect-video place-items-center bg-muted/50">
-                  <Globe className="size-8 text-muted-foreground/60" aria-hidden="true" />
-                </div>
-                <div className="flex items-start gap-2 p-3">
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate font-medium">{chat.title}</p>
-                    <p className="text-sm text-muted-foreground">{editedLabel(chat.updatedAt)}</p>
+            {shown.map((chat) => {
+              // Published sites open the live site; drafts open in the builder.
+              const liveUrl = chat.slug ? ngaiPublishedUrl(chat.slug) : null
+              return (
+                <div
+                  key={chat.id}
+                  className="group relative flex flex-col overflow-hidden rounded-xl border border-border bg-card transition-colors focus-within:ring-2 focus-within:ring-ring hover:border-foreground/20"
+                >
+                  <div className="grid aspect-video place-items-center bg-muted/50">
+                    <Globe className="size-8 text-muted-foreground/60" aria-hidden="true" />
                   </div>
-                  <ArrowUpRight className="mt-0.5 size-4 shrink-0 text-muted-foreground transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" aria-hidden="true" />
+                  <div className="flex items-start gap-2 p-3">
+                    <div className="min-w-0 flex-1">
+                      <a
+                        href={liveUrl ?? ngaiChatUrl(chat.id)}
+                        target={liveUrl ? "_blank" : undefined}
+                        rel={liveUrl ? "noopener noreferrer" : undefined}
+                        className="block truncate font-medium outline-none after:absolute after:inset-0"
+                      >
+                        {chat.title}
+                      </a>
+                      <p className="truncate text-sm text-muted-foreground">
+                        {liveUrl ? liveUrl.replace("https://", "") : `Draft · ${editedLabel(chat.updatedAt)}`}
+                      </p>
+                    </div>
+                    {liveUrl ? (
+                      <a
+                        href={ngaiChatUrl(chat.id)}
+                        className="relative z-10 shrink-0 rounded-md px-2 py-0.5 text-sm text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+                      >
+                        Edit
+                      </a>
+                    ) : (
+                      <ArrowUpRight className="mt-0.5 size-4 shrink-0 text-muted-foreground transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" aria-hidden="true" />
+                    )}
+                  </div>
                 </div>
-              </a>
-            ))}
+              )
+            })}
           </div>
           {chats.length >= 50 && (
             <p className="text-center text-sm">

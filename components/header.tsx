@@ -242,7 +242,8 @@ export function Header({ pinned = true }: { pinned?: boolean } = {}) {
         open ? "fixed inset-0" : pinned ? "fixed inset-x-0 top-0" : "relative"
       }`}
     >
-      {/* Promo strip for Pasive, above the bar. */}
+      {/* Promo strip for Pasive, above the bar, on the home page only. */}
+      {pathname === "/" && (
       <a
         href="https://pasive.cc"
         target="_blank"
@@ -255,6 +256,7 @@ export function Header({ pinned = true }: { pinned?: boolean } = {}) {
           <ArrowUpRight className="size-3.5" aria-hidden="true" />
         </span>
       </a>
+      )}
       <div
         className="shrink-0 border-b border-border bg-background/90 text-foreground backdrop-blur-md"
       >
