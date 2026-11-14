@@ -356,5 +356,79 @@ service cloud.firestore {
         allow read, write: if signedIn() && request.auth.uid == uid;
       }
     }
+
+    // ---------------------------------------------------------------
+    // Juju (juju.visualcns.com). Shares this project's accounts and
+    // the basic users/{uid} profile; its own data lives below.
+    // ---------------------------------------------------------------
+    function jujuAdmin() {
+      return signedIn() && get(/databases/$(database)/documents/jujuUsers/$(request.auth.uid)).data.get('isAdmin', false) == true;
+    }
+
+    // Juju-only data per person: credits, plan, referrals. People can't make themselves admins.
+    match /jujuUsers/{uid} {
+      allow read: if (signedIn() && request.auth.uid == uid) || jujuAdmin();
+      allow create: if signedIn() && request.auth.uid == uid
+        && request.resource.data.get('isAdmin', false) == false
+        && request.resource.data.get('role', 'user') == 'user';
+      allow update: if jujuAdmin() || (signedIn() && request.auth.uid == uid
+        && request.resource.data.get('isAdmin', false) == resource.data.get('isAdmin', false)
+        && request.resource.data.get('role', 'user') == resource.data.get('role', 'user'));
+      allow delete: if jujuAdmin();
+    }
+
+    // Canvas designs and templates.
+    match /designer/{designId} {
+      allow read: if (resource == null && signedIn())
+        || resource.data.get('isTemplate', false) == true
+        || (signedIn() && resource.data.get('userId', '') == request.auth.uid)
+        || jujuAdmin();
+      allow create: if signedIn() && request.resource.data.userId == request.auth.uid;
+      allow update: if jujuAdmin()
+        || (signedIn() && resource.data.get('userId', '') == request.auth.uid
+            && request.resource.data.userId == resource.data.userId);
+      allow delete: if jujuAdmin() || (signedIn() && resource.data.get('userId', '') == request.auth.uid);
+    }
+
+    // App-builder chats (Projects) and template chats (Templates).
+    // Owners read and write their own; templates and chats shared by link are readable
+    // by anyone (the /share page). Only Juju admins can create or change templates.
+    match /jujuChats/{chatId} {
+      allow read: if (resource == null && signedIn())
+        || resource.data.get('isTemplate', false) == true
+        || resource.data.get('shared', false) == true
+        || (signedIn() && resource.data.get('userId', '') == request.auth.uid)
+        || jujuAdmin();
+      allow create: if jujuAdmin()
+        || (signedIn() && request.resource.data.userId == request.auth.uid
+            && request.resource.data.get('isTemplate', false) == false);
+      allow update: if jujuAdmin()
+        || (signedIn() && resource.data.get('userId', '') == request.auth.uid
+            && request.resource.data.userId == resource.data.userId
+            && request.resource.data.get('isTemplate', false) == false);
+      allow delete: if jujuAdmin() || (signedIn() && resource.data.get('userId', '') == request.auth.uid);
+    }
+
+    // Published subdomains: jujuSlugs/{slug} = { chatId, userId }, e.g. my-app.ngai.visualcns.com.
+    // Public read (the published page looks names up without signing in). One owner per name.
+    // Keep the pattern and reserved list in sync with app/lib/chats.ts.
+    match /jujuSlugs/{slug} {
+      allow read: if true;
+      allow create: if signedIn()
+        && request.resource.data.userId == request.auth.uid
+        && slug.matches('^[a-z0-9][a-z0-9-]{1,38}[a-z0-9]$')
+        && !(slug in ['www', 'app', 'api', 'admin', 'mail', 'juju', 'ngai', 'dashboard', 'static', 'assets'])
+        && get(/databases/$(database)/documents/jujuChats/$(request.resource.data.chatId)).data.userId == request.auth.uid;
+      allow delete: if jujuAdmin() || (signedIn() && resource.data.userId == request.auth.uid);
+    }
+
+    match /userSettings/{uid} {
+      allow read, write: if signedIn() && request.auth.uid == uid;
+    }
+
+    // Daily sign-up counters.
+    match /userStats/{id} {
+      allow read, write: if signedIn();
+    }
   }
 }

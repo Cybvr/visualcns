@@ -38,6 +38,7 @@ export const RESERVED_SLUGS = new Set([
   "api",
   "dashboard",
   "portal",
+  "ngai",
   "offline",
   "manifest",
 ])
