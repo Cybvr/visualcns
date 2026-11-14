@@ -11,6 +11,19 @@ import type { CreatorDefaults } from "./campaign-brief"
  * invoices, contracts, and documents. Its id is the same `companyId` those
  * collections already key off, so nothing about them changes.
  */
+export interface BrandColor {
+  name: string
+  hex: string
+}
+
+/** A company's logos, colours and fonts, shown on its Brand Kit page. */
+export interface BrandKit {
+  logos?: string[]
+  colors?: BrandColor[]
+  headingFont?: string
+  bodyFont?: string
+}
+
 export interface Organization {
   /** Firestore document id === the companyId used across projects/invoices/tasks. */
   id: string
@@ -55,6 +68,7 @@ export interface Organization {
   ngaiStyle?: string
   /** What every new campaign brief for this client starts from. See lib/campaign-brief. */
   creatorDefaults?: Partial<CreatorDefaults>
+  brandKit?: BrandKit
   /** The public page's URL segment, e.g. visualcns.com/pan-atlantic-university */
   slug?: string
   /**

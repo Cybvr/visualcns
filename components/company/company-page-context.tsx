@@ -9,6 +9,7 @@ import { useAuth } from "@/components/auth-provider"
 import { COMPANY_SECTIONS, type CompanySectionKey } from "@/components/company/company-sections"
 import type { SectionNavItem } from "@/components/company/section-nav"
 import type { CompanyDetailsPatch } from "@/components/company/company-sidebar"
+import type { BrandKit } from "@/lib/organizations"
 import { siteUrl } from "@/lib/email-composer"
 import type { Contract, Estimate, Invoice } from "@/lib/billing"
 import type { CompanyDocument } from "@/lib/company-documents"
@@ -37,6 +38,7 @@ export interface CompanyPageCompany {
   slug?: string
   logoUrl?: string
   categoryLabel: string
+  brandKit?: BrandKit
   industry?: string
   location?: string
   address?: string

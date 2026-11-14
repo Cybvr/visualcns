@@ -56,6 +56,7 @@ function PublicCompany({ children }: { children: ReactNode }) {
           primaryContactId: organization?.primaryContactId,
           media: organization?.media,
           links: organization?.links,
+          brandKit: organization?.brandKit,
           publicTeam: organization?.publicTeam,
         }}
         people={publicPeople.map((person) => ({

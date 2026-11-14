@@ -1,5 +1,6 @@
 "use client"
 
+import type { BrandKit } from "@/lib/organizations"
 import { useState, type ReactNode } from "react"
 import { X } from "lucide-react"
 import { Input } from "@/components/ui/input"
@@ -38,12 +39,13 @@ export interface CompanySidebarCompany {
   links?: CompanyLink[]
   tags?: string[]
   primaryContactId?: string
+  brandKit?: BrandKit
 }
 
 export type CompanyDetailsPatch = Partial<
   Pick<
     CompanySidebarCompany,
-    "name" | "logoUrl" | "tags" | "description" | "targetCustomers" | "industry" | "location" | "address" | "website" | "companySize" | "source" | "linkedIn" | "links" | "primaryContactId"
+    "name" | "logoUrl" | "tags" | "description" | "targetCustomers" | "industry" | "location" | "address" | "website" | "companySize" | "source" | "linkedIn" | "links" | "primaryContactId" | "brandKit"
   >
 >
 

@@ -59,8 +59,7 @@ export default function CompanyHomePage() {
   const quickActions = [
     { key: "chats", label: "Chats", icon: MessageCircle, href: sectionHref("ngai"), tone: "bg-violet-500/15 text-violet-500" },
     { key: "campaigns", label: "Campaigns", icon: Megaphone, href: sectionHref("projects"), tone: "bg-orange-500/15 text-orange-500" },
-    // The logo and company details live in Settings until the brand kit has a page of its own.
-    { key: "brand-kit", label: "Add a brand kit", icon: Palette, href: `${companyPath}/settings`, tone: "bg-pink-500/15 text-pink-500" },
+    { key: "brand-kit", label: "Brand Kit", icon: Palette, href: `${companyPath}/brand-kit`, tone: "bg-pink-500/15 text-pink-500" },
   ]
 
   return (
