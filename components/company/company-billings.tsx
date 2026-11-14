@@ -84,7 +84,7 @@ export function CompanyBillings() {
   }
 
   return (
-    <div className="mt-5 space-y-8">
+    <div className="mt-9 space-y-8">
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1.35fr)_minmax(18rem,0.85fr)]">
         <section className="min-w-0 rounded-2xl border border-border bg-card p-5">
           <CompanyPlan companyId={company.id} billing={billing} seats={people.length} expanded showPlans={false} className="border-0 p-0" />

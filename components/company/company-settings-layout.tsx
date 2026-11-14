@@ -68,6 +68,8 @@ export function CompanySettingsLayout({ children, includeProfile = true, include
   return (
     <div className={cn(
       "mx-auto grid w-full gap-8 lg:items-start",
+      // Company-page settings start at the same height as every other company page.
+      mode === "routes" && "mt-4",
       wide
         ? "max-w-6xl lg:grid-cols-[9rem_minmax(0,1fr)]"
         : "max-w-5xl lg:w-fit lg:max-w-full lg:grid-cols-[9rem_minmax(0,36rem)] lg:justify-center",

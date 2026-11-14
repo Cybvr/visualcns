@@ -36,7 +36,7 @@ export function ActivitySection({ heading, prominent = false, listLayout = "defa
     : title === "Notifications" ? "No notifications yet." : "No recent activity for this company yet."
 
   return (
-    <div className={preview ? "min-w-0" : "mt-5 min-w-0"}>
+    <div className={preview ? "min-w-0" : "mt-9 min-w-0"}>
       <SectionHeader title={title} href={preview && activity.length > 0 ? sectionHref("activity") : undefined} />
       {searchable && (
         <ListSearch

@@ -35,7 +35,7 @@ export function SocialSection() {
   const view: View = VIEWS.some((item) => item.key === requested) ? requested as View : "overview"
 
   return (
-    <div className="mt-5 min-w-0">
+    <div className="mt-9 min-w-0">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div role="tablist" aria-label="Social" className="inline-flex rounded-lg bg-muted p-1">
           {VIEWS.map((item) => (

@@ -58,7 +58,7 @@ export default function BrandKitPage() {
   }
 
   return (
-    <div className="mt-5 mb-10 space-y-10">
+    <div className="mt-9 mb-10 space-y-10">
       <Logos logos={logos} primary={company.logoUrl} editable={editable} onChange={(next) => save({ logos: next })} />
       <Colors colors={colors} editable={editable} onChange={(next) => save({ colors: next })} />
       <Fonts heading={kit.headingFont} body={kit.bodyFont} companyName={company.name} editable={editable} onSave={(headingFont, bodyFont) => save({ headingFont, bodyFont })} />

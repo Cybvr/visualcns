@@ -149,7 +149,7 @@ export function CompanyVisitors({ agencyId, companyId, slug }: { agencyId: strin
   )
 
   return (
-    <div className="mt-5 space-y-8">
+    <div className="mt-9 space-y-8">
       {titleSlot ? createPortal(actions, titleSlot) : <div className="flex justify-end gap-2">{actions}</div>}
 
       <Dialog open={shareOpen} onOpenChange={setShareOpen}>
