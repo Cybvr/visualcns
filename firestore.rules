@@ -89,6 +89,17 @@ service cloud.firestore {
         && request.resource.data.status == 'signed_out';
       allow delete: if agencyAdmin(resource.data);
     }
+    // A company's own leads and customers. The agency and the company's own staff manage them.
+    match /customers/{id} {
+      allow read, delete: if agencyAdmin(resource.data) || owns(resource.data);
+      allow create: if (agencyAdmin(request.resource.data) || owns(request.resource.data))
+        && request.resource.data.get('companyId', '') != ''
+        && request.resource.data.createdBy == request.auth.uid;
+      allow update: if (agencyAdmin(resource.data) || owns(resource.data))
+        && request.resource.data.agencyId == resource.data.agencyId
+        && request.resource.data.companyId == resource.data.companyId
+        && request.resource.data.createdBy == resource.data.createdBy;
+    }
     // The tablet link for each company, keyed by companyId.
     match /visitorKiosks/{companyId} {
       allow read: if agencyAdmin(resource.data) || owns(resource.data);

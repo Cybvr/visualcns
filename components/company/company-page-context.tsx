@@ -167,6 +167,8 @@ export function CompanyPageProvider({
       .filter((item) => (mode === "routes" && canSeeVisitors) || item.key !== "domains")
       // Social holds private DMs and posting, so it follows the same rule as Visitors.
       .filter((item) => !["visitors", "messages", "social"].includes(item.key) || canSeeVisitors)
+      // Customers are the company's private contacts: its own staff and the agency only.
+      .filter((item) => item.key !== "customers" || canSeeVisitors)
     if (mode !== "routes") {
       // Dashboard tabs open on Home: the company's activity, with its name and logo on top.
       // About holds the client's editable details, so it's called Settings and goes last.
@@ -184,13 +186,14 @@ export function CompanyPageProvider({
     const order = [
       { ...about, label: "Home", icon: House },
       find("ngai"),
-      // Websites, Marketing, Finance, then Security, as the menu shows them.
+      // Websites, Marketing, Finance, Customers, then Security, as the menu shows them.
       find("sites"),
       find("domains"),
       find("projects"),
       find("social"),
       find("documents"),
       find("billings"),
+      find("customers"),
       find("visitors"),
       find("analytics"),
       // Reports sits under Account, not in the menu.

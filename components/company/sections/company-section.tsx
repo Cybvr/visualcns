@@ -5,6 +5,7 @@ import type { ComponentType } from "react"
 import { Pulse } from "@/components/company/pulse"
 import { CompanySettingsLayout } from "@/components/company/company-settings-layout"
 import { CompanyBillings } from "@/components/company/company-billings"
+import { CustomersSection } from "@/components/company/sections/customers-section"
 import { useCompanyPage, type CompanySectionKey } from "@/components/company/company-page-context"
 import { CompanyVisitors } from "@/components/company/company-visitors"
 import { HomeOverview } from "@/components/company/home-overview"
@@ -104,6 +105,7 @@ const SECTION_COMPONENTS: Record<CompanySectionKey, ComponentType> = {
   pulse: PulseSection,
   documents: DriveSection,
   billings: BillingsSection,
+  customers: CustomersSection,
   visitors: VisitorsSection,
 }
 
