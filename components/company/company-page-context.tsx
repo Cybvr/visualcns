@@ -184,13 +184,14 @@ export function CompanyPageProvider({
     const order = [
       { ...about, label: "Home", icon: House },
       find("ngai"),
-      find("domains"),
+      // Websites, Marketing, Finance, then Security, as the menu shows them.
       find("sites"),
+      find("domains"),
       find("projects"),
       find("social"),
-      find("visitors"),
       find("documents"),
       find("billings"),
+      find("visitors"),
       find("analytics"),
       // Reports sits under Account, not in the menu.
       find("pulse"),

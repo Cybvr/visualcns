@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState, type ComponentProps, type ComponentType, type ReactNode } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { ChevronRight, LogIn, Megaphone, Search } from "lucide-react"
+import { ChevronRight, Globe, LogIn, Megaphone, Search, Wallet } from "lucide-react"
 
 import { NgaiMark } from "@/components/agent/ngai-mark"
 import { useAuth } from "@/components/auth-provider"
@@ -39,30 +39,27 @@ import {
 } from "@/components/ui/sidebar"
 import { cn } from "@/lib/utils"
 
-/** Marketing in the side menu: opens to Campaigns and Social Media. */
-function MarketingMenu({ icon: Icon, campaignsHref, socialHref, campaignCount, active }: {
+type MenuGroupItem = { key: string; label: string; href: string; count?: number; alert?: number }
+
+/** A main menu heading (Websites, Marketing, Finance) that opens to its pages. */
+function MenuGroup({ icon: Icon, label, items, active }: {
   icon: ComponentType<{ className?: string }>
-  campaignsHref: string
-  socialHref: string
-  campaignCount: number
-  active: "projects" | "social" | null
+  label: string
+  items: MenuGroupItem[]
+  active: string | null
 }) {
   const { state, isMobile } = useSidebar()
   const [open, setOpen] = useState(active !== null)
   useEffect(() => { if (active) setOpen(true) }, [active])
   const collapsed = state === "collapsed" && !isMobile
-  const items = [
-    { key: "projects", label: "Campaigns", href: campaignsHref, count: campaignCount },
-    { key: "social", label: "Social Media", href: socialHref },
-  ] as const
 
   return (
     <SidebarMenuItem>
       {collapsed ? (
-        <SidebarMenuButton asChild isActive={active !== null} tooltip="Marketing" className="h-9 gap-2 px-2">
-          <CompanySidebarLink href={campaignsHref}>
+        <SidebarMenuButton asChild isActive={active !== null} tooltip={label} className="h-9 gap-2 px-2">
+          <CompanySidebarLink href={items[0].href}>
             <Icon className="h-4 w-4" />
-            <span className="sidebar-nav-label">Marketing</span>
+            <span className="sidebar-nav-label">{label}</span>
           </CompanySidebarLink>
         </SidebarMenuButton>
       ) : (
@@ -71,11 +68,11 @@ function MarketingMenu({ icon: Icon, campaignsHref, socialHref, campaignCount, a
           aria-expanded={open}
           onClick={() => setOpen((value) => !value)}
           isActive={active !== null && !open}
-          tooltip="Marketing"
+          tooltip={label}
           className="h-9 gap-2 px-2 max-md:h-12 max-md:min-h-12 max-md:gap-3 max-md:px-3 [&>svg]:size-[18px] [&>svg]:max-md:size-5"
         >
           <Icon className="h-4 w-4" />
-          <span className="sidebar-nav-label">Marketing</span>
+          <span className="sidebar-nav-label">{label}</span>
           <ChevronRight className={cn("ml-auto size-4! transition-transform", open && "rotate-90")} aria-hidden="true" />
         </SidebarMenuButton>
       )}
@@ -86,9 +83,17 @@ function MarketingMenu({ icon: Icon, campaignsHref, socialHref, campaignCount, a
               <SidebarMenuSubButton asChild isActive={active === item.key} className="h-8 max-md:h-11">
                 <CompanySidebarLink href={item.href}>
                   <span className="sidebar-nav-label">{item.label}</span>
-                  {"count" in item && (
+                  {item.count !== undefined && (
                     <span className="ml-auto inline-flex size-5 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-semibold tabular-nums text-primary-foreground">
                       {item.count}
+                    </span>
+                  )}
+                  {Boolean(item.alert) && (
+                    <span
+                      className="ml-auto inline-flex min-w-5 shrink-0 items-center justify-center rounded-full bg-destructive px-1.5 text-[10px] font-semibold leading-5 tabular-nums text-destructive-foreground"
+                      aria-label={`${item.alert} overdue invoice${item.alert === 1 ? "" : "s"}`}
+                    >
+                      {item.alert! > 99 ? "99+" : item.alert}
                     </span>
                   )}
                 </CompanySidebarLink>
@@ -100,6 +105,13 @@ function MarketingMenu({ icon: Icon, campaignsHref, socialHref, campaignCount, a
     </SidebarMenuItem>
   )
 }
+
+/** The main menu headings and the pages each one opens to, in menu order. */
+const MENU_GROUPS = [
+  { key: "websites", label: "Websites", icon: Globe, items: [{ key: "sites", label: "Sites" }, { key: "domains", label: "Domains" }] },
+  { key: "marketing", label: "Marketing", icon: Megaphone, items: [{ key: "projects", label: "Campaigns" }, { key: "social", label: "Social Media" }] },
+  { key: "finance", label: "Finance", icon: Wallet, items: [{ key: "documents", label: "Drive" }, { key: "billings", label: "Billing" }] },
+] as const
 
 function CompanySidebarLink({ onClick, ...props }: ComponentProps<typeof Link>) {
   const { setOpenMobile } = useSidebar()
@@ -201,32 +213,46 @@ export function CompanyProfileShell({ children }: { children: ReactNode }) {
   ], [sections, projects, documents, invoices, estimates, contracts])
 
   type SectionItem = (typeof sections)[number]
+  const onPage = !isSettingsPage && !isCheckoutPage && !isPricingPage && !isCartPage && !isBrandKitPage
   // Reports and Analytics live under Settings, so they leave the main menu.
-  // Campaigns and Social Media open from one Marketing dropdown.
-  const hasMarketing = sections.some((item) => item.key === "projects") && sections.some((item) => item.key === "social")
-  const sidebarSections = sections
-    .filter((item) => !["activity", "pulse", "analytics"].includes(item.key))
-    .filter((item) => !(hasMarketing && item.key === "social"))
-  // Help and Billing sit at the bottom of the menu as plain text links.
-  const footerKeys = ["ngai", "billings"]
-  const menuSections = sidebarSections.filter((item) => !footerKeys.includes(item.key))
-  const footerSections = sidebarSections.filter((item) => footerKeys.includes(item.key))
+  const sidebarSections = sections.filter((item) => !["activity", "pulse", "analytics"].includes(item.key))
+  // Help sits at the bottom of the menu as a plain text link.
+  const footerSections = sidebarSections.filter((item) => item.key === "ngai")
+  const groupOf = (key: string) => MENU_GROUPS.find((group) => group.items.some((item) => item.key === key))
+  // Each section shows once: on its own, or as the first page of its group, which then stands for the whole group.
+  const menuSections = sidebarSections.filter((item) => {
+    if (item.key === "ngai") return false
+    const group = groupOf(item.key)
+    if (!group) return true
+    return group.items.find((entry) => sidebarSections.some((s) => s.key === entry.key))?.key === item.key
+  })
 
   function renderItem(item: SectionItem) {
-    const Icon = item.icon
-    const onPage = !isSettingsPage && !isCheckoutPage && !isPricingPage && !isCartPage && !isBrandKitPage
     const isActive = onPage && section === item.key
-    if (item.key === "projects" && hasMarketing) {
-      return (
-        <MarketingMenu
-          key="marketing"
-          icon={Icon ?? Megaphone}
-          campaignsHref={sectionHref("projects")}
-          socialHref={sectionHref("social")}
-          campaignCount={projects.length}
-          active={onPage && (section === "projects" || section === "social") ? section : null}
-        />
-      )
+    const group = groupOf(item.key)
+    if (group) {
+      const items = group.items
+        .filter((entry) => sidebarSections.some((s) => s.key === entry.key))
+        .map((entry): MenuGroupItem => ({
+          key: entry.key,
+          label: entry.label,
+          href: sectionHref(entry.key as SectionItem["key"]),
+          count: entry.key === "projects" ? projects.length : undefined,
+          alert: entry.key === "billings" ? overdueInvoiceCount : undefined,
+        }))
+      // A group with one page the viewer can open is a plain link under the group's name.
+      if (items.length > 1) {
+        return (
+          <MenuGroup
+            key={group.key}
+            icon={group.icon}
+            label={group.label}
+            items={items}
+            active={onPage && items.some((entry) => entry.key === section) ? section : null}
+          />
+        )
+      }
+      item = { ...item, label: group.label, icon: group.icon } as SectionItem
     }
     return (
       <SidebarMenuItem key={item.key}>
@@ -239,8 +265,8 @@ export function CompanyProfileShell({ children }: { children: ReactNode }) {
           <CompanySidebarLink href={sectionHref(item.key)}>
             {item.key === "ngai" ? (
               <NgaiMark className="size-[18px] shrink-0 max-md:size-5" />
-            ) : Icon ? (
-              <Icon className="h-4 w-4" aria-hidden="true" />
+            ) : item.icon ? (
+              <item.icon className="h-4 w-4" aria-hidden="true" />
             ) : null}
             <span className="sidebar-nav-label">{item.label}</span>
             {item.key === "projects" && (
@@ -285,9 +311,9 @@ export function CompanyProfileShell({ children }: { children: ReactNode }) {
               </SidebarGroup>
             </SidebarContent>
             {footerSections.length > 0 && (
-              <nav aria-label="Help and billing" className="mt-auto flex flex-col gap-1 px-4 pt-3 pb-5 group-data-[collapsible=icon]:hidden">
+              <nav aria-label="Help" className="mt-auto flex flex-col gap-1 px-4 pt-3 pb-5 group-data-[collapsible=icon]:hidden">
                 {footerSections.map((item) => {
-                  const isActive = !isSettingsPage && !isCheckoutPage && !isPricingPage && !isCartPage && !isBrandKitPage && section === item.key
+                  const isActive = onPage && section === item.key
                   return (
                     <CompanySidebarLink
                       key={item.key}
