@@ -1886,7 +1886,7 @@ export function EmailWorkspace({ initialTab, initialMessageId }: { initialTab: E
                   title={`Template preview: ${previewTemplate.name}`}
                   sandbox="allow-same-origin"
                   scrolling="no"
-                  srcDoc={templatePreview(previewTemplate)}
+                  srcDoc={templatePreview(previewTemplate, businessProfile)}
                   onLoad={(event) => {
                     openEmailLinksInNewTab(event.currentTarget)
                     const doc = event.currentTarget.contentDocument
