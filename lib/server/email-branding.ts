@@ -57,7 +57,7 @@ export function absoluteWebUrl(value: string, fallback: string) {
   }
 }
 
-export function brandedEmail(content: string, subject: string, input: unknown, senderAddress: string, ctaInput: unknown, unsubscribeLink = "") {
+export function brandedEmail(content: string, subject: string, input: unknown, senderAddress: string, ctaInput: unknown, unsubscribeLink = "", recipientAddress = "") {
   const source = input && typeof input === "object" ? input as Record<string, unknown> : {}
   const brand: EmailBrand = {
     name: safeBrandValue(source.name, "VisualCNS") || "VisualCNS",
@@ -84,7 +84,7 @@ export function brandedEmail(content: string, subject: string, input: unknown, s
     ? `<a href="${escapeHtml(websiteUrl)}" style="color:#5f6472;text-decoration:underline;">${escapeHtml(brand.website)}</a>`
     : ""
   const unsubscribeMarkup = unsubscribeLink
-    ? `<div style="margin-top:12px;"><a href="${escapeHtml(unsubscribeLink)}" style="color:#5f6472;text-decoration:underline;">Unsubscribe from marketing emails</a></div>`
+    ? `<div style="margin-top:12px;">${recipientAddress ? `This email was sent to ${escapeHtml(recipientAddress)} because you agreed to receive news, offers and updates from ${escapeHtml(brand.name)}. ` : ""}If you don't want these emails, <a href="${escapeHtml(unsubscribeLink)}" style="color:#5f6472;text-decoration:underline;">unsubscribe here</a>.</div>`
     : ""
   const preheader = escapeHtml(subject).slice(0, 140)
 
