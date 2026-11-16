@@ -74,7 +74,7 @@ export function UpgradeModal({ open, onOpenChange, companyId, companyName, billi
   } else if (access?.state === "paused") {
     badge = "Free"
     headline = "Free plan"
-    detail = "Pass for up to 5 staff and Ngai. Choose a plan for Reports and more staff."
+    detail = "Pass for up to 5 staff and Ngai. Choose a plan for Marketing and more staff."
   }
 
   return (

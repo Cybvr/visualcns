@@ -110,7 +110,7 @@ function MenuGroup({ icon: Icon, label, items, active }: {
 const MENU_GROUPS = [
   { key: "websites", label: "Websites", icon: Globe, items: [{ key: "sites", label: "Sites" }, { key: "domains", label: "Domains" }] },
   { key: "marketing", label: "Marketing", icon: Megaphone, items: [
-    { key: "marketing", label: "Overview" },
+    { key: "marketing", label: "Home" },
     { key: "projects", label: "Campaigns" },
     { key: "social", label: "Social Media" },
     { key: "reviews", label: "Reviews" },
@@ -196,7 +196,7 @@ export function CompanyProfileShell({ children }: { children: ReactNode }) {
   const isCartPage = pageSegment === "cart"
   const isBrandKitPage = pageSegment === "brand-kit"
   const sectionLabel = sections.find((item) => item.key === section)?.label
-  const settingsPageLabel = settingsSubpage === "account" ? "Account" : settingsSubpage === "social" ? "Social" : settingsSubpage === "reports" ? "Reports" : settingsSubpage === "analytics" ? "Analytics" : "General"
+  const settingsPageLabel = settingsSubpage === "account" ? "Account" : settingsSubpage === "social" ? "Social" : settingsSubpage === "analytics" ? "Analytics" : "General"
   const pageLabel = isSettingsPage ? settingsPageLabel : isCheckoutPage ? "Checkout" : isPricingPage ? "Pricing" : isCartPage ? "Cart" : isBrandKitPage ? "Brand Kit" : sectionLabel
   const companyPath = `/${encodeURIComponent(company.slug || company.id)}`
   const activity = useMemo(() => buildActivity({ projects, tasks, invoices, estimates, contracts, documents }, 20), [projects, tasks, invoices, estimates, contracts, documents])
@@ -223,8 +223,8 @@ export function CompanyProfileShell({ children }: { children: ReactNode }) {
 
   type SectionItem = (typeof sections)[number]
   const onPage = !isSettingsPage && !isCheckoutPage && !isPricingPage && !isCartPage && !isBrandKitPage
-  // Reports and Analytics live under Settings, so they leave the main menu.
-  const sidebarSections = sections.filter((item) => !["activity", "pulse", "analytics"].includes(item.key))
+  // Analytics lives under Settings, so it leaves the main menu.
+  const sidebarSections = sections.filter((item) => !["activity", "analytics"].includes(item.key))
   // Help sits at the bottom of the menu as a plain text link.
   const footerSections = sidebarSections.filter((item) => item.key === "ngai")
   const groupOf = (key: string) => MENU_GROUPS.find((group) => group.items.some((item) => item.key === key))

@@ -162,6 +162,8 @@ export function CompanyPageProvider({
     // Tasks and media live inside each campaign, so they have no menu entry of their own.
     const visible = COMPANY_SECTIONS
       .filter((item) => item.key !== "tasks")
+      // Reports (Pulse) is now Marketing; its old address redirects there.
+      .filter((item) => item.key !== "pulse")
       // Team sits on Account in the dashboard tabs.
       .filter((item) => mode === "routes" || item.key !== "team")
       .filter((item) => mode === "routes" || item.key !== "ngai")
@@ -204,8 +206,6 @@ export function CompanyPageProvider({
       find("customers"),
       find("visitors"),
       find("analytics"),
-      // Reports sits under Account, not in the menu.
-      find("pulse"),
       activity && { ...activity, label: "Notifications", icon: Bell },
     ]
     return order.filter((item): item is NonNullable<typeof item> => Boolean(item))

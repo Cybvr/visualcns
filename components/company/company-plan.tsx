@@ -125,7 +125,7 @@ export function CompanyPlan({ companyId, billing, seats = null, className, expan
     tone = "text-amber-600"
   } else if (access?.state === "paused") {
     title = "Free plan"
-    detail = `Pass for up to ${FREE_STAFF} staff and Ngai. Choose a plan for Reports and more staff.`
+    detail = `Pass for up to ${FREE_STAFF} staff and Ngai. Choose a plan for Marketing and more staff.`
   }
 
   const paid = access && (access.state === "active" || access.state === "grace")

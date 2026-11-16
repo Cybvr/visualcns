@@ -49,7 +49,7 @@ export const PLANS: Record<PlanKey, Plan> = {
     staff: 5,
     pulseScans: 1,
     summary: "For a small office getting set up.",
-    features: ["VisualCNS Pass visitor sign-in for up to 5 staff", "VisualCNS Pulse: 1 scan a month", "Ngai assistant", "Client portal for your team"],
+    features: ["VisualCNS Pass visitor sign-in for up to 5 staff", "Marketing: 1 update a month", "Ngai assistant", "Client portal for your team"],
   },
   business: {
     name: "Business",
@@ -60,7 +60,7 @@ export const PLANS: Record<PlanKey, Plan> = {
     staff: 25,
     pulseScans: 4,
     summary: "For a growing team with a busy front desk.",
-    features: ["VisualCNS Pass visitor sign-in for up to 25 staff", "VisualCNS Pulse: 4 scans a month", "Ngai assistant", "Client portal for your team", "Slack, Teams and webhook alerts"],
+    features: ["VisualCNS Pass visitor sign-in for up to 25 staff", "Marketing: 4 updates a month", "Ngai assistant", "Client portal for your team", "Slack, Teams and webhook alerts"],
   },
   pro: {
     name: "Pro",
@@ -71,7 +71,7 @@ export const PLANS: Record<PlanKey, Plan> = {
     staff: Infinity,
     pulseScans: Infinity,
     summary: "For larger companies that want everything.",
-    features: ["VisualCNS Pass visitor sign-in for unlimited staff", "VisualCNS Pulse: unlimited scans", "Ngai assistant", "Client portal for your team", "Slack, Teams and webhook alerts", "Priority support"],
+    features: ["VisualCNS Pass visitor sign-in for unlimited staff", "Marketing: unlimited updates", "Ngai assistant", "Client portal for your team", "Slack, Teams and webhook alerts", "Priority support"],
   },
 }
 export const PLAN_KEYS: PlanKey[] = ["starter", "business", "pro"]

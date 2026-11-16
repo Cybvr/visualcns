@@ -20,7 +20,8 @@ export const COMPANY_SECTIONS = [
   { key: "about", label: "About", icon: Info },
   { key: "team", label: "Team", icon: Users },
   { key: "activity", label: "Activity", icon: Activity },
-  { key: "pulse", label: "Reports", icon: ChartColumn },
+  // Old key for Marketing, kept so old links resolve. Hidden from menus.
+  { key: "pulse", label: "Marketing", icon: ChartColumn },
   { key: "analytics", label: "Analytics", icon: TrendingUp },
   { key: "billings", label: "Billing", icon: CreditCard },
   { key: "customers", label: "Customers", icon: Contact },
