@@ -25,3 +25,26 @@ export function ngaiPublishedUrl(slug: string) {
 }
 
 export const NGAI_PROJECTS_URL = `${NGAI_APP_ORIGIN}/dashboard/projects`
+
+/**
+ * Opens a builder page already signed in as the current VisualCNS user. The
+ * one-time token rides in the URL fragment, which browsers never send to a
+ * server. Falls back to the plain link, where the builder asks for sign-in.
+ */
+export async function openInBuilder(path: string, idToken: () => Promise<string | null>) {
+  const target = path.startsWith("/") ? path : `/${path}`
+  try {
+    const token = await idToken()
+    if (token) {
+      const response = await fetch("/api/auth/builder-token", { method: "POST", headers: { Authorization: `Bearer ${token}` } })
+      const data = await response.json().catch(() => ({}))
+      if (response.ok && typeof data.token === "string") {
+        window.location.assign(`${NGAI_APP_ORIGIN}/auth/handoff#token=${encodeURIComponent(data.token)}&next=${encodeURIComponent(target)}`)
+        return
+      }
+    }
+  } catch {
+    // Fall through to the plain link.
+  }
+  window.location.assign(`${NGAI_APP_ORIGIN}${target}`)
+}

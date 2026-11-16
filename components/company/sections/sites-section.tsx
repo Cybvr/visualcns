@@ -9,7 +9,7 @@ import { CollectionView } from "@/components/dashboard/collection-view"
 import { useNgaiChats } from "@/components/ngai/use-ngai-chats"
 import { Button } from "@/components/ui/button"
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
-import { NGAI_APP_URL, NGAI_PROJECTS_URL, ngaiChatUrl, ngaiPublishedUrl } from "@/lib/ngai"
+import { ngaiPublishedUrl, openInBuilder } from "@/lib/ngai"
 
 /** The viewer's Ngai builder chats, in the same list as Campaigns. Published sites open live; drafts open in the builder. */
 export function SitesSection() {
@@ -29,7 +29,9 @@ export function SitesSection() {
 
   if (failed) return <p className="py-24 text-center text-muted-foreground">Couldn&apos;t load your websites. Try again in a moment.</p>
 
-  const newSite = () => window.location.assign(NGAI_APP_URL)
+  // Opens the builder already signed in as this user.
+  const openBuilder = (path: string) => void openInBuilder(path, async () => user ? user.getIdToken() : null)
+  const newSite = () => openBuilder("/dashboard")
 
   return (
     <div className="mt-5">
@@ -53,11 +55,9 @@ export function SitesSection() {
           noun: "website",
           name: chat.title,
           extra: chat.slug ? (
-            <DropdownMenuItem asChild>
-              <a href={ngaiChatUrl(chat.id)}>
-                <Pencil aria-hidden="true" />
-                Edit
-              </a>
+            <DropdownMenuItem onSelect={() => openBuilder(`/chat/${encodeURIComponent(chat.id)}`)}>
+              <Pencil aria-hidden="true" />
+              Edit
             </DropdownMenuItem>
           ) : undefined,
         })}
@@ -69,7 +69,7 @@ export function SitesSection() {
             placeholder: <Globe className="size-8 text-muted-foreground/60" aria-hidden="true" />,
             onClick: () => {
               if (liveUrl) window.open(liveUrl, "_blank", "noopener,noreferrer")
-              else window.location.assign(ngaiChatUrl(chat.id))
+              else openBuilder(`/chat/${encodeURIComponent(chat.id)}`)
             },
             ariaLabel: `Open ${chat.title}`,
           }
@@ -78,9 +78,9 @@ export function SitesSection() {
       />
       {chats && chats.length >= 50 && (
         <p className="mt-4 text-center text-sm">
-          <a href={NGAI_PROJECTS_URL} className="text-muted-foreground underline-offset-4 hover:underline">
+          <button type="button" onClick={() => openBuilder("/dashboard/projects")} className="text-muted-foreground underline-offset-4 hover:underline">
             See all your websites
-          </a>
+          </button>
         </p>
       )}
     </div>

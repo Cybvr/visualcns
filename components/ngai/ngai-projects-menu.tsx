@@ -1,7 +1,7 @@
 "use client"
 
 import { ChevronDown } from "lucide-react"
-import { NGAI_PROJECTS_URL, ngaiChatUrl } from "@/lib/ngai"
+import { openInBuilder } from "@/lib/ngai"
 import { useNgaiChats } from "./use-ngai-chats"
 import { Button } from "@/components/ui/button"
 import {
@@ -15,6 +15,8 @@ import {
 
 export function NgaiProjectsMenu({ className }: { className?: string }) {
   const { user, authReady, chats, failed } = useNgaiChats()
+  // Opens the builder already signed in as this user.
+  const openBuilder = (path: string) => void openInBuilder(path, async () => user ? user.getIdToken() : null)
 
   return (
     <DropdownMenu>
@@ -42,17 +44,13 @@ export function NgaiProjectsMenu({ className }: { className?: string }) {
               <DropdownMenuLabel className="font-normal text-muted-foreground">No projects yet</DropdownMenuLabel>
             ) : (
               chats.map((chat) => (
-                <DropdownMenuItem key={chat.id} asChild>
-                  <a href={ngaiChatUrl(chat.id)} className="truncate">
-                    {chat.title}
-                  </a>
+                <DropdownMenuItem key={chat.id} onSelect={() => openBuilder(`/chat/${encodeURIComponent(chat.id)}`)} className="truncate">
+                  {chat.title}
                 </DropdownMenuItem>
               ))
             )}
             <DropdownMenuSeparator />
-            <DropdownMenuItem asChild>
-              <a href={NGAI_PROJECTS_URL}>View all</a>
-            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => openBuilder("/dashboard/projects")}>View all</DropdownMenuItem>
           </>
         )}
       </DropdownMenuContent>
