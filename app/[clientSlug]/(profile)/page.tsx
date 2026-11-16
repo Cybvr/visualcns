@@ -10,9 +10,13 @@ import { useAuth } from "@/components/auth-provider"
 import { isCompanySection, useCompanyPage } from "@/components/company/company-page-context"
 import { SectionHeader } from "@/components/dashboard/section-header"
 import { Button } from "@/components/ui/button"
+import { useLocalCurrency } from "@/components/use-local-currency"
+import { formatPrice, growthPlanRows } from "@/lib/plans"
 
 /** The featured offer, shown above the quick actions until it is dismissed. */
 const FEATURED = { key: "growth", tab: "growth", title: "Grow with a Growth plan", text: "Campaigns, content and reports handled for you every month." }
+/** The cheapest paid Growth plan, shown as the "From" price. */
+const GROWTH_FROM_PRICE = growthPlanRows.find((row) => row.service === "Pro")?.price ?? "free"
 const FEATURED_DISMISSED_KEY = "home-featured-growth-dismissed"
 
 /** Things from the pricing page worth suggesting, each opening its pricing tab. */
@@ -30,6 +34,7 @@ export default function CompanyHomePage() {
   const router = useRouter()
   const redirected = useRef(false)
   const [featuredDismissed, setFeaturedDismissed] = useState(true)
+  const currency = useLocalCurrency()
 
   useEffect(() => {
     try { setFeaturedDismissed(window.localStorage.getItem(FEATURED_DISMISSED_KEY) === "1") } catch { setFeaturedDismissed(false) }
@@ -99,6 +104,7 @@ export default function CompanyHomePage() {
           <div className="min-w-0">
             <p className="text-base font-medium leading-snug text-foreground">{FEATURED.title}</p>
             <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{FEATURED.text}</p>
+            <p className="mt-2 text-sm font-semibold text-foreground">From {formatPrice(GROWTH_FROM_PRICE, currency)}</p>
             <Button asChild size="sm" className="mt-3">
               <Link href={`${companyPath}/pricing/${FEATURED.tab}`}>Get started</Link>
             </Button>
