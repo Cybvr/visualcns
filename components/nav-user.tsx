@@ -3,12 +3,13 @@
 import Link from "next/link"
 import { useEffect, useState } from "react"
 import { useTheme } from "next-themes"
-import { ArrowLeft, ChevronsUpDown, LogOut, Moon, UserCog } from "lucide-react"
+import { ArrowLeft, ChevronsUpDown, Eye, LogOut, Moon, UserCog } from "lucide-react"
 
 import { useAuth } from "@/components/auth-provider"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { userRoleLabel } from "@/lib/users"
+import { getOwnerOrganization, organizationRef } from "@/lib/organizations"
 import { Switch } from "@/components/ui/switch"
 import {
   DropdownMenu,
@@ -30,6 +31,18 @@ export function NavUser({ variant = "sidebar", accountLabel = "Account", account
   const { user, appUser, isAdmin, isViewingAs, stopViewingAs, signOut } = useAuth()
   const { resolvedTheme, setTheme } = useTheme()
   const [themeReady, setThemeReady] = useState(false)
+  const [ownPageHref, setOwnPageHref] = useState("")
+
+  // In the dashboard, admins get a link to their own company page.
+  useEffect(() => {
+    setOwnPageHref("")
+    if (backToDashboard || !isAdmin || isViewingAs || !user) return
+    let active = true
+    getOwnerOrganization()
+      .then((organization) => { if (active && organization) setOwnPageHref(`/${encodeURIComponent(organizationRef(organization))}`) })
+      .catch(() => {})
+    return () => { active = false }
+  }, [backToDashboard, isAdmin, isViewingAs, user])
 
   const name = appUser?.displayName || appUser?.company || user?.displayName || "Account"
   const email = appUser?.email || user?.email || ""
@@ -69,6 +82,14 @@ export function NavUser({ variant = "sidebar", accountLabel = "Account", account
           <Link href="/dashboard" onClick={stopViewingAs}>
             <ArrowLeft />
             Back to Dashboard
+          </Link>
+        </DropdownMenuItem>
+      )}
+      {ownPageHref && (
+        <DropdownMenuItem asChild>
+          <Link href={ownPageHref}>
+            <Eye />
+            View page
           </Link>
         </DropdownMenuItem>
       )}
