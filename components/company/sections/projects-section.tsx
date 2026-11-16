@@ -225,6 +225,7 @@ export function ProjectsSection() {
               isAdmin={Boolean(admin)}
               publicView={!admin}
               embedded
+              assetsHref={sectionHref("assets")}
               companyId={company.id}
               companySlug={company.slug}
               clientName={company.name}

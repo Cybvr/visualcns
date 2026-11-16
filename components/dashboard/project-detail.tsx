@@ -15,7 +15,6 @@ import { CampaignGenerateButton } from "@/components/dashboard/campaign-generate
 import { CampaignSettings } from "@/components/dashboard/campaign-settings"
 import { CaseStudyForm } from "@/components/dashboard/case-study-form"
 import { Ngai } from "@/components/agent/ngai"
-import { NgaiMark } from "@/components/agent/ngai-mark"
 import { QuickEmailComposer } from "@/components/dashboard/email/quick-email-composer"
 import { ShareDialog } from "@/components/dashboard/share-dialog"
 import { ProjectShareButton } from "@/components/dashboard/project-share-button"
@@ -49,6 +48,8 @@ interface ProjectDetailProps {
   /** The client's logo, shown as the poster on campaign posts. */
   clientLogoUrl?: string
   embedded?: boolean
+  /** On the company page: where campaign media lives (Marketing Assets). New Media opens it. */
+  assetsHref?: string
   onProjectPatched?: (patch: Partial<Project>) => void
   onProjectDeleted?: () => void | Promise<void>
   /** Closes the campaign. On the company page its sections then take over the sidebar, with this as the way back. */
@@ -91,6 +92,7 @@ export function ProjectDetail({
   clientName = "",
   clientLogoUrl,
   embedded = false,
+  assetsHref,
   onProjectPatched,
   onProjectDeleted,
   onBack,
@@ -108,7 +110,10 @@ export function ProjectDetail({
   // On the company page campaigns have no Tasks tab, so an old ?view=tasks link opens Home.
   const showTasks = !embedded && !(publicView && !publicTasks)
   const requestedTab = TAB_FROM_VIEW[view ?? ""] ?? "home"
-  const tab = requestedTab === "tasks" && !showTasks ? "home" : requestedTab
+  // On the company page, campaigns keep to the work itself: media lives in Assets, and
+  // Ngai, Analytics and Settings stay on the admin pages.
+  const hiddenOnCompany: CampaignTab[] = ["build", "analytics", "media", "settings"]
+  const tab = (requestedTab === "tasks" && !showTasks) || (embedded && hiddenOnCompany.includes(requestedTab)) ? "home" : requestedTab
   const setTab = (next: CampaignTab) => setView(next === "home" ? null : VIEW_FROM_TAB[next])
   // Where the campaign keeps its own section menu, the app menu folds to its icon rail while it is open.
   // On the company page the sections move into the sidebar instead, so it stays open.
@@ -182,6 +187,10 @@ export function ProjectDetail({
   function startQuickAction(action: CampaignQuickAction) {
     if (action === "run") {
       setRunCampaignOpen(true)
+      return
+    }
+    if (action === "media" && embedded && assetsHref) {
+      window.location.assign(assetsHref)
       return
     }
     setQuickAction(action)
@@ -386,12 +395,13 @@ export function ProjectDetail({
     { key: "about", label: "About campaign", icon: MdDescription },
     { key: "people", label: "Creators", count: roster.length, icon: MdPeople },
     { key: "creatives", label: "Content", count: contentItems.length, icon: MdPalette },
-    { key: "media", label: "Drive", count: mediaItems.length, icon: MdPhotoLibrary },
-    { key: "analytics", label: "Analytics", icon: MdBarChart },
+    ...(embedded ? [] : [
+      { key: "media", label: "Drive", count: mediaItems.length, icon: MdPhotoLibrary },
+      { key: "analytics", label: "Analytics", icon: MdBarChart },
+    ]),
     { key: "payments", label: "Payments", icon: MdPayments },
     ...(showTasks ? [{ key: "tasks", label: "Tasks", icon: MdAssignment }] : []),
-    ...(embedded && canEditCampaign ? [{ key: "build", label: "Ngai", icon: NgaiMark }] : []),
-    ...(canEditCampaign ? [{ key: "settings", label: "Settings", icon: MdSettings }] : []),
+    ...(canEditCampaign && !embedded ? [{ key: "settings", label: "Settings", icon: MdSettings }] : []),
   ] as { key: CampaignTab; label: string; count?: number; icon: SidebarIcon }[]
 
   // On the company page the campaign's sections replace the sidebar menu, with a way back to Campaigns.
