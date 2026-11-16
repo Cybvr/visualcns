@@ -11,7 +11,7 @@ import { useAuth } from "@/components/auth-provider"
 import { authErrorMessage, GoogleIcon } from "@/components/auth-ui"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { getOrganization, organizationRef } from "@/lib/organizations"
+import { getOrganization, getOwnerOrganization, organizationRef } from "@/lib/organizations"
 import { safeReturnTo } from "@/lib/navigation"
 
 type AuthAction = "email" | "google" | null
@@ -67,6 +67,16 @@ export default function LoginPage() {
     if (requested) {
       router.replace(requested)
       return
+    }
+    // Super admins land on their own company page; the dashboard is one click away from its account menu.
+    if (appUser?.role === "superadmin") {
+      let active = true
+      getOwnerOrganization()
+        .then((organization) => {
+          if (active) router.replace(organization ? `/${encodeURIComponent(organizationRef(organization))}` : "/dashboard")
+        })
+        .catch(() => { if (active) router.replace("/dashboard") })
+      return () => { active = false }
     }
     if (isAdmin) {
       router.replace("/dashboard")
