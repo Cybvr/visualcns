@@ -607,7 +607,7 @@ export function QuickEmailComposer({
       clearComposer={clearComposer}
       htmlToText={htmlToText}
       composerPreviewOpen={composerPreviewOpen}
-      composerPreviewHtml={() => composedEmailPreview({ subject, body, branded: brandedEmail, brand: businessProfile, ctaText: composeContext?.ctaText, ctaUrl: composeContext?.ctaUrl })}
+      composerPreviewHtml={() => composedEmailPreview({ subject, body, branded: brandedEmail, brand: businessProfile, ctaText: composeContext?.ctaText, ctaUrl: composeContext?.ctaUrl, marketingRecipient: messageKind === "marketing" ? (parseEmailList(to).valid[0] || "the recipient's email") : undefined })}
       sendNotice={sendNotice}
     />
   )
