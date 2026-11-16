@@ -653,7 +653,7 @@ export async function POST(request: Request) {
     const plainHtml = `${messageContent}${unsubscribeLink ? `<p style="font-size:12px;color:#6d7280">This email was sent to ${escapeHtml(unsubscribeEmail || "")} because you agreed to receive news, offers and updates from ${escapeHtml(brandName)}. If you don't want these emails, <a href="${escapeHtml(unsubscribeLink)}">unsubscribe here</a>.</p>` : ""}`
     const html = useBrandedLayout ? brandedEmail(messageContent, subject, payload.brand, from, payload.cta, unsubscribeLink, unsubscribeEmail) : plainHtml
     const brandedText = useBrandedLayout
-      ? `${text}${ctaUrl ? `\n\n${ctaText}: ${ctaUrl}` : ""}\n\n---\n${footerText}\nX: ${X_URL}\nLinkedIn: ${LINKEDIN_URL}${unsubscribeLink ? `\n\n${sentToText} ${unsubscribeLink}` : ""}`
+      ? `${text}${ctaUrl ? `\n\n${ctaText}: ${ctaUrl}` : ""}\n\n---\n${footerText}\nX: ${X_URL}\nLinkedIn: ${LINKEDIN_URL}\nHelp center: ${SITE_ORIGIN}/help\nTerms of use: ${SITE_ORIGIN}/terms${unsubscribeLink ? `\n\n${sentToText} ${unsubscribeLink}` : ""}`
       : `${text}${unsubscribeLink ? `\n\n${sentToText} ${unsubscribeLink}` : ""}`
     if (useGmail) {
       const result = await sendGmailMessage(agencyId, { from, to, cc: copy, replyTo, subject, text: brandedText, html, attachments, ...threading })

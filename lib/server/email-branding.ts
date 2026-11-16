@@ -116,6 +116,7 @@ export function brandedEmail(content: string, subject: string, input: unknown, s
                       <div style="font-weight:700;color:#303440;">${escapeHtml(brand.name)}</div>
                       ${contactItems ? `<div style="margin-top:4px;">${contactItems}</div>` : ""}
                       ${websiteLink ? `<div style="margin-top:4px;">${websiteLink}</div>` : ""}
+                      <div style="margin-top:4px;"><a href="${SITE_ORIGIN}/help" style="color:#5f6472;text-decoration:underline;">Help center</a> &middot; <a href="${SITE_ORIGIN}/terms" style="color:#5f6472;text-decoration:underline;">Terms of use</a></div>
                       ${unsubscribeMarkup}
                     </td>
                     <td style="vertical-align:top;text-align:right;white-space:nowrap;">
