@@ -21,7 +21,7 @@ const RESULT_MESSAGES: Record<string, [ok: boolean, message: string]> = {
   error: [false, "Couldn't connect that account."],
 }
 
-const CONNECT_PLATFORMS = SOCIAL_PLATFORMS.filter((platform) => !["google", "threads", "youtube", "tiktok"].includes(platform.key))
+const CONNECT_PLATFORMS = SOCIAL_PLATFORMS.filter((platform) => !["threads", "youtube", "tiktok"].includes(platform.key))
 
 /**
  * A company's social accounts on its settings page. The client (or the

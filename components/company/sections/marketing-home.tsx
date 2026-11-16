@@ -96,13 +96,16 @@ export function MarketingOverviewSection() {
   const socialHref = `/${encodeURIComponent(company.slug || company.id)}/settings/social`
   const hasDetails = Boolean(details.name?.trim() && details.website?.trim() && details.description?.trim())
   const connect = (key: GoogleKey) => () => setConnecting(key)
+  // Google Business connects through the social accounts (SocialAPI), like Facebook and LinkedIn.
+  const businessLinked = Boolean(connections.businessProfile) || socialAccounts.some((account) => account.platform === "google")
+  const connectBusiness = () => window.location.assign(socialHref)
 
   // Setup first, in the order that unlocks the most; then the scan's own next steps.
   const steps: Step[] = [
     ...(hasDetails ? [] : [{ id: "details", title: "Tell us about your business", text: "Add your website, what you do and who your customers are. Everything here is built from it.", cta: "Add details", href: sectionHref("marketing-settings") }]),
     ...(connections.ga4 ? [] : [{ id: "ga4", title: "Track your website with Google Analytics 4", text: "See who visits your site, where they come from and what they do: better data, smarter decisions and improved rankings.", cta: "Connect GA4", onClick: connect("ga4") }]),
     ...(connections.searchConsole ? [] : [{ id: "searchConsole", title: "See how you rank on Google", text: "Connect Search Console to track the searches people use to find you, and where you rank for each.", cta: "Connect Search Console", onClick: connect("searchConsole") }]),
-    ...(connections.businessProfile ? [] : [{ id: "businessProfile", title: "Get found on Google Maps", text: "Connect your Google Business Profile to track calls, direction requests and reviews.", cta: "Connect Business Profile", onClick: connect("businessProfile") }]),
+    ...(businessLinked ? [] : [{ id: "businessProfile", title: "Get found on Google Maps", text: "Connect your Google Business Profile to track calls, direction requests and reviews.", cta: "Connect Business Profile", href: socialHref }]),
     ...(social.info && socialAccounts.length === 0 ? [{ id: "social", title: "Connect your social accounts", text: "Post, reply and see your followers in one place.", cta: "Connect social", href: socialHref }] : []),
     ...(report ? [] : [{ id: "build", title: "Build your marketing", text: "We check your website, search, reviews and competitors, then show you what to do next.", cta: scanning ? "Building…" : "Build my marketing", onClick: () => void build() }]),
     ...(report?.actions ?? []).map((action) => ({ id: action.id, title: action.title, text: action.why, cta: "See how", href: sectionHref("insights") })),
@@ -183,16 +186,16 @@ export function MarketingOverviewSection() {
             )}
             {area === "business-profile" && (
               <>
-                {!connections.businessProfile && <ConnectCard title="Show up on Google Maps" text="Connect your Google Business Profile to track calls, visits and direction requests." cta="Connect Business Profile" onClick={connect("businessProfile")} />}
-                <MetricsCard title="Google Business Profile" connected={Boolean(connections.businessProfile)} metrics={[["Profile views", MapPin], ["Calls", Check], ["Directions", MapPin]]} />
+                {!businessLinked && <ConnectCard title="Show up on Google Maps" text="Connect your Google Business Profile to track calls, visits and direction requests." cta="Connect Business Profile" onClick={connectBusiness} />}
+                <MetricsCard title="Google Business Profile" connected={businessLinked} metrics={[["Profile views", MapPin], ["Calls", Check], ["Directions", MapPin]]} />
                 <KeywordsCard details={details} sources={[{ label: "Google Maps", icon: <MapPin className="size-4 text-[#ea4335]" aria-hidden="true" /> }]} />
                 <FindingsCard title="What to fix on your profile" items={report ? profileItems(report) : null} href={sectionHref("business-profile")} link="See Business Profile" />
               </>
             )}
             {area === "reviews" && (
               <>
-                {!connections.businessProfile && <ConnectCard title="See every review in one place" text="Connect your Google Business Profile to track new reviews and reply faster." cta="Connect Business Profile" onClick={connect("businessProfile")} />}
-                <MetricsCard title="Reviews" connected={Boolean(connections.businessProfile)} metrics={[["Average rating", Star], ["Reviews", Star], ["Replied", Check]]} />
+                {!businessLinked && <ConnectCard title="See every review in one place" text="Connect your Google Business Profile to track new reviews and reply faster." cta="Connect Business Profile" onClick={connectBusiness} />}
+                <MetricsCard title="Reviews" connected={businessLinked} metrics={[["Average rating", Star], ["Reviews", Star], ["Replied", Check]]} />
                 <FindingsCard title="What people say" items={report ? reviewItems(report) : null} href={sectionHref("reviews")} link="See Reviews" />
               </>
             )}
