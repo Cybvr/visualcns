@@ -10,7 +10,7 @@ import { getOrganization, getOwnerOrganization, organizationRef } from "@/lib/or
 /** Pages on a person's own company profile that other apps (Juju Sites) link to by name. */
 const DESTINATIONS: Record<string, string> = {
   home: "",
-  products: "/sites",
+  products: "",
   billing: "/billings",
   settings: "/settings/account",
 }
