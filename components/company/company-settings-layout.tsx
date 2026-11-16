@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useEffect, useState, type ReactNode } from "react"
-import { ChartColumn, Settings2, Share2, TrendingUp, User, Users } from "lucide-react"
+import { Settings2, Share2, TrendingUp, User, Users } from "lucide-react"
 
 import { useCompanyPage } from "@/components/company/company-page-context"
 import { cn } from "@/lib/utils"
@@ -19,7 +19,6 @@ const SETTINGS_PAGES = [
   ["", "General", Settings2, "about"],
   ["account", "Account", User, "about"],
   ["social", "Social", Share2, "social"],
-  ["reports", "Reports", ChartColumn, "pulse"],
   ["analytics", "Analytics", TrendingUp, "analytics"],
 ] as const
 

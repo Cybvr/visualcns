@@ -250,8 +250,8 @@ function ErrorNote({ message }: { message: string }) {
   )
 }
 
-/** One saved report, opened from the list at ?report={id}. */
-function ReportView({
+/** One saved report: opened from the list at ?report={id}, or the newest one on Marketing's Insights page. */
+export function ReportView({
   companyId,
   details,
   onSave,
@@ -263,7 +263,8 @@ function ReportView({
   details: BusinessDetails
   onSave?: (patch: Partial<BusinessDetails>) => Promise<void>
   reportId: string
-  onBack: () => void
+  /** Leave out where there is nothing to go back to, e.g. Insights. */
+  onBack?: () => void
   onScanned: (id: string) => void
 }) {
   const companyName = details.name
@@ -296,7 +297,7 @@ function ReportView({
 
   useEffect(() => {
     if (signedOut) {
-      setError("Please sign in to use Reports.")
+      setError("Please sign in to use Marketing.")
       setLoading(false)
       return
     }
@@ -434,18 +435,20 @@ function ReportView({
 
   return (
     <section className="mt-5">
-      <div className="mb-4 flex min-w-0 items-center gap-3">
-        <button
-          type="button"
-          onClick={onBack}
-          aria-label="Back to Reports"
-          title="Back to Reports"
-          className="-ml-2 flex size-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          <ArrowLeft className="size-5" aria-hidden="true" />
-        </button>
-        <h2 className="min-w-0 truncate text-xl font-semibold tracking-[-0.02em]">Report · {reportDate(report.scannedAt)}</h2>
-      </div>
+      {onBack && (
+        <div className="mb-4 flex min-w-0 items-center gap-3">
+          <button
+            type="button"
+            onClick={onBack}
+            aria-label="Back"
+            title="Back"
+            className="-ml-2 flex size-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <ArrowLeft className="size-5" aria-hidden="true" />
+          </button>
+          <h2 className="min-w-0 truncate text-xl font-semibold tracking-[-0.02em]">Report · {reportDate(report.scannedAt)}</h2>
+        </div>
+      )}
       {error && <ErrorNote message={error} />}
       {scanning && (
         <p className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
@@ -457,7 +460,7 @@ function ReportView({
       <div className="border-b border-border py-6">
         <div className="flex items-start gap-4">
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Reports</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Insights</p>
             <h2 data-weight="semibold" className="mt-1.5 text-xl font-semibold tracking-[-0.02em] text-foreground sm:text-3xl">
               AI intelligence for {companyName}
             </h2>
@@ -796,7 +799,7 @@ function useReportsApi(companyId: string, reportId?: string) {
   const call = useCallback(
     async (init?: { method: "POST"; body: Record<string, unknown> }) => {
       const current = userRef.current
-      if (!current) throw new Error("Please sign in to use Reports.")
+      if (!current) throw new Error("Please sign in to use Marketing.")
       const token = await current.getIdToken()
       const search = new URLSearchParams({ companyId, ...(reportId ? { reportId } : {}) })
       const response = await fetch(init ? "/api/pulse" : `/api/pulse?${search}`, {
@@ -910,7 +913,7 @@ export function Pulse({
   useEffect(() => {
     if (openId) return
     if (signedOut) {
-      setError("Please sign in to use Reports.")
+      setError("Please sign in to use Marketing.")
       setReports([])
       return
     }

@@ -82,6 +82,9 @@ export function PulseIntro({
   onBack,
   scanning,
   step,
+  title,
+  text,
+  actionLabel,
 }: {
   details: BusinessDetails
   onSave?: (patch: Partial<BusinessDetails>) => Promise<void>
@@ -91,6 +94,10 @@ export function PulseIntro({
   scanning: boolean
   /** How many areas the running scan has finished. */
   step: number
+  /** Wording, for pages that present the scan differently (Marketing). */
+  title?: string
+  text?: string
+  actionLabel?: string
 }) {
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState<BusinessDetails>(details)
@@ -131,9 +138,9 @@ export function PulseIntro({
     <section className="mt-4 rounded-2xl bg-gradient-to-br from-primary to-primary/75 p-4 text-primary-foreground sm:p-5">
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <h2 className="text-lg font-semibold tracking-[-0.02em] text-primary-foreground">Analyse {details.name}</h2>
+          <h2 className="text-lg font-semibold tracking-[-0.02em] text-primary-foreground">{title ?? `Analyse ${details.name}`}</h2>
           <p className="mt-1 max-w-2xl text-sm text-primary-foreground/80">
-            {scanning ? "Scanning your website and public sources…" : "Check your website, search presence, competitors and reputation."}
+            {scanning ? "Scanning your website and public sources…" : text ?? "Check your website, search presence, competitors and reputation."}
           </p>
         </div>
         <Button type="button" variant="ghost" size="sm" onClick={() => setDetailsOpen(true)} className="shrink-0 text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground">
@@ -166,7 +173,7 @@ export function PulseIntro({
           )}
           <Button type="button" onClick={onAnalyse} disabled={scanning || editing} className="bg-primary-foreground text-primary hover:bg-primary-foreground/90 max-sm:flex-1">
             {scanning && <Loader2 className="size-4 animate-spin" aria-hidden="true" />}
-            {scanning ? "Analysing…" : onBack ? "Run new analysis" : "Analyse business"}
+            {scanning ? "Analysing…" : actionLabel ?? (onBack ? "Run new analysis" : "Analyse business")}
           </Button>
         </div>
       </div>

@@ -23,7 +23,7 @@ function json(body: unknown, status = 200) {
 /** Signed-in admins of the company's agency, or the company's own client users. */
 async function resolveCaller(request: Request, companyId: string) {
   const authorization = request.headers.get("authorization") || ""
-  if (!authorization.startsWith("Bearer ")) return { error: json({ error: "Please sign in to use Reports." }, 401) }
+  if (!authorization.startsWith("Bearer ")) return { error: json({ error: "Please sign in to use Marketing." }, 401) }
   if (!companyId) return { error: json({ error: "Missing company." }, 400) }
 
   const { auth, db } = adminServices()
@@ -121,7 +121,10 @@ export async function GET(request: Request) {
   return json({ reports })
 }
 
-type Body = { companyId?: string; reportId?: string; action?: string; question?: string; done?: unknown; dismissed?: unknown }
+type Body = { companyId?: string; reportId?: string; action?: string; question?: string; done?: unknown; dismissed?: unknown; details?: unknown }
+
+/** The business details Marketing asks for. The only company fields a client can change here. */
+const DETAIL_LIMITS = { name: 120, website: 300, industry: 120, description: 2000, targetCustomers: 500, location: 200 } as const
 
 const ids = (value: unknown) => (Array.isArray(value) ? value.filter((id): id is string => typeof id === "string").slice(0, 200) : undefined)
 
@@ -151,10 +154,23 @@ export async function POST(request: Request) {
     return json({ ok: true })
   }
 
+  // details: the company's own people (and the agency) fill in what Marketing works from.
+  if (body.action === "details") {
+    const input = body.details && typeof body.details === "object" ? body.details as Record<string, unknown> : {}
+    const patch: Record<string, string> = {}
+    for (const [key, max] of Object.entries(DETAIL_LIMITS)) {
+      if (typeof input[key] === "string") patch[key] = (input[key] as string).trim().slice(0, max)
+    }
+    if (patch.name === "") return json({ error: "Business name is required." }, 400)
+    if (Object.keys(patch).length === 0) return json({ ok: true })
+    await db.collection("organizations").doc(companyId).set({ ...patch, updatedAt: FieldValue.serverTimestamp() }, { merge: true })
+    return json({ ok: true, details: patch })
+  }
+
   // Reports are part of the company's plan. The agency's own admins aren't limited.
   const billing = isAdmin ? null : await ensureSubscription(db, agencyId, companyId)
   if (billing && !planAccess(billing as Parameters<typeof planAccess>[0]).allowed) {
-    return json({ error: "Your plan is paused. Choose a plan to use Reports again." }, 402)
+    return json({ error: "Your plan is paused. Choose a plan to use Marketing again." }, 402)
   }
 
   const keys = await keysFor(agencyId)

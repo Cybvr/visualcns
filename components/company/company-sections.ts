@@ -4,7 +4,8 @@ import { Activity, BadgeDollarSign, Bot, ChartColumn, Contact, CreditCard, FileT
 export const COMPANY_SECTIONS = [
   { key: "projects", label: "Campaigns", icon: Megaphone },
   { key: "social", label: "Social Media", icon: Share2 },
-  // Simple Marketing pages, on the company's own pages only.
+  // Marketing: Overview takes the business details and builds the scan the pages below show.
+  { key: "marketing", label: "Marketing", icon: Megaphone },
   { key: "reviews", label: "Reviews", icon: Star },
   { key: "insights", label: "Insights", icon: Lightbulb },
   { key: "seo", label: "SEO", icon: Search },

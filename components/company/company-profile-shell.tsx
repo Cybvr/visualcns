@@ -110,6 +110,7 @@ function MenuGroup({ icon: Icon, label, items, active }: {
 const MENU_GROUPS = [
   { key: "websites", label: "Websites", icon: Globe, items: [{ key: "sites", label: "Sites" }, { key: "domains", label: "Domains" }] },
   { key: "marketing", label: "Marketing", icon: Megaphone, items: [
+    { key: "marketing", label: "Overview" },
     { key: "projects", label: "Campaigns" },
     { key: "social", label: "Social Media" },
     { key: "reviews", label: "Reviews" },

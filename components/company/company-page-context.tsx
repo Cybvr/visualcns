@@ -20,8 +20,9 @@ import type { AppUser } from "@/lib/users"
 
 export { COMPANY_SECTIONS, isCompanySection, type CompanySectionKey } from "@/components/company/company-sections"
 
-/** Marketing pages after Social Media, in menu order. */
+/** Marketing pages after Social Media, in menu order. Overview comes first, before Campaigns. */
 const MARKETING_PAGE_KEYS: CompanySectionKey[] = ["reviews", "insights", "seo", "google-ads", "business-profile"]
+const MARKETING_KEYS: CompanySectionKey[] = ["marketing", ...MARKETING_PAGE_KEYS]
 
 export interface CompanyPagePerson {
   id: string
@@ -167,7 +168,7 @@ export function CompanyPageProvider({
       // Sites lists the viewer's own builder chats, so it only belongs on the company page itself.
       .filter((item) => mode === "routes" || item.key !== "sites")
       // The Marketing pages belong on the company's own pages, not the dashboard tabs.
-      .filter((item) => mode === "routes" || !MARKETING_PAGE_KEYS.includes(item.key))
+      .filter((item) => mode === "routes" || !MARKETING_KEYS.includes(item.key))
       // Domains belong to the company's own websites, and only its staff and the agency manage them.
       .filter((item) => (mode === "routes" && canSeeVisitors) || item.key !== "domains")
       // Social holds private DMs and posting, so it follows the same rule as Visitors.
@@ -194,6 +195,7 @@ export function CompanyPageProvider({
       // Websites, Marketing, Finance, Customers, then Security, as the menu shows them.
       find("sites"),
       find("domains"),
+      find("marketing"),
       find("projects"),
       find("social"),
       ...MARKETING_PAGE_KEYS.map(find),
