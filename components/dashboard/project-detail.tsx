@@ -112,7 +112,7 @@ export function ProjectDetail({
   const requestedTab = TAB_FROM_VIEW[view ?? ""] ?? "home"
   // On the company page, campaigns keep to the work itself: media lives in Assets, and
   // Ngai, Analytics and Settings stay on the admin pages.
-  const hiddenOnCompany: CampaignTab[] = ["build", "analytics", "media", "settings"]
+  const hiddenOnCompany: CampaignTab[] = ["build", "analytics", "media", "settings", "payments"]
   const tab = (requestedTab === "tasks" && !showTasks) || (embedded && hiddenOnCompany.includes(requestedTab)) ? "home" : requestedTab
   const setTab = (next: CampaignTab) => setView(next === "home" ? null : VIEW_FROM_TAB[next])
   // Where the campaign keeps its own section menu, the app menu folds to its icon rail while it is open.
@@ -399,7 +399,8 @@ export function ProjectDetail({
       { key: "media", label: "Drive", count: mediaItems.length, icon: MdPhotoLibrary },
       { key: "analytics", label: "Analytics", icon: MdBarChart },
     ]),
-    { key: "payments", label: "Payments", icon: MdPayments },
+    // On the company page payments live in Finance, with each invoice showing its campaign.
+    ...(embedded ? [] : [{ key: "payments", label: "Payments", icon: MdPayments }]),
     ...(showTasks ? [{ key: "tasks", label: "Tasks", icon: MdAssignment }] : []),
     ...(canEditCampaign && !embedded ? [{ key: "settings", label: "Settings", icon: MdSettings }] : []),
   ] as { key: CampaignTab; label: string; count?: number; icon: SidebarIcon }[]

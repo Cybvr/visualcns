@@ -29,7 +29,7 @@ function editHref(kind: CompanyDocumentKind, id: string) {
  */
 export function DocumentsSection({ view = "documents" }: { view?: "documents" | "assets" }) {
   const assets = view === "assets"
-  const { company, invoices, contracts, estimates, documents, admin, isAdmin, canEditDocuments, updateParams, setRecordOpen } = useCompanyPage()
+  const { company, projects, invoices, contracts, estimates, documents, admin, isAdmin, canEditDocuments, updateParams, setRecordOpen } = useCompanyPage()
   const router = useRouter()
   const searchParams = useSearchParams()
   const [issuer, setIssuer] = useState<BusinessProfile | null>(null)
@@ -132,6 +132,7 @@ export function DocumentsSection({ view = "documents" }: { view?: "documents" | 
           onEdit={canEditDocuments ? (kind, id) => router.push(editHref(kind, id)) : undefined}
           canAdd={Boolean(admin)}
           onAdd={handleAdd}
+          campaignName={(projectId) => projectId ? projects.find((project) => project.id === projectId)?.title : undefined}
           extraEntries={[...notes.entries, ...files.entries.filter((entry) => !entry.media)]}
           extraAddItems={files.addItem || notes.addItem ? <>{files.addItem}{notes.addItem}</> : undefined}
           canManage={canEditDocuments}

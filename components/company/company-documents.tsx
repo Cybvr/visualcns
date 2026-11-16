@@ -105,6 +105,7 @@ export function CompanyDocuments({
   extraAddItems,
   canManage = false,
   onChanged,
+  campaignName,
 }: {
   invoices: Invoice[]
   contracts: Contract[]
@@ -134,6 +135,8 @@ export function CompanyDocuments({
   canManage?: boolean
   /** Called after a rename, copy or delete, so the page can reload. */
   onChanged?: () => void | Promise<void>
+  /** The campaign an invoice belongs to, shown next to it. */
+  campaignName?: (projectId?: string) => string | undefined
 }) {
   const manage = <T,>(fn: T) => (canManage ? fn : undefined)
   const editItem = (kind: CompanyDocumentKind, id: string) => (onEdit ? <DropdownMenuItem onSelect={() => onEdit(kind, id)}>Edit {kind}</DropdownMenuItem> : undefined)
@@ -161,7 +164,7 @@ export function CompanyDocuments({
       key: `invoice-${invoice.id}`,
       updatedMs: modifiedMs(invoice),
       title: invoice.title?.trim() || invoice.invoiceNumber || "Invoice",
-      kindLabel: "Invoice",
+      kindLabel: campaignName?.(invoice.projectId) ? `Invoice · ${campaignName(invoice.projectId)}` : "Invoice",
       statusLabel: invoiceStatusMeta[invoice.status].label,
       amount: invoiceListAmount(invoice),
       icon: <Receipt className="size-5 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />,
