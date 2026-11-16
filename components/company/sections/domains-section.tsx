@@ -9,6 +9,7 @@ import { useCompanyPage } from "@/components/company/company-page-context"
 import { SectionAddButton } from "@/components/company/section-add-button"
 import { CollectionView } from "@/components/dashboard/collection-view"
 import { useNgaiChats } from "@/components/ngai/use-ngai-chats"
+import { SiteThumbnail } from "@/components/ngai/site-thumbnail"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
@@ -21,7 +22,7 @@ const NO_SITE = "none"
 
 /** A row in the list: a free address a published site gets, or a custom domain the company connected. */
 type DomainItem =
-  | { kind: "free"; name: string; title: string; url: string; date: number }
+  | { kind: "free"; name: string; title: string; url: string; code: string; date: number }
   | { kind: "custom"; name: string; domain: ConnectedDomain; date?: number }
 
 function StatusBadge({ status, label }: { status: ConnectedDomain["status"]; label?: string }) {
@@ -94,7 +95,7 @@ export function DomainsSection() {
           // Every published site is live at its free address, with no setup.
           ...sites.map((site): DomainItem => {
             const url = ngaiPublishedUrl(site.slug!)
-            return { kind: "free", name: url.replace("https://", ""), title: site.title, url, date: site.updatedAt }
+            return { kind: "free", name: url.replace("https://", ""), title: site.title, url, code: site.code, date: site.updatedAt }
           }),
           ...(domains ?? []).map((domain): DomainItem => ({ kind: "custom", name: domain.name, domain, date: domain.createdAt })),
         ]}
@@ -121,11 +122,12 @@ export function DomainsSection() {
           title: item.name,
           icon: <Globe className="size-4 text-muted-foreground" aria-hidden="true" />,
           placeholder: <Globe className="size-8 text-muted-foreground/60" aria-hidden="true" />,
+          // The site itself, with the Live tag over it.
           preview: (
-            <div className="flex size-full flex-col items-center justify-center gap-2 bg-muted/50 p-3 text-center">
-              <span className="max-w-full truncate text-sm font-medium text-foreground">{item.name}</span>
-              <StatusBadge status="connected" label="Live" />
-            </div>
+            <span className="relative block size-full">
+              <SiteThumbnail code={item.code} title={item.title} />
+              <span className="absolute bottom-2 left-2"><StatusBadge status="connected" label="Live" /></span>
+            </span>
           ),
           onClick: () => window.open(item.url, "_blank", "noopener,noreferrer"),
           ariaLabel: `Open ${item.name}`,

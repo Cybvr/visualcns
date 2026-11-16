@@ -7,6 +7,7 @@ import { useCompanyPage } from "@/components/company/company-page-context"
 import { SectionAddButton } from "@/components/company/section-add-button"
 import { CollectionView } from "@/components/dashboard/collection-view"
 import { useNgaiChats } from "@/components/ngai/use-ngai-chats"
+import { SiteThumbnail } from "@/components/ngai/site-thumbnail"
 import { Button } from "@/components/ui/button"
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { ngaiPublishedUrl, openInBuilder } from "@/lib/ngai"
@@ -67,6 +68,7 @@ export function SitesSection() {
             title: chat.title,
             icon: <Globe className="size-4 text-muted-foreground" aria-hidden="true" />,
             placeholder: <Globe className="size-8 text-muted-foreground/60" aria-hidden="true" />,
+            preview: <SiteThumbnail code={chat.code} title={chat.title} />,
             onClick: () => {
               if (liveUrl) window.open(liveUrl, "_blank", "noopener,noreferrer")
               else openBuilder(`/chat/${encodeURIComponent(chat.id)}`)

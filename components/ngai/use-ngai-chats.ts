@@ -6,7 +6,8 @@ import { collection, getDocs, limit, query, where } from "firebase/firestore"
 import { auth, db } from "@/lib/firebase"
 
 /** `slug` is the published subdomain, or null when the chat isn't published. */
-export type NgaiChat = { id: string; title: string; updatedAt: number; slug: string | null }
+/** `code` is the generated page, used to draw its thumbnail. */
+export type NgaiChat = { id: string; title: string; updatedAt: number; slug: string | null; code: string }
 
 function toMillis(value: unknown): number {
   if (!value) return 0
@@ -38,6 +39,7 @@ function loadChats(uid: string): Promise<NgaiChat[]> {
           title: typeof data.title === "string" && data.title.trim() ? data.title : "Untitled project",
           updatedAt: toMillis(data.updatedAt),
           slug: data.published === true && typeof data.slug === "string" && data.slug ? data.slug : null,
+          code: typeof data.code === "string" ? data.code : "",
         }))
         .sort((a, b) => b.updatedAt - a.updatedAt),
   )
