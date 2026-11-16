@@ -21,11 +21,13 @@ import type { PulseItem, PulseReport, PulseReportSummary, PulseState } from "@/l
  */
 
 type Latest = { id: string; report: PulseReport } | null
+/** Google accounts the company linked for tracking, by key, e.g. { ga4: "G-ABC123" }. */
+export type Connections = Record<string, string>
 
 // Shared across the Marketing pages, so moving between them doesn't reload the scan.
-const latestCache = new Map<string, Promise<Latest>>()
+const latestCache = new Map<string, Promise<{ latest: Latest; connections: Connections }>>()
 
-function useMarketingApi(companyId: string) {
+export function useMarketingApi(companyId: string) {
   const { user, loading } = useAuth()
   const userRef = useRef(user)
   userRef.current = user
@@ -48,11 +50,12 @@ function useMarketingApi(companyId: string) {
   return { call, ready: Boolean(uid), signedOut: !loading && !uid }
 }
 
-/** The newest scan for the company, or null when there is none yet. */
-function useLatestScan() {
+/** The newest scan for the company (null when there is none yet), and its linked Google accounts. */
+export function useLatestScan() {
   const { company } = useCompanyPage()
   const { call, ready, signedOut } = useMarketingApi(company.id)
   const [latest, setLatest] = useState<Latest | undefined>(undefined)
+  const [connections, setConnections] = useState<Connections>({})
   const [error, setError] = useState("")
   const [revision, setRevision] = useState(0)
 
@@ -66,17 +69,21 @@ function useLatestScan() {
     let active = true
     let request = latestCache.get(company.id)
     if (!request) {
-      request = (async (): Promise<Latest> => {
-        const { reports } = (await call()) as { reports: PulseReportSummary[] }
-        if (!reports.length) return null
+      request = (async () => {
+        const { reports, connections: linked } = (await call()) as { reports: PulseReportSummary[]; connections?: Connections }
+        if (!reports.length) return { latest: null, connections: linked ?? {} }
         const state = (await call(undefined, { reportId: reports[0].id })) as PulseState
-        return state.report ? { id: reports[0].id, report: state.report } : null
+        return { latest: state.report ? { id: reports[0].id, report: state.report } : null, connections: linked ?? {} }
       })()
       latestCache.set(company.id, request)
       request.catch(() => latestCache.delete(company.id))
     }
     request
-      .then((value) => { if (active) setLatest(value) })
+      .then((value) => {
+        if (!active) return
+        setLatest(value.latest)
+        setConnections(value.connections)
+      })
       .catch((reason: Error) => {
         if (!active) return
         setError(reason.message)
@@ -90,14 +97,26 @@ function useLatestScan() {
     setRevision((current) => current + 1)
   }, [company.id])
 
-  return { latest, error, refresh, call }
+  // Saves a linked account and shows it at once.
+  const link = useCallback(async (key: string, value: string) => {
+    await call({ body: { action: "connection", connection: key, value } })
+    latestCache.delete(company.id)
+    setConnections((current) => {
+      const next = { ...current }
+      if (value.trim()) next[key] = value.trim()
+      else delete next[key]
+      return next
+    })
+  }, [call, company.id])
+
+  return { latest, connections, error, refresh, call, link }
 }
 
 // Details saved on Settings this visit, so Home shows them without reloading the company.
 const savedDetails = new Map<string, Partial<BusinessDetails>>()
 
 /** The business details Marketing works from, and how to save them. */
-function useBusinessDetails() {
+export function useBusinessDetails() {
   const { company, admin } = useCompanyPage()
   const { call } = useMarketingApi(company.id)
   const [details, setDetails] = useState<BusinessDetails>(() => ({
@@ -122,11 +141,11 @@ function useBusinessDetails() {
   return { details, save }
 }
 
-function ErrorNote({ message }: { message: string }) {
+export function ErrorNote({ message }: { message: string }) {
   return <p className="mt-4 rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive" role="alert">{message}</p>
 }
 
-function LoadingCards() {
+export function LoadingCards() {
   return (
     <div className="mt-6 space-y-3" role="status" aria-label="Loading">
       <Skeleton className="h-24 w-full rounded-2xl" />
@@ -216,159 +235,6 @@ function SetUpFirst() {
   )
 }
 
-type Step = { id: string; title: string; text: string; action: { label: string; href?: string; onClick?: () => void } }
-
-/** Home areas, as tabs under the next step. "Local" is the Business Profile page. */
-const AREAS = [
-  { key: "seo", label: "SEO" },
-  { key: "google-ads", label: "Google Ads" },
-  { key: "business-profile", label: "Local" },
-  { key: "reviews", label: "Reviews" },
-  { key: "social", label: "Social" },
-] as const
-type AreaKey = (typeof AREAS)[number]["key"]
-
-/** Home: the next recommended step, then each marketing area at a glance. */
-export function MarketingOverviewSection() {
-  const { sectionHref } = useCompanyPage()
-  const { latest, error: loadError, refresh, call } = useLatestScan()
-  const { details } = useBusinessDetails()
-  const [scanning, setScanning] = useState(false)
-  const [error, setError] = useState("")
-  const [stepIndex, setStepIndex] = useState(0)
-  const [area, setArea] = useState<AreaKey>("seo")
-
-  async function build() {
-    if (scanning) return
-    setScanning(true)
-    setError("")
-    try {
-      await call({ body: { action: "scan" } })
-      refresh()
-      setStepIndex(0)
-    } catch (reason) {
-      setError((reason as Error).message)
-    } finally {
-      setScanning(false)
-    }
-  }
-
-  const report = latest?.report
-  const hasDetails = Boolean(details.name?.trim() && details.website?.trim() && details.description?.trim())
-  const steps: Step[] = report
-    ? report.actions.map((action) => ({ id: action.id, title: action.title, text: action.why, action: { label: "See how", href: sectionHref("insights") } }))
-    : [
-        ...(hasDetails ? [] : [{ id: "details", title: "Tell us about your business", text: "Add your website, what you do and who your customers are. Marketing builds everything from this.", action: { label: "Add details", href: sectionHref("marketing-settings") } }]),
-        { id: "build", title: "Build your marketing", text: "We check your website, search, reviews and competitors, then show you what to do next.", action: { label: scanning ? "Building…" : "Build my marketing", onClick: () => void build() } },
-      ]
-  const step = steps[Math.min(stepIndex, steps.length - 1)]
-
-  return (
-    <div className="mx-auto mt-4 max-w-3xl">
-      {(error || loadError) && <ErrorNote message={error || loadError} />}
-      {latest === undefined ? <LoadingCards /> : (
-        <>
-          {/* Next recommended step: one at a time, with dots to move between them. */}
-          {step && (
-            <section aria-label="Next recommended step" className="rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-7">
-              {steps.length > 1 && (
-                <div className="flex gap-1.5" role="tablist" aria-label="Steps">
-                  {steps.map((item, index) => (
-                    <button
-                      key={item.id}
-                      type="button"
-                      role="tab"
-                      aria-selected={item.id === step.id}
-                      aria-label={`Step ${index + 1}`}
-                      onClick={() => setStepIndex(index)}
-                      className={`h-1.5 flex-1 max-w-12 rounded-full transition-colors ${item.id === step.id ? "bg-primary" : "bg-muted-foreground/25 hover:bg-muted-foreground/40"}`}
-                    />
-                  ))}
-                </div>
-              )}
-              <p className="mt-5 text-xs font-semibold uppercase tracking-[0.12em] text-primary">Next recommended step</p>
-              <h2 className="mt-2 text-xl font-semibold leading-snug tracking-[-0.02em] text-foreground sm:text-2xl">{step.title}</h2>
-              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{step.text}</p>
-              <div className="mt-5 flex flex-wrap items-center gap-3">
-                {step.action.href ? (
-                  <Button asChild><Link href={step.action.href}>{step.action.label}</Link></Button>
-                ) : (
-                  <Button type="button" onClick={step.action.onClick} disabled={scanning}>{step.action.label}</Button>
-                )}
-                {steps.length > 1 && stepIndex < steps.length - 1 && (
-                  <Button type="button" variant="ghost" onClick={() => setStepIndex((current) => current + 1)}>Next</Button>
-                )}
-              </div>
-              {scanning && <p className="mt-3 text-sm text-muted-foreground">This takes a minute or two.</p>}
-            </section>
-          )}
-
-          {/* Each area at a glance. */}
-          <div className="scrollbar-none mt-6 flex gap-1 overflow-x-auto rounded-full bg-muted p-1" role="tablist" aria-label="Marketing areas">
-            {AREAS.map((item) => (
-              <button
-                key={item.key}
-                type="button"
-                role="tab"
-                aria-selected={area === item.key}
-                onClick={() => setArea(item.key)}
-                className={`shrink-0 rounded-full px-4 py-2 text-sm font-medium transition-colors ${area === item.key ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
-              >
-                {item.label}
-              </button>
-            ))}
-          </div>
-          <AreaCard area={area} report={report ?? null} />
-
-          {report && (
-            <p className="mt-6 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-              <span>Score {report.score}/100 · Built {new Date(report.scannedAt).toLocaleDateString(undefined, { dateStyle: "medium" })}</span>
-              <button type="button" onClick={() => void build()} disabled={scanning} className="font-medium text-foreground underline underline-offset-4 disabled:opacity-50">
-                {scanning ? "Updating…" : "Update marketing"}
-              </button>
-            </p>
-          )}
-        </>
-      )}
-    </div>
-  )
-}
-
-/** One area on Home: its top findings and a link to its page. */
-function AreaCard({ area, report }: { area: AreaKey; report: PulseReport | null }) {
-  const { sectionHref } = useCompanyPage()
-  const copy: Record<AreaKey, { title: string; empty: string; link: string }> = {
-    seo: { title: "Get found on Google search", empty: "Build your marketing to see what to fix in search.", link: "See SEO" },
-    "google-ads": { title: "Ads on Google search and maps", empty: "Set up and managed for you on a Growth plan.", link: "See Google Ads" },
-    "business-profile": { title: "Show up on Google Maps", empty: "Build your marketing to check your Google Business Profile.", link: "See Business Profile" },
-    reviews: { title: "What customers say about you", empty: "Build your marketing to see your reviews.", link: "See Reviews" },
-    social: { title: "Your social media", empty: "Plan posts and reply to messages in one place.", link: "Open Social Media" },
-  }
-  const pick = area === "seo" ? seoItems : area === "reviews" ? reviewItems : area === "business-profile" ? profileItems : null
-  const items = report && pick ? pick(report).slice(0, 3) : []
-  const { title, empty, link } = copy[area]
-  return (
-    <section aria-label={title} className="mt-4 rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
-      <h3 className="text-base font-semibold text-foreground">{title}</h3>
-      {items.length ? (
-        <ul className="mt-3 divide-y divide-border">
-          {items.map((item) => (
-            <li key={item.id} className="py-3">
-              <p className="text-sm font-medium text-foreground">{item.title}</p>
-              <p className="mt-0.5 line-clamp-2 text-sm text-muted-foreground">{item.detail}</p>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p className="mt-2 text-sm text-muted-foreground">{report && pick ? "Nothing to fix here right now." : empty}</p>
-      )}
-      <Button asChild variant="outline" size="sm" className="mt-4">
-        <Link href={sectionHref(area)}>{link}</Link>
-      </Button>
-    </section>
-  )
-}
-
 /** Insights: the whole newest scan, with next steps, opportunities and the market. */
 export function InsightsSection() {
   const { company, admin } = useCompanyPage()
@@ -394,13 +260,13 @@ function allItems(report: PulseReport) {
 const MAPS = /google business|business profile|google maps|\bmaps?\b|listing|opening hours|directions/i
 const REVIEWS = /review|rating|stars?\b|testimonial|reputation/i
 
-function seoItems(report: PulseReport) {
+export function seoItems(report: PulseReport) {
   return allItems(report).filter((item) => ["seo", "technical", "website", "page"].includes(item.icon) && !MAPS.test(`${item.title} ${item.detail}`))
 }
-function reviewItems(report: PulseReport) {
+export function reviewItems(report: PulseReport) {
   return allItems(report).filter((item) => item.icon === "reputation" || REVIEWS.test(`${item.title} ${item.detail}`))
 }
-function profileItems(report: PulseReport) {
+export function profileItems(report: PulseReport) {
   return allItems(report).filter((item) => MAPS.test(`${item.title} ${item.detail} ${item.source ?? ""}`))
 }
 

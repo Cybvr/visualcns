@@ -63,7 +63,7 @@ async function resolveCaller(request: Request, companyId: string) {
     targetCustomers: typeof org.targetCustomers === "string" ? org.targetCustomers : undefined,
     location: typeof org.location === "string" ? org.location : undefined,
   }
-  return { db, agencyId, companyId, company, isAdmin }
+  return { db, agencyId, companyId, company, isAdmin, connections: (org.marketingConnections ?? {}) as Record<string, { value?: string }> }
 }
 
 async function keysFor(agencyId: string) {
@@ -96,8 +96,10 @@ export async function GET(request: Request) {
   const params = new URL(request.url).searchParams
   const caller = await resolveCaller(request, params.get("companyId") || "")
   if ("error" in caller) return caller.error
-  const { db, companyId } = caller
+  const { db, companyId, connections } = caller
   const ref = db.collection(COLLECTION).doc(companyId)
+  // The Google accounts Marketing tracks, by key: the ID or link the company gave.
+  const linked = Object.fromEntries(Object.entries(connections).map(([key, entry]) => [key, String(entry?.value ?? "")]).filter(([, value]) => value))
 
   const reportId = params.get("reportId")
   if (reportId) {
@@ -118,10 +120,13 @@ export async function GET(request: Request) {
       opportunities: report.opportunities.length,
     }
   })
-  return json({ reports })
+  return json({ reports, connections: linked })
 }
 
-type Body = { companyId?: string; reportId?: string; action?: string; question?: string; done?: unknown; dismissed?: unknown; details?: unknown }
+type Body = { companyId?: string; reportId?: string; action?: string; question?: string; done?: unknown; dismissed?: unknown; details?: unknown; connection?: unknown; value?: unknown }
+
+/** Google accounts Marketing can track. The value is the ID or link the company gives. */
+const CONNECTION_KEYS = ["ga4", "searchConsole", "businessProfile", "googleAds"]
 
 /** The business details Marketing asks for. The only company fields a client can change here. */
 const DETAIL_LIMITS = { name: 120, website: 300, industry: 120, description: 2000, targetCustomers: 500, location: 200 } as const
@@ -151,6 +156,17 @@ export async function POST(request: Request) {
     if (done) patch.done = done
     if (dismissed) patch.dismissed = dismissed
     await reportRef.set(patch, { merge: true })
+    return json({ ok: true })
+  }
+
+  // connection: save (or clear, with an empty value) the ID of a Google account to track.
+  if (body.action === "connection") {
+    const key = String(body.connection || "")
+    if (!CONNECTION_KEYS.includes(key)) return json({ error: "Unknown connection." }, 400)
+    const value = typeof body.value === "string" ? body.value.trim().slice(0, 300) : ""
+    await db.collection("organizations").doc(companyId).set({
+      marketingConnections: { [key]: value ? { value, updatedAt: FieldValue.serverTimestamp() } : FieldValue.delete() },
+    }, { merge: true })
     return json({ ok: true })
   }
 
