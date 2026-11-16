@@ -12,7 +12,8 @@ import { SectionHeader } from "@/components/dashboard/section-header"
 import { Button } from "@/components/ui/button"
 import { AppScene, GrowthScene, SupportScene, WebsiteScene } from "@/components/home-feature-illustrations"
 import { useLocalCurrency } from "@/components/use-local-currency"
-import { formatPrice, growthPlanRows } from "@/lib/plans"
+import { customDevelopmentRows, formatPrice, growthPlanRows, platformRows, type Price } from "@/lib/plans"
+import { LISTED_SERVICES, SUPPORT_GROUP } from "@/lib/cart"
 
 /** The featured offer, shown above the quick actions until it is dismissed. */
 const FEATURED = { key: "growth", tab: "growth", title: "Grow with a Growth plan", text: "Campaigns, content and reports handled for you every month." }
@@ -21,10 +22,15 @@ const GROWTH_FROM_PRICE = growthPlanRows.find((row) => row.service === "Pro")?.p
 const FEATURED_DISMISSED_KEY = "home-featured-growth-dismissed"
 
 /** Things from the pricing page worth suggesting, each opening its pricing tab, drawn like the home page features. */
-const RECOMMENDED: { key: string; tab: string; Scene: ComponentType<SVGProps<SVGSVGElement>>; title: string; text: string }[] = [
-  { key: "website", tab: "development", Scene: WebsiteScene, title: "Get a website that sells", text: "A fast site you can edit yourself, on Webflow, Framer or WordPress." },
-  { key: "app", tab: "development", Scene: AppScene, title: "Build your app", text: "Test an idea with a clickable product, or launch a full web app." },
-  { key: "support", tab: "support", Scene: SupportScene, title: "Keep your business running", text: "Monthly support hours from our team when you need a hand." },
+/** The lowest price among rows, for a "From" label. */
+function lowest(prices: Price[]): Price {
+  return prices.filter((price): price is Exclude<Price, "free"> => price !== "free").sort((a, b) => a.amount - b.amount)[0] ?? "free"
+}
+
+const RECOMMENDED: { key: string; tab: string; Scene: ComponentType<SVGProps<SVGSVGElement>>; title: string; text: string; from: Price }[] = [
+  { key: "website", tab: "development", Scene: WebsiteScene, title: "Get a website that sells", text: "A fast site you can edit yourself, on Webflow, Framer or WordPress.", from: lowest(platformRows.filter((row) => !row.service.startsWith("Add-on")).map((row) => row.price)) },
+  { key: "app", tab: "development", Scene: AppScene, title: "Build your app", text: "Test an idea with a clickable product, or launch a full web app.", from: customDevelopmentRows.find((row) => row.service === "MVP Web App")?.price ?? "free" },
+  { key: "support", tab: "support", Scene: SupportScene, title: "Keep your business running", text: "Monthly support hours from our team when you need a hand.", from: lowest(LISTED_SERVICES.filter((service) => service.group === SUPPORT_GROUP).map((service) => service.price)) },
 ]
 
 /** The soft blue wash the home page puts behind its feature drawings. */
@@ -142,20 +148,21 @@ export default function CompanyHomePage() {
         <SectionHeader id="home-recommended-heading" title="Recommended for you" />
         {/* Phones: a swipeable row with the next card peeking in. Wider screens: three across. */}
         <div className="scrollbar-none -mx-3 mt-3 flex snap-x snap-mandatory scroll-px-3 gap-3 overflow-x-auto px-3 pb-1 sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:px-0 lg:grid-cols-3">
-          {RECOMMENDED.map(({ key, tab, Scene, title, text }) => (
-            <Link
-              key={key}
-              href={`${companyPath}/pricing/${tab}`}
-              className="flex w-[80%] shrink-0 snap-start flex-col gap-3 rounded-2xl bg-muted/50 p-3 outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring sm:w-auto"
-            >
+          {RECOMMENDED.map(({ key, tab, Scene, title, text, from }) => (
+            <div key={key} className="flex w-[80%] shrink-0 snap-start flex-col gap-3 rounded-2xl bg-muted/50 p-3 sm:w-auto">
               <span className={`block aspect-[16/11] overflow-hidden rounded-xl p-4 ${SCENE_BACKGROUND}`}>
                 <Scene className="size-full" />
               </span>
-              <span className="min-w-0 px-1 pb-1">
-                <span className="block text-base font-medium leading-snug text-foreground">{title}</span>
-                <span className="mt-1 block text-sm leading-relaxed text-muted-foreground">{text}</span>
-              </span>
-            </Link>
+              <div className="flex min-w-0 flex-1 flex-col px-1 pb-1">
+                <p className="text-base font-medium leading-snug text-foreground">{title}</p>
+                <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{text}</p>
+                {/* Pushed to the bottom so prices and buttons line up across cards. */}
+                <p className="mt-auto pt-2 text-sm font-semibold text-foreground">From {formatPrice(from, currency)}</p>
+                <Button asChild size="sm" className="mt-3 self-start">
+                  <Link href={`${companyPath}/pricing/${tab}`}>Get started</Link>
+                </Button>
+              </div>
+            </div>
           ))}
         </div>
       </section>
