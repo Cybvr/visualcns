@@ -109,7 +109,15 @@ function MenuGroup({ icon: Icon, label, items, active }: {
 /** The main menu headings and the pages each one opens to, in menu order. */
 const MENU_GROUPS = [
   { key: "websites", label: "Websites", icon: Globe, items: [{ key: "sites", label: "Sites" }, { key: "domains", label: "Domains" }] },
-  { key: "marketing", label: "Marketing", icon: Megaphone, items: [{ key: "projects", label: "Campaigns" }, { key: "social", label: "Social Media" }] },
+  { key: "marketing", label: "Marketing", icon: Megaphone, items: [
+    { key: "projects", label: "Campaigns" },
+    { key: "social", label: "Social Media" },
+    { key: "reviews", label: "Reviews" },
+    { key: "insights", label: "Insights" },
+    { key: "seo", label: "SEO" },
+    { key: "google-ads", label: "Google Ads" },
+    { key: "business-profile", label: "Business Profile" },
+  ] },
   { key: "finance", label: "Finance", icon: Wallet, items: [{ key: "documents", label: "Drive" }, { key: "billings", label: "Billing" }] },
 ] as const
 
