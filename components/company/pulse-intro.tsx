@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import { useEffect, useState } from "react"
 import {
   BarChart3,
@@ -37,9 +38,10 @@ export type BusinessDetails = {
   location?: string
 }
 
-type Field = { key: keyof BusinessDetails; label: string; icon: LucideIcon; long?: boolean; placeholder: string }
+export type Field = { key: keyof BusinessDetails; label: string; icon: LucideIcon; long?: boolean; placeholder: string }
 
-const FIELDS: Field[] = [
+/** The business details Marketing works from, in form order. */
+export const FIELDS: Field[] = [
   { key: "name", label: "Business name", icon: Building2, placeholder: "Business name" },
   { key: "website", label: "Website", icon: Globe, placeholder: "https://example.com" },
   { key: "industry", label: "Industry", icon: Tag, placeholder: "e.g. Marketing & Technology" },
@@ -85,6 +87,7 @@ export function PulseIntro({
   title,
   text,
   actionLabel,
+  editHref,
 }: {
   details: BusinessDetails
   onSave?: (patch: Partial<BusinessDetails>) => Promise<void>
@@ -98,6 +101,8 @@ export function PulseIntro({
   title?: string
   text?: string
   actionLabel?: string
+  /** Where the details are edited, when they live on their own page (Marketing Settings). */
+  editHref?: string
 }) {
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState<BusinessDetails>(details)
@@ -143,10 +148,19 @@ export function PulseIntro({
             {scanning ? "Scanning your website and public sources…" : text ?? "Check your website, search presence, competitors and reputation."}
           </p>
         </div>
-        <Button type="button" variant="ghost" size="sm" onClick={() => setDetailsOpen(true)} className="shrink-0 text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground">
-          <Pencil className="size-4" aria-hidden="true" />
-          Details
-        </Button>
+        {editHref ? (
+          <Button asChild variant="ghost" size="sm" className="shrink-0 text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground">
+            <Link href={editHref}>
+              <Pencil className="size-4" aria-hidden="true" />
+              Details
+            </Link>
+          </Button>
+        ) : (
+          <Button type="button" variant="ghost" size="sm" onClick={() => setDetailsOpen(true)} className="shrink-0 text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground">
+            <Pencil className="size-4" aria-hidden="true" />
+            Details
+          </Button>
+        )}
       </div>
 
       <ul className="mt-4 grid grid-cols-2 gap-x-4 sm:grid-cols-3">

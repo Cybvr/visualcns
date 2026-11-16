@@ -47,6 +47,7 @@ const COMPANY_SECTION_TITLES: Record<string, string> = {
   seo: "SEO",
   "google-ads": "Google Ads",
   "business-profile": "Business Profile",
+  "marketing-settings": "Marketing Settings",
   sites: "Websites",
   domains: "Domains",
   tasks: "Tasks",

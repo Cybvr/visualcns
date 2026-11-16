@@ -19,7 +19,7 @@ import { NgaiSection } from "@/components/company/sections/ngai-section"
 import { SitesSection } from "@/components/company/sections/sites-section"
 import { DomainsSection } from "@/components/company/sections/domains-section"
 import { TeamSection } from "@/components/company/sections/team-section"
-import { BusinessProfileSection, GoogleAdsSection, InsightsSection, MarketingOverviewSection, ReviewsSection, SeoSection } from "@/components/company/sections/marketing-pages"
+import { BusinessProfileSection, GoogleAdsSection, InsightsSection, MarketingOverviewSection, MarketingSettingsSection, ReviewsSection, SeoSection } from "@/components/company/sections/marketing-pages"
 
 /** Documents and media in one grid. An open document takes the whole page. */
 function DriveSection() {
@@ -96,6 +96,7 @@ const SECTION_COMPONENTS: Record<CompanySectionKey, ComponentType> = {
   projects: ProjectsSection,
   social: SocialSection,
   marketing: MarketingOverviewSection,
+  "marketing-settings": MarketingSettingsSection,
   reviews: ReviewsSection,
   insights: InsightsSection,
   seo: SeoSection,

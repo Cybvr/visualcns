@@ -2,13 +2,15 @@
 
 import Link from "next/link"
 import { useCallback, useEffect, useRef, useState } from "react"
-import { BadgeDollarSign, Check, ExternalLink, Lightbulb, Search, Star, Store } from "lucide-react"
+import { BadgeDollarSign, Check, ExternalLink } from "lucide-react"
 
 import { useAuth } from "@/components/auth-provider"
 import { useCompanyPage } from "@/components/company/company-page-context"
-import { ANALYSE_AREAS, PulseIntro, type BusinessDetails } from "@/components/company/pulse-intro"
+import { FIELDS, type BusinessDetails } from "@/components/company/pulse-intro"
 import { ReportView } from "@/components/company/pulse"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import { Skeleton } from "@/components/ui/skeleton"
 import type { PulseItem, PulseReport, PulseReportSummary, PulseState } from "@/lib/pulse"
 
@@ -91,6 +93,35 @@ function useLatestScan() {
   return { latest, error, refresh, call }
 }
 
+// Details saved on Settings this visit, so Home shows them without reloading the company.
+const savedDetails = new Map<string, Partial<BusinessDetails>>()
+
+/** The business details Marketing works from, and how to save them. */
+function useBusinessDetails() {
+  const { company, admin } = useCompanyPage()
+  const { call } = useMarketingApi(company.id)
+  const [details, setDetails] = useState<BusinessDetails>(() => ({
+    name: company.name,
+    logoUrl: company.logoUrl,
+    website: company.website,
+    industry: company.industry,
+    description: company.description,
+    targetCustomers: company.targetCustomers,
+    location: company.location,
+    ...savedDetails.get(company.id),
+  }))
+
+  // Agency admins save straight to the company; the company's own people save through the server.
+  const save = useCallback(async (patch: Partial<BusinessDetails>) => {
+    if (admin) await admin.onUpdateCompany(patch)
+    else await call({ body: { action: "details", details: patch } })
+    savedDetails.set(company.id, { ...savedDetails.get(company.id), ...patch })
+    setDetails((current) => ({ ...current, ...patch }))
+  }, [admin, call, company.id])
+
+  return { details, save }
+}
+
 function ErrorNote({ message }: { message: string }) {
   return <p className="mt-4 rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive" role="alert">{message}</p>
 }
@@ -105,12 +136,79 @@ function LoadingCards() {
   )
 }
 
+/** Settings: the business details Marketing works from, as one form. */
+export function MarketingSettingsSection() {
+  const { details, save } = useBusinessDetails()
+  const [draft, setDraft] = useState<BusinessDetails>(details)
+  const [saving, setSaving] = useState(false)
+  const [notice, setNotice] = useState<{ tone: "good" | "bad"; text: string } | null>(null)
+
+  async function submit(event: React.FormEvent) {
+    event.preventDefault()
+    if (!draft.name.trim()) {
+      setNotice({ tone: "bad", text: "Business name is required." })
+      return
+    }
+    const patch: Partial<BusinessDetails> = {}
+    for (const field of FIELDS) {
+      if (field.key === "logoUrl") continue
+      const next = (draft[field.key] ?? "").trim()
+      if (next !== (details[field.key] ?? "")) patch[field.key] = next
+    }
+    if (!Object.keys(patch).length) {
+      setNotice({ tone: "good", text: "Saved." })
+      return
+    }
+    setSaving(true)
+    setNotice(null)
+    try {
+      await save(patch)
+      setNotice({ tone: "good", text: "Saved." })
+    } catch {
+      setNotice({ tone: "bad", text: "Could not save. Please try again." })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <form onSubmit={submit} className="mx-auto mt-6 max-w-xl space-y-4">
+      <p className="text-sm text-muted-foreground">Your business details. Marketing uses them each time it builds.</p>
+      {FIELDS.filter((field) => field.key !== "logoUrl").map((field) => (
+        <label key={field.key} className="block">
+          <span className="text-sm font-medium text-foreground">{field.label}</span>
+          {field.long ? (
+            <Textarea
+              value={draft[field.key] ?? ""}
+              onChange={(event) => setDraft((current) => ({ ...current, [field.key]: event.target.value }))}
+              placeholder={field.placeholder}
+              rows={4}
+              className="mt-1.5"
+            />
+          ) : (
+            <Input
+              value={draft[field.key] ?? ""}
+              onChange={(event) => setDraft((current) => ({ ...current, [field.key]: event.target.value }))}
+              placeholder={field.placeholder}
+              className="mt-1.5"
+            />
+          )}
+        </label>
+      ))}
+      <div className="flex items-center gap-3 pt-1">
+        <Button type="submit" disabled={saving}>{saving ? "Saving…" : "Save"}</Button>
+        <span aria-live="polite" className={notice?.tone === "bad" ? "text-sm text-destructive" : "text-sm text-muted-foreground"}>{notice?.text}</span>
+      </div>
+    </form>
+  )
+}
+
 /** Shown on a Marketing page before the first scan. */
 function SetUpFirst() {
   const { sectionHref } = useCompanyPage()
   return (
     <section className="mx-auto mt-6 max-w-xl rounded-2xl bg-muted/50 p-6 text-sm sm:p-8">
-      <p className="text-foreground">Add your business details on Marketing Overview to fill this page.</p>
+      <p className="text-foreground">Build your marketing on Marketing Home to fill this page.</p>
       <Button asChild size="sm" className="mt-4">
         <Link href={sectionHref("marketing")}>Get started</Link>
       </Button>
@@ -118,101 +216,156 @@ function SetUpFirst() {
   )
 }
 
-/** Overview: the business details Marketing works from, and the button that builds it. */
+type Step = { id: string; title: string; text: string; action: { label: string; href?: string; onClick?: () => void } }
+
+/** Home areas, as tabs under the next step. "Local" is the Business Profile page. */
+const AREAS = [
+  { key: "seo", label: "SEO" },
+  { key: "google-ads", label: "Google Ads" },
+  { key: "business-profile", label: "Local" },
+  { key: "reviews", label: "Reviews" },
+  { key: "social", label: "Social" },
+] as const
+type AreaKey = (typeof AREAS)[number]["key"]
+
+/** Home: the next recommended step, then each marketing area at a glance. */
 export function MarketingOverviewSection() {
-  const { company, admin, sectionHref } = useCompanyPage()
+  const { sectionHref } = useCompanyPage()
   const { latest, error: loadError, refresh, call } = useLatestScan()
-  const [details, setDetails] = useState<BusinessDetails>({
-    name: company.name,
-    logoUrl: company.logoUrl,
-    website: company.website,
-    industry: company.industry,
-    description: company.description,
-    targetCustomers: company.targetCustomers,
-    location: company.location,
-  })
+  const { details } = useBusinessDetails()
   const [scanning, setScanning] = useState(false)
-  const [step, setStep] = useState(0)
   const [error, setError] = useState("")
-  const progress = useRef<ReturnType<typeof setInterval> | null>(null)
-
-  useEffect(() => () => { if (progress.current) clearInterval(progress.current) }, [])
-
-  // Agency admins save straight to the company; the company's own people save through the server.
-  async function save(patch: Partial<BusinessDetails>) {
-    if (admin) await admin.onUpdateCompany(patch)
-    else await call({ body: { action: "details", details: patch } })
-    setDetails((current) => ({ ...current, ...patch }))
-  }
+  const [stepIndex, setStepIndex] = useState(0)
+  const [area, setArea] = useState<AreaKey>("seo")
 
   async function build() {
     if (scanning) return
     setScanning(true)
     setError("")
-    setStep(0)
-    progress.current = setInterval(() => setStep((current) => Math.min(current + 1, ANALYSE_AREAS.length - 1)), 9000)
     try {
       await call({ body: { action: "scan" } })
-      setStep(ANALYSE_AREAS.length)
       refresh()
+      setStepIndex(0)
     } catch (reason) {
       setError((reason as Error).message)
     } finally {
-      if (progress.current) clearInterval(progress.current)
       setScanning(false)
     }
   }
 
   const report = latest?.report
-  const counts = report ? {
-    insights: report.actions.length,
-    seo: seoItems(report).length,
-    reviews: reviewItems(report).length,
-    "business-profile": profileItems(report).length,
-  } : null
+  const hasDetails = Boolean(details.name?.trim() && details.website?.trim() && details.description?.trim())
+  const steps: Step[] = report
+    ? report.actions.map((action) => ({ id: action.id, title: action.title, text: action.why, action: { label: "See how", href: sectionHref("insights") } }))
+    : [
+        ...(hasDetails ? [] : [{ id: "details", title: "Tell us about your business", text: "Add your website, what you do and who your customers are. Marketing builds everything from this.", action: { label: "Add details", href: sectionHref("marketing-settings") } }]),
+        { id: "build", title: "Build your marketing", text: "We check your website, search, reviews and competitors, then show you what to do next.", action: { label: scanning ? "Building…" : "Build my marketing", onClick: () => void build() } },
+      ]
+  const step = steps[Math.min(stepIndex, steps.length - 1)]
 
   return (
-    <div className="mt-2">
+    <div className="mx-auto mt-4 max-w-3xl">
       {(error || loadError) && <ErrorNote message={error || loadError} />}
-      <PulseIntro
-        details={details}
-        onSave={save}
-        onAnalyse={() => void build()}
-        scanning={scanning}
-        step={step}
-        title={`Marketing for ${details.name}`}
-        text="Tell us about your business. We check your website, search, reviews and competitors, then build your marketing from it."
-        actionLabel={latest?.report ? "Update marketing" : "Build my marketing"}
-      />
-      {latest === undefined ? <LoadingCards /> : report && counts && (
-        <section aria-label="Your marketing" className="mt-6">
-          <div className="rounded-2xl bg-muted/50 p-5">
-            <div className="flex items-baseline justify-between gap-3">
-              <p className="text-sm font-semibold text-foreground">Marketing score</p>
-              <p className="text-2xl font-semibold tabular-nums text-foreground">{report.score}<span className="text-sm font-normal text-muted-foreground">/100</span></p>
-            </div>
-            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{report.summary}</p>
-            <p className="mt-3 text-xs text-muted-foreground">Last built {new Date(report.scannedAt).toLocaleDateString(undefined, { dateStyle: "medium" })}</p>
-          </div>
-          <div className="mt-3 grid gap-3 sm:grid-cols-2">
-            {([
-              ["insights", "Insights", Lightbulb, `${counts.insights} next steps`],
-              ["seo", "SEO", Search, `${counts.seo} items`],
-              ["reviews", "Reviews", Star, `${counts.reviews} items`],
-              ["business-profile", "Business Profile", Store, `${counts["business-profile"]} items`],
-            ] as const).map(([key, label, Icon, detail]) => (
-              <Link key={key} href={sectionHref(key)} className="flex items-center gap-3 rounded-2xl bg-muted/50 p-4 outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring">
-                <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"><Icon className="size-5" aria-hidden="true" /></span>
-                <span className="min-w-0">
-                  <span className="block text-sm font-medium text-foreground">{label}</span>
-                  <span className="block text-xs text-muted-foreground">{detail}</span>
-                </span>
-              </Link>
+      {latest === undefined ? <LoadingCards /> : (
+        <>
+          {/* Next recommended step: one at a time, with dots to move between them. */}
+          {step && (
+            <section aria-label="Next recommended step" className="rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-7">
+              {steps.length > 1 && (
+                <div className="flex gap-1.5" role="tablist" aria-label="Steps">
+                  {steps.map((item, index) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      role="tab"
+                      aria-selected={item.id === step.id}
+                      aria-label={`Step ${index + 1}`}
+                      onClick={() => setStepIndex(index)}
+                      className={`h-1.5 flex-1 max-w-12 rounded-full transition-colors ${item.id === step.id ? "bg-primary" : "bg-muted-foreground/25 hover:bg-muted-foreground/40"}`}
+                    />
+                  ))}
+                </div>
+              )}
+              <p className="mt-5 text-xs font-semibold uppercase tracking-[0.12em] text-primary">Next recommended step</p>
+              <h2 className="mt-2 text-xl font-semibold leading-snug tracking-[-0.02em] text-foreground sm:text-2xl">{step.title}</h2>
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{step.text}</p>
+              <div className="mt-5 flex flex-wrap items-center gap-3">
+                {step.action.href ? (
+                  <Button asChild><Link href={step.action.href}>{step.action.label}</Link></Button>
+                ) : (
+                  <Button type="button" onClick={step.action.onClick} disabled={scanning}>{step.action.label}</Button>
+                )}
+                {steps.length > 1 && stepIndex < steps.length - 1 && (
+                  <Button type="button" variant="ghost" onClick={() => setStepIndex((current) => current + 1)}>Next</Button>
+                )}
+              </div>
+              {scanning && <p className="mt-3 text-sm text-muted-foreground">This takes a minute or two.</p>}
+            </section>
+          )}
+
+          {/* Each area at a glance. */}
+          <div className="scrollbar-none mt-6 flex gap-1 overflow-x-auto rounded-full bg-muted p-1" role="tablist" aria-label="Marketing areas">
+            {AREAS.map((item) => (
+              <button
+                key={item.key}
+                type="button"
+                role="tab"
+                aria-selected={area === item.key}
+                onClick={() => setArea(item.key)}
+                className={`shrink-0 rounded-full px-4 py-2 text-sm font-medium transition-colors ${area === item.key ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+              >
+                {item.label}
+              </button>
             ))}
           </div>
-        </section>
+          <AreaCard area={area} report={report ?? null} />
+
+          {report && (
+            <p className="mt-6 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+              <span>Score {report.score}/100 · Built {new Date(report.scannedAt).toLocaleDateString(undefined, { dateStyle: "medium" })}</span>
+              <button type="button" onClick={() => void build()} disabled={scanning} className="font-medium text-foreground underline underline-offset-4 disabled:opacity-50">
+                {scanning ? "Updating…" : "Update marketing"}
+              </button>
+            </p>
+          )}
+        </>
       )}
     </div>
+  )
+}
+
+/** One area on Home: its top findings and a link to its page. */
+function AreaCard({ area, report }: { area: AreaKey; report: PulseReport | null }) {
+  const { sectionHref } = useCompanyPage()
+  const copy: Record<AreaKey, { title: string; empty: string; link: string }> = {
+    seo: { title: "Get found on Google search", empty: "Build your marketing to see what to fix in search.", link: "See SEO" },
+    "google-ads": { title: "Ads on Google search and maps", empty: "Set up and managed for you on a Growth plan.", link: "See Google Ads" },
+    "business-profile": { title: "Show up on Google Maps", empty: "Build your marketing to check your Google Business Profile.", link: "See Business Profile" },
+    reviews: { title: "What customers say about you", empty: "Build your marketing to see your reviews.", link: "See Reviews" },
+    social: { title: "Your social media", empty: "Plan posts and reply to messages in one place.", link: "Open Social Media" },
+  }
+  const pick = area === "seo" ? seoItems : area === "reviews" ? reviewItems : area === "business-profile" ? profileItems : null
+  const items = report && pick ? pick(report).slice(0, 3) : []
+  const { title, empty, link } = copy[area]
+  return (
+    <section aria-label={title} className="mt-4 rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
+      <h3 className="text-base font-semibold text-foreground">{title}</h3>
+      {items.length ? (
+        <ul className="mt-3 divide-y divide-border">
+          {items.map((item) => (
+            <li key={item.id} className="py-3">
+              <p className="text-sm font-medium text-foreground">{item.title}</p>
+              <p className="mt-0.5 line-clamp-2 text-sm text-muted-foreground">{item.detail}</p>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="mt-2 text-sm text-muted-foreground">{report && pick ? "Nothing to fix here right now." : empty}</p>
+      )}
+      <Button asChild variant="outline" size="sm" className="mt-4">
+        <Link href={sectionHref(area)}>{link}</Link>
+      </Button>
+    </section>
   )
 }
 

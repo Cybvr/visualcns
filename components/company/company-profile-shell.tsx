@@ -118,6 +118,7 @@ const MENU_GROUPS = [
     { key: "seo", label: "SEO" },
     { key: "google-ads", label: "Google Ads" },
     { key: "business-profile", label: "Business Profile" },
+    { key: "marketing-settings", label: "Settings" },
   ] },
   { key: "finance", label: "Finance", icon: Wallet, items: [{ key: "documents", label: "Drive" }, { key: "billings", label: "Billing" }] },
 ] as const

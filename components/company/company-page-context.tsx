@@ -21,7 +21,7 @@ import type { AppUser } from "@/lib/users"
 export { COMPANY_SECTIONS, isCompanySection, type CompanySectionKey } from "@/components/company/company-sections"
 
 /** Marketing pages after Social Media, in menu order. Overview comes first, before Campaigns. */
-const MARKETING_PAGE_KEYS: CompanySectionKey[] = ["reviews", "insights", "seo", "google-ads", "business-profile"]
+const MARKETING_PAGE_KEYS: CompanySectionKey[] = ["reviews", "insights", "seo", "google-ads", "business-profile", "marketing-settings"]
 const MARKETING_KEYS: CompanySectionKey[] = ["marketing", ...MARKETING_PAGE_KEYS]
 
 export interface CompanyPagePerson {
