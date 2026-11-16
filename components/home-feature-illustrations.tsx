@@ -259,3 +259,175 @@ export function ConsultingScene(props: Props) {
     </Scene>
   )
 }
+
+export function GrowthScene(props: Props) {
+  const bars = [34, 46, 40, 58, 66, 84]
+  return (
+    <Scene {...props}>
+      {/* Reach chart */}
+      <rect className={card} x="16" y="14" width="176" height="118" rx="12" />
+      <T x={28} y={32} size={8.5} bold>Reach this month</T>
+      <T x={28} y={52} size={18} bold>12.4k</T>
+      <Pill x={180} y={28} label="+32%" tone="green" />
+      {bars.map((h, i) => (
+        <rect key={i} className={blue} opacity={0.35 + i * 0.13} x={34 + i * 26} y={122 - h * 0.7} width="16" height={h * 0.7} rx="4" />
+      ))}
+
+      {/* This month's work */}
+      <rect className={card} x="176" y="56" width="132" height="122" rx="12" />
+      <T x={188} y={74} size={8.5} bold>This month</T>
+      {[
+        { label: "5 social posts", y: 94 },
+        { label: "2 newsletters", y: 116 },
+        { label: "2 campaigns", y: 138 },
+      ].map((row) => (
+        <g key={row.label}>
+          <Tick cx={194} cy={row.y - 3} />
+          <T x={206} y={row.y} size={7.5}>{row.label}</T>
+        </g>
+      ))}
+      <circle className="fill-none stroke-border" strokeWidth="1.5" cx="194" cy="157" r="5.5" />
+      <T x={206} y={160} size={7.5}>Monthly report</T>
+
+      {/* Post */}
+      <rect className={card} x="28" y="144" width="132" height="62" rx="10" />
+      <rect className={warm} opacity="0.2" x="38" y="154" width="42" height="42" rx="6" />
+      <Sparkle x={59} y={175} r={9} className={warm} />
+      <T x={88} y={166} size={7.5} bold>New post</T>
+      <rect className={soft} x="88" y="173" width="60" height="4" rx="2" />
+      <rect className={soft} x="88" y="182" width="44" height="4" rx="2" />
+
+      <Badge x={206} y={186} w={102} h={26}>Done for you</Badge>
+    </Scene>
+  )
+}
+
+export function WebsiteScene(props: Props) {
+  return (
+    <Scene {...props}>
+      {/* Browser */}
+      <rect className={card} x="16" y="14" width="220" height="164" rx="12" />
+      <circle className={warm} cx="30" cy="27" r="2.5" />
+      <circle className={soft} cx="38" cy="27" r="2.5" />
+      <circle className={green} cx="46" cy="27" r="2.5" />
+      <rect className={soft} x="60" y="23" width="110" height="8" rx="4" />
+      <T x={66} y={29.5} size={5.5} className={muted}>yourbrand.com</T>
+      <rect className={blue} x="28" y="40" width="196" height="66" rx="6" />
+      <T x={42} y={64} size={12} bold className={paper}>Fresh every day</T>
+      <rect className={paper} opacity="0.7" x="42" y="72" width="86" height="4" rx="2" />
+      <rect className={paper} x="42" y="84" width="50" height="14" rx="7" />
+      <T x={67} y={93.5} size={6.5} bold anchor="middle" className={blue}>Order now</T>
+      {[28, 94, 160].map((x) => (
+        <g key={x}>
+          <rect className={soft} x={x} y="114" width="60" height="52" rx="6" />
+          <rect className={paper} x={x + 8} y="152" width="34" height="4" rx="2" />
+        </g>
+      ))}
+
+      {/* Editor */}
+      <rect className={card} x="204" y="62" width="104" height="96" rx="10" />
+      <T x={216} y={80} size={8.5} bold>Edit page</T>
+      <T x={216} y={96} size={7} className={muted}>Headline</T>
+      <rect className="fill-background stroke-primary" strokeWidth="1.2" x="216" y="100" width="80" height="16" rx="5" />
+      <T x={222} y={111} size={7}>Fresh every day</T>
+      <rect className={blue} x="216" y="126" width="48" height="18" rx="9" />
+      <T x={240} y={137.5} size={7} bold anchor="middle" className={paper}>Publish</T>
+
+      {/* Platforms */}
+      {[
+        { mark: "W", x: 40, fill: "fill-[#146ef5]" },
+        { mark: "F", x: 64, fill: ink },
+        { mark: "W", x: 88, fill: "fill-[#21759b]" },
+      ].map((item) => (
+        <g key={item.x}>
+          <circle className={item.fill} cx={item.x} cy="196" r="9" />
+          <T x={item.x} y={199} size={8} bold anchor="middle" className={paper}>{item.mark}</T>
+        </g>
+      ))}
+      <Badge x={208} y={176} w={100} h={28}>Edit it yourself</Badge>
+    </Scene>
+  )
+}
+
+export function AppScene(props: Props) {
+  return (
+    <Scene {...props}>
+      {/* Phone */}
+      <rect className={card} x="30" y="12" width="102" height="196" rx="16" />
+      <rect className={soft} x="66" y="20" width="30" height="5" rx="2.5" />
+      <T x={42} y={42} size={9} bold>Bookings</T>
+      {[
+        { label: "Ada · 10:00", color: blue, y: 62 },
+        { label: "Femi · 11:30", color: warm, y: 92 },
+        { label: "Kemi · 14:00", color: green, y: 122 },
+      ].map((row) => (
+        <g key={row.label}>
+          <rect className={soft} x="40" y={row.y - 12} width="82" height="24" rx="6" />
+          <circle className={row.color} cx="52" cy={row.y} r="5" />
+          <T x={62} y={row.y + 3} size={7}>{row.label}</T>
+        </g>
+      ))}
+      <rect className={blue} x="40" y="170" width="82" height="22" rx="11" />
+      <T x={81} y={184} size={8} bold anchor="middle" className={paper}>Book</T>
+
+      {/* Dashboard */}
+      <rect className={card} x="118" y="34" width="190" height="122" rx="12" />
+      <T x={130} y={52} size={8.5} bold>Dashboard</T>
+      {[0, 1, 2].map((i) => (
+        <g key={i}>
+          <rect className={soft} x={130 + i * 58} y="60" width="50" height="36" rx="6" />
+          <T x={136 + i * 58} y={74} size={6.5} className={muted}>{["Users", "Orders", "Revenue"][i]}</T>
+          <T x={136 + i * 58} y={88} size={10} bold>{["1.2k", "348", "₦4.1m"][i]}</T>
+        </g>
+      ))}
+      <path className="fill-none stroke-primary" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M132 142l28-14 26 8 30-20 28 6 30-18 22-4" />
+
+      {/* Stack */}
+      {[
+        { label: "Sign in", x: 150 },
+        { label: "Database", x: 204 },
+        { label: "Payments", x: 262 },
+      ].map((item) => (
+        <g key={item.label}>
+          <rect className={card} x={item.x - 24} y="164" width="50" height="18" rx="9" />
+          <T x={item.x + 1} y={176} size={6.5} bold anchor="middle">{item.label}</T>
+        </g>
+      ))}
+      <Badge x={196} y={190} w={112} h={24}>Idea to launch</Badge>
+    </Scene>
+  )
+}
+
+export function SupportScene(props: Props) {
+  return (
+    <Scene {...props}>
+      {/* Request thread */}
+      <rect className={card} x="16" y="14" width="190" height="168" rx="12" />
+      <T x={28} y={32} size={8.5} bold>Support</T>
+      <Pill x={194} y={29} label="Resolved" tone="green" />
+      <rect className={soft} x="28" y="40" width="166" height="1" />
+      <rect className={soft} x="28" y="50" width="130" height="30" rx="10" />
+      <T x={38} y={63} size={7.5}>Can you update our</T>
+      <T x={38} y={74} size={7.5}>menu page today?</T>
+      <rect className="fill-background stroke-primary" strokeWidth="1.5" x="62" y="90" width="132" height="30" rx="10" />
+      <T x={72} y={103} size={7.5}>Done. The new menu</T>
+      <T x={72} y={114} size={7.5}>is live now.</T>
+      <circle className={blue} cx="44" cy="105" r="10" />
+      <T x={44} y={108} size={8} bold anchor="middle" className={paper}>V</T>
+      <T x={62} y={136} size={7} className={muted}>Replied in 2 hours</T>
+      <rect className={soft} x="28" y="146" width="166" height="24" rx="12" />
+      <T x={40} y={161} size={7.5} className={muted}>Ask for help…</T>
+
+      {/* Hours */}
+      <rect className={card} x="188" y="60" width="120" height="96" rx="10" />
+      <T x={200} y={78} size={8.5} bold>Hours this month</T>
+      <rect className={soft} x="200" y="90" width="96" height="10" rx="5" />
+      <rect className={blue} x="200" y="90" width="60" height="10" rx="5" />
+      <T x={200} y={116} size={14} bold>6 of 10</T>
+      <T x={200} y={130} size={7} className={muted}>hours used</T>
+      <Tick cx={290} cy={140} r={8} />
+
+      <Badge x={196} y={176} w={112} h={28}>Same-day replies</Badge>
+    </Scene>
+  )
+}
