@@ -31,7 +31,7 @@ export const NGAI_PROJECTS_URL = `${NGAI_APP_ORIGIN}/dashboard/projects`
  * one-time token rides in the URL fragment, which browsers never send to a
  * server. Falls back to the plain link, where the builder asks for sign-in.
  */
-export async function openInBuilder(path: string, idToken: () => Promise<string | null>) {
+export async function openInBuilder(path: string, idToken: () => Promise<string | null>, { fallback = true } = {}): Promise<boolean> {
   const target = path.startsWith("/") ? path : `/${path}`
   try {
     const token = await idToken()
@@ -40,11 +40,13 @@ export async function openInBuilder(path: string, idToken: () => Promise<string 
       const data = await response.json().catch(() => ({}))
       if (response.ok && typeof data.token === "string") {
         window.location.assign(`${NGAI_APP_ORIGIN}/auth/handoff#token=${encodeURIComponent(data.token)}&next=${encodeURIComponent(target)}`)
-        return
+        return true
       }
     }
   } catch {
     // Fall through to the plain link.
   }
-  window.location.assign(`${NGAI_APP_ORIGIN}${target}`)
+  // The builder signs people in through VisualCNS, so without a token the plain link would only come back here.
+  if (fallback) window.location.assign(`${NGAI_APP_ORIGIN}${target}`)
+  return false
 }
