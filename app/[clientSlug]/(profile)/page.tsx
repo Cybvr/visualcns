@@ -2,17 +2,21 @@
 
 import Image from "next/image"
 import Link from "next/link"
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { MessageCircle, Megaphone, Palette } from "lucide-react"
+import { MessageCircle, Megaphone, Palette, X } from "lucide-react"
 
 import { useAuth } from "@/components/auth-provider"
 import { isCompanySection, useCompanyPage } from "@/components/company/company-page-context"
 import { SectionHeader } from "@/components/dashboard/section-header"
+import { Button } from "@/components/ui/button"
+
+/** The featured offer, shown above the quick actions until it is dismissed. */
+const FEATURED = { key: "growth", tab: "growth", image: "/services/campaign-content-design.png", title: "Grow with a Growth plan", text: "Campaigns, content and reports handled for you every month." }
+const FEATURED_DISMISSED_KEY = "home-featured-growth-dismissed"
 
 /** Things from the pricing page worth suggesting, each opening its pricing tab. */
 const RECOMMENDED = [
-  { key: "growth", tab: "growth", image: "/services/campaign-content-design.png", title: "Grow with a Growth plan", text: "Campaigns, content and reports handled for you every month." },
   { key: "website", tab: "development", image: "/services/product-experience-design.png", title: "Get a website that sells", text: "A fast site you can edit yourself, on Webflow, Framer or WordPress." },
   { key: "app", tab: "development", image: "/services/ai-design.png", title: "Build your app", text: "Test an idea with a clickable product, or launch a full web app." },
   { key: "support", tab: "support", image: "/services/crm-relationship-design.png", title: "Keep your business running", text: "Monthly support hours from our team when you need a hand." },
@@ -25,6 +29,16 @@ export default function CompanyHomePage() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const redirected = useRef(false)
+  const [featuredDismissed, setFeaturedDismissed] = useState(true)
+
+  useEffect(() => {
+    try { setFeaturedDismissed(window.localStorage.getItem(FEATURED_DISMISSED_KEY) === "1") } catch { setFeaturedDismissed(false) }
+  }, [])
+
+  function dismissFeatured() {
+    setFeaturedDismissed(true)
+    try { window.localStorage.setItem(FEATURED_DISMISSED_KEY, "1") } catch {}
+  }
 
   // Older links put the section in ?tab=, and shared document links used /{slug}?doc=.
   // Task links intentionally stay on this page so TaskDetailSheet can open in place.
@@ -71,6 +85,24 @@ export default function CompanyHomePage() {
         <p className="surface-caption mt-1">
           Signed in {signedInAt.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}
         </p>
+      )}
+
+      {!featuredDismissed && (
+        <section aria-label={FEATURED.title} className="relative mt-6 flex items-center gap-4 rounded-2xl bg-muted/50 p-4 pr-10">
+          <button type="button" onClick={dismissFeatured} aria-label="Dismiss" className="absolute right-2 top-2 flex size-8 items-center justify-center rounded-full text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring">
+            <X className="size-4" aria-hidden="true" />
+          </button>
+          <span className="relative size-24 shrink-0 overflow-hidden rounded-xl bg-muted sm:size-28">
+            <Image src={FEATURED.image} alt="" fill sizes="112px" className="object-cover" />
+          </span>
+          <div className="min-w-0">
+            <p className="text-base font-medium leading-snug text-foreground">{FEATURED.title}</p>
+            <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{FEATURED.text}</p>
+            <Button asChild size="sm" className="mt-3">
+              <Link href={`${companyPath}/pricing/${FEATURED.tab}`}>Get started</Link>
+            </Button>
+          </div>
+        </section>
       )}
 
       <section aria-labelledby="home-quick-actions-heading" className="mt-6">
