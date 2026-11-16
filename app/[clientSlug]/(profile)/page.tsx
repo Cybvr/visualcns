@@ -4,7 +4,7 @@ import Image from "next/image"
 import Link from "next/link"
 import { useEffect, useRef, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { MessageCircle, Megaphone, Palette, X } from "lucide-react"
+import { Globe, Megaphone, Palette, TrendingUp, X } from "lucide-react"
 
 import { useAuth } from "@/components/auth-provider"
 import { isCompanySection, useCompanyPage } from "@/components/company/company-page-context"
@@ -12,7 +12,7 @@ import { SectionHeader } from "@/components/dashboard/section-header"
 import { Button } from "@/components/ui/button"
 
 /** The featured offer, shown above the quick actions until it is dismissed. */
-const FEATURED = { key: "growth", tab: "growth", image: "/services/campaign-content-design.png", title: "Grow with a Growth plan", text: "Campaigns, content and reports handled for you every month." }
+const FEATURED = { key: "growth", tab: "growth", title: "Grow with a Growth plan", text: "Campaigns, content and reports handled for you every month." }
 const FEATURED_DISMISSED_KEY = "home-featured-growth-dismissed"
 
 /** Things from the pricing page worth suggesting, each opening its pricing tab. */
@@ -71,7 +71,7 @@ export default function CompanyHomePage() {
   const signedInAt = user?.metadata.lastSignInTime ? new Date(user.metadata.lastSignInTime) : null
   const companyPath = `/${encodeURIComponent(company.slug || company.id)}`
   const quickActions = [
-    { key: "chats", label: "Chats", icon: MessageCircle, href: sectionHref("ngai"), tone: "bg-violet-500/15 text-violet-500" },
+    { key: "sites", label: "Sites", icon: Globe, href: sectionHref("sites"), tone: "bg-violet-500/15 text-violet-500" },
     { key: "campaigns", label: "Campaigns", icon: Megaphone, href: sectionHref("projects"), tone: "bg-orange-500/15 text-orange-500" },
     { key: "brand-kit", label: "Brand Kit", icon: Palette, href: `${companyPath}/brand-kit`, tone: "bg-pink-500/15 text-pink-500" },
   ]
@@ -88,12 +88,13 @@ export default function CompanyHomePage() {
       )}
 
       {!featuredDismissed && (
-        <section aria-label={FEATURED.title} className="relative mt-6 flex items-center gap-4 rounded-2xl bg-muted/50 p-4 pr-10">
+        <section aria-label={FEATURED.title} className="relative mt-6 flex items-stretch gap-4 rounded-2xl bg-muted/50 p-4 pr-10">
           <button type="button" onClick={dismissFeatured} aria-label="Dismiss" className="absolute right-2 top-2 flex size-8 items-center justify-center rounded-full text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring">
             <X className="size-4" aria-hidden="true" />
           </button>
-          <span className="relative size-24 shrink-0 overflow-hidden rounded-xl bg-muted sm:size-28">
-            <Image src={FEATURED.image} alt="" fill sizes="112px" className="object-cover" />
+          {/* Stretches to the card's text, from the title to the bottom of the button. */}
+          <span className="flex w-24 shrink-0 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-600 sm:w-28 dark:text-emerald-400">
+            <TrendingUp className="size-9" aria-hidden="true" />
           </span>
           <div className="min-w-0">
             <p className="text-base font-medium leading-snug text-foreground">{FEATURED.title}</p>
