@@ -62,8 +62,11 @@ async function resolveCaller(request: Request, companyId: string) {
     description: typeof org.description === "string" ? org.description : undefined,
     targetCustomers: typeof org.targetCustomers === "string" ? org.targetCustomers : undefined,
     location: typeof org.location === "string" ? org.location : undefined,
+    brand: Object.fromEntries(Object.entries(BRAND_FIELDS)
+      .map(([key, field]) => [field.label, typeof org.marketingBrand?.[key] === "string" ? org.marketingBrand[key] as string : ""])
+      .filter(([, value]) => value)),
   }
-  return { db, agencyId, companyId, company, isAdmin, connections: (org.marketingConnections ?? {}) as Record<string, { value?: string }> }
+  return { db, agencyId, companyId, company, isAdmin, connections: (org.marketingConnections ?? {}) as Record<string, { value?: string }>, brand: (org.marketingBrand ?? {}) as Record<string, unknown> }
 }
 
 async function keysFor(agencyId: string) {
@@ -96,7 +99,7 @@ export async function GET(request: Request) {
   const params = new URL(request.url).searchParams
   const caller = await resolveCaller(request, params.get("companyId") || "")
   if ("error" in caller) return caller.error
-  const { db, companyId, connections } = caller
+  const { db, companyId, connections, brand } = caller
   const ref = db.collection(COLLECTION).doc(companyId)
   // The Google accounts Marketing tracks, by key: the ID or link the company gave.
   const linked = Object.fromEntries(Object.entries(connections).map(([key, entry]) => [key, String(entry?.value ?? "")]).filter(([, value]) => value))
@@ -120,10 +123,23 @@ export async function GET(request: Request) {
       opportunities: report.opportunities.length,
     }
   })
-  return json({ reports, connections: linked })
+  const brandDetails = Object.fromEntries(Object.keys(BRAND_FIELDS).map((key) => [key, typeof brand[key] === "string" ? brand[key] : ""]))
+  return json({ reports, connections: linked, brand: brandDetails })
 }
 
 type Body = { companyId?: string; reportId?: string; action?: string; question?: string; done?: unknown; dismissed?: unknown; details?: unknown; connection?: unknown; value?: unknown }
+
+/** Brand details Marketing Settings collects, with the label the scan reads and a length limit. */
+const BRAND_FIELDS: Record<string, { label: string; max: number }> = {
+  keywords: { label: "Keywords to rank for", max: 1000 },
+  serviceAreas: { label: "Service areas", max: 500 },
+  products: { label: "Products and services", max: 2000 },
+  competitors: { label: "Competitors", max: 1000 },
+  sellingPoints: { label: "What makes them different", max: 1000 },
+  brandVoice: { label: "Brand voice", max: 200 },
+  goals: { label: "Marketing goals", max: 300 },
+  adBudget: { label: "Monthly ad budget", max: 100 },
+}
 
 /** Google accounts Marketing can track. The value is the ID or link the company gives. */
 const CONNECTION_KEYS = ["ga4", "searchConsole", "businessProfile", "googleAds"]
@@ -167,6 +183,17 @@ export async function POST(request: Request) {
     await db.collection("organizations").doc(companyId).set({
       marketingConnections: { [key]: value ? { value, updatedAt: FieldValue.serverTimestamp() } : FieldValue.delete() },
     }, { merge: true })
+    return json({ ok: true })
+  }
+
+  // brand: the brand details on Marketing Settings.
+  if (body.action === "brand") {
+    const input = body.details && typeof body.details === "object" ? body.details as Record<string, unknown> : {}
+    const patch: Record<string, string> = {}
+    for (const [key, field] of Object.entries(BRAND_FIELDS)) {
+      if (typeof input[key] === "string") patch[key] = (input[key] as string).trim().slice(0, field.max)
+    }
+    if (Object.keys(patch).length) await db.collection("organizations").doc(companyId).set({ marketingBrand: patch }, { merge: true })
     return json({ ok: true })
   }
 

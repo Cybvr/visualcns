@@ -13,6 +13,8 @@ export type CompanyFacts = {
   description?: string
   targetCustomers?: string
   location?: string
+  /** Brand details from Marketing Settings: keywords, competitors, voice and so on. */
+  brand?: Record<string, string>
 }
 
 type Keys = { firecrawl: string; openai: string }
@@ -244,6 +246,9 @@ function describe(company: CompanyFacts, evidence: Evidence, previous: PulseRepo
     "Target customers": company.targetCustomers,
     Location: company.location,
   })) {
+    if (value?.trim()) out += `${label}: ${value.trim()}\n`
+  }
+  for (const [label, value] of Object.entries(company.brand ?? {})) {
     if (value?.trim()) out += `${label}: ${value.trim()}\n`
   }
 

@@ -1,10 +1,8 @@
-import { CompanySettingsLayout } from "@/components/company/company-settings-layout"
-import { CompanySocialSettings } from "@/components/company/sections/about-section"
+import { redirect } from "next/navigation"
 
-export default function CompanySocialSettingsPage() {
-  return (
-    <CompanySettingsLayout>
-      <CompanySocialSettings />
-    </CompanySettingsLayout>
-  )
+/** Social connections moved to Marketing Settings. */
+export default async function CompanySocialSettingsPage({ params, searchParams }: { params: Promise<{ clientSlug: string }>; searchParams: Promise<{ social?: string }> }) {
+  const { clientSlug } = await params
+  const { social } = await searchParams
+  redirect(`/${encodeURIComponent(clientSlug)}/marketing-settings${social ? `?social=${encodeURIComponent(social)}` : ""}`)
 }

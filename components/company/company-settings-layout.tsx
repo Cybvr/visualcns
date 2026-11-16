@@ -18,7 +18,6 @@ const SETTINGS_ITEMS = [
 const SETTINGS_PAGES = [
   ["", "General", Settings2, "about"],
   ["account", "Account", User, "about"],
-  ["social", "Social", Share2, "social"],
   ["analytics", "Analytics", TrendingUp, "analytics"],
 ] as const
 

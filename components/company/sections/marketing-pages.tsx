@@ -1,13 +1,15 @@
 "use client"
 
 import Link from "next/link"
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import { BadgeDollarSign, Check, ExternalLink } from "lucide-react"
 
 import { useAuth } from "@/components/auth-provider"
 import { useCompanyPage } from "@/components/company/company-page-context"
 import { FIELDS, type BusinessDetails } from "@/components/company/pulse-intro"
 import { ReportView } from "@/components/company/pulse"
+import { SocialAccounts } from "@/components/company/social-accounts"
+import { GoogleConnections } from "@/components/company/sections/marketing-connect"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -23,9 +25,11 @@ import type { PulseItem, PulseReport, PulseReportSummary, PulseState } from "@/l
 type Latest = { id: string; report: PulseReport } | null
 /** Google accounts the company linked for tracking, by key, e.g. { ga4: "G-ABC123" }. */
 export type Connections = Record<string, string>
+/** Brand details from Marketing Settings, by field key. */
+export type BrandDetails = Record<string, string>
 
 // Shared across the Marketing pages, so moving between them doesn't reload the scan.
-const latestCache = new Map<string, Promise<{ latest: Latest; connections: Connections }>>()
+const latestCache = new Map<string, Promise<{ latest: Latest; connections: Connections; brand: BrandDetails }>>()
 
 export function useMarketingApi(companyId: string) {
   const { user, loading } = useAuth()
@@ -56,6 +60,7 @@ export function useLatestScan() {
   const { call, ready, signedOut } = useMarketingApi(company.id)
   const [latest, setLatest] = useState<Latest | undefined>(undefined)
   const [connections, setConnections] = useState<Connections>({})
+  const [brand, setBrand] = useState<BrandDetails>({})
   const [error, setError] = useState("")
   const [revision, setRevision] = useState(0)
 
@@ -70,10 +75,10 @@ export function useLatestScan() {
     let request = latestCache.get(company.id)
     if (!request) {
       request = (async () => {
-        const { reports, connections: linked } = (await call()) as { reports: PulseReportSummary[]; connections?: Connections }
-        if (!reports.length) return { latest: null, connections: linked ?? {} }
+        const { reports, connections: linked, brand: saved } = (await call()) as { reports: PulseReportSummary[]; connections?: Connections; brand?: BrandDetails }
+        if (!reports.length) return { latest: null, connections: linked ?? {}, brand: saved ?? {} }
         const state = (await call(undefined, { reportId: reports[0].id })) as PulseState
-        return { latest: state.report ? { id: reports[0].id, report: state.report } : null, connections: linked ?? {} }
+        return { latest: state.report ? { id: reports[0].id, report: state.report } : null, connections: linked ?? {}, brand: saved ?? {} }
       })()
       latestCache.set(company.id, request)
       request.catch(() => latestCache.delete(company.id))
@@ -83,6 +88,7 @@ export function useLatestScan() {
         if (!active) return
         setLatest(value.latest)
         setConnections(value.connections)
+        setBrand(value.brand)
       })
       .catch((reason: Error) => {
         if (!active) return
@@ -109,7 +115,13 @@ export function useLatestScan() {
     })
   }, [call, company.id])
 
-  return { latest, connections, error, refresh, call, link }
+  const saveBrand = useCallback(async (patch: BrandDetails) => {
+    await call({ body: { action: "brand", details: patch } })
+    latestCache.delete(company.id)
+    setBrand((current) => ({ ...current, ...patch }))
+  }, [call, company.id])
+
+  return { latest, connections, brand, error, refresh, call, link, saveBrand }
 }
 
 // Details saved on Settings this visit, so Home shows them without reloading the company.
@@ -155,8 +167,8 @@ export function LoadingCards() {
   )
 }
 
-/** Settings: the business details Marketing works from, as one form. */
-export function MarketingSettingsSection() {
+/** The business basics, as one form. */
+function BusinessDetailsForm() {
   const { details, save } = useBusinessDetails()
   const [draft, setDraft] = useState<BusinessDetails>(details)
   const [saving, setSaving] = useState(false)
@@ -191,8 +203,7 @@ export function MarketingSettingsSection() {
   }
 
   return (
-    <form onSubmit={submit} className="mx-auto mt-6 max-w-xl space-y-4">
-      <p className="text-sm text-muted-foreground">Your business details. Marketing uses them each time it builds.</p>
+    <form onSubmit={submit} className="space-y-4">
       {FIELDS.filter((field) => field.key !== "logoUrl").map((field) => (
         <label key={field.key} className="block">
           <span className="text-sm font-medium text-foreground">{field.label}</span>
@@ -219,6 +230,88 @@ export function MarketingSettingsSection() {
         <span aria-live="polite" className={notice?.tone === "bad" ? "text-sm text-destructive" : "text-sm text-muted-foreground"}>{notice?.text}</span>
       </div>
     </form>
+  )
+}
+
+const BRAND_FIELDS: { key: string; label: string; placeholder: string; long?: boolean; help?: string }[] = [
+  { key: "keywords", label: "Keywords", placeholder: "e.g. bakery in Lekki, birthday cakes, wedding cakes", long: true, help: "The searches you want customers to find you with. Separate with commas." },
+  { key: "serviceAreas", label: "Service areas", placeholder: "e.g. Lekki, Victoria Island, Ikoyi" },
+  { key: "products", label: "Products and services", placeholder: "What you sell, one per line", long: true },
+  { key: "competitors", label: "Competitors", placeholder: "Names or websites, separated by commas", long: true },
+  { key: "sellingPoints", label: "What makes you different", placeholder: "e.g. Same-day delivery, 10 years in business", long: true },
+  { key: "brandVoice", label: "Brand voice", placeholder: "e.g. Friendly and warm" },
+  { key: "goals", label: "Goals", placeholder: "e.g. More calls and more walk-ins" },
+  { key: "adBudget", label: "Monthly ad budget", placeholder: "e.g. ₦200,000" },
+]
+
+function BrandDetailsForm({ brand, onSave }: { brand: BrandDetails; onSave: (patch: BrandDetails) => Promise<void> }) {
+  const [draft, setDraft] = useState<BrandDetails>(brand)
+  const [saving, setSaving] = useState(false)
+  const [notice, setNotice] = useState<{ tone: "good" | "bad"; text: string } | null>(null)
+  useEffect(() => { setDraft(brand) }, [brand])
+
+  async function submit(event: React.FormEvent) {
+    event.preventDefault()
+    setSaving(true)
+    setNotice(null)
+    try {
+      await onSave(Object.fromEntries(BRAND_FIELDS.map((field) => [field.key, draft[field.key] ?? ""])))
+      setNotice({ tone: "good", text: "Saved." })
+    } catch {
+      setNotice({ tone: "bad", text: "Could not save. Please try again." })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <form onSubmit={submit} className="space-y-4">
+      {BRAND_FIELDS.map((field) => (
+        <label key={field.key} className="block">
+          <span className="text-sm font-medium text-foreground">{field.label}</span>
+          {field.long ? (
+            <Textarea value={draft[field.key] ?? ""} onChange={(event) => setDraft((current) => ({ ...current, [field.key]: event.target.value }))} placeholder={field.placeholder} rows={3} className="mt-1.5" />
+          ) : (
+            <Input value={draft[field.key] ?? ""} onChange={(event) => setDraft((current) => ({ ...current, [field.key]: event.target.value }))} placeholder={field.placeholder} className="mt-1.5" />
+          )}
+          {field.help && <span className="mt-1.5 block text-xs text-muted-foreground">{field.help}</span>}
+        </label>
+      ))}
+      <div className="flex items-center gap-3 pt-1">
+        <Button type="submit" disabled={saving}>{saving ? "Saving…" : "Save"}</Button>
+        <span aria-live="polite" className={notice?.tone === "bad" ? "text-sm text-destructive" : "text-sm text-muted-foreground"}>{notice?.text}</span>
+      </div>
+    </form>
+  )
+}
+
+function SettingsBlock({ id, title, text, children }: { id: string; title: string; text: string; children: ReactNode }) {
+  return (
+    <section id={id} aria-labelledby={`${id}-title`} className="scroll-mt-6 rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
+      <h2 id={`${id}-title`} className="text-base font-semibold text-foreground">{title}</h2>
+      <p className="mt-1 text-sm text-muted-foreground">{text}</p>
+      <div className="mt-5">{children}</div>
+    </section>
+  )
+}
+
+/** Settings: connections, business basics and brand details, in one place. */
+export function MarketingSettingsSection() {
+  const { company } = useCompanyPage()
+  const { latest, connections, brand, link, saveBrand } = useLatestScan()
+  return (
+    <div className="mx-auto mt-6 max-w-2xl space-y-5">
+      <SettingsBlock id="marketing-connections" title="Connections" text="Connect your accounts so we can post for you and track how you're doing.">
+        <SocialAccounts companyId={company.id} />
+        <GoogleConnections connections={connections} loading={latest === undefined} onSave={link} />
+      </SettingsBlock>
+      <SettingsBlock id="marketing-business" title="Business details" text="The basics about your business.">
+        <BusinessDetailsForm />
+      </SettingsBlock>
+      <SettingsBlock id="marketing-brand" title="Brand details" text="The more you tell us, the more your marketing fits your business.">
+        <BrandDetailsForm brand={brand} onSave={saveBrand} />
+      </SettingsBlock>
+    </div>
   )
 }
 
