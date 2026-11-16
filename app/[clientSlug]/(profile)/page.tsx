@@ -26,6 +26,14 @@ const RECOMMENDED = [
   { key: "support", tab: "support", image: "/services/crm-relationship-design.png", title: "Keep your business running", text: "Monthly support hours from our team when you need a hand." },
 ]
 
+/** "Nov 16, 2026, 04:25 AM (EST)", in the viewer's own time zone. */
+function lastLoginLabel(date: Date) {
+  const day = date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+  const time = date.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true })
+  const zone = new Intl.DateTimeFormat("en-US", { timeZoneName: "short" }).formatToParts(date).find((part) => part.type === "timeZoneName")?.value
+  return `${day}, ${time}${zone ? ` (${zone})` : ""}`
+}
+
 export default function CompanyHomePage() {
   const { company, sectionHref } = useCompanyPage()
   const { user, appUser } = useAuth()
@@ -88,7 +96,7 @@ export default function CompanyHomePage() {
       </h1>
       {signedInAt && (
         <p className="surface-caption mt-1">
-          Signed in {signedInAt.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}
+          Last logged in on {lastLoginLabel(signedInAt)}
         </p>
       )}
 
