@@ -126,7 +126,7 @@ export default function CompanyHomePage() {
 
       <section aria-labelledby="home-quick-actions-heading" className="mt-6">
         <SectionHeader id="home-quick-actions-heading" title="Quick actions" />
-        <div className="-mx-4 mt-3 flex gap-3 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0">
+        <div className="-mx-3 mt-3 flex gap-3 overflow-x-auto px-3 pb-1 sm:mx-0 sm:px-0">
           {quickActions.map(({ key, label, icon: Icon, href, tone }) => (
             <Link key={key} href={href} className="group flex w-24 shrink-0 flex-col gap-2 rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ring">
               <span className={`flex aspect-square w-full items-center justify-center rounded-xl transition-opacity group-hover:opacity-80 ${tone}`}>
@@ -141,7 +141,7 @@ export default function CompanyHomePage() {
       <section aria-labelledby="home-recommended-heading" className="mt-8 mb-8">
         <SectionHeader id="home-recommended-heading" title="Recommended for you" />
         {/* Phones: a swipeable row with the next card peeking in. Wider screens: three across. */}
-        <div className="scrollbar-none -mx-4 mt-3 flex snap-x snap-mandatory scroll-px-4 gap-3 overflow-x-auto px-4 pb-1 sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:px-0 lg:grid-cols-3">
+        <div className="scrollbar-none -mx-3 mt-3 flex snap-x snap-mandatory scroll-px-3 gap-3 overflow-x-auto px-3 pb-1 sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:px-0 lg:grid-cols-3">
           {RECOMMENDED.map(({ key, tab, Scene, title, text }) => (
             <Link
               key={key}
