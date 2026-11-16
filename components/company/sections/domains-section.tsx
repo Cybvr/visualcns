@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useState, type FormEvent } from "react"
-import { Check, Copy, Link2, RefreshCw } from "lucide-react"
+import { Check, Copy, Globe, Link2, RefreshCw } from "lucide-react"
 import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
@@ -19,14 +19,19 @@ import { cn } from "@/lib/utils"
 
 const NO_SITE = "none"
 
-function StatusBadge({ status }: { status: ConnectedDomain["status"] }) {
+/** A row in the list: a free address a published site gets, or a custom domain the company connected. */
+type DomainItem =
+  | { kind: "free"; name: string; title: string; url: string; date: number }
+  | { kind: "custom"; name: string; domain: ConnectedDomain; date?: number }
+
+function StatusBadge({ status, label }: { status: ConnectedDomain["status"]; label?: string }) {
   return (
     <span className={cn(
       "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium",
       status === "connected" ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400" : "bg-amber-500/15 text-amber-600 dark:text-amber-400",
     )}>
       <span className={cn("size-1.5 rounded-full", status === "connected" ? "bg-emerald-500" : "bg-amber-500")} aria-hidden="true" />
-      {status === "connected" ? "Connected" : "Waiting for DNS"}
+      {label ?? (status === "connected" ? "Connected" : "Waiting for DNS")}
     </span>
   )
 }
@@ -83,12 +88,19 @@ export function DomainsSection() {
   return (
     <div className="mt-5">
       <h2 className="sr-only">Domains</h2>
-      <CollectionView
+      <CollectionView<DomainItem>
         className="mt-4"
-        items={domains ?? []}
+        items={[
+          // Every published site is live at its free address, with no setup.
+          ...sites.map((site): DomainItem => {
+            const url = ngaiPublishedUrl(site.slug!)
+            return { kind: "free", name: url.replace("https://", ""), title: site.title, url, date: site.updatedAt }
+          }),
+          ...(domains ?? []).map((domain): DomainItem => ({ kind: "custom", name: domain.name, domain, date: domain.createdAt })),
+        ]}
         loading={domains === null}
-        getKey={(domain) => domain.name}
-        searchFields={(domain) => [domain.name, domain.siteSlug, domain.status]}
+        getKey={(item) => item.name}
+        searchFields={(item) => item.kind === "free" ? [item.name, item.title] : [item.name, item.domain.siteSlug, item.domain.status]}
         searchPlaceholder="Search domains"
         viewKey="company-domains"
         actions={<SectionAddButton label="Connect a domain" onClick={() => setAdding(true)} />}
@@ -97,28 +109,40 @@ export function DomainsSection() {
           title: "No domains yet",
           action: <SectionAddButton label="Connect a domain" onClick={() => setAdding(true)} />,
         }}
-        date={(domain) => domain.createdAt}
-        itemActions={(domain) => ({
+        date={(item) => item.date}
+        itemActions={(item) => item.kind === "custom" ? {
           noun: "domain",
-          name: domain.name,
-          onDelete: () => remove(domain),
+          name: item.name,
+          onDelete: () => remove(item.domain),
           deleteLabel: "Disconnect",
-          deleteMessage: `${domain.name} will stop showing your website.`,
-        })}
-        card={(domain) => ({
-          title: domain.name,
+          deleteMessage: `${item.name} will stop showing your website.`,
+        } : { noun: "address", name: item.name, onOpen: () => window.open(item.url, "_blank", "noopener,noreferrer") }}
+        card={(item) => item.kind === "free" ? {
+          title: item.name,
+          icon: <Globe className="size-4 text-muted-foreground" aria-hidden="true" />,
+          placeholder: <Globe className="size-8 text-muted-foreground/60" aria-hidden="true" />,
+          preview: (
+            <div className="flex size-full flex-col items-center justify-center gap-2 bg-muted/50 p-3 text-center">
+              <span className="max-w-full truncate text-sm font-medium text-foreground">{item.name}</span>
+              <StatusBadge status="connected" label="Live" />
+            </div>
+          ),
+          onClick: () => window.open(item.url, "_blank", "noopener,noreferrer"),
+          ariaLabel: `Open ${item.name}`,
+        } : {
+          title: item.name,
           icon: <Link2 className="size-4 text-muted-foreground" aria-hidden="true" />,
           placeholder: <Link2 className="size-8 text-muted-foreground/60" aria-hidden="true" />,
           preview: (
             <div className="flex size-full flex-col items-center justify-center gap-2 bg-muted/50 p-3 text-center">
-              <span className="max-w-full truncate text-sm font-medium text-foreground">{domain.name}</span>
-              <StatusBadge status={domain.status} />
+              <span className="max-w-full truncate text-sm font-medium text-foreground">{item.name}</span>
+              <StatusBadge status={item.domain.status} />
             </div>
           ),
-          onClick: () => setOpenName(domain.name),
-          ariaLabel: `Open ${domain.name}`,
-        })}
-        row={(domain) => ({ subtitle: domain.status === "connected" ? "Connected" : "Waiting for DNS" })}
+          onClick: () => setOpenName(item.name),
+          ariaLabel: `Open ${item.name}`,
+        }}
+        row={(item) => ({ subtitle: item.kind === "free" ? `Live · ${item.title}` : item.domain.status === "connected" ? "Connected" : "Waiting for DNS" })}
       />
 
       <AddDomainDialog
