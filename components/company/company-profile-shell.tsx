@@ -112,6 +112,7 @@ const MENU_GROUPS = [
   { key: "marketing", label: "Marketing", icon: Megaphone, items: [
     { key: "marketing", label: "Home" },
     { key: "projects", label: "Campaigns" },
+    { key: "assets", label: "Assets" },
     { key: "social", label: "Social Media" },
     { key: "reviews", label: "Reviews" },
     { key: "insights", label: "Insights" },
@@ -120,7 +121,7 @@ const MENU_GROUPS = [
     { key: "business-profile", label: "Business Profile" },
     { key: "marketing-settings", label: "Settings" },
   ] },
-  { key: "finance", label: "Finance", icon: Wallet, items: [{ key: "documents", label: "Drive" }, { key: "billings", label: "Billing" }] },
+  { key: "finance", label: "Finance", icon: Wallet, items: [{ key: "documents", label: "Documents" }, { key: "billings", label: "Billing" }] },
 ] as const
 
 function CompanySidebarLink({ onClick, ...props }: ComponentProps<typeof Link>) {
@@ -215,10 +216,10 @@ export function CompanyProfileShell({ children }: { children: ReactNode }) {
   const searchResults = useMemo<SearchResult[]>(() => [
     ...sections.map((item) => ({ id: `section-${item.key}`, group: "Pages", label: item.label, href: sectionHref(item.key) })),
     ...projects.map((project) => ({ id: `project-${project.id}`, group: "Campaigns", label: project.title, sublabel: project.service || undefined, href: sectionHref("projects") })),
-    ...documents.map((doc) => ({ id: `document-${doc.id}`, group: "Drive", label: doc.title || "Document", href: sectionHref("documents", { doc: `document:${doc.id}` }) })),
-    ...invoices.map((invoice) => ({ id: `invoice-${invoice.id}`, group: "Drive", label: invoice.invoiceNumber || invoice.title || "Invoice", href: sectionHref("documents", { doc: `invoice:${invoice.id}` }) })),
-    ...estimates.map((estimate) => ({ id: `estimate-${estimate.id}`, group: "Drive", label: estimate.estimateNumber || estimate.title || "Estimate", href: sectionHref("documents", { doc: `estimate:${estimate.id}` }) })),
-    ...contracts.map((contract) => ({ id: `contract-${contract.id}`, group: "Drive", label: contract.title || "Contract", href: sectionHref("documents", { doc: `contract:${contract.id}` }) })),
+    ...documents.map((doc) => ({ id: `document-${doc.id}`, group: "Documents", label: doc.title || "Document", href: sectionHref("documents", { doc: `document:${doc.id}` }) })),
+    ...invoices.map((invoice) => ({ id: `invoice-${invoice.id}`, group: "Documents", label: invoice.invoiceNumber || invoice.title || "Invoice", href: sectionHref("documents", { doc: `invoice:${invoice.id}` }) })),
+    ...estimates.map((estimate) => ({ id: `estimate-${estimate.id}`, group: "Documents", label: estimate.estimateNumber || estimate.title || "Estimate", href: sectionHref("documents", { doc: `estimate:${estimate.id}` }) })),
+    ...contracts.map((contract) => ({ id: `contract-${contract.id}`, group: "Documents", label: contract.title || "Contract", href: sectionHref("documents", { doc: `contract:${contract.id}` }) })),
     // eslint-disable-next-line react-hooks/exhaustive-deps
   ], [sections, projects, documents, invoices, estimates, contracts])
 

@@ -26,6 +26,11 @@ function DriveSection() {
   return <DocumentsSection />
 }
 
+/** Images and videos, uploaded or from campaigns. */
+function AssetsSection() {
+  return <DocumentsSection view="assets" />
+}
+
 /** The company's VisualCNS subscription and plan billing. */
 function BillingsSection() {
   return <CompanyBillings />
@@ -112,6 +117,7 @@ const SECTION_COMPONENTS: Record<CompanySectionKey, ComponentType> = {
   activity: HomeActivitySection,
   pulse: PulseSection,
   documents: DriveSection,
+  assets: AssetsSection,
   billings: BillingsSection,
   customers: CustomersSection,
   visitors: VisitorsSection,

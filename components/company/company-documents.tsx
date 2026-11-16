@@ -54,6 +54,8 @@ type Entry = {
   /** When it was last changed, for sorting and the date on its card and row. */
   updatedMs: number
   searchText?: string[]
+  /** An image, video or media link: listed on Assets, not Documents. */
+  media?: boolean
   actions: CollectionItemActions
 }
 

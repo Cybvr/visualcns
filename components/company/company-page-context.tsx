@@ -199,6 +199,7 @@ export function CompanyPageProvider({
       find("domains"),
       find("marketing"),
       find("projects"),
+      find("assets"),
       find("social"),
       ...MARKETING_PAGE_KEYS.map(find),
       find("documents"),
