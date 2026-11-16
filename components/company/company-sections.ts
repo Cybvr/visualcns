@@ -18,6 +18,10 @@ export const COMPANY_SECTIONS = [
   { key: "ngai", label: "Help", icon: Bot },
   // The viewer's own Ngai builder chats (apps and websites), opened in the builder.
   { key: "domains", label: "Domains", icon: Link2 },
+  // Home pages for the Websites, Finance and Security groups.
+  { key: "websites-home", label: "Websites", icon: Globe },
+  { key: "finance-home", label: "Finance", icon: CreditCard },
+  { key: "security-home", label: "Security", icon: Fingerprint },
   { key: "sites", label: "Websites", icon: Globe },
   { key: "tasks", label: "Tasks", icon: ListTodo },
   { key: "about", label: "About", icon: Info },

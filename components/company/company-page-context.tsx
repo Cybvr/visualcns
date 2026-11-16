@@ -22,7 +22,7 @@ export { COMPANY_SECTIONS, isCompanySection, type CompanySectionKey } from "@/co
 
 /** Marketing pages after Social Media, in menu order. Overview comes first, before Campaigns. */
 const MARKETING_PAGE_KEYS: CompanySectionKey[] = ["reviews", "insights", "seo", "google-ads", "business-profile", "marketing-settings"]
-const MARKETING_KEYS: CompanySectionKey[] = ["marketing", ...MARKETING_PAGE_KEYS]
+const MARKETING_KEYS: CompanySectionKey[] = ["marketing", ...MARKETING_PAGE_KEYS, "websites-home", "finance-home", "security-home"]
 
 export interface CompanyPagePerson {
   id: string
@@ -174,7 +174,7 @@ export function CompanyPageProvider({
       // Domains belong to the company's own websites, and only its staff and the agency manage them.
       .filter((item) => (mode === "routes" && canSeeVisitors) || item.key !== "domains")
       // Social holds private DMs and posting, so it follows the same rule as Visitors.
-      .filter((item) => !["visitors", "messages", "social"].includes(item.key) || canSeeVisitors)
+      .filter((item) => !["visitors", "security-home", "messages", "social"].includes(item.key) || canSeeVisitors)
       // Customers are the company's private contacts: its own staff and the agency only.
       .filter((item) => item.key !== "customers" || canSeeVisitors)
     if (mode !== "routes") {
@@ -195,6 +195,7 @@ export function CompanyPageProvider({
       { ...about, label: "Home", icon: House },
       find("ngai"),
       // Websites, Marketing, Finance, Customers, then Security, as the menu shows them.
+      find("websites-home"),
       find("sites"),
       find("domains"),
       find("marketing"),
@@ -202,9 +203,11 @@ export function CompanyPageProvider({
       find("assets"),
       find("social"),
       ...MARKETING_PAGE_KEYS.map(find),
+      find("finance-home"),
       find("documents"),
       find("billings"),
       find("customers"),
+      find("security-home"),
       find("visitors"),
       find("analytics"),
       activity && { ...activity, label: "Notifications", icon: Bell },

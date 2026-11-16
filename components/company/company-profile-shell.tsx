@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState, type ComponentProps, type ComponentType, type ReactNode } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { ChevronRight, Globe, LogIn, Megaphone, Search, Wallet } from "lucide-react"
+import { ChevronRight, Fingerprint, Globe, LogIn, Megaphone, Search, Wallet } from "lucide-react"
 
 import { NgaiMark } from "@/components/agent/ngai-mark"
 import { useAuth } from "@/components/auth-provider"
@@ -108,7 +108,7 @@ function MenuGroup({ icon: Icon, label, items, active }: {
 
 /** The main menu headings and the pages each one opens to, in menu order. */
 const MENU_GROUPS = [
-  { key: "websites", label: "Websites", icon: Globe, items: [{ key: "sites", label: "Sites" }, { key: "domains", label: "Domains" }] },
+  { key: "websites", label: "Websites", icon: Globe, items: [{ key: "websites-home", label: "Home" }, { key: "sites", label: "Sites" }, { key: "domains", label: "Domains" }] },
   { key: "marketing", label: "Marketing", icon: Megaphone, items: [
     { key: "marketing", label: "Home" },
     { key: "projects", label: "Campaigns" },
@@ -121,7 +121,8 @@ const MENU_GROUPS = [
     { key: "business-profile", label: "Business Profile" },
     { key: "marketing-settings", label: "Settings" },
   ] },
-  { key: "finance", label: "Finance", icon: Wallet, items: [{ key: "documents", label: "Documents" }, { key: "billings", label: "Billing" }] },
+  { key: "finance", label: "Finance", icon: Wallet, items: [{ key: "finance-home", label: "Home" }, { key: "documents", label: "Documents" }, { key: "billings", label: "Billing" }] },
+  { key: "security", label: "Security", icon: Fingerprint, items: [{ key: "security-home", label: "Home" }, { key: "visitors", label: "Visitors" }] },
 ] as const
 
 function CompanySidebarLink({ onClick, ...props }: ComponentProps<typeof Link>) {

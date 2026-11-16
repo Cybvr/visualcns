@@ -21,6 +21,7 @@ import { DomainsSection } from "@/components/company/sections/domains-section"
 import { TeamSection } from "@/components/company/sections/team-section"
 import { BusinessProfileSection, GoogleAdsSection, InsightsSection, MarketingSettingsSection, ReviewsSection, SeoSection } from "@/components/company/sections/marketing-pages"
 import { MarketingOverviewSection } from "@/components/company/sections/marketing-home"
+import { FinanceHomeSection, SecurityHomeSection, WebsitesHomeSection } from "@/components/company/sections/area-homes"
 
 /** Documents and media in one grid. An open document takes the whole page. */
 function DriveSection() {
@@ -102,6 +103,9 @@ const SECTION_COMPONENTS: Record<CompanySectionKey, ComponentType> = {
   projects: ProjectsSection,
   social: SocialSection,
   marketing: MarketingOverviewSection,
+  "websites-home": WebsitesHomeSection,
+  "finance-home": FinanceHomeSection,
+  "security-home": SecurityHomeSection,
   "marketing-settings": MarketingSettingsSection,
   reviews: ReviewsSection,
   insights: InsightsSection,
