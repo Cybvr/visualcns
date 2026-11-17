@@ -19,24 +19,24 @@ const db = getFirestore(app);
 // Same owner as scripts/seed-email-templates.mjs.
 const OWNER_EMAIL = 'jide.pinheiro@gmail.com';
 const SIGNUP = 'https://www.visualcns.com/signup';
-const SIGN_OFF = '<p>Jide<br />VisualCNS</p>';
 
 const p = (text) => `<p>${text}</p>`;
 const link = (url, text) => `<p><a href="${url}">${text}</a></p>`;
 
-// "[Customer Name]" is swapped for the recipient's name when the email is sent.
+const SIGN = '<p>Jide from VisualCNS</p>';
+const GREETING = p('Hi there,');
+
+// Facts: BrightLocal Local Consumer Review Survey 2026, DataReportal Digital 2026, Buffer 2026.
 const templates = [
   {
     id: 'marketing-launch',
     name: 'Marketing — Launch',
     subject: 'we built something for your business',
     body: [
-      p('Hi [Customer Name],'),
-      p('Most of the businesses we work with have the same problem: posting is on and off, Google barely shows them, and reviews sit unanswered.'),
-      p('So we built Marketing. Social, SEO, reviews and ads in one place, with a short list of what to do next.'),
-      p('It’s free for 30 days.'),
+      GREETING,
+      p('A 2026 BrightLocal survey found that 97% of people read reviews before choosing a local business, and almost half now ask AI tools like ChatGPT for recommendations too. Being easy to find and well reviewed matters more than ever, which is why we built Marketing. It puts your social media, Google search, reviews and ads in one place and tells you what to do next. You can try it free for 30 days.'),
       link(SIGNUP, 'Start your free trial'),
-      SIGN_OFF,
+      SIGN,
     ].join(''),
   },
   {
@@ -44,10 +44,9 @@ const templates = [
     name: 'Marketing — One question',
     subject: 'google or instagram?',
     body: [
-      p('Hi [Customer Name],'),
-      p('One question: what’s harder for you right now, getting found on Google or posting on Instagram consistently?'),
-      p('Just reply with one word. I’ll send you the one thing that would help most.'),
-      SIGN_OFF,
+      GREETING,
+      p('Two in every three people on Earth now use social media, according to DataReportal’s 2026 global report, yet most people still check Google before they buy. I’m curious which one is harder for you right now, getting found on Google or keeping up with Instagram. Reply with whichever it is and I’ll send you the one change that would make the biggest difference.'),
+      SIGN,
     ].join(''),
   },
   {
@@ -55,38 +54,37 @@ const templates = [
     name: 'Marketing — Free check',
     subject: 'want a free 10-minute check?',
     body: [
-      p('Hi [Customer Name],'),
-      p('Reply “check” and we’ll look at your Google listing and your Instagram this week.'),
-      p('You’ll get the 3 things worth fixing first. No call, no pitch.'),
-      SIGN_OFF,
+      GREETING,
+      p('Three in four people only trust reviews from the last three months, according to BrightLocal’s 2026 survey, so an old listing quietly costs you customers. If you reply with “check”, we’ll look at your Google listing and your Instagram this week and send you the three things we’d fix first. You don’t need to book a call, and there’s nothing to buy.'),
+      SIGN,
     ].join(''),
   },
   {
-    id: 'marketing-client-story',
-    name: 'Marketing — Client story (fill in before sending)',
-    subject: 'how [Client] started showing up on google',
+    id: 'marketing-week',
+    name: 'Marketing — A week with Marketing',
+    subject: 'what a week with Marketing looks like',
     body: [
-      p('Hi [Customer Name],'),
-      p('[Client] is a [type of business] in [area]. In [month], they barely showed up when people searched for them.'),
-      p('They added their keywords, fixed their Google listing and started replying to reviews. [Result, e.g. calls doubled in 6 weeks].'),
-      p('Same steps, same tools, now in Marketing.'),
-      link(SIGNUP, 'Try it free for 30 days'),
-      SIGN_OFF,
+      GREETING,
+      p('Buffer found that accounts posting three to five times a week reach more people with every post than accounts posting once or twice, yet many small businesses only manage once a week. Here’s how Marketing helps. On Monday you see the three things worth fixing on your Google listing and website. By Wednesday your posts for the week are drafted and scheduled, and by Friday every new review has a reply. You can try it free for 30 days.'),
+      link(SIGNUP, 'Try it free'),
+      SIGN,
     ].join(''),
   },
   {
-    id: 'marketing-trial-deadline',
-    name: 'Marketing — Last call',
-    subject: 'last call: 30 days free',
+    id: 'marketing-trial',
+    name: 'Marketing — Free trial',
+    subject: 'your free trial is waiting',
     body: [
-      p('Hi [Customer Name],'),
-      p('The 30-day free trial of Marketing ends for new sign-ups this [day].'),
-      p('If getting found and posting regularly is on your list this year, now’s the easy time to start.'),
+      GREETING,
+      p('Nearly a third of people now only consider businesses rated 4.5 stars or higher, almost double last year. If getting more good reviews and showing up on Google is on your list this year, Marketing is free for your first 30 days, so it’s worth a proper try.'),
       link(SIGNUP, 'Start free'),
-      SIGN_OFF,
+      SIGN,
     ].join(''),
   },
 ];
+
+// Earlier versions that the ones above replace.
+const RETIRED = ['marketing-client-story', 'marketing-trial-deadline'];
 
 async function resolveOwner() {
   const snapshot = await db.collection('users').where('email', '==', OWNER_EMAIL).limit(1).get();
@@ -102,6 +100,10 @@ const updatedAt = new Date().toISOString();
 for (const template of templates) {
   await db.collection('emailTemplates').doc(`${companyId}__${template.id}`).set({ ...template, companyId, createdBy, agencyId, updatedAt }, { merge: true });
   console.log(`Saved ${template.id}`);
+}
+for (const id of RETIRED) {
+  await db.collection('emailTemplates').doc(`${companyId}__${id}`).delete();
+  console.log(`Removed ${id}`);
 }
 console.log('Done.');
 process.exit(0);
