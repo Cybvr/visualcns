@@ -138,7 +138,7 @@ async function sendAlert(db: FirebaseFirestore.Firestore, agencyId: string, comp
   const what = KIND_NAMES[item.kind]
   const subject = `New ${where} ${what} for ${companyName}`
   const slug = String(org.slug || companyId)
-  const url = `${SITE_ORIGIN}/${encodeURIComponent(slug)}/social?view=inbox`
+  const url = `${SITE_ORIGIN}/${encodeURIComponent(slug)}/social`
   const stars = item.rating ? ` (${item.rating}★)` : ""
   const body = `${item.authorName}${stars} on ${where}:\n\n"${item.text || "(no text)"}"`
   const html = brandedEmail(`<p>${escapeHtml(body).replace(/\n\n/g, "</p><p>")}</p>`, subject, { name: "VisualCNS" }, from, { text: "Open inbox", url })
