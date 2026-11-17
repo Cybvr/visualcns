@@ -19,7 +19,8 @@ import { NgaiSection } from "@/components/company/sections/ngai-section"
 import { SitesSection } from "@/components/company/sections/sites-section"
 import { DomainsSection } from "@/components/company/sections/domains-section"
 import { TeamSection } from "@/components/company/sections/team-section"
-import { BusinessProfileSection, GoogleAdsSection, InsightsSection, MarketingSettingsSection, ReviewsSection, SeoSection } from "@/components/company/sections/marketing-pages"
+import { MarketingSettingsSection } from "@/components/company/sections/marketing-pages"
+import { BusinessProfilePage, GoogleAdsPage, InsightsPage, ReviewsPage, SeoPage } from "@/components/company/sections/marketing-area"
 import { MarketingOverviewSection } from "@/components/company/sections/marketing-home"
 import { FinanceHomeSection, SecurityHomeSection, WebsitesHomeSection } from "@/components/company/sections/area-homes"
 
@@ -107,11 +108,11 @@ const SECTION_COMPONENTS: Record<CompanySectionKey, ComponentType> = {
   "finance-home": FinanceHomeSection,
   "security-home": SecurityHomeSection,
   "marketing-settings": MarketingSettingsSection,
-  reviews: ReviewsSection,
-  insights: InsightsSection,
-  seo: SeoSection,
-  "google-ads": GoogleAdsSection,
-  "business-profile": BusinessProfileSection,
+  reviews: ReviewsPage,
+  insights: InsightsPage,
+  seo: SeoPage,
+  "google-ads": GoogleAdsPage,
+  "business-profile": BusinessProfilePage,
   ngai: NgaiSection,
   sites: SitesSection,
   domains: DomainsSection,

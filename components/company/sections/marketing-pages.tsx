@@ -22,7 +22,7 @@ import type { PulseItem, PulseReport, PulseReportSummary, PulseState } from "@/l
  * SEO, Reviews and Business Profile each show their part of the newest scan.
  */
 
-type Latest = { id: string; report: PulseReport } | null
+type Latest = { id: string; report: PulseReport; done: string[]; firstScore: number } | null
 /** Google accounts the company linked for tracking, by key, e.g. { ga4: "G-ABC123" }. */
 export type Connections = Record<string, string>
 /** Brand details from Marketing Settings, by field key. */
@@ -78,7 +78,9 @@ export function useLatestScan() {
         const { reports, connections: linked, brand: saved } = (await call()) as { reports: PulseReportSummary[]; connections?: Connections; brand?: BrandDetails }
         if (!reports.length) return { latest: null, connections: linked ?? {}, brand: saved ?? {} }
         const state = (await call(undefined, { reportId: reports[0].id })) as PulseState
-        return { latest: state.report ? { id: reports[0].id, report: state.report } : null, connections: linked ?? {}, brand: saved ?? {} }
+        // Reports come newest first; the oldest score is where tracking started.
+        const firstScore = reports[reports.length - 1].score
+        return { latest: state.report ? { id: reports[0].id, report: state.report, done: state.done ?? [], firstScore } : null, connections: linked ?? {}, brand: saved ?? {} }
       })()
       latestCache.set(company.id, request)
       request.catch(() => latestCache.delete(company.id))
@@ -121,7 +123,16 @@ export function useLatestScan() {
     setBrand((current) => ({ ...current, ...patch }))
   }, [call, company.id])
 
-  return { latest, connections, brand, error, refresh, call, link, saveBrand }
+  // Marks a scan item done (or not), saved with the report.
+  const markDone = useCallback(async (itemId: string, done = true) => {
+    if (!latest) return
+    const next = done ? Array.from(new Set([...latest.done, itemId])) : latest.done.filter((id) => id !== itemId)
+    setLatest({ ...latest, done: next })
+    latestCache.delete(company.id)
+    await call({ body: { action: "update", reportId: latest.id, done: next } })
+  }, [call, company.id, latest])
+
+  return { latest, connections, brand, error, refresh, call, link, saveBrand, markDone }
 }
 
 // Details saved on Settings this visit, so Home shows them without reloading the company.
