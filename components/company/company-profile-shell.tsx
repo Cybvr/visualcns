@@ -144,7 +144,7 @@ const MENU_GROUPS = [
     { key: "google-ads", label: "Google Ads" },
     { key: "marketing-settings", label: "Settings" },
   ] },
-  { key: "finance", label: "Finance", icon: Wallet, items: [{ key: "finance-home", label: "Home" }, { key: "documents", label: "Documents" }, { key: "billings", label: "Billing" }] },
+  { key: "finance", label: "Finance", icon: Wallet, items: [{ key: "finance-home", label: "Home" }, { key: "documents", label: "Documents" }] },
   { key: "security", label: "Security", icon: Fingerprint, items: [{ key: "security-home", label: "Home" }, { key: "visitors", label: "Visitors" }] },
 ] as const
 
@@ -252,11 +252,12 @@ export function CompanyProfileShell({ children }: { children: ReactNode }) {
   // Analytics lives under Settings, so it leaves the main menu.
   const sidebarSections = sections.filter((item) => !["activity", "analytics"].includes(item.key))
   // Help sits at the bottom of the menu as a plain text link.
-  const footerSections = sidebarSections.filter((item) => item.key === "ngai")
+  // Billing and Help sit at the bottom of the menu as plain text links, Billing first.
+  const footerSections = ["billings", "ngai"].flatMap((key) => sidebarSections.filter((item) => item.key === key))
   const groupOf = (key: string) => MENU_GROUPS.find((group) => group.items.some((item) => item.key === key))
   // Each section shows once: on its own, or as the first page of its group, which then stands for the whole group.
   const menuSections = sidebarSections.filter((item) => {
-    if (item.key === "ngai") return false
+    if (item.key === "ngai" || item.key === "billings") return false
     const group = groupOf(item.key)
     if (!group) return true
     return group.items.find((entry) => sidebarSections.some((s) => s.key === entry.key))?.key === item.key
@@ -274,7 +275,6 @@ export function CompanyProfileShell({ children }: { children: ReactNode }) {
           href: sectionHref(entry.key as SectionItem["key"]),
           icon: SUBMENU_ICONS[entry.key],
           count: entry.key === "projects" ? projects.length : undefined,
-          alert: entry.key === "billings" ? overdueInvoiceCount : undefined,
         }))
       // A group with one page the viewer can open is a plain link under the group's name.
       if (items.length > 1) {
@@ -347,7 +347,7 @@ export function CompanyProfileShell({ children }: { children: ReactNode }) {
               </SidebarGroup>
             </SidebarContent>
             {footerSections.length > 0 && (
-              <nav aria-label="Help" className="mt-auto flex flex-col gap-1 px-4 pt-3 pb-5 group-data-[collapsible=icon]:hidden">
+              <nav aria-label="Billing and help" className="mt-auto flex flex-col gap-1 px-4 pt-3 pb-5 group-data-[collapsible=icon]:hidden">
                 {footerSections.map((item) => {
                   const isActive = onPage && section === item.key
                   return (
