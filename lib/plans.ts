@@ -134,6 +134,40 @@ export const platformRows: ServiceRow[] = [
 ]
 
 /** Monthly growth plans. Each tier includes everything in the one before it. */
+/** Marketing: the do-it-yourself plans. Social and SEO, then Reviews, then Ads. */
+export const marketingPlanRows: ServiceRow[] = [
+  {
+    service: "Essential",
+    scope: "Social + SEO",
+    description: "Post to your social pages and get found on Google.",
+    price: { amount: 10000, suffix: "/mo", usd: 12 },
+    timeline: "Monthly",
+    included: "Social Media, SEO, Insights",
+    icon: "trending",
+    features: ["Create posts with AI help", "Schedule unlimited posts", "Step-by-step SEO tasks", "Keyword tracking", "Marketing insights and score"],
+  },
+  {
+    service: "Pro",
+    scope: "Social + SEO + Reviews",
+    description: "Everything in Essential, plus your reviews in one place.",
+    price: { amount: 18000, suffix: "/mo", usd: 20 },
+    timeline: "Monthly",
+    included: "Social Media, SEO, Reviews, Insights",
+    icon: "chart",
+    features: ["Everything in Essential", "See all your Google and Facebook reviews", "Reply to reviews in one place", "Google Business Profile tracking", "Average rating over time"],
+  },
+  {
+    service: "Advanced",
+    scope: "Social + SEO + Reviews + Ads",
+    description: "Everything in Pro, plus your Google Ads.",
+    price: { amount: 25000, suffix: "/mo", usd: 28 },
+    timeline: "Monthly",
+    included: "Social Media, SEO, Reviews, Google Ads, Insights",
+    icon: "rocket",
+    features: ["Everything in Pro", "Track Google Ads spend, clicks and leads", "Cost per lead over time", "Ad suggestions", "Ad spend paid separately"],
+  },
+]
+
 export const growthPlanRows: GrowthPlan[] = [
   {
     service: "Free",

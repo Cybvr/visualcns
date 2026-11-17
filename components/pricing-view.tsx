@@ -13,15 +13,22 @@ import { useLocalCurrency } from "@/components/use-local-currency"
 import { usePolarCheckout } from "@/components/use-polar-checkout"
 import { usePaystackCheckout } from "@/components/use-paystack-checkout"
 import { LISTED_SERVICES, PRICING_TABS, serviceFor, type BillingInterval, type CartService } from "@/lib/cart"
-import { formatPrice, growthPlanRows } from "@/lib/plans"
+import { formatPrice } from "@/lib/plans"
+import { TRIAL_DAYS } from "@/lib/subscription"
 import { cn } from "@/lib/utils"
 
 const GROUPS = Object.values(PRICING_TABS)
 const TAB_SLUG: Record<string, string> = Object.fromEntries(Object.entries(PRICING_TABS).map(([slug, group]) => [group, slug]))
-const FEATURED_ID = "growth-max"
+/** The "Most popular" plan in each tab. */
+const FEATURED_IDS = new Set(["growth-max", "marketing-pro"])
 /** Features per card on the home page; the rest are behind "+N more". */
 const HOME_FEATURES = 5
-const FREE_GROWTH = growthPlanRows.find((row) => row.price === "free")
+
+/** One line under each tab that explains it. */
+const TAB_INTROS: Record<string, string> = {
+  Marketing: "Do your marketing yourself: social, SEO, reviews and ads in one place.",
+  Growth: "Let our team run your marketing for you. Every plan includes Marketing Advanced.",
+}
 
 const TRIGGER = "h-9 shrink-0 flex-none rounded-full px-4 text-muted-foreground data-[state=active]:bg-card data-[state=active]:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
 
@@ -45,7 +52,7 @@ export function PricingView({ cartHref, freeHref, stickyTop, basePath, initialTa
 }) {
   const { items, add, has } = useCart()
   const currency = useLocalCurrency()
-  const [tab, setTab] = useState<string>(PRICING_TABS[initialTab ?? ""] ?? "Growth")
+  const [tab, setTab] = useState<string>(PRICING_TABS[initialTab ?? ""] ?? "Marketing")
 
   function changeTab(next: string) {
     setTab(next)
@@ -76,7 +83,7 @@ export function PricingView({ cartHref, freeHref, stickyTop, basePath, initialTa
         if (!polar.opening) void polar.open(serviceId)
         return
       }
-      if (serviceId.startsWith("growth-")) {
+      if (serviceId.startsWith("growth-") || serviceId.startsWith("marketing-")) {
         event.preventDefault()
         if (paystack.opening) return
         void paystack.open(serviceId).then((opened) => {
@@ -109,13 +116,13 @@ export function PricingView({ cartHref, freeHref, stickyTop, basePath, initialTa
     return (
       <OfferCard
         key={listed.id}
-        badge={listed.id === FEATURED_ID ? "Most popular" : undefined}
-        featured={listed.id === FEATURED_ID}
+        badge={FEATURED_IDS.has(listed.id) ? "Most popular" : undefined}
+        featured={FEATURED_IDS.has(listed.id)}
         title={service.name}
         icon={service.icon}
         price={formatPrice(service.price, currency)}
         description={service.description ?? service.scope}
-        features={recurring || !service.timeline ? service.features ?? [] : [...(service.features ?? []), `Delivery: ${service.timeline}`]}
+        features={listed.group === "Growth" ? ["Includes Marketing Advanced", ...(service.features ?? [])] : recurring || !service.timeline ? service.features ?? [] : [...(service.features ?? []), `Delivery: ${service.timeline}`]}
         ctaLabel={label(service.id)}
         ctaHref={cartHref}
         onCtaClick={buy(service.id)}
@@ -158,21 +165,22 @@ export function PricingView({ cartHref, freeHref, stickyTop, basePath, initialTa
 
         {GROUPS.map((group) => (
           <TabsContent key={group} value={group}>
+            {TAB_INTROS[group] && <p className="max-w-2xl text-base text-muted-foreground">{TAB_INTROS[group]}</p>}
             <div
               className={cn(
                 "grid grid-cols-1 gap-6 pt-3 md:grid-cols-2",
-                group === "Growth" ? "xl:grid-cols-4" : "lg:grid-cols-3",
+                group === "Marketing" ? "xl:grid-cols-4" : "lg:grid-cols-3",
                 compact && "-mx-4 flex snap-x snap-mandatory scroll-px-4 gap-4 overflow-x-auto px-4 pb-2 [scrollbar-width:none] sm:-mx-8 sm:scroll-px-8 sm:px-8 md:mx-0 md:grid md:gap-6 md:overflow-visible md:px-0 md:pb-0 [&>*]:h-auto [&>*]:w-[85%] [&>*]:shrink-0 [&>*]:snap-start md:[&>*]:w-auto",
               )}
             >
-              {group === "Growth" && FREE_GROWTH && (
+              {group === "Marketing" && (
                 <OfferCard
-                  title={FREE_GROWTH.service}
-                  icon={FREE_GROWTH.icon}
+                  title="Free trial"
+                  icon="pulse"
                   price="Free"
-                  description={FREE_GROWTH.scope}
-                  features={FREE_GROWTH.features}
-                  ctaLabel="Get started"
+                  description={`${TRIAL_DAYS} days of every Marketing feature. No card needed.`}
+                  features={["Social Media and SEO", "Reviews in one place", "Google Ads tracking", "Marketing insights and score", "Pass for up to 5 staff"]}
+                  ctaLabel="Start free trial"
                   ctaHref={freeHref}
                   maxFeatures={compact ? HOME_FEATURES : undefined}
                   moreHref={compact ? "/pricing" : undefined}

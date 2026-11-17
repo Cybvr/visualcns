@@ -26,7 +26,7 @@ type Plan = { plan_code: string; name?: string; amount: number; interval: string
  */
 export async function growthPlanCode(db: Firestore, serviceId: string): Promise<string> {
   const service = cartService(serviceId)
-  if (!service || service.group !== "Growth") return ""
+  if (!service || (service.group !== "Growth" && service.group !== "Marketing")) return ""
   const amount = service.price.amount * 100
   const interval = service.price.suffix === "/yr" ? "annually" : "monthly"
   const settings = db.collection("billingConfig").doc("paystack")

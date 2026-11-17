@@ -12,7 +12,7 @@ import { useCart } from "@/components/dashboard/use-cart"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { useLocalCurrency } from "@/components/use-local-currency"
-import { GROWTH_APP_PLAN, GROWTH_TIERS, serviceFor, type BillingInterval } from "@/lib/cart"
+import { GROWTH_APP_PLAN, GROWTH_TIERS, MARKETING_TIERS, serviceFor, type BillingInterval } from "@/lib/cart"
 import { formatPrice } from "@/lib/plans"
 import { PLANS, planAccess, type Subscription } from "@/lib/subscription"
 import { cn } from "@/lib/utils"
@@ -23,7 +23,7 @@ const POPULAR = "growth-max"
 export function activeGrowthTier(billing: Subscription | null | undefined) {
   const access = billing ? planAccess(billing) : null
   if (!access || (access.state !== "active" && access.state !== "grace")) return null
-  return GROWTH_TIERS.find((tier) => tier.id === billing?.growthTier) ?? null
+  return [...GROWTH_TIERS, ...MARKETING_TIERS].find((tier) => tier.id === billing?.growthTier) ?? null
 }
 
 /** A free way in, shown as a button above the plans, e.g. "Continue with free". */
@@ -48,7 +48,7 @@ export function PlanPricing({ billing, seats = null, free, onBeforeSubscribe, he
   header?: ReactNode
 }) {
   const page = useOptionalCompanyPage()
-  const pricingHref = page ? `/${encodeURIComponent(page.company.slug || page.company.id)}/pricing/growth` : "/pricing"
+  const pricingBase = page ? `/${encodeURIComponent(page.company.slug || page.company.id)}/pricing` : "/pricing"
   const router = useRouter()
   const { add, has } = useCart()
   const currency = useLocalCurrency()
@@ -58,6 +58,9 @@ export function PlanPricing({ billing, seats = null, free, onBeforeSubscribe, he
   const cartHref = page ? `/${encodeURIComponent(page.company.slug || page.company.id)}/cart` : "/cart"
   const paystack = usePaystackCheckout(cartHref.replace(/\/cart$/, "/checkout"))
   const current = activeGrowthTier(billing)
+  // Marketing (do it yourself) or Growth (our team does it); opens on whichever the company is on.
+  const [family, setFamily] = useState<"Marketing" | "Growth">(current?.group === "Growth" ? "Growth" : "Marketing")
+  const tiers = family === "Marketing" ? MARKETING_TIERS : GROWTH_TIERS
 
   async function choose(id: string) {
     setBusy(id)
@@ -81,7 +84,23 @@ export function PlanPricing({ billing, seats = null, free, onBeforeSubscribe, he
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        {header ?? <span />}
+        <div className="flex flex-wrap items-center gap-3">
+          {header}
+          <div className="inline-flex shrink-0 rounded-lg bg-muted p-0.5 text-xs font-medium" role="tablist" aria-label="Plan type">
+            {(["Marketing", "Growth"] as const).map((option) => (
+              <button
+                key={option}
+                type="button"
+                role="tab"
+                onClick={() => setFamily(option)}
+                aria-selected={family === option}
+                className={cn("rounded-md px-3 py-1.5 outline-none focus-visible:ring-2 focus-visible:ring-ring", family === option ? "bg-background text-foreground shadow-sm" : "text-muted-foreground")}
+              >
+                {option}
+              </button>
+            ))}
+          </div>
+        </div>
         <div className="inline-flex shrink-0 rounded-lg bg-muted p-0.5 text-xs font-medium" role="group" aria-label="Billing">
           {(["monthly", "yearly"] as const).map((option) => (
             <button
@@ -106,12 +125,12 @@ export function PlanPricing({ billing, seats = null, free, onBeforeSubscribe, he
 
       {/* Phones: a swipeable row with the next plan peeking in. Wider screens: three across. */}
       <div className="scrollbar-none -mx-3 flex snap-x snap-mandatory scroll-px-3 gap-3 overflow-x-auto px-3 pt-2 pb-1 sm:-mx-6 sm:scroll-px-6 sm:px-6 md:mx-0 md:grid md:grid-cols-3 md:overflow-visible md:px-0">
-        {GROWTH_TIERS.map((listed) => {
+        {tiers.map((listed) => {
           const tier = serviceFor(listed, interval)
           const staff = PLANS[GROWTH_APP_PLAN[listed.id] ?? "business"].staff
           const isCurrent = current?.id === listed.id
           const tooSmall = seats !== null && seats > staff
-          const popular = listed.id === POPULAR
+          const popular = listed.id === POPULAR || listed.id === "marketing-pro"
           const inCart = has(tier.id)
           // On auto-renew already: buying the same plan again would charge twice.
           const renewing = isCurrent && Boolean(billing?.subscriptionCode || billing?.polarSubscriptionId) && billing?.status !== "cancelled"
@@ -142,7 +161,7 @@ export function PlanPricing({ billing, seats = null, free, onBeforeSubscribe, he
                 ))}
               </ul>
               {(tier.features ?? []).length > 5 && (
-                <a href={pricingHref} className="surface-body mt-3 font-medium text-foreground underline-offset-4 hover:underline">See all features</a>
+                <a href={`${pricingBase}/${family.toLowerCase()}`} className="surface-body mt-3 font-medium text-foreground underline-offset-4 hover:underline">See all features</a>
               )}
             </div>
           )
