@@ -8,6 +8,7 @@
     "test:agent": "node scripts/agent-eval.mjs",
     "lint": "eslint .",
     "seed:danne-outreach": "node scripts/seed-danne-institute-outreach.mjs",
+    "seed:marketing-emails": "node scripts/seed-marketing-emails.mjs",
     "start": "next start"
   },
   "dependencies": {
