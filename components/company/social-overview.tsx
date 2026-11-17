@@ -23,7 +23,6 @@ import { uploadFileToStorage } from "@/lib/documents"
 import { mediaKindForFile } from "@/lib/media"
 import { platformLabel, PUBLISH_LABELS, type SocialAccount, type SocialAccountsInfo } from "@/lib/social"
 import { useSocialAccounts } from "@/lib/social-client"
-import { SocialAccounts } from "@/components/company/social-accounts"
 import { tsToMillis } from "@/lib/tasks"
 import { cn } from "@/lib/utils"
 
@@ -98,7 +97,7 @@ export function PillFilter<T extends string>({ options, value, onChange }: { opt
  * The Social page's front: connected accounts and a direct view of every post.
  */
 export function SocialOverview() {
-  const { company } = useCompanyPage()
+  const { company, sectionHref } = useCompanyPage()
   const { info, reload, request } = useSocialAccounts(company.id)
   const [numbers, setNumbers] = useState<{ accounts: AccountNumbers[]; posts: PostNumbers[] }>({ accounts: [], posts: [] })
   const [posts, setPosts] = useState<CampaignCreative[]>([])
@@ -245,9 +244,12 @@ export function SocialOverview() {
       )}
 
       <section aria-label="Posts">
-        {/* Nothing posted and nothing connected: the empty list becomes a prompt to connect. */}
+        {/* Nothing posted and nothing connected: point to Marketing Settings, where accounts are connected. */}
         {loaded && allPosts.length === 0 && accounts.length === 0 && info?.configured ? (
-          <SocialAccounts companyId={company.id} variant="banner" />
+          <div className="rounded-2xl border border-dashed border-border p-8 text-center">
+            <p className="text-sm text-muted-foreground">No social accounts connected yet.</p>
+            <Button asChild size="sm" className="mt-4"><Link href={sectionHref("marketing-settings")}>Connect accounts</Link></Button>
+          </div>
         ) : (
         <CollectionView
           className=""

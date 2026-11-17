@@ -394,10 +394,12 @@ export function ReviewsPage() {
   const rated = (reviews ?? []).filter((review) => typeof review.rating === "number")
   const average = rated.length ? Math.round((rated.reduce((total, review) => total + (review.rating ?? 0), 0) / rated.length) * 10) / 10 : null
   const replied = (reviews ?? []).filter((review) => (review as InboxItem & { replied?: boolean }).replied).length
+  const unreplied = (reviews ?? []).find((review) => !(review as InboxItem & { replied?: boolean }).replied)
   const todos: Todo[] = [
     ...(m.businessLinked ? [] : [{ id: "gbp", title: "Your Google reviews aren't connected", description: "Connect your Google Business Profile to see new reviews and reply in one place.", action: "Connect now", onAction: m.connectSocial("google"), scene: ReviewsScene, help: { label: "Don't have an account?", text: "A Google Business Profile is free and lets customers review you on Google.", href: "https://www.google.com/business/", link: "Create a profile" } }]),
     ...(m.hasSocial("facebook") ? [] : [{ id: "facebook", title: "Your Facebook reviews aren't connected", description: "Connect your Facebook page to see its reviews here too.", action: "Connect now", onAction: m.connectSocial("facebook"), scene: SocialScene }]),
-    ...((reviews ?? []).length - replied > 0 ? [{ id: "reply", title: `Reply to ${(reviews ?? []).length - replied} reviews`, description: "Replying shows customers you listen, and helps your ranking on Google.", action: "Reply now", onAction: () => window.location.assign(m.sectionHref("social", { view: "inbox" })), scene: ReviewsScene }] : []),
+    // Replies happen on the platform itself: open the newest review that has no reply.
+    ...(unreplied?.permalink ? [{ id: "reply", title: `Reply to ${(reviews ?? []).length - replied} reviews`, description: "Replying shows customers you listen, and helps your ranking on Google.", action: "Reply now", onAction: () => window.open(unreplied.permalink, "_blank", "noopener,noreferrer"), scene: ReviewsScene }] : []),
     ...m.scanTodos(report ? reviewItems(report) : [], ReviewsScene),
   ]
   return (
