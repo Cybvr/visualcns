@@ -10,7 +10,7 @@ import { activeGrowthTier, PlanPricing } from "@/components/company/plan-pricing
 import { useLocalCurrency } from "@/components/use-local-currency"
 import { serviceFor } from "@/lib/cart"
 import { formatPrice } from "@/lib/plans"
-import { daysLeft, FREE_STAFF, GRACE_DAYS, staffLimit, isPlanInterval, isPlanKey, naira, PLANS, planAccess, planPrice, staffLabel, TRIAL_DAYS, type PlanInterval, type PlanKey, type Subscription } from "@/lib/subscription"
+import { daysLeft, GRACE_DAYS, isPlanInterval, isPlanKey, naira, PLANS, planAccess, planPrice, TRIAL_DAYS, type PlanInterval, type PlanKey, type Subscription } from "@/lib/subscription"
 import { watchSubscription } from "@/lib/visitors"
 import { cn } from "@/lib/utils"
 
@@ -125,7 +125,7 @@ export function CompanyPlan({ companyId, billing, seats = null, className, expan
     tone = "text-amber-600"
   } else if (access?.state === "paused") {
     title = "Free plan"
-    detail = `Pass for up to ${FREE_STAFF} staff and Ngai. Choose a plan for Marketing and more staff.`
+    detail = ""
   }
 
   const paid = access && (access.state === "active" || access.state === "grace")
@@ -133,8 +133,6 @@ export function CompanyPlan({ companyId, billing, seats = null, className, expan
   const expandedPrice = paid && paidPrice ? paidPrice : "Free"
   const expandedCycle = paid ? (paidInterval === "yearly" ? "Yearly" : "Monthly") : access?.state === "trial" ? "Trial" : "Free"
   const expandedDateLabel = access?.state === "trial" ? `Ends ${shortDate(access.endsAt)}` : paid && access ? (growth && !subscribed ? `Runs until ${shortDate(access.endsAt)}` : `Next charge ${shortDate(billing?.nextPaymentAt?.toMillis?.() ?? access.endsAt)}`) : "No end date"
-  const seatLimit = staffLimit(billing)
-  const seatPercent = seats !== null && Number.isFinite(seatLimit) ? Math.min(100, Math.round((seats / seatLimit) * 100)) : 0
   const showManage = subscribed && !(cancelled && access?.state === "paused")
 
   return (
@@ -146,14 +144,15 @@ export function CompanyPlan({ companyId, billing, seats = null, className, expan
             {expanded ? (
               <>
                 <p className="surface-record-title mt-1">{expandedPlanName}</p>
-                <p className="surface-metric mt-3">{expandedPrice}</p>
-                <p className={`surface-body mt-2 font-medium ${tone}`}>{title}</p>
-                <p className="surface-body mt-1">{detail}</p>
+                {/* The price, and the status line, only when they add something to the plan name. */}
+                {paid && <p className="surface-metric mt-3">{expandedPrice}</p>}
+                {access?.state !== "paused" && <p className={`surface-body mt-2 font-medium ${tone}`}>{title}</p>}
+                {detail && <p className="surface-body mt-1">{detail}</p>}
               </>
             ) : (
               <>
                 <p className={`surface-body font-semibold ${tone}`}>{title}</p>
-                <p className="surface-body mt-0.5">{detail}</p>
+                {detail && <p className="surface-body mt-0.5">{detail}</p>}
               </>
             )}
           </div>
@@ -171,7 +170,7 @@ export function CompanyPlan({ companyId, billing, seats = null, className, expan
       )}
       {showSummary && expanded && (
         <>
-          <div className="mt-6 grid grid-cols-2 gap-4 border-y border-border py-4 sm:grid-cols-3">
+          <div className="mt-6 grid grid-cols-2 gap-4 border-t border-border pt-4">
             <div>
               <p className="surface-caption uppercase">Status date</p>
               <p className="surface-body mt-1 font-medium text-foreground">{expandedDateLabel}</p>
@@ -180,22 +179,7 @@ export function CompanyPlan({ companyId, billing, seats = null, className, expan
               <p className="surface-caption uppercase">Billing cycle</p>
               <p className="surface-body mt-1 font-medium text-foreground">{expandedCycle}</p>
             </div>
-            <div>
-              <p className="surface-caption uppercase">Team seats</p>
-              <p className="surface-body mt-1 font-medium text-foreground">{seats === null ? "—" : `${seats} of ${staffLabel(seatLimit).replace(/^Up to /, "")}`}</p>
-            </div>
           </div>
-          {seats !== null && Number.isFinite(seatLimit) && (
-            <div className="mt-5">
-              <div className="surface-body flex items-center justify-between gap-3">
-                <span className="font-medium text-foreground">Team members in use</span>
-                <span className="tabular-nums">{seats} of {seatLimit}</span>
-              </div>
-              <div className="mt-2 h-2 overflow-hidden rounded-full bg-muted" role="progressbar" aria-label="Team members in use" aria-valuemin={0} aria-valuemax={seatLimit} aria-valuenow={seats}>
-                <div className="h-full rounded-full bg-primary transition-[width]" style={{ width: `${seatPercent}%` }} />
-              </div>
-            </div>
-          )}
         </>
       )}
       {showPlans && (plansOpen || expanded) && (

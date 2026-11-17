@@ -48,6 +48,7 @@ export function PlanPricing({ billing, seats = null, free, onBeforeSubscribe, he
   header?: ReactNode
 }) {
   const page = useOptionalCompanyPage()
+  const pricingHref = page ? `/${encodeURIComponent(page.company.slug || page.company.id)}/pricing/growth` : "/pricing"
   const router = useRouter()
   const { add, has } = useCart()
   const currency = useLocalCurrency()
@@ -103,7 +104,8 @@ export function PlanPricing({ billing, seats = null, free, onBeforeSubscribe, he
         </Button>
       )}
 
-      <div className="grid gap-3 pt-2 md:grid-cols-3">
+      {/* Phones: a swipeable row with the next plan peeking in. Wider screens: three across. */}
+      <div className="scrollbar-none -mx-3 flex snap-x snap-mandatory scroll-px-3 gap-3 overflow-x-auto px-3 pt-2 pb-1 sm:-mx-6 sm:scroll-px-6 sm:px-6 md:mx-0 md:grid md:grid-cols-3 md:overflow-visible md:px-0">
         {GROWTH_TIERS.map((listed) => {
           const tier = serviceFor(listed, interval)
           const staff = PLANS[GROWTH_APP_PLAN[listed.id] ?? "business"].staff
@@ -114,7 +116,7 @@ export function PlanPricing({ billing, seats = null, free, onBeforeSubscribe, he
           // On auto-renew already: buying the same plan again would charge twice.
           const renewing = isCurrent && Boolean(billing?.subscriptionCode || billing?.polarSubscriptionId) && billing?.status !== "cancelled"
           return (
-            <div key={listed.id} className={cn("flex flex-col rounded-xl border p-5", popular ? "border-2 border-primary" : "border-border", isCurrent && "bg-primary/5")}>
+            <div key={listed.id} className={cn("flex w-[82%] shrink-0 snap-start flex-col rounded-xl border p-5 md:w-auto", popular ? "border-2 border-primary" : "border-border", isCurrent && "bg-primary/5")}>
               <div className="flex items-center justify-between gap-2">
                 <h3 className="surface-record-title">{tier.name}</h3>
                 {isCurrent ? <Badge variant="secondary">Current</Badge> : popular && <Badge>Most popular</Badge>}
@@ -132,13 +134,16 @@ export function PlanPricing({ billing, seats = null, free, onBeforeSubscribe, he
                 {tooSmall ? `You have ${seats} staff` : renewing ? "Your plan" : isCurrent ? "Renew" : inCart ? "View cart" : "Get started"}
               </Button>
               <ul className="surface-table-cell mt-4 space-y-2.5 text-foreground">
-                {(tier.features ?? []).map((feature) => (
+                {(tier.features ?? []).slice(0, 5).map((feature) => (
                   <li key={feature} className="flex gap-2.5">
                     <Check className="mt-0.5 size-4 shrink-0 text-emerald-600" aria-hidden="true" />
                     {feature}
                   </li>
                 ))}
               </ul>
+              {(tier.features ?? []).length > 5 && (
+                <a href={pricingHref} className="surface-body mt-3 font-medium text-foreground underline-offset-4 hover:underline">See all features</a>
+              )}
             </div>
           )
         })}

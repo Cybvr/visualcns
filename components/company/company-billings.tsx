@@ -24,11 +24,11 @@ function BillingCard({ title, children, className }: { title: string; children: 
   )
 }
 
-function SectionHeading({ title, description }: { title: string; description: string }) {
+function SectionHeading({ title, description }: { title: string; description?: string }) {
   return (
     <div>
       <SectionHeader title={title} />
-      <p className="surface-body mt-1">{description}</p>
+      {description && <p className="surface-body mt-1">{description}</p>}
     </div>
   )
 }
@@ -117,7 +117,7 @@ export function CompanyBillings() {
       </div>
 
       <section id="billing-plans">
-        <SectionHeading title="Plans" description="Growth plans include Marketing, Pass and Ngai. Pay monthly or yearly." />
+        <SectionHeading title="Plans" />
         {/* The plan options are cards already, so they sit on the page rather than inside another card. */}
         <CompanyPlan companyId={company.id} billing={billing} seats={people.length} expanded showSummary={false} className="border-0 p-0" />
       </section>
