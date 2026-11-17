@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState, type ComponentProps, type ComponentType, type ReactNode } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { ChevronRight, Fingerprint, Globe, LogIn, Megaphone, Search, Wallet } from "lucide-react"
+import { BadgeDollarSign, ChevronRight, CreditCard, FileText, Fingerprint, Globe, House, Image as ImageIcon, LayoutTemplate, Lightbulb, Link2, LogIn, Megaphone, Search, Settings2, Share2, Star, Store, Target, Users, Wallet } from "lucide-react"
 
 import { NgaiMark } from "@/components/agent/ngai-mark"
 import { useAuth } from "@/components/auth-provider"
@@ -39,7 +39,29 @@ import {
 } from "@/components/ui/sidebar"
 import { cn } from "@/lib/utils"
 
-type MenuGroupItem = { key: string; label: string; href: string; count?: number; alert?: number }
+type MenuGroupItem = { key: string; label: string; href: string; icon?: ComponentType<{ className?: string }>; count?: number; alert?: number }
+
+/** Icons for the pages under each menu heading. */
+const SUBMENU_ICONS: Record<string, ComponentType<{ className?: string }>> = {
+  "websites-home": House,
+  sites: LayoutTemplate,
+  domains: Link2,
+  marketing: House,
+  insights: Lightbulb,
+  projects: Target,
+  social: Share2,
+  assets: ImageIcon,
+  seo: Search,
+  "business-profile": Store,
+  reviews: Star,
+  "google-ads": BadgeDollarSign,
+  "marketing-settings": Settings2,
+  "finance-home": House,
+  documents: FileText,
+  billings: CreditCard,
+  "security-home": House,
+  visitors: Users,
+}
 
 /** A main menu heading (Websites, Marketing, Finance) that opens to its pages. */
 function MenuGroup({ icon: Icon, label, items, active }: {
@@ -82,6 +104,7 @@ function MenuGroup({ icon: Icon, label, items, active }: {
             <SidebarMenuSubItem key={item.key}>
               <SidebarMenuSubButton asChild isActive={active === item.key} className="h-8 max-md:h-11">
                 <CompanySidebarLink href={item.href}>
+                  {item.icon && <item.icon className="size-4 shrink-0 max-md:size-[18px]" aria-hidden="true" />}
                   <span className="sidebar-nav-label">{item.label}</span>
                   {item.count !== undefined && (
                     <span className="ml-auto inline-flex size-5 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-semibold tabular-nums text-primary-foreground">
@@ -249,6 +272,7 @@ export function CompanyProfileShell({ children }: { children: ReactNode }) {
           key: entry.key,
           label: entry.label,
           href: sectionHref(entry.key as SectionItem["key"]),
+          icon: SUBMENU_ICONS[entry.key],
           count: entry.key === "projects" ? projects.length : undefined,
           alert: entry.key === "billings" ? overdueInvoiceCount : undefined,
         }))
