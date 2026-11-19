@@ -139,12 +139,9 @@ export function WebsitesHomeSection() {
         )}
       </section>
       {templates?.length !== 0 && (
-        <section aria-label="Start with a template" className="mt-4 rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
+        <section aria-label="Start with a template" className="mt-6">
           <div className="flex items-center justify-between gap-3">
-            <div className="min-w-0">
-              <h3 className="text-base font-medium text-foreground">Start with a template</h3>
-              <p className="mt-0.5 text-sm text-muted-foreground">Pick a design and make it yours by chatting.</p>
-            </div>
+            <h3 className="min-w-0 text-base font-medium text-foreground">Start with a template</h3>
             <button type="button" onClick={() => open("/dashboard/templates")} className="shrink-0 text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">See all</button>
           </div>
           <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
@@ -160,7 +157,7 @@ export function WebsitesHomeSection() {
                 >
                   <span className="block aspect-video overflow-hidden rounded-xl border border-border transition-colors group-hover:border-foreground/40"><SiteThumbnail code={template.code} title={template.title} /></span>
                   <span className="mt-1.5 block truncate text-sm font-medium text-foreground">{template.title}</span>
-                  <span className="block truncate text-xs text-muted-foreground">Use this template</span>
+                  <span className="block text-xs font-medium text-muted-foreground">${template.price}</span>
                 </button>
               ))}
           </div>
