@@ -420,6 +420,14 @@ service cloud.firestore {
       allow delete: if jujuAdmin() || (signedIn() && resource.data.get('userId', '') == request.auth.uid);
     }
 
+    // Form entries from published sites: jujuSubmissions/{id} = { userId, chatId, slug, formName, data, read }.
+    // Only the server (Admin SDK, via the builder's /api/forms) writes these; the site's owner reads and manages them.
+    match /jujuSubmissions/{id} {
+      allow read: if (signedIn() && resource.data.get('userId', '') == request.auth.uid) || jujuAdmin();
+      allow create: if false;
+      allow update, delete: if (signedIn() && resource.data.get('userId', '') == request.auth.uid) || jujuAdmin();
+    }
+
     // Published subdomains: jujuSlugs/{slug} = { chatId, userId }, e.g. my-app.ngai.visualcns.com.
     // Public read (the published page looks names up without signing in). One owner per name.
     // Keep the pattern and reserved list in sync with app/lib/chats.ts.
