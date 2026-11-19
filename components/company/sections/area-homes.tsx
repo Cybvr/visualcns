@@ -9,6 +9,7 @@ import { useCompanyPage } from "@/components/company/company-page-context"
 import { useSubscription } from "@/components/company/company-plan"
 import { SiteThumbnail } from "@/components/ngai/site-thumbnail"
 import { useNgaiChats } from "@/components/ngai/use-ngai-chats"
+import { useNgaiTemplates } from "@/components/ngai/use-ngai-templates"
 import { Button } from "@/components/ui/button"
 import { formatMoney } from "@/lib/billing"
 import { invoiceIsOpen, invoiceIsOverdue } from "@/lib/invoice-reminders"
@@ -77,6 +78,7 @@ export function WebsitesHomeSection() {
   const { company, sectionHref } = useCompanyPage()
   const { user } = useAuth()
   const { chats } = useNgaiChats(50)
+  const templates = useNgaiTemplates()
   const [domains, setDomains] = useState<{ name: string; status: string }[] | null>(null)
 
   useEffect(() => {
@@ -136,6 +138,34 @@ export function WebsitesHomeSection() {
           <p className="mt-2 flex items-center gap-2 text-sm text-muted-foreground"><Globe className="size-4" aria-hidden="true" />No websites yet.</p>
         )}
       </section>
+      {templates?.length !== 0 && (
+        <section aria-label="Start with a template" className="mt-4 rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <h3 className="text-base font-medium text-foreground">Start with a template</h3>
+              <p className="mt-0.5 text-sm text-muted-foreground">Pick a design and make it yours by chatting.</p>
+            </div>
+            <button type="button" onClick={() => open("/dashboard/templates")} className="shrink-0 text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">See all</button>
+          </div>
+          <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+            {templates === null
+              ? Array.from({ length: 6 }, (_, i) => <div key={i} className="aspect-video animate-pulse rounded-xl bg-muted/50" aria-hidden="true" />)
+              : templates.slice(0, 6).map((template) => (
+                <button
+                  key={template.id}
+                  type="button"
+                  onClick={() => open(`/start/${encodeURIComponent(template.id)}`)}
+                  title={template.description}
+                  className="group min-w-0 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <span className="block aspect-video overflow-hidden rounded-xl border border-border transition-colors group-hover:border-foreground/40"><SiteThumbnail code={template.code} title={template.title} /></span>
+                  <span className="mt-1.5 block truncate text-sm font-medium text-foreground">{template.title}</span>
+                  <span className="block truncate text-xs text-muted-foreground">Use this template</span>
+                </button>
+              ))}
+          </div>
+        </section>
+      )}
     </div>
   )
 }
