@@ -26,7 +26,7 @@ const HOME_FEATURES = 5
 
 /** One line under each tab that explains it. */
 const TAB_INTROS: Record<string, string> = {
-  Marketing: "Do your marketing yourself: social, SEO, reviews and ads in one place.",
+  Marketing: "AI runs your marketing for you: it writes and schedules your posts, works your SEO, replies to reviews and builds your ads.",
   Growth: "Let our team run your marketing for you. Every plan includes Marketing Advanced.",
 }
 
@@ -36,7 +36,7 @@ const TRIGGER = "h-9 shrink-0 flex-none rounded-full px-4 text-muted-foreground 
  * Everything VisualCNS sells, as cards that go in the cart: Growth plans (which
  * include Pass, Pulse and Ngai), development work and G&D (Growth and Development) Support.
  */
-export function PricingView({ cartHref, freeHref, stickyTop, basePath, initialTab, showCompare = true, compact = false }: {
+export function PricingView({ cartHref, freeHref, stickyTop, basePath, initialTab, showCompare = true, compact = false, only }: {
   cartHref: string
   freeHref: string
   /** Offset for the comparison table's sticky header. */
@@ -49,10 +49,13 @@ export function PricingView({ cartHref, freeHref, stickyTop, basePath, initialTa
   showCompare?: boolean
   /** Home page version: no cart bar or custom quote box, and the cards swipe sideways on phones. */
   compact?: boolean
+  /** Show just this tab, with no tab list, e.g. "Marketing" on the Marketing Suite page. */
+  only?: string
 }) {
   const { items, add, has } = useCart()
   const currency = useLocalCurrency()
-  const [tab, setTab] = useState<string>(PRICING_TABS[initialTab ?? ""] ?? "Marketing")
+  const [tab, setTab] = useState<string>(only ?? PRICING_TABS[initialTab ?? ""] ?? "Marketing")
+  const groups = only ? [only] : GROUPS
 
   function changeTab(next: string) {
     setTab(next)
@@ -143,9 +146,11 @@ export function PricingView({ cartHref, freeHref, stickyTop, basePath, initialTa
 
       <Tabs value={tab} onValueChange={changeTab} className="gap-8">
         <div className="flex flex-wrap items-center justify-between gap-4">
-          <TabsList aria-label="Pricing categories" className="h-auto max-w-full justify-start gap-1 overflow-x-auto rounded-full border border-border bg-muted/70 p-1 [scrollbar-width:none]">
-            {GROUPS.map((group) => <TabsTrigger key={group} value={group} className={TRIGGER}>{group}</TabsTrigger>)}
-          </TabsList>
+          {!only && (
+            <TabsList aria-label="Pricing categories" className="h-auto max-w-full justify-start gap-1 overflow-x-auto rounded-full border border-border bg-muted/70 p-1 [scrollbar-width:none]">
+              {GROUPS.map((group) => <TabsTrigger key={group} value={group} className={TRIGGER}>{group}</TabsTrigger>)}
+            </TabsList>
+          )}
           {!compact && tab !== "Development" && (
             <div className="inline-flex rounded-full border border-border bg-muted p-[3px]" role="group" aria-label="Billing">
               {(["monthly", "yearly"] as const).map((option) => (
@@ -163,7 +168,7 @@ export function PricingView({ cartHref, freeHref, stickyTop, basePath, initialTa
           )}
         </div>
 
-        {GROUPS.map((group) => (
+        {groups.map((group) => (
           <TabsContent key={group} value={group}>
             {TAB_INTROS[group] && <p className="max-w-2xl text-base text-muted-foreground">{TAB_INTROS[group]}</p>}
             <div
@@ -193,7 +198,7 @@ export function PricingView({ cartHref, freeHref, stickyTop, basePath, initialTa
         ))}
       </Tabs>
 
-      {!compact && (
+      {!compact && !only && (
       <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-border bg-card p-6">
         <div>
           <p className="text-lg font-semibold">Need something custom?</p>
