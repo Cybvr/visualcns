@@ -18,6 +18,7 @@ const brands = getBrandItems()
 
 const productNavItems = [
   { name: "Marketing Suite", href: "/marketing", description: "AI that runs your social, SEO, reviews and ads." },
+  { name: "Sites", href: "/sites", description: "AI builds your website, included in every Growth plan." },
   { name: "Pass", href: "/pass", description: "Visitor sign-in, badges and records for every office." },
   { name: "Pulse", href: "/pulse", description: "A health check for your business and what to fix first." },
   ...brands

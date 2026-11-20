@@ -29,6 +29,7 @@ export const RESERVED_SLUGS = new Set([
   "privacy",
   "ratecard",
   "signup",
+  "sites",
   "templates",
   "terms",
   "visualhq",
