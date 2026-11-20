@@ -1,5 +1,3 @@
-import Image from "next/image"
-
 import { publicPageMetadata } from "@/lib/public-page-metadata"
 
 import { EmailStartForm } from "@/components/email-start-form"
@@ -42,16 +40,6 @@ export default function HomePage() {
             aria-hidden="true"
           />
           <div className="absolute inset-0 -z-10 bg-gradient-to-t from-black/85 via-black/60 to-black/45" aria-hidden="true" />
-          {/* Ngai, the VisualCNS capybara, says hello from the top right on phones and above the email form on larger screens. */}
-          <Image
-            src="/images/ngai/ngai-wave.webp"
-            alt="Ngai, the VisualCNS capybara, waving hello"
-            width={960}
-            height={920}
-            priority
-            sizes="(min-width: 768px) 20rem, 10rem"
-            className="home-rise home-rise-3 pointer-events-none absolute right-4 top-28 w-40 sm:w-48 md:bottom-40 md:right-20 md:top-auto md:w-80"
-          />
           <div className="mx-auto w-full max-w-7xl px-4 sm:px-8 md:px-20">
             <h1
               id="home-hero-heading"

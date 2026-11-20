@@ -1,3 +1,4 @@
+import Image from "next/image"
 import Link from "next/link"
 import type { ReactNode } from "react"
 import { ArrowUpRight, Check } from "lucide-react"
@@ -48,6 +49,20 @@ function Section({
   )
 }
 
+// Ngai, our capybara, fills the picture side of the Marketing and Sites rows.
+function NgaiArt({ src, alt }: { src: string; alt: string }) {
+  return (
+    <Image
+      src={src}
+      alt={alt}
+      width={896}
+      height={1120}
+      sizes="(min-width: 768px) 40vw, 100vw"
+      className="size-full rounded-[0.5rem] object-cover object-[50%_60%]"
+    />
+  )
+}
+
 export function HomeSections({
   capabilities,
   news,
@@ -58,6 +73,20 @@ export function HomeSections({
   const container = "mx-auto max-w-7xl px-4 sm:px-8 md:px-20"
 
   const features: { title: string; description: string; points: string[]; href: string; illustration: ReactNode }[] = [
+    {
+      title: "Marketing",
+      description: "AI runs your marketing for you while you run your business.",
+      points: ["Writes and schedules your social posts", "Drafts a reply to every review", "Shows what keeps you off Google and how to fix it", "Free for 30 days, no card needed"],
+      href: "/marketing",
+      illustration: <NgaiArt src="/images/ngai/ngai-reviews.webp" alt="Ngai, the VisualCNS capybara, relaxes in a hot spring while a five-star review gets a reply" />,
+    },
+    {
+      title: "Sites",
+      description: "Describe your business and AI builds you a website you can edit yourself.",
+      points: ["Pages and words written for you", "Change anything by asking in plain words", "Use your own domain", "Included in every Growth plan"],
+      href: "/sites",
+      illustration: <NgaiArt src="/images/ngai/ngai-sites.webp" alt="Ngai, the VisualCNS capybara, types on a laptop while a bakery website builds itself" />,
+    },
     {
       title: "Visitor Sign-in",
       description: "Replace the paper visitor book with a quick sign-in at the front desk.",
