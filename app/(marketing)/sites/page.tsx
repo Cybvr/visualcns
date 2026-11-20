@@ -58,7 +58,6 @@ export default function SitesPage() {
           />
           <div className="mx-auto grid max-w-6xl items-center gap-12 px-4 pb-16 pt-36 md:grid-cols-[1.1fr_0.9fr] md:px-8 md:pb-24 md:pt-44">
             <div>
-              <p className="mb-4 text-sm font-medium opacity-70">VisualCNS Sites</p>
               <h1 className="max-w-2xl text-5xl font-semibold leading-[1.05] tracking-tight md:text-7xl">
                 Let AI build your business a website
               </h1>
@@ -98,8 +97,7 @@ export default function SitesPage() {
             {PRODUCTS.map((product) => (
               <div key={product.name} className="rounded-2xl border border-border p-6">
                 <product.icon className="size-5 text-primary" aria-hidden />
-                <p className="mt-4 text-sm font-medium text-muted-foreground">{product.name}</p>
-                <h3 className="mt-1 text-lg font-semibold">{product.title}</h3>
+                <h3 className="mt-4 text-lg font-semibold">{product.title}</h3>
                 <p className="mt-2 text-sm text-muted-foreground">{product.body}</p>
               </div>
             ))}
