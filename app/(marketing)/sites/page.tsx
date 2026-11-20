@@ -1,3 +1,4 @@
+import Image from "next/image"
 import Link from "next/link"
 import { ArrowRight, Globe, Inbox, LayoutTemplate, Link2, MessageSquareText, Smartphone } from "lucide-react"
 
@@ -64,6 +65,14 @@ export default function SitesPage() {
               <p className="mt-6 max-w-md text-lg opacity-85">
                 Describe your business and AI builds a website you can edit, publish and grow yourself, and it comes included with every Growth plan.
               </p>
+              <ul className="mt-6 max-w-md space-y-2">
+                {TASKS.map((task) => (
+                  <li key={task} className="flex items-start gap-3 text-sm opacity-85 md:text-base">
+                    <span className="mt-2 size-2 shrink-0 rounded-full bg-emerald-400" aria-hidden />
+                    {task}
+                  </li>
+                ))}
+              </ul>
               <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-4">
                 <Link
                   href={START_HREF}
@@ -76,14 +85,15 @@ export default function SitesPage() {
                 </Link>
               </div>
             </div>
-            <ul className="space-y-3 rounded-3xl border border-background/15 bg-background/5 p-6 md:p-8">
-              {TASKS.map((task) => (
-                <li key={task} className="flex items-center gap-3 text-sm md:text-base">
-                  <span className="size-2 shrink-0 rounded-full bg-emerald-400" aria-hidden />
-                  {task}
-                </li>
-              ))}
-            </ul>
+            <Image
+              src="/images/ngai/ngai-sites.webp"
+              alt="Ngai, the VisualCNS capybara, types on a laptop on a beanbag while a bakery website builds itself"
+              width={896}
+              height={1120}
+              priority
+              sizes="(min-width: 768px) 40vw, 100vw"
+              className="mx-auto w-full max-w-md rounded-3xl md:max-w-none"
+            />
           </div>
         </section>
 
