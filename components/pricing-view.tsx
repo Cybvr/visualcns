@@ -183,7 +183,7 @@ export function PricingView({ cartHref, freeHref, stickyTop, basePath, initialTa
                   title="Free trial"
                   icon="pulse"
                   price="Free"
-                  description={`${TRIAL_DAYS} days of every Marketing feature. No card needed.`}
+                  description={`Try every Marketing feature free for ${TRIAL_DAYS} days without entering a card.`}
                   features={["Social Media and SEO", "Reviews in one place", "Google Ads tracking", "Marketing insights and score", "Pass for up to 5 staff"]}
                   ctaLabel="Start free trial"
                   ctaHref={freeHref}

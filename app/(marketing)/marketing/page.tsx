@@ -14,35 +14,35 @@ const START_HREF = "/signup"
 const SALES_HREF = "/contact"
 
 const TASKS = [
-  "Writes and schedules your social posts",
-  "Fixes what keeps you off Google",
-  "Replies to your reviews",
-  "Builds and tests your ads",
-  "Keeps your business listing up to date",
+  "AI writes your social posts and schedules them for the best times.",
+  "It finds what keeps your website off Google and shows you how to fix it.",
+  "It drafts a reply to every review your customers leave.",
+  "It writes your Google ads and tracks what each lead costs you.",
+  "It keeps an eye on your business listing so customers see the right details.",
 ]
 
 const PRODUCTS = [
-  { icon: Share2, name: "Social", title: "Posts that write themselves", body: "AI writes posts for your business, picks the times and publishes them to your pages. You approve or let it run." },
-  { icon: Search, name: "SEO", title: "Get found on Google", body: "AI checks your site, finds what holds you back in search and gives you each fix in plain steps. It tracks your keywords as you climb." },
-  { icon: Star, name: "Reviews", title: "Every review answered", body: "See your Google and Facebook reviews in one place. AI drafts a reply to each one so no customer goes unanswered." },
-  { icon: BadgeDollarSign, name: "Ads", title: "Ads that pay for themselves", body: "AI writes your Google ads, tracks spend, clicks and leads, and tells you what to change to cut your cost per lead." },
-  { icon: Store, name: "Local", title: "Show up nearby", body: "Track your Google Business Profile so customers near you find the right hours, address and photos." },
-  { icon: Lightbulb, name: "Insights", title: "Know what's working", body: "One marketing score and a short list of what to do next, updated as AI works through your accounts." },
+  { icon: Share2, name: "Social", title: "Social posts written for you", body: "AI writes posts about your business, picks good times to share them and publishes them to your pages, either after you approve them or on its own if you prefer." },
+  { icon: Search, name: "SEO", title: "Get found on Google", body: "AI checks your website for whatever is holding it back in search, explains each fix in plain steps and tracks your keywords so you can see your ranking improve." },
+  { icon: Star, name: "Reviews", title: "Answer every review", body: "Your Google and Facebook reviews come into one place, and AI drafts a reply to each one so that no customer goes unanswered." },
+  { icon: BadgeDollarSign, name: "Ads", title: "Ads that bring in leads", body: "AI writes your Google ads, tracks your spend, clicks and leads, and tells you what to change so each new customer costs you less." },
+  { icon: Store, name: "Local", title: "Be found by people nearby", body: "We track your Google Business Profile so that customers searching near you find the right opening hours, address and photos." },
+  { icon: Lightbulb, name: "Insights", title: "See what is working", body: "You get one marketing score and a short list of what to do next, and both update as AI works through your accounts." },
 ]
 
 const STEPS = [
-  { title: "Tell us about your business", body: "Name, website, industry and location. Takes a minute." },
-  { title: "Connect your accounts", body: "Link your social pages, Google Business Profile and ads account." },
-  { title: "Let AI run it", body: "AI posts, replies and optimizes. You check in when you like." },
+  { title: "Tell us about your business", body: "Add your business name, website, industry and location, which takes about a minute." },
+  { title: "Connect your accounts", body: "Link your social pages, your Google Business Profile and your ads account so AI can work on them." },
+  { title: "Let AI do the work", body: "AI posts, replies to reviews and improves your ads while you check in whenever it suits you." },
 ]
 
 const FAQS = [
-  { question: "How does the free trial work?", answer: `You get ${TRIAL_DAYS} days of every Marketing feature with no card needed. Pick a plan any time to keep going.` },
-  { question: "Do I need to know marketing?", answer: "No. AI does the work and explains each step in plain words. You decide how much you want to approve before it goes out." },
-  { question: "Does AI post without asking me?", answer: "Only if you let it. You can approve every post and reply, or let AI publish on its own schedule." },
-  { question: "Which plan is right for me?", answer: "Essential covers social and SEO. Pro adds reviews. Advanced adds Google Ads. You can move up as you grow." },
-  { question: "How does ad spend work?", answer: "Your plan covers the tools. The money you spend on Google ads is paid to Google separately, and you set the budget." },
-  { question: "Can your team do it for me instead?", answer: "Yes. Our Growth plans put our team on your marketing, and every Growth plan includes Marketing Advanced." },
+  { question: "How does the free trial work?", answer: `You get ${TRIAL_DAYS} days of every Marketing feature without entering a card, and you can pick a plan at any point to keep going after that.` },
+  { question: "Do I need to know marketing?", answer: "No, because AI does the work and explains each step in plain words, and you decide how much of it you want to approve before it goes out." },
+  { question: "Does AI post without asking me?", answer: "Only if you allow it, since you can choose to approve every post and reply yourself or let AI publish on its own schedule." },
+  { question: "Which plan is right for me?", answer: "Essential covers social media and SEO, Pro adds your reviews, and Advanced adds Google Ads, so you can start small and move up as your business grows." },
+  { question: "How does ad spend work?", answer: "Your plan pays for the tools, while the money spent on the ads themselves goes to Google separately on a budget that you set." },
+  { question: "Can your team do it for me instead?", answer: "Yes, our Growth plans put our team in charge of your marketing, and every Growth plan includes Marketing Advanced." },
 ]
 
 export default function MarketingSuitePage() {
@@ -61,10 +61,10 @@ export default function MarketingSuitePage() {
             <div>
               <p className="mb-4 text-sm font-medium opacity-70">VisualCNS Marketing Suite</p>
               <h1 className="max-w-2xl text-5xl font-semibold leading-[1.05] tracking-tight md:text-7xl">
-                Your marketing, run by AI.
+                Let AI run your marketing for you
               </h1>
               <p className="mt-6 max-w-md text-lg opacity-85">
-                AI writes your posts, works your SEO, answers your reviews and runs your ads. You run your business.
+                AI writes your posts, improves your search ranking, answers your reviews and runs your ads, so you can spend your time running your business.
               </p>
               <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-4">
                 <Link
@@ -91,9 +91,9 @@ export default function MarketingSuitePage() {
 
         {/* Products */}
         <section className="mx-auto max-w-6xl px-4 py-16 md:px-8 md:py-24">
-          <h2 className="max-w-2xl font-semibold tracking-tight">Six tools. One dashboard. AI does the work.</h2>
+          <h2 className="max-w-2xl font-semibold tracking-tight">Everything your marketing needs, in one dashboard that AI keeps running</h2>
           <p className="mt-4 max-w-2xl text-muted-foreground">
-            Stop switching between apps. Every part of your marketing lives in one place, and AI keeps it moving.
+            Instead of switching between different apps, you manage every part of your marketing from one place while AI keeps the work moving.
           </p>
           <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {PRODUCTS.map((product) => (
@@ -110,8 +110,8 @@ export default function MarketingSuitePage() {
         {/* Plans */}
         <section id="plans" className="scroll-mt-24 bg-muted/40">
           <div className="mx-auto max-w-6xl px-4 py-16 md:px-8 md:py-24">
-            <h2 className="font-semibold tracking-tight">Plans that grow with you</h2>
-            <p className="mb-8 mt-4 max-w-2xl text-muted-foreground">Start free for {TRIAL_DAYS} days. Move up a plan when you need more.</p>
+            <h2 className="font-semibold tracking-tight">Pick a plan that fits your business</h2>
+            <p className="mb-8 mt-4 max-w-2xl text-muted-foreground">You can try everything free for {TRIAL_DAYS} days and move up to a bigger plan whenever you need more.</p>
             <AuthProvider>
               <PricingView cartHref="/cart" freeHref={START_HREF} only="Marketing" />
             </AuthProvider>
@@ -120,7 +120,7 @@ export default function MarketingSuitePage() {
 
         {/* How it works */}
         <section className="mx-auto max-w-6xl px-4 py-16 md:px-8 md:py-24">
-          <h2 className="font-semibold tracking-tight">Up and running in minutes</h2>
+          <h2 className="font-semibold tracking-tight">You can be up and running in a few minutes</h2>
           <ol className="mt-10 grid gap-4 md:grid-cols-3">
             {STEPS.map((step, index) => (
               <li key={step.title} className="rounded-2xl border border-border p-6">
@@ -137,7 +137,7 @@ export default function MarketingSuitePage() {
         {/* FAQ */}
         <section className="bg-muted/40">
           <div className="mx-auto max-w-3xl px-4 py-16 md:px-8 md:py-24">
-            <h2 className="font-semibold tracking-tight">Questions</h2>
+            <h2 className="font-semibold tracking-tight">Common questions</h2>
             <Accordion type="single" collapsible className="mt-8">
               {FAQS.map((faq) => (
                 <AccordionItem key={faq.question} value={faq.question}>
@@ -152,8 +152,8 @@ export default function MarketingSuitePage() {
         {/* Final CTA */}
         <section className="px-4 py-16 md:px-8 md:py-24">
           <div className="mx-auto max-w-6xl rounded-3xl bg-foreground px-6 py-14 text-center text-background md:px-12">
-            <h2 className="font-semibold tracking-tight">Let AI take marketing off your plate</h2>
-            <p className="mx-auto mt-4 max-w-xl opacity-80">Free for {TRIAL_DAYS} days. No card needed.</p>
+            <h2 className="font-semibold tracking-tight">Hand your marketing over to AI today</h2>
+            <p className="mx-auto mt-4 max-w-xl opacity-80">Your first {TRIAL_DAYS} days are free, and you do not need a card to start.</p>
             <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
               <Link
                 href={START_HREF}
