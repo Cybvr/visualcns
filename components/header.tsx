@@ -11,6 +11,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { auth } from "@/lib/firebase"
 import { getBrandItems } from "@/lib/brands"
 import { capabilities } from "@/lib/capabilities"
+import { NGAI_APP_URL } from "@/lib/ngai"
 
 import "./header.css"
 
@@ -244,17 +245,17 @@ export function Header({ pinned = true }: { pinned?: boolean } = {}) {
         open ? "fixed inset-0" : pinned ? "fixed inset-x-0 top-0" : "relative"
       }`}
     >
-      {/* Promo strip for Pasive, above the bar, on the home page only. */}
+      {/* Promo strip for the Juju site builder, above the bar, on the home page only. */}
       {pathname === "/" && (
       <a
-        href="https://pasive.cc"
+        href={NGAI_APP_URL}
         target="_blank"
         rel="noopener"
         className="group block shrink-0 bg-foreground px-4 py-2 text-center text-xs text-background outline-none transition-colors hover:bg-foreground/90 focus-visible:underline sm:text-sm"
       >
-        Build a business you own, with commerce tools. Get 50% off your first 2 months.
+        Set up a simple landing page in minutes with Juju.
         <span className="ml-2 inline-flex items-center gap-1 font-semibold underline-offset-4 group-hover:underline">
-          Start now
+          Start for free
           <ArrowUpRight className="size-3.5" aria-hidden="true" />
         </span>
       </a>
