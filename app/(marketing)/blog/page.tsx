@@ -28,13 +28,14 @@ export default async function BlogPage({
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Header />
-      <main className="mx-auto max-w-7xl px-12 pb-24 pt-32 md:px-20">
-        <h1 className="mb-8 text-2xl font-normal">Blog</h1>
+      <main className="mx-auto max-w-7xl px-4 pb-24 pt-28 sm:px-8 md:px-20 md:pt-32">
+        <h1 className="mb-6 text-4xl tracking-[-0.03em] md:mb-8 md:text-5xl">Blog</h1>
 
-        <nav aria-label="Blog categories" className="mb-12 flex flex-wrap gap-2">
+        {/* One scrolling row on phones so the filters never push the posts off screen; wraps on wider screens. */}
+        <nav aria-label="Blog categories" className="-mx-4 mb-8 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:-mx-8 sm:px-8 md:mx-0 md:mb-12 md:flex-wrap md:overflow-visible md:px-0">
           <Link
             href="/blog"
-            className={`border px-3 py-1.5 text-xs uppercase tracking-[0.14em] transition-colors ${
+            className={`shrink-0 whitespace-nowrap rounded-full border px-3.5 py-1.5 text-sm transition-colors ${
               !active
                 ? "border-foreground bg-foreground text-background"
                 : "border-border text-muted-foreground hover:border-primary hover:text-primary"
@@ -46,7 +47,7 @@ export default async function BlogPage({
             <Link
               key={c}
               href={`/blog?category=${encodeURIComponent(c)}`}
-              className={`border px-3 py-1.5 text-xs uppercase tracking-[0.14em] transition-colors ${
+              className={`shrink-0 whitespace-nowrap rounded-full border px-3.5 py-1.5 text-sm transition-colors ${
                 active === c
                   ? "border-foreground bg-foreground text-background"
                   : "border-border text-muted-foreground hover:border-primary hover:text-primary"
@@ -84,7 +85,7 @@ export default async function BlogPage({
                   <CardTitle className="mt-2 text-base font-normal">{post.title}</CardTitle>
                   <p className="mt-3 text-xs text-muted-foreground">
                     {post.date}
-                    {post.readTime ? ` — ${post.readTime}` : null}
+                    {post.readTime ? ` · ${post.readTime}` : null}
                   </p>
                 </CardHeader>
               </Card>
