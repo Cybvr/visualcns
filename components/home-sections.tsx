@@ -72,13 +72,14 @@ export function HomeSections({
 }) {
   const container = "mx-auto max-w-7xl px-4 sm:px-8 md:px-20"
 
-  const features: { title: string; description: string; points: string[]; href: string; illustration: ReactNode }[] = [
+  const features: { title: string; description: string; points: string[]; href: string; illustration: ReactNode; bare?: boolean }[] = [
     {
       title: "Marketing",
       description: "AI runs your marketing for you while you run your business.",
       points: ["Writes and schedules your social posts", "Drafts a reply to every review", "Shows what keeps you off Google and how to fix it", "Free for 30 days, no card needed"],
       href: "/marketing",
       illustration: <NgaiArt src="/images/ngai/ngai-reviews.webp" alt="Ngai, the VisualCNS capybara, relaxes in a hot spring while a five-star review gets a reply" />,
+      bare: true,
     },
     {
       title: "Sites",
@@ -86,6 +87,7 @@ export function HomeSections({
       points: ["Pages and words written for you", "Change anything by asking in plain words", "Use your own domain", "Included in every Growth plan"],
       href: "/sites",
       illustration: <NgaiArt src="/images/ngai/ngai-sites.webp" alt="Ngai, the VisualCNS capybara, types on a laptop while a bakery website builds itself" />,
+      bare: true,
     },
     {
       title: "Visitor Sign-in",
@@ -126,7 +128,8 @@ export function HomeSections({
         <div className="space-y-14 md:space-y-20">
           {features.map((feature, index) => (
             <div key={feature.title} className="grid grid-cols-1 items-center gap-8 md:grid-cols-2 md:gap-12">
-              <div className={`aspect-[16/11] overflow-hidden rounded-[0.75rem] bg-gradient-to-br from-primary/30 via-primary/10 to-white p-6 dark:from-primary/35 dark:via-primary/10 dark:to-white/10 ${index % 2 ? "md:order-2" : ""}`}>
+              {/* Pictures with their own background sit bare; the drawn scenes keep the tinted panel. */}
+              <div className={`aspect-[16/11] overflow-hidden rounded-[0.75rem] ${feature.bare ? "" : "bg-gradient-to-br from-primary/30 via-primary/10 to-white p-6 dark:from-primary/35 dark:via-primary/10 dark:to-white/10"} ${index % 2 ? "md:order-2" : ""}`}>
                 {feature.illustration}
               </div>
               <div className={index % 2 ? "md:order-1" : ""}>
