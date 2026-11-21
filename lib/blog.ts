@@ -3,6 +3,8 @@
 export interface BlogSection {
   heading?: string
   paragraphs: string[]
+  // Bullet points shown after the paragraphs.
+  list?: string[]
 }
 
 export interface BlogPost {
@@ -24,6 +26,178 @@ export interface BlogPost {
 }
 
 export const blogPosts: BlogPost[] = [
+  {
+    slug: "why-most-businesses-still-look-invisible-online",
+    title: "Why Most Businesses Still Look Invisible Online (And How to Fix It Fast)",
+    excerpt:
+      "Most businesses think they have an online presence because they have a website, an Instagram account, and a Google listing. Then they wonder why customers still can’t find them.",
+    categories: ["Digital marketing"],
+    source: "VisualCNS",
+    author: "VisualCNS Editorial",
+    date: "November 21, 2026",
+    readTime: "2 min read",
+    url: "/blog/why-most-businesses-still-look-invisible-online",
+    image: "/blog/why-most-businesses-still-look-invisible-online.webp",
+    imageAlt: "Ngai the capybara looking at a faded map pin through a magnifying glass",
+    body: [
+      {
+        paragraphs: [
+          "The problem is rarely that they have zero presence. It’s that the presence they have is incomplete, inconsistent, or quietly broken.",
+          "Missing opening hours. An outdated phone number. A Google Business Profile that hasn’t been touched in months. Social accounts that post once every three weeks. A website that loads slowly on mobile. These small gaps add up. When someone searches for what you offer, Google and AI tools look for clear, consistent signals. Incomplete ones get pushed down.",
+          "The fix is not complicated, but it has to be systematic.",
+        ],
+      },
+      {
+        paragraphs: [
+          "Start by checking the basics:",
+        ],
+        list: [
+          "Is your Google Business Profile complete and accurate?",
+          "Do your website, social profiles, and Google listing all show the same name, address, and phone number?",
+          "Are you responding to reviews?",
+          "Is your website fast and mobile-friendly?",
+        ],
+      },
+      {
+        paragraphs: [
+          "Most businesses can surface the biggest issues in under ten minutes if they know where to look. The ones that treat this as ongoing maintenance, rather than a one-time task, stay visible. The ones that set it and forget it slowly disappear from search results and maps.",
+          "Visibility is not about being everywhere. It’s about being clear, consistent, and present where customers actually look.",
+        ],
+      },
+    ],
+  },
+  {
+    slug: "the-quiet-power-of-answering-every-review",
+    title: "The Quiet Power of Answering Every Review",
+    excerpt:
+      "Most businesses treat reviews as a score to protect. The smart ones treat them as a conversation.",
+    categories: ["Digital marketing"],
+    source: "VisualCNS",
+    author: "VisualCNS Editorial",
+    date: "November 21, 2026",
+    readTime: "2 min read",
+    url: "/blog/the-quiet-power-of-answering-every-review",
+    image: "/blog/the-quiet-power-of-answering-every-review.webp",
+    imageAlt: "A five-star review bubble with a green reply tick",
+    body: [
+      {
+        paragraphs: [
+          "Replying to every review, good and bad, does three things at once. It shows future customers that a real person is paying attention. It improves how Google and other platforms view your listing. And it turns a passive rating into an active signal of care.",
+          "The data is consistent: people notice when businesses reply. A thoughtful response to a negative review often softens the damage. A short thank-you on a positive one reinforces the good experience. Silence, on the other hand, reads as indifference.",
+          "The barrier is usually time. A busy owner cannot sit down every day and craft replies. That is why many now use tools that draft responses in their brand voice, so the owner only has to review and send.",
+          "You do not need perfect replies. You need consistent ones. A short, genuine response is better than none. Over time, that habit becomes one of the quietest competitive advantages a local business can have.",
+        ],
+      },
+    ],
+  },
+  {
+    slug: "your-google-business-profile-is-working-for-or-against-you",
+    title: "Your Google Business Profile Is Either Working For You or Against You",
+    excerpt:
+      "Your Google Business Profile is not a listing. It is the front door of your business online.",
+    categories: ["Digital marketing"],
+    source: "VisualCNS",
+    author: "VisualCNS Editorial",
+    date: "November 21, 2026",
+    readTime: "2 min read",
+    url: "/blog/your-google-business-profile-is-working-for-or-against-you",
+    image: "/blog/your-google-business-profile-is-working-for-or-against-you.webp",
+    imageAlt: "A small shopfront with an open door and a map pin above it",
+    body: [
+      {
+        paragraphs: [
+          "When someone searches for a product or service near them, Google decides which businesses to show based on relevance, distance, and prominence. Your profile is the main source of those signals. An incomplete or neglected profile quietly works against you.",
+          "The highest-impact items are still the basics:",
+        ],
+        list: [
+          "Correct primary category",
+          "Accurate address and service area",
+          "Up-to-date opening hours",
+          "Recent photos",
+          "A steady flow of reviews with replies",
+        ],
+      },
+      {
+        paragraphs: [
+          "Many businesses set the profile up once and never return to it. Categories stay too broad. Hours go out of date. Photos become old. Reviews pile up unanswered. Each of these small failures reduces visibility.",
+          "The businesses that treat the profile as a living asset (updating it, responding, adding posts, keeping information current) see the difference in map rankings and direct enquiries. The ones that ignore it slowly lose ground to competitors who simply stay consistent.",
+          "If you have not looked at your Google Business Profile in the last 30 days, that is the first place to start.",
+        ],
+      },
+    ],
+  },
+  {
+    slug: "stop-letting-social-media-steal-your-week",
+    title: "Stop Letting Social Media Steal Your Week",
+    excerpt:
+      "Social media is useful. It is also one of the easiest ways for a small team to lose hours every week.",
+    categories: ["Social media marketing"],
+    source: "VisualCNS",
+    author: "VisualCNS Editorial",
+    date: "November 21, 2026",
+    readTime: "2 min read",
+    url: "/blog/stop-letting-social-media-steal-your-week",
+    image: "/blog/stop-letting-social-media-steal-your-week.webp",
+    imageAlt: "Ngai the capybara relaxing with a cup of tea beside a desk calendar",
+    body: [
+      {
+        paragraphs: [
+          "The pattern is familiar: open the apps, scroll, try to think of something to post, write a caption, second-guess it, post it, then check for engagement. Multiply that across platforms and the time disappears.",
+          "The businesses that stay consistent without burning out usually do two things. They decide in advance what kinds of posts they will make (product, customer stories, tips, behind-the-scenes). And they batch the work instead of doing it daily.",
+          "AI tools have made the second part easier. You can generate a week or two of draft posts in a short session, edit them to sound like you, and schedule them. The daily pressure drops. You still stay visible, but you are no longer reacting every morning.",
+          "Consistency beats volume. A business that posts three solid times a week for months will outperform one that posts daily for two weeks and then goes quiet. The goal is not to be on social media all the time. The goal is to show up regularly without letting it run your schedule.",
+        ],
+      },
+    ],
+  },
+  {
+    slug: "what-a-proper-online-presence-score-shows-you",
+    title: "What Happens When You Finally Get a Proper Online Presence Score",
+    excerpt:
+      "Most business owners have a vague sense of how they look online. Very few have a clear, prioritised list of what is actually holding them back.",
+    categories: ["Digital marketing"],
+    source: "VisualCNS",
+    author: "VisualCNS Editorial",
+    date: "November 21, 2026",
+    readTime: "2 min read",
+    url: "/blog/what-a-proper-online-presence-score-shows-you",
+    image: "/blog/what-a-proper-online-presence-score-shows-you.webp",
+    imageAlt: "A score gauge with the needle pointing to green",
+    body: [
+      {
+        paragraphs: [
+          "An online presence score changes that. Instead of guessing, you get a concrete assessment across the places that matter: search visibility, Google Business Profile health, website performance, social activity, and review patterns. More importantly, you get a short list of what to fix first.",
+          "The value is not the number itself. It is the clarity. Suddenly the work becomes sequential instead of overwhelming. Fix the missing hours. Reply to the unanswered reviews. Improve the slow mobile page. Update the outdated photos. Each fix is small. The cumulative effect is not.",
+          "Businesses that run this kind of check regularly tend to stay ahead of problems. The ones that never measure often only notice the gaps when enquiries slow down or a competitor starts appearing higher in search.",
+          "You cannot improve what you do not measure. A clear score and a short action list remove the guesswork.",
+        ],
+      },
+    ],
+  },
+  {
+    slug: "from-idea-to-live-website-without-a-designer",
+    title: "From Idea to Live Website Without Hiring a Designer",
+    excerpt:
+      "A lot of good businesses stay invisible longer than they should because the website feels like a big, expensive project.",
+    categories: ["Digital marketing"],
+    source: "VisualCNS",
+    author: "VisualCNS Editorial",
+    date: "November 21, 2026",
+    readTime: "2 min read",
+    url: "/blog/from-idea-to-live-website-without-a-designer",
+    image: "/blog/from-idea-to-live-website-without-a-designer.webp",
+    imageAlt: "Ngai the capybara holding a laptop showing a simple web page",
+    body: [
+      {
+        paragraphs: [
+          "It does not have to be. The current generation of tools lets you describe what the business does in plain language and get a working site in return. You can then edit it the same way, by saying what you want changed instead of learning design software.",
+          "This does not replace thoughtful design for complex brands. It does remove the barrier for businesses that simply need a clean, credible online home quickly. Pages, basic copy, contact details, and structure can be generated and refined without a long agency process.",
+          "The practical advantage is speed. A founder can go from idea to a live, professional-looking site in hours rather than weeks. That matters when you need to start collecting enquiries, testing messaging, or simply looking established.",
+          "The website is no longer the bottleneck it used to be. The only remaining question is whether you treat it as a living part of the business or as a one-time task you never revisit.",
+        ],
+      },
+    ],
+  },
   {
     slug: "a-brand-is-more-than-a-logo",
     title: "A brand is more than a logo",

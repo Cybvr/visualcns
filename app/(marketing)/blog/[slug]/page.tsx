@@ -88,6 +88,11 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
                       {section.paragraphs.map((paragraph, j) => (
                         <p key={j} className="mt-4 leading-7 text-muted-foreground first:mt-0">{paragraph}</p>
                       ))}
+                      {section.list ? (
+                        <ul className="mt-4 list-disc space-y-2 pl-5 leading-7 text-muted-foreground">
+                          {section.list.map((item, j) => <li key={j}>{item}</li>)}
+                        </ul>
+                      ) : null}
                     </section>
                   ))}
                 </div>
