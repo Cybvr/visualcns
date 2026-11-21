@@ -14,7 +14,6 @@ import { usePolarCheckout } from "@/components/use-polar-checkout"
 import { usePaystackCheckout } from "@/components/use-paystack-checkout"
 import { LISTED_SERVICES, PRICING_TABS, serviceFor, type BillingInterval, type CartService } from "@/lib/cart"
 import { formatPrice } from "@/lib/plans"
-import { TRIAL_DAYS } from "@/lib/subscription"
 import { cn } from "@/lib/utils"
 
 const GROUPS = Object.values(PRICING_TABS)
@@ -170,7 +169,7 @@ export function PricingView({ cartHref, freeHref, stickyTop, basePath, initialTa
 
         {groups.map((group) => (
           <TabsContent key={group} value={group}>
-            {TAB_INTROS[group] && <p className="max-w-2xl text-base text-muted-foreground">{TAB_INTROS[group]}</p>}
+            {!compact && TAB_INTROS[group] && <p className="max-w-2xl text-base text-muted-foreground">{TAB_INTROS[group]}</p>}
             <div
               className={cn(
                 "grid grid-cols-1 gap-6 pt-3 md:grid-cols-2",
@@ -183,7 +182,7 @@ export function PricingView({ cartHref, freeHref, stickyTop, basePath, initialTa
                   title="Free trial"
                   icon="pulse"
                   price="Free"
-                  description={`Try every Marketing feature free for ${TRIAL_DAYS} days without entering a card.`}
+                  description="For Everyday Use"
                   features={["Social Media and SEO", "Reviews in one place", "Google Ads tracking", "Marketing insights and score", "Pass for up to 5 staff"]}
                   ctaLabel="Start free trial"
                   ctaHref={freeHref}

@@ -139,7 +139,7 @@ export const marketingPlanRows: ServiceRow[] = [
   {
     service: "Essential",
     scope: "Social + SEO",
-    description: "Post to your social pages and get found on Google.",
+    description: "For Getting Found",
     price: { amount: 20000, suffix: "/mo", usd: 15 },
     timeline: "Monthly",
     included: "Social Media, SEO, Insights",
@@ -149,7 +149,7 @@ export const marketingPlanRows: ServiceRow[] = [
   {
     service: "Pro",
     scope: "Social + SEO + Reviews",
-    description: "Everything in Essential, plus your reviews in one place.",
+    description: "For Building Trust",
     price: { amount: 35000, suffix: "/mo", usd: 26 },
     timeline: "Monthly",
     included: "Social Media, SEO, Reviews, Insights",
@@ -159,7 +159,7 @@ export const marketingPlanRows: ServiceRow[] = [
   {
     service: "Advanced",
     scope: "Social + SEO + Reviews + Ads",
-    description: "Everything in Pro, plus your Google Ads.",
+    description: "For Winning Leads",
     price: { amount: 50000, suffix: "/mo", usd: 37 },
     timeline: "Monthly",
     included: "Social Media, SEO, Reviews, Google Ads, Insights",
