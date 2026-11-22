@@ -327,7 +327,7 @@ export function CompanyProfileShell({ children }: { children: ReactNode }) {
   return (
     <SidebarTakeoverProvider>
     <ItemActionsProvider>
-    <div className="dashboard-body flex h-svh flex-col overflow-hidden bg-background font-dashboard [&_*]:font-dashboard">
+    <div className="company-shell dashboard-body flex h-svh flex-col overflow-hidden bg-background font-dashboard [&_*]:font-dashboard">
       <SidebarProvider className="!min-h-0 flex-1">
         <Sidebar collapsible="icon" className="dashboard-sidebar bg-sidebar text-foreground group-data-[side=left]:!border-r-0 print:hidden">
           <div className="flex min-h-0 flex-1 flex-col overflow-hidden text-foreground">
