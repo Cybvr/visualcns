@@ -20,7 +20,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "@/components/ui/input"
 import { platformLabel } from "@/lib/social"
 import { useSocialAccounts } from "@/lib/social-client"
-import { ConnectDialog, SocialConnectDialog, type GoogleKey } from "@/components/company/sections/marketing-connect"
+import { SocialConnectDialog, useGoogleConnections, type GoogleService } from "@/components/company/sections/marketing-connect"
 import { cn } from "@/lib/utils"
 import type { PulseItem } from "@/lib/pulse"
 import type { BusinessDetails } from "@/components/company/pulse-intro"
@@ -59,14 +59,14 @@ function trackedKeywords(details: BusinessDetails) {
 
 export function MarketingOverviewSection() {
   const { company, sectionHref } = useCompanyPage()
-  const { latest, connections, brand, error: loadError, refresh, call, link } = useLatestScan()
+  const { latest, connections, brand, error: loadError, refresh, call } = useLatestScan()
   const { details } = useBusinessDetails()
   const social = useSocialAccounts(company.id)
+  const google = useGoogleConnections(company.id)
   const [scanning, setScanning] = useState(false)
   const [error, setError] = useState("")
   const [stepIndex, setStepIndex] = useState(0)
   const [area, setArea] = useState<AreaKey>("seo")
-  const [connecting, setConnecting] = useState<GoogleKey | null>(null)
 
   async function build() {
     if (scanning) return
@@ -87,7 +87,7 @@ export function MarketingOverviewSection() {
   const socialAccounts = social.info?.accounts ?? []
   const settingsHref = sectionHref("marketing-settings")
   const hasDetails = Boolean(details.name?.trim() && details.website?.trim() && details.description?.trim())
-  const connect = (key: GoogleKey) => () => setConnecting(key)
+  const connect = (service: GoogleService) => () => void google.connect(service)
   // Google Business connects through the social accounts (SocialAPI), like Facebook and LinkedIn.
   const businessLinked = Boolean(connections.businessProfile) || socialAccounts.some((account) => account.platform === "google")
   const [socialOpen, setSocialOpen] = useState<"business" | "social" | null>(null)
@@ -97,13 +97,13 @@ export function MarketingOverviewSection() {
   // Setup first, in the order that unlocks the most; then the scan's own next steps.
   const steps: Step[] = [
     ...(hasDetails ? [] : [{ id: "details", title: "Tell us about your business", text: "Add your website, what you do and who your customers are. Everything here is built from it.", cta: "Add details", href: sectionHref("marketing-settings") }]),
-    ...(connections.ga4 ? [] : [{ id: "ga4", title: "Track your website with Google Analytics 4", text: "See who visits your site, where they come from and what they do: better data, smarter decisions and improved rankings.", cta: "Connect GA4", onClick: connect("ga4") }]),
-    ...(connections.searchConsole ? [] : [{ id: "searchConsole", title: "See how you rank on Google", text: "Connect Search Console to track the searches people use to find you, and where you rank for each.", cta: "Connect Search Console", onClick: connect("searchConsole") }]),
+    ...(google.connected.ga4 ? [] : [{ id: "ga4", title: "Track your website with Google Analytics 4", text: "See who visits your site, where they come from and what they do: better data, smarter decisions and improved rankings.", cta: "Connect GA4", onClick: connect("ga4") }]),
+    ...(google.connected.searchConsole ? [] : [{ id: "searchConsole", title: "See how you rank on Google", text: "Connect Search Console to track the searches people use to find you, and where you rank for each.", cta: "Connect Search Console", onClick: connect("searchConsole") }]),
     ...(businessLinked ? [] : [{ id: "businessProfile", title: "Get found on Google Maps", text: "Connect your Google Business Profile to track calls, direction requests and reviews.", cta: "Connect Business Profile", onClick: connectBusiness }]),
     ...(social.info && socialAccounts.length === 0 ? [{ id: "social", title: "Connect your social accounts", text: "Post, reply and see your followers in one place.", cta: "Connect social", onClick: connectSocial }] : []),
     ...(report ? [] : [{ id: "build", title: "Build your marketing", text: "We check your website, search, reviews and competitors, then show you what to do next.", cta: scanning ? "Building…" : "Build my marketing", onClick: () => void build() }]),
     ...(report?.actions ?? []).map((action) => ({ id: action.id, title: action.title, text: action.why, cta: "See how", href: sectionHref("insights") })),
-    ...(connections.googleAds ? [] : [{ id: "googleAds", title: "Track your Google Ads", text: "Connect Google Ads to see spend, clicks and leads next to everything else.", cta: "Connect Google Ads", onClick: connect("googleAds") }]),
+    ...(google.connected.googleAds ? [] : [{ id: "googleAds", title: "Track your Google Ads", text: "Connect Google Ads to see spend, clicks and leads next to everything else.", cta: "Connect Google Ads", onClick: connect("googleAds") }]),
   ]
   const step = steps.length ? steps[Math.min(stepIndex, steps.length - 1)] : null
   const shownSteps = steps.slice(0, 8)
@@ -165,16 +165,16 @@ export function MarketingOverviewSection() {
           <div className="mt-4 space-y-4">
             {area === "seo" && (
               <>
-                {!connections.ga4 && <ConnectCard title="See live visitors with Google Analytics 4" text="Get real-time data from your website: who visits, where they come from and what they do." cta="Start tracking" onClick={connect("ga4")} />}
-                <RankingCard connected={Boolean(connections.searchConsole)} onConnect={connect("searchConsole")} />
+                {!google.connected.ga4 && <ConnectCard title="See live visitors with Google Analytics 4" text="Get real-time data from your website: who visits, where they come from and what they do." cta="Start tracking" onClick={connect("ga4")} />}
+                <RankingCard connected={Boolean(google.connected.searchConsole)} onConnect={connect("searchConsole")} />
                 <KeywordsCard details={details} keywords={brand.keywords} sources={[{ label: "Google Search", icon: <Search className="size-4 text-[#4285f4]" aria-hidden="true" /> }]} />
                 <FindingsCard title="What to fix in search" items={report ? seoItems(report) : null} href={sectionHref("seo")} link="See SEO" />
               </>
             )}
             {area === "google-ads" && (
               <>
-                {!connections.googleAds && <ConnectCard title="Bring your Google Ads in" text="See what you spend, what it brings in, and what to change, next to the rest of your marketing." cta="Connect Google Ads" onClick={connect("googleAds")} />}
-                <MetricsCard title="Ads this month" connected={Boolean(connections.googleAds)} metrics={[["Spend", BarChart3], ["Clicks", MousePointerClick], ["Leads", Check]]} />
+                {!google.connected.googleAds && <ConnectCard title="Bring your Google Ads in" text="See what you spend, what it brings in, and what to change, next to the rest of your marketing." cta="Connect Google Ads" onClick={connect("googleAds")} />}
+                <MetricsCard title="Ads this month" connected={Boolean(google.connected.googleAds)} metrics={[["Spend", BarChart3], ["Clicks", MousePointerClick], ["Leads", Check]]} />
                 <LinkCard text="Want us to run your ads? Paid ads are managed for you on Growth Max and Ultra." href={sectionHref("google-ads")} link="See Google Ads" />
               </>
             )}
@@ -222,17 +222,6 @@ export function MarketingOverviewSection() {
         platforms={socialOpen === "business" ? ["google"] : ["instagram", "facebook", "linkedin", "twitter", "google"]}
         title={socialOpen === "business" ? "Connect Google Business Profile" : "Connect your social accounts"}
         text={socialOpen === "business" ? "Sign in with the Google account that manages your business on Maps." : "Pick an account to connect. You'll come straight back here."}
-      />
-      <ConnectDialog
-        connection={connecting}
-        value={connecting ? connections[connecting] ?? "" : ""}
-        onOpenChange={(open) => { if (!open) setConnecting(null) }}
-        onSave={async (value) => {
-          if (!connecting) return
-          await link(connecting, value)
-          setConnecting(null)
-          setStepIndex(0)
-        }}
       />
     </div>
   )

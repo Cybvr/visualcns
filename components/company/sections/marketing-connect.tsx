@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useState, type FormEvent } from "react"
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { Loader2 } from "lucide-react"
 import { toast } from "sonner"
@@ -93,8 +93,12 @@ const GOOGLE_SERVICE_META: Record<GoogleService, { name: string; pick: string }>
 type ConnectionView = { service: GoogleService; connected: boolean; email?: string; resourceId?: string; resourceLabel?: string }
 type GoogleRequest = <T>(path: string, init?: { method?: string; body?: unknown }) => Promise<T>
 
-/** The Google connections on Marketing Settings. Self-contained: it talks to /api/google directly. */
-export function GoogleConnections({ companyId }: { companyId: string }) {
+/**
+ * Shared Google connection state for a company: which services are signed in,
+ * and how to start a sign-in or drop one. Marketing Settings, Home and the
+ * Marketing pages all read from here so they stay in step.
+ */
+export function useGoogleConnections(companyId: string) {
   const { user } = useAuth()
   const pathname = usePathname() ?? "/"
   const router = useRouter()
@@ -146,7 +150,7 @@ export function GoogleConnections({ companyId }: { companyId: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [result])
 
-  async function connect(service: GoogleService) {
+  const connect = useCallback(async (service: GoogleService) => {
     setBusy(service)
     try {
       const { url } = await request<{ url: string }>("connect", { method: "POST", body: { companyId, service, returnTo: pathname } })
@@ -155,9 +159,9 @@ export function GoogleConnections({ companyId }: { companyId: string }) {
       toast.error(error instanceof Error ? error.message : "Couldn't start connecting.")
       setBusy("")
     }
-  }
+  }, [companyId, pathname, request])
 
-  async function disconnect(service: GoogleService) {
+  const disconnect = useCallback(async (service: GoogleService) => {
     setBusy(service)
     try {
       await request("resources", { method: "DELETE", body: { companyId, service } })
@@ -167,27 +171,45 @@ export function GoogleConnections({ companyId }: { companyId: string }) {
     } finally {
       setBusy("")
     }
-  }
+  }, [companyId, load, request])
 
-  const rows = views ?? GOOGLE_SERVICES.map((service) => ({ service, connected: false }) as ConnectionView)
+  const byService = useMemo(() => {
+    const map = {} as Record<GoogleService, ConnectionView>
+    for (const service of GOOGLE_SERVICES) map[service] = { service, connected: false }
+    for (const view of views ?? []) map[view.service] = view
+    return map
+  }, [views])
 
+  const connected = useMemo(
+    () => ({ ga4: byService.ga4.connected, searchConsole: byService.searchConsole.connected, googleAds: byService.googleAds.connected }),
+    [byService],
+  )
+
+  return { loading: views === null, configured, views: byService, connected, busy, request, connect, disconnect, reload: load }
+}
+
+export type { GoogleService }
+
+/** The Google connections on Marketing Settings: connect, pick an account, and see live numbers. */
+export function GoogleConnections({ companyId }: { companyId: string }) {
+  const google = useGoogleConnections(companyId)
   return (
     <section className="mt-6">
       <h3 className="text-sm font-medium text-foreground">Google</h3>
-      {!configured && <p className="mt-2 text-xs text-muted-foreground">Google connections aren&apos;t set up for this site yet.</p>}
+      {!google.configured && <p className="mt-2 text-xs text-muted-foreground">Google connections aren&apos;t set up for this site yet.</p>}
       <ul className="mt-2 divide-y divide-border rounded-lg border border-border">
-        {rows.map((view) => (
+        {GOOGLE_SERVICES.map((service) => (
           <GoogleRow
-            key={view.service}
+            key={service}
             companyId={companyId}
-            view={view}
-            loading={views === null}
-            busy={busy === view.service}
-            disabled={!configured || (Boolean(busy) && busy !== view.service)}
-            request={request}
-            onConnect={() => void connect(view.service)}
-            onDisconnect={() => void disconnect(view.service)}
-            onPicked={() => void load()}
+            view={google.views[service]}
+            loading={google.loading}
+            busy={google.busy === service}
+            disabled={!google.configured || (Boolean(google.busy) && google.busy !== service)}
+            request={google.request}
+            onConnect={() => void google.connect(service)}
+            onDisconnect={() => void google.disconnect(service)}
+            onPicked={() => void google.reload()}
           />
         ))}
       </ul>
