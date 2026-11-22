@@ -134,7 +134,7 @@ export function CompanyCreateSheet({
                   id="location"
                   value={form.location}
                   onChange={(e) => set("location", e.target.value)}
-                  placeholder="Lagos, Nigeria"
+                  placeholder="City, Country"
                 />
               </div>
             </div>

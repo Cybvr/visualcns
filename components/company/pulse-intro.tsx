@@ -47,7 +47,7 @@ export const FIELDS: Field[] = [
   { key: "industry", label: "Industry", icon: Tag, placeholder: "e.g. Marketing & Technology" },
   { key: "description", label: "About", icon: FileText, long: true, placeholder: "What the business does" },
   { key: "targetCustomers", label: "Target customers", icon: Users, placeholder: "e.g. Small businesses, marketing teams" },
-  { key: "location", label: "Location", icon: MapPin, placeholder: "e.g. Lagos, Nigeria" },
+  { key: "location", label: "Location", icon: MapPin, placeholder: "e.g. City, Country" },
 ]
 
 export const ANALYSE_AREAS: { key: string; icon: LucideIcon; title: string; detail: string; box: string; tint: string }[] = [

@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
-import { BadgeDollarSign, Check, ExternalLink } from "lucide-react"
+import { BadgeDollarSign, Check, ExternalLink, X } from "lucide-react"
 
 import { useAuth } from "@/components/auth-provider"
 import { useCompanyPage } from "@/components/company/company-page-context"
@@ -244,16 +244,71 @@ function BusinessDetailsForm() {
   )
 }
 
-const BRAND_FIELDS: { key: string; label: string; placeholder: string; long?: boolean; help?: string }[] = [
-  { key: "keywords", label: "Keywords", placeholder: "e.g. bakery in Lekki, birthday cakes, wedding cakes", long: true, help: "The searches you want customers to find you with. Separate with commas." },
-  { key: "serviceAreas", label: "Service areas", placeholder: "e.g. Lekki, Victoria Island, Ikoyi" },
+const BRAND_FIELDS: { key: string; label: string; placeholder: string; long?: boolean; pills?: boolean; help?: string }[] = [
+  { key: "keywords", label: "Keywords", placeholder: "Add a keyword", pills: true, help: "The searches you want customers to find you with. Press Enter or comma after each." },
+  { key: "serviceAreas", label: "Service areas", placeholder: "Add an area", pills: true, help: "The places you serve. Press Enter or comma after each." },
   { key: "products", label: "Products and services", placeholder: "What you sell, one per line", long: true },
-  { key: "competitors", label: "Competitors", placeholder: "Names or websites, separated by commas", long: true },
+  { key: "competitors", label: "Competitors", placeholder: "Add a competitor", pills: true, help: "Names or websites. Press Enter or comma after each." },
   { key: "sellingPoints", label: "What makes you different", placeholder: "e.g. Same-day delivery, 10 years in business", long: true },
   { key: "brandVoice", label: "Brand voice", placeholder: "e.g. Friendly and warm" },
   { key: "goals", label: "Goals", placeholder: "e.g. More calls and more walk-ins" },
-  { key: "adBudget", label: "Monthly ad budget", placeholder: "e.g. ₦200,000" },
+  { key: "adBudget", label: "Monthly ad budget", placeholder: "e.g. 200,000 a month" },
 ]
+
+/** A comma-stored field shown as removable pills. Each entry becomes a pill; typing a comma or Enter adds one. */
+function PillField({ value, placeholder, onChange }: { value: string; placeholder: string; onChange: (next: string) => void }) {
+  const tags = value.split(",").map((item) => item.trim()).filter(Boolean)
+  const [draft, setDraft] = useState("")
+
+  function commit(raw: string) {
+    const parts = raw.split(",").map((item) => item.trim()).filter(Boolean)
+    if (!parts.length) { setDraft(""); return }
+    const next = [...tags]
+    for (const part of parts) {
+      if (!next.some((item) => item.toLowerCase() === part.toLowerCase())) next.push(part)
+    }
+    onChange(next.join(", "))
+    setDraft("")
+  }
+
+  function removeAt(index: number) {
+    onChange(tags.filter((_, position) => position !== index).join(", "))
+  }
+
+  return (
+    <div className="mt-1.5 flex flex-wrap items-center gap-2 rounded-md border border-input bg-background px-2.5 py-2 focus-within:ring-2 focus-within:ring-ring">
+      {tags.map((tag, index) => (
+        <span key={`${tag}-${index}`} className="inline-flex items-center gap-1.5 rounded-full bg-muted px-3 py-1 text-sm font-medium text-foreground">
+          {tag}
+          <button
+            type="button"
+            onClick={() => removeAt(index)}
+            aria-label={`Remove ${tag}`}
+            className="text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <X className="size-3.5" aria-hidden="true" />
+          </button>
+        </span>
+      ))}
+      <input
+        value={draft}
+        onChange={(event) => {
+          const text = event.target.value
+          if (text.includes(",")) commit(text)
+          else setDraft(text)
+        }}
+        onKeyDown={(event) => {
+          if (event.key === "Enter") { event.preventDefault(); commit(draft) }
+          if (event.key === "Backspace" && !draft && tags.length) { event.preventDefault(); removeAt(tags.length - 1) }
+        }}
+        onBlur={() => commit(draft)}
+        placeholder={tags.length ? "" : placeholder}
+        className="min-w-[8rem] flex-1 bg-transparent px-1 py-1 text-sm outline-none"
+        aria-label={placeholder}
+      />
+    </div>
+  )
+}
 
 function BrandDetailsForm({ brand, onSave }: { brand: BrandDetails; onSave: (patch: BrandDetails) => Promise<void> }) {
   const [draft, setDraft] = useState<BrandDetails>(brand)
@@ -280,7 +335,9 @@ function BrandDetailsForm({ brand, onSave }: { brand: BrandDetails; onSave: (pat
       {BRAND_FIELDS.map((field) => (
         <label key={field.key} className="block">
           <span className="text-sm font-medium text-foreground">{field.label}</span>
-          {field.long ? (
+          {field.pills ? (
+            <PillField value={draft[field.key] ?? ""} placeholder={field.placeholder} onChange={(next) => setDraft((current) => ({ ...current, [field.key]: next }))} />
+          ) : field.long ? (
             <Textarea value={draft[field.key] ?? ""} onChange={(event) => setDraft((current) => ({ ...current, [field.key]: event.target.value }))} placeholder={field.placeholder} rows={3} className="mt-1.5" />
           ) : (
             <Input value={draft[field.key] ?? ""} onChange={(event) => setDraft((current) => ({ ...current, [field.key]: event.target.value }))} placeholder={field.placeholder} className="mt-1.5" />
