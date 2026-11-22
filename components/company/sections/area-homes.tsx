@@ -107,7 +107,7 @@ export function WebsitesHomeSection() {
         : null
 
   return (
-    <div className="mx-auto mt-4 max-w-3xl">
+    <div className="mt-4">
       <NextStep step={chats === null || domains === null ? undefined : step} done="Your website is live on your own domain." />
       <Stats items={[
         { label: "Websites", value: chats === null ? "–" : sites.length },
@@ -194,7 +194,7 @@ export function FinanceHomeSection() {
   ].slice(0, 5)
 
   return (
-    <div className="mx-auto mt-4 max-w-3xl">
+    <div className="mt-4">
       <NextStep step={step} done="Nothing to pay right now." />
       <Stats items={[
         { label: "Outstanding", value: formatMoney(owed, currency) },
@@ -248,7 +248,7 @@ export function SecurityHomeSection() {
         : null
 
   return (
-    <div className="mx-auto mt-4 max-w-3xl">
+    <div className="mt-4">
       <NextStep step={step} done="Front-desk sign-in is on. Nobody is on site right now." />
       <Stats items={[
         { label: "On site now", value: visitors === null ? "–" : counts.onSite },
