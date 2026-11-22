@@ -19,6 +19,20 @@ function decrypt(value: string) {
   return Buffer.concat([decipher.update(Buffer.from(encryptedValue, "base64url")), decipher.final()]).toString("utf8")
 }
 
+/** Encrypt a value for storing outside the agencySecrets collection (e.g. a company's own OAuth token). Uses the same master key. */
+export function encryptSecret(value: string) {
+  return value ? encrypt(value) : ""
+}
+
+/** Decrypt a value written by encryptSecret. Returns "" when the input is empty or unreadable. */
+export function decryptSecret(value: string) {
+  try {
+    return value ? decrypt(value) : ""
+  } catch {
+    return ""
+  }
+}
+
 export async function getAgencySecret(agencyId: string, name: string, fallback = "") {
   const { db } = adminServices()
   const snapshot = await db.collection("agencySecrets").doc(agencyId).get()

@@ -366,12 +366,12 @@ function SettingsBlock({ id, title, text, children }: { id: string; title: strin
 /** Settings: connections, business basics and brand details, in one place. */
 export function MarketingSettingsSection() {
   const { company } = useCompanyPage()
-  const { latest, connections, brand, link, saveBrand } = useLatestScan()
+  const { brand, saveBrand } = useLatestScan()
   return (
     <div className="mx-auto mt-6 max-w-2xl space-y-5">
       <SettingsBlock id="marketing-connections" title="Connections" text="Connect your accounts so we can post for you and track how you're doing.">
         <SocialAccounts companyId={company.id} />
-        <GoogleConnections connections={connections} loading={latest === undefined} onSave={link} />
+        <GoogleConnections companyId={company.id} />
       </SettingsBlock>
       <SettingsBlock id="marketing-business" title="Business details" text="The basics about your business.">
         <BusinessDetailsForm />

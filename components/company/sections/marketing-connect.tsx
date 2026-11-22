@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, type FormEvent } from "react"
+import { useCallback, useEffect, useState, type FormEvent } from "react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { Loader2 } from "lucide-react"
 import { toast } from "sonner"
@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "@/components/ui/input"
 import { platformLabel } from "@/lib/social"
 import { useSocialRequest } from "@/lib/social-client"
-import type { Connections } from "@/components/company/sections/marketing-pages"
+import { useAuth } from "@/components/auth-provider"
 
 /* Connect windows shared by Marketing Home and Marketing Settings. */
 
@@ -75,40 +75,250 @@ export function ConnectDialog({ connection, value, onOpenChange, onSave }: { con
   )
 }
 
-/** The Google accounts on Marketing Settings, each with Connect or Edit. */
-export function GoogleConnections({ connections, loading, onSave }: { connections: Connections; loading: boolean; onSave: (key: string, value: string) => Promise<void> }) {
-  const [open, setOpen] = useState<GoogleKey | null>(null)
-  const keys: GoogleKey[] = ["ga4", "searchConsole", "googleAds"]
+/*
+ * Google on Marketing Settings, now a real sign-in. Each service (Analytics,
+ * Search Console, Ads) connects with Google OAuth through /api/google/*, then
+ * the company picks the one property, site or account to track and sees live
+ * numbers. No IDs are pasted by hand.
+ */
+
+type GoogleService = "ga4" | "searchConsole" | "googleAds"
+const GOOGLE_SERVICES: GoogleService[] = ["ga4", "searchConsole", "googleAds"]
+const GOOGLE_SERVICE_META: Record<GoogleService, { name: string; pick: string }> = {
+  ga4: { name: "Google Analytics 4", pick: "property" },
+  searchConsole: { name: "Google Search Console", pick: "site" },
+  googleAds: { name: "Google Ads", pick: "account" },
+}
+
+type ConnectionView = { service: GoogleService; connected: boolean; email?: string; resourceId?: string; resourceLabel?: string }
+type GoogleRequest = <T>(path: string, init?: { method?: string; body?: unknown }) => Promise<T>
+
+/** The Google connections on Marketing Settings. Self-contained: it talks to /api/google directly. */
+export function GoogleConnections({ companyId }: { companyId: string }) {
+  const { user } = useAuth()
+  const pathname = usePathname() ?? "/"
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const [configured, setConfigured] = useState(true)
+  const [views, setViews] = useState<ConnectionView[] | null>(null)
+  const [busy, setBusy] = useState<GoogleService | "">("")
+
+  const request = useCallback(<T,>(path: string, init: { method?: string; body?: unknown } = {}) => {
+    return (async () => {
+      if (!user) throw new Error("Please sign in again.")
+      const response = await fetch(`/api/google/${path}`, {
+        method: init.method ?? "GET",
+        headers: { Authorization: `Bearer ${await user.getIdToken()}`, "Content-Type": "application/json" },
+        body: init.body === undefined ? undefined : JSON.stringify(init.body),
+      })
+      const data = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(data.error || "Something went wrong. Please try again.")
+      return data as T
+    })()
+  }, [user])
+
+  const load = useCallback(async () => {
+    try {
+      const data = await request<{ configured: boolean; connections: ConnectionView[] }>(`resources?companyId=${encodeURIComponent(companyId)}`)
+      setConfigured(data.configured)
+      setViews(data.connections)
+    } catch {
+      setViews([])
+    }
+  }, [companyId, request])
+
+  useEffect(() => { if (user) void load() }, [user, load])
+
+  // Back from Google's sign-in: say how it went, reload, then tidy the address.
+  const result = searchParams.get("google")
+  useEffect(() => {
+    if (!result) return
+    if (result === "connected") toast.success("Google connected. Pick what to track.")
+    else if (result === "cancelled") toast.error("Connecting was cancelled.")
+    else if (result === "expired") toast.error("That link expired. Please try again.")
+    else toast.error("Couldn't connect that account.")
+    const params = new URLSearchParams(searchParams.toString())
+    params.delete("google")
+    params.delete("service")
+    const query = params.toString()
+    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false })
+    void load()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [result])
+
+  async function connect(service: GoogleService) {
+    setBusy(service)
+    try {
+      const { url } = await request<{ url: string }>("connect", { method: "POST", body: { companyId, service, returnTo: pathname } })
+      window.location.assign(url)
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Couldn't start connecting.")
+      setBusy("")
+    }
+  }
+
+  async function disconnect(service: GoogleService) {
+    setBusy(service)
+    try {
+      await request("resources", { method: "DELETE", body: { companyId, service } })
+      await load()
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Couldn't disconnect.")
+    } finally {
+      setBusy("")
+    }
+  }
+
+  const rows = views ?? GOOGLE_SERVICES.map((service) => ({ service, connected: false }) as ConnectionView)
+
   return (
     <section className="mt-6">
       <h3 className="text-sm font-medium text-foreground">Google</h3>
+      {!configured && <p className="mt-2 text-xs text-muted-foreground">Google connections aren&apos;t set up for this site yet.</p>}
       <ul className="mt-2 divide-y divide-border rounded-lg border border-border">
-        {keys.map((key) => {
-          const value = connections[key]
-          return (
-            <li key={key} className="flex items-center gap-3 px-4 py-3">
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium text-foreground">{GOOGLE[key].name}</p>
-                <p className="truncate text-xs text-muted-foreground">{loading ? "Loading…" : value || "Not connected"}</p>
-              </div>
-              <Button type="button" variant={value ? "ghost" : "outline"} size="sm" disabled={loading} onClick={() => setOpen(key)}>
-                {value ? "Edit" : "Connect"}
-              </Button>
-            </li>
-          )
-        })}
+        {rows.map((view) => (
+          <GoogleRow
+            key={view.service}
+            companyId={companyId}
+            view={view}
+            loading={views === null}
+            busy={busy === view.service}
+            disabled={!configured || (Boolean(busy) && busy !== view.service)}
+            request={request}
+            onConnect={() => void connect(view.service)}
+            onDisconnect={() => void disconnect(view.service)}
+            onPicked={() => void load()}
+          />
+        ))}
       </ul>
-      <ConnectDialog
-        connection={open}
-        value={open ? connections[open] ?? "" : ""}
-        onOpenChange={(next) => { if (!next) setOpen(null) }}
-        onSave={async (value) => {
-          if (!open) return
-          await onSave(open, value)
-          setOpen(null)
-        }}
-      />
     </section>
+  )
+}
+
+function GoogleRow({ companyId, view, loading, busy, disabled, request, onConnect, onDisconnect, onPicked }: {
+  companyId: string
+  view: ConnectionView
+  loading: boolean
+  busy: boolean
+  disabled: boolean
+  request: GoogleRequest
+  onConnect: () => void
+  onDisconnect: () => void
+  onPicked: () => void
+}) {
+  const meta = GOOGLE_SERVICE_META[view.service]
+  const [options, setOptions] = useState<{ id: string; label: string }[] | null>(null)
+  const [note, setNote] = useState("")
+  const [choosing, setChoosing] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [summary, setSummary] = useState<{ label: string; value: string }[] | null>(null)
+
+  // Live numbers once a property, site or account is chosen.
+  useEffect(() => {
+    if (!view.connected || !view.resourceId) { setSummary(null); return }
+    let active = true
+    request<{ summary: { label: string; value: string }[]; note?: string }>(`resources?companyId=${encodeURIComponent(companyId)}&service=${view.service}&summary=1`)
+      .then((data) => { if (active) { setSummary(data.summary); if (data.note) setNote(data.note) } })
+      .catch(() => { if (active) setSummary([]) })
+    return () => { active = false }
+  }, [companyId, request, view.connected, view.resourceId, view.service])
+
+  async function openChooser() {
+    setChoosing(true)
+    if (options) return
+    try {
+      const data = await request<{ options: { id: string; label: string }[]; note?: string }>(`resources?companyId=${encodeURIComponent(companyId)}&service=${view.service}&list=1`)
+      setOptions(data.options)
+      setNote(data.note || "")
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Couldn't load your accounts.")
+      setChoosing(false)
+    }
+  }
+
+  async function pick(id: string, label: string) {
+    setSaving(true)
+    try {
+      await request("resources", { method: "POST", body: { companyId, service: view.service, resourceId: id, resourceLabel: label } })
+      setChoosing(false)
+      onPicked()
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Couldn't save that.")
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const status = loading
+    ? "Loading…"
+    : !view.connected
+      ? "Not connected"
+      : view.resourceId
+        ? view.resourceLabel || "Connected"
+        : `Connected as ${view.email || "Google"} · pick a ${meta.pick}`
+
+  return (
+    <li className="px-4 py-3">
+      <div className="flex items-center gap-3">
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-medium text-foreground">{meta.name}</p>
+          <p className="truncate text-xs text-muted-foreground">{status}</p>
+        </div>
+        {!view.connected ? (
+          <Button type="button" variant="outline" size="sm" disabled={disabled || loading} onClick={onConnect}>
+            {busy ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : "Connect"}
+          </Button>
+        ) : (
+          <div className="flex items-center gap-1">
+            {!choosing && (
+              <Button type="button" variant="ghost" size="sm" disabled={disabled} onClick={() => void openChooser()}>
+                {view.resourceId ? "Change" : `Choose ${meta.pick}`}
+              </Button>
+            )}
+            <Button type="button" variant="ghost" size="sm" disabled={disabled} onClick={onDisconnect}>
+              {busy ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : "Disconnect"}
+            </Button>
+          </div>
+        )}
+      </div>
+
+      {choosing && (
+        <div className="mt-3">
+          {options === null ? (
+            <p className="flex items-center gap-2 text-xs text-muted-foreground"><Loader2 className="size-3.5 animate-spin" aria-hidden="true" />Loading your accounts…</p>
+          ) : options.length === 0 ? (
+            <p className="text-xs text-muted-foreground">{note || `No ${meta.pick}s found for ${view.email || "this account"}.`}</p>
+          ) : (
+            <ul className="space-y-1.5">
+              {options.map((option) => (
+                <li key={option.id}>
+                  <button
+                    type="button"
+                    disabled={saving}
+                    onClick={() => void pick(option.id, option.label)}
+                    className={`w-full truncate rounded-md border px-3 py-2 text-left text-sm transition-colors hover:bg-muted disabled:opacity-60 ${option.id === view.resourceId ? "border-primary bg-primary/5" : "border-border"}`}
+                  >
+                    {option.label}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+
+      {summary && summary.length > 0 && (
+        <dl className="mt-3 grid grid-cols-3 gap-2">
+          {summary.map((stat) => (
+            <div key={stat.label} className="rounded-md bg-muted/60 px-3 py-2">
+              <dt className="text-[11px] text-muted-foreground">{stat.label}</dt>
+              <dd className="text-sm font-semibold text-foreground">{stat.value}</dd>
+            </div>
+          ))}
+        </dl>
+      )}
+      {view.service === "googleAds" && view.connected && note && <p className="mt-2 text-xs text-muted-foreground">{note}</p>}
+    </li>
   )
 }
 
