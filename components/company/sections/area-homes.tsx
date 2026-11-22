@@ -25,17 +25,17 @@ type Step = { title: string; text: string; cta: string; href?: string; onClick?:
 
 /** `step` is undefined while loading, null when there's nothing to do. */
 function NextStep({ step, done }: { step: Step | null | undefined; done: string }) {
-  if (step === undefined) return <div className="h-40 animate-pulse rounded-2xl bg-muted/50" aria-hidden="true" />
+  if (step === undefined) return <div className="h-40 animate-pulse rounded-lg bg-muted/50" aria-hidden="true" />
   if (!step) {
     return (
-      <section aria-label="Next recommended step" className="rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-7">
+      <section aria-label="Next recommended step" className="rounded-lg border border-border bg-card p-5 shadow-sm sm:p-7">
         <p className="text-xs font-semibold uppercase tracking-[0.12em] text-primary">All set</p>
         <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{done}</p>
       </section>
     )
   }
   return (
-    <section aria-label="Next recommended step" className="rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-7">
+    <section aria-label="Next recommended step" className="rounded-lg border border-border bg-card p-5 shadow-sm sm:p-7">
       <p className="text-xs font-semibold uppercase tracking-[0.12em] text-primary">Next recommended step</p>
       <h2 className="mt-2 text-xl font-semibold leading-snug tracking-[-0.02em] text-foreground sm:text-2xl">{step.title}</h2>
       <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{step.text}</p>
@@ -52,7 +52,7 @@ function Stats({ items }: { items: { label: string; value: ReactNode; tone?: "ba
   return (
     <dl className="mt-4 grid grid-cols-3 gap-3">
       {items.map((item) => (
-        <div key={item.label} className="min-w-0 rounded-2xl bg-muted/50 p-4">
+        <div key={item.label} className="min-w-0 rounded-lg bg-muted/50 p-4">
           <dt className="truncate text-xs text-muted-foreground">{item.label}</dt>
           <dd className={cn("mt-1 truncate text-xl font-semibold tabular-nums sm:text-2xl", item.tone === "bad" ? "text-destructive" : "text-foreground")}>{item.value}</dd>
         </div>
@@ -63,7 +63,7 @@ function Stats({ items }: { items: { label: string; value: ReactNode; tone?: "ba
 
 function ListCard({ title, href, link, empty, children }: { title: string; href: string; link: string; empty: string; children: ReactNode[] }) {
   return (
-    <section aria-label={title} className="mt-4 rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
+    <section aria-label={title} className="mt-4 rounded-lg border border-border bg-card p-5 shadow-sm sm:p-6">
       <div className="flex items-center justify-between gap-3">
         <h3 className="text-base font-medium text-foreground">{title}</h3>
         <Link href={href} className="text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">{link}</Link>
@@ -114,7 +114,7 @@ export function WebsitesHomeSection() {
         { label: "Live", value: chats === null ? "–" : live.length },
         { label: "Domains connected", value: domains === null ? "–" : connected },
       ]} />
-      <section aria-label="Your websites" className="mt-4 rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
+      <section aria-label="Your websites" className="mt-4 rounded-lg border border-border bg-card p-5 shadow-sm sm:p-6">
         <div className="flex items-center justify-between gap-3">
           <h3 className="text-base font-medium text-foreground">Your websites</h3>
           <Link href={sectionHref("sites")} className="text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">See all</Link>
@@ -128,7 +128,7 @@ export function WebsitesHomeSection() {
                 onClick={() => site.slug ? window.open(ngaiPublishedUrl(site.slug), "_blank", "noopener,noreferrer") : open(`/chat/${encodeURIComponent(site.id)}`)}
                 className="min-w-0 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
-                <span className="block aspect-video overflow-hidden rounded-xl border border-border"><SiteThumbnail code={site.code} title={site.title} /></span>
+                <span className="block aspect-video overflow-hidden rounded-lg border border-border"><SiteThumbnail code={site.code} title={site.title} /></span>
                 <span className="mt-1.5 block truncate text-sm font-medium text-foreground">{site.title}</span>
                 <span className="block truncate text-xs text-muted-foreground">{site.slug ? "Live" : "Draft"}</span>
               </button>
@@ -146,7 +146,7 @@ export function WebsitesHomeSection() {
           </div>
           <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {templates === null
-              ? Array.from({ length: 6 }, (_, i) => <div key={i} className="aspect-video animate-pulse rounded-xl bg-muted/50" aria-hidden="true" />)
+              ? Array.from({ length: 6 }, (_, i) => <div key={i} className="aspect-video animate-pulse rounded-lg bg-muted/50" aria-hidden="true" />)
               : templates.slice(0, 6).map((template) => (
                 <button
                   key={template.id}
@@ -155,7 +155,7 @@ export function WebsitesHomeSection() {
                   title={template.description}
                   className="group min-w-0 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
-                  <span className="block aspect-video overflow-hidden rounded-xl border border-border transition-colors group-hover:border-foreground/40"><SiteThumbnail code={template.code} title={template.title} /></span>
+                  <span className="block aspect-video overflow-hidden rounded-lg border border-border transition-colors group-hover:border-foreground/40"><SiteThumbnail code={template.code} title={template.title} /></span>
                   <span className="mt-1.5 block truncate text-sm font-medium text-foreground">{template.title}</span>
                   <span className="block text-xs font-medium text-muted-foreground">${template.price}</span>
                 </button>

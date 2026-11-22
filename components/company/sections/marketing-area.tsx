@@ -57,7 +57,7 @@ function SectionTitle({ children }: { children: ReactNode }) {
 }
 
 function Panel({ children, className }: { children: ReactNode; className?: string }) {
-  return <section className={cn("rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6", className)}>{children}</section>
+  return <section className={cn("rounded-lg border border-border bg-card p-5 shadow-sm sm:p-6", className)}>{children}</section>
 }
 
 function StatusBadge({ connected, waiting }: { connected: boolean; waiting?: boolean }) {
@@ -99,7 +99,7 @@ function TodoCard({ todo }: { todo: Todo }) {
   const [helpOpen, setHelpOpen] = useState(false)
   const Scene = todo.scene
   return (
-    <article className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+    <article className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
       <div className="p-5 sm:p-6">
         <p className="text-xs text-muted-foreground">To do</p>
         <h3 className="mt-1 text-base font-semibold leading-snug text-foreground">{todo.title}</h3>
@@ -159,7 +159,7 @@ export function ConnectionsCard({ items }: { items: Connection[] }) {
       <ul className="mt-3 divide-y divide-border">
         {items.map((item) => (
           <li key={item.key} className="flex items-center gap-3 py-3">
-            <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-muted">{item.icon}</span>
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted">{item.icon}</span>
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium text-foreground">{item.label}</p>
               <div className="mt-1"><StatusBadge connected={item.connected} waiting={item.waiting} /></div>
@@ -189,9 +189,9 @@ function RankingsCard({ keywords, sources, settingsHref }: { keywords: string[];
     <Panel>
       <SectionTitle>Top rankings</SectionTitle>
       {sources.length > 1 && (
-        <div className="mt-3 inline-flex rounded-full bg-muted p-1" role="tablist" aria-label="Ranking source">
+        <div className="mt-3 inline-flex rounded-lg bg-muted p-1" role="tablist" aria-label="Ranking source">
           {sources.map((item) => (
-            <button key={item.key} type="button" role="tab" aria-selected={source === item.key} onClick={() => setSource(item.key)} className={cn("flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm", source === item.key ? "bg-background font-medium text-foreground shadow-sm" : "text-muted-foreground")}>
+            <button key={item.key} type="button" role="tab" aria-selected={source === item.key} onClick={() => setSource(item.key)} className={cn("flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm", source === item.key ? "bg-background font-medium text-foreground shadow-sm" : "text-muted-foreground")}>
               {item.icon}{item.label}
             </button>
           ))}
@@ -217,7 +217,7 @@ function MetricsCard({ title, metrics }: { title: string; metrics: { label: stri
       <SectionTitle>{title}</SectionTitle>
       <dl className="mt-4 grid grid-cols-3 gap-3">
         {metrics.map((metric) => (
-          <div key={metric.label} className="min-w-0 rounded-xl bg-muted/50 p-3">
+          <div key={metric.label} className="min-w-0 rounded-lg bg-muted/50 p-3">
             <dt className="truncate text-xs text-muted-foreground">{metric.label}</dt>
             <dd className="mt-1 truncate text-xl font-semibold tabular-nums text-foreground">{metric.value}</dd>
           </div>
@@ -302,7 +302,7 @@ function useMarketingPage() {
 
 function PageShell({ goal, children, error, loading, dialogs }: { goal: string; children: ReactNode; error: string; loading: boolean; dialogs: ReactNode }) {
   return (
-    <div className="mx-auto mt-4 max-w-3xl space-y-5">
+    <div className="mt-4 space-y-5">
       <p className="text-sm text-muted-foreground">{goal}</p>
       {error && <ErrorNote message={error} />}
       {loading ? <LoadingCards /> : children}

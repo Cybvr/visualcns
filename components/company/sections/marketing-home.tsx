@@ -109,12 +109,12 @@ export function MarketingOverviewSection() {
   const shownSteps = steps.slice(0, 8)
 
   return (
-    <div className="mx-auto mt-4 max-w-3xl">
+    <div className="mt-4">
       {(error || loadError) && <ErrorNote message={error || loadError} />}
       {latest === undefined ? <LoadingCards /> : (
         <>
           {step && (
-            <section aria-label="Next recommended step" className="rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-7">
+            <section aria-label="Next recommended step" className="rounded-lg border border-border bg-card p-5 shadow-sm sm:p-7">
               {shownSteps.length > 1 && (
                 <div className="flex gap-1.5" role="tablist" aria-label="Steps">
                   {shownSteps.map((item, index) => (
@@ -147,7 +147,7 @@ export function MarketingOverviewSection() {
             </section>
           )}
 
-          <div className="scrollbar-none mt-6 flex gap-1 overflow-x-auto rounded-full bg-muted p-1" role="tablist" aria-label="Marketing areas">
+          <div className="scrollbar-none mt-6 flex gap-1 overflow-x-auto rounded-lg bg-muted p-1" role="tablist" aria-label="Marketing areas">
             {AREAS.map((item) => (
               <button
                 key={item.key}
@@ -155,7 +155,7 @@ export function MarketingOverviewSection() {
                 role="tab"
                 aria-selected={area === item.key}
                 onClick={() => setArea(item.key)}
-                className={cn("shrink-0 rounded-full px-4 py-2 text-sm font-medium transition-colors", area === item.key ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}
+                className={cn("shrink-0 rounded-md px-4 py-2 text-sm font-medium transition-colors", area === item.key ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}
               >
                 {item.label}
               </button>
@@ -229,7 +229,7 @@ export function MarketingOverviewSection() {
 
 function Card({ title, badge, info, children }: { title: string; badge?: ReactNode; info?: string; children: ReactNode }) {
   return (
-    <section aria-label={title} className="rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
+    <section aria-label={title} className="rounded-lg border border-border bg-card p-5 shadow-sm sm:p-6">
       <div className="flex items-start justify-between gap-3">
         <h3 className="text-base font-medium text-foreground">{title}</h3>
         <div className="flex shrink-0 items-center gap-2">
@@ -253,7 +253,7 @@ function Waiting({ connected }: { connected: boolean }) {
 /** The promo card at the top of an area that isn't connected yet. */
 function ConnectCard({ title, text, cta, onClick }: { title: string; text: string; cta: string; onClick: () => void }) {
   return (
-    <section aria-label={title} className="rounded-2xl bg-gradient-to-br from-card via-card to-primary/10 p-5 shadow-sm ring-1 ring-border sm:p-6">
+    <section aria-label={title} className="rounded-lg bg-gradient-to-br from-card via-card to-primary/10 p-5 shadow-sm ring-1 ring-border sm:p-6">
       <h3 className="text-lg font-semibold leading-snug text-foreground">{title}</h3>
       <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{text}</p>
       <Button type="button" className="mt-4" onClick={onClick}>{cta}</Button>
@@ -304,7 +304,7 @@ function MetricsCard({ title, connected, metrics }: { title: string; connected: 
     <Card title={title} badge={<Waiting connected={connected} />}>
       <dl className="mt-4 grid grid-cols-3 gap-3">
         {metrics.map(([label, Icon]) => (
-          <div key={label} className="rounded-xl bg-muted/50 p-3">
+          <div key={label} className="rounded-lg bg-muted/50 p-3">
             <dt className="flex items-center gap-1.5 text-xs text-muted-foreground"><Icon className="size-3.5" aria-hidden="true" />{label}</dt>
             <dd className="mt-1 text-xl font-semibold tabular-nums text-foreground">–</dd>
           </div>
@@ -338,7 +338,7 @@ function FindingsCard({ title, items, href, link }: { title: string; items: Puls
 
 function LinkCard({ text, href, link }: { text: string; href: string; link: string }) {
   return (
-    <section className="rounded-2xl bg-muted/50 p-5 text-sm text-muted-foreground">
+    <section className="rounded-lg bg-muted/50 p-5 text-sm text-muted-foreground">
       <p>{text}</p>
       <Button asChild variant="outline" size="sm" className="mt-3"><Link href={href}>{link}</Link></Button>
     </section>
