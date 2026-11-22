@@ -190,9 +190,13 @@
     font-weight: 500 !important;
     color: var(--muted-foreground) !important;
   }
-  /* Company pages: small-rounded buttons instead of the full pill. */
+  /* Company pages: black buttons, small-rounded instead of the full pill. */
+  .company-shell {
+    --button: #000000;
+    --button-foreground: #ffffff;
+  }
   .company-shell [data-slot="button"] {
-    border-radius: var(--radius);
+    border-radius: var(--radius) !important;
   }
   .dashboard-body:not([data-slot="dialog-content"]) :where(p, a, button, label, input, textarea, select, option, th, td, [data-slot="dropdown-menu-item"]) {
     font-family: inherit;
