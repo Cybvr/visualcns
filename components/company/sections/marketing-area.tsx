@@ -5,7 +5,7 @@ import { useEffect, useState, type ComponentType, type ReactNode, type SVGProps 
 import { ChevronDown, MapPin, Search, Star } from "lucide-react"
 
 import { useCompanyPage } from "@/components/company/company-page-context"
-import { ConnectDialog, GOOGLE, SocialConnectDialog, type GoogleKey } from "@/components/company/sections/marketing-connect"
+import { GOOGLE, SocialConnectDialog, useGoogleConnections, type GoogleKey, type GoogleService } from "@/components/company/sections/marketing-connect"
 import {
   ErrorNote,
   LoadingCards,
@@ -254,7 +254,7 @@ function useMarketingPage() {
   const scan = useLatestScan()
   const { details } = useBusinessDetails()
   const social = useSocialAccounts(page.company.id)
-  const [google, setGoogle] = useState<GoogleKey | null>(null)
+  const google = useGoogleConnections(page.company.id)
   const [socialOpen, setSocialOpen] = useState<string[] | null>(null)
   const accounts = social.info?.accounts ?? []
   const hasSocial = (platform: string) => accounts.some((account) => account.platform === platform)
@@ -273,16 +273,6 @@ function useMarketingPage() {
 
   const dialogs = (
     <>
-      <ConnectDialog
-        connection={google}
-        value={google ? scan.connections[google] ?? "" : ""}
-        onOpenChange={(open) => { if (!open) setGoogle(null) }}
-        onSave={async (value) => {
-          if (!google) return
-          await scan.link(google, value)
-          setGoogle(null)
-        }}
-      />
       <SocialConnectDialog
         companyId={page.company.id}
         open={socialOpen !== null}
@@ -303,7 +293,8 @@ function useMarketingPage() {
     businessLinked,
     scanTodos,
     dialogs,
-    connectGoogle: (key: GoogleKey) => () => setGoogle(key),
+    googleConnected: google.connected,
+    connectGoogle: (service: GoogleService) => () => void google.connect(service),
     connectSocial: (...platforms: string[]) => () => setSocialOpen(platforms),
     settingsHref: page.sectionHref("marketing-settings"),
   }
@@ -326,8 +317,8 @@ export function SeoPage() {
   const m = useMarketingPage()
   const report = m.latest?.report
   const todos: Todo[] = [
-    ...(m.connections.ga4 ? [] : [{ id: "ga4", title: "Google Analytics isn't connected", description: "Connect Google Analytics 4 to see who visits your website and where they come from.", action: "Connect now", onAction: m.connectGoogle("ga4"), scene: AnalyticsScene, help: { label: "Don't have an account?", text: "Google Analytics is free. Create an account and add it to your website.", href: "https://analytics.google.com", link: "Open Google Analytics" } }]),
-    ...(m.connections.searchConsole ? [] : [{ id: "searchConsole", title: "Search Console isn't connected", description: "Connect Search Console to track the searches people use to find you.", action: "Connect now", onAction: m.connectGoogle("searchConsole"), scene: SeoScene, help: { label: "Don't have an account?", text: "Search Console is free. Add your website and confirm you own it.", href: "https://search.google.com/search-console", link: "Open Search Console" } }]),
+    ...(m.googleConnected.ga4 ? [] : [{ id: "ga4", title: "Google Analytics isn't connected", description: "Connect Google Analytics 4 to see who visits your website and where they come from.", action: "Connect now", onAction: m.connectGoogle("ga4"), scene: AnalyticsScene, help: { label: "Don't have an account?", text: "Google Analytics is free. Create an account and add it to your website.", href: "https://analytics.google.com", link: "Open Google Analytics" } }]),
+    ...(m.googleConnected.searchConsole ? [] : [{ id: "searchConsole", title: "Search Console isn't connected", description: "Connect Search Console to track the searches people use to find you.", action: "Connect now", onAction: m.connectGoogle("searchConsole"), scene: SeoScene, help: { label: "Don't have an account?", text: "Search Console is free. Add your website and confirm you own it.", href: "https://search.google.com/search-console", link: "Open Search Console" } }]),
     ...m.scanTodos(report ? seoItems(report) : [], SeoScene),
   ]
   return (
@@ -336,8 +327,8 @@ export function SeoPage() {
       <TodoList todos={todos} empty="Nothing to do right now." />
       <RankingsCard keywords={trackedKeywords(m.details, m.brand.keywords)} sources={[{ key: "search", label: "Google Search", icon: <Search className="size-4 text-[#4285f4]" aria-hidden="true" /> }]} settingsHref={m.settingsHref} />
       <ConnectionsCard items={[
-        { key: "ga4", label: "Google Analytics 4", icon: googleIcon("ga4"), connected: Boolean(m.connections.ga4), waiting: true, onConnect: m.connectGoogle("ga4") },
-        { key: "searchConsole", label: "Google Search Console", icon: googleIcon("searchConsole"), connected: Boolean(m.connections.searchConsole), waiting: true, onConnect: m.connectGoogle("searchConsole") },
+        { key: "ga4", label: "Google Analytics 4", icon: googleIcon("ga4"), connected: Boolean(m.googleConnected.ga4), waiting: true, onConnect: m.connectGoogle("ga4") },
+        { key: "searchConsole", label: "Google Search Console", icon: googleIcon("searchConsole"), connected: Boolean(m.googleConnected.searchConsole), waiting: true, onConnect: m.connectGoogle("searchConsole") },
       ]} />
     </PageShell>
   )
@@ -440,7 +431,7 @@ export function ReviewsPage() {
 
 export function GoogleAdsPage() {
   const m = useMarketingPage()
-  const connected = Boolean(m.connections.googleAds)
+  const connected = Boolean(m.googleConnected.googleAds)
   const todos: Todo[] = connected ? [] : [{ id: "googleAds", title: "Google Ads isn't connected", description: "Connect Google Ads to see what you spend and the leads it brings in.", action: "Connect now", onAction: m.connectGoogle("googleAds"), scene: AdsScene, help: { label: "Don't run ads yet?", text: "We can set up and manage your Google Ads on Growth Max and Ultra.", href: `/${encodeURIComponent(m.company.slug || m.company.id)}/pricing/growth`, link: "See plans" } }]
   return (
     <PageShell goal="Get more leads from your ad spend." error={m.error} loading={m.latest === undefined} dialogs={m.dialogs}>
@@ -466,10 +457,10 @@ export function InsightsPage() {
     help: action.steps.length ? { label: "How to do it", text: action.steps.join(" ") } : undefined,
   }))
   const connections = [
-    { key: "ga4", label: "Google Analytics 4", icon: googleIcon("ga4"), connected: Boolean(m.connections.ga4), waiting: true, onConnect: m.connectGoogle("ga4") },
-    { key: "searchConsole", label: "Google Search Console", icon: googleIcon("searchConsole"), connected: Boolean(m.connections.searchConsole), waiting: true, onConnect: m.connectGoogle("searchConsole") },
+    { key: "ga4", label: "Google Analytics 4", icon: googleIcon("ga4"), connected: Boolean(m.googleConnected.ga4), waiting: true, onConnect: m.connectGoogle("ga4") },
+    { key: "searchConsole", label: "Google Search Console", icon: googleIcon("searchConsole"), connected: Boolean(m.googleConnected.searchConsole), waiting: true, onConnect: m.connectGoogle("searchConsole") },
     { key: "google", label: "Google Business Profile", icon: <SocialIcon platform="google" />, connected: m.businessLinked, onConnect: m.businessLinked ? () => window.location.assign(m.settingsHref) : m.connectSocial("google") },
-    { key: "googleAds", label: "Google Ads", icon: googleIcon("googleAds"), connected: Boolean(m.connections.googleAds), waiting: true, onConnect: m.connectGoogle("googleAds") },
+    { key: "googleAds", label: "Google Ads", icon: googleIcon("googleAds"), connected: Boolean(m.googleConnected.googleAds), waiting: true, onConnect: m.connectGoogle("googleAds") },
     { key: "social", label: "Social accounts", icon: <SocialIcon platform="instagram" />, connected: m.accounts.length > 0, onConnect: m.accounts.length ? () => window.location.assign(m.settingsHref) : m.connectSocial("instagram", "facebook", "linkedin", "twitter") },
   ]
   if (m.latest === null && !m.error) {
