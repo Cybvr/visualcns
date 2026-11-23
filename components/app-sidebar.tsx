@@ -156,7 +156,7 @@ export function AppSidebar({
       {...props}
     >
       <div className="group/sidebar flex min-h-0 flex-1 flex-col overflow-hidden text-foreground">
-        <SidebarHeader className="group-data-[collapsible=icon]:p-1">
+        <SidebarHeader className="pb-0 group-data-[collapsible=icon]:p-1">
           <div className="flex h-12 items-center gap-2 group-data-[collapsible=icon]:justify-center">
             <Link
               href={brandHref}
@@ -169,7 +169,7 @@ export function AppSidebar({
           </div>
         </SidebarHeader>
         <SidebarContent>
-          <SidebarGroup className="group-data-[collapsible=icon]:p-1">
+          <SidebarGroup className="pt-0 group-data-[collapsible=icon]:p-1">
               <SidebarMenu className="gap-0.5 max-md:gap-1.5">
               {/* While a campaign is open its sections replace these links, with a way back. */}
               <SidebarTakeoverMenu sections={navLinks.map((link) => (
