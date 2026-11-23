@@ -3,7 +3,10 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
-import { Building2, ExternalLink, Mail, MoreVertical } from "lucide-react"
+import { ArrowLeft, ExternalLink, Mail, MoreVertical } from "lucide-react"
+
+import { Ngai } from "@/components/agent/ngai"
+import { Button } from "@/components/ui/button"
 
 import {
   CompanyPageProvider,
@@ -11,9 +14,8 @@ import {
   type CompanyPageData,
 } from "@/components/company/company-page-context"
 import { SectionNav } from "@/components/company/section-nav"
-import { useSidebarTakeover } from "@/components/company/sidebar-takeover"
 import { CompanySection } from "@/components/company/sections/company-section"
-import { useClientOpen, usePageHeaderActions, usePageHeaderBack, usePageHeaderTitle } from "@/components/dashboard/page-title-context"
+import { useClientOpen, useHideHeader, usePageHeaderActions, usePageHeaderBack, usePageHeaderTitle } from "@/components/dashboard/page-title-context"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { buildEmailComposeHref } from "@/lib/email-composer"
 import { cn } from "@/lib/utils"
@@ -54,18 +56,12 @@ function DashboardCompanyView({ embedded = false, onBack }: { embedded?: boolean
   usePageHeaderTitle(useMemo(() => headerTitle ? <span className="block truncate">{headerTitle}</span> : null, [headerTitle]))
   usePageHeaderBack(headerBack)
 
-  // The company's sections replace the dashboard sidebar links, with a way back to Companies.
+  // The dashboard sidebar stays as it is; the company's sections are tabs above its content.
   const router = useRouter()
-  const inSidebar = useSidebarTakeover({
-    title: company.name,
-    titleHref: `/${encodeURIComponent(company.slug || company.id)}`,
-    backLabel: "Companies",
-    onBack: () => (latest.current.onBack ? latest.current.onBack() : router.push("/dashboard/companies")),
-    items: sections.map((item) => ({ key: item.key, label: item.label, icon: item.icon ?? Building2 })),
-    active: section,
-    onSelect: (key) => router.push(sectionHref(key as typeof section), { scroll: false }),
-    level: 1,
-  })
+  const goBack = () => (latest.current.onBack ? latest.current.onBack() : router.push("/dashboard/companies"))
+  // The agency gets Ngai beside the company, like an open document or invoice, so the dashboard header steps aside.
+  const withNgai = !embedded && Boolean(admin)
+  useHideHeader(withNgai)
 
   const primaryContact = people.find((person) => person.adminUser?.uid === company.primaryContactId)
     || people.find((person) => person.adminUser?.email)
@@ -118,6 +114,40 @@ function DashboardCompanyView({ embedded = false, onBack }: { embedded?: boolean
 
   usePageHeaderActions(headerActions)
   useClientOpen(Boolean(sharePath))
+
+  const publicHref = `/${encodeURIComponent(company.slug || company.id)}`
+  if (withNgai) {
+    return (
+      // Ngai first, the company beside it, filling the dashboard card; each side scrolls on its own.
+      <main className="w-full lg:grid lg:h-full lg:min-h-0 lg:flex-1 lg:grid-cols-[20rem_minmax(0,1fr)] lg:grid-rows-[minmax(0,1fr)] lg:overflow-hidden">
+        <aside className="hidden min-h-0 overflow-hidden border-r border-border lg:flex lg:flex-col">
+          <Ngai
+            scope={{ kind: "company" }}
+            layout="panel"
+            className="bg-transparent"
+            heading={<>
+              <Button type="button" variant="ghost" size="icon" className="size-8 shrink-0" onClick={goBack} aria-label="Back to Companies"><ArrowLeft className="size-4" aria-hidden="true" /></Button>
+              <span className="min-w-0 flex-1 truncate text-sm font-semibold">{company.name}</span>
+              <Link href={publicHref} target="_blank" rel="noreferrer" aria-label={`Open ${company.name}'s page`} title="Open company page" className="flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"><ExternalLink className="size-4" aria-hidden="true" /></Link>
+            </>}
+          />
+        </aside>
+        <section className="flex min-w-0 flex-col lg:min-h-0">
+          {/* The company's tabs, edge to edge like an open document's toolbar. */}
+          <div className={cn("sticky top-0 z-30 flex h-14 shrink-0 items-center gap-2 border-b border-border bg-background px-3 print:hidden lg:px-4", campaignOpen && "max-sm:hidden")}>
+            <Button type="button" variant="ghost" size="icon" className="size-8 shrink-0 max-md:hidden lg:hidden" onClick={goBack} aria-label="Back to Companies"><ArrowLeft className="size-4" aria-hidden="true" /></Button>
+            <SectionNav sections={sections} active={section} href={sectionHref} phoneVisible={3} className="h-full min-w-0 flex-1 px-0 md:px-0" />
+            {headerActions}
+          </div>
+          <div className="min-w-0 flex-1 px-4 pb-16 sm:px-6 lg:overflow-y-auto">
+            <CompanySection section={section} />
+          </div>
+        </section>
+      </main>
+    )
+  }
+
+  const inSidebar = false
 
   return (
     <main className={embedded ? "w-full min-w-0" : "mx-auto min-h-screen w-full max-w-7xl max-md:bg-page px-4 pb-[calc(7rem+env(safe-area-inset-bottom))] pt-6 sm:px-6 sm:pb-16 sm:pt-8 md:pt-6"}>
