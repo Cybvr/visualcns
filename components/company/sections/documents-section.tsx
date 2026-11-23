@@ -24,6 +24,15 @@ function editHref(kind: CompanyDocumentKind, id: string) {
   return `/dashboard/${kind}s/${encodeURIComponent(id)}/edit`
 }
 
+/** Where the main Artifacts page opens each kind: documents and invoices beside Ngai. */
+function artifactHref(kind: CompanyDocumentKind, id: string) {
+  const ref = encodeURIComponent(id)
+  if (kind === "document") return `/dashboard/documents?document=${ref}`
+  if (kind === "invoice") return `/dashboard/invoices/${ref}`
+  if (kind === "estimate") return `/dashboard/estimates/${ref}/edit`
+  return `/dashboard/contracts/${ref}`
+}
+
 /**
  * Documents (under Finance): invoices, estimates, contracts, documents and other files.
  * Assets (under Marketing): images and videos, uploaded or from campaigns.
@@ -139,8 +148,9 @@ export function DocumentsSection({ view = "documents" }: { view?: "documents" | 
           emptyTitle={artifacts ? "No artifacts yet" : "No documents yet"}
           addKinds={["document", "invoice", "contract", "estimate"]}
           emptyDescription={artifacts ? "Documents, invoices, estimates, contracts, files, images and videos will appear here." : "Documents, invoices, estimates, contracts and files will appear here."}
-          onSelect={(kind, id) => updateParams({ doc: `${kind}:${id}` })}
-          onEdit={canEditDocuments ? (kind, id) => router.push(editHref(kind, id)) : undefined}
+          // Artifacts opens the same editors as the main Artifacts page; Documents opens in place.
+          onSelect={(kind, id) => artifacts ? router.push(artifactHref(kind, id)) : updateParams({ doc: `${kind}:${id}` })}
+          onEdit={canEditDocuments ? (kind, id) => router.push(artifacts ? artifactHref(kind, id) : editHref(kind, id)) : undefined}
           canAdd={Boolean(admin)}
           onAdd={handleAdd}
           campaignName={(projectId) => projectId ? projects.find((project) => project.id === projectId)?.title : undefined}
