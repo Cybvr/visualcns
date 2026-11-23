@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useContext, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react"
+import { useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react"
 import Image from "next/image"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { History, LogIn, Plus, SquarePen, Trash2, X } from "lucide-react"
@@ -187,6 +187,24 @@ export function NgaiConversation({ layout, startingOptions, onOpenArtifact, acti
     if (openInPlace) openInPlace(artifact)
     else router.push(artifactPageHref(artifact, activeConversationId || undefined))
   }, [activeConversationId, onOpenArtifact, openInPlace, router])
+
+  // In the workspace, an item Ngai just made, opened or changed opens beside the chat by itself.
+  // Only the reply being written now counts; items in older messages wait to be clicked.
+  const streaming = useRef<string | null>(null)
+  useEffect(() => {
+    const last = messages.at(-1)
+    if (sending) {
+      if (last?.role === "assistant") streaming.current = last.id
+      return
+    }
+    if (!last || last.id !== streaming.current) return
+    streaming.current = null
+    const latest = last.artifacts?.at(-1)
+    if (latest && openInPlace && latest.id !== activeArtifactId) {
+      onOpenArtifact(latest)
+      openInPlace(latest)
+    }
+  }, [messages, sending, openInPlace, onOpenArtifact, activeArtifactId])
 
   // On a company page, any of its campaigns can be picked with @.
   const campaignMentions = useMemo(() => page ? [...page.projects]

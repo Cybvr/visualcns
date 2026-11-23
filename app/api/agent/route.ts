@@ -289,6 +289,20 @@ const AGENT_TOOLS = [
   },
   {
     type: "function",
+    name: "open_item",
+    description: "Show an invoice, estimate, contract or written document beside the chat, so the user sees it. Call it whenever the user asks to open, show, pull up or look at one, and before changing one they asked to open. Find the id with query_workspace first. Records you change with update_record are shown by themselves.",
+    parameters: {
+      type: "object",
+      properties: {
+        kind: { type: "string", enum: ["invoice", "estimate", "contract", "document"] },
+        id: { type: "string", description: "The record's id (for a document, its companyDocuments id)." },
+      },
+      required: ["kind", "id"],
+      additionalProperties: false,
+    },
+  },
+  {
+    type: "function",
     name: "propose_plan",
     description: "Show the user a short checklist of what you are about to do and wait for them to say go. Use for big or unclear jobs only. This ends your turn.",
     parameters: {
@@ -654,6 +668,8 @@ const ANSWER_MARKER = "␞::ngai-answer::"
 /** Documents a tool made this turn, so the chat can open them beside the conversation. */
 const ARTIFACT_MARKER = "\n␞::ngai-artifacts::"
 const ARTIFACT_KINDS = ["document", "invoice", "estimate", "contract"]
+/** Which collections hold items the chat can open beside it. */
+const COLLECTION_ITEM_KINDS: Record<string, string> = { invoices: "invoice", estimates: "estimate", contracts: "contract", companyDocuments: "document" }
 
 const READABLE_COLLECTIONS = [
   "organizations",
@@ -869,6 +885,7 @@ function stepLabel(name: string, rawArgs: string): string {
     case "research_campaign_creators": return "Finding creators for the campaign"
     case "generate_campaign_parts": return "Building the campaign brief and content"
     case "update_record": return "Saving changes"
+    case "open_item": return "Opening it beside the chat"
     case "create_company": return `Adding ${text("name") || "the client"}`
     case "create_project": return `Creating project ${text("title")}`.trim()
     case "create_task": return `Adding task ${text("name")}`.trim()
@@ -1144,6 +1161,19 @@ async function runAgentTool(name: string, rawArgs: string, uid: string, authoriz
     }
   }
 
+  if (name === "open_item") {
+    const kind = requireText(args, "kind")
+    const collectionName = Object.keys(COLLECTION_ITEM_KINDS).find((key) => COLLECTION_ITEM_KINDS[key] === kind)
+    if (!collectionName) throw new Error(`"${kind}" cannot be opened.`)
+    const id = requireText(args, "id")
+    const snapshot = await db.collection(collectionName).doc(id).get()
+    if (!snapshot.exists) throw new Error("That record no longer exists.")
+    const data = snapshot.data() ?? {}
+    if (!isSuperAdmin && data.agencyId !== agencyId) throw new Error("That record belongs to another agency.")
+    // Shaped like a made item, so it shows as a card and opens beside the chat.
+    return { type: kind, id, title: String(data.title || data.invoiceNumber || data.estimateNumber || "") }
+  }
+
   if (name === "update_record") {
     const collectionName = requireText(args, "collection")
     if (!UPDATABLE_COLLECTIONS.includes(collectionName)) {
@@ -1196,7 +1226,11 @@ async function runAgentTool(name: string, rawArgs: string, uid: string, authoriz
 
     await ref.set({ ...patch, updatedAt: now }, { merge: true })
 
-    return { type: "updated", collection: collectionName, id, fields: Object.keys(patch), url: recordUrl(collectionName, id) }
+    // An invoice, estimate, contract or document it changed comes back as an item, so the chat shows it beside the conversation.
+    const itemKind = COLLECTION_ITEM_KINDS[collectionName]
+    const before = existing.data() ?? {}
+    const itemTitle = String(patch.title ?? before.title ?? before.invoiceNumber ?? before.estimateNumber ?? "")
+    return { type: "updated", collection: collectionName, id, fields: Object.keys(patch), url: recordUrl(collectionName, id), ...(itemKind ? { item: { kind: itemKind, id, title: itemTitle } } : {}) }
   }
 
   if (name === "create_company") {
@@ -1752,8 +1786,17 @@ export async function POST(request: Request) {
                 void recordAgentToolEvent(runId, { toolName, durationMs: Date.now() - toolStartedAt, ok: toolOk, error: toolError || undefined, skill: AGENT_TOOL_MANIFEST[toolName]?.skill }).catch((error) => console.error("Agent tool telemetry failed", error))
               }
               const made = result as { type?: unknown; id?: unknown; title?: unknown } | null
-              if (toolOk && made && typeof made.type === "string" && ARTIFACT_KINDS.includes(made.type) && typeof made.id === "string") {
-                artifacts.push({ kind: made.type, id: made.id, title: typeof made.title === "string" ? made.title : "" })
+              // Made, opened or changed this turn: one card per item, the latest title winning.
+              const changed = (result as { item?: { kind?: unknown; id?: unknown; title?: unknown } } | null)?.item
+              const shown = toolOk && made && typeof made.type === "string" && ARTIFACT_KINDS.includes(made.type) && typeof made.id === "string"
+                ? { kind: made.type, id: made.id, title: typeof made.title === "string" ? made.title : "" }
+                : toolOk && changed && typeof changed.kind === "string" && ARTIFACT_KINDS.includes(changed.kind) && typeof changed.id === "string"
+                  ? { kind: changed.kind, id: changed.id, title: typeof changed.title === "string" ? changed.title : "" }
+                  : null
+              if (shown) {
+                const at = artifacts.findIndex((entry) => entry.kind === shown.kind && entry.id === shown.id)
+                if (at >= 0) artifacts.splice(at, 1)
+                artifacts.push(shown)
               }
               if (result && typeof result === "object" && "__attach" in result) {
                 const { __attach, ...rest } = result as { __attach: ToolAttachment }

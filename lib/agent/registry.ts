@@ -5,7 +5,7 @@
  * compared instead of disappearing into an unversioned route edit.
  */
 export const AGENT_PROMPT_VERSION = "2026-10-16.2"
-export const AGENT_TOOLSET_VERSION = "2026-10-16.2"
+export const AGENT_TOOLSET_VERSION = "2026-11-23.1"
 
 export type AgentToolRisk = "read" | "draft" | "write"
 
@@ -22,6 +22,7 @@ export const AGENT_TOOL_MANIFEST: Record<string, { risk: AgentToolRisk; idempote
   find_client: { risk: "read", idempotent: true, skill: "client-catch-up" },
   client_overview: { risk: "read", idempotent: true, skill: "client-catch-up" },
   read_file: { risk: "read", idempotent: true, skill: "document-grounding" },
+  open_item: { risk: "read", idempotent: true, skill: "document-grounding" },
   web_search: { risk: "read", idempotent: true, skill: "external-research" },
   collect_details: { risk: "read", idempotent: true, skill: "guided-creation" },
   propose_plan: { risk: "read", idempotent: true, skill: "guided-creation" },
@@ -48,7 +49,7 @@ export const AGENT_SKILLS: AgentSkillManifest[] = [
   { id: "workspace-research", version: "1.0.0", description: "Answer grounded questions from scoped workspace records.", tools: ["query_workspace", "workspace_summary"] },
   { id: "client-catch-up", version: "1.0.0", description: "Build a client briefing from the client's records and files.", tools: ["find_client", "client_overview", "read_file"] },
   { id: "guided-creation", version: "1.0.0", description: "Create or update agency records with inline detail collection.", tools: ["collect_details", "propose_plan", "update_record", "create_company", "create_project", "create_task", "create_invoice", "create_estimate", "create_contract", "create_document"] },
-  { id: "document-grounding", version: "1.0.0", description: "Read and file documents without inventing their contents.", tools: ["read_file", "attach_file"] },
+  { id: "document-grounding", version: "1.0.0", description: "Read and file documents without inventing their contents.", tools: ["read_file", "open_item", "attach_file"] },
   { id: "agency-memory", version: "1.0.0", description: "Propose or update agency writing and operating knowledge.", tools: ["remember_style"] },
   { id: "client-communication", version: "1.0.0", description: "Prepare reviewable client email drafts.", tools: ["draft_email"] },
   { id: "follow-up", version: "1.0.0", description: "Create private follow-up reminders.", tools: ["create_reminder"] },
