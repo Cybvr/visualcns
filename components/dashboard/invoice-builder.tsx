@@ -54,6 +54,7 @@ import { createInvoicePdfFile, downloadInvoicePdf } from "@/components/dashboard
 import { DocumentPreviewFrame } from "@/components/dashboard/document-preview-frame"
 import { QuickEmailComposer } from "@/components/dashboard/email/quick-email-composer"
 import { MAX_EMAIL_ATTACHMENT_BYTES, MAX_EMAIL_ATTACHMENT_MEGABYTES } from "@/lib/email-attachments"
+import { EmailPillInput } from "@/components/dashboard/email-pill-input"
 import { contextualEmailBody, parseEmailList, plainTextToEditorHtml, siteUrl, type EmailComposeContext } from "@/lib/email-composer"
 import { emailButtonHtml, withEmailButton } from "@/lib/email-buttons"
 import { invoiceEmailContext } from "@/lib/document-emails"
@@ -211,7 +212,8 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate, onS
   const [shareEnabled, setShareEnabled] = useState(invoice?.shareEnabled ?? initialEstimate?.shareEnabled ?? false)
   const [shareSaving, setShareSaving] = useState(false)
   const [autoReminders] = useState(invoice?.autoReminders ?? false)
-  const [reminderCc] = useState((invoice?.reminderCc ?? []).join(", "))
+  // Everyone after the first "Send to" address is copied on the invoice and its reminders.
+  const [reminderCc, setReminderCc] = useState<string[]>(invoice?.reminderCc ?? [])
 
   const [clients, setClients] = useState<Organization[]>([])
   const [people, setPeople] = useState<AppUser[]>([])
@@ -405,7 +407,7 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate, onS
     url,
     shareEnabled,
     autoReminders,
-    reminderCc: parseEmailList(reminderCc).valid,
+    reminderCc: parseEmailList(reminderCc.join(", ")).valid,
   }
 
   function updateLine(id: string, patch: Partial<DraftLine>) {
@@ -489,7 +491,7 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate, onS
         url: url.trim(),
         shareEnabled,
         autoReminders,
-        reminderCc: parseEmailList(reminderCc).valid,
+        reminderCc: parseEmailList(reminderCc.join(", ")).valid,
       }
 
       const existingId = invoice?.id ?? savedInvoiceId.current
@@ -676,26 +678,17 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate, onS
               </SelectContent>
             </Select>
           </EditorField>
-          <EditorField label="Contact" htmlFor="bill-contact">
-            <Combobox
-              id="bill-contact"
-              options={contactOptions}
-              value={billToEmail}
-              onChange={setBillToEmail}
-              placeholder={companyId ? "Select a contact" : "Choose a client first"}
-              searchPlaceholder="Search contacts by name or email..."
-              emptyText={contactOptions.length ? "No contacts match your search." : "No contacts with an email for this client."}
-              disabled={!companyId}
-              loading={optionsLoading}
-            />
-          </EditorField>
-          <EditorField label="Email" htmlFor="bill-email">
-            <Input
+          <EditorField label="Send to" htmlFor="bill-email">
+            {/* Pick the client's contacts or type any address. The first gets the invoice; the rest are copied. */}
+            <EmailPillInput
               id="bill-email"
-              type="email"
-              value={billToEmail}
-              onChange={(event) => setBillToEmail(event.target.value)}
-              placeholder="Billing email"
+              value={[billToEmail, ...reminderCc].map((email) => email.trim()).filter(Boolean)}
+              onChange={(emails) => {
+                setBillToEmail(emails[0] ?? "")
+                setReminderCc(emails.slice(1))
+              }}
+              suggestions={contactOptions}
+              placeholder={companyId ? "Add a contact or type an email" : "Type an email"}
             />
           </EditorField>
           <EditorField label="Address" htmlFor="bill-address">

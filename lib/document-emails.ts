@@ -24,6 +24,7 @@ export function invoiceEmailContext(invoice: Invoice, companyRef: string): Email
     companyName: invoice.client,
     recipientEmail: invoice.billTo?.email,
     recipientName: invoice.billTo?.name,
+    ...(invoice.reminderCc?.length ? { cc: invoice.reminderCc.join(", ") } : {}),
     projectId: invoice.projectId,
     projectName: invoice.project,
     documentType: "invoice",
