@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 
 import { useAuth } from "@/components/auth-provider"
 import { getCurrentAgencyId } from "@/lib/agency-scope"
-import { getEstimates, getInvoices } from "@/lib/billing"
+import { getInvoices } from "@/lib/billing"
 import { getCompanyDocuments } from "@/lib/company-documents"
 import { watchLeads } from "@/lib/leads"
 import { getOrganizations } from "@/lib/organizations"
@@ -38,7 +38,7 @@ export function useNavCounts(): Record<string, number> {
       .catch(() => {})
     let driveCount = 0
     const updateDriveCount = () => set("/dashboard/artifacts", driveCount)
-    Promise.allSettled([getInvoices(), getEstimates(), getCompanyDocuments()])
+    Promise.allSettled([getInvoices(), getCompanyDocuments()])
       .then(([invoices, ...rest]) => {
         if (invoices.status === "fulfilled") set("/dashboard/invoices", invoices.value.length)
         driveCount = rest.reduce((total, result) => total + (result.status === "fulfilled" ? result.value.length : 0), 0)
