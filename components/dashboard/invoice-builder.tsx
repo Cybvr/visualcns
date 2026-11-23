@@ -118,7 +118,9 @@ function clientEmail(client: Organization, people: AppUser[]): string {
  * `onSaved` and `onDeleted` are for the invoices split pane: the list updates
  * in place and the pane stays open, instead of navigating back to the list.
  */
-export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate, onSaved, onDeleted, headerExtra, hideBack = false }: {
+export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate, onSaved, onDeleted, headerExtra, hideBack = false, flush = false }: {
+  /** The bar runs edge to edge across its pane, like an open document's toolbar. */
+  flush?: boolean
   invoice?: Invoice | null
   initialCompanyId?: string
   initialEstimate?: Estimate
@@ -509,7 +511,7 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate, onS
         onSaved(savedInvoice)
         setSaving(false)
       } else {
-        router.push("/dashboard/invoices")
+        router.push("/dashboard/artifacts")
       }
     } catch (err) {
       console.error("Error saving invoice:", err)
@@ -527,7 +529,7 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate, onS
     if (!invoice) return
     await deleteInvoice(invoice.id)
     if (onDeleted) onDeleted(invoice.id)
-    else router.push("/dashboard/invoices")
+    else router.push("/dashboard/artifacts")
   }
 
   async function changeShareEnabled(enabled: boolean) {
@@ -563,13 +565,14 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate, onS
 
   return (
     <>
-    <form onSubmit={submit} className="billing-editor mx-auto max-w-2xl space-y-3 bg-card px-2 pt-2 print:hidden sm:rounded-2xl sm:px-4 sm:pt-3">
+    <form onSubmit={submit} className={cn("billing-editor print:hidden", flush ? "flex min-h-full flex-col" : "mx-auto max-w-2xl space-y-3 bg-card px-2 pt-2 sm:rounded-2xl sm:px-4 sm:pt-3")}>
       <EditorToolbar
+        flush={flush}
         leading={
           <button
             type="button"
             // Back to wherever they came from; straight to the list when the page was opened directly.
-            onClick={() => (window.history.length > 1 ? router.back() : router.push("/dashboard/invoices"))}
+            onClick={() => (window.history.length > 1 ? router.back() : router.push("/dashboard/artifacts"))}
             aria-label="Back"
             className={cn("-ml-1 inline-flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring", hideBack && "lg:hidden")}
           >
@@ -608,6 +611,8 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate, onS
         saveLabel="Save"
       />
 
+      {/* Flush: the bar spans the pane and the cards sit centred below it, like an open document. */}
+      <div className={cn("space-y-3", flush && "mx-auto w-full max-w-2xl px-2 py-4 sm:px-4")}>
       <EditorHeader issuer={issuer} visualCnsBrand kind="Invoice" number={invoiceNumber} />
 
       <EditorCard>
@@ -952,6 +957,7 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate, onS
         </DialogContent>
       </Dialog>
 
+      </div>
     </form>
 
     <div className="hidden print:block print:bg-white print:p-0">

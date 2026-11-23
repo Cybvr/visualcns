@@ -56,7 +56,10 @@ export function EditorToolbar({
   saving,
   saveLabel,
   leading,
+  flush = false,
 }: {
+  /** Edge to edge across its pane, at the height of the Ngai panel's header. */
+  flush?: boolean
   /** Before the status, e.g. a back button. */
   leading?: ReactNode
   status?: { label: string; className: string }
@@ -71,7 +74,10 @@ export function EditorToolbar({
   saveLabel: string
 }) {
   return (
-    <div className="sticky top-0 z-20 -mx-2 -mt-2 flex items-center gap-2 border-b border-border bg-card px-2 py-2 sm:-mx-4 sm:-mt-3 sm:rounded-t-2xl sm:px-4">
+    <div className={cn(
+      "sticky top-0 z-20 flex items-center gap-2 border-b border-border",
+      flush ? "h-14 shrink-0 bg-background px-3 lg:px-4" : "-mx-2 -mt-2 bg-card px-2 py-2 sm:-mx-4 sm:-mt-3 sm:rounded-t-2xl sm:px-4",
+    )}>
       {leading}
       {status && <span className={cn("shrink-0 rounded-full px-3 py-1 font-medium", status.className)}>{status.label}</span>}
       <div className="ml-auto flex min-w-0 items-center gap-1.5 overflow-x-auto [scrollbar-width:none]">

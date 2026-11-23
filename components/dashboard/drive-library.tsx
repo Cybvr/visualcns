@@ -2,8 +2,8 @@
 
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { useCallback, useEffect, useMemo, useState } from "react"
-import { FileCheck2, FileText, FileUp, Plus, Receipt } from "lucide-react"
+import { useCallback, useEffect, useMemo, useState, type ComponentType } from "react"
+import { FileCheck2, FileText, FileUp, LayoutTemplate, Plus, Receipt } from "lucide-react"
 import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
@@ -25,6 +25,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { useCachedState } from "@/lib/page-cache"
+import { cn } from "@/lib/utils"
 import { getCurrentAgencyId } from "@/lib/agency-scope"
 import { getExchangeRate } from "@/lib/currency"
 import {
@@ -93,6 +94,44 @@ function itemTitle(item: DriveItem) {
   if (item.type === "estimate") return item.record.title || item.record.estimateNumber || "Untitled estimate"
   return item.record.title || "Untitled document"
 }
+type MakeNewTile = {
+  label: string
+  icon: ComponentType<{ className?: string }>
+  /** Tile colour and icon colour. */
+  tone: string
+  href?: string
+  onSelect?: () => void
+  disabled?: boolean
+}
+
+/** A row of coloured tiles across the top of Artifacts, one per kind of thing to make. */
+function MakeSomethingNew({ tiles }: { tiles: MakeNewTile[] }) {
+  return (
+    <section aria-labelledby="make-new-heading" className="mb-6">
+      <h2 id="make-new-heading" className="mb-3 text-sm font-medium text-muted-foreground">Make something new</h2>
+      <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:mx-0 sm:px-0">
+        {tiles.map((tile) => {
+          const Icon = tile.icon
+          const body = (
+            <>
+              <span className={cn("flex aspect-[16/11] w-full items-center justify-center rounded-2xl transition-transform group-hover:scale-[1.02]", tile.tone)}>
+                <Icon className="size-9" aria-hidden="true" />
+              </span>
+              <span className="mt-2 block text-sm font-medium text-foreground">{tile.label}</span>
+            </>
+          )
+          const className = "group w-36 shrink-0 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-2xl sm:w-40 disabled:opacity-60"
+          return tile.href ? (
+            <Link key={tile.label} href={tile.href} className={className}>{body}</Link>
+          ) : (
+            <button key={tile.label} type="button" onClick={tile.onSelect} disabled={tile.disabled} className={className}>{body}</button>
+          )
+        })}
+      </div>
+    </section>
+  )
+}
+
 function itemHref(item: DriveItem) {
   const id = encodeURIComponent(item.record.id)
   if (item.type === "document") return `/dashboard/documents?document=${id}`
@@ -204,9 +243,11 @@ export function DriveLibrary({ mode = "artifacts" }: { mode?: "artifacts" | "inv
     return () => { active = false }
   }, [adminView, setDocuments])
 
+  // Artifacts holds documents and invoices together; each opens in its own editor.
   const items = useMemo<DriveItem[]>(() => invoicesOnly ? invoices.map((record) => ({ type: "invoice" as const, record })) : [
     ...documents.map((record) => ({ type: "document" as const, record })),
-  ], [invoicesOnly, invoices, estimates, documents])
+    ...invoices.map((record) => ({ type: "invoice" as const, record })),
+  ], [invoicesOnly, invoices, documents])
   const { results: visibleItems, bar } = useFilterBar({ items, search: itemSearch, sorts: SORTS, defaultSort: "updatedAt", defaultDirection: "desc" })
   const busy = loading
 
@@ -356,8 +397,17 @@ export function DriveLibrary({ mode = "artifacts" }: { mode?: "artifacts" | "inv
 
   const toolbar = <TableFilterBar {...bar} placeholder={`Search ${label}`} controls={<ViewToggle view={view} onChange={setView} />} actions={newMenu} />
 
+  const makeNew: MakeNewTile[] = [
+    { label: "Document", icon: FileText, tone: "bg-blue-700 text-blue-100 dark:bg-blue-900 dark:text-blue-200", onSelect: () => void createNewNote(), disabled: creatingNote },
+    { label: "Invoice", icon: Receipt, tone: "bg-emerald-700 text-emerald-100 dark:bg-emerald-900 dark:text-emerald-200", href: "/dashboard/invoices/new" },
+    { label: "Estimate", icon: FileCheck2, tone: "bg-amber-700 text-amber-100 dark:bg-amber-900 dark:text-amber-200", href: "/dashboard/estimates/new" },
+    { label: "From template", icon: LayoutTemplate, tone: "bg-violet-700 text-violet-100 dark:bg-violet-900 dark:text-violet-200", onSelect: () => setCreatingDocument(true) },
+    { label: "Import", icon: FileUp, tone: "bg-rose-800 text-rose-100 dark:bg-rose-950 dark:text-rose-200", onSelect: () => setImportingDocument(true) },
+  ]
+
   return (
     <main className="mx-auto w-full max-w-6xl px-4 pt-4 pb-12 sm:px-6">
+      {!invoicesOnly && <MakeSomethingNew tiles={makeNew} />}
       {loadError && <p role="alert" className="mb-3 text-sm text-destructive">Some {label.toLowerCase()} couldn’t load. Refresh to try again.</p>}
       {!busy && items.length === 0 && !loadError ? (
         <>

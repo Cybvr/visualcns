@@ -31,7 +31,7 @@ export default function InvoiceDetailPage() {
   const ownSaveUntil = useRef(0)
   const loaded = useRef(false)
 
-  usePageTitle(invoice?.invoiceNumber ? `Invoice ${invoice.invoiceNumber}` : null, "/dashboard/invoices")
+  usePageTitle(invoice?.invoiceNumber ? `Invoice ${invoice.invoiceNumber}` : null, "/dashboard/artifacts")
   // The agency sees Ngai beside the invoice, like an open document, so the dashboard header steps aside.
   const withNgai = adminView && Boolean(invoice)
   useHideHeader(withNgai)
@@ -69,7 +69,7 @@ export default function InvoiceDetailPage() {
   if (failed || !invoice) {
     return (
       <main className="mx-auto w-full max-w-5xl px-4 py-10 sm:px-6">
-        <Link href="/dashboard/invoices" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"><ArrowLeft className="size-4" />Back to Invoices</Link>
+        <Link href="/dashboard/artifacts" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"><ArrowLeft className="size-4" />Back to Artifacts</Link>
         <p className="mt-12 text-sm text-muted-foreground">This invoice couldn’t be found or you don’t have access to it.</p>
       </main>
     )
@@ -100,20 +100,21 @@ export default function InvoiceDetailPage() {
           layout="panel"
           className="bg-transparent"
           heading={<>
-            <Button type="button" variant="ghost" size="icon" className="size-8 shrink-0" onClick={() => router.push("/dashboard/invoices")} aria-label="Back to Invoices"><ArrowLeft className="size-4" aria-hidden="true" /></Button>
+            <Button type="button" variant="ghost" size="icon" className="size-8 shrink-0" onClick={() => router.push("/dashboard/artifacts")} aria-label="Back to Artifacts"><ArrowLeft className="size-4" aria-hidden="true" /></Button>
             <span className="min-w-0 flex-1 truncate text-sm font-semibold">{title}</span>
           </>}
         />
       </aside>
       {/* The invoice itself, editable in place, like an open document. */}
       <section className="min-w-0 lg:min-h-0 lg:overflow-y-auto">
-        <div className="w-full px-0 py-2 sm:px-4 sm:py-6">
+        <div className="min-h-full w-full">
           <InvoiceBuilder
             key={editorKey}
             invoice={invoice}
             hideBack
+            flush
             onSaved={(saved) => setInvoice(saved)}
-            onDeleted={() => router.push("/dashboard/invoices")}
+            onDeleted={() => router.push("/dashboard/artifacts")}
           />
         </div>
       </section>
