@@ -12,6 +12,7 @@ import { DocumentSplitPane } from "@/components/dashboard/document-split-pane"
 import { DuplicateDocumentDialog, type DuplicateSelection } from "@/components/dashboard/duplicate-document-dialog"
 import { FirstRunState } from "@/components/dashboard/empty-state"
 import { GridCard, thumbnailIcon } from "@/components/dashboard/grid-card"
+import { BillingPagePreview, DocumentPagePreview, hasDocumentText } from "@/components/dashboard/document-preview"
 import { ImportWordDocumentDialog } from "@/components/dashboard/import-word-document-dialog"
 import type { ItemActions } from "@/components/dashboard/item-menu"
 import { NewDocumentDialog } from "@/components/dashboard/new-document-dialog"
@@ -43,6 +44,37 @@ type DriveItem =
   | { type: "estimate"; record: Estimate }
   | { type: "document"; record: CompanyDocument }
 type DriveType = DriveItem["type"]
+
+/** The card's mini first page; undefined keeps the icon for an empty document. */
+function itemPreview(item: DriveItem) {
+  if (item.type === "document") {
+    return hasDocumentText(item.record.body) ? <DocumentPagePreview title={item.record.title} html={item.record.body} /> : undefined
+  }
+  if (item.type === "invoice") {
+    const invoice = item.record
+    return (
+      <BillingPagePreview
+        heading="Invoice"
+        number={invoice.invoiceNumber}
+        client={invoice.billTo?.name || invoice.client}
+        lines={(invoice.lineItems ?? []).map((line) => ({ label: line.title || line.description, amount: Math.round(line.quantity * line.unitPrice) }))}
+        total={invoice.amount}
+        currency={invoice.currency}
+      />
+    )
+  }
+  const estimate = item.record
+  return (
+    <BillingPagePreview
+      heading="Estimate"
+      number={estimate.estimateNumber}
+      client={estimate.preparedFor?.name || estimate.client}
+      lines={(estimate.lineItems ?? []).map((line) => ({ label: line.description, amount: line.amount, muted: line.optional }))}
+      total={estimate.amount}
+      currency={estimate.currency}
+    />
+  )
+}
 type DuplicateTarget = Extract<DriveItem, { type: "invoice" | "estimate" | "document" }>
 
 
@@ -358,6 +390,7 @@ export function DriveLibrary({ mode = "artifacts" }: { mode?: "artifacts" | "inv
               title={itemTitle(item)}
               icon={<Icon className="size-4 text-muted-foreground" aria-hidden="true" />}
               placeholder={thumbnailIcon(Icon)}
+              preview={itemPreview(item)}
               subtitle={invoicesOnly ? <span className="inline-flex items-center gap-1.5">{status && <Badge variant="secondary" className={`rounded-full border-0 ${status.className}`}>{status.label}</Badge>}{detail && <span>{status ? "· " : ""}{detail}</span>}</span> : shortDate(item)}
               href={itemHref(item)}
               ariaLabel={`Open ${itemTitle(item)}`}
