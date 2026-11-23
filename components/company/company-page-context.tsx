@@ -186,8 +186,11 @@ export function CompanyPageProvider({
       return [
         ...(home ? [{ ...home, label: "Home", icon: House }] : []),
         ...visible
-          .filter((item) => !["activity", "about", "assets", "billings", "customers", "visitors", "security-home"].includes(item.key))
-          .map((item) => item.key === "documents" ? { ...item, label: "Artifacts", icon: FolderOpen } : item),
+          // Social Media sits inside Marketing (the Campaigns tab renamed), as its second view.
+          .filter((item) => !["activity", "about", "assets", "billings", "customers", "visitors", "security-home", "social"].includes(item.key))
+          .map((item) => item.key === "documents" ? { ...item, label: "Artifacts", icon: FolderOpen }
+            : item.key === "projects" ? { ...item, label: "Marketing" }
+              : item),
         ...(settings ? [{ ...settings, label: "Account", icon: Settings }] : []),
       ]
     }
@@ -223,7 +226,7 @@ export function CompanyPageProvider({
   // "brand-health" is Pulse's old key; keep links that still use it working.
   const requestedSection = requested === "brand-health"
     ? "pulse"
-    : requested === "tasks"
+    : requested === "tasks" || (mode !== "routes" && requested === "social")
       ? "projects"
       : requested === "drive" || requested === "documents" || requested === "media" || requested === "notes" || requested === "finance" || (mode !== "routes" && requested === "assets")
         ? "documents"
