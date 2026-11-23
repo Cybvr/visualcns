@@ -49,7 +49,6 @@ type DuplicateTarget = Extract<DriveItem, { type: "invoice" | "estimate" | "docu
 
 const TYPES: { value: DriveFilter; label: string }[] = [
   { value: "all", label: "All" },
-  { value: "invoice", label: "Invoices" },
   { value: "estimate", label: "Estimates" },
   { value: "document", label: "Documents" },
   { value: "note", label: "Notes" },
@@ -132,11 +131,17 @@ function OutstandingSummary({ invoices }: { invoices: Invoice[] }) {
   return <p className={className}>Outstanding {summary === null ? "…" : formatMoney(summary, targetCurrency)}</p>
 }
 
-export function DriveLibrary() {
+/**
+ * Artifacts: estimates, documents and notes together. With mode "invoices" it is
+ * the Invoices page instead: invoices only, with what is still owed on top.
+ */
+export function DriveLibrary({ mode = "artifacts" }: { mode?: "artifacts" | "invoices" }) {
   const router = useRouter()
   const { user, isAdmin, isImpersonating } = useAuth()
   const adminView = isAdmin && !isImpersonating
-  usePageTitle("Drive")
+  const invoicesOnly = mode === "invoices"
+  const label = invoicesOnly ? "Invoices" : "Artifacts"
+  usePageTitle(label)
 
   const [invoices, setInvoices, invoicesCached] = useCachedState<Invoice[]>("invoices", [])
   const [estimates, setEstimates, estimatesCached] = useCachedState<Estimate[]>("estimates", [])
@@ -190,12 +195,11 @@ export function DriveLibrary() {
     return () => { active = false; stop() }
   }, [adminView])
 
-  const items = useMemo<DriveItem[]>(() => [
-    ...invoices.map((record) => ({ type: "invoice" as const, record })),
+  const items = useMemo<DriveItem[]>(() => invoicesOnly ? invoices.map((record) => ({ type: "invoice" as const, record })) : [
     ...estimates.map((record) => ({ type: "estimate" as const, record })),
     ...documents.map((record) => ({ type: "document" as const, record })),
     ...notes.map((record) => ({ type: "note" as const, record })),
-  ], [invoices, estimates, documents, notes])
+  ], [invoicesOnly, invoices, estimates, documents, notes])
   const filteredItems = useMemo(() => filter === "all" ? items : items.filter((item) => item.type === filter), [filter, items])
   const { results: visibleItems, bar } = useFilterBar({ items: filteredItems, search: itemSearch, sorts: SORTS, defaultSort: "updatedAt", defaultDirection: "desc" })
   const busy = loading || !notesLoaded
@@ -216,7 +220,7 @@ export function DriveLibrary() {
         setNotes((current) => current.map((record) => record.id === item.record.id ? { ...record, title } : record))
       }
     } catch (error) {
-      console.error("Error renaming Drive item:", error)
+      console.error("Error renaming item:", error)
       toast.error(`Couldn't rename this ${item.type}.`)
       throw error
     }
@@ -238,7 +242,7 @@ export function DriveLibrary() {
         setNotes((current) => current.filter((record) => record.id !== item.record.id))
       }
     } catch (error) {
-      console.error("Error deleting Drive item:", error)
+      console.error("Error deleting item:", error)
       toast.error(`Couldn't delete this ${item.type}.`)
       throw error
     }
@@ -264,7 +268,7 @@ export function DriveLibrary() {
       }
       setSharing((current) => current && keyOf(current) === keyOf(item) ? { ...current, record: { ...current.record, shareEnabled: enabled } } as DriveItem : current)
     } catch (error) {
-      console.error("Error updating Drive sharing:", error)
+      console.error("Error updating sharing:", error)
       toast.error("Couldn't update sharing.")
     } finally {
       setShareSaving(false)
@@ -312,7 +316,7 @@ export function DriveLibrary() {
       }
       setDuplicateTarget(null)
     } catch (error) {
-      console.error("Error duplicating Drive item:", error)
+      console.error("Error duplicating item:", error)
       toast.error("Couldn't duplicate this item.")
     } finally {
       setDuplicating(false)
@@ -334,15 +338,18 @@ export function DriveLibrary() {
 
   if (!user || !adminView) return null
 
-  const newMenu = (
+  const newMenu = invoicesOnly ? (
+    <Button asChild variant="ghost" className="h-9 gap-1 rounded-full bg-sidebar-accent px-3 text-sm font-semibold text-sidebar-accent-foreground hover:bg-sidebar-accent/80">
+      <Link href="/dashboard/invoices/new"><Plus className="size-[18px]" aria-hidden="true" /> New invoice</Link>
+    </Button>
+  ) : (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button type="button" variant="ghost" className="h-9 gap-1 rounded-full bg-sidebar-accent px-3 text-sm font-semibold text-sidebar-accent-foreground hover:bg-sidebar-accent/80" aria-label="New in Drive">
+        <Button type="button" variant="ghost" className="h-9 gap-1 rounded-full bg-sidebar-accent px-3 text-sm font-semibold text-sidebar-accent-foreground hover:bg-sidebar-accent/80" aria-label="New in Artifacts">
           <Plus className="size-[18px]" aria-hidden="true" /> New
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuItem onSelect={() => router.push("/dashboard/invoices/new")}>Invoice</DropdownMenuItem>
         <DropdownMenuItem onSelect={() => router.push("/dashboard/estimates/new")}>Estimate</DropdownMenuItem>
         <DropdownMenuItem onSelect={() => setCreatingDocument(true)}>Document</DropdownMenuItem>
         <DropdownMenuItem onSelect={() => void createNewNote()} disabled={creatingNote}>Note</DropdownMenuItem>
@@ -351,21 +358,25 @@ export function DriveLibrary() {
     </DropdownMenu>
   )
 
-  const toolbar = <TableFilterBar {...bar} placeholder="Search Drive" controls={<ViewToggle view={view} onChange={setView} />} actions={newMenu} />
+  const toolbar = <TableFilterBar {...bar} placeholder={`Search ${label}`} controls={<ViewToggle view={view} onChange={setView} />} actions={newMenu} />
 
   return (
     <main className="mx-auto w-full max-w-6xl px-4 pt-4 pb-12 sm:px-6">
-      <nav className="mb-3 flex items-center gap-1 overflow-x-auto border-b border-border" aria-label="Drive types">
+      {!invoicesOnly && <nav className="mb-3 flex items-center gap-1 overflow-x-auto border-b border-border" aria-label="Artifact types">
         {TYPES.map(({ value, label }) => {
           const count = value === "all" ? items.length : items.filter((item) => item.type === value).length
           return <button key={value} type="button" onClick={() => selectFilter(value)} aria-pressed={filter === value} className={`shrink-0 border-b-2 px-3 py-2 text-sm transition-colors ${filter === value ? "border-primary font-semibold text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"}`}>{label} <span className="ml-1 text-xs tabular-nums text-muted-foreground">{count}</span></button>
         })}
-      </nav>
-      {loadError && <p role="alert" className="mb-3 text-sm text-destructive">Some Drive items couldn’t load. Refresh to try again.</p>}
+      </nav>}
+      {loadError && <p role="alert" className="mb-3 text-sm text-destructive">Some {label.toLowerCase()} couldn’t load. Refresh to try again.</p>}
       {!busy && items.length === 0 && !loadError ? (
         <>
           {toolbar}
-          <FirstRunState label="Drive" title="Your Drive is empty" description="Estimates, invoices, documents and notes will appear together here." action={<div className="flex flex-wrap justify-center gap-2"><Button asChild><Link href="/dashboard/invoices/new">New invoice</Link></Button><Button variant="outline" onClick={() => setCreatingDocument(true)}>New document</Button></div>} />
+          {invoicesOnly ? (
+            <FirstRunState label="Invoices" title="No invoices yet" description="Invoices you send will appear here, with what is still owed." action={<Button asChild><Link href="/dashboard/invoices/new">New invoice</Link></Button>} />
+          ) : (
+            <FirstRunState label="Artifacts" title="No artifacts yet" description="Estimates, documents and notes will appear together here." action={<div className="flex flex-wrap justify-center gap-2"><Button onClick={() => setCreatingDocument(true)}>New document</Button><Button asChild variant="outline"><Link href="/dashboard/estimates/new">New estimate</Link></Button></div>} />
+          )}
         </>
       ) : (
         <DocumentSplitPane
@@ -373,9 +384,9 @@ export function DriveLibrary() {
           loading={busy}
           selectedId={null}
           onClearSelection={() => undefined}
-          sectionLabel="Drive"
+          sectionLabel={label}
           filter={toolbar}
-          listExtra={filter === "invoice" && !busy ? <OutstandingSummary invoices={invoices} /> : undefined}
+          listExtra={invoicesOnly && !busy ? <OutstandingSummary invoices={invoices} /> : undefined}
           emptySearchLabel="No items match your search."
           getKey={keyOf}
           content={null}

@@ -45,7 +45,7 @@ function DashboardMobileFooterNav({ unreadEmailCount }: { unreadEmailCount: numb
     { key: "home", label: "Home", icon: Home, href: "/dashboard", isActive: pathname === "/dashboard" },
     { key: "email", label: "Emails", icon: FiMail, href: "/dashboard/email/inbox", isActive: pathname.startsWith("/dashboard/email"), badge: unreadEmailCount },
     { key: "crm", label: "CRM", icon: Building2, href: "/dashboard/crm", isActive: ["/dashboard/crm", "/dashboard/leads", "/dashboard/companies", "/dashboard/users"].some((path) => pathname.startsWith(path)) },
-    { key: "drive", label: "Drive", icon: FolderOpen, href: "/dashboard/drive", isActive: pathname.startsWith("/dashboard/drive") || ["invoices", "documents", "notes"].some((section) => pathname.startsWith(`/dashboard/${section}`)) },
+    { key: "artifacts", label: "Artifacts", icon: FolderOpen, href: "/dashboard/artifacts", isActive: ["artifacts", "drive", "estimates", "documents", "notes"].some((section) => pathname.startsWith(`/dashboard/${section}`)) },
     { key: "profile", label: "Profile", icon: FiUser, href: "/dashboard/account" },
   ]
 

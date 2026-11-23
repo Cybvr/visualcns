@@ -1,7 +1,10 @@
 import { redirect } from "next/navigation"
 
-/** Old invoice list links now open the shared Drive. Selected links keep their record. */
+import { DriveLibrary } from "@/components/dashboard/drive-library"
+
+/** Invoices have their own page. Old ?invoice= links still open that invoice. */
 export default async function InvoicesPage({ searchParams }: { searchParams: Promise<{ invoice?: string }> }) {
   const { invoice } = await searchParams
-  redirect(invoice ? `/dashboard/invoices/${encodeURIComponent(invoice)}` : "/dashboard/drive?type=invoice")
+  if (invoice) redirect(`/dashboard/invoices/${encodeURIComponent(invoice)}`)
+  return <DriveLibrary mode="invoices" />
 }

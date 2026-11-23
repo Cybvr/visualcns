@@ -141,7 +141,7 @@ export function CompanyDocumentBuilder({ document: record }: { document: Company
 
   async function handleDelete() {
     await deleteCompanyDocument(record.id)
-    router.push("/dashboard/drive")
+    router.push("/dashboard/artifacts")
   }
 
   const companyName = clients.find((entry) => entry.companyId === companyId)

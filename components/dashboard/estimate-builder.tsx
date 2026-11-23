@@ -410,7 +410,7 @@ export function EstimateBuilder({ estimate, initialCompanyId, onSaved, onDeleted
     if (!estimate) return
     await deleteEstimate(estimate.id)
     if (onDeleted) onDeleted(estimate.id)
-    else router.push("/dashboard/drive?type=estimate")
+    else router.push("/dashboard/artifacts?type=estimate")
   }
 
   async function changeShareEnabled(enabled: boolean) {
@@ -450,7 +450,7 @@ export function EstimateBuilder({ estimate, initialCompanyId, onSaved, onDeleted
         <button
           type="button"
           // Back to wherever they came from; straight to the list when the page was opened directly.
-          onClick={() => (window.history.length > 1 ? router.back() : router.push("/dashboard/drive?type=estimate"))}
+          onClick={() => (window.history.length > 1 ? router.back() : router.push("/dashboard/artifacts?type=estimate"))}
           aria-label="Back"
           className="-ml-2 inline-flex size-9 shrink-0 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
         >

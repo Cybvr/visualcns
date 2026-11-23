@@ -231,7 +231,7 @@ export default function DashboardPage() {
               const formatted = formatMoney(amount, currency)
               return <span key={currency} title={formatted} className="block min-w-0 truncate">{formatted}</span>
             })}</span>}
-            href="/dashboard/drive?type=invoice"
+            href="/dashboard/invoices"
             money
           />
           <Metric label="Leads" value={leads?.length ?? 0} href="/dashboard/leads" />
@@ -300,7 +300,7 @@ export default function DashboardPage() {
           })}
         </HomeColumn>
 
-        <HomeColumn id="outstanding-invoices-heading" title="Outstanding invoices" href="/dashboard/drive?type=invoice" empty="No outstanding invoices.">
+        <HomeColumn id="outstanding-invoices-heading" title="Outstanding invoices" href="/dashboard/invoices" empty="No outstanding invoices.">
           {outstandingInvoices.map((invoice) => {
             const title = invoiceTitle(invoice)
             const href = `/dashboard/invoices/${encodeURIComponent(invoice.id)}`

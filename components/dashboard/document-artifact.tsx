@@ -156,7 +156,7 @@ export function DocumentArtifact({
       {page && (
         <Button type="button" variant="ghost" onClick={onClose} className="mb-2 -ml-3 gap-2 print:hidden">
           <ArrowLeft className="size-4" aria-hidden="true" />
-          Back to Drive
+          Back to Artifacts
         </Button>
       )}
       {/* An invoice opened on its own page gets its own layout: header actions, amount due and timeline. */}

@@ -39,10 +39,11 @@ export function useNavCounts(): Record<string, number> {
       .catch(() => {})
     let driveCount = 0
     let noteCount = 0
-    const updateDriveCount = () => set("/dashboard/drive", driveCount + noteCount)
+    const updateDriveCount = () => set("/dashboard/artifacts", driveCount + noteCount)
     Promise.allSettled([getInvoices(), getEstimates(), getCompanyDocuments()])
-      .then((results) => {
-        driveCount = results.reduce((total, result) => total + (result.status === "fulfilled" ? result.value.length : 0), 0)
+      .then(([invoices, ...rest]) => {
+        if (invoices.status === "fulfilled") set("/dashboard/invoices", invoices.value.length)
+        driveCount = rest.reduce((total, result) => total + (result.status === "fulfilled" ? result.value.length : 0), 0)
         updateDriveCount()
       })
     getProjects()

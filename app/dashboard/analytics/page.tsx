@@ -286,7 +286,7 @@ export default function AgencyAnalyticsPage() {
               <section aria-labelledby="unpaid-heading" className="rounded-2xl border border-border p-5 sm:p-6">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div><h2 id="unpaid-heading" className="text-lg font-semibold">Largest unpaid invoices</h2><p className="mt-1 text-sm text-muted-foreground">Start with the balances that have the biggest impact.</p></div>
-                  <Link href="/dashboard/drive?type=invoice" className="inline-flex items-center gap-1 text-sm font-medium text-foreground underline-offset-4 hover:underline">View all invoices <ArrowRight className="size-4" /></Link>
+                  <Link href="/dashboard/invoices" className="inline-flex items-center gap-1 text-sm font-medium text-foreground underline-offset-4 hover:underline">View all invoices <ArrowRight className="size-4" /></Link>
                 </div>
                 {largestBalances.length ? <div className="mt-5 divide-y divide-border border-t border-border">
                   {largestBalances.map((invoice) => {

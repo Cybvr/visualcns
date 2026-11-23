@@ -95,7 +95,7 @@ export default function NotesPage() {
   const loadedId = useRef("")
 
   useEffect(() => {
-    if (!new URLSearchParams(window.location.search).has("note")) router.replace("/dashboard/drive?type=note")
+    if (!new URLSearchParams(window.location.search).has("note")) router.replace("/dashboard/artifacts?type=note")
   }, [router, selectedId])
 
   useRecordTitle(openId ? noteTitle({ title, body }) : null)
@@ -198,7 +198,7 @@ export default function NotesPage() {
 
   function close() {
     void flush()
-    router.push("/dashboard/drive?type=note")
+    router.push("/dashboard/artifacts?type=note")
   }
 
   async function remove() {
@@ -254,7 +254,7 @@ export default function NotesPage() {
   latest.current = { edit, close, askDelete, openShare }
 
   const headerBack = useMemo(
-    () => (headerOpen ? { label: "Back to Drive", onClick: () => latest.current.close() } : null),
+    () => (headerOpen ? { label: "Back to Artifacts", onClick: () => latest.current.close() } : null),
     [headerOpen],
   )
   const headerTitle = useMemo(
@@ -365,7 +365,7 @@ export default function NotesPage() {
             {openId ? (
               <div className="flex min-h-[70svh] flex-1 flex-col lg:min-h-0">
                 <div className="flex h-16 items-center gap-3 border-b border-border py-0 max-sm:hidden">
-                  <Button type="button" variant="ghost" size="icon" onClick={close} aria-label="Back to Drive"><ArrowLeft className="size-4" aria-hidden="true" /></Button>
+                  <Button type="button" variant="ghost" size="icon" onClick={close} aria-label="Back to Artifacts"><ArrowLeft className="size-4" aria-hidden="true" /></Button>
                   <input
                     value={title}
                     onChange={(event) => edit({ title: event.target.value })}
