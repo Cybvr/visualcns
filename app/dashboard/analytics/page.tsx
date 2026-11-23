@@ -53,6 +53,20 @@ function issuedDate(invoice: Invoice): Date | null {
   return created ? new Date(created) : null
 }
 
+type ClientSort = "outstanding" | "invoiced" | "collected" | "overdue" | "name"
+
+const CLIENT_SORTS: { value: ClientSort; label: string }[] = [
+  { value: "outstanding", label: "Most outstanding" },
+  { value: "invoiced", label: "Most invoiced" },
+  { value: "collected", label: "Most collected" },
+  { value: "overdue", label: "Most overdue" },
+  { value: "name", label: "Name" },
+]
+
+function clientName(invoice: Invoice) {
+  return invoice.client?.trim() || invoice.billTo?.name?.trim() || "Unknown client"
+}
+
 function compactMoney(amount: number, currency: string) {
   try {
     return new Intl.NumberFormat("en", {
@@ -104,6 +118,9 @@ export default function AgencyAnalyticsPage() {
   const [refreshing, setRefreshing] = useState(false)
   const [currency, setCurrency] = useState("")
   const [range, setRange] = useState<Range>("all")
+  // "" is every client; otherwise one client's companyId.
+  const [clientId, setClientId] = useState("")
+  const [clientSort, setClientSort] = useState<ClientSort>("outstanding")
   const [today, setToday] = useState(() => todayIso())
   const [now, setNow] = useState(() => new Date())
 
@@ -137,12 +154,45 @@ export default function AgencyAnalyticsPage() {
   const selectedRange = RANGE_OPTIONS.find((option) => option.value === range) ?? RANGE_OPTIONS[2]
   const startDate = useMemo(() => selectedRange.months === null ? null : monthStart(now, 1 - selectedRange.months), [now, selectedRange.months])
 
-  const scopedInvoices = useMemo(() => (invoices ?? []).filter((invoice) => {
+  // Every client with an issued invoice, by name.
+  const clientOptions = useMemo(() => {
+    const names = new Map<string, string>()
+    for (const invoice of invoices ?? []) {
+      if (invoice.status === "draft" || invoice.status === "void" || !invoice.companyId) continue
+      if (!names.has(invoice.companyId)) names.set(invoice.companyId, clientName(invoice))
+    }
+    return [...names].map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name))
+  }, [invoices])
+  const selectedClient = clientOptions.find((option) => option.id === clientId) ?? null
+
+  // Currency and dates, for every client: the base for the per-client table.
+  const periodInvoices = useMemo(() => (invoices ?? []).filter((invoice) => {
     if (invoice.status === "draft" || invoice.status === "void") return false
     if ((invoice.currency || "USD").toUpperCase() !== selectedCurrency) return false
     const date = issuedDate(invoice)
     return !startDate || (date !== null && date >= startDate)
   }), [invoices, selectedCurrency, startDate])
+
+  // The same, narrowed to the chosen client.
+  const scopedInvoices = useMemo(
+    () => selectedClient ? periodInvoices.filter((invoice) => invoice.companyId === selectedClient.id) : periodInvoices,
+    [periodInvoices, selectedClient],
+  )
+
+  const byClient = useMemo(() => {
+    const rows = new Map<string, { id: string; name: string; invoiced: number; collected: number; outstanding: number; overdue: number; count: number }>()
+    for (const invoice of periodInvoices) {
+      const id = invoice.companyId || clientName(invoice)
+      const row = rows.get(id) ?? { id, name: clientName(invoice), invoiced: 0, collected: 0, outstanding: 0, overdue: 0, count: 0 }
+      row.invoiced += positiveAmount(invoice.amount)
+      row.collected += collectedAmount(invoice)
+      row.outstanding += outstandingAmount(invoice)
+      if (invoiceIsOverdue(invoice, today)) row.overdue += outstandingAmount(invoice)
+      row.count += 1
+      rows.set(id, row)
+    }
+    return [...rows.values()].sort((a, b) => clientSort === "name" ? a.name.localeCompare(b.name) : b[clientSort] - a[clientSort])
+  }, [periodInvoices, clientSort, today])
 
   const summary = useMemo(() => scopedInvoices.reduce((totals, invoice) => {
     totals.invoiced += positiveAmount(invoice.amount)
@@ -205,10 +255,17 @@ export default function AgencyAnalyticsPage() {
         <div className="space-y-6">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div className="min-w-0">
-              <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">Agency analytics</h1>
-              <p className="mt-1 text-sm text-muted-foreground">Keep track of billed, collected, and unpaid invoice amounts.</p>
+              <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">{selectedClient ? selectedClient.name : "Agency analytics"}</h1>
+              <p className="mt-1 text-sm text-muted-foreground">{selectedClient ? "Billed, collected and unpaid for this client." : "Keep track of billed, collected, and unpaid invoice amounts, across clients or one at a time."}</p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
+              <Select value={selectedClient ? selectedClient.id : "all"} onValueChange={(value) => setClientId(value === "all" ? "" : value)}>
+                <SelectTrigger aria-label="Client" className="min-w-40 max-w-56"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All clients</SelectItem>
+                  {clientOptions.map((option) => <SelectItem key={option.id} value={option.id}>{option.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
               <Select value={selectedCurrency} onValueChange={setCurrency}>
                 <SelectTrigger aria-label="Currency" className="min-w-24"><SelectValue /></SelectTrigger>
                 <SelectContent>{(currencyOptions.length ? currencyOptions : [selectedCurrency]).map((code) => <SelectItem key={code} value={code}>{code}</SelectItem>)}</SelectContent>
@@ -285,6 +342,46 @@ export default function AgencyAnalyticsPage() {
                   </div>
                 </section>
               </div>
+
+              {!selectedClient && (
+                <section aria-labelledby="clients-heading" className="rounded-2xl border border-border p-5 sm:p-6">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div><h2 id="clients-heading" className="text-lg font-semibold">By client</h2><p className="mt-1 text-sm text-muted-foreground">How each client is doing. Pick one to see only theirs.</p></div>
+                    <Select value={clientSort} onValueChange={(value) => setClientSort(value as ClientSort)}>
+                      <SelectTrigger aria-label="Sort clients" className="min-w-40"><SelectValue /></SelectTrigger>
+                      <SelectContent>{CLIENT_SORTS.map((option) => <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </div>
+                  {byClient.length ? (
+                    <div className="mt-5 overflow-x-auto">
+                      <table className="w-full min-w-[36rem] text-sm">
+                        <thead>
+                          <tr className="border-b border-border text-left text-xs text-muted-foreground">
+                            <th className="py-2 pr-3 font-medium">Client</th>
+                            <th className="py-2 pr-3 text-right font-medium">Invoices</th>
+                            <th className="py-2 pr-3 text-right font-medium">Invoiced</th>
+                            <th className="py-2 pr-3 text-right font-medium">Collected</th>
+                            <th className="py-2 pr-3 text-right font-medium">Outstanding</th>
+                            <th className="py-2 text-right font-medium">Overdue</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-border">
+                          {byClient.map((row) => (
+                            <tr key={row.id} className="cursor-pointer transition-colors hover:bg-muted/40" onClick={() => setClientId(row.id)}>
+                              <td className="max-w-56 truncate py-3 pr-3 font-medium"><button type="button" className="truncate text-left outline-none hover:underline focus-visible:underline" onClick={(event) => { event.stopPropagation(); setClientId(row.id) }}>{row.name}</button></td>
+                              <td className="py-3 pr-3 text-right tabular-nums text-muted-foreground">{row.count}</td>
+                              <td className="py-3 pr-3 text-right tabular-nums">{formatMoney(row.invoiced, selectedCurrency)}</td>
+                              <td className="py-3 pr-3 text-right tabular-nums">{formatMoney(row.collected, selectedCurrency)}</td>
+                              <td className="py-3 pr-3 text-right font-medium tabular-nums">{formatMoney(row.outstanding, selectedCurrency)}</td>
+                              <td className={`py-3 text-right tabular-nums ${row.overdue > 0 ? "text-destructive" : "text-muted-foreground"}`}>{formatMoney(row.overdue, selectedCurrency)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : <p className="mt-5 border-t border-border pt-5 text-sm text-muted-foreground">No issued invoices in this selection.</p>}
+                </section>
+              )}
 
               <section aria-labelledby="unpaid-heading" className="rounded-2xl border border-border p-5 sm:p-6">
                 <div className="flex flex-wrap items-center justify-between gap-3">

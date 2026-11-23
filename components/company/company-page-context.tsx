@@ -187,7 +187,7 @@ export function CompanyPageProvider({
         ...(home ? [{ ...home, label: "Home", icon: House }] : []),
         ...visible
           // Social Media sits inside Marketing (the Campaigns tab renamed), as its second view.
-          .filter((item) => !["activity", "about", "assets", "billings", "customers", "visitors", "security-home", "social"].includes(item.key))
+          .filter((item) => !["activity", "about", "assets", "billings", "customers", "visitors", "security-home", "social", "analytics"].includes(item.key))
           .map((item) => item.key === "documents" ? { ...item, label: "Artifacts", icon: FolderOpen }
             : item.key === "projects" ? { ...item, label: "Marketing" }
               : item),
