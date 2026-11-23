@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react"
 
 import { useAuth } from "@/components/auth-provider"
 import { useCompanyPage } from "@/components/company/company-page-context"
+import { CampaignGroupHeader } from "@/components/company/sections/campaign-group-header"
 import { CampaignPeople } from "@/components/dashboard/campaign-people"
 import { Skeleton } from "@/components/ui/skeleton"
 import { watchCompanyCampaignPeople, type CampaignPerson } from "@/lib/campaign-people"
@@ -53,7 +54,7 @@ export function CreatorsSection() {
     <div className="mt-5 space-y-10">
       {campaigns.map((project) => (
         <section key={project.id} aria-label={project.title} className="space-y-3">
-          <h2 className="text-base font-semibold">{project.title || "Untitled campaign"}</h2>
+          <CampaignGroupHeader project={project} />
           <CampaignPeople
             people={people.filter((person) => person.projectId === project.id)}
             agencyId={project.agencyId}

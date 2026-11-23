@@ -186,11 +186,9 @@ export function CompanyPageProvider({
       return [
         ...(home ? [{ ...home, label: "Home", icon: House }] : []),
         ...visible
-          // Social Media sits inside Marketing (the Campaigns tab renamed), as its second view.
-          .filter((item) => !["activity", "about", "assets", "billings", "customers", "visitors", "security-home", "social", "analytics"].includes(item.key))
-          .map((item) => item.key === "documents" ? { ...item, label: "Artifacts", icon: FolderOpen }
-            : item.key === "projects" ? { ...item, label: "Marketing" }
-              : item),
+          // No Campaigns/Marketing tab: campaigns show as the groups on Content and Creators.
+          .filter((item) => !["activity", "about", "assets", "billings", "customers", "visitors", "security-home", "social", "analytics", "projects", "tasks"].includes(item.key))
+          .map((item) => item.key === "documents" ? { ...item, label: "Artifacts", icon: FolderOpen } : item),
         ...(settings ? [{ ...settings, label: "Account", icon: Settings }] : []),
       ]
     }

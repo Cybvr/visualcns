@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react"
 
 import { useAuth } from "@/components/auth-provider"
 import { useCompanyPage } from "@/components/company/company-page-context"
+import { CampaignGroupHeader } from "@/components/company/sections/campaign-group-header"
 import { CampaignCreatives } from "@/components/dashboard/campaign-creatives"
 import { Skeleton } from "@/components/ui/skeleton"
 import { watchCompanyCampaignCreatives, type CampaignCreative } from "@/lib/campaign-creatives"
@@ -56,7 +57,7 @@ export function ContentSection() {
         const own = creatives.filter((item) => item.projectId === project.id)
         return (
           <section key={project.id} aria-label={project.title} className="space-y-3">
-            <h2 className="text-base font-semibold">{project.title || "Untitled campaign"}</h2>
+            <CampaignGroupHeader project={project} />
             <CampaignCreatives
               kind="content"
               creatives={own.filter((item) => item.type === "text")}

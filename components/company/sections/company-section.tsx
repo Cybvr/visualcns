@@ -160,6 +160,6 @@ const SECTION_COMPONENTS: Record<CompanySectionKey, ComponentType> = {
  */
 export function CompanySection({ section }: { section: CompanySectionKey }) {
   const { sections } = useCompanyPage()
-  const Section = SECTION_COMPONENTS[sections.some((s) => s.key === section) ? section : "projects"]
+  const Section = SECTION_COMPONENTS[sections.some((s) => s.key === section) ? section : (sections[0]?.key ?? "projects")]
   return <Section />
 }
