@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { FileCheck2, FileText, FileUp, Plus, Receipt } from "lucide-react"
+import { ChevronDown, FileCheck2, FileText, FileUp, Plus, Receipt } from "lucide-react"
 import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
@@ -22,7 +22,7 @@ import { useFilterBar, type SortOption } from "@/components/dashboard/filter-bar
 import { useViewMode, ViewToggle } from "@/components/dashboard/view-toggle"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { useCachedState } from "@/lib/page-cache"
 import { getCurrentAgencyId } from "@/lib/agency-scope"
 import { getExchangeRate } from "@/lib/currency"
@@ -43,13 +43,12 @@ type DriveItem =
   | { type: "estimate"; record: Estimate }
   | { type: "document"; record: CompanyDocument }
 type DriveType = DriveItem["type"]
-type DriveFilter = "all" | DriveType
 type DuplicateTarget = Extract<DriveItem, { type: "invoice" | "estimate" | "document" }>
 
-const TYPES: { value: DriveFilter; label: string }[] = [
-  { value: "all", label: "All" },
-  { value: "estimate", label: "Estimates" },
+/** The Type filter's choices. None ticked means any type. */
+const TYPES: { value: DriveType; label: string }[] = [
   { value: "document", label: "Documents" },
+  { value: "estimate", label: "Estimates" },
 ]
 
 const SORTS: SortOption<DriveItem>[] = [
@@ -138,7 +137,7 @@ export function DriveLibrary({ mode = "artifacts" }: { mode?: "artifacts" | "inv
   const [documents, setDocuments, documentsCached] = useCachedState<CompanyDocument[]>("drive:company-documents", [])
   const [loading, setLoading] = useState(!(invoicesCached && estimatesCached && documentsCached))
   const [loadError, setLoadError] = useState(false)
-  const [filter, setFilter] = useState<DriveFilter>("all")
+  const [types, setTypes] = useState<DriveType[]>([])
   const [view, setView] = useViewMode("drive-library", "list")
   const [creatingDocument, setCreatingDocument] = useState(false)
   const [importingDocument, setImportingDocument] = useState(false)
@@ -149,15 +148,16 @@ export function DriveLibrary({ mode = "artifacts" }: { mode?: "artifacts" | "inv
   const [shareSaving, setShareSaving] = useState(false)
 
   useEffect(() => {
-    const requested = new URLSearchParams(window.location.search).get("type")
-    if (TYPES.some(({ value }) => value === requested)) setFilter(requested as DriveFilter)
+    const requested = (new URLSearchParams(window.location.search).get("type") || "").split(",")
+    setTypes(TYPES.map(({ value }) => value).filter((value) => requested.includes(value)))
   }, [])
 
-  function selectFilter(next: DriveFilter) {
-    setFilter(next)
+  function toggleType(value: DriveType, on: boolean) {
+    const next = on ? [...types, value] : types.filter((type) => type !== value)
+    setTypes(next)
     const url = new URL(window.location.href)
-    if (next === "all") url.searchParams.delete("type")
-    else url.searchParams.set("type", next)
+    if (next.length === 0) url.searchParams.delete("type")
+    else url.searchParams.set("type", next.join(","))
     window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`)
   }
 
@@ -188,7 +188,7 @@ export function DriveLibrary({ mode = "artifacts" }: { mode?: "artifacts" | "inv
     ...estimates.map((record) => ({ type: "estimate" as const, record })),
     ...documents.map((record) => ({ type: "document" as const, record })),
   ], [invoicesOnly, invoices, estimates, documents])
-  const filteredItems = useMemo(() => filter === "all" ? items : items.filter((item) => item.type === filter), [filter, items])
+  const filteredItems = useMemo(() => types.length === 0 ? items : items.filter((item) => types.includes(item.type)), [types, items])
   const { results: visibleItems, bar } = useFilterBar({ items: filteredItems, search: itemSearch, sorts: SORTS, defaultSort: "updatedAt", defaultDirection: "desc" })
   const busy = loading
 
@@ -337,16 +337,29 @@ export function DriveLibrary({ mode = "artifacts" }: { mode?: "artifacts" | "inv
     </DropdownMenu>
   )
 
-  const toolbar = <TableFilterBar {...bar} placeholder={`Search ${label}`} controls={<ViewToggle view={view} onChange={setView} />} actions={newMenu} />
+  const typeLabel = types.length === 0 ? "Any" : types.length === 1 ? TYPES.find(({ value }) => value === types[0])?.label : `${types.length} types`
+  const typeFilter = invoicesOnly ? undefined : (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button type="button" variant="outline" className="h-9 gap-2 rounded-full px-3 text-sm font-normal">
+          Type <span className="text-muted-foreground">{typeLabel}</span>
+          <ChevronDown className="size-4 text-muted-foreground" aria-hidden="true" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="w-56">
+        {TYPES.map(({ value, label: typeName }) => (
+          <DropdownMenuCheckboxItem key={value} checked={types.includes(value)} onCheckedChange={(on) => toggleType(value, on === true)} onSelect={(event) => event.preventDefault()}>
+            <span className="flex-1">{typeName}</span>
+            <span className="text-xs tabular-nums text-muted-foreground">{items.filter((item) => item.type === value).length}</span>
+          </DropdownMenuCheckboxItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+  const toolbar = <TableFilterBar {...bar} placeholder={`Search ${label}`} controls={<ViewToggle view={view} onChange={setView} />} actions={newMenu}>{typeFilter}</TableFilterBar>
 
   return (
     <main className="mx-auto w-full max-w-6xl px-4 pt-4 pb-12 sm:px-6">
-      {!invoicesOnly && <nav className="mb-3 flex items-center gap-1 overflow-x-auto border-b border-border" aria-label="Artifact types">
-        {TYPES.map(({ value, label }) => {
-          const count = value === "all" ? items.length : items.filter((item) => item.type === value).length
-          return <button key={value} type="button" onClick={() => selectFilter(value)} aria-pressed={filter === value} className={`shrink-0 border-b-2 px-3 py-2 text-sm transition-colors ${filter === value ? "border-primary font-semibold text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"}`}>{label} <span className="ml-1 text-xs tabular-nums text-muted-foreground">{count}</span></button>
-        })}
-      </nav>}
       {loadError && <p role="alert" className="mb-3 text-sm text-destructive">Some {label.toLowerCase()} couldn’t load. Refresh to try again.</p>}
       {!busy && items.length === 0 && !loadError ? (
         <>
