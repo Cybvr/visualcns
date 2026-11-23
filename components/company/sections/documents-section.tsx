@@ -10,9 +10,7 @@ import { useCompanyCampaignMedia, useCompanyFiles } from "@/components/company/s
 import { DocumentArtifact } from "@/components/dashboard/document-artifact"
 import { DocumentActions } from "@/components/dashboard/document-actions"
 import { NewDocumentDialog } from "@/components/dashboard/new-document-dialog"
-import { MakeSomethingNew } from "@/components/dashboard/drive-library"
 import { getBusinessProfile, type BusinessProfile } from "@/lib/business-profile"
-import { FileCheck2, FileSignature, FileText, Receipt, Upload } from "lucide-react"
 
 const KIND_LABELS: Record<CompanyDocumentKind, string> = {
   invoice: "Invoice",
@@ -135,15 +133,6 @@ export function DocumentsSection({ view = "documents" }: { view?: "documents" | 
         />
         ) : (
         <>
-        {artifacts && admin && (
-          <MakeSomethingNew tiles={[
-            { label: "Document", icon: FileText, tone: "bg-blue-700 text-blue-100 dark:bg-blue-900 dark:text-blue-200", onSelect: () => handleAdd("document") },
-            { label: "Invoice", icon: Receipt, tone: "bg-emerald-700 text-emerald-100 dark:bg-emerald-900 dark:text-emerald-200", onSelect: () => handleAdd("invoice") },
-            { label: "Estimate", icon: FileCheck2, tone: "bg-amber-700 text-amber-100 dark:bg-amber-900 dark:text-amber-200", onSelect: () => handleAdd("estimate") },
-            { label: "Contract", icon: FileSignature, tone: "bg-violet-700 text-violet-100 dark:bg-violet-900 dark:text-violet-200", onSelect: () => handleAdd("contract") },
-            { label: "Upload", icon: Upload, tone: "bg-rose-800 text-rose-100 dark:bg-rose-950 dark:text-rose-200", onSelect: files.upload },
-          ]} />
-        )}
         <CompanyDocuments
           invoices={invoices}
           contracts={contracts}
