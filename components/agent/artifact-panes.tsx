@@ -180,7 +180,7 @@ export function InvoicePane({ id, revision, controls, onInfo, onDeleted }: {
   if (!invoice) return <PaneLoading />
 
   return (
-    <div className="min-h-0 flex-1 overflow-y-auto">
+    <div className="relative min-h-0 flex-1 overflow-y-auto">
       <InvoiceBuilder
         key={`${editorKey}-${revision}`}
         invoice={invoice}

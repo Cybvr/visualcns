@@ -126,7 +126,7 @@ export function NgaiWorkspace({ initial }: { initial?: ArtifactRef }) {
       <main
         className={cn(
           // From under the header to the bottom of the screen; the panes scroll inside.
-          "grid h-[calc(100dvh-var(--shell-header-h,0px))] w-full min-h-0 overflow-hidden md:h-[calc(100dvh-var(--shell-header-h,0px)-12px)]",
+          "relative grid h-[calc(100dvh-var(--shell-header-h,0px))] w-full min-h-0 overflow-hidden md:h-[calc(100dvh-var(--shell-header-h,0px)-12px)]",
           item ? "grid-rows-[auto_minmax(0,1fr)] lg:grid-rows-[minmax(0,1fr)]" : "grid-rows-[minmax(0,1fr)]",
           !item || expanded ? "grid-cols-[minmax(0,1fr)]" : "grid-cols-[minmax(0,1fr)] lg:grid-cols-[20rem_minmax(0,1fr)]",
         )}
@@ -153,7 +153,7 @@ export function NgaiWorkspace({ initial }: { initial?: ArtifactRef }) {
         )}
         {/* The chat panel: the same at any width. Beside an item it is the left column. */}
         <aside className={cn(
-          "min-h-0 flex-col overflow-hidden",
+          "relative min-h-0 flex-col overflow-hidden",
           item ? cn("border-r border-border lg:flex", mobileChat ? "flex" : "hidden", expanded && "lg:hidden") : "flex",
         )}>
           <NgaiHeader layout="panel" heading={heading} />
@@ -167,7 +167,7 @@ export function NgaiWorkspace({ initial }: { initial?: ArtifactRef }) {
 
         {item && (
           <>
-            <section className={cn("flex min-h-0 min-w-0 flex-col overflow-hidden", mobileChat && "max-lg:hidden")}>
+            <section className={cn("relative flex min-h-0 min-w-0 flex-col overflow-hidden", mobileChat && "max-lg:hidden")}>
               {isDocument ? (
                 <DocumentPane key={`${item.id}-${revision}`} id={item.id} controls={controls} onInfo={setInfo} onShare={() => setSharing(true)} onDelete={() => void remove()} />
               ) : isInvoice ? (
