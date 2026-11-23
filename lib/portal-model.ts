@@ -54,7 +54,7 @@ export function legacyDashboardDestination(company: string, pathname: string, se
   if (section === "projects" && id && id !== "new") {
     try { return `${portalPath(company)}/projects/${encodeURIComponent(decodeURIComponent(id))}` } catch { return portalPath(company) }
   }
-  const routes: Record<string, string> = { tasks: "tasks", drive: "documents", documents: "documents", invoices: "documents", estimates: "documents", contracts: "documents", projects: "projects" }
+  const routes: Record<string, string> = { tasks: "tasks", drive: "documents", documents: "documents", invoices: "documents", contracts: "documents", projects: "projects" }
   if (routes[section]) return `${portalPath(company)}/${routes[section]}`
   return legacyCompanyDestination(company, search)
 }

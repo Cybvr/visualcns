@@ -15,7 +15,6 @@ import { getBusinessProfile, type BusinessProfile } from "@/lib/business-profile
 const KIND_LABELS: Record<CompanyDocumentKind, string> = {
   invoice: "Invoice",
   contract: "Contract",
-  estimate: "Estimate",
   document: "Document",
 }
 
@@ -28,7 +27,6 @@ function artifactHref(kind: CompanyDocumentKind, id: string) {
   const ref = encodeURIComponent(id)
   if (kind === "document") return `/dashboard/documents?document=${ref}`
   if (kind === "invoice") return `/dashboard/invoices/${ref}`
-  if (kind === "estimate") return `/dashboard/estimates/${ref}/edit`
   return `/dashboard/contracts/${ref}`
 }
 
@@ -40,7 +38,7 @@ export function DocumentsSection({ view = "documents" }: { view?: "documents" | 
   const assets = view === "assets"
   // Artifacts (the dashboard's company tab): documents, invoices, files and media together.
   const artifacts = view === "artifacts"
-  const { company, projects, invoices, contracts, estimates, documents, admin, isAdmin, canEditDocuments, updateParams, setRecordOpen } = useCompanyPage()
+  const { company, projects, invoices, contracts, documents, admin, isAdmin, canEditDocuments, updateParams, setRecordOpen } = useCompanyPage()
   const router = useRouter()
   const searchParams = useSearchParams()
   const [issuer, setIssuer] = useState<BusinessProfile | null>(null)
@@ -63,10 +61,9 @@ export function DocumentsSection({ view = "documents" }: { view?: "documents" | 
   const selected = useMemo(() => {
     if (docKind === "invoice") return invoices.find((i) => i.id === docId) ? { kind: "invoice" as const, id: docId } : null
     if (docKind === "contract") return contracts.find((c) => c.id === docId) ? { kind: "contract" as const, id: docId } : null
-    if (docKind === "estimate") return estimates.find((e) => e.id === docId) ? { kind: "estimate" as const, id: docId } : null
     if (docKind === "document") return documents.find((d) => d.id === docId) ? { kind: "document" as const, id: docId } : null
     return null
-  }, [docKind, docId, invoices, contracts, estimates, documents])
+  }, [docKind, docId, invoices, contracts, documents])
 
   useEffect(() => {
     setIssuer(null)
@@ -91,8 +88,7 @@ export function DocumentsSection({ view = "documents" }: { view?: "documents" | 
   const selectedRecord = selected
     ? selected.kind === "invoice" ? invoices.find((i) => i.id === selected.id)
       : selected.kind === "contract" ? contracts.find((c) => c.id === selected.id)
-        : selected.kind === "estimate" ? estimates.find((e) => e.id === selected.id)
-          : documents.find((d) => d.id === selected.id)
+        : documents.find((d) => d.id === selected.id)
     : undefined
 
   const documentOpen = Boolean(selected && selectedRecord)
@@ -118,7 +114,6 @@ export function DocumentsSection({ view = "documents" }: { view?: "documents" | 
         <CompanyDocuments
           invoices={[]}
           contracts={[]}
-          estimates={[]}
           documents={[]}
           heading="Assets"
           emptyTitle="No assets yet"
@@ -136,12 +131,11 @@ export function DocumentsSection({ view = "documents" }: { view?: "documents" | 
         <CompanyDocuments
           invoices={invoices}
           contracts={contracts}
-          estimates={estimates}
           documents={documents}
           heading={artifacts ? "Artifacts" : "Documents"}
           emptyTitle={artifacts ? "No artifacts yet" : "No documents yet"}
-          addKinds={["document", "invoice", "contract", "estimate"]}
-          emptyDescription={artifacts ? "Documents, invoices, estimates, contracts, files, images and videos will appear here." : "Documents, invoices, estimates, contracts and files will appear here."}
+          addKinds={["document", "invoice", "contract"]}
+          emptyDescription={artifacts ? "Documents, invoices, contracts, files, images and videos will appear here." : "Documents, invoices, contracts and files will appear here."}
           // Artifacts opens the same editors as the main Artifacts page; Documents opens in place.
           onSelect={(kind, id) => artifacts ? router.push(artifactHref(kind, id)) : updateParams({ doc: `${kind}:${id}` })}
           onEdit={canEditDocuments ? (kind, id) => router.push(artifacts ? artifactHref(kind, id) : editHref(kind, id)) : undefined}

@@ -15,7 +15,7 @@ import {
   type DragEndEvent,
   type DragStartEvent,
 } from "@dnd-kit/core"
-import { FileUp, Mail, Phone } from "lucide-react"
+import { Mail, Phone } from "lucide-react"
 import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
@@ -23,7 +23,6 @@ import { CompactListSkeleton, InitialAvatar, MOBILE_LIST_CARD, MobileListRow, Ch
 import { MobileDataCard } from "@/components/dashboard/mobile-data-card"
 import { TableFilterBar } from "@/components/dashboard/table-filter-bar"
 import { useFilterBar, type SortOption } from "@/components/dashboard/filter-bar"
-import { ImportLeadsDialog } from "@/components/dashboard/import-leads-dialog"
 import type { ItemActions } from "@/components/dashboard/item-menu"
 import { StatusHistory } from "@/components/dashboard/status-history"
 import { QuickEmailComposer } from "@/components/dashboard/email/quick-email-composer"
@@ -112,7 +111,6 @@ export default function LeadsPage() {
   // Stage changes show straight away, before Firestore confirms them.
   const [pendingStages, setPendingStages] = useState<Record<string, LeadStage>>({})
   const [editing, setEditing] = useState<Lead | "new" | null>(null)
-  const [importOpen, setImportOpen] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState<Lead | null>(null)
   const [emailingLead, setEmailingLead] = useState<Lead | null>(null)
   // "grid" is the board and "list" the table. The board comes first, and the choice is remembered.
@@ -197,14 +195,6 @@ export default function LeadsPage() {
         placeholder="Search leads"
         controls={<ViewToggle view={view} onChange={setView} />}
         createAction={{ label: "New lead", onClick: () => setEditing("new") }}
-        actions={
-          <>
-            <Button variant="ghost" className="bg-transparent text-foreground hover:bg-transparent" onClick={() => setImportOpen(true)} disabled={leads === null || error}>
-              <FileUp className="size-4" aria-hidden="true" />
-              Import CSV
-            </Button>
-          </>
-        }
       />
 
       {error ? (
@@ -244,13 +234,6 @@ export default function LeadsPage() {
           if (editing === "new") await createLead(uid, fields)
           else if (editing) await updateLead(editing.id, fields)
         }}
-      />
-
-      <ImportLeadsDialog
-        open={importOpen}
-        onOpenChange={setImportOpen}
-        uid={uid}
-        existingLeads={(leads ?? []).map((lead) => ({ id: lead.id, email: lead.email }))}
       />
 
       {emailingLead?.email && (

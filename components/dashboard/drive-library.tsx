@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useCallback, useEffect, useMemo, useState, type ComponentType } from "react"
-import { FileCheck2, FileText, FileUp, LayoutTemplate, Plus, Receipt } from "lucide-react"
+import { FileText, Plus, Receipt } from "lucide-react"
 import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
@@ -13,9 +13,7 @@ import { DuplicateDocumentDialog, type DuplicateSelection } from "@/components/d
 import { FirstRunState } from "@/components/dashboard/empty-state"
 import { GridCard, thumbnailIcon } from "@/components/dashboard/grid-card"
 import { BillingPagePreview, DocumentPagePreview, hasDocumentText } from "@/components/dashboard/document-preview"
-import { ImportWordDocumentDialog } from "@/components/dashboard/import-word-document-dialog"
 import type { ItemActions } from "@/components/dashboard/item-menu"
-import { NewDocumentDialog } from "@/components/dashboard/new-document-dialog"
 import { usePageTitle } from "@/components/dashboard/page-title-context"
 import { ShareDialog } from "@/components/dashboard/share-dialog"
 import { TableFilterBar } from "@/components/dashboard/table-filter-bar"
@@ -29,9 +27,9 @@ import { cn } from "@/lib/utils"
 import { getCurrentAgencyId } from "@/lib/agency-scope"
 import { getExchangeRate } from "@/lib/currency"
 import {
-  createEstimate, createInvoice, deleteEstimate, deleteInvoice, estimateStatusMeta, formatMoney, invoiceAmountDue, invoiceListAmount,
-  getEstimates, getInvoices, invoiceStatusMeta, nextEstimateNumber, nextInvoiceNumber,
-  updateEstimate, updateInvoice, type Estimate, type Invoice,
+  createInvoice, deleteInvoice, formatMoney, invoiceAmountDue, invoiceListAmount,
+  getInvoices, invoiceStatusMeta, nextInvoiceNumber,
+  updateInvoice, type Invoice,
 } from "@/lib/billing"
 import {
   companyDocumentKindMeta, companyDocumentStatusMeta, createCompanyDocument, deleteCompanyDocument,
@@ -42,7 +40,6 @@ import { formatTimestamp, tsToMillis } from "@/lib/tasks"
 
 type DriveItem =
   | { type: "invoice"; record: Invoice }
-  | { type: "estimate"; record: Estimate }
   | { type: "document"; record: CompanyDocument }
 type DriveType = DriveItem["type"]
 
@@ -51,34 +48,20 @@ function itemPreview(item: DriveItem) {
   if (item.type === "document") {
     return hasDocumentText(item.record.body) ? <DocumentPagePreview title={item.record.title} html={item.record.body} tone="document" /> : undefined
   }
-  if (item.type === "invoice") {
-    const invoice = item.record
-    return (
-      <BillingPagePreview
-        tone="invoice"
-        heading="Invoice"
-        number={invoice.invoiceNumber}
-        client={invoice.billTo?.name || invoice.client}
-        lines={(invoice.lineItems ?? []).map((line) => ({ label: line.title || line.description, amount: Math.round(line.quantity * line.unitPrice) }))}
-        total={invoice.amount}
-        currency={invoice.currency}
-      />
-    )
-  }
-  const estimate = item.record
+  const invoice = item.record
   return (
     <BillingPagePreview
-      tone="estimate"
-      heading="Estimate"
-      number={estimate.estimateNumber}
-      client={estimate.preparedFor?.name || estimate.client}
-      lines={(estimate.lineItems ?? []).map((line) => ({ label: line.description, amount: line.amount, muted: line.optional }))}
-      total={estimate.amount}
-      currency={estimate.currency}
+      tone="invoice"
+      heading="Invoice"
+      number={invoice.invoiceNumber}
+      client={invoice.billTo?.name || invoice.client}
+      lines={(invoice.lineItems ?? []).map((line) => ({ label: line.title || line.description, amount: Math.round(line.quantity * line.unitPrice) }))}
+      total={invoice.amount}
+      currency={invoice.currency}
     />
   )
 }
-type DuplicateTarget = Extract<DriveItem, { type: "invoice" | "estimate" | "document" }>
+type DuplicateTarget = Extract<DriveItem, { type: "invoice" | "document" }>
 
 
 const SORTS: SortOption<DriveItem>[] = [
@@ -87,13 +70,12 @@ const SORTS: SortOption<DriveItem>[] = [
   { value: "type", label: "Type", get: (item) => item.type, ascLabel: "A–Z", descLabel: "Z–A" },
 ]
 
-const ICONS = { invoice: Receipt, estimate: FileCheck2, document: FileText }
+const ICONS = { invoice: Receipt, document: FileText }
 
 function keyOf(item: DriveItem) { return `${item.type}:${item.record.id}` }
 function updatedAt(item: DriveItem) { return Math.max(tsToMillis(item.record.updatedAt), tsToMillis(item.record.createdAt)) }
 function itemTitle(item: DriveItem) {
   if (item.type === "invoice") return item.record.title || item.record.invoiceNumber || "Untitled invoice"
-  if (item.type === "estimate") return item.record.title || item.record.estimateNumber || "Untitled estimate"
   return item.record.title || "Untitled document"
 }
 export type MakeNewTile = {
@@ -137,7 +119,6 @@ export function MakeSomethingNew({ tiles }: { tiles: MakeNewTile[] }) {
 function itemHref(item: DriveItem) {
   const id = encodeURIComponent(item.record.id)
   if (item.type === "document") return `/dashboard/documents?document=${id}`
-  if (item.type === "estimate") return `/dashboard/estimates/${id}/edit`
   return `/dashboard/invoices/${id}`
 }
 /** "Nov 14", with the year only when it isn't this year. */
@@ -149,18 +130,15 @@ function shortDate(item: DriveItem) {
 }
 function itemStatus(item: DriveItem) {
   if (item.type === "invoice") return invoiceStatusMeta[item.record.status] ?? invoiceStatusMeta.draft
-  if (item.type === "estimate") return estimateStatusMeta[item.record.status] ?? estimateStatusMeta.draft
   return companyDocumentStatusMeta[item.record.status] ?? companyDocumentStatusMeta.draft
 }
 function itemSubtitle(item: DriveItem) {
   if (item.type === "invoice") return invoiceListAmount(item.record)
-  if (item.type === "estimate") return formatMoney(item.record.amount, item.record.currency)
   return companyDocumentKindMeta[item.record.kind]?.label || "Document"
 }
 function itemSearch(item: DriveItem) {
   const status = itemStatus(item)
   if (item.type === "invoice") return [itemTitle(item), item.record.invoiceNumber, item.record.client, item.record.project, status?.label, "invoice"]
-  if (item.type === "estimate") return [itemTitle(item), item.record.estimateNumber, item.record.client, item.record.project, status?.label, "estimate"]
   return [itemTitle(item), item.record.client, item.record.project, itemSubtitle(item), status?.label, (item.record.body || "").replace(/<[^>]*>/g, " "), "document"]
 }
 
@@ -208,13 +186,10 @@ export function DriveLibrary({ mode = "artifacts" }: { mode?: "artifacts" | "inv
   usePageTitle(label)
 
   const [invoices, setInvoices, invoicesCached] = useCachedState<Invoice[]>("invoices", [])
-  const [estimates, setEstimates, estimatesCached] = useCachedState<Estimate[]>("estimates", [])
   const [documents, setDocuments, documentsCached] = useCachedState<CompanyDocument[]>("drive:company-documents", [])
-  const [loading, setLoading] = useState(!(invoicesCached && estimatesCached && documentsCached))
+  const [loading, setLoading] = useState(!(invoicesCached && documentsCached))
   const [loadError, setLoadError] = useState(false)
   const [view, setView] = useViewMode("drive-library", "list")
-  const [creatingDocument, setCreatingDocument] = useState(false)
-  const [importingDocument, setImportingDocument] = useState(false)
   const [creatingNote, setCreatingNote] = useState(false)
   const [duplicateTarget, setDuplicateTarget] = useState<DuplicateTarget | null>(null)
   const [duplicating, setDuplicating] = useState(false)
@@ -224,13 +199,12 @@ export function DriveLibrary({ mode = "artifacts" }: { mode?: "artifacts" | "inv
 
   const fetchData = useCallback(async () => {
     if (!adminView) return
-    const results = await Promise.allSettled([getInvoices(), getEstimates(), getCompanyDocuments()])
+    const results = await Promise.allSettled([getInvoices(), getCompanyDocuments()])
     if (results[0].status === "fulfilled") setInvoices(results[0].value)
-    if (results[1].status === "fulfilled") setEstimates(results[1].value)
-    if (results[2].status === "fulfilled") setDocuments(results[2].value)
+    if (results[1].status === "fulfilled") setDocuments(results[1].value)
     setLoadError(results.some((result) => result.status === "rejected"))
     setLoading(false)
-  }, [adminView, setDocuments, setEstimates, setInvoices])
+  }, [adminView, setDocuments, setInvoices])
 
   useEffect(() => { void fetchData() }, [fetchData])
   // Move any notes still in the old notes collection into documents, then reload the list.
@@ -258,9 +232,6 @@ export function DriveLibrary({ mode = "artifacts" }: { mode?: "artifacts" | "inv
       if (item.type === "invoice") {
         await updateInvoice(item.record.id, { title })
         setInvoices((current) => current.map((record) => record.id === item.record.id ? { ...record, title } : record))
-      } else if (item.type === "estimate") {
-        await updateEstimate(item.record.id, { title })
-        setEstimates((current) => current.map((record) => record.id === item.record.id ? { ...record, title } : record))
       } else if (item.type === "document") {
         await updateCompanyDocument(item.record.id, { title })
         setDocuments((current) => current.map((record) => record.id === item.record.id ? { ...record, title } : record))
@@ -277,9 +248,6 @@ export function DriveLibrary({ mode = "artifacts" }: { mode?: "artifacts" | "inv
       if (item.type === "invoice") {
         await deleteInvoice(item.record.id)
         setInvoices((current) => current.filter((record) => record.id !== item.record.id))
-      } else if (item.type === "estimate") {
-        await deleteEstimate(item.record.id)
-        setEstimates((current) => current.filter((record) => record.id !== item.record.id))
       } else if (item.type === "document") {
         await deleteCompanyDocument(item.record.id)
         setDocuments((current) => current.filter((record) => record.id !== item.record.id))
@@ -299,9 +267,6 @@ export function DriveLibrary({ mode = "artifacts" }: { mode?: "artifacts" | "inv
       if (item.type === "invoice") {
         await updateInvoice(item.record.id, { shareEnabled: enabled })
         setInvoices((current) => current.map((record) => record.id === item.record.id ? { ...record, shareEnabled: enabled } : record))
-      } else if (item.type === "estimate") {
-        await updateEstimate(item.record.id, { shareEnabled: enabled })
-        setEstimates((current) => current.map((record) => record.id === item.record.id ? { ...record, shareEnabled: enabled } : record))
       } else if (item.type === "document") {
         await updateCompanyDocument(item.record.id, { shareEnabled: enabled })
         setDocuments((current) => current.map((record) => record.id === item.record.id ? { ...record, shareEnabled: enabled } : record))
@@ -326,7 +291,6 @@ export function DriveLibrary({ mode = "artifacts" }: { mode?: "artifacts" | "inv
       onDuplicate: adminView ? () => setDuplicateTarget(item) : undefined,
       extra: adminView ? <>
         {item.type === "document" && <DropdownMenuItem onSelect={() => router.push(`/dashboard/documents/${encodeURIComponent(item.record.id)}/edit`)}>Client, type and status</DropdownMenuItem>}
-        {item.type === "estimate" && <DropdownMenuItem onSelect={() => router.push(`/dashboard/invoices/new?estimateId=${encodeURIComponent(item.record.id)}`)}>Convert to invoice</DropdownMenuItem>}
         <DropdownMenuItem onSelect={() => setSharing(item)}>Share</DropdownMenuItem>
       </> : undefined,
       onDelete: adminView ? () => deleteItem(item) : undefined,
@@ -344,11 +308,6 @@ export function DriveLibrary({ mode = "artifacts" }: { mode?: "artifacts" | "inv
         const invoiceNumber = await nextInvoiceNumber()
         const id = await createInvoice({ ...rest, invoiceNumber, status: "draft", shareEnabled: false, companyId: selection.companyId, client: selection.client || target.record.client, projectId: selection.projectId, project: selection.project })
         router.push(`/dashboard/invoices/${encodeURIComponent(id)}`)
-      } else if (target.type === "estimate") {
-        const { id: _id, createdAt: _createdAt, updatedAt: _updatedAt, ...rest } = target.record
-        const estimateNumber = await nextEstimateNumber()
-        const id = await createEstimate({ ...rest, estimateNumber, status: "draft", shareEnabled: false, companyId: selection.companyId, client: selection.client || target.record.client, projectId: selection.projectId, project: selection.project })
-        router.push(`/dashboard/estimates/${encodeURIComponent(id)}/edit`)
       } else {
         const { id: _id, createdAt: _createdAt, updatedAt: _updatedAt, ...rest } = target.record
         const id = await createCompanyDocument({ ...rest, title: `${target.record.title || "Document"} (Copy)`, status: "draft", shareEnabled: false, companyId: selection.companyId, client: selection.client || target.record.client, projectId: selection.projectId, project: selection.project })
@@ -391,8 +350,6 @@ export function DriveLibrary({ mode = "artifacts" }: { mode?: "artifacts" | "inv
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         <DropdownMenuItem onSelect={() => void createNewNote()} disabled={creatingNote}>Document</DropdownMenuItem>
-        <DropdownMenuItem onSelect={() => setCreatingDocument(true)}>Document from template</DropdownMenuItem>
-        <DropdownMenuItem onSelect={() => setImportingDocument(true)}><FileUp className="size-4" aria-hidden="true" />Import document</DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   )
@@ -402,9 +359,6 @@ export function DriveLibrary({ mode = "artifacts" }: { mode?: "artifacts" | "inv
   const makeNew: MakeNewTile[] = [
     { label: "Document", icon: FileText, tone: "bg-blue-700 text-blue-100 dark:bg-blue-900 dark:text-blue-200", onSelect: () => void createNewNote(), disabled: creatingNote },
     { label: "Invoice", icon: Receipt, tone: "bg-emerald-700 text-emerald-100 dark:bg-emerald-900 dark:text-emerald-200", href: "/dashboard/invoices/new" },
-    { label: "Estimate", icon: FileCheck2, tone: "bg-amber-700 text-amber-100 dark:bg-amber-900 dark:text-amber-200", href: "/dashboard/estimates/new" },
-    { label: "From template", icon: LayoutTemplate, tone: "bg-violet-700 text-violet-100 dark:bg-violet-900 dark:text-violet-200", onSelect: () => setCreatingDocument(true) },
-    { label: "Import", icon: FileUp, tone: "bg-rose-800 text-rose-100 dark:bg-rose-950 dark:text-rose-200", onSelect: () => setImportingDocument(true) },
   ]
 
   return (
@@ -470,8 +424,6 @@ export function DriveLibrary({ mode = "artifacts" }: { mode?: "artifacts" | "inv
         />
       )}
 
-      <NewDocumentDialog open={creatingDocument} onOpenChange={setCreatingDocument} initialStep="templates" />
-      <ImportWordDocumentDialog open={importingDocument} onOpenChange={setImportingDocument} />
       <DuplicateDocumentDialog open={duplicateTarget !== null} onOpenChange={(open) => { if (!open && !duplicating) setDuplicateTarget(null) }} title={`Duplicate ${duplicateTarget ? itemTitle(duplicateTarget) : "item"}`} description="Choose which client and project the copy belongs to." defaultCompanyId={duplicateTarget?.record.companyId ?? ""} defaultProjectId={duplicateTarget?.record.projectId} submitting={duplicating} onConfirm={confirmDuplicate} />
       <ShareDialog
         open={sharing !== null}

@@ -10,7 +10,7 @@ import { CompactListSkeleton } from "@/components/dashboard/compact-list-row"
 import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { buildActivity, getCompanyActivity, type ActivityItem } from "@/lib/activity"
-import { getContracts, getEstimates, getInvoices } from "@/lib/billing"
+import { getContracts, getInvoices } from "@/lib/billing"
 import { getProjects } from "@/lib/projects"
 import { getTasks } from "@/lib/tasks"
 
@@ -20,7 +20,6 @@ const SEEN_KEY = "visualcns.notificationsSeenAt"
 function notificationHref(item: ActivityItem): string | undefined {
   switch (item.kind) {
     case "invoice": return `/dashboard/invoices/${item.refId}`
-    case "estimate": return `/dashboard/estimates/${item.refId}`
     case "contract": return `/dashboard/contracts/${item.refId}`
     case "project": return "/dashboard/projects"
     case "task": return "/dashboard/tasks"
@@ -57,8 +56,8 @@ export function NotificationsButton({ activity, hrefFor = notificationHref, view
     let active = true
     // Admins see the whole agency, as on the home page; everyone else sees their own company.
     const load = isAdmin
-      ? Promise.all([getProjects(), getTasks(), getInvoices(), getEstimates(), getContracts()])
-        .then(([projects, tasks, invoices, estimates, contracts]) => buildActivity({ projects, tasks, invoices, estimates, contracts }, 20))
+      ? Promise.all([getProjects(), getTasks(), getInvoices(), getContracts()])
+        .then(([projects, tasks, invoices, contracts]) => buildActivity({ projects, tasks, invoices, contracts }, 20))
       : companyId ? getCompanyActivity(companyId, 20) : Promise.resolve([])
     load
       .then((next) => { if (active) setLoaded(next) })

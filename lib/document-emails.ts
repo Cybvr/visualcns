@@ -1,10 +1,10 @@
-import type { Contract, Estimate, Invoice } from "@/lib/billing"
+import type { Contract, Invoice } from "@/lib/billing"
 import type { CompanyDocument } from "@/lib/company-documents"
 import type { EmailComposeContext } from "@/lib/email-composer"
 import { companyDocumentPath } from "@/lib/navigation"
 
 /**
- * Opening the email composer for an invoice, estimate, contract or document.
+ * Opening the email composer for an invoice, contract or document.
  * The composer writes the message with the record's link in its text.
  *
  * Records only store their company's id, so callers pass `companyRef`, the
@@ -35,24 +35,6 @@ export function invoiceEmailContext(invoice: Invoice, companyRef: string): Email
     ...(invoice.status === "paid" || invoice.status === "void"
       ? { ctaText: "View invoice", ctaUrl: companyDocumentPath(companyRef, "invoice", invoice.id) }
       : { ctaText: "Pay invoice", ctaUrl: `/share/invoices/${encodeURIComponent(invoice.id)}` }),
-  }
-}
-
-export function estimateEmailContext(estimate: Estimate, companyRef: string): EmailComposeContext {
-  const title = numberedTitle("Estimate", estimate.estimateNumber, estimate.title)
-  return {
-    companyId: estimate.companyId,
-    companyName: estimate.client,
-    recipientEmail: estimate.preparedFor?.email,
-    recipientName: estimate.preparedFor?.name,
-    projectId: estimate.projectId,
-    projectName: estimate.project,
-    documentType: "estimate",
-    documentId: estimate.id,
-    documentTitle: title,
-    subject: title,
-    ctaText: "View estimate",
-    ctaUrl: companyDocumentPath(companyRef, "estimate", estimate.id),
   }
 }
 

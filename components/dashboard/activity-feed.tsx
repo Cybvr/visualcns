@@ -2,7 +2,7 @@
 
 import type { ComponentType } from "react"
 import Link from "next/link"
-import { ClipboardList, FileSignature, FileText, FolderOpen, ListTodo, Paperclip, Receipt } from "lucide-react"
+import { FileSignature, FileText, FolderOpen, ListTodo, Paperclip, Receipt } from "lucide-react"
 
 import type { ActivityItem, ActivityKind } from "@/lib/activity"
 import { collectionDate } from "@/components/dashboard/collection-view"
@@ -14,7 +14,6 @@ const KIND_ICON: Record<ActivityKind, ComponentType<{ className?: string }>> = {
   project: FolderOpen,
   task: ListTodo,
   invoice: Receipt,
-  estimate: ClipboardList,
   contract: FileSignature,
   document: FileText,
   file: Paperclip,
@@ -24,7 +23,6 @@ const KIND_ICON_COLOR: Record<ActivityKind, string> = {
   project: "text-violet-600 dark:text-violet-400",
   task: "text-sky-600 dark:text-sky-400",
   invoice: "text-emerald-600 dark:text-emerald-400",
-  estimate: "text-amber-600 dark:text-amber-400",
   contract: "text-indigo-600 dark:text-indigo-400",
   document: "text-blue-600 dark:text-blue-400",
   file: "text-slate-600 dark:text-slate-400",

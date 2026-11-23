@@ -12,8 +12,6 @@ export const CRM_TABS = [
   { label: "Leads", href: "/dashboard/leads" },
   { label: "Companies", href: "/dashboard/companies" },
   { label: "Contacts", href: "/dashboard/users" },
-  { label: "Campaigns", href: "/dashboard/projects" },
-  { label: "Schedules", href: "/dashboard/schedules" },
 ] as const
 
 export const CRM_PATHS = CRM_TABS.map((tab) => tab.href)

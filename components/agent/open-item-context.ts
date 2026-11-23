@@ -14,8 +14,6 @@ export function itemFromHref(href: string): ArtifactRef | null {
   if (invoice && invoice[1] !== "new") return { kind: "invoice", id: decodeURIComponent(invoice[1]) }
   const document = url.pathname === "/dashboard/documents" ? url.searchParams.get("document") : url.pathname.match(/^\/dashboard\/documents\/([^/]+)/)?.[1]
   if (document) return { kind: "document", id: decodeURIComponent(document) }
-  const estimate = url.pathname.match(/^\/dashboard\/estimates\/([^/]+)/)
-  if (estimate && estimate[1] !== "new") return { kind: "estimate", id: decodeURIComponent(estimate[1]) }
   const contract = url.pathname.match(/^\/dashboard\/contracts\/([^/]+)/)
   if (contract && contract[1] !== "new") return { kind: "contract", id: decodeURIComponent(contract[1]) }
   return null

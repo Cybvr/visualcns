@@ -211,7 +211,7 @@ function SidebarAccount({ header = false }: { header?: boolean }) {
  * card on the tinted background and the page header inside the card.
  */
 export function CompanyProfileShell({ children }: { children: ReactNode }) {
-  const { company, sections, section, sectionHref, projects, tasks, invoices, contracts, estimates, documents, recordOpen } = useCompanyPage()
+  const { company, sections, section, sectionHref, projects, tasks, invoices, contracts, documents, recordOpen } = useCompanyPage()
   const { user } = useAuth()
   const pathname = usePathname()
   const pageSegment = pathname.split("/").filter(Boolean)[1]
@@ -225,7 +225,7 @@ export function CompanyProfileShell({ children }: { children: ReactNode }) {
   const settingsPageLabel = settingsSubpage === "account" ? "Account" : settingsSubpage === "social" ? "Social" : settingsSubpage === "analytics" ? "Analytics" : "General"
   const pageLabel = isSettingsPage ? settingsPageLabel : isCheckoutPage ? "Checkout" : isPricingPage ? "Pricing" : isCartPage ? "Cart" : isBrandKitPage ? "Brand Kit" : sectionLabel
   const companyPath = `/${encodeURIComponent(company.slug || company.id)}`
-  const activity = useMemo(() => buildActivity({ projects, tasks, invoices, estimates, contracts, documents }, 20), [projects, tasks, invoices, estimates, contracts, documents])
+  const activity = useMemo(() => buildActivity({ projects, tasks, invoices, contracts, documents }, 20), [projects, tasks, invoices, contracts, documents])
   const activityHref = useCallback((item: ActivityItem) => {
     if (item.kind === "task") return sectionHref("projects", { task: item.refId })
     if (item.kind === "project") return sectionHref("projects")
@@ -242,10 +242,9 @@ export function CompanyProfileShell({ children }: { children: ReactNode }) {
     ...projects.map((project) => ({ id: `project-${project.id}`, group: "Campaigns", label: project.title, sublabel: project.service || undefined, href: sectionHref("projects") })),
     ...documents.map((doc) => ({ id: `document-${doc.id}`, group: "Documents", label: doc.title || "Document", href: sectionHref("documents", { doc: `document:${doc.id}` }) })),
     ...invoices.map((invoice) => ({ id: `invoice-${invoice.id}`, group: "Documents", label: invoice.invoiceNumber || invoice.title || "Invoice", href: sectionHref("documents", { doc: `invoice:${invoice.id}` }) })),
-    ...estimates.map((estimate) => ({ id: `estimate-${estimate.id}`, group: "Documents", label: estimate.estimateNumber || estimate.title || "Estimate", href: sectionHref("documents", { doc: `estimate:${estimate.id}` }) })),
     ...contracts.map((contract) => ({ id: `contract-${contract.id}`, group: "Documents", label: contract.title || "Contract", href: sectionHref("documents", { doc: `contract:${contract.id}` }) })),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  ], [sections, projects, documents, invoices, estimates, contracts])
+  ], [sections, projects, documents, invoices, contracts])
 
   type SectionItem = (typeof sections)[number]
   const onPage = !isSettingsPage && !isCheckoutPage && !isPricingPage && !isCartPage && !isBrandKitPage

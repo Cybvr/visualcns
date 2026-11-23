@@ -13,7 +13,7 @@ import { updateOrganization } from "@/lib/organizations"
 
 function PublicCompany({ children }: { children: ReactNode }) {
   const params = useParams<{ clientSlug: string }>()
-  const { loading, error, client, organization, projects, invoices, contracts, estimates, documents, workspaceId, name, categoryLabel, reload } = useCompanyState()
+  const { loading, error, client, organization, projects, invoices, contracts, documents, workspaceId, name, categoryLabel, reload } = useCompanyState()
   const { appUser, role, isImpersonating } = useAuth()
   // The agency's own admins get the same menus and edit controls here as on the dashboard.
   const agencyAdmin = !isImpersonating && (role === "superadmin" || (role === "admin" && Boolean(appUser?.agencyId) && appUser?.agencyId === organization?.agencyId))
@@ -69,7 +69,6 @@ function PublicCompany({ children }: { children: ReactNode }) {
         projects={projects}
         invoices={invoices}
         contracts={contracts}
-        estimates={estimates}
         documents={documents}
         admin={agencyAdmin ? {
           sharePath: `/${encodeURIComponent(params?.clientSlug ?? workspaceId)}`,

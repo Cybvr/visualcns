@@ -9,7 +9,7 @@ import { NewProjectDialog } from "@/components/dashboard/new-project-dialog"
 import { ProjectsView } from "@/components/dashboard/projects-view"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { buildActivity, type ActivityItem } from "@/lib/activity"
-import { getContracts, getEstimates, getInvoices } from "@/lib/billing"
+import { getContracts, getInvoices } from "@/lib/billing"
 import { getProjects, type Project } from "@/lib/projects"
 import { getTasks, tsToMillis, type Task } from "@/lib/tasks"
 
@@ -20,7 +20,6 @@ const HOME_TASK_LIMIT = 4
 function activityHref(item: ActivityItem): string | undefined {
   switch (item.kind) {
     case "invoice": return `/dashboard/invoices/${item.refId}`
-    case "estimate": return `/dashboard/estimates/${item.refId}`
     case "contract": return `/dashboard/contracts/${item.refId}`
     case "project": return "/dashboard/projects"
     case "task": return "/dashboard/tasks"
@@ -47,15 +46,14 @@ export default function DashboardPage() {
   const fetchData = useCallback(async () => {
     setError(null)
     try {
-      const [nextProjects, nextTasks, invoices, estimates, contracts] = await Promise.all([
+      const [nextProjects, nextTasks, invoices, contracts] = await Promise.all([
         getProjects(),
         getTasks(),
         getInvoices(),
-        getEstimates(),
         getContracts(),
       ])
       setProjects(nextProjects)
-      setActivity(buildActivity({ projects: nextProjects, tasks: nextTasks, invoices, estimates, contracts }))
+      setActivity(buildActivity({ projects: nextProjects, tasks: nextTasks, invoices, contracts }))
       setTasks([...nextTasks].sort((a, b) => tsToMillis(b.createdAt) - tsToMillis(a.createdAt)))
     } catch (err) {
       console.error("Error loading dashboard data:", err)

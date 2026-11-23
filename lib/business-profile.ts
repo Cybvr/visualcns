@@ -1,8 +1,7 @@
 import { deleteDoc, doc, getDoc, Timestamp, writeBatch } from "firebase/firestore"
 import { db } from "./firebase"
-import { DEFAULT_ESTIMATE_NOTES, INVOICE_ISSUER, type InvoiceParty } from "./billing"
+import { INVOICE_ISSUER, type InvoiceParty } from "./billing"
 
-export { DEFAULT_ESTIMATE_NOTES }
 import {
   createOrganization,
   getOrganization,
@@ -22,14 +21,9 @@ export interface BusinessProfile extends InvoiceParty {
   invoicePaymentTermsDays?: number
   invoiceNotes?: string
   invoicePaymentInstructions?: string
-  estimateTerms?: string
-  estimatePaymentDetails?: string
-  estimateNotes?: string
   /** How Ngai should write for this agency: tone, sign-off, layout habits. */
   ngaiStyle?: string
 }
-
-export const DEFAULT_ESTIMATE_TERMS = "Work begins after acceptance.\nA deposit may be required before work starts.\nPrices exclude taxes and third-party fees unless stated otherwise."
 
 export interface AdminBusinessSeed {
   id: string
@@ -50,9 +44,6 @@ function asBusinessProfile(source: Partial<BusinessProfile>): BusinessProfile {
     invoicePaymentTermsDays: source.invoicePaymentTermsDays ?? 14,
     invoiceNotes: source.invoiceNotes ?? "",
     invoicePaymentInstructions: source.invoicePaymentInstructions ?? "",
-    estimateTerms: source.estimateTerms ?? DEFAULT_ESTIMATE_TERMS,
-    estimatePaymentDetails: source.estimatePaymentDetails ?? "",
-    estimateNotes: source.estimateNotes ?? DEFAULT_ESTIMATE_NOTES,
     ngaiStyle: source.ngaiStyle ?? "",
   }
 }
@@ -74,15 +65,12 @@ function organizationProfile(organization: Organization): BusinessProfile {
     invoicePaymentTermsDays: organization.invoicePaymentTermsDays,
     invoiceNotes: organization.invoiceNotes,
     invoicePaymentInstructions: organization.invoicePaymentInstructions,
-    estimateTerms: organization.estimateTerms,
-    estimatePaymentDetails: organization.estimatePaymentDetails,
-    estimateNotes: organization.estimateNotes,
     ngaiStyle: organization.ngaiStyle,
   })
 }
 
 /**
- * Who invoices, estimates, and contracts are issued from. The owner
+ * Who invoices and contracts are issued from. The owner
  * organization is canonical; the legacy settings document is read only until
  * an admin signs in and the one-time migration completes.
  */

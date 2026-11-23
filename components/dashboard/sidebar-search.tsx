@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react"
 
-import { getContracts, getEstimates, getInvoices } from "@/lib/billing"
+import { getContracts, getInvoices } from "@/lib/billing"
 import { getCompanyDocuments } from "@/lib/company-documents"
 import { getOrganizations, organizationRef } from "@/lib/organizations"
 import { getProjects, projectSlug } from "@/lib/projects"
@@ -65,13 +65,12 @@ export function useDashboardSearch() {
           getTasks().catch(() => []),
           getCompanyDocuments().catch(() => []),
           getInvoices().catch(() => []),
-          getEstimates().catch(() => []),
           getContracts().catch(() => []),
         ])
       })
       .then((loadedCollections) => {
         if (!active || !loadedCollections) return
-        const [projects, tasks, documents, invoices, estimates, contracts] = loadedCollections
+        const [projects, tasks, documents, invoices, contracts] = loadedCollections
         setResults((current) => [
           ...current,
           ...projects.map((project) => ({
@@ -105,14 +104,6 @@ export function useDashboardSearch() {
             sublabel: join(invoice.client, invoice.project) || undefined,
             href: `/dashboard/invoices/${invoice.id}`,
             keywords: keywords(invoice.client, invoice.project, invoice.poReference),
-          })),
-          ...estimates.map((estimate) => ({
-            id: `estimate-${estimate.id}`,
-            group: "Estimates",
-            label: estimate.title || estimate.estimateNumber || "Estimate",
-            sublabel: join(estimate.client, estimate.project) || undefined,
-            href: `/dashboard/estimates/${estimate.id}`,
-            keywords: keywords(estimate.estimateNumber, estimate.client, estimate.project),
           })),
           ...contracts.map((contract) => ({
             id: `contract-${contract.id}`,

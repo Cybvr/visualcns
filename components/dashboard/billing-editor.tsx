@@ -18,7 +18,7 @@ import { Button } from "@/components/ui/button"
 import { Combobox } from "@/components/ui/combobox"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { getEstimates, getInvoices, INVOICE_ISSUER } from "@/lib/billing"
+import { getInvoices, INVOICE_ISSUER } from "@/lib/billing"
 import type { BusinessProfile } from "@/lib/business-profile"
 import { cn } from "@/lib/utils"
 
@@ -339,7 +339,7 @@ export function EditorDeleteCard({
  * with the screen edge instead of floating above that padding.
  */
 /**
- * Departments are the names a client's invoices and estimates were addressed
+ * Departments are the names a client's invoices were addressed
  * to before, e.g. "School of Media and Communications" at a university.
  */
 export function useDepartmentNames(companyId: string, current: string): string[] {
@@ -347,12 +347,9 @@ export function useDepartmentNames(companyId: string, current: string): string[]
 
   useEffect(() => {
     let active = true
-    Promise.all([getInvoices().catch(() => []), getEstimates().catch(() => [])]).then(([invoices, estimates]) => {
+    getInvoices().catch(() => []).then((invoices) => {
       if (!active) return
-      setNames([
-        ...invoices.map((invoice) => ({ companyId: invoice.companyId, name: invoice.billTo?.name ?? "" })),
-        ...estimates.map((estimate) => ({ companyId: estimate.companyId, name: estimate.preparedFor?.name ?? "" })),
-      ])
+      setNames(invoices.map((invoice) => ({ companyId: invoice.companyId, name: invoice.billTo?.name ?? "" })))
     })
     return () => {
       active = false

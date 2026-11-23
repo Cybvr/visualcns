@@ -61,9 +61,6 @@ export interface Organization {
   invoicePaymentTermsDays?: number
   invoiceNotes?: string
   invoicePaymentInstructions?: string
-  estimateTerms?: string
-  estimatePaymentDetails?: string
-  estimateNotes?: string
   /** Agency owner only: how Ngai should write (tone, sign-off, layout habits). */
   ngaiStyle?: string
   /** What every new campaign brief for this client starts from. See lib/campaign-brief. */

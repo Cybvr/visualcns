@@ -41,7 +41,7 @@ const DASHBOARD_PROMPT = `You are Ngai, the VisualCNS assistant and a friendly g
 Talk like a normal person first. Answer what was asked in a sentence or two.
 
 When the message implies making something the dashboard holds (a company, contact, project, task,
-invoice, estimate, contract, document or file), follow your answer by creating a DRAFT, not by interviewing
+invoice, contract, document or file), follow your answer by creating a DRAFT, not by interviewing
 the user:
 
 1. Look up what you can with query_workspace. Never ask for an ID, a number, or anything you can
@@ -79,17 +79,17 @@ Help users think through projects, tasks, briefs, marketing, email, and their fi
 Be concise, warm, and practical.
 
 You can read the workspace database with the query_workspace tool: companies, projects, tasks,
-invoices, estimates, contracts, written company documents, uploaded files and users. Use it for every factual question about the
+invoices, contracts, written company documents, uploaded files and users. Use it for every factual question about the
 account, including counts, lists, totals and lookups. Never say you cannot see the data or tell the
 user to go look somewhere in the dashboard without calling the tool first. The tool already applies
 the caller's permissions, so just call it and answer from what it returns.
 
 When the user asks for a summary, overview, recap or catch-up, call workspace_summary once and write a
-short briefing from it: money outstanding and overdue, estimates and contracts awaiting a decision,
+short briefing from it: money outstanding and overdue, contracts awaiting a decision,
 projects and tasks that need attention, and recent or failed emails. Lead with what needs action, keep
 each area to a line or two, skip areas with nothing in them, and link records by their url.
 
-Creation tools are available for companies, projects, tasks, draft invoices, draft estimates, draft
+Creation tools are available for companies, projects, tasks, draft invoices, draft
 contracts and written company documents.
 
 When the user asks to find and add creators to a campaign, call research_campaign_creators with the
@@ -107,7 +107,7 @@ call update_record on the same project after generation. Do not create a separat
 When the user attaches a file, they usually want one of two things: to file it into a company's Drive,
 or to turn its contents into a record. If they say to save, add, store or keep the file, use attach_file
 with the exact URL from the attachment manifest to add it to the right company. If they want it turned
-into an invoice, estimate, contract or written document, read the file and call the matching creation
+into an invoice, contract or written document, read the file and call the matching creation
 tool. You can read PDFs and images directly; for other file types (Word, Excel, CSV) you can file them
 but cannot see their contents, so do not invent details from them, ask for anything you need instead.
 Always look up the company with query_workspace, and never ask the user for the file URL or an id.
@@ -158,15 +158,14 @@ Answer those from what the agency has told you about itself, below.
 Be concise, warm, and practical.
 
 You can read this customer's own records with the query_workspace tool: their company, projects,
-tasks, invoices, estimates, contracts, written company documents and uploaded files. It is automatically restricted to their own
+tasks, invoices, contracts, written company documents and uploaded files. It is automatically restricted to their own
 company, so use it freely for any factual question about their account, including counts, lists and
 status. Never say you cannot see the data without calling the tool first. Never invent details.
 When they ask for a summary or overview, call workspace_summary once and give a short briefing that
 leads with anything waiting on them.
 
-You can also take two actions on the customer's behalf, and only these:
+You can also take one action on the customer's behalf, and only this:
 - complete_task: mark one of their assigned tasks done (or reopen it) when they say it's finished.
-- accept_estimate: accept an estimate the agency shared, when they say to go ahead.
 Find the id with query_workspace first, never ask the customer for it. Confirm briefly what you did
 in one short line. You cannot change anything else - for other changes, tell them to ask their agency.
 The portal cannot sign contracts, take invoice payments, record approvals or send messages; for those,
@@ -187,9 +186,9 @@ const AGENT_TOOLS = [
       properties: {
         collection: {
           type: "string",
-          enum: ["organizations", "projects", "tasks", "invoices", "estimates", "contracts", "companyDocuments", "documents", "users", "campaignPeople"],
+          enum: ["organizations", "projects", "tasks", "invoices", "contracts", "companyDocuments", "documents", "users", "campaignPeople"],
           description:
-            "Which records to read. organizations = client companies, projects = campaigns, tasks = tasks, invoices/estimates/contracts = billing documents, companyDocuments = written company documents, documents = uploaded/shared files, users = people, campaignPeople = creators on campaigns.",
+            "Which records to read. organizations = client companies, projects = campaigns, tasks = tasks, invoices/contracts = billing documents, companyDocuments = written company documents, documents = uploaded/shared files, users = people, campaignPeople = creators on campaigns.",
         },
         limit: { type: ["number", "null"], description: "Maximum records to return. Defaults to 100, capped at 300." },
         companyId: { type: ["string", "null"], description: "Only return records for this client company (id from find_client). Admins only." },
@@ -204,7 +203,7 @@ const AGENT_TOOLS = [
     type: "function",
     name: "workspace_summary",
     description:
-      "One-call overview of the whole account: invoices, estimates and contracts (counts and money by status), projects and tasks (by status), and sent emails, each with its most recent items. Use this whenever the user asks for a summary, overview, recap, catch-up or 'where do things stand'.",
+      "One-call overview of the whole account: invoices and contracts (counts and money by status), projects and tasks (by status), and sent emails, each with its most recent items. Use this whenever the user asks for a summary, overview, recap, catch-up or 'where do things stand'.",
     parameters: {
       type: "object",
       properties: {},
@@ -262,7 +261,7 @@ const AGENT_TOOLS = [
   {
     type: "function",
     name: "client_overview",
-    description: "Read everything the workspace holds about one client in a single call: company details, people, projects, open tasks, invoices, estimates, contracts, written documents (with excerpts) and Drive files. Call this before writing anything for a client.",
+    description: "Read everything the workspace holds about one client in a single call: company details, people, projects, open tasks, invoices, contracts, written documents (with excerpts) and Drive files. Call this before writing anything for a client.",
     parameters: {
       type: "object",
       properties: {
@@ -290,11 +289,11 @@ const AGENT_TOOLS = [
   {
     type: "function",
     name: "open_item",
-    description: "Show an invoice, estimate, contract or written document beside the chat, so the user sees it. Call it whenever the user asks to open, show, pull up or look at one, and before changing one they asked to open. Find the id with query_workspace first. Records you change with update_record are shown by themselves.",
+    description: "Show an invoice, contract or written document beside the chat, so the user sees it. Call it whenever the user asks to open, show, pull up or look at one, and before changing one they asked to open. Find the id with query_workspace first. Records you change with update_record are shown by themselves.",
     parameters: {
       type: "object",
       properties: {
-        kind: { type: "string", enum: ["invoice", "estimate", "contract", "document"] },
+        kind: { type: "string", enum: ["invoice", "contract", "document"] },
         id: { type: "string", description: "The record's id (for a document, its companyDocuments id)." },
       },
       required: ["kind", "id"],
@@ -385,13 +384,13 @@ const AGENT_TOOLS = [
       properties: {
         collection: {
           type: "string",
-          enum: ["organizations", "projects", "tasks", "invoices", "estimates", "contracts", "companyDocuments"],
+          enum: ["organizations", "projects", "tasks", "invoices", "contracts", "companyDocuments"],
         },
         id: { type: "string", description: "Document id of the record to update." },
         patchJson: {
           type: "string",
           description:
-            'A JSON object of only the fields you are changing, as a string. Estimate line items are [{"description","amount","details"}]; invoice line items are [{"description","quantity","unitPrice","taxRate"}] with prices in minor units. Totals are recalculated for you.',
+            'A JSON object of only the fields you are changing, as a string. Invoice line items are [{"description","quantity","unitPrice","taxRate"}] with prices in minor units. Totals are recalculated for you.',
         },
       },
       required: ["collection", "id", "patchJson"],
@@ -532,39 +531,6 @@ const AGENT_TOOLS = [
   },
   {
     type: "function",
-    name: "create_estimate",
-    description: "Create a draft estimate. Line item amounts are minor currency units.",
-    parameters: {
-      type: "object",
-      properties: {
-        companyId: { type: "string" },
-        client: { type: "string" },
-        title: { type: "string" },
-        currency: { type: "string" },
-        issuedOn: { type: "string" },
-        validUntil: { type: ["string", "null"] },
-        scope: { type: ["string", "null"] },
-        terms: { type: ["string", "null"] },
-        lineItems: {
-          type: "array",
-          items: {
-            type: "object",
-            properties: {
-              description: { type: "string" },
-              amount: { type: "number" },
-              details: { type: ["string", "null"] },
-            },
-            required: ["description", "amount"],
-            additionalProperties: false,
-          },
-        },
-      },
-      required: ["companyId", "client", "title"],
-      additionalProperties: false,
-    },
-  },
-  {
-    type: "function",
     name: "create_contract",
     description: "Create a draft contract for a client.",
     parameters: {
@@ -637,23 +603,10 @@ const AGENT_TOOLS = [
       additionalProperties: false,
     },
   },
-  {
-    type: "function",
-    name: "accept_estimate",
-    description: "Accept an estimate the agency shared with the client. Only works on the client's own, non-draft estimate.",
-    parameters: {
-      type: "object",
-      properties: {
-        estimateId: { type: "string", description: "Document id of the estimate, from query_workspace." },
-      },
-      required: ["estimateId"],
-      additionalProperties: false,
-    },
-  },
 ] as const
 
 /** Read-only lookups plus the few writes a client is allowed to make in the portal. */
-const CLIENT_ACTION_TOOLS = ["complete_task", "accept_estimate"]
+const CLIENT_ACTION_TOOLS = ["complete_task"]
 const PORTAL_TOOLS = AGENT_TOOLS.filter(
   (tool) => tool.name === "query_workspace" || tool.name === "workspace_summary" || CLIENT_ACTION_TOOLS.includes(tool.name),
 )
@@ -667,16 +620,15 @@ const STEP_MARKER = "␞::ngai-step::"
 const ANSWER_MARKER = "␞::ngai-answer::"
 /** Documents a tool made this turn, so the chat can open them beside the conversation. */
 const ARTIFACT_MARKER = "\n␞::ngai-artifacts::"
-const ARTIFACT_KINDS = ["document", "invoice", "estimate", "contract"]
+const ARTIFACT_KINDS = ["document", "invoice", "contract"]
 /** Which collections hold items the chat can open beside it. */
-const COLLECTION_ITEM_KINDS: Record<string, string> = { invoices: "invoice", estimates: "estimate", contracts: "contract", companyDocuments: "document" }
+const COLLECTION_ITEM_KINDS: Record<string, string> = { invoices: "invoice", contracts: "contract", companyDocuments: "document" }
 
 const READABLE_COLLECTIONS = [
   "organizations",
   "projects",
   "tasks",
   "invoices",
-  "estimates",
   "contracts",
   "companyDocuments",
   "documents",
@@ -684,12 +636,11 @@ const READABLE_COLLECTIONS = [
   "campaignPeople",
 ]
 
-const UPDATABLE_COLLECTIONS = ["organizations", "projects", "tasks", "invoices", "estimates", "contracts", "companyDocuments"]
+const UPDATABLE_COLLECTIONS = ["organizations", "projects", "tasks", "invoices", "contracts", "companyDocuments"]
 
 /** Where a record lives in the dashboard, so the agent can link straight to it. */
 function recordUrl(collectionName: string, id: string) {
   if (collectionName === "invoices") return `/dashboard/invoices/${id}/edit`
-  if (collectionName === "estimates") return `/dashboard/estimates/${id}/edit`
   if (collectionName === "contracts") return `/dashboard/contracts/${id}/edit`
   if (collectionName === "companyDocuments") return `/dashboard/documents/${id}/edit`
   if (collectionName === "organizations") return `/dashboard/companies/${id}`
@@ -873,7 +824,7 @@ function stepLabel(name: string, rawArgs: string): string {
   }
   const text = (key: string) => (typeof args[key] === "string" ? String(args[key]).trim() : "")
   const readable: Record<string, string> = {
-    organizations: "clients", projects: "projects", tasks: "tasks", invoices: "invoices", estimates: "estimates",
+    organizations: "clients", projects: "projects", tasks: "tasks", invoices: "invoices",
     contracts: "contracts", companyDocuments: "documents", documents: "Drive files", users: "people", campaignPeople: "campaign creators",
   }
   switch (name) {
@@ -890,7 +841,6 @@ function stepLabel(name: string, rawArgs: string): string {
     case "create_project": return `Creating project ${text("title")}`.trim()
     case "create_task": return `Adding task ${text("name")}`.trim()
     case "create_invoice": return "Drafting an invoice"
-    case "create_estimate": return "Drafting an estimate"
     case "create_contract": return "Drafting a contract"
     case "create_document": return `Writing ${text("title") || "the document"}`
     case "attach_file": return "Filing it in the Drive"
@@ -974,9 +924,8 @@ async function runAgentTool(name: string, rawArgs: string, uid: string, authoriz
       return query.limit(500).get()
     }
 
-    const [invoices, estimates, contracts, projects, tasks, emails] = await Promise.all([
+    const [invoices, contracts, projects, tasks, emails] = await Promise.all([
       scoped("invoices"),
-      scoped("estimates"),
       scoped("contracts"),
       scoped("projects"),
       scoped("tasks"),
@@ -1025,7 +974,6 @@ async function runAgentTool(name: string, rawArgs: string, uid: string, authoriz
     }
 
     const invoiceSummary = billing("invoices", invoices, "invoiceNumber", "issuedOn")
-    const estimateSummary = billing("estimates", estimates, "estimateNumber", "issuedOn")
     const contractSummary = billing("contracts", contracts, "title", "startsOn")
 
     const emailRows = emails ? emails.docs.map((item) => item.data()) : []
@@ -1040,7 +988,6 @@ async function runAgentTool(name: string, rawArgs: string, uid: string, authoriz
       today: todayIso,
       note: "Money amounts are in minor units (divide by 100).",
       invoices: invoiceSummary,
-      estimates: estimateSummary,
       contracts: contractSummary,
       projects: {
         ...statusCounts(projects),
@@ -1097,19 +1044,6 @@ async function runAgentTool(name: string, rawArgs: string, uid: string, authoriz
     const status = done ? "done" : "todo"
     await taskRef.set({ status, updatedAt: FieldValue.serverTimestamp() }, { merge: true })
     return { type: "task_updated", id, status }
-  }
-
-  if (name === "accept_estimate") {
-    const actionArgs = JSON.parse(rawArgs) as Record<string, unknown>
-    const id = requireText(actionArgs, "estimateId")
-    const ref = db.collection("estimates").doc(id)
-    const snap = await ref.get()
-    if (!snap.exists) throw new Error("That estimate no longer exists.")
-    const estimate = snap.data() as FirebaseFirestore.DocumentData
-    if (!isSuperAdmin && (estimate.agencyId !== agencyId || (!isAdmin && estimate.companyId !== callerCompanyId))) throw new Error("You can only accept your own estimates.")
-    if (estimate.status === "draft") throw new Error("That estimate isn't available to accept yet.")
-    await ref.set({ status: "accepted", acceptedAt: FieldValue.serverTimestamp(), updatedAt: FieldValue.serverTimestamp() }, { merge: true })
-    return { type: "estimate_accepted", id }
   }
 
   if (!isAdmin) {
@@ -1213,15 +1147,6 @@ async function runAgentTool(name: string, rawArgs: string, uid: string, authoriz
         const taxTotal = items.reduce((sum, item) => sum + Math.round((item.quantity * item.unitPrice * item.taxRate) / 100), 0)
         Object.assign(patch, { lineItems: items, subtotal, taxTotal, amount: subtotal + taxTotal })
       }
-      if (collectionName === "estimates") {
-        const items = rows.map((row, index) => ({
-          id: `line-${Date.now()}-${index}`,
-          description: requireText(row, "description"),
-          amount: numberValue(row, "amount"),
-          ...(optionalText(row, "details") ? { details: optionalText(row, "details") } : {}),
-        }))
-        Object.assign(patch, { lineItems: items, amount: items.reduce((sum, item) => sum + item.amount, 0) })
-      }
     }
 
     await ref.set({ ...patch, updatedAt: now }, { merge: true })
@@ -1299,21 +1224,6 @@ async function runAgentTool(name: string, rawArgs: string, uid: string, authoriz
     return { type: "invoice", id: ref.id, number: invoiceNumber, title, amount: subtotal + taxTotal, currency, status: "draft", url: `/dashboard/invoices/${ref.id}/edit` }
   }
 
-  if (name === "create_estimate") {
-    const companyId = requireText(args, "companyId")
-    const client = requireText(args, "client")
-    const title = requireText(args, "title")
-    const lineItems = Array.isArray(args.lineItems) ? args.lineItems : []
-    const items = lineItems.map((item, index) => {
-      const row = item as Record<string, unknown>
-      return { id: `line-${Date.now()}-${index}`, description: requireText(row, "description"), amount: numberValue(row, "amount"), ...(optionalText(row, "details") ? { details: optionalText(row, "details") } : {}) }
-    })
-    const ref = db.collection("estimates").doc()
-    const estimateNumber = await nextDocumentNumber(db, "estimates", "EST", agencyId)
-    await ref.set({ agencyId, companyId, client, estimateNumber, title, projectId: optionalText(args, "projectId"), project: optionalText(args, "project"), status: "draft", lineItems: items, amount: items.reduce((sum, item) => sum + item.amount, 0), currency: optionalText(args, "currency") || "NGN", issuedOn: optionalText(args, "issuedOn") || today(), validUntil: optionalText(args, "validUntil"), scope: optionalText(args, "scope"), terms: optionalText(args, "terms"), createdAt: now, updatedAt: now })
-    return { type: "estimate", id: ref.id, number: estimateNumber, title, status: "draft", url: `/dashboard/estimates/${ref.id}/edit` }
-  }
-
   if (name === "create_contract") {
     const companyId = requireText(args, "companyId")
     const client = requireText(args, "client")
@@ -1383,8 +1293,8 @@ async function runAgentTool(name: string, rawArgs: string, uid: string, authoriz
 
     const forClient = (collectionName: string, max = 200) =>
       db.collection(collectionName).where("agencyId", "==", org.agencyId || agencyId).where("companyId", "==", companyId).limit(max).get()
-    const [projects, tasks, invoices, estimates, contracts, written, files, people] = await Promise.all([
-      forClient("projects"), forClient("tasks", 300), forClient("invoices"), forClient("estimates"), forClient("contracts"),
+    const [projects, tasks, invoices, contracts, written, files, people] = await Promise.all([
+      forClient("projects"), forClient("tasks", 300), forClient("invoices"), forClient("contracts"),
       forClient("companyDocuments", 50), forClient("documents", 100), forClient("users", 100),
     ])
     const rows = (snapshot: FirebaseFirestore.QuerySnapshot) => snapshot.docs.map((item) => ({ id: item.id, ...item.data() }) as FirebaseFirestore.DocumentData)
@@ -1403,7 +1313,6 @@ async function runAgentTool(name: string, rawArgs: string, uid: string, authoriz
       openTasks: openTasks.slice(0, 60).map((task) => ({ id: task.id, name: task.name, project: task.project, status: task.status, dueDate: task.dueDate, notes: clip(stripHtml(String(task.content || "")), 300) })),
       openTaskCount: openTasks.length,
       invoices: rows(invoices).map((row) => ({ id: row.id, number: row.invoiceNumber, title: row.title, status: row.status, amount: row.amount, currency: row.currency, dueOn: row.dueOn })),
-      estimates: rows(estimates).map((row) => ({ id: row.id, number: row.estimateNumber, title: row.title, status: row.status, amount: row.amount, currency: row.currency })),
       contracts: rows(contracts).map((row) => ({ id: row.id, title: row.title, status: row.status, startsOn: row.startsOn, endsOn: row.endsOn })),
       writtenDocuments: rows(written).map((row) => ({ id: row.id, title: row.title, kind: row.kind, status: row.status, summary: row.summary, excerpt: clip(stripHtml(String(row.body || "")), 1200), url: recordUrl("companyDocuments", row.id) })),
       driveFiles: rows(files).map((row) => ({ id: row.id, title: row.title, type: row.type, description: row.description || "" })),

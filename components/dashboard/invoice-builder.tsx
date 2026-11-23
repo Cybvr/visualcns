@@ -41,7 +41,6 @@ import {
   type Invoice,
   type InvoiceLineItem,
   type InvoiceStatus,
-  type Estimate,
 } from "@/lib/billing"
 import { getBusinessProfile, type BusinessProfile } from "@/lib/business-profile"
 import { getProjects, type Project } from "@/lib/projects"
@@ -87,19 +86,6 @@ function makeLine(): DraftLine {
   }
 }
 
-function estimateDraftLines(estimate?: Estimate): DraftLine[] {
-  if (!estimate?.lineItems?.length) return [makeLine()]
-  const billable = estimate.lineItems.filter((item) => !item.optional)
-  return (billable.length ? billable : estimate.lineItems).map((item) => ({
-    id: item.id,
-    title: item.description,
-    description: item.details ?? "",
-    quantity: "1",
-    unitPrice: ((item.amount ?? 0) / 100).toFixed(2),
-    taxRate: "0",
-  }))
-}
-
 function toNumber(value: string): number {
   const parsed = Number.parseFloat(value)
   return Number.isFinite(parsed) ? parsed : 0
@@ -119,7 +105,7 @@ function clientEmail(client: Organization, people: AppUser[]): string {
  * `onSaved` and `onDeleted` are for the invoices split pane: the list updates
  * in place and the pane stays open, instead of navigating back to the list.
  */
-export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate, onSaved, onDeleted, headerExtra, hideBack = false, flush = false, autosave = false, trailing }: {
+export function InvoiceBuilder({ invoice, initialCompanyId, onSaved, onDeleted, headerExtra, hideBack = false, flush = false, autosave = false, trailing }: {
   /** The bar runs edge to edge across its pane, like an open document's toolbar. */
   flush?: boolean
   /** Saves by itself shortly after each change, like a document. Needs a saved invoice. */
@@ -128,7 +114,6 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate, onS
   trailing?: ReactNode
   invoice?: Invoice | null
   initialCompanyId?: string
-  initialEstimate?: Estimate
   onSaved?: (invoice: Invoice) => void
   onDeleted?: (id: string) => void
   /** More buttons beside Share and Download, e.g. payment settings. */
@@ -141,11 +126,11 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate, onS
   const isEdit = Boolean(invoice)
 
   const [invoiceNumber, setInvoiceNumber] = useState(invoice?.invoiceNumber ?? "")
-  const [invoiceTitle, setInvoiceTitle] = useState(invoice?.title ?? initialEstimate?.title ?? "")
-  const [companyId, setCompanyId] = useState(invoice?.companyId ?? initialEstimate?.companyId ?? initialCompanyId ?? "")
-  const [projectId, setProjectId] = useState(invoice?.projectId ?? initialEstimate?.projectId ?? "")
+  const [invoiceTitle, setInvoiceTitle] = useState(invoice?.title ?? "")
+  const [companyId, setCompanyId] = useState(invoice?.companyId ?? initialCompanyId ?? "")
+  const [projectId, setProjectId] = useState(invoice?.projectId ?? "")
   const [status, setStatus] = useState<InvoiceStatus>(invoice?.status ?? "draft")
-  const [currency, setCurrency] = useState(invoice?.currency || initialEstimate?.currency || "USD")
+  const [currency, setCurrency] = useState(invoice?.currency || "USD")
 
   const [billToEmail, setBillToEmail] = useState(invoice?.billTo?.email ?? "")
   const [billToAddress, setBillToAddress] = useState(invoice?.billTo?.address ?? "")
@@ -174,7 +159,7 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate, onS
         },
       ]
     }
-    return estimateDraftLines(initialEstimate)
+    return [makeLine()]
   })
 
   const [discountType, setDiscountType] = useState<"amount" | "percent">(
@@ -203,13 +188,12 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate, onS
       : "",
   )
 
-  const [issuedOn, setIssuedOn] = useState(invoice?.issuedOn || initialEstimate?.issuedOn || today())
+  const [issuedOn, setIssuedOn] = useState(invoice?.issuedOn || today())
   const [termsDays, setTermsDays] = useState(invoice?.paymentTermsDays ?? 14)
-  // An estimate's note says it "is not an invoice", so never carry it over.
   const [notes, setNotes] = useState(invoiceNotes(invoice?.notes))
-  const [paymentInstructions, setPaymentInstructions] = useState(invoice?.paymentInstructions ?? initialEstimate?.paymentDetails ?? "")
+  const [paymentInstructions, setPaymentInstructions] = useState(invoice?.paymentInstructions ?? "")
 
-  const [shareEnabled, setShareEnabled] = useState(invoice?.shareEnabled ?? initialEstimate?.shareEnabled ?? false)
+  const [shareEnabled, setShareEnabled] = useState(invoice?.shareEnabled ?? false)
   const [shareSaving, setShareSaving] = useState(false)
   const [autoReminders] = useState(invoice?.autoReminders ?? false)
   // Everyone after the first "Send to" address is copied on the invoice and its reminders.
@@ -247,7 +231,7 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate, onS
           setTermsDays(days)
           setDueOn(dueDateFrom(issuedOn, days))
           setNotes(profile.invoiceNotes ?? "")
-          setPaymentInstructions(initialEstimate?.paymentDetails ?? profile.invoicePaymentInstructions ?? "")
+          setPaymentInstructions(profile.invoicePaymentInstructions ?? "")
         }
       })
       .catch(() => {
@@ -274,7 +258,7 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate, onS
     }
   }, [isEdit])
 
-  // New invoices use the selected client's current contact, even when created from an estimate.
+  // New invoices use the selected client's current contact.
   // On existing invoices, replace an accidentally saved sender address but keep other edits.
   useEffect(() => {
     if (!companyId) return
@@ -340,7 +324,7 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate, onS
   const selectedClient = clients.find((entry) => entry.id === companyId)
   const selectedProject = projects.find((entry) => entry.id === projectId)
   const clientName = selectedClient?.name
-    ?? (companyId === invoice?.companyId ? invoice.client : companyId === initialEstimate?.companyId ? initialEstimate.client : "")
+    ?? (companyId === invoice?.companyId ? invoice.client : "")
   const contactOptions = useMemo<ComboboxOption[]>(() => {
     if (!companyId) return []
 

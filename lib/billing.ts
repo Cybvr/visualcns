@@ -18,7 +18,6 @@ import { getCurrentAgencyId } from "./agency-scope"
 
 export type InvoiceStatus = "draft" | "sent" | "paid" | "overdue" | "void"
 export type ContractStatus = "draft" | "sent" | "signed" | "expired"
-export type EstimateStatus = "draft" | "sent" | "accepted" | "declined" | "expired"
 
 export interface InvoiceLineItem {
   id: string
@@ -122,51 +121,6 @@ export interface Contract {
   updatedAt?: Timestamp
 }
 
-export interface EstimateLineItem {
-  id: string
-  description: string
-  details?: string
-  billing?: string
-  /** Optional additions are displayed separately and excluded from the base total. */
-  optional?: boolean
-  /** Minor units, so 125000 is 1,250.00 */
-  amount: number
-}
-
-export interface Estimate {
-  id: string
-  agencyId?: string
-  companyId: string
-  client: string
-  /** Estimate number shown to the client, generated as EST-0001 upward. */
-  estimateNumber: string
-  title: string
-  projectId?: string
-  project?: string
-  status: EstimateStatus
-  preparedFor?: InvoiceParty
-  /** Scope of work as rich text. */
-  scope?: string
-  lineItems: EstimateLineItem[]
-  /** Required line items only, in minor units. */
-  amount: number
-  currency: string
-  issuedOn: string
-  /** The offer stands until this date; past it, treat as expired. */
-  validUntil?: string
-  terms?: string
-  paymentDetails?: string
-  acceptance?: string
-  /** Set automatically when a client accepts a shared estimate. */
-  acceptedAt?: Timestamp
-  /** Estimate disclaimer shown below acceptance. */
-  notes?: string
-  /** Readable without an account at /share/estimates/{id} once turned on. */
-  shareEnabled?: boolean
-  createdAt?: Timestamp
-  updatedAt?: Timestamp
-}
-
 export const invoiceStatusMeta: Record<InvoiceStatus, { label: string; className: string }> = {
   draft: { label: "Draft", className: "bg-muted text-muted-foreground" },
   sent: { label: "Sent", className: "bg-blue-100 text-blue-700" },
@@ -179,14 +133,6 @@ export const contractStatusMeta: Record<ContractStatus, { label: string; classNa
   draft: { label: "Draft", className: "bg-muted text-muted-foreground" },
   sent: { label: "Awaiting signature", className: "bg-amber-100 text-amber-700" },
   signed: { label: "Signed", className: "bg-emerald-100 text-emerald-700" },
-  expired: { label: "Expired", className: "bg-muted text-muted-foreground" },
-}
-
-export const estimateStatusMeta: Record<EstimateStatus, { label: string; className: string }> = {
-  draft: { label: "Draft", className: "bg-muted text-muted-foreground" },
-  sent: { label: "Awaiting response", className: "bg-amber-100 text-amber-700" },
-  accepted: { label: "Accepted", className: "bg-emerald-100 text-emerald-700" },
-  declined: { label: "Declined", className: "bg-red-100 text-red-700" },
   expired: { label: "Expired", className: "bg-muted text-muted-foreground" },
 }
 
@@ -272,7 +218,6 @@ export function formatDate(value?: string): string {
 
 const INVOICES = "invoices"
 const CONTRACTS = "contracts"
-const ESTIMATES = "estimates"
 
 function byNewest<T extends { createdAt?: Timestamp; updatedAt?: Timestamp }>(rows: T[]): T[] {
   return rows.sort((a, b) => {
@@ -283,7 +228,7 @@ function byNewest<T extends { createdAt?: Timestamp; updatedAt?: Timestamp }>(ro
 }
 
 /** Drafts stay internal, so a client only ever sees what has actually been issued. */
-function isVisibleToClient(status: InvoiceStatus | ContractStatus | EstimateStatus): boolean {
+function isVisibleToClient(status: InvoiceStatus | ContractStatus): boolean {
   return status !== "draft"
 }
 
@@ -308,15 +253,6 @@ async function syncInvoiceTask(invoice: Invoice): Promise<void> {
   } catch (err) { console.error("Couldn't sync invoice task:", err) }
 }
 
-async function syncEstimateTask(estimate: Estimate): Promise<void> {
-  try {
-    await ensureBillingTask({
-      kind: "estimate", sourceId: estimate.id, companyId: estimate.companyId, client: estimate.client,
-      projectId: estimate.projectId || "", project: estimate.project || "",
-      title: estimate.title || `Estimate ${estimate.estimateNumber}`, isDraft: estimate.status === "draft", dueDate: estimate.validUntil,
-    })
-  } catch (err) { console.error("Couldn't sync estimate task:", err) }
-}
 
 async function syncContractTask(contract: Contract): Promise<void> {
   try {
@@ -452,84 +388,4 @@ export async function updateContract(id: string, data: Partial<Omit<Contract, "i
 
 export async function deleteContract(id: string): Promise<void> {
   await deleteDoc(doc(db, CONTRACTS, id))
-}
-
-export async function getEstimates(): Promise<Estimate[]> {
-  const snapshot = await getDocs(query(collection(db, ESTIMATES), where("agencyId", "==", await getCurrentAgencyId())))
-  return byNewest(snapshot.docs.map((d) => ({ ...(d.data() as object), id: d.id })) as Estimate[])
-}
-
-export async function getEstimatesByCompanyId(companyId: string, includeDrafts = false): Promise<Estimate[]> {
-  if (!companyId) return []
-  const snapshot = await getDocs(includeDrafts
-    ? query(collection(db, ESTIMATES), where("agencyId", "==", await getCurrentAgencyId()), where("companyId", "==", companyId))
-    : query(collection(db, ESTIMATES), where("agencyId", "==", await getCurrentAgencyId()), where("companyId", "==", companyId), where("status", "!=", "draft")))
-  const rows = snapshot.docs.map((d) => ({ ...(d.data() as object), id: d.id })) as Estimate[]
-  return byNewest(includeDrafts ? rows : rows.filter((row) => isVisibleToClient(row.status)))
-}
-
-/**
- * Unlike invoices/contracts, an estimate's public-read rule only allows an
- * unauthenticated reader through when shareEnabled is set (not just
- * non-draft) - so this is what the company's public page queries instead of
- * getEstimatesByCompanyId, matching that rule shape exactly.
- */
-export async function getSharedEstimatesByCompanyId(companyId: string): Promise<Estimate[]> {
-  if (!companyId) return []
-  const snapshot = await getDocs(
-    query(collection(db, ESTIMATES), where("companyId", "==", companyId), where("shareEnabled", "==", true), where("status", "!=", "draft")),
-  )
-  return byNewest(snapshot.docs.map((d) => ({ ...(d.data() as object), id: d.id })) as Estimate[])
-}
-
-/** The next estimate number in the EST-0001 sequence. */
-export async function nextEstimateNumber(): Promise<string> {
-  try {
-    const existing = await getEstimates()
-    const highest = existing.reduce((max, estimate) => {
-      const match = /^EST-(\d+)$/i.exec((estimate.estimateNumber ?? "").trim())
-      if (!match) return max
-      return Math.max(max, Number.parseInt(match[1], 10))
-    }, 0)
-    return `EST-${String(highest + 1).padStart(4, "0")}`
-  } catch {
-    return "EST-0001"
-  }
-}
-
-export async function getEstimate(id: string): Promise<Estimate | null> {
-  const snapshot = await getDoc(doc(db, ESTIMATES, id))
-  if (!snapshot.exists()) return null
-  return { ...(snapshot.data() as object), id: snapshot.id } as Estimate
-}
-
-export async function createEstimate(data: Omit<Estimate, "id" | "createdAt" | "updatedAt">): Promise<string> {
-  const agencyId = await getCurrentAgencyId()
-  const ref = await addDoc(collection(db, ESTIMATES), {
-    ...data,
-    agencyId,
-    createdAt: Timestamp.now(),
-    updatedAt: Timestamp.now(),
-  })
-  await syncEstimateTask({ ...(data as Estimate), id: ref.id })
-  return ref.id
-}
-
-export async function updateEstimate(id: string, data: Partial<Omit<Estimate, "id" | "createdAt">>): Promise<void> {
-  await updateDoc(doc(db, ESTIMATES, id), { ...data, updatedAt: Timestamp.now() })
-  const fresh = await getEstimate(id)
-  if (fresh) await syncEstimateTask(fresh)
-}
-
-/** Accept a shared estimate without collecting a redundant signature form. */
-export async function acceptEstimate(id: string): Promise<void> {
-  await updateDoc(doc(db, ESTIMATES, id), {
-    status: "accepted",
-    acceptedAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
-  })
-}
-
-export async function deleteEstimate(id: string): Promise<void> {
-  await deleteDoc(doc(db, ESTIMATES, id))
 }

@@ -14,13 +14,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea"
 import { getAgency } from "@/lib/agencies"
 import { PAYMENT_TERM_OPTIONS } from "@/lib/billing"
-import { DEFAULT_ESTIMATE_NOTES, DEFAULT_ESTIMATE_TERMS, getBusinessProfile, updateAgencyBusinessSettings } from "@/lib/business-profile"
+import { getBusinessProfile, updateAgencyBusinessSettings } from "@/lib/business-profile"
 
 const EMPTY = {
   name: "", logoUrl: "", primaryColor: "", accentColor: "", subdomain: "", senderEmail: "",
   address: "", email: "", phone: "", website: "", taxNumber: "",
   invoicePaymentTermsDays: "14", invoiceNotes: "", invoicePaymentInstructions: "",
-  estimateTerms: DEFAULT_ESTIMATE_TERMS, estimatePaymentDetails: "", estimateNotes: DEFAULT_ESTIMATE_NOTES,
   ngaiStyle: "",
 }
 
@@ -52,9 +51,6 @@ export default function AgencySettingsPage() {
           invoicePaymentTermsDays: String(profile.invoicePaymentTermsDays ?? 14),
           invoiceNotes: profile.invoiceNotes || "",
           invoicePaymentInstructions: profile.invoicePaymentInstructions || "",
-          estimateTerms: profile.estimateTerms ?? DEFAULT_ESTIMATE_TERMS,
-          estimatePaymentDetails: profile.estimatePaymentDetails || "",
-          estimateNotes: profile.estimateNotes ?? DEFAULT_ESTIMATE_NOTES,
           ngaiStyle: profile.ngaiStyle || "",
         })
       })
@@ -88,9 +84,6 @@ export default function AgencySettingsPage() {
         invoicePaymentTermsDays: Number(form.invoicePaymentTermsDays),
         invoiceNotes: form.invoiceNotes.trim(),
         invoicePaymentInstructions: form.invoicePaymentInstructions.trim(),
-        estimateTerms: form.estimateTerms.trim(),
-        estimatePaymentDetails: form.estimatePaymentDetails.trim(),
-        estimateNotes: form.estimateNotes.trim(),
         ngaiStyle: form.ngaiStyle.trim(),
       })
       setForm((current) => ({ ...current, subdomain }))
@@ -144,9 +137,6 @@ export default function AgencySettingsPage() {
             </div>
             <div className="space-y-1.5"><Label htmlFor="agency-invoice-notes">Invoice note</Label><Textarea id="agency-invoice-notes" rows={3} value={form.invoiceNotes} onChange={(event) => set("invoiceNotes", event.target.value)} /></div>
             <div className="space-y-1.5"><Label htmlFor="agency-invoice-payment">Invoice payment instructions</Label><Textarea id="agency-invoice-payment" rows={3} value={form.invoicePaymentInstructions} onChange={(event) => set("invoicePaymentInstructions", event.target.value)} /></div>
-            <div className="space-y-1.5"><Label htmlFor="agency-estimate-terms">Estimate terms</Label><Textarea id="agency-estimate-terms" rows={5} value={form.estimateTerms} onChange={(event) => set("estimateTerms", event.target.value)} /></div>
-            <div className="space-y-1.5"><Label htmlFor="agency-estimate-payment">Estimate payment details</Label><Textarea id="agency-estimate-payment" rows={3} value={form.estimatePaymentDetails} onChange={(event) => set("estimatePaymentDetails", event.target.value)} /></div>
-            <div className="space-y-1.5"><Label htmlFor="agency-estimate-notes">Estimate disclaimer</Label><Textarea id="agency-estimate-notes" rows={3} value={form.estimateNotes} onChange={(event) => set("estimateNotes", event.target.value)} /></div>
             <div className="space-y-1.5">
               <Label htmlFor="agency-ngai-style">How Ngai should write</Label>
               <Textarea id="agency-ngai-style" rows={5} value={form.ngaiStyle} onChange={(event) => set("ngaiStyle", event.target.value)} placeholder={"Warm but direct. British spelling.\nSign off emails with \"Best, the VisualCNS team\".\nKeep documents short, with clear headings."} />

@@ -6,13 +6,10 @@ import { useParams } from "next/navigation"
 import { useAuth } from "@/components/auth-provider"
 import {
   getContractsByCompanyId,
-  getEstimatesByCompanyId,
   getInvoicesByCompanyId,
   getPublicContractsByCompanyId,
   getPublicInvoicesByCompanyId,
-  getSharedEstimatesByCompanyId,
   type Contract,
-  type Estimate,
   type Invoice,
 } from "@/lib/billing"
 import { getCompanyDocumentsByCompanyId, getPublicCompanyDocumentsByCompanyId, type CompanyDocument } from "@/lib/company-documents"
@@ -59,7 +56,6 @@ type CompanyState = {
   projects: Project[]
   invoices: Invoice[]
   contracts: Contract[]
-  estimates: Estimate[]
   documents: CompanyDocument[]
   workspaceId: string
   name: string
@@ -86,7 +82,6 @@ export function CompanyProvider({ children, companyRef, publicView = false }: { 
   const [projects, setProjects] = useState<Project[]>([])
   const [invoices, setInvoices] = useState<Invoice[]>([])
   const [contracts, setContracts] = useState<Contract[]>([])
-  const [estimates, setEstimates] = useState<Estimate[]>([])
   const [documents, setDocuments] = useState<CompanyDocument[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -122,7 +117,7 @@ export function CompanyProvider({ children, companyRef, publicView = false }: { 
         return
       }
       const workspace = found.companyId || resolvedOrg?.id || found.uid
-      const [foundOrg, foundPeople, foundProjects, foundInvoices, foundContracts, foundEstimates, foundDocuments] = publicView
+      const [foundOrg, foundPeople, foundProjects, foundInvoices, foundContracts, foundDocuments] = publicView
         ? await Promise.all([
             Promise.resolve(resolvedOrg),
             Promise.resolve([] as AppUser[]),
@@ -131,7 +126,6 @@ export function CompanyProvider({ children, companyRef, publicView = false }: { 
             // The agency's own admins also see drafts on the client page, so they can check what the client will get.
             isAdmin ? getInvoicesByCompanyId(workspace, true) : getPublicInvoicesByCompanyId(workspace),
             isAdmin ? getContractsByCompanyId(workspace, true) : getPublicContractsByCompanyId(workspace),
-            isAdmin ? getEstimatesByCompanyId(workspace, true) : getSharedEstimatesByCompanyId(workspace),
             isAdmin ? getCompanyDocumentsByCompanyId(workspace, true) : getPublicCompanyDocumentsByCompanyId(workspace),
           ])
         : await Promise.all([
@@ -140,7 +134,6 @@ export function CompanyProvider({ children, companyRef, publicView = false }: { 
             getProjectsByCompanyId(workspace),
             getInvoicesByCompanyId(workspace, true),
             getContractsByCompanyId(workspace, true),
-            getEstimatesByCompanyId(workspace, true),
             getCompanyDocumentsByCompanyId(workspace, true),
           ])
       setClient(found)
@@ -149,7 +142,6 @@ export function CompanyProvider({ children, companyRef, publicView = false }: { 
       setProjects(foundProjects)
       setInvoices(foundInvoices)
       setContracts(foundContracts)
-      setEstimates(foundEstimates)
       setDocuments(foundDocuments)
 
       const nextPublicTeam = publicView
@@ -191,14 +183,13 @@ export function CompanyProvider({ children, companyRef, publicView = false }: { 
       projects,
       invoices,
       contracts,
-      estimates,
       documents,
       workspaceId,
       name: client ? organization?.name || clientName(client) : "",
       categoryLabel: buildCategoryLabel(projects, organization),
       reload: load,
     }
-  }, [loading, error, client, organization, people, publicTeam, projects, invoices, contracts, estimates, documents, load])
+  }, [loading, error, client, organization, people, publicTeam, projects, invoices, contracts, documents, load])
 
   return <CompanyContext.Provider value={value}>{children}</CompanyContext.Provider>
 }

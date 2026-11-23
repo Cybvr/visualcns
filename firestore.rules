@@ -332,17 +332,6 @@ service cloud.firestore {
       allow update: if agencyAdmin(resource.data) && sameAgency(request.resource.data);
       allow delete: if agencyAdmin(resource.data);
     }
-    match /estimates/{id} {
-      allow get: if agencyAdmin(resource.data) || (owns(resource.data) && resource.data.status != 'draft') || resource.data.get('shareEnabled', false) == true;
-      allow list: if agencyAdmin(resource.data) || (resource.data.status != 'draft' && resource.data.get('shareEnabled', false) == true)
-        || (owns(resource.data) && resource.data.status != 'draft');
-      allow create: if isAdmin() && sameAgency(request.resource.data);
-      allow delete: if agencyAdmin(resource.data);
-      allow update: if agencyAdmin(resource.data) || ((owns(resource.data) || resource.data.get('shareEnabled', false) == true)
-        && resource.data.status == 'sent' && request.resource.data.status == 'accepted'
-        && request.resource.data.acceptedAt == request.time && request.resource.data.updatedAt == request.time
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'acceptedAt', 'updatedAt']));
-    }
     // Written documents sent to a company: proposals, statements of work,
     // briefs. Drafts stay internal; a sent document is readable by its own
     // company, or by anyone holding the link once sharing is turned on.

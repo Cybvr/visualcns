@@ -169,7 +169,7 @@ export function WebsitesHomeSection() {
 
 /** Finance: what's owed, the plan, and the latest paperwork. */
 export function FinanceHomeSection() {
-  const { company, invoices, estimates, contracts, documents, sectionHref } = useCompanyPage()
+  const { company, invoices, contracts, documents, sectionHref } = useCompanyPage()
   const billing = useSubscription(company.id)
   const open = invoices.filter(invoiceIsOpen)
   const overdue = open.filter((invoice) => invoiceIsOverdue(invoice))
@@ -188,7 +188,6 @@ export function FinanceHomeSection() {
 
   const recent = [
     ...invoices.map((item) => ({ id: `invoice-${item.id}`, title: item.title || `Invoice ${item.invoiceNumber}`, meta: invoiceIsOverdue(item) ? "Overdue" : invoiceIsOpen(item) ? "Due" : item.status === "paid" ? "Paid" : "Invoice", href: invoiceHref(item.id), at: String(item.issuedOn || "") })),
-    ...estimates.map((item) => ({ id: `estimate-${item.id}`, title: item.title || `Estimate ${item.estimateNumber}`, meta: "Estimate", href: sectionHref("documents", { doc: `estimate:${item.id}` }), at: "" })),
     ...contracts.map((item) => ({ id: `contract-${item.id}`, title: item.title, meta: "Contract", href: sectionHref("documents", { doc: `contract:${item.id}` }), at: "" })),
     ...documents.map((item) => ({ id: `document-${item.id}`, title: item.title || "Document", meta: "Document", href: sectionHref("documents", { doc: `document:${item.id}` }), at: "" })),
   ].slice(0, 5)

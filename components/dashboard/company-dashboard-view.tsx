@@ -33,7 +33,6 @@ export function CompanyDashboardView({ embedded, keepParams, onBack }: { embedde
     projects,
     invoices,
     contracts,
-    estimates,
     documents,
     reload,
   } = useCompany()
@@ -85,7 +84,6 @@ export function CompanyDashboardView({ embedded, keepParams, onBack }: { embedde
       projects={projects}
       invoices={invoices}
       contracts={contracts}
-      estimates={estimates}
       documents={documents}
       admin={
         isAdmin

@@ -2,44 +2,34 @@
 
 import { useEffect, useState, type FormEvent } from "react"
 import { useRouter } from "next/navigation"
-import { ArrowLeft, ChevronRight, FilePlus, LayoutTemplate, Loader2 } from "lucide-react"
+import { Loader2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Combobox, type ComboboxOption } from "@/components/ui/combobox"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { DocumentPagePreview } from "@/components/dashboard/document-preview"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { findOrCreateCompany } from "@/lib/companies"
-import { COMPANY_DOCUMENT_TEMPLATES, createCompanyDocument } from "@/lib/company-documents"
+import { createCompanyDocument } from "@/lib/company-documents"
 import { createProject, getProjects, type Project } from "@/lib/projects"
 import { getUsers, type AppUser } from "@/lib/users"
 
-type Step = "start" | "templates" | "details"
-
 /**
- * Everything that has to be decided before a document exists: which template,
- * what it's called, and who it's for. The document itself is written on the
- * edit page this hands you to, so the writing screen holds nothing but the
- * document.
+ * Everything that has to be decided before a document exists: what it's called
+ * and who it's for. The document itself is written on the edit page this hands
+ * you to, so the writing screen holds nothing but the document.
  */
 export function NewDocumentDialog({
   open,
   onOpenChange,
   initialCompanyId,
-  initialStep = "start",
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   initialCompanyId?: string
-  /** "templates" opens straight on the template list. */
-  initialStep?: "start" | "templates"
 }) {
   const router = useRouter()
-  const [step, setStep] = useState<Step>(initialStep)
-  const [backTo, setBackTo] = useState<Step>("start")
-  const [templateId, setTemplateId] = useState(COMPANY_DOCUMENT_TEMPLATES[0].id)
-  const [title, setTitle] = useState(COMPANY_DOCUMENT_TEMPLATES[0].title)
+  const [title, setTitle] = useState("")
   const [companyId, setCompanyId] = useState(initialCompanyId ?? "")
   const [projectId, setProjectId] = useState("")
   const [clients, setClients] = useState<AppUser[]>([])
@@ -72,16 +62,11 @@ export function NewDocumentDialog({
   /** Reopening starts fresh, so a cancelled attempt never half-fills the next one. */
   useEffect(() => {
     if (open) return
-    setStep(initialStep)
-    setBackTo("start")
-    setTemplateId(COMPANY_DOCUMENT_TEMPLATES[0].id)
-    setTitle(COMPANY_DOCUMENT_TEMPLATES[0].title)
+    setTitle("")
     setCompanyId(initialCompanyId ?? "")
     setProjectId("")
     setError(null)
-  }, [open, initialCompanyId, initialStep])
-
-  const template = COMPANY_DOCUMENT_TEMPLATES.find((entry) => entry.id === templateId) ?? COMPANY_DOCUMENT_TEMPLATES[0]
+  }, [open, initialCompanyId])
 
   const companyOptions: ComboboxOption[] = clients.map((client) => ({
     value: client.companyId as string,
@@ -119,14 +104,6 @@ export function NewDocumentDialog({
     return { value: id, label: name }
   }
 
-  /** Picking a template renames the document too, unless it has been named by hand. */
-  function chooseTemplate(id: string) {
-    const next = COMPANY_DOCUMENT_TEMPLATES.find((entry) => entry.id === id)
-    if (!next) return
-    setTemplateId(id)
-    if (!title.trim() || title === template.title) setTitle(next.title)
-  }
-
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (creating) return
@@ -144,10 +121,10 @@ export function NewDocumentDialog({
         client: client?.company || client?.displayName || "",
         projectId: projectId || "",
         project: project?.title || "",
-        kind: template.kind,
+        kind: "other",
         status: "draft",
         summary: "",
-        body: template.body,
+        body: "",
         shareEnabled: false,
       })
       onOpenChange(false)
@@ -160,157 +137,80 @@ export function NewDocumentDialog({
     }
   }
 
-  const steps: Step[] = ["start", "templates", "details"]
-  const stepIndex = steps.indexOf(step)
-
-  function startBlank() {
-    chooseTemplate("blank")
-    setBackTo("start")
-    setStep("details")
-  }
-
-  function pickTemplate(id: string) {
-    chooseTemplate(id)
-    setBackTo("templates")
-    setStep("details")
-  }
-
-  const startOptions = [
-    { key: "blank", label: "From blank", icon: FilePlus, onClick: startBlank },
-    { key: "template", label: "From template", icon: LayoutTemplate, onClick: () => setStep("templates") },
-  ]
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[85vh] max-w-md flex-col gap-4 overflow-hidden sm:aspect-video sm:h-auto sm:w-[min(92vw,64rem)] sm:max-w-none">
-        <DialogHeader className="flex-row items-center gap-2 space-y-0 text-left">
-          {step !== "start" && (
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="-ml-2 size-8 shrink-0"
-              aria-label="Back"
-              onClick={() => setStep(step === "details" ? backTo : "start")}
-            >
-              <ArrowLeft className="size-4" aria-hidden="true" />
-            </Button>
-          )}
-          <DialogTitle>{step === "templates" ? "Templates" : step === "details" && templateId !== "blank" ? template.label : "New document"}</DialogTitle>
-          <DialogDescription className="sr-only">Create a document from blank or from a template.</DialogDescription>
+      <DialogContent className="flex max-h-[85vh] max-w-md flex-col gap-4 overflow-hidden">
+        <DialogHeader className="text-left">
+          <DialogTitle>New document</DialogTitle>
+          <DialogDescription className="sr-only">Create a document.</DialogDescription>
         </DialogHeader>
 
-        <div className="min-h-0 flex-1 overflow-hidden">
-          <div
-            className="flex h-full w-[300%] transition-transform duration-300 ease-out motion-reduce:transition-none"
-            style={{ transform: `translateX(-${(stepIndex * 100) / 3}%)` }}
-          >
-            <div className="w-1/3 shrink-0 px-0.5" inert={step !== "start"}>
-              <div className="grid grid-cols-2 gap-2">
-                {startOptions.map(({ key, label, icon: Icon, onClick }) => (
-                  <button
-                    key={key}
-                    type="button"
-                    onClick={onClick}
-                    className="flex flex-col items-center gap-2 rounded-[10px] border border-border px-3 py-6 text-sm font-medium outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring"
-                  >
-                    <Icon className="size-5 text-muted-foreground" aria-hidden="true" />
-                    {label}
-                  </button>
-                ))}
+        <form onSubmit={submit} className="flex flex-col overflow-y-auto px-0.5">
+          <div className="space-y-4 py-0.5">
+            <div>
+              <Label htmlFor="document-title">Title</Label>
+              <Input
+                id="document-title"
+                value={title}
+                onChange={(event) => setTitle(event.target.value)}
+                placeholder="Untitled"
+                className="mt-1"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="document-company">Company</Label>
+              <div className="mt-1">
+                <Combobox
+                  id="document-company"
+                  options={companyOptions}
+                  value={companyId}
+                  onChange={(next) => {
+                    setCompanyId(next)
+                    // Drop a project that belongs to a different company.
+                    setProjectId((current) =>
+                      projects.find((project) => project.id === current)?.companyId === next ? current : "",
+                    )
+                  }}
+                  onCreate={createCompany}
+                  loading={optionsLoading}
+                  placeholder="Choose a company"
+                  searchPlaceholder="Search companies..."
+                  emptyText="No company found."
+                  createLabel={(query) => `Add “${query}”`}
+                  createHint="Type a name to add a company"
+                />
               </div>
             </div>
 
-            <div className="w-1/3 shrink-0 overflow-y-auto px-0.5" inert={step !== "templates"}>
-              {/* Phones: a plain list. Wider: a grid of first-page previews. */}
-              <div className="flex flex-col sm:grid sm:grid-cols-3 sm:gap-4 sm:pb-1 lg:grid-cols-4">
-                {COMPANY_DOCUMENT_TEMPLATES.filter((entry) => entry.id !== "blank").map((entry) => (
-                  <button
-                    key={entry.id}
-                    type="button"
-                    onClick={() => pickTemplate(entry.id)}
-                    className="group flex h-11 items-center justify-between rounded-md px-2 text-left text-sm outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring sm:h-auto sm:flex-col sm:items-stretch sm:gap-2 sm:p-0 sm:hover:bg-transparent"
-                  >
-                    <span className="relative hidden aspect-[4/3] overflow-hidden rounded-xl transition-transform group-hover:scale-[1.02] sm:block">
-                      <DocumentPagePreview title={entry.title} html={entry.body} tone="document" />
-                    </span>
-                    <span className="flex items-center justify-between gap-2 sm:px-0.5 sm:font-medium">
-                      {entry.label}
-                      <ChevronRight className="size-4 text-muted-foreground sm:hidden" aria-hidden="true" />
-                    </span>
-                  </button>
-                ))}
+            <div>
+              <Label htmlFor="document-project">Project</Label>
+              <div className="mt-1">
+                <Combobox
+                  id="document-project"
+                  options={projectOptions}
+                  value={projectId}
+                  onChange={setProjectId}
+                  onCreate={createProjectOption}
+                  disabled={!companyId}
+                  loading={optionsLoading}
+                  placeholder={companyId ? "Optional" : "Choose a company first"}
+                  searchPlaceholder="Search projects..."
+                  emptyText="No project found."
+                  createLabel={(query) => `Add “${query}”`}
+                  createHint="Type a name to add a project"
+                />
               </div>
             </div>
 
-            <form onSubmit={submit} className="flex w-1/3 shrink-0 flex-col overflow-y-auto px-0.5 sm:items-center" inert={step !== "details"}>
-              <div className="space-y-4 py-0.5 sm:w-full sm:max-w-md">
-                <div>
-                  <Label htmlFor="document-title">Title</Label>
-                  <Input
-                    id="document-title"
-                    value={title}
-                    onChange={(event) => setTitle(event.target.value)}
-                    placeholder="Untitled"
-                    className="mt-1"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="document-company">Company</Label>
-                  <div className="mt-1">
-                    <Combobox
-                      id="document-company"
-                      options={companyOptions}
-                      value={companyId}
-                      onChange={(next) => {
-                        setCompanyId(next)
-                        // Drop a project that belongs to a different company.
-                        setProjectId((current) =>
-                          projects.find((project) => project.id === current)?.companyId === next ? current : "",
-                        )
-                      }}
-                      onCreate={createCompany}
-                      loading={optionsLoading}
-                      placeholder="Choose a company"
-                      searchPlaceholder="Search companies..."
-                      emptyText="No company found."
-                      createLabel={(query) => `Add “${query}”`}
-                      createHint="Type a name to add a company"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <Label htmlFor="document-project">Project</Label>
-                  <div className="mt-1">
-                    <Combobox
-                      id="document-project"
-                      options={projectOptions}
-                      value={projectId}
-                      onChange={setProjectId}
-                      onCreate={createProjectOption}
-                      disabled={!companyId}
-                      loading={optionsLoading}
-                      placeholder={companyId ? "Optional" : "Choose a company first"}
-                      searchPlaceholder="Search projects..."
-                      emptyText="No project found."
-                      createLabel={(query) => `Add “${query}”`}
-                      createHint="Type a name to add a project"
-                    />
-                  </div>
-                </div>
-
-                {error && <p className="text-sm text-destructive">{error}</p>}
-              </div>
-
-              <Button type="submit" disabled={creating} className="mt-5 w-full sm:max-w-md">
-                {creating && <Loader2 className="mr-2 size-4 animate-spin" aria-hidden="true" />}
-                Create
-              </Button>
-            </form>
+            {error && <p className="text-sm text-destructive">{error}</p>}
           </div>
-        </div>
+
+          <Button type="submit" disabled={creating} className="mt-5 w-full">
+            {creating && <Loader2 className="mr-2 size-4 animate-spin" aria-hidden="true" />}
+            Create
+          </Button>
+        </form>
       </DialogContent>
     </Dialog>
   )

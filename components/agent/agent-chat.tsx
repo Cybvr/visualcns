@@ -372,7 +372,6 @@ function isAllowedFile(file: File): boolean {
 const QUICK_ACTIONS: { label: string; prompt: string }[] = [
   { label: "Add to Drive", prompt: "File this into the client's documents." },
   { label: "Make invoice", prompt: "Turn this into a draft invoice for the client." },
-  { label: "Make estimate", prompt: "Turn this into a draft estimate for the client." },
   { label: "Make contract", prompt: "Turn this into a draft contract for the client." },
 ]
 

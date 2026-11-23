@@ -14,6 +14,6 @@ export function companyPath(company: string): string {
   return `/${encodeURIComponent(company)}`
 }
 
-export function companyDocumentPath(company: string, kind: "invoice" | "estimate" | "contract" | "document", id: string): string {
+export function companyDocumentPath(company: string, kind: "invoice" | "contract" | "document", id: string): string {
   return `${companyPath(company)}/documents?doc=${encodeURIComponent(`${kind}:${id}`)}`
 }

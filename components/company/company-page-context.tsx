@@ -11,7 +11,7 @@ import type { SectionNavItem } from "@/components/company/section-nav"
 import type { CompanyDetailsPatch } from "@/components/company/company-sidebar"
 import type { BrandKit } from "@/lib/organizations"
 import { siteUrl } from "@/lib/email-composer"
-import type { Contract, Estimate, Invoice } from "@/lib/billing"
+import type { Contract, Invoice } from "@/lib/billing"
 import type { CompanyDocument } from "@/lib/company-documents"
 import type { CompanyLink, PublicTeamMember } from "@/lib/organizations"
 import type { Project } from "@/lib/projects"
@@ -81,7 +81,6 @@ export interface CompanyPageData {
   projects: Project[]
   invoices: Invoice[]
   contracts: Contract[]
-  estimates: Estimate[]
   documents?: CompanyDocument[]
   admin?: CompanyPageAdmin
   emptyProjectsLabel?: string

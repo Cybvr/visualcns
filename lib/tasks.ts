@@ -41,7 +41,7 @@ export interface Task {
   /** Allows this individual task to be opened from a public share link. */
   shareEnabled?: boolean
   /** Set when the task was auto-created to track a billing document. */
-  sourceKind?: "invoice" | "estimate" | "contract"
+  sourceKind?: "invoice" | "contract"
   /** Firestore id of the billing document this task tracks. */
   sourceId?: string
   /** A private reminder the agency set (often through Ngai). Never shown to the client. */
@@ -213,13 +213,13 @@ export async function deleteTask(id: string): Promise<void> {
 }
 
 /**
- * Auto-creates a client-visible task that tracks a billing document (invoice,
- * estimate or contract) so it lands on the project board and in the client
+ * Auto-creates a client-visible task that tracks a billing document (invoice
+ * or contract) so it lands on the project board and in the client
  * portal. No-ops while the document is a draft, isn't tied to a project, or
  * already has a task - so editing or re-saving never spawns duplicates.
  */
 export async function ensureBillingTask(params: {
-  kind: "invoice" | "estimate" | "contract"
+  kind: "invoice" | "contract"
   sourceId: string
   companyId: string
   client: string

@@ -44,7 +44,6 @@ function InvoiceHistory() {
       <CompanyDocuments
         invoices={invoices}
         contracts={[]}
-        estimates={[]}
         documents={[]}
         heading="Invoices"
         emptyDescription="Invoices will appear here when they are issued."

@@ -23,8 +23,8 @@ const AgentDock = dynamic(() => import("@/components/agent/agent-dock").then((mo
 const DASHBOARD_NAV: NavLink[] = [
   { label: "New", href: "/dashboard", icon: Plus, startsNewChat: true },
   { label: "Email", href: "/dashboard/email/inbox", icon: FiMail, alsoActive: ["/dashboard/email"] },
-  { label: "Artifacts", href: "/dashboard/artifacts", icon: FolderOpen, adminOnly: true, alsoActive: ["/dashboard/drive", "/dashboard/estimates", "/dashboard/documents", "/dashboard/notes", "/dashboard/invoices"] },
-  { label: "Databases", href: "/dashboard/crm", icon: FiUsers, adminOnly: true, alsoActive: ["/dashboard/leads", "/dashboard/companies", "/dashboard/users", "/dashboard/schedules", "/dashboard/projects"] },
+  { label: "Artifacts", href: "/dashboard/artifacts", icon: FolderOpen, adminOnly: true, alsoActive: ["/dashboard/drive", "/dashboard/documents", "/dashboard/notes", "/dashboard/invoices"] },
+  { label: "Databases", href: "/dashboard/crm", icon: FiUsers, adminOnly: true, alsoActive: ["/dashboard/leads", "/dashboard/companies", "/dashboard/users", "/dashboard/projects"] },
   { label: "Analytics", href: "/dashboard/analytics", icon: BarChart3, adminOnly: true },
 ]
 

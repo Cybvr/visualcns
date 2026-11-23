@@ -59,7 +59,7 @@ export type AgentMessage = {
 }
 
 /** A document Ngai made, which opens beside the chat like an artifact. */
-export type AgentArtifact = { kind: "document" | "invoice" | "estimate" | "contract"; id: string; title: string }
+export type AgentArtifact = { kind: "document" | "invoice" | "contract"; id: string; title: string }
 
 export type AgentPlan = {
   title: string
@@ -74,7 +74,7 @@ const PLAN_MARKER = "\n␞::ngai-plan::"
 const STEP_MARKER = "␞::ngai-step::"
 const ANSWER_MARKER = "␞::ngai-answer::"
 const ARTIFACT_MARKER = "\n␞::ngai-artifacts::"
-const ARTIFACT_KINDS = ["document", "invoice", "estimate", "contract"]
+const ARTIFACT_KINDS = ["document", "invoice", "contract"]
 
 /** Takes the list of documents made this turn off the end of the reply. */
 function splitArtifacts(raw: string): { rest: string; artifacts?: AgentArtifact[] } {

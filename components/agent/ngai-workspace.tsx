@@ -24,7 +24,7 @@ function chatUrl(conversationId: string, item?: ArtifactRef | null) {
 /** The ?open= value back into an item. */
 export function parseOpenParam(value: string | null): ArtifactRef | undefined {
   const [kind, id] = (value ?? "").split(":")
-  if (!id || !["document", "invoice", "estimate", "contract"].includes(kind)) return undefined
+  if (!id || !["document", "invoice", "contract"].includes(kind)) return undefined
   return { kind: kind as ArtifactRef["kind"], id: decodeURIComponent(id) }
 }
 

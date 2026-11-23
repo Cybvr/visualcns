@@ -2,20 +2,19 @@
 
 import { useEffect, useState, type ReactNode } from "react"
 import Link from "next/link"
-import { ArrowLeft, ClipboardList, ExternalLink, FileSignature, FileText, Loader2, Maximize2, Minimize2, Pencil, Receipt, X } from "lucide-react"
+import { ArrowLeft, ExternalLink, FileSignature, FileText, Loader2, Maximize2, Minimize2, Pencil, Receipt, X } from "lucide-react"
 
 import { CompanyDocumentView } from "@/components/dashboard/company-document-view"
 import { ContractDocument } from "@/components/dashboard/contract-document"
-import { EstimateDocument } from "@/components/dashboard/estimate-document"
 import { InvoiceDocument } from "@/components/dashboard/invoice-document"
 import { InvoiceOverview } from "@/components/dashboard/invoice-overview"
 import { Button } from "@/components/ui/button"
-import { getContract, getEstimate, getInvoice, type Contract, type Estimate, type Invoice } from "@/lib/billing"
+import { getContract, getInvoice, type Contract, type Invoice } from "@/lib/billing"
 import { getBusinessProfile, type BusinessProfile } from "@/lib/business-profile"
 import { getCompanyDocument, type CompanyDocument } from "@/lib/company-documents"
 import { cn } from "@/lib/utils"
 
-export type ArtifactKind = "document" | "invoice" | "estimate" | "contract"
+export type ArtifactKind = "document" | "invoice" | "contract"
 
 /** A document to open in the artifact pane, by kind and id. */
 export type ArtifactRef = { kind: ArtifactKind; id: string; title?: string }
@@ -23,13 +22,11 @@ export type ArtifactRef = { kind: ArtifactKind; id: string; title?: string }
 type ArtifactRecord =
   | { kind: "document"; record: CompanyDocument }
   | { kind: "invoice"; record: Invoice }
-  | { kind: "estimate"; record: Estimate }
   | { kind: "contract"; record: Contract }
 
 const KIND_META: Record<ArtifactKind, { label: string; icon: typeof FileText; color: string; tile: string }> = {
   document: { label: "Document", icon: FileText, color: "text-blue-600 dark:text-blue-400", tile: "bg-blue-100 dark:bg-blue-950" },
   invoice: { label: "Invoice", icon: Receipt, color: "text-emerald-600 dark:text-emerald-400", tile: "bg-emerald-100 dark:bg-emerald-950" },
-  estimate: { label: "Estimate", icon: ClipboardList, color: "text-amber-600 dark:text-amber-400", tile: "bg-amber-100 dark:bg-amber-950" },
   contract: { label: "Contract", icon: FileSignature, color: "text-indigo-600 dark:text-indigo-400", tile: "bg-indigo-100 dark:bg-indigo-950" },
 }
 
@@ -42,7 +39,6 @@ export function artifactPageHref(artifact: Pick<ArtifactRef, "kind" | "id">, cha
   const withChat = (href: string) => chat ? `${href}${href.includes("?") ? "&" : "?"}chat=${encodeURIComponent(chat)}` : href
   if (artifact.kind === "document") return withChat(`/dashboard/documents?document=${id}`)
   if (artifact.kind === "invoice") return withChat(`/dashboard/invoices/${id}`)
-  if (artifact.kind === "estimate") return `/dashboard/estimates/${id}/edit`
   return `/dashboard/contracts/${id}`
 }
 
@@ -53,14 +49,12 @@ export function artifactEditHref(artifact: ArtifactRef) {
 async function loadRecord(artifact: ArtifactRef): Promise<ArtifactRecord | null> {
   if (artifact.kind === "document") { const record = await getCompanyDocument(artifact.id); return record ? { kind: "document", record } : null }
   if (artifact.kind === "invoice") { const record = await getInvoice(artifact.id); return record ? { kind: "invoice", record } : null }
-  if (artifact.kind === "estimate") { const record = await getEstimate(artifact.id); return record ? { kind: "estimate", record } : null }
   const record = await getContract(artifact.id)
   return record ? { kind: "contract", record } : null
 }
 
 function recordTitle(loaded: ArtifactRecord) {
   if (loaded.kind === "invoice") return loaded.record.title?.trim() || loaded.record.invoiceNumber || "Invoice"
-  if (loaded.kind === "estimate") return loaded.record.title || loaded.record.estimateNumber || "Estimate"
   return loaded.record.title || KIND_META[loaded.kind].label
 }
 
@@ -108,7 +102,7 @@ export function DocumentArtifact({
   layout = "pane",
 }: {
   artifact: ArtifactRef
-  record?: CompanyDocument | Invoice | Estimate | Contract
+  record?: CompanyDocument | Invoice | Contract
   issuer?: BusinessProfile | null
   canEdit?: boolean
   /** Where "Open in full" goes. Leave out to hide it. */
@@ -222,8 +216,6 @@ export function DocumentArtifact({
           <CompanyDocumentView document={loaded.record} issuer={issuerProp} />
         ) : loaded.kind === "invoice" ? (
           <InvoiceDocument invoice={loaded.record} issuer={issuerProp} />
-        ) : loaded.kind === "estimate" ? (
-          <EstimateDocument estimate={loaded.record} issuer={issuerProp} />
         ) : (
           <ContractDocument contract={loaded.record} issuer={issuerProp} />
         )}

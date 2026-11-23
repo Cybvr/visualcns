@@ -1,26 +1,20 @@
 import type { ComponentType, ReactNode } from "react"
-import { ClipboardList, FileSignature, FileText, Receipt } from "lucide-react"
+import { FileSignature, FileText, Receipt } from "lucide-react"
 import { toast } from "sonner"
 
 import {
   contractStatusMeta,
   createContract,
-  createEstimate,
   createInvoice,
   deleteContract,
-  deleteEstimate,
   deleteInvoice,
-  estimateStatusMeta,
   formatMoney,
   invoiceListAmount,
   invoiceStatusMeta,
-  nextEstimateNumber,
   nextInvoiceNumber,
   updateContract,
-  updateEstimate,
   updateInvoice,
   type Contract,
-  type Estimate,
   type Invoice,
 } from "@/lib/billing"
 import {
@@ -37,7 +31,7 @@ import { BillingPagePreview, DocumentPagePreview, hasDocumentText } from "@/comp
 import { SectionAddButton } from "@/components/company/section-add-button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 
-export type CompanyDocumentKind = "invoice" | "contract" | "estimate" | "document"
+export type CompanyDocumentKind = "invoice" | "contract" | "document"
 
 type Entry = {
   key: string
@@ -90,14 +84,13 @@ function strip<T extends { id: string; createdAt?: unknown; updatedAt?: unknown 
 export function CompanyDocuments({
   invoices,
   contracts,
-  estimates,
   documents,
   onSelect,
   onEdit,
   canAdd = false,
   onAdd,
   heading = "Documents",
-  addKinds = ["document", "invoice", "contract", "estimate"],
+  addKinds = ["document", "invoice", "contract"],
   emptyDescription = "Proposals, invoices and contracts will appear here.",
   emptyTitle,
   media,
@@ -112,7 +105,6 @@ export function CompanyDocuments({
 }: {
   invoices: Invoice[]
   contracts: Contract[]
-  estimates: Estimate[]
   documents: CompanyDocument[]
   onSelect: (kind: CompanyDocumentKind, id: string) => void
   onEdit?: (kind: CompanyDocumentKind, id: string) => void
@@ -213,36 +205,6 @@ export function CompanyDocuments({
         onDelete: manage(() => run(() => deleteContract(contract.id), "Couldn't delete the contract.", onChanged)),
       },
     })),
-    ...estimates.map((estimate): Entry => ({
-      key: `estimate-${estimate.id}`,
-      updatedMs: modifiedMs(estimate),
-      title: estimate.estimateNumber || estimate.title || "Estimate",
-      kindLabel: "Estimate",
-      statusLabel: estimateStatusMeta[estimate.status].label,
-      amount: formatMoney(estimate.amount, estimate.currency),
-      icon: <ClipboardList className="size-5 text-amber-600 dark:text-amber-400" aria-hidden="true" />,
-      thumbnail: ClipboardList,
-      preview: (
-        <BillingPagePreview
-          tone="estimate"
-          heading="Estimate"
-          number={estimate.estimateNumber}
-          client={estimate.preparedFor?.name || estimate.client}
-          lines={(estimate.lineItems ?? []).map((item) => ({ label: item.description, amount: item.amount, muted: item.optional }))}
-          total={estimate.amount}
-          currency={estimate.currency}
-        />
-      ),
-      actions: {
-        noun: "estimate",
-        name: estimate.title || estimate.estimateNumber || "Estimate",
-        onOpen: () => onSelect("estimate", estimate.id),
-        onRename: manage((title: string) => run(() => updateEstimate(estimate.id, { title }), "Couldn't rename the estimate.", onChanged)),
-        onDuplicate: manage(() => run(async () => createEstimate({ ...strip(estimate), estimateNumber: await nextEstimateNumber(), status: "draft", shareEnabled: false }), "Couldn't duplicate the estimate.", onChanged)),
-        extra: editItem("estimate", estimate.id),
-        onDelete: manage(() => run(() => deleteEstimate(estimate.id), "Couldn't delete the estimate.", onChanged)),
-      },
-    })),
     ...extraEntries,
   ].sort((a, b) => b.updatedMs - a.updatedMs)
 
@@ -268,7 +230,6 @@ export function CompanyDocuments({
                 {addKinds.includes("document") && <DropdownMenuItem onSelect={() => onAdd("document")}>Document</DropdownMenuItem>}
                 {addKinds.includes("invoice") && <DropdownMenuItem onSelect={() => onAdd("invoice")}>Invoice</DropdownMenuItem>}
                 {addKinds.includes("contract") && <DropdownMenuItem onSelect={() => onAdd("contract")}>Contract</DropdownMenuItem>}
-                {addKinds.includes("estimate") && <DropdownMenuItem onSelect={() => onAdd("estimate")}>Estimate / quote</DropdownMenuItem>}
               </>
             )}
             {extraAddItems}

@@ -20,12 +20,12 @@ interface ActivitySectionProps {
 const PREVIEW_LIMIT = 5
 
 export function ActivitySection({ heading, prominent = false, listLayout = "default", preview = false }: ActivitySectionProps = {}) {
-  const { projects, tasks, invoices, estimates, contracts, documents, sections, updateParams, sectionHref } = useCompanyPage()
+  const { projects, tasks, invoices, contracts, documents, sections, updateParams, sectionHref } = useCompanyPage()
   const title = heading ?? sections.find((item) => item.key === "activity")?.label ?? "Activity"
 
   const activity = useMemo(
-    () => buildActivity({ projects, tasks, invoices, estimates, contracts, documents }, prominent ? 24 : 50),
-    [tasks, contracts, documents, estimates, invoices, projects, prominent],
+    () => buildActivity({ projects, tasks, invoices, contracts, documents }, prominent ? 24 : 50),
+    [tasks, contracts, documents, invoices, projects, prominent],
   )
   const { query, setQuery, results } = useListSearch(activity, (item) => [item.title, item.subtitle, item.kind])
   const rows = listLayout === "rows"

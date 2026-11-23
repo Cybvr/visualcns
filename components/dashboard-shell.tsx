@@ -44,8 +44,8 @@ function DashboardMobileFooterNav({ unreadEmailCount }: { unreadEmailCount: numb
     // Home only lights up on the home page itself, not on every page under /dashboard.
     { key: "new", label: "New", icon: Plus, href: "/dashboard", isActive: pathname === "/dashboard" },
     { key: "email", label: "Emails", icon: FiMail, href: "/dashboard/email/inbox", isActive: pathname.startsWith("/dashboard/email"), badge: unreadEmailCount },
-    { key: "artifacts", label: "Artifacts", icon: FolderOpen, href: "/dashboard/artifacts", isActive: ["artifacts", "drive", "estimates", "documents", "notes", "invoices"].some((section) => pathname.startsWith(`/dashboard/${section}`)) },
-    { key: "crm", label: "Databases", icon: Building2, href: "/dashboard/crm", isActive: ["/dashboard/crm", "/dashboard/leads", "/dashboard/companies", "/dashboard/users", "/dashboard/schedules", "/dashboard/projects"].some((path) => pathname.startsWith(path)) },
+    { key: "artifacts", label: "Artifacts", icon: FolderOpen, href: "/dashboard/artifacts", isActive: ["artifacts", "drive", "documents", "notes", "invoices"].some((section) => pathname.startsWith(`/dashboard/${section}`)) },
+    { key: "crm", label: "Databases", icon: Building2, href: "/dashboard/crm", isActive: ["/dashboard/crm", "/dashboard/leads", "/dashboard/companies", "/dashboard/users", "/dashboard/projects"].some((path) => pathname.startsWith(path)) },
     { key: "profile", label: "Profile", icon: FiUser, href: "/dashboard/account" },
   ]
 
@@ -88,8 +88,8 @@ export function DashboardShell({
   // The dashboard home is Ngai too, so it gets the same full-height chat layout.
   const isChatRoute = /^\/dashboard\/chat(?:\/[^/]+)?$/.test(pathname ?? "")
   const isEmailRoute = pathname?.startsWith("/dashboard/email") ?? false
-  // Invoice, estimate, contract and document pages (and their editors), not their lists or the New screens.
-  const isRecordDetailRoute = /^\/dashboard\/(?:invoices|estimates|contracts|documents)\/(?!new(?:\/|$))[^/]+/.test(pathname ?? "")
+  // Invoice, contract and document pages (and their editors), not their lists or the New screens.
+  const isRecordDetailRoute = /^\/dashboard\/(?:invoices|contracts|documents)\/(?!new(?:\/|$))[^/]+/.test(pathname ?? "")
   const [sidebarOpen, setSidebarOpen] = useState(!isDocumentRoute)
   const { open: agentOpen } = useAgent()
   const { agency } = useAuth()
