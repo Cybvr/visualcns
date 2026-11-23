@@ -67,6 +67,13 @@ function itemHref(item: DriveItem) {
   if (item.type === "estimate") return `/dashboard/estimates/${id}/edit`
   return `/dashboard/invoices/${id}`
 }
+/** "Nov 14", with the year only when it isn't this year. */
+function shortDate(item: DriveItem) {
+  const date = new Date(updatedAt(item))
+  if (!updatedAt(item)) return ""
+  const sameYear = date.getFullYear() === new Date().getFullYear()
+  return date.toLocaleDateString("en-US", sameYear ? { month: "short", day: "numeric" } : { month: "short", day: "numeric", year: "numeric" })
+}
 function itemStatus(item: DriveItem) {
   if (item.type === "invoice") return invoiceStatusMeta[item.record.status] ?? invoiceStatusMeta.draft
   if (item.type === "estimate") return estimateStatusMeta[item.record.status] ?? estimateStatusMeta.draft
@@ -351,7 +358,7 @@ export function DriveLibrary({ mode = "artifacts" }: { mode?: "artifacts" | "inv
               title={itemTitle(item)}
               icon={<Icon className="size-4 text-muted-foreground" aria-hidden="true" />}
               placeholder={thumbnailIcon(Icon)}
-              subtitle={<span className="inline-flex items-center gap-1.5">{status && <Badge variant="secondary" className={`rounded-full border-0 ${status.className}`}>{status.label}</Badge>}{detail && <span>{status ? "· " : ""}{detail}</span>}</span>}
+              subtitle={invoicesOnly ? <span className="inline-flex items-center gap-1.5">{status && <Badge variant="secondary" className={`rounded-full border-0 ${status.className}`}>{status.label}</Badge>}{detail && <span>{status ? "· " : ""}{detail}</span>}</span> : shortDate(item)}
               href={itemHref(item)}
               ariaLabel={`Open ${itemTitle(item)}`}
               menuLabel={`Options for ${itemTitle(item)}`}
@@ -367,9 +374,9 @@ export function DriveLibrary({ mode = "artifacts" }: { mode?: "artifacts" | "inv
             return <CompactListRow
               title={itemTitle(item)}
               leading={<span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground"><Icon className="size-5" aria-hidden="true" /></span>}
-              subtitle={<span className="inline-flex items-center gap-1.5">{status && <Badge variant="secondary" className={`rounded-full border-0 ${status.className}`}>{status.label}</Badge>}<span>{status ? "· " : ""}{detail ? `${detail} · ` : ""}{timestamp}</span></span>}
-              mobileSubtitle={<span className="inline-flex max-w-full items-center gap-1.5">{client && <span className="truncate">{client}</span>}{status && <Badge variant="secondary" className={`rounded-full border-0 ${status.className}`}>{status.label}</Badge>}{detail && <span className="truncate">{detail}</span>}</span>}
-              meta={timestamp}
+              subtitle={invoicesOnly ? <span className="inline-flex items-center gap-1.5">{status && <Badge variant="secondary" className={`rounded-full border-0 ${status.className}`}>{status.label}</Badge>}<span>{status ? "· " : ""}{detail ? `${detail} · ` : ""}{timestamp}</span></span> : shortDate(item)}
+              mobileSubtitle={invoicesOnly ? <span className="inline-flex max-w-full items-center gap-1.5">{client && <span className="truncate">{client}</span>}{status && <Badge variant="secondary" className={`rounded-full border-0 ${status.className}`}>{status.label}</Badge>}{detail && <span className="truncate">{detail}</span>}</span> : shortDate(item)}
+              meta={invoicesOnly ? timestamp : undefined}
               href={itemHref(item)}
               menuLabel={`Options for ${itemTitle(item)}`}
               actions={itemActions(item)}
