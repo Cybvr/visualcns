@@ -6,6 +6,7 @@ import { ArrowUpRight, Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { EmailStartForm } from "@/components/email-start-form"
 import { HomeCaseStudies } from "@/components/home-case-studies"
+import { HomeHelpBanner } from "@/components/home-help-banner"
 import { ConsultingScene, NgaiScene, PulseScene, VisitorScene } from "@/components/home-feature-illustrations"
 import type { Capability } from "@/lib/capabilities"
 import type { BlogPost } from "@/lib/blog"
@@ -179,6 +180,8 @@ export function HomeSections({
           ))}
         </ul>
       </Section>
+
+      <HomeHelpBanner />
 
       {/* Closing statement — the tagline turned into an invitation. */}
       <section aria-labelledby="home-cta" className="border-t border-border py-20 md:py-28">
