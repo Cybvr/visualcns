@@ -24,9 +24,10 @@ import { BusinessProfilePage, GoogleAdsPage, InsightsPage, ReviewsPage, SeoPage 
 import { MarketingOverviewSection } from "@/components/company/sections/marketing-home"
 import { FinanceHomeSection, SecurityHomeSection, WebsitesHomeSection } from "@/components/company/sections/area-homes"
 
-/** Documents and media in one grid. An open document takes the whole page. */
+/** Documents and media in one grid. An open document takes the whole page. On the dashboard it's Artifacts, with assets in it too. */
 function DriveSection() {
-  return <DocumentsSection />
+  const { mode } = useCompanyPage()
+  return <DocumentsSection view={mode === "routes" ? "documents" : "artifacts"} />
 }
 
 /** Images and videos, uploaded or from campaigns. */

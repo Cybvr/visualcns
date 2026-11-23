@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
-import { Bell, House, Settings } from "lucide-react"
+import { Bell, FolderOpen, House, Settings } from "lucide-react"
 import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
@@ -180,11 +180,14 @@ export function CompanyPageProvider({
     if (mode !== "routes") {
       // Dashboard tabs open on Home: the company's activity, with its name and logo on top.
       // About holds the client's editable details, so it's called Settings and goes last.
+      // Documents and Assets are one Artifacts tab here, and Billing, Customers and Security stay off it.
       const home = visible.find((item) => item.key === "activity")
       const settings = visible.find((item) => item.key === "about")
       return [
         ...(home ? [{ ...home, label: "Home", icon: House }] : []),
-        ...visible.filter((item) => item.key !== "activity" && item.key !== "about"),
+        ...visible
+          .filter((item) => !["activity", "about", "assets", "billings", "customers", "visitors", "security-home"].includes(item.key))
+          .map((item) => item.key === "documents" ? { ...item, label: "Artifacts", icon: FolderOpen } : item),
         ...(settings ? [{ ...settings, label: "Account", icon: Settings }] : []),
       ]
     }
@@ -222,7 +225,7 @@ export function CompanyPageProvider({
     ? "pulse"
     : requested === "tasks"
       ? "projects"
-      : requested === "drive" || requested === "documents" || requested === "media" || requested === "notes" || requested === "finance"
+      : requested === "drive" || requested === "documents" || requested === "media" || requested === "notes" || requested === "finance" || (mode !== "routes" && requested === "assets")
         ? "documents"
       : requested === "settings"
         ? "about"

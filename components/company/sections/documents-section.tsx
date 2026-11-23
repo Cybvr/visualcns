@@ -9,7 +9,9 @@ import { useCompanyCampaignMedia, useCompanyFiles } from "@/components/company/s
 import { DocumentArtifact } from "@/components/dashboard/document-artifact"
 import { DocumentActions } from "@/components/dashboard/document-actions"
 import { NewDocumentDialog } from "@/components/dashboard/new-document-dialog"
+import { MakeSomethingNew } from "@/components/dashboard/drive-library"
 import { getBusinessProfile, type BusinessProfile } from "@/lib/business-profile"
+import { FileCheck2, FileSignature, FileText, Receipt, Upload } from "lucide-react"
 
 const KIND_LABELS: Record<CompanyDocumentKind, string> = {
   invoice: "Invoice",
@@ -26,8 +28,10 @@ function editHref(kind: CompanyDocumentKind, id: string) {
  * Documents (under Finance): invoices, estimates, contracts, documents and other files.
  * Assets (under Marketing): images and videos, uploaded or from campaigns.
  */
-export function DocumentsSection({ view = "documents" }: { view?: "documents" | "assets" }) {
+export function DocumentsSection({ view = "documents" }: { view?: "documents" | "assets" | "artifacts" }) {
   const assets = view === "assets"
+  // Artifacts (the dashboard's company tab): documents, invoices, files and media together.
+  const artifacts = view === "artifacts"
   const { company, projects, invoices, contracts, estimates, documents, admin, isAdmin, canEditDocuments, updateParams, setRecordOpen } = useCompanyPage()
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -116,25 +120,36 @@ export function DocumentsSection({ view = "documents" }: { view?: "documents" | 
           onChanged={admin?.reload}
         />
         ) : (
+        <>
+        {artifacts && admin && (
+          <MakeSomethingNew tiles={[
+            { label: "Document", icon: FileText, tone: "bg-blue-700 text-blue-100 dark:bg-blue-900 dark:text-blue-200", onSelect: () => handleAdd("document") },
+            { label: "Invoice", icon: Receipt, tone: "bg-emerald-700 text-emerald-100 dark:bg-emerald-900 dark:text-emerald-200", onSelect: () => handleAdd("invoice") },
+            { label: "Estimate", icon: FileCheck2, tone: "bg-amber-700 text-amber-100 dark:bg-amber-900 dark:text-amber-200", onSelect: () => handleAdd("estimate") },
+            { label: "Contract", icon: FileSignature, tone: "bg-violet-700 text-violet-100 dark:bg-violet-900 dark:text-violet-200", onSelect: () => handleAdd("contract") },
+            { label: "Upload", icon: Upload, tone: "bg-rose-800 text-rose-100 dark:bg-rose-950 dark:text-rose-200", onSelect: files.upload },
+          ]} />
+        )}
         <CompanyDocuments
           invoices={invoices}
           contracts={contracts}
           estimates={estimates}
           documents={documents}
-          heading="Documents"
-          emptyTitle="No documents yet"
+          heading={artifacts ? "Artifacts" : "Documents"}
+          emptyTitle={artifacts ? "No artifacts yet" : "No documents yet"}
           addKinds={["document", "invoice", "contract", "estimate"]}
-          emptyDescription="Documents, invoices, estimates, contracts and files will appear here."
+          emptyDescription={artifacts ? "Documents, invoices, estimates, contracts, files, images and videos will appear here." : "Documents, invoices, estimates, contracts and files will appear here."}
           onSelect={(kind, id) => updateParams({ doc: `${kind}:${id}` })}
           onEdit={canEditDocuments ? (kind, id) => router.push(editHref(kind, id)) : undefined}
           canAdd={Boolean(admin)}
           onAdd={handleAdd}
           campaignName={(projectId) => projectId ? projects.find((project) => project.id === projectId)?.title : undefined}
-          extraEntries={files.entries.filter((entry) => !entry.media)}
+          extraEntries={artifacts ? [...files.entries, ...campaignMedia.entries] : files.entries.filter((entry) => !entry.media)}
           extraAddItems={files.addItem ?? undefined}
           canManage={canEditDocuments}
           onChanged={admin?.reload}
         />
+        </>
         )
       )}
 

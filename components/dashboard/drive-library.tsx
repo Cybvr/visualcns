@@ -96,7 +96,7 @@ function itemTitle(item: DriveItem) {
   if (item.type === "estimate") return item.record.title || item.record.estimateNumber || "Untitled estimate"
   return item.record.title || "Untitled document"
 }
-type MakeNewTile = {
+export type MakeNewTile = {
   label: string
   icon: ComponentType<{ className?: string }>
   /** Tile colour and icon colour. */
@@ -107,7 +107,7 @@ type MakeNewTile = {
 }
 
 /** A row of coloured tiles across the top of Artifacts, one per kind of thing to make. */
-function MakeSomethingNew({ tiles }: { tiles: MakeNewTile[] }) {
+export function MakeSomethingNew({ tiles }: { tiles: MakeNewTile[] }) {
   return (
     <section aria-labelledby="make-new-heading" className="mb-6">
       <h2 id="make-new-heading" className="mb-3 text-sm font-medium text-muted-foreground">Make something new</h2>
