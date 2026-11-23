@@ -176,7 +176,7 @@ export async function GET(request: Request) {
           partial: true,
           reconnectRequired,
           warning: reconnectRequired
-            ? "Your Google mailbox connection has expired. Reconnect Google to load your emails."
+            ? "Your Google mailbox connection no longer works. The account may have been moved or deleted. Reconnect Google to load your emails."
             : error instanceof Error
               ? `Google inbox could not be loaded: ${error.message}`
               : "Google inbox could not be loaded. Try again in a moment.",
