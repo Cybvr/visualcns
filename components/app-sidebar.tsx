@@ -218,14 +218,14 @@ export function AppSidebar({
                         type="button"
                         isActive={isActive(pathname, link.href, rootHref, link.alsoActive)}
                         tooltip={link.label}
-                        className={cn(mobileNavButton, "h-11 !w-fit !rounded-sm bg-card pr-4 font-medium shadow-xs hover:bg-card/80 group-data-[collapsible=icon]:!w-8 [&_.sidebar-nav-label]:!text-base [&>svg]:size-5")}
+                        className={mobileNavButton}
                         onClick={() => {
                           reset()
                           handleNavigate(link.adminOnly)
                           if (pathname !== link.href) router.push(link.href)
                         }}
                       >
-                        <link.icon className="h-5 w-5" />
+                        <link.icon className="h-4 w-4" />
                         <span className="sidebar-nav-label">{link.label}</span>
                       </SidebarMenuButton>
                     ) : link.opensAgent ? (
