@@ -7,6 +7,10 @@ import { ArrowLeft } from "lucide-react"
 
 import { useAuth } from "@/components/auth-provider"
 import { Ngai } from "@/components/agent/ngai"
+import { ArtifactTitleMenu } from "@/components/agent/artifact-title-menu"
+import { ArtifactWindowControls } from "@/components/agent/artifact-window-controls"
+import { cn } from "@/lib/utils"
+import { ShareDialog } from "@/components/dashboard/share-dialog"
 import { DashboardPageSkeleton } from "@/components/dashboard/dashboard-page-skeleton"
 import { DocumentActions } from "@/components/dashboard/document-actions"
 import { InvoiceBuilder } from "@/components/dashboard/invoice-builder"
@@ -14,7 +18,7 @@ import { InvoiceOverview } from "@/components/dashboard/invoice-overview"
 import { useHideHeader, usePageTitle } from "@/components/dashboard/page-title-context"
 import { Button } from "@/components/ui/button"
 import { getBusinessProfile, type BusinessProfile } from "@/lib/business-profile"
-import { watchInvoice, type Invoice } from "@/lib/billing"
+import { deleteInvoice, updateInvoice, watchInvoice, type Invoice } from "@/lib/billing"
 
 export default function InvoiceDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -30,6 +34,10 @@ export default function InvoiceDetailPage() {
   const [editorKey, setEditorKey] = useState(0)
   const ownSaveUntil = useRef(0)
   const loaded = useRef(false)
+  const [sharing, setSharing] = useState(false)
+  // Expand gives the invoice the whole width; Close puts it away and leaves the chat.
+  const [expanded, setExpanded] = useState(false)
+  const [closed, setClosed] = useState(false)
 
   usePageTitle(invoice?.invoiceNumber ? `Invoice ${invoice.invoiceNumber}` : null, "/dashboard/artifacts")
   // The agency sees Ngai beside the invoice, like an open document, so the dashboard header steps aside.
@@ -93,26 +101,46 @@ export default function InvoiceDetailPage() {
 
   return (
     // Ngai first, the invoice beside it, filling the dashboard card; each side scrolls on its own.
-    <main className="w-full lg:grid lg:h-full lg:min-h-0 lg:flex-1 lg:grid-cols-[20rem_minmax(0,1fr)] lg:grid-rows-[minmax(0,1fr)] lg:overflow-hidden">
-      <aside className="hidden min-h-0 overflow-hidden border-r border-border lg:flex lg:flex-col">
+    <main className={cn("w-full lg:grid lg:h-full lg:min-h-0 lg:flex-1 lg:grid-rows-[minmax(0,1fr)] lg:overflow-hidden", expanded || closed ? "lg:grid-cols-[minmax(0,1fr)]" : "lg:grid-cols-[20rem_minmax(0,1fr)]")}>
+      {/* Expanded: the invoice takes the whole width. Closed: Ngai does. */}
+      <aside className={cn("hidden min-h-0 overflow-hidden lg:flex lg:flex-col", !closed && "border-r border-border", expanded && "lg:hidden")}>
         <Ngai
           scope={{ kind: "invoice", invoice: { id: invoice.id, title } }}
           layout="panel"
           className="bg-transparent"
           heading={<>
             <Button type="button" variant="ghost" size="icon" className="size-8 shrink-0" onClick={() => router.push("/dashboard/artifacts")} aria-label="Back to Artifacts"><ArrowLeft className="size-4" aria-hidden="true" /></Button>
-            <span className="min-w-0 flex-1 truncate text-sm font-semibold">{title}</span>
+            <ArtifactTitleMenu
+              title={title}
+              noun="invoice"
+              // The editor holds its own copy of the title, so it reloads to show the new one.
+              onRename={async (next) => { await updateInvoice(invoice.id, { title: next }); setEditorKey((key) => key + 1) }}
+              onShare={() => setSharing(true)}
+              onDelete={async () => { await deleteInvoice(invoice.id); router.push("/dashboard/artifacts") }}
+              deleteDescription={`${invoice.invoiceNumber || "This invoice"} will be removed for good. This cannot be undone.`}
+              onOpen={closed ? () => setClosed(false) : undefined}
+            />
           </>}
+        />
+        <ShareDialog
+          showTrigger={false}
+          open={sharing}
+          onOpenChange={setSharing}
+          path={`/share/invoices/${encodeURIComponent(invoice.id)}`}
+          title={title}
+          access={{ enabled: invoice.shareEnabled ?? false, onEnabledChange: (enabled) => { void updateInvoice(invoice.id, { shareEnabled: enabled }).then(() => setEditorKey((key) => key + 1)) } }}
         />
       </aside>
       {/* The invoice itself, editable in place, like an open document. */}
-      <section className="min-w-0 lg:min-h-0 lg:overflow-y-auto">
+      <section className={cn("min-w-0 lg:min-h-0 lg:overflow-y-auto", closed && "lg:hidden")}>
         <div className="min-h-full w-full">
           <InvoiceBuilder
             key={editorKey}
             invoice={invoice}
             hideBack
             flush
+            autosave
+            trailing={<ArtifactWindowControls expanded={expanded} onToggleExpand={() => setExpanded((current) => !current)} onClose={() => { setExpanded(false); setClosed(true) }} />}
             onSaved={(saved) => setInvoice(saved)}
             onDeleted={() => router.push("/dashboard/artifacts")}
           />

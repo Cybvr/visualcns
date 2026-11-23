@@ -6,6 +6,9 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { ArrowLeft, ExternalLink, Mail, MoreVertical } from "lucide-react"
 
 import { Ngai } from "@/components/agent/ngai"
+import { ArtifactTitleMenu } from "@/components/agent/artifact-title-menu"
+import { ShareDialog } from "@/components/dashboard/share-dialog"
+import { deleteOrganization } from "@/lib/organizations"
 import { Button } from "@/components/ui/button"
 
 import {
@@ -62,6 +65,7 @@ function DashboardCompanyView({ embedded = false, onBack }: { embedded?: boolean
   // The agency gets Ngai beside the company, like an open document or invoice, so the dashboard header steps aside.
   const withNgai = !embedded && Boolean(admin)
   useHideHeader(withNgai)
+  const [sharing, setSharing] = useState(false)
 
   const primaryContact = people.find((person) => person.adminUser?.uid === company.primaryContactId)
     || people.find((person) => person.adminUser?.email)
@@ -127,10 +131,18 @@ function DashboardCompanyView({ embedded = false, onBack }: { embedded?: boolean
             className="bg-transparent"
             heading={<>
               <Button type="button" variant="ghost" size="icon" className="size-8 shrink-0" onClick={goBack} aria-label="Back to Companies"><ArrowLeft className="size-4" aria-hidden="true" /></Button>
-              <span className="min-w-0 flex-1 truncate text-sm font-semibold">{company.name}</span>
+              <ArtifactTitleMenu
+                title={company.name}
+                noun="company"
+                onRename={admin ? (name) => admin.onUpdateCompany({ name }) : undefined}
+                onShare={() => setSharing(true)}
+                onDelete={async () => { await deleteOrganization(company.id); goBack() }}
+                deleteDescription={`${company.name} and its page will be removed for good. Its campaigns, invoices and documents are not deleted. This cannot be undone.`}
+              />
               <Link href={publicHref} target="_blank" rel="noreferrer" aria-label={`Open ${company.name}'s page`} title="Open company page" className="flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"><ExternalLink className="size-4" aria-hidden="true" /></Link>
             </>}
           />
+          <ShareDialog showTrigger={false} open={sharing} onOpenChange={setSharing} path={publicHref} title={company.name} />
         </aside>
         <section className="flex min-w-0 flex-col lg:min-h-0">
           {/* The company's tabs, edge to edge like an open document's toolbar. */}

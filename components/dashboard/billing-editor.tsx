@@ -57,9 +57,15 @@ export function EditorToolbar({
   saveLabel,
   leading,
   flush = false,
+  autosaveStatus,
+  trailing,
 }: {
   /** Edge to edge across its pane, at the height of the Ngai panel's header. */
   flush?: boolean
+  /** Set when it saves by itself: the Save button goes, with nothing in its place. */
+  autosaveStatus?: string
+  /** After Save, e.g. minimize and close. */
+  trailing?: ReactNode
   /** Before the status, e.g. a back button. */
   leading?: ReactNode
   status?: { label: string; className: string }
@@ -89,10 +95,13 @@ export function EditorToolbar({
           <span className="max-sm:sr-only">Preview</span>
         </Button>
         {shareAction}
-        <Button type="submit" size="sm" disabled={saving} className="billing-editor-action shrink-0 rounded-md">
-          {saving && <Loader2 className="mr-2 size-4 animate-spin" aria-hidden="true" />}
-          {saveLabel}
-        </Button>
+        {autosaveStatus === undefined && (
+          <Button type="submit" size="sm" disabled={saving} className="billing-editor-action shrink-0 rounded-md">
+            {saving && <Loader2 className="mr-2 size-4 animate-spin" aria-hidden="true" />}
+            {saveLabel}
+          </Button>
+        )}
+        {trailing}
       </div>
     </div>
   )

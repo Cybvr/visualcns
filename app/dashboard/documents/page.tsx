@@ -14,6 +14,8 @@ import { TableFilterBar } from "@/components/dashboard/table-filter-bar"
 import { useFilterBar } from "@/components/dashboard/filter-bar"
 import { RichTextEditor } from "@/components/dashboard/rich-text-editor"
 import { Ngai } from "@/components/agent/ngai"
+import { ArtifactTitleMenu } from "@/components/agent/artifact-title-menu"
+import { ArtifactWindowControls } from "@/components/agent/artifact-window-controls"
 import { ShareLinkField } from "@/components/dashboard/share-link-field"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
@@ -84,7 +86,7 @@ export default function DocumentsPage() {
   const openId = selectedId ?? ""
   const [title, setTitle] = useState("")
   const [body, setBody] = useState("")
-  const [saving, setSaving] = useState(false)
+  const [, setSaving] = useState(false)
   const [pendingDelete, setPendingDelete] = useState<{ id: string; title: string } | null>(null)
   const [shareOpen, setShareOpen] = useState(false)
   const [sharingId, setSharingId] = useState("")
@@ -179,6 +181,10 @@ export default function DocumentsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [notes])
   useHideHeader(Boolean(openId))
+  // Expand gives the document the whole width; Close puts it away and leaves the chat. Both reset per document.
+  const [expanded, setExpanded] = useState(false)
+  const [docClosed, setDocClosed] = useState(false)
+  useEffect(() => { setExpanded(false); setDocClosed(false) }, [openId])
   const ngaiDocument = useMemo(() => (openId ? { id: openId, title: title || "Untitled document" } : null), [openId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // A note opened from the address bar, or by going back and forward, fills the editor once the list arrives.
@@ -340,22 +346,27 @@ export default function DocumentsPage() {
         </>
       ) : (
         // Open: the grid fills the shell's card in one row that never grows past it, so only the editor scrolls.
-        <div className={cn(openId ? "lg:grid lg:min-h-0 lg:flex-1 lg:grid-cols-[20rem_minmax(0,1fr)] lg:grid-rows-[minmax(0,1fr)]" : "lg:grid lg:grid-cols-[minmax(18rem,0.7fr)_minmax(0,1.3fr)] lg:items-start lg:gap-6")}>
+        // Expanded: the document takes the whole width. Closed: Ngai does.
+        <div className={cn(openId
+          ? cn("lg:grid lg:min-h-0 lg:flex-1 lg:grid-rows-[minmax(0,1fr)]", expanded || docClosed ? "lg:grid-cols-[minmax(0,1fr)]" : "lg:grid-cols-[20rem_minmax(0,1fr)]")
+          : "lg:grid lg:grid-cols-[minmax(18rem,0.7fr)_minmax(0,1.3fr)] lg:items-start lg:gap-6")}>
           {/* Ngai first, the document beside it. */}
           {ngaiDocument && (
-            <aside className="hidden min-h-0 overflow-hidden border-r border-border lg:flex lg:flex-col">
+            <aside className={cn("hidden min-h-0 overflow-hidden lg:flex lg:flex-col", !docClosed && "border-r border-border", expanded && "lg:hidden")}>
               <Ngai
                 scope={{ kind: "document", document: ngaiDocument }}
                 layout="panel"
                 className="bg-transparent"
                 heading={<>
                   <Button type="button" variant="ghost" size="icon" className="size-8 shrink-0" onClick={close} aria-label="Back to Artifacts"><ArrowLeft className="size-4" aria-hidden="true" /></Button>
-                  <input
-                    value={title}
-                    onChange={(event) => edit({ title: event.target.value })}
-                    placeholder="Untitled document"
-                    aria-label="Document title"
-                    className="min-w-0 flex-1 truncate bg-transparent text-sm font-semibold outline-none placeholder:text-muted-foreground"
+                  <ArtifactTitleMenu
+                    title={title.trim() || "Untitled document"}
+                    noun="document"
+                    onRename={(next) => edit({ title: next })}
+                    onShare={() => openShare()}
+                    onDelete={askDelete}
+                    confirmDelete={false}
+                    onOpen={docClosed ? () => setDocClosed(false) : undefined}
                   />
                 </>}
               />
@@ -398,6 +409,7 @@ export default function DocumentsPage() {
           <section className={cn(
             "min-w-0 lg:flex lg:min-h-0 lg:flex-col lg:overflow-hidden",
             !openId && "hidden",
+            docClosed && "lg:hidden",
           )}>
             {openId ? (
               <div className="flex min-h-[70svh] flex-1 flex-col lg:min-h-0">
@@ -411,13 +423,14 @@ export default function DocumentsPage() {
                     className="sidebar-nav-label min-w-0 flex-1 bg-transparent font-medium text-sidebar-foreground/70 outline-none placeholder:text-muted-foreground lg:invisible"
                   />
                   <div className="flex shrink-0 items-center gap-2">
-                    <span className="text-xs text-muted-foreground" aria-live="polite">{saving ? "Saving…" : "Saved"}</span>
                     <Button type="button" variant="ghost" size="icon" className="size-8 text-muted-foreground" onClick={() => openShare()} aria-label="Share document">
                        <Send className="size-4" aria-hidden="true" />
                     </Button>
-                    <Button type="button" variant="ghost" size="icon" className="size-8 text-muted-foreground hover:text-destructive" onClick={askDelete} aria-label="Delete document">
+                    {/* On desktop, Delete is in the title menu beside Ngai. */}
+                    <Button type="button" variant="ghost" size="icon" className="size-8 text-muted-foreground hover:text-destructive lg:hidden" onClick={askDelete} aria-label="Delete document">
                       <Trash2 className="size-4" aria-hidden="true" />
                     </Button>
+                    <ArtifactWindowControls expanded={expanded} onToggleExpand={() => setExpanded((current) => !current)} onClose={() => { setExpanded(false); setDocClosed(true) }} />
                   </div>
                 </div>
                 <RichTextEditor

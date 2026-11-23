@@ -118,9 +118,13 @@ function clientEmail(client: Organization, people: AppUser[]): string {
  * `onSaved` and `onDeleted` are for the invoices split pane: the list updates
  * in place and the pane stays open, instead of navigating back to the list.
  */
-export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate, onSaved, onDeleted, headerExtra, hideBack = false, flush = false }: {
+export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate, onSaved, onDeleted, headerExtra, hideBack = false, flush = false, autosave = false, trailing }: {
   /** The bar runs edge to edge across its pane, like an open document's toolbar. */
   flush?: boolean
+  /** Saves by itself shortly after each change, like a document. Needs a saved invoice. */
+  autosave?: boolean
+  /** At the end of the bar, e.g. minimize and close. */
+  trailing?: ReactNode
   invoice?: Invoice | null
   initialCompanyId?: string
   initialEstimate?: Estimate
@@ -409,11 +413,14 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate, onS
     setLines((current) => (current.length === 1 ? current : current.filter((line) => line.id !== id)))
   }
 
-  async function saveInvoice(destination: "list" | "email") {
+  async function saveInvoice(destination: "list" | "email" | "auto") {
     if (saving) return
+    // Saving by itself never nags: an unfinished invoice just waits for the next change.
+    const quiet = destination === "auto"
+    const fail = (message: string) => { if (!quiet) setError(message) }
 
     if (!companyId) {
-      setError("Choose which client this invoice is for.")
+      fail("Choose which client this invoice is for.")
       return
     }
 
@@ -421,15 +428,15 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate, onS
     const billable = linked ? [] : lineItems.filter((item) => (item.title || item.description) && item.quantity > 0)
 
     if (linked && !url.trim()) {
-      setError("Paste the link to the invoice.")
+      fail("Paste the link to the invoice.")
       return
     }
     if (linked && Math.round(toNumber(linkedAmount) * 100) <= 0) {
-      setError("Enter what this invoice is for, e.g. 1250.00")
+      fail("Enter what this invoice is for, e.g. 1250.00")
       return
     }
     if (!linked && billable.length === 0) {
-      setError("Add at least one line with a title or description and a quantity.")
+      fail("Add at least one line with a title or description and a quantity.")
       return
     }
 
@@ -507,8 +514,8 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate, onS
         onSaved?.(savedInvoice)
         setEmailDraft({ context: invoiceEmailContext(savedInvoice, companyRefFor(payload.companyId)), attachment })
         setSaving(false)
-      } else if (onSaved) {
-        onSaved(savedInvoice)
+      } else if (onSaved || quiet) {
+        onSaved?.(savedInvoice)
         setSaving(false)
       } else {
         router.push("/dashboard/artifacts")
@@ -520,9 +527,28 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate, onS
     }
   }
 
+  // Autosave: a second after the last change, save quietly. The first draft (what was
+  // loaded) is the baseline, so opening an invoice never writes to it.
+  const draftKey = JSON.stringify({ ...draftInvoice, createdAt: undefined, updatedAt: undefined })
+  const savedKey = useRef<string | null>(null)
+  const saveRef = useRef(saveInvoice)
+  saveRef.current = saveInvoice
+  useEffect(() => {
+    if (!autosave || !isEdit) return
+    if (savedKey.current === null) { savedKey.current = draftKey; return }
+    if (savedKey.current === draftKey || saving) return
+    const timer = window.setTimeout(() => {
+      savedKey.current = draftKey
+      void saveRef.current("auto")
+    }, 1000)
+    return () => window.clearTimeout(timer)
+  }, [autosave, isEdit, draftKey, saving])
+  // Saving by itself shows nothing: the Save button just goes away.
+  const autosaveStatus = autosave && isEdit ? "" : undefined
+
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    void saveInvoice("list")
+    void saveInvoice(autosave && isEdit ? "auto" : "list")
   }
 
   async function handleDelete() {
@@ -599,16 +625,21 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate, onS
           />
         }
         deleteAction={isEdit && invoice ? (
-          <EditorDeleteCard
-            label="invoice"
-            confirmTitle="Delete this invoice?"
-            confirmDescription={`${invoice.invoiceNumber} will be removed for good. This cannot be undone.`}
-            onDelete={handleDelete}
-          />
+          // Beside Ngai on desktop, Delete is in the title menu instead.
+          <span className={cn("contents", flush && "lg:hidden")}>
+            <EditorDeleteCard
+              label="invoice"
+              confirmTitle="Delete this invoice?"
+              confirmDescription={`${invoice.invoiceNumber} will be removed for good. This cannot be undone.`}
+              onDelete={handleDelete}
+            />
+          </span>
         ) : undefined}
         onPreview={() => setPreviewOpen(true)}
         saving={saving}
         saveLabel="Save"
+        autosaveStatus={autosaveStatus}
+        trailing={trailing}
       />
 
       {/* Flush: the bar spans the pane and the cards sit centred below it, like an open document. */}

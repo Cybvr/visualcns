@@ -2,7 +2,7 @@
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react"
 import Image from "next/image"
-import { usePathname, useRouter } from "next/navigation"
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { History, LogIn, Plus, SquarePen, Trash2, X } from "lucide-react"
 import { toast } from "sonner"
 
@@ -78,6 +78,8 @@ function NgaiHeader({ layout, onClose, heading, actions }: { layout: NgaiLayout;
       ))}
       <div className="flex shrink-0 items-center gap-1">
         {actions}
+        {/* Beside a document, invoice or company the heading carries its own menu, so the chat buttons step aside. */}
+        {!heading && <>
         <button type="button" onClick={reset} disabled={sending} aria-label="New chat" title="New chat" className={iconButton}>
           <Plus className="size-4" aria-hidden="true" />
         </button>
@@ -112,6 +114,7 @@ function NgaiHeader({ layout, onClose, heading, actions }: { layout: NgaiLayout;
             ))}
           </DropdownMenuContent>
         </DropdownMenu>
+        </>}
         {onClose && (
           <button type="button" onClick={onClose} aria-label="Close Ngai" title="Close Ngai" className={iconButton}>
             <X className="size-4" aria-hidden="true" />
@@ -163,6 +166,18 @@ export function DeleteChatDialog({ chat, onClose }: { chat: NgaiChatRef | null; 
 
 function NgaiConversation({ layout, startingOptions, onOpenArtifact, activeArtifactId, minimalWelcome }: { layout: NgaiLayout; startingOptions?: string[]; onOpenArtifact: (artifact: ArtifactRef) => void; activeArtifactId?: string; minimalWelcome?: boolean }) {
   const { messages, conversations, activeConversationId, sending, send, rateResponse, reset, selectConversation, conversationContext } = useAgent()
+
+  // ?artifact={kind}:{id} opens that item beside the chat: where "minimize" on a full-page editor lands.
+  const searchParams = useSearchParams()
+  const artifactParam = layout === "page" ? searchParams.get("artifact") : null
+  const openedParam = useRef<string | null>(null)
+  useEffect(() => {
+    if (!artifactParam || openedParam.current === artifactParam) return
+    const [kind, id] = artifactParam.split(":")
+    if (!id || !["document", "invoice", "estimate", "contract"].includes(kind)) return
+    openedParam.current = artifactParam
+    onOpenArtifact({ kind: kind as ArtifactRef["kind"], id })
+  }, [artifactParam, onOpenArtifact])
 
   // A chat started beside a document or invoice opens it beside the chat again, once per chat.
   const openedFor = useRef<string | null>(null)
