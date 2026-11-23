@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import { useSearchParams } from "next/navigation"
 import { ChevronRight, Eye, House, ListTodo, Megaphone } from "lucide-react"
@@ -19,7 +19,7 @@ import { deleteProjectWithTasks, duplicateProject, getProject, isProjectArchived
 import { taskStatusMeta, tsToMillis } from "@/lib/tasks"
 
 export function ProjectsSection() {
-  const { company, projects: loadedProjects, admin, emptyProjectsLabel, tasks, tasksLoading, updateParams, setRecordOpen, invoices, sectionHref, mode } = useCompanyPage()
+  const { company, projects: loadedProjects, admin, emptyProjectsLabel, tasks, tasksLoading, updateParams, setRecordOpen, invoices, sectionHref, mode, goToSection } = useCompanyPage()
   const share = useCampaignShare()
   // On the dashboard, the client's public page is one click from an open campaign.
   const visitHref = mode === "tabs" ? admin?.sharePath : undefined
@@ -41,6 +41,14 @@ export function ProjectsSection() {
     // Most recently changed first, the way the Home tab lists them.
     .sort((a, b) => (tsToMillis(b.updatedAt) || tsToMillis(b.createdAt)) - (tsToMillis(a.updatedAt) || tsToMillis(a.createdAt)))
   const searchParams = useSearchParams()
+  // Content lives at company level now: an old shared post link (?view=content&post=) goes to the Content tab.
+  const oldPostLink = searchParams.get("view") === "content" ? searchParams.get("post") : null
+  const redirectedPost = useRef<string | null>(null)
+  useEffect(() => {
+    if (!oldPostLink || redirectedPost.current === oldPostLink) return
+    redirectedPost.current = oldPostLink
+    goToSection("content", { post: oldPostLink })
+  }, [oldPostLink, goToSection])
   const [selectedProject, setSelectedProject] = useState<Project | null>(null)
   const projectOpen = Boolean(selectedProject)
   useEffect(() => {

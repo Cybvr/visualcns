@@ -17,6 +17,7 @@ import { ActivitySection } from "@/components/company/sections/activity-section"
 import { AnalyticsSection } from "@/components/company/sections/analytics-section"
 import { DocumentsSection } from "@/components/company/sections/documents-section"
 import { CreatorsSection } from "@/components/company/sections/creators-section"
+import { ContentSection } from "@/components/company/sections/content-section"
 import { ProjectsSection } from "@/components/company/sections/projects-section"
 import { SocialSection } from "@/components/company/sections/social-section"
 import { NgaiSection } from "@/components/company/sections/ngai-section"
@@ -148,6 +149,7 @@ function MarketingTabSection() {
 const SECTION_COMPONENTS: Record<CompanySectionKey, ComponentType> = {
   projects: MarketingTabSection,
   creators: CreatorsSection,
+  content: ContentSection,
   social: SocialSection,
   marketing: MarketingOverviewSection,
   "websites-home": WebsitesHomeSection,

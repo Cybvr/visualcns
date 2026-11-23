@@ -112,8 +112,8 @@ export function ProjectDetail({
   const requestedTab = TAB_FROM_VIEW[view ?? ""] ?? "home"
   // On the company page, campaigns keep to the work itself: media lives in Assets, and
   // Ngai, Analytics and Settings stay on the admin pages.
-  // Creators live at company level, and the brief is where a campaign opens, so Home and Creators go too.
-  const hiddenOnCompany: CampaignTab[] = ["build", "analytics", "media", "settings", "payments", "home", "people"]
+  // Creators and Content live at company level, and the brief is where a campaign opens, so Home, Creators and Content go too.
+  const hiddenOnCompany: CampaignTab[] = ["build", "analytics", "media", "settings", "payments", "home", "people", "creatives"]
   const tab = (requestedTab === "tasks" && !showTasks) || (embedded && hiddenOnCompany.includes(requestedTab)) ? (embedded ? "about" : "home") : requestedTab
   const setTab = (next: CampaignTab) => setView(next === "home" || (embedded && next === "about") ? null : VIEW_FROM_TAB[next])
   // Where the campaign keeps its own section menu, the app menu folds to its icon rail while it is open.
@@ -395,7 +395,7 @@ export function ProjectDetail({
     ...(embedded ? [] : [{ key: "home", label: "Home", icon: MdHome }]),
     { key: "about", label: "About campaign", icon: MdDescription },
     ...(embedded ? [] : [{ key: "people", label: "Creators", count: roster.length, icon: MdPeople }]),
-    { key: "creatives", label: "Content", count: contentItems.length, icon: MdPalette },
+    ...(embedded ? [] : [{ key: "creatives", label: "Content", count: contentItems.length, icon: MdPalette }]),
     ...(embedded ? [] : [
       { key: "media", label: "Drive", count: mediaItems.length, icon: MdPhotoLibrary },
       { key: "analytics", label: "Analytics", icon: MdBarChart },

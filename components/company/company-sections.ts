@@ -1,10 +1,12 @@
-import { Image as ImageIcon, Settings2, Activity, BadgeDollarSign, Bot, ChartColumn, Contact, CreditCard, FileText, Fingerprint, Globe, Info, Lightbulb, Link2, ListTodo, Megaphone, Search, Share2, Star, Store, TrendingUp, Users } from "lucide-react"
+import { Image as ImageIcon, Palette, Settings2, Activity, BadgeDollarSign, Bot, ChartColumn, Contact, CreditCard, FileText, Fingerprint, Globe, Info, Lightbulb, Link2, ListTodo, Megaphone, Search, Share2, Star, Store, TrendingUp, Users } from "lucide-react"
 
 /** The sections of a company page, in menu order. Plain module so server routes can check a section too. */
 export const COMPANY_SECTIONS = [
   { key: "projects", label: "Campaigns", icon: Megaphone },
   // Every campaign's creators, at company level.
   { key: "creators", label: "Creators", icon: Users },
+  // Every campaign's posts, at company level.
+  { key: "content", label: "Content", icon: Palette },
   { key: "social", label: "Social Media", icon: Share2 },
   // Marketing: Overview takes the business details and builds the scan the pages below show.
   { key: "marketing", label: "Marketing", icon: Megaphone },
