@@ -26,7 +26,7 @@ export function CrmTabs() {
   if (!isAdmin || isImpersonating) return null
   if (!CRM_PATHS.includes(pathname as (typeof CRM_PATHS)[number])) return null
   return (
-    <nav aria-label="CRM" className={cn("w-full px-4 pt-4 sm:px-6", pathname !== "/dashboard/companies" && "mx-auto max-w-6xl")}>
+    <nav aria-label="Databases" className={cn("w-full px-4 pt-4 sm:px-6", pathname !== "/dashboard/companies" && "mx-auto max-w-6xl")}>
       <div className="inline-flex rounded-lg bg-muted p-0.5 text-sm font-medium">
         {CRM_TABS.map((tab) => {
           const active = pathname === tab.href

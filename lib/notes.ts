@@ -166,3 +166,12 @@ export async function getSharedNote(id: string): Promise<Note | null> {
 export async function setNoteShared(id: string, shareEnabled: boolean): Promise<void> {
   await updateDoc(doc(db, COLLECTION_NAME, id), { shareEnabled, updatedAt: Timestamp.now() })
 }
+
+/** Follows one document live, so Ngai's changes show at once. `local` is a write from this device. */
+export function watchNote(id: string, onChange: (note: Note | null, info: { local: boolean }) => void, onError?: (error: Error) => void) {
+  return onSnapshot(
+    doc(db, COLLECTION_NAME, id),
+    (snapshot) => onChange(snapshot.exists() ? toNote(snapshot.id, snapshot.data() as Partial<Omit<Note, "id">>) : null, { local: snapshot.metadata.hasPendingWrites }),
+    (error) => onError?.(error),
+  )
+}

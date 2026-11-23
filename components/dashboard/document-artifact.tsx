@@ -26,11 +26,24 @@ type ArtifactRecord =
   | { kind: "estimate"; record: Estimate }
   | { kind: "contract"; record: Contract }
 
-const KIND_META: Record<ArtifactKind, { label: string; icon: typeof FileText; color: string }> = {
-  document: { label: "Document", icon: FileText, color: "text-blue-600 dark:text-blue-400" },
-  invoice: { label: "Invoice", icon: Receipt, color: "text-emerald-600 dark:text-emerald-400" },
-  estimate: { label: "Estimate", icon: ClipboardList, color: "text-amber-600 dark:text-amber-400" },
-  contract: { label: "Contract", icon: FileSignature, color: "text-indigo-600 dark:text-indigo-400" },
+const KIND_META: Record<ArtifactKind, { label: string; icon: typeof FileText; color: string; tile: string }> = {
+  document: { label: "Document", icon: FileText, color: "text-blue-600 dark:text-blue-400", tile: "bg-blue-100 dark:bg-blue-950" },
+  invoice: { label: "Invoice", icon: Receipt, color: "text-emerald-600 dark:text-emerald-400", tile: "bg-emerald-100 dark:bg-emerald-950" },
+  estimate: { label: "Estimate", icon: ClipboardList, color: "text-amber-600 dark:text-amber-400", tile: "bg-amber-100 dark:bg-amber-950" },
+  contract: { label: "Contract", icon: FileSignature, color: "text-indigo-600 dark:text-indigo-400", tile: "bg-indigo-100 dark:bg-indigo-950" },
+}
+
+/**
+ * Where each kind opens in the standard layout: Ngai on the left, the item on the right.
+ * `chat` carries the conversation along, so it continues in that Ngai panel.
+ */
+export function artifactPageHref(artifact: Pick<ArtifactRef, "kind" | "id">, chat?: string) {
+  const id = encodeURIComponent(artifact.id)
+  const withChat = (href: string) => chat ? `${href}${href.includes("?") ? "&" : "?"}chat=${encodeURIComponent(chat)}` : href
+  if (artifact.kind === "document") return withChat(`/dashboard/documents?document=${id}`)
+  if (artifact.kind === "invoice") return withChat(`/dashboard/invoices/${id}`)
+  if (artifact.kind === "estimate") return `/dashboard/estimates/${id}/edit`
+  return `/dashboard/contracts/${id}`
 }
 
 export function artifactEditHref(artifact: ArtifactRef) {
@@ -60,17 +73,18 @@ export function ArtifactCard({ artifact, active = false, onOpen }: { artifact: A
       type="button"
       onClick={onOpen}
       aria-pressed={active}
+      // Like an artifact in Claude: a tinted tile, the title, and what it is.
       className={cn(
-        "flex w-full max-w-sm items-center gap-3 rounded-xl border bg-card px-3 py-2.5 text-left outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring",
-        active ? "border-primary" : "border-border",
+        "flex w-full max-w-md items-center gap-3.5 rounded-2xl border bg-muted/50 px-4 py-3.5 text-left outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring",
+        active ? "border-primary" : "border-transparent",
       )}
     >
-      <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-muted">
+      <span className={cn("grid size-11 shrink-0 place-items-center rounded-xl", meta.tile)}>
         <Icon className={cn("size-5", meta.color)} aria-hidden="true" />
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block truncate text-sm font-medium text-foreground">{artifact.title || meta.label}</span>
-        <span className="block text-xs text-muted-foreground">{meta.label} · Click to open</span>
+        <span className="block truncate text-[15px] font-semibold text-foreground">{artifact.title || meta.label}</span>
+        <span className="block text-sm text-muted-foreground">{meta.label} · Only you</span>
       </span>
     </button>
   )

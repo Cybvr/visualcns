@@ -155,6 +155,8 @@ interface AgentContextValue {
   deleteConversations: (ids: string[]) => Promise<void>
   /** The open chat's document or invoice, when this chat isn't already beside it. */
   conversationContext: AgentChatContext | null
+  /** Tells the chat which document or invoice is open beside it, or null when none is. */
+  setItemContext: (context: AgentChatContext | null) => void
 }
 
 const AgentContext = createContext<AgentContextValue | null>(null)
@@ -190,9 +192,12 @@ export function AgentProvider({
   surface = "agency_dashboard",
   companyContext,
   campaignContext,
-  documentContext,
-  invoiceContext,
+  documentContext: documentContextProp,
+  invoiceContext: invoiceContextProp,
+  initialConversationId,
 }: {
+  /** Opens this chat once the chats load, e.g. one carried over from the main chat. */
+  initialConversationId?: string
   children: ReactNode
   surface?: "agency_dashboard" | "client_portal"
   companyContext?: { id: string; name: string }
@@ -210,6 +215,10 @@ export function AgentProvider({
   const [conversationsLoading, setConversationsLoading] = useState(true)
   const [activeConversationId, setActiveConversationId] = useState("")
   const [sending, setSending] = useState(false)
+  // The item open beside the shared chat (in the Ngai workspace). A provider made for one item passes it as a prop instead.
+  const [itemContext, setItemContext] = useState<AgentChatContext | null>(null)
+  const documentContext = useMemo(() => documentContextProp ?? (itemContext?.kind === "document" ? { id: itemContext.id, title: itemContext.title } : undefined), [documentContextProp, itemContext])
+  const invoiceContext = useMemo(() => invoiceContextProp ?? (itemContext?.kind === "invoice" ? { id: itemContext.id, title: itemContext.title } : undefined), [invoiceContextProp, itemContext])
   const nextId = useRef(1)
 
   useEffect(() => {
@@ -474,6 +483,18 @@ export function AgentProvider({
   }, [user?.uid, sending, activeConversationId, conversations, reset])
   const toggle = useCallback(() => setOpen((current) => !current), [])
 
+  // Beside a document or invoice, carry on the chat you came from, or else the latest one about this item.
+  const picked = useRef(false)
+  useEffect(() => {
+    if (picked.current || conversationsLoading) return
+    picked.current = true
+    const item = documentContext ?? invoiceContext
+    const kind = documentContext ? "document" : "invoice"
+    const target = (initialConversationId && conversations.find((chat) => chat.id === initialConversationId))
+      || (item ? conversations.find((chat) => chat.context?.kind === kind && chat.context.id === item.id && chat.messages.length > 0) : undefined)
+    if (target) selectConversation(target.id)
+  }, [conversationsLoading, conversations, initialConversationId, documentContext, invoiceContext, selectConversation])
+
   // Only when this chat isn't already open beside its document or invoice.
   const conversationContext = useMemo(() => {
     if (documentContext || invoiceContext) return null
@@ -481,7 +502,7 @@ export function AgentProvider({
   }, [documentContext, invoiceContext, conversations, activeConversationId])
 
   const value = useMemo(
-    () => ({ open, setOpen, toggle, messages, conversations, conversationsLoading, activeConversationId, sending, firstName, send, rateResponse, reset, selectConversation, deleteConversations, conversationContext }),
+    () => ({ open, setOpen, toggle, messages, conversations, conversationsLoading, activeConversationId, sending, firstName, send, rateResponse, reset, selectConversation, deleteConversations, conversationContext, setItemContext }),
     [open, toggle, messages, conversations, conversationsLoading, activeConversationId, sending, firstName, send, rateResponse, reset, selectConversation, deleteConversations, conversationContext],
   )
 

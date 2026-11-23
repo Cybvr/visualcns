@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react"
+import { createContext, useCallback, useContext, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react"
 import Image from "next/image"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { History, LogIn, Plus, SquarePen, Trash2, X } from "lucide-react"
@@ -10,7 +10,7 @@ import { AgentChat } from "@/components/agent/agent-chat"
 import { AgentProvider, useAgent } from "@/components/agent/agent-context"
 import { useAuth } from "@/components/auth-provider"
 import { useOptionalCompanyPage } from "@/components/company/company-page-context"
-import { DocumentArtifact, type ArtifactRef } from "@/components/dashboard/document-artifact"
+import { ArtifactCard, artifactPageHref, type ArtifactRef } from "@/components/dashboard/document-artifact"
 import { NgaiLoginDialog } from "@/components/company/ngai-login-dialog"
 import { useSidebarTakeover } from "@/components/company/sidebar-takeover"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
@@ -63,7 +63,7 @@ const STARTING_OPTIONS: Record<Exclude<NgaiScope["kind"], "app">, string[]> = {
 const iconButton = "flex size-8 items-center justify-center rounded-full text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
 
 /** New chat, past chats and (in a panel) close. The same buttons on every Ngai. */
-function NgaiHeader({ layout, onClose, heading, actions }: { layout: NgaiLayout; onClose?: () => void; heading?: ReactNode; actions?: ReactNode }) {
+export function NgaiHeader({ layout, onClose, heading, actions }: { layout: NgaiLayout; onClose?: () => void; heading?: ReactNode; actions?: ReactNode }) {
   const { conversations, activeConversationId, sending, reset, selectConversation } = useAgent()
   const chatted = conversations.filter((conversation) => conversation.messages.length > 0)
   const [deleting, setDeleting] = useState<NgaiChatRef | null>(null)
@@ -126,6 +126,9 @@ function NgaiHeader({ layout, onClose, heading, actions }: { layout: NgaiLayout;
   )
 }
 
+/** Set by the Ngai workspace: opening an item from the chat shows it beside the chat, in place. */
+export const NgaiOpenItemContext = createContext<((artifact: ArtifactRef) => void) | null>(null)
+
 export type NgaiChatRef = { id: string; title: string }
 
 /** Asks before deleting a past chat, from the history menu or the sidebar. */
@@ -164,30 +167,8 @@ export function DeleteChatDialog({ chat, onClose }: { chat: NgaiChatRef | null; 
   )
 }
 
-function NgaiConversation({ layout, startingOptions, onOpenArtifact, activeArtifactId, minimalWelcome }: { layout: NgaiLayout; startingOptions?: string[]; onOpenArtifact: (artifact: ArtifactRef) => void; activeArtifactId?: string; minimalWelcome?: boolean }) {
+export function NgaiConversation({ layout, startingOptions, onOpenArtifact, activeArtifactId, minimalWelcome }: { layout: NgaiLayout; startingOptions?: string[]; onOpenArtifact: (artifact: ArtifactRef) => void; activeArtifactId?: string; minimalWelcome?: boolean }) {
   const { messages, conversations, activeConversationId, sending, send, rateResponse, reset, selectConversation, conversationContext } = useAgent()
-
-  // ?artifact={kind}:{id} opens that item beside the chat: where "minimize" on a full-page editor lands.
-  const searchParams = useSearchParams()
-  const artifactParam = layout === "page" ? searchParams.get("artifact") : null
-  const openedParam = useRef<string | null>(null)
-  useEffect(() => {
-    if (!artifactParam || openedParam.current === artifactParam) return
-    const [kind, id] = artifactParam.split(":")
-    if (!id || !["document", "invoice", "estimate", "contract"].includes(kind)) return
-    openedParam.current = artifactParam
-    onOpenArtifact({ kind: kind as ArtifactRef["kind"], id })
-  }, [artifactParam, onOpenArtifact])
-
-  // A chat started beside a document or invoice opens it beside the chat again, once per chat.
-  const openedFor = useRef<string | null>(null)
-  useEffect(() => {
-    if (layout !== "page" || !conversationContext) { openedFor.current = null; return }
-    const key = `${activeConversationId}:${conversationContext.kind}:${conversationContext.id}`
-    if (openedFor.current === key) return
-    openedFor.current = key
-    onOpenArtifact({ kind: conversationContext.kind, id: conversationContext.id, title: conversationContext.title })
-  }, [layout, conversationContext, activeConversationId, onOpenArtifact])
   const pathname = usePathname()
   const router = useRouter()
   const page = useOptionalCompanyPage()
@@ -197,20 +178,15 @@ function NgaiConversation({ layout, startingOptions, onOpenArtifact, activeArtif
     if (/^\/dashboard\/chat\/[^/]+$/.test(pathname ?? "")) router.push("/dashboard")
   }
 
-  // A document Ngai has just made opens by itself; documents in older chats wait to be clicked.
-  // The reply being written while `sending` is the one whose documents may open.
-  const streaming = useRef<string | null>(null)
-  useEffect(() => {
-    const last = messages.at(-1)
-    if (sending) {
-      if (last?.role === "assistant") streaming.current = last.id
-      return
-    }
-    if (!last || last.id !== streaming.current) return
-    streaming.current = null
-    const latest = last.artifacts?.at(-1)
-    if (latest) onOpenArtifact(latest)
-  }, [messages, sending, onOpenArtifact])
+  // Items Ngai made, or the one a chat started beside, show as cards in the conversation.
+  // A card opens the item in the standard layout, with this chat carried into its Ngai panel.
+  // Inside the Ngai workspace the item opens right there; elsewhere it opens the workspace with this chat.
+  const openInPlace = useContext(NgaiOpenItemContext)
+  const openItem = useCallback((artifact: ArtifactRef) => {
+    onOpenArtifact(artifact)
+    if (openInPlace) openInPlace(artifact)
+    else router.push(artifactPageHref(artifact, activeConversationId || undefined))
+  }, [activeConversationId, onOpenArtifact, openInPlace, router])
 
   // On a company page, any of its campaigns can be picked with @.
   const campaignMentions = useMemo(() => page ? [...page.projects]
@@ -223,6 +199,13 @@ function NgaiConversation({ layout, startingOptions, onOpenArtifact, activeArtif
     })) : undefined, [page])
 
   return (
+    <>
+    {/* A chat started beside a document or invoice, reopened here, shows that item as a card to go back to it. */}
+    {conversationContext && messages.length > 0 && (
+      <div className={cn("shrink-0 pt-2", layout === "page" ? "mx-auto w-full max-w-4xl px-4" : "px-4")}>
+        <ArtifactCard artifact={{ kind: conversationContext.kind, id: conversationContext.id, title: conversationContext.title }} onOpen={() => openItem({ kind: conversationContext.kind, id: conversationContext.id, title: conversationContext.title })} />
+      </div>
+    )}
     <AgentChat
       className={cn("h-0 min-h-0 flex-1", layout === "page" && "mx-auto w-full max-w-4xl")}
       messages={messages}
@@ -235,11 +218,12 @@ function NgaiConversation({ layout, startingOptions, onOpenArtifact, activeArtif
       onNewChat={startNewChat}
       startingOptions={startingOptions}
       campaignMentions={campaignMentions}
-      onOpenArtifact={onOpenArtifact}
+      onOpenArtifact={openItem}
       activeArtifactId={activeArtifactId}
       compact={layout === "panel"}
       minimalWelcome={minimalWelcome}
     />
+    </>
   )
 }
 
@@ -337,9 +321,10 @@ export function Ngai({ scope, layout = "page", onClose, menuInSidebar = false, c
     }
   }, [layout, access.allowed])
 
-  const [artifact, setArtifact] = useState<ArtifactRef | null>(null)
-  const { role } = useAuth()
-  const isAgency = role === "admin" || role === "superadmin"
+  // A chat opened from a card elsewhere (?chat=) carries on in this item's Ngai panel.
+  const chatParam = useSearchParams().get("chat") ?? undefined
+  // Items open in the standard layout (Ngai beside the item), so the chat only remembers which one it last opened.
+  const [artifactId, setArtifactId] = useState<string>()
 
   const frame = (body: ReactNode) => (
     // A page takes the colour of the page it sits on; a panel is its own card.
@@ -348,25 +333,11 @@ export function Ngai({ scope, layout = "page", onClose, menuInSidebar = false, c
     </div>
   )
 
-  // The chat, and beside it any document Ngai made, like an artifact in Claude or ChatGPT.
-  // On a wide page they sit side by side; in a narrow panel or on a phone the document
-  // takes the space, and closing it goes back to the chat.
+  // The chat on its own. Items it makes show as cards that open them in the standard layout.
   const chat = (startingOptions?: string[], chatsInSidebar = menuInSidebar) => (
-    <div className="flex min-h-0 flex-1 gap-4">
-      <div className={cn("flex min-w-0 flex-1 flex-col", artifact && (layout === "panel" ? "hidden" : "max-md:hidden"))}>
-        {!chatsInSidebar && <NgaiHeader layout={layout} onClose={onClose} heading={heading} actions={headerActions} />}
-        <NgaiConversation layout={layout} startingOptions={startingOptions} onOpenArtifact={setArtifact} activeArtifactId={artifact?.id} minimalWelcome={scope.kind === "document" || scope.kind === "invoice" || (scope.kind === "company" && layout === "panel")} />
-      </div>
-      {artifact && (
-        <DocumentArtifact
-          artifact={artifact}
-          canEdit={isAgency}
-          // Documents open beside Ngai on the Documents page; the rest on their own pages.
-          fullHref={isAgency ? (artifact.kind === "document" ? `/dashboard/documents?document=${encodeURIComponent(artifact.id)}` : `/dashboard/${artifact.kind}s/${encodeURIComponent(artifact.id)}`) : undefined}
-          onClose={() => setArtifact(null)}
-          className={cn("w-full shrink-0", layout === "page" && "md:w-[min(48rem,55%)] md:border-l md:border-border")}
-        />
-      )}
+    <div className="flex min-h-0 flex-1 flex-col">
+      {!chatsInSidebar && <NgaiHeader layout={layout} onClose={onClose} heading={heading} actions={headerActions} />}
+      <NgaiConversation layout={layout} startingOptions={startingOptions} onOpenArtifact={(item) => setArtifactId(item.id)} activeArtifactId={artifactId} minimalWelcome={scope.kind === "document" || scope.kind === "invoice" || (scope.kind === "company" && layout === "panel")} />
     </div>
   )
 
@@ -375,7 +346,7 @@ export function Ngai({ scope, layout = "page", onClose, menuInSidebar = false, c
   // Beside an open document: Ngai knows which one it is and can edit it in place.
   if (scope.kind === "document") {
     return (
-      <AgentProvider key={`document-${scope.document.id}`} documentContext={scope.document}>
+      <AgentProvider key={`document-${scope.document.id}`} documentContext={scope.document} initialConversationId={chatParam}>
         {frame(chat(STARTING_OPTIONS.document))}
       </AgentProvider>
     )
@@ -384,7 +355,7 @@ export function Ngai({ scope, layout = "page", onClose, menuInSidebar = false, c
   // Beside an open invoice: Ngai knows which one it is and can edit it in place.
   if (scope.kind === "invoice") {
     return (
-      <AgentProvider key={`invoice-${scope.invoice.id}`} invoiceContext={scope.invoice}>
+      <AgentProvider key={`invoice-${scope.invoice.id}`} invoiceContext={scope.invoice} initialConversationId={chatParam}>
         {frame(chat(STARTING_OPTIONS.invoice))}
       </AgentProvider>
     )
