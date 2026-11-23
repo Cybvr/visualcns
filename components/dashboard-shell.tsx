@@ -218,6 +218,8 @@ export function DashboardShell({
             !isChatRoute && !isEmailRoute && "md:overflow-y-auto md:pb-6",
             (isChatRoute || isEmailRoute) && "lg:overflow-hidden",
             hideHeader && "md:mt-3",
+            // An open document fills the card edge to edge and scrolls inside its editor.
+            pageHidesHeader && "md:pb-0",
           )}>
             {children}
           </div>

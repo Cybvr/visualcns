@@ -33,6 +33,7 @@ import {
 } from "@/lib/company-documents"
 import { CollectionView, type CollectionItemActions } from "@/components/dashboard/collection-view"
 import { thumbnailIcon } from "@/components/dashboard/grid-card"
+import { BillingPagePreview, DocumentPagePreview, hasDocumentText } from "@/components/dashboard/document-preview"
 import { SectionAddButton } from "@/components/company/section-add-button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 
@@ -150,6 +151,7 @@ export function CompanyDocuments({
       statusLabel: (companyDocumentStatusMeta[document.status] ?? companyDocumentStatusMeta.draft).label,
       icon: <FileText className="size-5 text-blue-600 dark:text-blue-400" aria-hidden="true" />,
       thumbnail: FileText,
+      preview: hasDocumentText(document.body) ? <DocumentPagePreview title={document.title} html={document.body} /> : undefined,
       actions: {
         noun: "document",
         name: document.title || "Document",
@@ -169,6 +171,16 @@ export function CompanyDocuments({
       amount: invoiceListAmount(invoice),
       icon: <Receipt className="size-5 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />,
       thumbnail: Receipt,
+      preview: (
+        <BillingPagePreview
+          heading="Invoice"
+          number={invoice.invoiceNumber}
+          client={invoice.billTo?.name || invoice.client}
+          lines={(invoice.lineItems ?? []).map((item) => ({ label: item.title || item.description, amount: Math.round(item.quantity * item.unitPrice) }))}
+          total={invoice.amount}
+          currency={invoice.currency}
+        />
+      ),
       actions: {
         noun: "invoice",
         name: invoice.title?.trim() || invoice.invoiceNumber || "Invoice",
@@ -187,6 +199,7 @@ export function CompanyDocuments({
       statusLabel: contractStatusMeta[contract.status].label,
       icon: <FileSignature className="size-5 text-indigo-600 dark:text-indigo-400" aria-hidden="true" />,
       thumbnail: FileSignature,
+      preview: hasDocumentText(contract.body) ? <DocumentPagePreview title={contract.title} html={contract.body} /> : undefined,
       actions: {
         noun: "contract",
         name: contract.title || "Contract",
@@ -206,6 +219,16 @@ export function CompanyDocuments({
       amount: formatMoney(estimate.amount, estimate.currency),
       icon: <ClipboardList className="size-5 text-amber-600 dark:text-amber-400" aria-hidden="true" />,
       thumbnail: ClipboardList,
+      preview: (
+        <BillingPagePreview
+          heading="Estimate"
+          number={estimate.estimateNumber}
+          client={estimate.preparedFor?.name || estimate.client}
+          lines={(estimate.lineItems ?? []).map((item) => ({ label: item.description, amount: item.amount, muted: item.optional }))}
+          total={estimate.amount}
+          currency={estimate.currency}
+        />
+      ),
       actions: {
         noun: "estimate",
         name: estimate.title || estimate.estimateNumber || "Estimate",

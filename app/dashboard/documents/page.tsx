@@ -317,7 +317,7 @@ export default function DocumentsPage() {
   )
 
   return (
-    <main className={cn("notes-page mx-auto w-full", ngaiDocument ? "lg:max-w-none lg:p-0 max-w-6xl px-4 pt-4 pb-12 sm:px-6" : "max-w-6xl px-4 pt-4 pb-12 sm:px-6")}>
+    <main className={cn("notes-page mx-auto w-full", ngaiDocument ? "lg:flex lg:min-h-0 lg:flex-1 lg:flex-col lg:max-w-none lg:p-0 max-w-6xl px-4 pt-4 pb-12 sm:px-6" : "max-w-6xl px-4 pt-4 pb-12 sm:px-6")}>
       {error ? (
         <p role="alert" className="mt-10 text-sm text-destructive">Documents unavailable. Refresh to try again.</p>
       ) : notes === null ? (
@@ -339,10 +339,11 @@ export default function DocumentsPage() {
           />
         </>
       ) : (
-        <div className={cn(openId ? "lg:grid lg:grid-cols-[20rem_minmax(0,1fr)] lg:items-start" : "lg:grid lg:grid-cols-[minmax(18rem,0.7fr)_minmax(0,1.3fr)] lg:items-start lg:gap-6")}>
+        // Open: the grid fills the shell's card in one row that never grows past it, so only the editor scrolls.
+        <div className={cn(openId ? "lg:grid lg:min-h-0 lg:flex-1 lg:grid-cols-[20rem_minmax(0,1fr)] lg:grid-rows-[minmax(0,1fr)]" : "lg:grid lg:grid-cols-[minmax(18rem,0.7fr)_minmax(0,1.3fr)] lg:items-start lg:gap-6")}>
           {/* Ngai first, the document beside it. */}
           {ngaiDocument && (
-            <aside className="hidden overflow-hidden border-r border-border lg:flex lg:h-[calc(100svh-0.75rem)] lg:flex-col">
+            <aside className="hidden min-h-0 overflow-hidden border-r border-border lg:flex lg:flex-col">
               <Ngai
                 scope={{ kind: "document", document: ngaiDocument }}
                 layout="panel"
@@ -395,7 +396,7 @@ export default function DocumentsPage() {
           </div>
 
           <section className={cn(
-            cn("min-w-0 lg:flex lg:min-h-0 lg:flex-col lg:overflow-hidden", ngaiDocument ? "lg:h-[calc(100svh-0.75rem)]" : "lg:h-[calc(100svh-5rem)]"),
+            "min-w-0 lg:flex lg:min-h-0 lg:flex-col lg:overflow-hidden",
             !openId && "hidden",
           )}>
             {openId ? (

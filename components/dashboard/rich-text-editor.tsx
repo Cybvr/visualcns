@@ -64,35 +64,6 @@ type ToolbarButton = {
   run: (editor: Editor) => void
 }
 
-const RULER_TICKS = Array.from({ length: 65 }, (_, index) => index)
-
-function DocumentRuler() {
-  return (
-    <div
-      aria-hidden="true"
-      className="relative h-8 w-full border-b border-border/80 bg-muted/40 text-muted-foreground"
-    >
-      <div className="absolute inset-x-0 bottom-0 h-3">
-        {RULER_TICKS.map((tick) => (
-          <span
-            key={tick}
-            className="absolute bottom-0 w-px bg-border/80"
-            style={{
-              left: `${(tick / 64) * 100}%`,
-              height: tick % 8 === 0 ? "0.75rem" : tick % 4 === 0 ? "0.5rem" : "0.3rem",
-            }}
-          />
-        ))}
-      </div>
-      <div className="pointer-events-none absolute inset-x-0 top-1 flex justify-between px-1 text-[9px] font-medium leading-none">
-        {[0, 1, 2, 3, 4, 5, 6, 7, 8].map((inch) => (
-          <span key={inch}>{inch}</span>
-        ))}
-      </div>
-    </div>
-  )
-}
-
 const BUTTONS: ToolbarButton[][] = [
   [
     {
@@ -225,7 +196,7 @@ export function RichTextEditor({
    * the text on a white card. Used by the document editor.
    */
   documentLayout?: boolean
-  /** Add a Google Docs-style ruler and bounded paper surface. */
+  /** Show the document on a bounded, page-width paper surface. */
   showRuler?: boolean
   aboveContent?: ReactNode
 }) {
@@ -452,11 +423,11 @@ export function RichTextEditor({
         disabled={htmlMode}
         className={cn(
           "inline-flex shrink-0 items-center justify-center outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-40",
-          large ? "size-10 rounded-lg" : "size-8 rounded-md",
+          "size-8 rounded-md",
           active ? large ? "bg-primary/10 text-primary" : "bg-muted text-foreground" : large ? "text-foreground hover:bg-muted" : "text-muted-foreground hover:bg-muted hover:text-foreground",
         )}
       >
-        <Link2 className={large ? "size-[18px]" : "size-4"} aria-hidden="true" />
+        <Link2 className="size-4" aria-hidden="true" />
       </button>
     )
   }
@@ -494,7 +465,7 @@ export function RichTextEditor({
     const more = [BUTTONS[1][1], BUTTONS[2][2], ...BUTTONS[3]]
     return (
       <div className={cn("flex min-w-0 flex-col", className)}>
-        <div className="sticky top-[var(--doc-editor-top,0px)] z-20 flex items-center gap-1 overflow-x-auto border-b border-border bg-background px-2 py-1.5 [scrollbar-width:none]">
+        <div className="sticky top-[var(--doc-editor-top,0px)] z-20 flex items-center gap-0.5 overflow-x-auto border-b border-border bg-background px-2 py-1 [scrollbar-width:none]">
           {groups.map((group, index) => (
             <div key={index} className={cn("flex shrink-0 items-center gap-1 pr-1", index < groups.length - 1 && "mr-1 border-r border-border")}>
               {group.map((button) => {
@@ -509,11 +480,11 @@ export function RichTextEditor({
                     title={button.label}
                     aria-pressed={active}
                     className={cn(
-                      "inline-flex size-10 shrink-0 items-center justify-center rounded-lg outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring",
+                      "inline-flex size-8 shrink-0 items-center justify-center rounded-md outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring",
                       active ? "bg-primary/10 text-primary" : "text-foreground hover:bg-muted",
                     )}
                   >
-                    <Icon className="size-[18px]" aria-hidden="true" />
+                    <Icon className="size-4" aria-hidden="true" />
                   </button>
                 )
               })}
@@ -522,8 +493,8 @@ export function RichTextEditor({
           ))}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button type="button" aria-label="More formatting tools" title="More formatting tools" className="ml-auto inline-flex size-10 shrink-0 items-center justify-center rounded-lg text-foreground outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring">
-                <EllipsisVertical className="size-[18px]" aria-hidden="true" />
+              <button type="button" aria-label="More formatting tools" title="More formatting tools" className="ml-auto inline-flex size-8 shrink-0 items-center justify-center rounded-md text-foreground outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring">
+                <EllipsisVertical className="size-4" aria-hidden="true" />
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
@@ -536,13 +507,6 @@ export function RichTextEditor({
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
-        {showRuler && (
-          <div className="border-b border-border bg-background px-3 sm:px-6">
-            <div className="mx-auto w-full max-w-[8.5in]">
-              <DocumentRuler />
-            </div>
-          </div>
-        )}
         <ImagePickerDialog open={imageDialogOpen} onOpenChange={setImageDialogOpen} onSelect={handleImageSelected} />
         {linkDialog}
         <div className={cn(
