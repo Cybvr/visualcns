@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { FileCheck2, FileText, FileUp, Plus, Receipt, StickyNote } from "lucide-react"
+import { FileCheck2, FileText, FileUp, Plus, Receipt } from "lucide-react"
 import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
@@ -35,14 +35,13 @@ import {
   companyDocumentKindMeta, companyDocumentStatusMeta, createCompanyDocument, deleteCompanyDocument,
   getCompanyDocuments, updateCompanyDocument, type CompanyDocument,
 } from "@/lib/company-documents"
-import { createNote, deleteNote, setNoteShared, updateNote, watchNotes, type Note } from "@/lib/notes"
+import { createNote, moveLegacyNotes } from "@/lib/notes"
 import { formatTimestamp, tsToMillis } from "@/lib/tasks"
 
 type DriveItem =
   | { type: "invoice"; record: Invoice }
   | { type: "estimate"; record: Estimate }
   | { type: "document"; record: CompanyDocument }
-  | { type: "note"; record: Note }
 type DriveType = DriveItem["type"]
 type DriveFilter = "all" | DriveType
 type DuplicateTarget = Extract<DriveItem, { type: "invoice" | "estimate" | "document" }>
@@ -51,7 +50,6 @@ const TYPES: { value: DriveFilter; label: string }[] = [
   { value: "all", label: "All" },
   { value: "estimate", label: "Estimates" },
   { value: "document", label: "Documents" },
-  { value: "note", label: "Notes" },
 ]
 
 const SORTS: SortOption<DriveItem>[] = [
@@ -60,44 +58,36 @@ const SORTS: SortOption<DriveItem>[] = [
   { value: "type", label: "Type", get: (item) => item.type, ascLabel: "A–Z", descLabel: "Z–A" },
 ]
 
-const ICONS = { invoice: Receipt, estimate: FileCheck2, document: FileText, note: StickyNote }
+const ICONS = { invoice: Receipt, estimate: FileCheck2, document: FileText }
 
 function keyOf(item: DriveItem) { return `${item.type}:${item.record.id}` }
 function updatedAt(item: DriveItem) { return Math.max(tsToMillis(item.record.updatedAt), tsToMillis(item.record.createdAt)) }
-function noteTitle(note: Note) {
-  if (note.title?.trim()) return note.title.trim()
-  return note.body.replace(/<\/(?:p|li|h[1-6])>/gi, "\n").replace(/<[^>]*>/g, "").split("\n").map((line) => line.trim()).find(Boolean) || "New note"
-}
 function itemTitle(item: DriveItem) {
   if (item.type === "invoice") return item.record.title || item.record.invoiceNumber || "Untitled invoice"
   if (item.type === "estimate") return item.record.title || item.record.estimateNumber || "Untitled estimate"
-  if (item.type === "document") return item.record.title || "Untitled document"
-  return noteTitle(item.record)
+  return item.record.title || "Untitled document"
 }
 function itemHref(item: DriveItem) {
   const id = encodeURIComponent(item.record.id)
-  if (item.type === "note") return `/dashboard/notes?note=${id}`
+  if (item.type === "document") return `/dashboard/documents?document=${id}`
   if (item.type === "estimate") return `/dashboard/estimates/${id}/edit`
-  return `/dashboard/${item.type === "document" ? "documents" : "invoices"}/${id}`
+  return `/dashboard/invoices/${id}`
 }
 function itemStatus(item: DriveItem) {
   if (item.type === "invoice") return invoiceStatusMeta[item.record.status] ?? invoiceStatusMeta.draft
   if (item.type === "estimate") return estimateStatusMeta[item.record.status] ?? estimateStatusMeta.draft
-  if (item.type === "document") return companyDocumentStatusMeta[item.record.status] ?? companyDocumentStatusMeta.draft
-  return null
+  return companyDocumentStatusMeta[item.record.status] ?? companyDocumentStatusMeta.draft
 }
 function itemSubtitle(item: DriveItem) {
   if (item.type === "invoice") return invoiceListAmount(item.record)
   if (item.type === "estimate") return formatMoney(item.record.amount, item.record.currency)
-  if (item.type === "document") return companyDocumentKindMeta[item.record.kind]?.label || "Document"
-  return "Note"
+  return companyDocumentKindMeta[item.record.kind]?.label || "Document"
 }
 function itemSearch(item: DriveItem) {
   const status = itemStatus(item)
   if (item.type === "invoice") return [itemTitle(item), item.record.invoiceNumber, item.record.client, item.record.project, status?.label, "invoice"]
   if (item.type === "estimate") return [itemTitle(item), item.record.estimateNumber, item.record.client, item.record.project, status?.label, "estimate"]
-  if (item.type === "document") return [itemTitle(item), item.record.client, item.record.project, itemSubtitle(item), status?.label, "document"]
-  return [itemTitle(item), item.record.body.replace(/<[^>]*>/g, " "), "note"]
+  return [itemTitle(item), item.record.client, item.record.project, itemSubtitle(item), status?.label, (item.record.body || "").replace(/<[^>]*>/g, " "), "document"]
 }
 
 function OutstandingSummary({ invoices }: { invoices: Invoice[] }) {
@@ -132,7 +122,7 @@ function OutstandingSummary({ invoices }: { invoices: Invoice[] }) {
 }
 
 /**
- * Artifacts: estimates, documents and notes together. With mode "invoices" it is
+ * Artifacts: estimates and documents together. With mode "invoices" it is
  * the Invoices page instead: invoices only, with what is still owed on top.
  */
 export function DriveLibrary({ mode = "artifacts" }: { mode?: "artifacts" | "invoices" }) {
@@ -146,8 +136,6 @@ export function DriveLibrary({ mode = "artifacts" }: { mode?: "artifacts" | "inv
   const [invoices, setInvoices, invoicesCached] = useCachedState<Invoice[]>("invoices", [])
   const [estimates, setEstimates, estimatesCached] = useCachedState<Estimate[]>("estimates", [])
   const [documents, setDocuments, documentsCached] = useCachedState<CompanyDocument[]>("drive:company-documents", [])
-  const [notes, setNotes] = useState<Note[]>([])
-  const [notesLoaded, setNotesLoaded] = useState(false)
   const [loading, setLoading] = useState(!(invoicesCached && estimatesCached && documentsCached))
   const [loadError, setLoadError] = useState(false)
   const [filter, setFilter] = useState<DriveFilter>("all")
@@ -184,25 +172,25 @@ export function DriveLibrary({ mode = "artifacts" }: { mode?: "artifacts" | "inv
   }, [adminView, setDocuments, setEstimates, setInvoices])
 
   useEffect(() => { void fetchData() }, [fetchData])
+  // Move any notes still in the old notes collection into documents, then reload the list.
   useEffect(() => {
     if (!adminView) return
-    let stop = () => {}
     let active = true
-    getCurrentAgencyId().then((agencyId) => {
-      if (!active) return
-      stop = watchNotes(agencyId, (rows) => { setNotes(rows); setNotesLoaded(true) }, (error) => { console.error("Error loading notes:", error); setLoadError(true); setNotesLoaded(true) })
-    }).catch((error) => { console.error("Error loading notes:", error); setLoadError(true); setNotesLoaded(true) })
-    return () => { active = false; stop() }
-  }, [adminView])
+    getCurrentAgencyId()
+      .then((agencyId) => moveLegacyNotes(agencyId))
+      .then(() => getCompanyDocuments())
+      .then((rows) => { if (active) setDocuments(rows) })
+      .catch((error) => console.error("Error moving notes into documents:", error))
+    return () => { active = false }
+  }, [adminView, setDocuments])
 
   const items = useMemo<DriveItem[]>(() => invoicesOnly ? invoices.map((record) => ({ type: "invoice" as const, record })) : [
     ...estimates.map((record) => ({ type: "estimate" as const, record })),
     ...documents.map((record) => ({ type: "document" as const, record })),
-    ...notes.map((record) => ({ type: "note" as const, record })),
-  ], [invoicesOnly, invoices, estimates, documents, notes])
+  ], [invoicesOnly, invoices, estimates, documents])
   const filteredItems = useMemo(() => filter === "all" ? items : items.filter((item) => item.type === filter), [filter, items])
   const { results: visibleItems, bar } = useFilterBar({ items: filteredItems, search: itemSearch, sorts: SORTS, defaultSort: "updatedAt", defaultDirection: "desc" })
-  const busy = loading || !notesLoaded
+  const busy = loading
 
   async function renameItem(item: DriveItem, title: string) {
     try {
@@ -215,9 +203,6 @@ export function DriveLibrary({ mode = "artifacts" }: { mode?: "artifacts" | "inv
       } else if (item.type === "document") {
         await updateCompanyDocument(item.record.id, { title })
         setDocuments((current) => current.map((record) => record.id === item.record.id ? { ...record, title } : record))
-      } else {
-        await updateNote(item.record.id, { title, body: item.record.body })
-        setNotes((current) => current.map((record) => record.id === item.record.id ? { ...record, title } : record))
       }
     } catch (error) {
       console.error("Error renaming item:", error)
@@ -237,9 +222,6 @@ export function DriveLibrary({ mode = "artifacts" }: { mode?: "artifacts" | "inv
       } else if (item.type === "document") {
         await deleteCompanyDocument(item.record.id)
         setDocuments((current) => current.filter((record) => record.id !== item.record.id))
-      } else {
-        await deleteNote(item.record.id)
-        setNotes((current) => current.filter((record) => record.id !== item.record.id))
       }
     } catch (error) {
       console.error("Error deleting item:", error)
@@ -262,9 +244,6 @@ export function DriveLibrary({ mode = "artifacts" }: { mode?: "artifacts" | "inv
       } else if (item.type === "document") {
         await updateCompanyDocument(item.record.id, { shareEnabled: enabled })
         setDocuments((current) => current.map((record) => record.id === item.record.id ? { ...record, shareEnabled: enabled } : record))
-      } else {
-        await setNoteShared(item.record.id, enabled)
-        setNotes((current) => current.map((record) => record.id === item.record.id ? { ...record, shareEnabled: enabled } : record))
       }
       setSharing((current) => current && keyOf(current) === keyOf(item) ? { ...current, record: { ...current.record, shareEnabled: enabled } } as DriveItem : current)
     } catch (error) {
@@ -283,9 +262,9 @@ export function DriveLibrary({ mode = "artifacts" }: { mode?: "artifacts" | "inv
       name: title,
       onOpen: () => router.push(href),
       onRename: adminView ? (next) => renameItem(item, next) : undefined,
-      onDuplicate: adminView && item.type !== "note" ? () => setDuplicateTarget(item as DuplicateTarget) : undefined,
+      onDuplicate: adminView ? () => setDuplicateTarget(item) : undefined,
       extra: adminView ? <>
-        {item.type === "document" && <DropdownMenuItem onSelect={() => router.push(`${href}/edit`)}>Edit document</DropdownMenuItem>}
+        {item.type === "document" && <DropdownMenuItem onSelect={() => router.push(`/dashboard/documents/${encodeURIComponent(item.record.id)}/edit`)}>Client, type and status</DropdownMenuItem>}
         {item.type === "estimate" && <DropdownMenuItem onSelect={() => router.push(`/dashboard/invoices/new?estimateId=${encodeURIComponent(item.record.id)}`)}>Convert to invoice</DropdownMenuItem>}
         <DropdownMenuItem onSelect={() => setSharing(item)}>Share</DropdownMenuItem>
       </> : undefined,
@@ -312,7 +291,7 @@ export function DriveLibrary({ mode = "artifacts" }: { mode?: "artifacts" | "inv
       } else {
         const { id: _id, createdAt: _createdAt, updatedAt: _updatedAt, ...rest } = target.record
         const id = await createCompanyDocument({ ...rest, title: `${target.record.title || "Document"} (Copy)`, status: "draft", shareEnabled: false, companyId: selection.companyId, client: selection.client || target.record.client, projectId: selection.projectId, project: selection.project })
-        router.push(`/dashboard/documents/${encodeURIComponent(id)}/edit`)
+        router.push(`/dashboard/documents?document=${encodeURIComponent(id)}`)
       }
       setDuplicateTarget(null)
     } catch (error) {
@@ -328,7 +307,7 @@ export function DriveLibrary({ mode = "artifacts" }: { mode?: "artifacts" | "inv
     setCreatingNote(true)
     try {
       const id = await createNote(user.uid)
-      router.push(`/dashboard/notes?note=${encodeURIComponent(id)}`)
+      router.push(`/dashboard/documents?document=${encodeURIComponent(id)}`)
     } catch (error) {
       console.error("Error creating note:", error)
       toast.error("Couldn't create a note.")
@@ -351,8 +330,8 @@ export function DriveLibrary({ mode = "artifacts" }: { mode?: "artifacts" | "inv
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         <DropdownMenuItem onSelect={() => router.push("/dashboard/estimates/new")}>Estimate</DropdownMenuItem>
-        <DropdownMenuItem onSelect={() => setCreatingDocument(true)}>Document</DropdownMenuItem>
-        <DropdownMenuItem onSelect={() => void createNewNote()} disabled={creatingNote}>Note</DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => void createNewNote()} disabled={creatingNote}>Document</DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => setCreatingDocument(true)}>Document from template</DropdownMenuItem>
         <DropdownMenuItem onSelect={() => setImportingDocument(true)}><FileUp className="size-4" aria-hidden="true" />Import document</DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
@@ -375,7 +354,7 @@ export function DriveLibrary({ mode = "artifacts" }: { mode?: "artifacts" | "inv
           {invoicesOnly ? (
             <FirstRunState label="Invoices" title="No invoices yet" description="Invoices you send will appear here, with what is still owed." action={<Button asChild><Link href="/dashboard/invoices/new">New invoice</Link></Button>} />
           ) : (
-            <FirstRunState label="Artifacts" title="No artifacts yet" description="Estimates, documents and notes will appear together here." action={<div className="flex flex-wrap justify-center gap-2"><Button onClick={() => setCreatingDocument(true)}>New document</Button><Button asChild variant="outline"><Link href="/dashboard/estimates/new">New estimate</Link></Button></div>} />
+            <FirstRunState label="Artifacts" title="No artifacts yet" description="Estimates and documents will appear together here." action={<div className="flex flex-wrap justify-center gap-2"><Button onClick={() => void createNewNote()} disabled={creatingNote}>New document</Button><Button asChild variant="outline"><Link href="/dashboard/estimates/new">New estimate</Link></Button></div>} />
           )}
         </>
       ) : (
@@ -395,12 +374,12 @@ export function DriveLibrary({ mode = "artifacts" }: { mode?: "artifacts" | "inv
           renderGridItem={(item) => {
             const Icon = ICONS[item.type]
             const status = itemStatus(item)
-            const detail = item.type === "note" ? "" : itemSubtitle(item)
+            const detail = itemSubtitle(item)
             return <GridCard
               title={itemTitle(item)}
               icon={<Icon className="size-4 text-muted-foreground" aria-hidden="true" />}
               placeholder={thumbnailIcon(Icon)}
-              subtitle={<span className="inline-flex items-center gap-1.5">{status && <Badge variant="secondary" className={`rounded-full border-0 ${status.className}`}>{status.label}</Badge>}{detail && <span>{status ? "· " : ""}{detail}</span>}{item.type === "note" && <span>{formatTimestamp(item.record.updatedAt ?? item.record.createdAt)}</span>}</span>}
+              subtitle={<span className="inline-flex items-center gap-1.5">{status && <Badge variant="secondary" className={`rounded-full border-0 ${status.className}`}>{status.label}</Badge>}{detail && <span>{status ? "· " : ""}{detail}</span>}</span>}
               href={itemHref(item)}
               ariaLabel={`Open ${itemTitle(item)}`}
               menuLabel={`Options for ${itemTitle(item)}`}
@@ -410,15 +389,15 @@ export function DriveLibrary({ mode = "artifacts" }: { mode?: "artifacts" | "inv
           renderItem={(item) => {
             const Icon = ICONS[item.type]
             const status = itemStatus(item)
-            const client = item.type === "note" ? "" : item.record.client
-            const detail = item.type === "note" ? "" : itemSubtitle(item)
+            const client = item.record.client
+            const detail = itemSubtitle(item)
             const timestamp = formatTimestamp(item.record.updatedAt ?? item.record.createdAt)
             return <CompactListRow
               title={itemTitle(item)}
               leading={<span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground"><Icon className="size-5" aria-hidden="true" /></span>}
               subtitle={<span className="inline-flex items-center gap-1.5">{status && <Badge variant="secondary" className={`rounded-full border-0 ${status.className}`}>{status.label}</Badge>}<span>{status ? "· " : ""}{detail ? `${detail} · ` : ""}{timestamp}</span></span>}
-              mobileSubtitle={<span className="inline-flex max-w-full items-center gap-1.5">{client && <span className="truncate">{client}</span>}{status && <Badge variant="secondary" className={`rounded-full border-0 ${status.className}`}>{status.label}</Badge>}{detail && <span className="truncate">{detail}</span>}{item.type === "note" && <span>{timestamp}</span>}</span>}
-              meta={item.type === "note" ? undefined : timestamp}
+              mobileSubtitle={<span className="inline-flex max-w-full items-center gap-1.5">{client && <span className="truncate">{client}</span>}{status && <Badge variant="secondary" className={`rounded-full border-0 ${status.className}`}>{status.label}</Badge>}{detail && <span className="truncate">{detail}</span>}</span>}
+              meta={timestamp}
               href={itemHref(item)}
               menuLabel={`Options for ${itemTitle(item)}`}
               actions={itemActions(item)}

@@ -7,7 +7,6 @@ import { getCurrentAgencyId } from "@/lib/agency-scope"
 import { getEstimates, getInvoices } from "@/lib/billing"
 import { getCompanyDocuments } from "@/lib/company-documents"
 import { watchLeads } from "@/lib/leads"
-import { watchNotes } from "@/lib/notes"
 import { getOrganizations } from "@/lib/organizations"
 import { getProjects } from "@/lib/projects"
 import { getUsers } from "@/lib/users"
@@ -38,8 +37,7 @@ export function useNavCounts(): Record<string, number> {
       .then((rows) => set("/dashboard/companies", new Set(rows.map((row) => (row.name || row.id).trim().toLowerCase())).size))
       .catch(() => {})
     let driveCount = 0
-    let noteCount = 0
-    const updateDriveCount = () => set("/dashboard/artifacts", driveCount + noteCount)
+    const updateDriveCount = () => set("/dashboard/artifacts", driveCount)
     Promise.allSettled([getInvoices(), getEstimates(), getCompanyDocuments()])
       .then(([invoices, ...rest]) => {
         if (invoices.status === "fulfilled") set("/dashboard/invoices", invoices.value.length)
@@ -51,19 +49,16 @@ export function useNavCounts(): Record<string, number> {
       .catch(() => {})
 
     let stopLeads = () => {}
-    let stopNotes = () => {}
     getCurrentAgencyId()
       .then((agencyId) => {
         if (!active) return
         stopLeads = watchLeads(agencyId, (rows) => set("/dashboard/leads", rows.length), () => {})
-        stopNotes = watchNotes(agencyId, (rows) => { noteCount = rows.length; updateDriveCount() }, () => {})
       })
       .catch(() => {})
 
     return () => {
       active = false
       stopLeads()
-      stopNotes()
     }
   }, [user, isStaff])
 

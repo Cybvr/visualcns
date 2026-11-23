@@ -1,17 +1,20 @@
-import { collection, deleteDoc, doc, getDoc, onSnapshot, query, setDoc, updateDoc, where } from "firebase/firestore"
+import { Timestamp, collection, deleteDoc, doc, getDoc, getDocs, onSnapshot, query, setDoc, updateDoc, where } from "firebase/firestore"
 
 import { db } from "./firebase"
 import { getCurrentAgencyId } from "./agency-scope"
 import { tsToMillis } from "./tasks"
 
-const COLLECTION_NAME = "notes"
+/** Notes are documents: the editor reads and writes the companyDocuments collection. */
+const COLLECTION_NAME = "companyDocuments"
+/** Where notes used to live. Anything left there is moved into documents once. */
+const LEGACY_COLLECTION = "notes"
 
 function normalizeDate(value: unknown, fallback = "") {
   const millis = tsToMillis(value)
   return millis > 0 ? new Date(millis).toISOString() : fallback
 }
 
-/** An agency note shared by the signed-in users in that agency. */
+/** A document as the writing editor sees it: a title and a rich text body. */
 export type Note = {
   id: string
   agencyId: string
@@ -42,7 +45,43 @@ function toNote(id: string, data: Partial<Omit<Note, "id">>): Note {
   }
 }
 
+const moved = new Set<string>()
+
+/**
+ * Copies every note in the old notes collection into documents with the same
+ * id, then deletes the note. Runs once per agency per page load; safe to repeat.
+ */
+export async function moveLegacyNotes(agencyId: string): Promise<void> {
+  if (!agencyId || moved.has(agencyId)) return
+  moved.add(agencyId)
+  const snapshot = await getDocs(query(collection(db, LEGACY_COLLECTION), where("agencyId", "==", agencyId)))
+  for (const item of snapshot.docs) {
+    const data = item.data() as Partial<Omit<Note, "id">>
+    const target = doc(db, COLLECTION_NAME, item.id)
+    const existing = await getDoc(target).catch(() => null)
+    if (!existing?.exists()) {
+      const created = tsToMillis(data.createdAt)
+      const updated = Math.max(tsToMillis(data.updatedAt), created)
+      await setDoc(target, {
+        agencyId,
+        companyId: typeof data.companyId === "string" ? data.companyId : "",
+        client: "",
+        createdBy: typeof data.createdBy === "string" ? data.createdBy : "",
+        title: typeof data.title === "string" ? data.title : "",
+        body: noteBodyHtml(typeof data.body === "string" ? data.body : ""),
+        kind: "other",
+        status: "draft",
+        shareEnabled: data.shareEnabled === true,
+        createdAt: created > 0 ? Timestamp.fromMillis(created) : Timestamp.now(),
+        updatedAt: updated > 0 ? Timestamp.fromMillis(updated) : Timestamp.now(),
+      })
+    }
+    await deleteDoc(item.ref)
+  }
+}
+
 function watchScopedNotes(agencyId: string, companyId: string | undefined, onChange: (notes: Note[]) => void, onError: (error: Error) => void) {
+  void moveLegacyNotes(agencyId).catch((error) => console.error("Moving notes into documents failed", error))
   const notesQuery = companyId
     ? query(collection(db, COLLECTION_NAME), where("agencyId", "==", agencyId), where("companyId", "==", companyId))
     : query(collection(db, COLLECTION_NAME), where("agencyId", "==", agencyId))
@@ -57,25 +96,24 @@ function watchScopedNotes(agencyId: string, companyId: string | undefined, onCha
   )
 }
 
-/** Live list of agency-wide notes, excluding notes filed against a company. */
+/** Live list of every document in the agency, newest first. */
 export function watchNotes(agencyId: string, onChange: (notes: Note[]) => void, onError: (error: Error) => void) {
-  return watchScopedNotes(agencyId, undefined, (notes) => onChange(notes.filter((note) => !note.companyId)), onError)
+  return watchScopedNotes(agencyId, undefined, onChange, onError)
 }
 
-/** Live list of notes belonging to one company. */
-export function watchCompanyNotes(agencyId: string, companyId: string, onChange: (notes: Note[]) => void, onError: (error: Error) => void) {
-  return watchScopedNotes(agencyId, companyId, onChange, onError)
-}
-
+/** A blank document, opened straight in the editor. */
 export async function createNote(uid: string, companyId?: string): Promise<string> {
   const ref = doc(collection(db, COLLECTION_NAME))
-  const now = new Date().toISOString()
+  const now = Timestamp.now()
   await setDoc(ref, {
     agencyId: await getCurrentAgencyId(),
-    ...(companyId ? { companyId } : {}),
+    companyId: companyId || "",
+    client: "",
     createdBy: uid,
     title: "",
     body: "",
+    kind: "other",
+    status: "draft",
     createdAt: now,
     updatedAt: now,
   })
@@ -83,7 +121,7 @@ export async function createNote(uid: string, companyId?: string): Promise<strin
 }
 
 export async function updateNote(id: string, changes: Pick<Note, "title" | "body">): Promise<void> {
-  await updateDoc(doc(db, COLLECTION_NAME, id), { ...changes, updatedAt: new Date().toISOString() })
+  await updateDoc(doc(db, COLLECTION_NAME, id), { ...changes, updatedAt: Timestamp.now() })
 }
 
 export async function deleteNote(id: string): Promise<void> {
@@ -126,5 +164,5 @@ export async function getSharedNote(id: string): Promise<Note | null> {
 }
 
 export async function setNoteShared(id: string, shareEnabled: boolean): Promise<void> {
-  await updateDoc(doc(db, COLLECTION_NAME, id), { shareEnabled })
+  await updateDoc(doc(db, COLLECTION_NAME, id), { shareEnabled, updatedAt: Timestamp.now() })
 }

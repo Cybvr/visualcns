@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { useParams } from "next/navigation"
+import { useParams, useRouter } from "next/navigation"
 import { ArrowLeft, Pencil } from "lucide-react"
 
 import { useAuth } from "@/components/auth-provider"
@@ -18,6 +18,7 @@ import { companyDocumentEmailContext } from "@/lib/document-emails"
 
 export default function DocumentDetailPage() {
   const { id } = useParams<{ id: string }>()
+  const router = useRouter()
   const { user, appUser, isAdmin, isImpersonating } = useAuth()
   const [record, setRecord] = useState<CompanyDocument | null>(null)
   const [issuer, setIssuer] = useState<BusinessProfile | null>(null)
@@ -27,6 +28,11 @@ export default function DocumentDetailPage() {
   const companyRef = useCompanyRef(record?.companyId, adminView)
 
   usePageTitle(record?.title ?? null, "/dashboard/artifacts")
+
+  // Admins write documents in the editor; clients get the read-only view below.
+  useEffect(() => {
+    if (id && adminView) router.replace(`/dashboard/documents?document=${encodeURIComponent(id)}`)
+  }, [adminView, id, router])
 
   useEffect(() => {
     if (!id || !user || !appUser) return
@@ -53,7 +59,7 @@ export default function DocumentDetailPage() {
     return () => { active = false }
   }, [appUser, id, isAdmin, isImpersonating, user])
 
-  if (!user) return null
+  if (!user || adminView) return null
   if (loading) return <DashboardPageSkeleton variant="detail" />
 
   if (failed || !record) {

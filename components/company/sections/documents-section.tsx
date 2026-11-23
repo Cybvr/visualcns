@@ -6,7 +6,6 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { CompanyDocuments, type CompanyDocumentKind } from "@/components/company/company-documents"
 import { useCompanyPage } from "@/components/company/company-page-context"
 import { useCompanyCampaignMedia, useCompanyFiles } from "@/components/company/sections/files-section"
-import { useCompanyNotes } from "@/components/company/sections/notes-section"
 import { DocumentArtifact } from "@/components/dashboard/document-artifact"
 import { DocumentActions } from "@/components/dashboard/document-actions"
 import { NewDocumentDialog } from "@/components/dashboard/new-document-dialog"
@@ -24,7 +23,7 @@ function editHref(kind: CompanyDocumentKind, id: string) {
 }
 
 /**
- * Documents (under Finance): invoices, estimates, contracts, documents, notes and other files.
+ * Documents (under Finance): invoices, estimates, contracts, documents and other files.
  * Assets (under Marketing): images and videos, uploaded or from campaigns.
  */
 export function DocumentsSection({ view = "documents" }: { view?: "documents" | "assets" }) {
@@ -34,8 +33,6 @@ export function DocumentsSection({ view = "documents" }: { view?: "documents" | 
   const searchParams = useSearchParams()
   const [issuer, setIssuer] = useState<BusinessProfile | null>(null)
   const [creatingDocument, setCreatingDocument] = useState(false)
-  // Notes sit in the same list as the documents and open in their own editor.
-  const notes = useCompanyNotes()
   // Every campaign's media sits in the Drive too.
   const campaignMedia = useCompanyCampaignMedia()
   // Uploaded files sit in the same list too, and open in a new tab.
@@ -127,21 +124,20 @@ export function DocumentsSection({ view = "documents" }: { view?: "documents" | 
           heading="Documents"
           emptyTitle="No documents yet"
           addKinds={["document", "invoice", "contract", "estimate"]}
-          emptyDescription="Documents, invoices, estimates, contracts, notes and files will appear here."
+          emptyDescription="Documents, invoices, estimates, contracts and files will appear here."
           onSelect={(kind, id) => updateParams({ doc: `${kind}:${id}` })}
           onEdit={canEditDocuments ? (kind, id) => router.push(editHref(kind, id)) : undefined}
           canAdd={Boolean(admin)}
           onAdd={handleAdd}
           campaignName={(projectId) => projectId ? projects.find((project) => project.id === projectId)?.title : undefined}
-          extraEntries={[...notes.entries, ...files.entries.filter((entry) => !entry.media)]}
-          extraAddItems={files.addItem || notes.addItem ? <>{files.addItem}{notes.addItem}</> : undefined}
+          extraEntries={files.entries.filter((entry) => !entry.media)}
+          extraAddItems={files.addItem ?? undefined}
           canManage={canEditDocuments}
           onChanged={admin?.reload}
         />
         )
       )}
 
-      {notes.dialogs}
       {files.dialogs}
 
       {admin && (
