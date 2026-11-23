@@ -1,12 +1,13 @@
 "use client"
 
-import { createContext, useCallback, useContext, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react"
+import { useCallback, useContext, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react"
 import Image from "next/image"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { History, LogIn, Plus, SquarePen, Trash2, X } from "lucide-react"
 import { toast } from "sonner"
 
 import { AgentChat } from "@/components/agent/agent-chat"
+import { NgaiOpenItemContext } from "@/components/agent/open-item-context"
 import { AgentProvider, useAgent } from "@/components/agent/agent-context"
 import { useAuth } from "@/components/auth-provider"
 import { useOptionalCompanyPage } from "@/components/company/company-page-context"
@@ -126,8 +127,7 @@ export function NgaiHeader({ layout, onClose, heading, actions }: { layout: Ngai
   )
 }
 
-/** Set by the Ngai workspace: opening an item from the chat shows it beside the chat, in place. */
-export const NgaiOpenItemContext = createContext<((artifact: ArtifactRef) => void) | null>(null)
+export { NgaiOpenItemContext } from "@/components/agent/open-item-context"
 
 export type NgaiChatRef = { id: string; title: string }
 

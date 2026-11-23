@@ -72,6 +72,9 @@ export function ArtifactTitleMenu({
     }
   }
 
+  // Nothing to do with it yet (a brand-new chat): just the title.
+  if (!onRename && !onShare && !onDelete && !onOpen) return <span className="min-w-0 flex-1 truncate px-1.5 text-sm font-semibold">{title}</span>
+
   if (renaming) {
     return (
       <input

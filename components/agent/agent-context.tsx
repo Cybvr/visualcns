@@ -157,6 +157,7 @@ interface AgentContextValue {
   conversationContext: AgentChatContext | null
   /** Tells the chat which document or invoice is open beside it, or null when none is. */
   setItemContext: (context: AgentChatContext | null) => void
+  renameConversation: (id: string, title: string) => void
 }
 
 const AgentContext = createContext<AgentContextValue | null>(null)
@@ -482,6 +483,10 @@ export function AgentProvider({
     }
   }, [user?.uid, sending, activeConversationId, conversations, reset])
   const toggle = useCallback(() => setOpen((current) => !current), [])
+  const renameConversation = useCallback((id: string, title: string) => {
+    const conversation = conversations.find((item) => item.id === id)
+    if (conversation) rememberConversation({ ...conversation, title })
+  }, [conversations, rememberConversation])
 
   // Beside a document or invoice, carry on the chat you came from, or else the latest one about this item.
   const picked = useRef(false)
@@ -502,8 +507,8 @@ export function AgentProvider({
   }, [documentContext, invoiceContext, conversations, activeConversationId])
 
   const value = useMemo(
-    () => ({ open, setOpen, toggle, messages, conversations, conversationsLoading, activeConversationId, sending, firstName, send, rateResponse, reset, selectConversation, deleteConversations, conversationContext, setItemContext }),
-    [open, toggle, messages, conversations, conversationsLoading, activeConversationId, sending, firstName, send, rateResponse, reset, selectConversation, deleteConversations, conversationContext],
+    () => ({ open, setOpen, toggle, messages, conversations, conversationsLoading, activeConversationId, sending, firstName, send, rateResponse, reset, selectConversation, deleteConversations, conversationContext, setItemContext, renameConversation }),
+    [open, toggle, messages, conversations, conversationsLoading, activeConversationId, sending, firstName, send, rateResponse, reset, selectConversation, deleteConversations, conversationContext, renameConversation],
   )
 
   return <AgentContext.Provider value={value}>{children}</AgentContext.Provider>

@@ -1,12 +1,13 @@
 "use client"
 
-import { useEffect, useRef, useState, type ChangeEvent, type ClipboardEvent, type DragEvent, type FormEvent, type KeyboardEvent, type ReactNode } from "react"
+import { useContext, useEffect, useRef, useState, type ChangeEvent, type ClipboardEvent, type DragEvent, type FormEvent, type KeyboardEvent, type ReactNode } from "react"
 import { ArrowUp, Check, ChevronDown, ChevronRight, Copy, Ellipsis, FileText, ListChecks, Loader2, Megaphone, Mic, Plus, RotateCcw, ThumbsDown, ThumbsUp, UploadCloud, X } from "lucide-react"
 import { toast } from "sonner"
 
 import { NgaiMark } from "@/components/agent/ngai-mark"
 import type { AgentArtifact, AgentConversation, AgentFile, AgentForm, AgentMention, AgentMessage, AgentPlan } from "@/components/agent/agent-context"
 import { ArtifactCard } from "@/components/dashboard/document-artifact"
+import { NgaiOpenItemContext, itemFromHref } from "@/components/agent/open-item-context"
 import { uploadFileToStorage } from "@/lib/documents"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -28,6 +29,28 @@ import { cn } from "@/lib/utils"
 
 import "./agent-chat.css"
 
+/**
+ * A link in a reply to somewhere in the dashboard. A document or invoice opens beside
+ * the chat, in place, like its card; anything else is an ordinary link.
+ */
+function ChatLink({ href, children }: { href: string; children: ReactNode }) {
+  const openInPlace = useContext(NgaiOpenItemContext)
+  const item = openInPlace ? itemFromHref(href) : null
+  return (
+    <a
+      href={href}
+      onClick={(event) => {
+        if (!item || !openInPlace || event.metaKey || event.ctrlKey || event.shiftKey) return
+        event.preventDefault()
+        openInPlace(item)
+      }}
+      className="font-medium underline underline-offset-4"
+    >
+      {children}
+    </a>
+  )
+}
+
 /** Inline markdown in one line of an agent reply: bold, italic, code, links. */
 function formatInline(text: string, keyPrefix: string): ReactNode[] {
   const nodes: ReactNode[] = []
@@ -48,14 +71,11 @@ function formatInline(text: string, keyPrefix: string): ReactNode[] {
       const internal = link ? link[2].startsWith("/") : false
       nodes.push(
         link ? (
-          <a
-            key={key}
-            href={link[2]}
-            {...(internal ? {} : { target: "_blank", rel: "noreferrer" })}
-            className="font-medium underline underline-offset-4"
-          >
-            {link[1]}
-          </a>
+          internal ? <ChatLink key={key} href={link[2]}>{link[1]}</ChatLink> : (
+            <a key={key} href={link[2]} target="_blank" rel="noreferrer" className="font-medium underline underline-offset-4">
+              {link[1]}
+            </a>
+          )
         ) : (
           token
         ),
