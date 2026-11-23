@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useRef, useState, type FormEvent } from "react"
+import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react"
 import { useRouter } from "next/navigation"
 import { ArrowLeft, Loader2, Plus, Printer, X } from "lucide-react"
 import { useAuth } from "@/components/auth-provider"
@@ -47,6 +47,7 @@ import { getProjects, type Project } from "@/lib/projects"
 import { getOrganizations, organizationRef, type Organization } from "@/lib/organizations"
 import { getUsers, type AppUser } from "@/lib/users"
 import { ShareDialog } from "@/components/dashboard/share-dialog"
+import { cn } from "@/lib/utils"
 import { InvoiceDocument } from "@/components/dashboard/invoice-document"
 import { createInvoicePdfFile, downloadInvoicePdf } from "@/components/dashboard/invoice-pdf"
 import { DocumentPreviewFrame } from "@/components/dashboard/document-preview-frame"
@@ -116,7 +117,17 @@ function clientEmail(client: Organization, people: AppUser[]): string {
  * `onSaved` and `onDeleted` are for the invoices split pane: the list updates
  * in place and the pane stays open, instead of navigating back to the list.
  */
-export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate, onSaved, onDeleted }: { invoice?: Invoice | null; initialCompanyId?: string; initialEstimate?: Estimate; onSaved?: (invoice: Invoice) => void; onDeleted?: (id: string) => void }) {
+export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate, onSaved, onDeleted, headerExtra, hideBack = false }: {
+  invoice?: Invoice | null
+  initialCompanyId?: string
+  initialEstimate?: Estimate
+  onSaved?: (invoice: Invoice) => void
+  onDeleted?: (id: string) => void
+  /** More buttons beside Share and Download, e.g. payment settings. */
+  headerExtra?: ReactNode
+  /** The page already has a way back, e.g. Ngai's panel. */
+  hideBack?: boolean
+}) {
   const router = useRouter()
   const { user } = useAuth()
   const isEdit = Boolean(invoice)
@@ -552,7 +563,7 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate, onS
   return (
     <>
     <form onSubmit={submit} className="billing-editor mx-auto max-w-2xl space-y-3 bg-card px-2 pt-2 print:hidden sm:rounded-2xl sm:px-4 sm:pt-3">
-      <div className="flex items-center gap-1">
+      <div className={cn("flex items-center gap-1", hideBack && "lg:hidden")}>
         <button
           type="button"
           // Back to wherever they came from; straight to the list when the page was opened directly.
@@ -565,13 +576,16 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate, onS
       </div>
 
       <EditorHeader issuer={issuer} visualCnsBrand kind="Invoice" onPrint={() => window.print()} onDownload={() => void handleDownloadPdf()} downloading={pdfDownloading} number={invoiceNumber} status={statusMeta} shareAction={
-        <ShareDialog
-          triggerLabel="Share invoice"
-          triggerClassName="size-8 bg-primary/10 text-primary hover:bg-primary/15"
-          path={invoice ? `/share/invoices/${encodeURIComponent(invoice.id)}` : ""}
-          title={invoice?.title || invoiceTitle || "invoice"}
-          access={{ enabled: shareEnabled, onEnabledChange: (enabled) => { void changeShareEnabled(enabled) }, disabled: shareSaving }}
-        />
+        <>
+          <ShareDialog
+            triggerLabel="Share invoice"
+            triggerClassName="size-8 bg-primary/10 text-primary hover:bg-primary/15"
+            path={invoice ? `/share/invoices/${encodeURIComponent(invoice.id)}` : ""}
+            title={invoice?.title || invoiceTitle || "invoice"}
+            access={{ enabled: shareEnabled, onEnabledChange: (enabled) => { void changeShareEnabled(enabled) }, disabled: shareSaving }}
+          />
+          {headerExtra}
+        </>
       } />
 
       <EditorCard>

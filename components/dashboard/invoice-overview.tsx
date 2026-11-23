@@ -2,12 +2,13 @@
 
 import { useState, type ReactNode } from "react"
 import Link from "next/link"
-import { AlertCircle, Bell, Check, CheckCircle2, CircleDot, CreditCard, Download, Link2, Loader2, Pencil } from "lucide-react"
+import { AlertCircle, Bell, Check, CheckCircle2, CircleDot, CreditCard, Download, Loader2, Pencil, Settings2 } from "lucide-react"
 import { toast } from "sonner"
 
 import { InvoiceDocument } from "@/components/dashboard/invoice-document"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { formatDate, invoiceAmountDue, invoiceStatusMeta, updateInvoice, type Invoice } from "@/lib/billing"
 import type { BusinessProfile } from "@/lib/business-profile"
@@ -42,48 +43,34 @@ function timelineFor(invoice: Invoice): TimelineStep[] {
 }
 
 /**
- * An invoice opened on its own: number, status and dates on top with the main
- * actions, the invoice itself, and beside it what is still owed and how the
- * invoice has moved so far.
+ * An icon button that opens what is owed on an invoice and how it has moved:
+ * record a payment or mark it paid (the agency), pay now (a client), and the timeline.
  */
-export function InvoiceOverview({
+export function InvoicePaymentSettings({
   invoice,
-  issuer,
   canEdit,
-  editHref,
-  actions,
   onChange,
+  className,
 }: {
   invoice: Invoice
-  issuer?: BusinessProfile
   canEdit: boolean
-  editHref: string
-  /** Extra header buttons from the page. */
-  actions?: ReactNode
-  onChange: (invoice: Invoice) => void
+  onChange?: (invoice: Invoice) => void
+  className?: string
 }) {
+  const [open, setOpen] = useState(false)
   const [recording, setRecording] = useState(false)
   const [payment, setPayment] = useState("")
   const [saving, setSaving] = useState(false)
-  const [downloading, setDownloading] = useState(false)
 
-  const status = invoiceStatusMeta[invoice.status] ?? invoiceStatusMeta.draft
   const due = invoiceAmountDue(invoice)
-  const open = invoice.status === "sent" || invoice.status === "overdue"
+  const payable = invoice.status === "sent" || invoice.status === "overdue"
   const shareHref = `/share/invoices/${encodeURIComponent(invoice.id)}`
-  const heading = invoice.invoiceNumber ? `Invoice ${invoice.invoiceNumber}` : invoice.title?.trim() || "Invoice"
-  const reminderHref = buildEmailComposeHref({
-    ...invoiceEmailContext(invoice, invoice.companyId),
-    subject: reminderSubject(invoice),
-    body: reminderBody(invoice),
-    intent: "reminder",
-  })
 
   async function save(patch: Partial<Invoice>, success: string) {
     setSaving(true)
     try {
       await updateInvoice(invoice.id, patch)
-      onChange({ ...invoice, ...patch })
+      onChange?.({ ...invoice, ...patch })
       toast.success(success)
       return true
     } catch (error) {
@@ -107,6 +94,115 @@ export function InvoiceOverview({
     if (done) { setRecording(false); setPayment("") }
   }
 
+  return (
+    <>
+      <Button type="button" variant="outline" size="icon" className={cn("size-9", className)} onClick={() => setOpen(true)} aria-label="Payment and timeline" title="Payment and timeline">
+        <Settings2 className="size-4" aria-hidden="true" />
+      </Button>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-h-[85svh] overflow-y-auto sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Payment</DialogTitle>
+            <DialogDescription className="sr-only">What is owed on this invoice and how it has progressed.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <section className="rounded-2xl border border-border bg-card p-5">
+              <p className="text-sm text-muted-foreground">{invoice.status === "paid" ? "Paid in full" : "Amount due"}</p>
+              <p className="mt-1 text-2xl font-semibold tabular-nums">{formatMoney(invoice.status === "paid" ? invoice.amount : due, invoice.currency)}</p>
+              {(invoice.amountPaid ?? 0) > 0 && invoice.status !== "paid" && (
+                <p className="mt-1 text-xs text-muted-foreground">{formatMoney(invoice.amountPaid ?? 0, invoice.currency)} of {formatMoney(invoice.amount, invoice.currency)} paid</p>
+              )}
+
+              {payable && due > 0 && (
+                <div className="mt-4 space-y-2">
+                  {canEdit ? (
+                    <>
+                      {recording ? (
+                        <form className="space-y-2" onSubmit={(event) => { event.preventDefault(); event.stopPropagation(); void recordPayment() }}>
+                          <Input autoFocus inputMode="decimal" value={payment} onChange={(event) => setPayment(event.target.value)} placeholder={`Amount received (${invoice.currency})`} aria-label="Amount received" />
+                          <div className="flex gap-2">
+                            <Button type="submit" className="flex-1" disabled={saving}>{saving ? "Saving" : "Save payment"}</Button>
+                            <Button type="button" variant="ghost" onClick={() => { setRecording(false); setPayment("") }}>Cancel</Button>
+                          </div>
+                        </form>
+                      ) : (
+                        <Button type="button" className="w-full" onClick={() => setRecording(true)}>
+                          <CreditCard className="size-4" aria-hidden="true" />
+                          Record payment
+                        </Button>
+                      )}
+                      <Button type="button" variant="outline" className="w-full" disabled={saving} onClick={() => void save({ status: "paid", amountPaid: invoice.amount }, "Invoice marked as paid.")}>
+                        <Check className="size-4" aria-hidden="true" />
+                        Mark as paid
+                      </Button>
+                    </>
+                  ) : (
+                    <Button asChild className="w-full">
+                      <Link href={shareHref}><CreditCard className="size-4" aria-hidden="true" />Pay now</Link>
+                    </Button>
+                  )}
+                </div>
+              )}
+            </section>
+
+            <section className="rounded-2xl border border-border bg-card p-5">
+              <h2 className="text-sm font-semibold">Payment timeline</h2>
+              <ol className="mt-4 space-y-4">
+                {timelineFor(invoice).map((step, index, steps) => {
+                  const Icon = step.tone === "late" ? AlertCircle : step.tone === "done" ? CheckCircle2 : CircleDot
+                  return (
+                    <li key={step.key} className="relative flex gap-3">
+                      {index < steps.length - 1 && <span className="absolute left-[9px] top-6 h-[calc(100%-0.5rem)] w-px bg-border" aria-hidden="true" />}
+                      <Icon className={cn("mt-0.5 size-[18px] shrink-0", step.tone === "late" ? "text-red-600" : step.tone === "done" ? "text-emerald-600" : "text-muted-foreground")} aria-hidden="true" />
+                      <div className="min-w-0">
+                        <p className={cn("text-sm font-medium", step.tone === "late" && "text-red-600")}>{step.label}</p>
+                        <p className="text-xs text-muted-foreground">{step.detail}</p>
+                      </div>
+                    </li>
+                  )
+                })}
+              </ol>
+            </section>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
+  )
+}
+
+/**
+ * An invoice opened on its own, read-only (what a client sees): number, status
+ * and dates on top with the main actions, then the invoice itself.
+ */
+export function InvoiceOverview({
+  invoice,
+  issuer,
+  canEdit,
+  editHref,
+  actions,
+  onChange,
+}: {
+  invoice: Invoice
+  issuer?: BusinessProfile
+  canEdit: boolean
+  editHref: string
+  /** Extra header buttons from the page. */
+  actions?: ReactNode
+  onChange: (invoice: Invoice) => void
+}) {
+  const [downloading, setDownloading] = useState(false)
+
+  const status = invoiceStatusMeta[invoice.status] ?? invoiceStatusMeta.draft
+  const open = invoice.status === "sent" || invoice.status === "overdue"
+  const shareHref = `/share/invoices/${encodeURIComponent(invoice.id)}`
+  const heading = invoice.invoiceNumber ? `Invoice ${invoice.invoiceNumber}` : invoice.title?.trim() || "Invoice"
+  const reminderHref = buildEmailComposeHref({
+    ...invoiceEmailContext(invoice, invoice.companyId),
+    subject: reminderSubject(invoice),
+    body: reminderBody(invoice),
+    intent: "reminder",
+  })
+
   async function copyShareLink() {
     try {
       await navigator.clipboard.writeText(`${window.location.origin}${shareHref}`)
@@ -129,8 +225,6 @@ export function InvoiceOverview({
     }
   }
 
-  const buttonClass = "max-sm:size-9 max-sm:px-0"
-
   return (
     <div className="min-w-0">
       <header className="flex flex-col gap-4 pb-6 print:hidden lg:flex-row lg:items-start lg:justify-between">
@@ -145,90 +239,28 @@ export function InvoiceOverview({
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {canEdit && (
-            <Button asChild variant="outline" className={buttonClass}>
-              <Link href={editHref} aria-label="Edit invoice" title="Edit"><Pencil className="size-4" aria-hidden="true" /><span className="max-sm:sr-only">Edit</span></Link>
+            <Button asChild variant="outline" size="icon" className="size-9">
+              <Link href={editHref} aria-label="Edit invoice" title="Edit"><Pencil className="size-4" aria-hidden="true" /></Link>
             </Button>
           )}
           {canEdit && open && (
-            <Button asChild variant="outline" className={buttonClass}>
+            <Button asChild variant="outline" className="max-sm:size-9 max-sm:px-0">
               <Link href={reminderHref} aria-label="Send reminder" title="Send reminder"><Bell className="size-4" aria-hidden="true" /><span className="max-sm:sr-only">Send reminder</span></Link>
             </Button>
           )}
-          <Button type="button" variant="outline" className={buttonClass} onClick={() => void copyShareLink()} aria-label="Copy invoice link" title="Share">
-            <Link2 className="size-4" aria-hidden="true" /><span className="max-sm:sr-only">Share</span>
+          <Button type="button" variant="outline" className="h-9" onClick={() => void copyShareLink()} title="Copy invoice link">
+            Share
           </Button>
-          <Button type="button" variant="outline" className={buttonClass} onClick={() => void downloadPdf()} disabled={downloading} aria-label="Download PDF" title="Download PDF">
+          <Button type="button" variant="outline" size="icon" className="size-9" onClick={() => void downloadPdf()} disabled={downloading} aria-label="Download PDF" title="Download PDF">
             {downloading ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <Download className="size-4" aria-hidden="true" />}
-            <span className="max-sm:sr-only">Download PDF</span>
           </Button>
+          <InvoicePaymentSettings invoice={invoice} canEdit={canEdit} onChange={onChange} />
           {actions}
         </div>
       </header>
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_18rem] lg:items-start">
-        <div className="min-w-0">
-          <InvoiceDocument invoice={invoice} issuer={issuer} />
-        </div>
-
-        <aside className="space-y-4 print:hidden lg:sticky lg:top-[calc(var(--shell-header-h,0px)+1rem)]">
-          <section className="rounded-2xl border border-border bg-card p-5">
-            <p className="text-sm text-muted-foreground">{invoice.status === "paid" ? "Paid in full" : "Amount due"}</p>
-            <p className="mt-1 text-2xl font-semibold tabular-nums">{formatMoney(invoice.status === "paid" ? invoice.amount : due, invoice.currency)}</p>
-            {(invoice.amountPaid ?? 0) > 0 && invoice.status !== "paid" && (
-              <p className="mt-1 text-xs text-muted-foreground">{formatMoney(invoice.amountPaid ?? 0, invoice.currency)} of {formatMoney(invoice.amount, invoice.currency)} paid</p>
-            )}
-
-            {open && due > 0 && (
-              <div className="mt-4 space-y-2">
-                {canEdit ? (
-                  <>
-                    {recording ? (
-                      <form className="space-y-2" onSubmit={(event) => { event.preventDefault(); void recordPayment() }}>
-                        <Input autoFocus inputMode="decimal" value={payment} onChange={(event) => setPayment(event.target.value)} placeholder={`Amount received (${invoice.currency})`} aria-label="Amount received" />
-                        <div className="flex gap-2">
-                          <Button type="submit" className="flex-1" disabled={saving}>{saving ? "Saving" : "Save payment"}</Button>
-                          <Button type="button" variant="ghost" onClick={() => { setRecording(false); setPayment("") }}>Cancel</Button>
-                        </div>
-                      </form>
-                    ) : (
-                      <Button type="button" className="w-full" onClick={() => setRecording(true)}>
-                        <CreditCard className="size-4" aria-hidden="true" />
-                        Record payment
-                      </Button>
-                    )}
-                    <Button type="button" variant="outline" className="w-full" disabled={saving} onClick={() => void save({ status: "paid", amountPaid: invoice.amount }, "Invoice marked as paid.")}>
-                      <Check className="size-4" aria-hidden="true" />
-                      Mark as paid
-                    </Button>
-                  </>
-                ) : (
-                  <Button asChild className="w-full">
-                    <Link href={shareHref}><CreditCard className="size-4" aria-hidden="true" />Pay now</Link>
-                  </Button>
-                )}
-              </div>
-            )}
-          </section>
-
-          <section className="rounded-2xl border border-border bg-card p-5">
-            <h2 className="text-sm font-semibold">Payment timeline</h2>
-            <ol className="mt-4 space-y-4">
-              {timelineFor(invoice).map((step, index, steps) => {
-                const Icon = step.tone === "late" ? AlertCircle : step.tone === "done" ? CheckCircle2 : CircleDot
-                return (
-                  <li key={step.key} className="relative flex gap-3">
-                    {index < steps.length - 1 && <span className="absolute left-[9px] top-6 h-[calc(100%-0.5rem)] w-px bg-border" aria-hidden="true" />}
-                    <Icon className={cn("mt-0.5 size-[18px] shrink-0", step.tone === "late" ? "text-red-600" : step.tone === "done" ? "text-emerald-600" : "text-muted-foreground")} aria-hidden="true" />
-                    <div className="min-w-0">
-                      <p className={cn("text-sm font-medium", step.tone === "late" && "text-red-600")}>{step.label}</p>
-                      <p className="text-xs text-muted-foreground">{step.detail}</p>
-                    </div>
-                  </li>
-                )
-              })}
-            </ol>
-          </section>
-        </aside>
+      <div className="min-w-0">
+        <InvoiceDocument invoice={invoice} issuer={issuer} />
       </div>
     </div>
   )

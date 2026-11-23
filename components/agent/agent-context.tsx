@@ -178,6 +178,7 @@ export function AgentProvider({
   companyContext,
   campaignContext,
   documentContext,
+  invoiceContext,
 }: {
   children: ReactNode
   surface?: "agency_dashboard" | "client_portal"
@@ -186,6 +187,8 @@ export function AgentProvider({
   campaignContext?: { id: string; title: string }
   /** Open beside a document, so "this document" means that one. */
   documentContext?: { id: string; title: string }
+  /** Open beside an invoice, so "this invoice" means that one. */
+  invoiceContext?: { id: string; title: string }
 }) {
   const { appUser, user } = useAuth()
   const [open, setOpen] = useState(false)
@@ -351,7 +354,7 @@ export function AgentProvider({
           const response = await fetch("/api/agent", {
             method: "POST",
             headers: { "content-type": "application/json", Authorization: `Bearer ${await currentUser.getIdToken()}` },
-            body: JSON.stringify({ messages: payload, firstName, surface, companyContext, campaignContext, documentContext, conversationId }),
+            body: JSON.stringify({ messages: payload, firstName, surface, companyContext, campaignContext, documentContext, invoiceContext, conversationId }),
           })
 
           if (!response.ok || !response.body) {
@@ -395,7 +398,7 @@ export function AgentProvider({
         }
       })()
     },
-    [messages, sending, firstName, activeConversationId, conversations, rememberConversation, user, surface, companyContext, campaignContext, documentContext, trackEvent],
+    [messages, sending, firstName, activeConversationId, conversations, rememberConversation, user, surface, companyContext, campaignContext, documentContext, invoiceContext, trackEvent],
   )
 
   const rateResponse = useCallback((messageId: string, feedback: AgentMessage["feedback"] | null) => {

@@ -6,6 +6,7 @@ import {
   updateDoc,
   deleteDoc,
   doc,
+  onSnapshot,
   query,
   serverTimestamp,
   where,
@@ -370,6 +371,16 @@ export async function getInvoice(id: string): Promise<Invoice | null> {
   const snapshot = await getDoc(doc(db, INVOICES, id))
   if (!snapshot.exists()) return null
   return toInvoice(snapshot.id, snapshot.data() as object)
+}
+
+/** Follows one invoice live, so edits made elsewhere (like by Ngai) show at once. Returns the unsubscribe. */
+export function watchInvoice(id: string, onChange: (invoice: Invoice | null, info: { local: boolean }) => void, onError?: (error: Error) => void) {
+  return onSnapshot(
+    doc(db, INVOICES, id),
+    // `local`: the change was written on this device and isn't confirmed yet.
+    (snapshot) => onChange(snapshot.exists() ? toInvoice(snapshot.id, snapshot.data() as object) : null, { local: snapshot.metadata.hasPendingWrites }),
+    (error) => onError?.(error),
+  )
 }
 
 export async function createInvoice(data: Omit<Invoice, "id" | "createdAt" | "updatedAt">): Promise<string> {

@@ -28,6 +28,7 @@ export type NgaiScope =
   | { kind: "company" }
   | { kind: "campaign"; campaign: { id: string; title: string } }
   | { kind: "document"; document: { id: string; title: string } }
+  | { kind: "invoice"; invoice: { id: string; title: string } }
 
 /** "page" fills a page or tab; "panel" is a narrow box with a close button. */
 export type NgaiLayout = "page" | "panel"
@@ -44,6 +45,12 @@ const STARTING_OPTIONS: Record<Exclude<NgaiScope["kind"], "app">, string[]> = {
     "Add a summary at the top",
     "Fix spelling and grammar",
     "Turn this into a proposal",
+  ],
+  invoice: [
+    "Add a line item",
+    "Write a friendly payment reminder",
+    "Change the due date",
+    "Summarise what's owed",
   ],
   campaign: [
     "What's left to do on this campaign?",
@@ -323,7 +330,7 @@ export function Ngai({ scope, layout = "page", onClose, menuInSidebar = false, c
     <div className="flex min-h-0 flex-1 gap-4">
       <div className={cn("flex min-w-0 flex-1 flex-col", artifact && (layout === "panel" ? "hidden" : "max-md:hidden"))}>
         {!chatsInSidebar && <NgaiHeader layout={layout} onClose={onClose} heading={heading} actions={headerActions} />}
-        <NgaiConversation layout={layout} startingOptions={startingOptions} onOpenArtifact={setArtifact} activeArtifactId={artifact?.id} minimalWelcome={scope.kind === "document"} />
+        <NgaiConversation layout={layout} startingOptions={startingOptions} onOpenArtifact={setArtifact} activeArtifactId={artifact?.id} minimalWelcome={scope.kind === "document" || scope.kind === "invoice"} />
       </div>
       {artifact && (
         <DocumentArtifact
@@ -344,6 +351,15 @@ export function Ngai({ scope, layout = "page", onClose, menuInSidebar = false, c
     return (
       <AgentProvider key={`document-${scope.document.id}`} documentContext={scope.document}>
         {frame(chat(STARTING_OPTIONS.document))}
+      </AgentProvider>
+    )
+  }
+
+  // Beside an open invoice: Ngai knows which one it is and can edit it in place.
+  if (scope.kind === "invoice") {
+    return (
+      <AgentProvider key={`invoice-${scope.invoice.id}`} invoiceContext={scope.invoice}>
+        {frame(chat(STARTING_OPTIONS.invoice))}
       </AgentProvider>
     )
   }
