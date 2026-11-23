@@ -1,10 +1,9 @@
 "use client"
 
 import { useContext, useEffect, useRef, useState, type ChangeEvent, type ClipboardEvent, type DragEvent, type FormEvent, type KeyboardEvent, type ReactNode } from "react"
-import { ArrowUp, Check, ChevronDown, ChevronRight, Copy, Ellipsis, FileText, ListChecks, Loader2, Megaphone, Mic, Plus, RotateCcw, ThumbsDown, ThumbsUp, UploadCloud, X } from "lucide-react"
+import { ArrowUp, Check, ChevronDown, Copy, Ellipsis, FileText, ListChecks, Loader2, Megaphone, MessageSquare, Mic, Plus, Receipt, RotateCcw, ThumbsDown, ThumbsUp, UploadCloud, X } from "lucide-react"
 import { toast } from "sonner"
 
-import { NgaiMark } from "@/components/agent/ngai-mark"
 import type { AgentArtifact, AgentConversation, AgentFile, AgentForm, AgentMention, AgentMessage, AgentPlan } from "@/components/agent/agent-context"
 import { ArtifactCard } from "@/components/dashboard/document-artifact"
 import { NgaiOpenItemContext, itemFromHref } from "@/components/agent/open-item-context"
@@ -377,14 +376,49 @@ const QUICK_ACTIONS: { label: string; prompt: string }[] = [
   { label: "Make contract", prompt: "Turn this into a draft contract for the client." },
 ]
 
-const DEFAULT_STARTING_OPTIONS = [
-  "Give me a summary",
-  "Create an invoice",
-  "Draft a document",
-  "Add a task",
-]
+/** "Good evening, Jide": by the viewer's own clock, with their first name when it's known. */
+function greeting(firstName?: string) {
+  const hour = new Date().getHours()
+  const part = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening"
+  return firstName && firstName !== "there" ? `${part}, ${firstName}` : part
+}
 
-const responseActionClass = "inline-flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-40"
+function timeAgo(ms?: number) {
+  if (!ms) return ""
+  const minutes = Math.round((Date.now() - ms) / 60000)
+  if (minutes < 1) return "Just now"
+  if (minutes < 60) return `${minutes}m ago`
+  const hours = Math.round(minutes / 60)
+  if (hours < 24) return `${hours}h ago`
+  const days = Math.round(hours / 24)
+  return days < 7 ? `${days}d ago` : new Date(ms).toLocaleDateString(undefined, { day: "numeric", month: "short" })
+}
+
+/** A recent chat as a card, like a document card: a tinted tile, the title, and what it was about. */
+function RecentChatCard({ conversation, onOpen }: { conversation: AgentConversation; onOpen: () => void }) {
+  const kind = conversation.context?.kind
+  const Icon = kind === "invoice" ? Receipt : kind === "document" ? FileText : MessageSquare
+  const label = kind === "invoice" ? "Invoice" : kind === "document" ? "Document" : "Chat"
+  const tile = kind === "invoice" ? "bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400" : kind === "document" ? "bg-blue-100 text-blue-600 dark:bg-blue-950 dark:text-blue-400" : "bg-violet-100 text-violet-600 dark:bg-violet-950 dark:text-violet-400"
+  const when = timeAgo(conversation.updatedAt)
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      className="flex w-64 shrink-0 items-center gap-3 rounded-2xl bg-muted/50 px-3.5 py-3 text-left outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring"
+    >
+      <span className={cn("grid size-10 shrink-0 place-items-center rounded-xl", tile)}>
+        <Icon className="size-5" aria-hidden="true" />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-sm font-semibold text-foreground">{conversation.title}</span>
+        <span className="block truncate text-xs text-muted-foreground">{when ? `${label} · ${when}` : label}</span>
+      </span>
+    </button>
+  )
+}
+
+const responseActionClass ="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-40"
 
 function ResponseActions({
   message,
@@ -477,9 +511,9 @@ export function AgentChat({
   onNewChat,
   compact = false,
   className,
-  startingOptions = DEFAULT_STARTING_OPTIONS,
   allowAttachments = true,
   welcome,
+  firstName,
   campaignMentions,
   onOpenArtifact,
   activeArtifactId,
@@ -501,6 +535,8 @@ export function AgentChat({
   allowAttachments?: boolean
   /** Heading on a new chat. */
   welcome?: string
+  /** For the greeting on a new chat: "Good evening, Jide". */
+  firstName?: string
   /** Campaigns available to the @ mention picker. Omit to disable campaign mentions. */
   campaignMentions?: AgentMention[]
   /** Opens a document Ngai made, beside the chat. Omit to hide the cards. */
@@ -510,7 +546,7 @@ export function AgentChat({
   /** A new chat shows only a short line: no logo, suggestions or recent chats. */
   minimalWelcome?: boolean
 }) {
-  const recentChats = conversations.filter((conversation) => conversation.messages.length > 0).slice(0, 3)
+  const recentChats = conversations.filter((conversation) => conversation.messages.length > 0).slice(0, 6)
   const [input, setInput] = useState("")
   const [attachments, setAttachments] = useState<ComposerAttachment[]>([])
   const [uploading, setUploading] = useState(false)
@@ -745,170 +781,8 @@ export function AgentChat({
     }
   }
 
-  return (
-    <div
-      className={cn("dashboard-body agent-chat-root relative flex h-full min-h-0 flex-col md:overflow-hidden font-dashboard [&_*]:font-dashboard", compact ? "bg-background" : "agent-surface", className)}
-      onDragEnter={allowAttachments ? handleDragEnter : undefined}
-      onDragOver={allowAttachments ? handleDragOver : undefined}
-      onDragLeave={allowAttachments ? handleDragLeave : undefined}
-      onDrop={allowAttachments ? handleDrop : undefined}
-    >
-      {dragging && (
-        <div className="pointer-events-none absolute inset-0 z-50 flex items-center justify-center bg-background/85 p-4 backdrop-blur-sm">
-          <div className="flex w-full max-w-sm flex-col items-center gap-3 rounded-[16px] border-2 border-dashed border-accent px-6 py-10 text-center">
-            <UploadCloud className="size-8 text-accent" aria-hidden="true" />
-            <p className="text-sm font-medium">Drop files or paste an image</p>
-          </div>
-        </div>
-      )}
-      {messages.length === 0 && minimalWelcome ? (
-        <div className="flex min-h-0 flex-1 items-center justify-center px-4 py-6">
-          <p className="text-sm text-muted-foreground">{welcome ?? "How can I help?"}</p>
-        </div>
-      ) : messages.length === 0 ? (
-        <div className={cn("scrollbar-none flex min-h-0 flex-1 flex-col overflow-y-auto text-center", compact ? "px-4 py-6" : "px-4 py-6 sm:px-6 sm:pb-16")}>
-          <div className="m-auto flex w-full min-w-0 max-w-2xl flex-col items-center">
-            <div className="flex items-center justify-center gap-3">
-              <NgaiMark role="img" aria-hidden={false} aria-label="Ngai" className={cn("shrink-0", compact ? "size-9" : "size-10 sm:size-12")} />
-              <h1 className={cn("font-sans text-left tracking-[-0.02em]", compact ? "text-xl" : "text-2xl sm:text-3xl")}>
-                {welcome ?? "How can I help you today?"}
-              </h1>
-            </div>
-            <div className="scrollbar-none mt-5 flex w-max max-w-full flex-nowrap gap-2 overflow-x-auto sm:mt-6">
-              {startingOptions.map((option) => (
-                <button
-                  key={option}
-                  type="button"
-                  onClick={() => onSend(option)}
-                  disabled={sending}
-                  className="agent-start-option shrink-0 whitespace-nowrap rounded-full border border-border bg-background px-4 py-2 text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  {option}
-                </button>
-              ))}
-            </div>
-            {recentChats.length > 0 && (
-              <div className={cn("mt-8 w-full min-w-0 text-left", compact ? "max-w-[20rem]" : "max-w-md")}>
-                <p className="agent-recent-label px-1 text-muted-foreground">Recent</p>
-                <ul className="mt-2 w-full">
-                  {recentChats.map((conversation) => (
-                    <li key={conversation.id} className="border-b border-border">
-                      <button
-                        type="button"
-                        onClick={() => onSelectConversation(conversation.id)}
-                        className="agent-recent-item flex w-full items-center px-4 py-3 text-left text-foreground outline-none transition-colors hover:bg-muted focus-visible:bg-muted"
-                      >
-                        <span className="min-w-0 flex-1 truncate">{conversation.title}</span>
-                        <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </div>
-        </div>
-      ) : (
-        <div
-          className={cn(
-            "scrollbar-none mx-auto flex w-full min-h-0 flex-1 flex-col overflow-y-auto",
-            compact ? "gap-5 px-4 py-5" : "max-w-3xl gap-7 px-4 py-8 sm:px-6",
-          )}
-        >
-          {messages.map((message, messageIndex) => (
-            <div
-              key={message.id}
-              className={cn("flex w-full", message.role === "user" ? "justify-end" : "items-start")}
-            >
-              {message.role === "assistant" && !message.content ? (
-                message.steps?.length ? (
-                  <AgentSteps steps={message.steps} live />
-                ) : (
-                  <span className="flex items-center gap-2 pt-1 text-sm text-muted-foreground" role="status" aria-live="polite">
-                    <Loader2 className="size-4 animate-spin" aria-hidden="true" />
-                    Thinking
-                  </span>
-                )
-              ) : (
-                <div
-                  className={cn(
-                    "leading-6",
-                    compact ? "max-w-[88%] text-sm" : "max-w-[85%] text-sm",
-                    message.role === "user"
-                      ? "whitespace-pre-wrap rounded-[16px] rounded-br-[4px] bg-card px-4 py-2.5 text-foreground"
-                      : "pt-0.5 text-foreground",
-                  )}
-                >
-                  {message.role === "user" ? (
-                    <>
-                      {message.images && message.images.length > 0 && (
-                        <div className={cn("flex flex-wrap gap-2", message.content || message.files?.length ? "mb-2" : "")}>
-                          {message.images.map((src, index) => (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img key={`${message.id}-img-${index}`} src={src} alt="Attachment" className="max-h-40 w-auto rounded-[10px] border border-border object-cover" />
-                          ))}
-                        </div>
-                      )}
-                      {message.files && message.files.length > 0 && (
-                        <div className={cn("flex flex-wrap gap-2", message.content ? "mb-2" : "")}>
-                          {message.files.map((file, index) => (
-                            <a
-                              key={`${message.id}-file-${index}`}
-                              href={file.url}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="flex max-w-[14rem] items-center gap-2 rounded-[10px] border border-border bg-background px-3 py-2 text-left text-foreground transition-colors hover:bg-muted"
-                            >
-                              <FileText className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-                              <span className="truncate text-xs font-medium">{file.name}</span>
-                            </a>
-                          ))}
-                        </div>
-                      )}
-                      {message.content}
-                    </>
-                  ) : (
-                    <>
-                      {message.steps && message.steps.length > 0 && <AgentSteps steps={message.steps} live={false} />}
-                      <AgentMarkdown content={message.content} />
-                    </>
-                  )}
-                  {message.form && (
-                    <AgentFormCard form={message.form} disabled={sending} onSubmit={onSend} />
-                  )}
-                  {message.plan && (
-                    <AgentPlanCard plan={message.plan} active={messageIndex === messages.length - 1} disabled={sending} onSubmit={onSend} />
-                  )}
-                  {message.artifacts?.length && onOpenArtifact ? (
-                    <div className="mt-3 flex flex-col gap-2">
-                      {message.artifacts.map((artifact) => (
-                        <ArtifactCard
-                          key={`${artifact.kind}-${artifact.id}`}
-                          artifact={artifact}
-                          active={activeArtifactId === artifact.id}
-                          onOpen={() => onOpenArtifact(artifact)}
-                        />
-                      ))}
-                    </div>
-                  ) : null}
-                  {message.role === "assistant" && message.content && !(sending && messageIndex === messages.length - 1) && (
-                    <ResponseActions
-                      message={message}
-                      latest={messageIndex === messages.length - 1}
-                      sending={sending}
-                      onFeedback={onFeedback}
-                      onRetry={() => onSend("Please give me a different response to my last request without repeating any actions already completed.")}
-                      onNewChat={onNewChat}
-                    />
-                  )}
-                </div>
-              )}
-            </div>
-          ))}
-          <div ref={transcriptEnd} />
-        </div>
-      )}
-
+  // The message box: under the greeting on a new chat, pinned to the bottom once it has messages.
+  const composer = (
       <div className={cn("sticky bottom-0 z-10 shrink-0", compact ? "border-t border-border/60 bg-background/95 px-4 supports-[backdrop-filter]:backdrop-blur-sm pb-[calc(0.5rem+env(safe-area-inset-bottom))] pt-2" : "px-2 pb-[calc(0.25rem+env(safe-area-inset-bottom))] pt-1 sm:px-3")}>
         <form
           onSubmit={submit}
@@ -1061,6 +935,150 @@ export function AgentChat({
           {attachError && <p role="alert" className="px-1 text-xs text-destructive">{attachError}</p>}
         </form>
       </div>
+  )
+
+  return (
+    <div
+      className={cn("dashboard-body agent-chat-root relative flex h-full min-h-0 flex-col md:overflow-hidden font-dashboard [&_*]:font-dashboard", compact ? "bg-background" : "agent-surface", className)}
+      onDragEnter={allowAttachments ? handleDragEnter : undefined}
+      onDragOver={allowAttachments ? handleDragOver : undefined}
+      onDragLeave={allowAttachments ? handleDragLeave : undefined}
+      onDrop={allowAttachments ? handleDrop : undefined}
+    >
+      {dragging && (
+        <div className="pointer-events-none absolute inset-0 z-50 flex items-center justify-center bg-background/85 p-4 backdrop-blur-sm">
+          <div className="flex w-full max-w-sm flex-col items-center gap-3 rounded-[16px] border-2 border-dashed border-accent px-6 py-10 text-center">
+            <UploadCloud className="size-8 text-accent" aria-hidden="true" />
+            <p className="text-sm font-medium">Drop files or paste an image</p>
+          </div>
+        </div>
+      )}
+      {messages.length === 0 && minimalWelcome ? (
+        <div className="flex min-h-0 flex-1 items-center justify-center px-4 py-6">
+          <p className="text-sm text-muted-foreground">{welcome ?? "How can I help?"}</p>
+        </div>
+      ) : messages.length === 0 ? (
+        <div className={cn("scrollbar-none flex min-h-0 flex-1 flex-col overflow-y-auto text-center", compact ? "px-4 py-6" : "px-4 py-6 sm:px-6 sm:pb-16")}>
+          <div className="m-auto flex w-full min-w-0 max-w-3xl flex-col items-center">
+            <h1 className={cn("font-sans tracking-[-0.02em]", compact ? "text-xl" : "text-2xl sm:text-3xl")}>
+              {welcome ?? greeting(firstName)}
+            </h1>
+            {/* The message box sits right under the greeting until the chat starts. */}
+            <div className="mt-6 w-full text-left">{composer}</div>
+            {recentChats.length > 0 && (
+              <div className="mt-8 w-full min-w-0 text-left">
+                <p className="agent-recent-label px-1 text-muted-foreground">Recent</p>
+                <div className="scrollbar-none -mx-1 mt-2 flex gap-3 overflow-x-auto px-1 pb-1">
+                  {recentChats.map((conversation) => (
+                    <RecentChatCard key={conversation.id} conversation={conversation} onOpen={() => onSelectConversation(conversation.id)} />
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      ) : (
+        <div
+          className={cn(
+            "scrollbar-none mx-auto flex w-full min-h-0 flex-1 flex-col overflow-y-auto",
+            compact ? "gap-5 px-4 py-5" : "max-w-3xl gap-7 px-4 py-8 sm:px-6",
+          )}
+        >
+          {messages.map((message, messageIndex) => (
+            <div
+              key={message.id}
+              className={cn("flex w-full", message.role === "user" ? "justify-end" : "items-start")}
+            >
+              {message.role === "assistant" && !message.content ? (
+                message.steps?.length ? (
+                  <AgentSteps steps={message.steps} live />
+                ) : (
+                  <span className="flex items-center gap-2 pt-1 text-sm text-muted-foreground" role="status" aria-live="polite">
+                    <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+                    Thinking
+                  </span>
+                )
+              ) : (
+                <div
+                  className={cn(
+                    "leading-6",
+                    compact ? "max-w-[88%] text-sm" : "max-w-[85%] text-sm",
+                    message.role === "user"
+                      ? "whitespace-pre-wrap rounded-[16px] rounded-br-[4px] bg-card px-4 py-2.5 text-foreground"
+                      : "pt-0.5 text-foreground",
+                  )}
+                >
+                  {message.role === "user" ? (
+                    <>
+                      {message.images && message.images.length > 0 && (
+                        <div className={cn("flex flex-wrap gap-2", message.content || message.files?.length ? "mb-2" : "")}>
+                          {message.images.map((src, index) => (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img key={`${message.id}-img-${index}`} src={src} alt="Attachment" className="max-h-40 w-auto rounded-[10px] border border-border object-cover" />
+                          ))}
+                        </div>
+                      )}
+                      {message.files && message.files.length > 0 && (
+                        <div className={cn("flex flex-wrap gap-2", message.content ? "mb-2" : "")}>
+                          {message.files.map((file, index) => (
+                            <a
+                              key={`${message.id}-file-${index}`}
+                              href={file.url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="flex max-w-[14rem] items-center gap-2 rounded-[10px] border border-border bg-background px-3 py-2 text-left text-foreground transition-colors hover:bg-muted"
+                            >
+                              <FileText className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                              <span className="truncate text-xs font-medium">{file.name}</span>
+                            </a>
+                          ))}
+                        </div>
+                      )}
+                      {message.content}
+                    </>
+                  ) : (
+                    <>
+                      {message.steps && message.steps.length > 0 && <AgentSteps steps={message.steps} live={false} />}
+                      <AgentMarkdown content={message.content} />
+                    </>
+                  )}
+                  {message.form && (
+                    <AgentFormCard form={message.form} disabled={sending} onSubmit={onSend} />
+                  )}
+                  {message.plan && (
+                    <AgentPlanCard plan={message.plan} active={messageIndex === messages.length - 1} disabled={sending} onSubmit={onSend} />
+                  )}
+                  {message.artifacts?.length && onOpenArtifact ? (
+                    <div className="mt-3 flex flex-col gap-2">
+                      {message.artifacts.map((artifact) => (
+                        <ArtifactCard
+                          key={`${artifact.kind}-${artifact.id}`}
+                          artifact={artifact}
+                          active={activeArtifactId === artifact.id}
+                          onOpen={() => onOpenArtifact(artifact)}
+                        />
+                      ))}
+                    </div>
+                  ) : null}
+                  {message.role === "assistant" && message.content && !(sending && messageIndex === messages.length - 1) && (
+                    <ResponseActions
+                      message={message}
+                      latest={messageIndex === messages.length - 1}
+                      sending={sending}
+                      onFeedback={onFeedback}
+                      onRetry={() => onSend("Please give me a different response to my last request without repeating any actions already completed.")}
+                      onNewChat={onNewChat}
+                    />
+                  )}
+                </div>
+              )}
+            </div>
+          ))}
+          <div ref={transcriptEnd} />
+        </div>
+      )}
+
+      {(messages.length > 0 || minimalWelcome) && composer}
     </div>
   )
 }

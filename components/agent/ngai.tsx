@@ -168,7 +168,7 @@ export function DeleteChatDialog({ chat, onClose }: { chat: NgaiChatRef | null; 
 }
 
 export function NgaiConversation({ layout, startingOptions, onOpenArtifact, activeArtifactId, minimalWelcome }: { layout: NgaiLayout; startingOptions?: string[]; onOpenArtifact: (artifact: ArtifactRef) => void; activeArtifactId?: string; minimalWelcome?: boolean }) {
-  const { messages, conversations, activeConversationId, sending, send, rateResponse, reset, selectConversation, conversationContext } = useAgent()
+  const { messages, conversations, activeConversationId, sending, send, rateResponse, reset, selectConversation, conversationContext, firstName } = useAgent()
   const pathname = usePathname()
   const router = useRouter()
   const page = useOptionalCompanyPage()
@@ -222,6 +222,7 @@ export function NgaiConversation({ layout, startingOptions, onOpenArtifact, acti
       activeArtifactId={activeArtifactId}
       compact={layout === "panel"}
       minimalWelcome={minimalWelcome}
+      firstName={firstName}
     />
     </>
   )
