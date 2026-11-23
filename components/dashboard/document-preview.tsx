@@ -55,9 +55,19 @@ function htmlBlocks(html: string): Block[] {
  * A sheet of paper inside a thumbnail tile. The page is laid out at 2.5× the
  * tile's width and scaled down, so it reads like a shrunken real page at any size.
  */
-function Sheet({ children }: { children: ReactNode }) {
+/** The colour behind the page, matching the "Make something new" tiles. */
+export type PreviewTone = "document" | "invoice" | "estimate" | "contract"
+
+const TONES: Record<PreviewTone, string> = {
+  document: "bg-blue-700 dark:bg-blue-900",
+  invoice: "bg-emerald-700 dark:bg-emerald-900",
+  estimate: "bg-amber-700 dark:bg-amber-900",
+  contract: "bg-violet-700 dark:bg-violet-900",
+}
+
+function Sheet({ children, tone }: { children: ReactNode; tone?: PreviewTone }) {
   return (
-    <div aria-hidden="true" className="absolute inset-0 overflow-hidden bg-muted">
+    <div aria-hidden="true" className={cn("absolute inset-0 overflow-hidden", tone ? TONES[tone] : "bg-muted")}>
       <div className="absolute inset-x-[10%] top-[8%] bottom-0 overflow-hidden rounded-t-[3px] bg-white shadow-sm ring-1 ring-black/5">
         <div className="w-[250%] origin-top-left scale-[0.4] p-6 text-[13px] leading-snug text-neutral-800">
           {children}
@@ -93,7 +103,7 @@ function BlockLine({ block }: { block: Block }) {
  * The first page of a rich-text document, for a thumbnail. Returns null when
  * there is nothing written yet, so the card keeps its icon.
  */
-export function DocumentPagePreview({ title, html }: { title?: string; html?: string }) {
+export function DocumentPagePreview({ title, html, tone }: { title?: string; html?: string; tone?: PreviewTone }) {
   // Parsing needs the browser, so the server and first client render both show a blank page.
   const [mounted, setMounted] = useState(false)
   useEffect(() => setMounted(true), [])
@@ -102,7 +112,7 @@ export function DocumentPagePreview({ title, html }: { title?: string; html?: st
   // Skip a repeated title when the body already starts with it as a heading.
   const showTitle = title?.trim() && !(blocks[0]?.kind === "h1" && blocks[0].text === title.trim())
   return (
-    <Sheet>
+    <Sheet tone={tone}>
       {showTitle && <div className="mb-3 line-clamp-2 text-[22px] font-bold leading-tight text-neutral-900">{title}</div>}
       {blocks.map((block, index) => <BlockLine key={index} block={block} />)}
     </Sheet>
@@ -124,7 +134,9 @@ export function BillingPagePreview({
   lines,
   total,
   currency,
+  tone,
 }: {
+  tone?: PreviewTone
   heading: string
   number?: string
   client?: string
@@ -133,7 +145,7 @@ export function BillingPagePreview({
   currency: string
 }) {
   return (
-    <Sheet>
+    <Sheet tone={tone}>
       <div className="mb-4 flex items-start justify-between gap-4">
         <div className="text-[22px] font-bold uppercase tracking-wide text-neutral-900">{heading}</div>
         {number && <div className="pt-1.5 text-neutral-500 tabular-nums">{number}</div>}

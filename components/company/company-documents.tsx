@@ -151,7 +151,7 @@ export function CompanyDocuments({
       statusLabel: (companyDocumentStatusMeta[document.status] ?? companyDocumentStatusMeta.draft).label,
       icon: <FileText className="size-5 text-blue-600 dark:text-blue-400" aria-hidden="true" />,
       thumbnail: FileText,
-      preview: hasDocumentText(document.body) ? <DocumentPagePreview title={document.title} html={document.body} /> : undefined,
+      preview: hasDocumentText(document.body) ? <DocumentPagePreview title={document.title} html={document.body} tone="document" /> : undefined,
       actions: {
         noun: "document",
         name: document.title || "Document",
@@ -173,6 +173,7 @@ export function CompanyDocuments({
       thumbnail: Receipt,
       preview: (
         <BillingPagePreview
+          tone="invoice"
           heading="Invoice"
           number={invoice.invoiceNumber}
           client={invoice.billTo?.name || invoice.client}
@@ -199,7 +200,7 @@ export function CompanyDocuments({
       statusLabel: contractStatusMeta[contract.status].label,
       icon: <FileSignature className="size-5 text-indigo-600 dark:text-indigo-400" aria-hidden="true" />,
       thumbnail: FileSignature,
-      preview: hasDocumentText(contract.body) ? <DocumentPagePreview title={contract.title} html={contract.body} /> : undefined,
+      preview: hasDocumentText(contract.body) ? <DocumentPagePreview title={contract.title} html={contract.body} tone="contract" /> : undefined,
       actions: {
         noun: "contract",
         name: contract.title || "Contract",
@@ -221,6 +222,7 @@ export function CompanyDocuments({
       thumbnail: ClipboardList,
       preview: (
         <BillingPagePreview
+          tone="estimate"
           heading="Estimate"
           number={estimate.estimateNumber}
           client={estimate.preparedFor?.name || estimate.client}

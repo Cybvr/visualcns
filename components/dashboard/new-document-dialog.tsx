@@ -7,6 +7,7 @@ import { ArrowLeft, ChevronRight, FilePlus, LayoutTemplate, Loader2 } from "luci
 import { Button } from "@/components/ui/button"
 import { Combobox, type ComboboxOption } from "@/components/ui/combobox"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { DocumentPagePreview } from "@/components/dashboard/document-preview"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { findOrCreateCompany } from "@/lib/companies"
@@ -26,13 +27,16 @@ export function NewDocumentDialog({
   open,
   onOpenChange,
   initialCompanyId,
+  initialStep = "start",
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   initialCompanyId?: string
+  /** "templates" opens straight on the template list. */
+  initialStep?: "start" | "templates"
 }) {
   const router = useRouter()
-  const [step, setStep] = useState<Step>("start")
+  const [step, setStep] = useState<Step>(initialStep)
   const [backTo, setBackTo] = useState<Step>("start")
   const [templateId, setTemplateId] = useState(COMPANY_DOCUMENT_TEMPLATES[0].id)
   const [title, setTitle] = useState(COMPANY_DOCUMENT_TEMPLATES[0].title)
@@ -68,14 +72,14 @@ export function NewDocumentDialog({
   /** Reopening starts fresh, so a cancelled attempt never half-fills the next one. */
   useEffect(() => {
     if (open) return
-    setStep("start")
+    setStep(initialStep)
     setBackTo("start")
     setTemplateId(COMPANY_DOCUMENT_TEMPLATES[0].id)
     setTitle(COMPANY_DOCUMENT_TEMPLATES[0].title)
     setCompanyId(initialCompanyId ?? "")
     setProjectId("")
     setError(null)
-  }, [open, initialCompanyId])
+  }, [open, initialCompanyId, initialStep])
 
   const template = COMPANY_DOCUMENT_TEMPLATES.find((entry) => entry.id === templateId) ?? COMPANY_DOCUMENT_TEMPLATES[0]
 
@@ -147,7 +151,8 @@ export function NewDocumentDialog({
         shareEnabled: false,
       })
       onOpenChange(false)
-      router.push(`/dashboard/documents/${id}/edit`)
+      // Opens beside Ngai, like every other document.
+      router.push(`/dashboard/documents?document=${encodeURIComponent(id)}`)
     } catch (createError) {
       console.error("Error creating document:", createError)
       setError("Couldn't create this document. Try again.")
@@ -177,7 +182,7 @@ export function NewDocumentDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[85vh] max-w-md flex-col gap-4 overflow-hidden">
+      <DialogContent className="flex max-h-[85vh] max-w-md flex-col gap-4 overflow-hidden sm:aspect-video sm:h-auto sm:w-[min(92vw,64rem)] sm:max-w-none">
         <DialogHeader className="flex-row items-center gap-2 space-y-0 text-left">
           {step !== "start" && (
             <Button
@@ -217,23 +222,29 @@ export function NewDocumentDialog({
             </div>
 
             <div className="w-1/3 shrink-0 overflow-y-auto px-0.5" inert={step !== "templates"}>
-              <div className="flex flex-col">
+              {/* Phones: a plain list. Wider: a grid of first-page previews. */}
+              <div className="flex flex-col sm:grid sm:grid-cols-3 sm:gap-4 sm:pb-1 lg:grid-cols-4">
                 {COMPANY_DOCUMENT_TEMPLATES.filter((entry) => entry.id !== "blank").map((entry) => (
                   <button
                     key={entry.id}
                     type="button"
                     onClick={() => pickTemplate(entry.id)}
-                    className="flex h-11 items-center justify-between rounded-md px-2 text-left text-sm outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring"
+                    className="group flex h-11 items-center justify-between rounded-md px-2 text-left text-sm outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring sm:h-auto sm:flex-col sm:items-stretch sm:gap-2 sm:p-0 sm:hover:bg-transparent"
                   >
-                    {entry.label}
-                    <ChevronRight className="size-4 text-muted-foreground" aria-hidden="true" />
+                    <span className="relative hidden aspect-[4/3] overflow-hidden rounded-xl transition-transform group-hover:scale-[1.02] sm:block">
+                      <DocumentPagePreview title={entry.title} html={entry.body} tone="document" />
+                    </span>
+                    <span className="flex items-center justify-between gap-2 sm:px-0.5 sm:font-medium">
+                      {entry.label}
+                      <ChevronRight className="size-4 text-muted-foreground sm:hidden" aria-hidden="true" />
+                    </span>
                   </button>
                 ))}
               </div>
             </div>
 
-            <form onSubmit={submit} className="flex w-1/3 shrink-0 flex-col overflow-y-auto px-0.5" inert={step !== "details"}>
-              <div className="space-y-4 py-0.5">
+            <form onSubmit={submit} className="flex w-1/3 shrink-0 flex-col overflow-y-auto px-0.5 sm:items-center" inert={step !== "details"}>
+              <div className="space-y-4 py-0.5 sm:w-full sm:max-w-md">
                 <div>
                   <Label htmlFor="document-title">Title</Label>
                   <Input
@@ -293,7 +304,7 @@ export function NewDocumentDialog({
                 {error && <p className="text-sm text-destructive">{error}</p>}
               </div>
 
-              <Button type="submit" disabled={creating} className="mt-5 w-full">
+              <Button type="submit" disabled={creating} className="mt-5 w-full sm:max-w-md">
                 {creating && <Loader2 className="mr-2 size-4 animate-spin" aria-hidden="true" />}
                 Create
               </Button>

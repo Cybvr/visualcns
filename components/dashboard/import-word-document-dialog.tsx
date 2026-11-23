@@ -146,7 +146,7 @@ export function ImportWordDocumentDialog({
         createdIds.push(id)
       }
       onOpenChange(false)
-      router.push(`/dashboard/documents/${createdIds[0]}/edit`)
+      router.push(`/dashboard/documents?document=${encodeURIComponent(createdIds[0])}`)
     } catch {
       await Promise.allSettled(createdIds.map((id) => deleteCompanyDocument(id)))
       setError(files.length > 1

@@ -49,12 +49,13 @@ type DriveType = DriveItem["type"]
 /** The card's mini first page; undefined keeps the icon for an empty document. */
 function itemPreview(item: DriveItem) {
   if (item.type === "document") {
-    return hasDocumentText(item.record.body) ? <DocumentPagePreview title={item.record.title} html={item.record.body} /> : undefined
+    return hasDocumentText(item.record.body) ? <DocumentPagePreview title={item.record.title} html={item.record.body} tone="document" /> : undefined
   }
   if (item.type === "invoice") {
     const invoice = item.record
     return (
       <BillingPagePreview
+        tone="invoice"
         heading="Invoice"
         number={invoice.invoiceNumber}
         client={invoice.billTo?.name || invoice.client}
@@ -67,6 +68,7 @@ function itemPreview(item: DriveItem) {
   const estimate = item.record
   return (
     <BillingPagePreview
+      tone="estimate"
       heading="Estimate"
       number={estimate.estimateNumber}
       client={estimate.preparedFor?.name || estimate.client}
@@ -468,7 +470,7 @@ export function DriveLibrary({ mode = "artifacts" }: { mode?: "artifacts" | "inv
         />
       )}
 
-      <NewDocumentDialog open={creatingDocument} onOpenChange={setCreatingDocument} />
+      <NewDocumentDialog open={creatingDocument} onOpenChange={setCreatingDocument} initialStep="templates" />
       <ImportWordDocumentDialog open={importingDocument} onOpenChange={setImportingDocument} />
       <DuplicateDocumentDialog open={duplicateTarget !== null} onOpenChange={(open) => { if (!open && !duplicating) setDuplicateTarget(null) }} title={`Duplicate ${duplicateTarget ? itemTitle(duplicateTarget) : "item"}`} description="Choose which client and project the copy belongs to." defaultCompanyId={duplicateTarget?.record.companyId ?? ""} defaultProjectId={duplicateTarget?.record.projectId} submitting={duplicating} onConfirm={confirmDuplicate} />
       <ShareDialog
