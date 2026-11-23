@@ -12,27 +12,28 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useLocalCurrency } from "@/components/use-local-currency"
 import { usePolarCheckout } from "@/components/use-polar-checkout"
 import { usePaystackCheckout } from "@/components/use-paystack-checkout"
-import { LISTED_SERVICES, PRICING_TABS, serviceFor, type BillingInterval, type CartService } from "@/lib/cart"
+import { cartService, isPlanService, LISTED_SERVICES, PRICING_TABS, serviceFor, type BillingInterval, type CartService } from "@/lib/cart"
 import { formatPrice } from "@/lib/plans"
 import { cn } from "@/lib/utils"
 
 const GROUPS = Object.values(PRICING_TABS)
 const TAB_SLUG: Record<string, string> = Object.fromEntries(Object.entries(PRICING_TABS).map(([slug, group]) => [group, slug]))
 /** The "Most popular" plan in each tab. */
-const FEATURED_IDS = new Set(["growth-max", "marketing-pro"])
+const FEATURED_IDS = new Set(["growth-max", "marketing-pro", "sites-pro"])
 /** Features per card on the home page; the rest are behind "+N more". */
 const HOME_FEATURES = 5
 
 /** One line under each tab that explains it. */
 const TAB_INTROS: Record<string, string> = {
   Marketing: "AI runs your marketing for you: it writes and schedules your posts, works your SEO, replies to reviews and builds your ads.",
-  Growth: "Let our team run your marketing for you. Every plan includes Marketing Advanced.",
+  Sites: "AI builds your website from a short description, and you publish it, edit it and connect your own domain yourself.",
+  Growth: "Let our team run your marketing for you. Every plan includes Marketing Advanced and Sites Business.",
 }
 
 const TRIGGER = "h-9 shrink-0 flex-none rounded-full px-4 text-muted-foreground data-[state=active]:bg-card data-[state=active]:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
 
 /**
- * Everything VisualCNS sells, as cards that go in the cart: Growth plans (which
+ * Everything VisualCNS sells, as cards that go in the cart: Marketing and Sites plans, Growth plans (which
  * include Pass, Pulse and Ngai), development work and G&D (Growth and Development) Support.
  */
 export function PricingView({ cartHref, freeHref, stickyTop, basePath, initialTab, showCompare = true, compact = false, only }: {
@@ -85,7 +86,7 @@ export function PricingView({ cartHref, freeHref, stickyTop, basePath, initialTa
         if (!polar.opening) void polar.open(serviceId)
         return
       }
-      if (serviceId.startsWith("growth-") || serviceId.startsWith("marketing-")) {
+      if (isPlanService(cartService(serviceId))) {
         event.preventDefault()
         if (paystack.opening) return
         void paystack.open(serviceId).then((opened) => {
@@ -124,7 +125,7 @@ export function PricingView({ cartHref, freeHref, stickyTop, basePath, initialTa
         icon={service.icon}
         price={formatPrice(service.price, currency)}
         description={service.description ?? service.scope}
-        features={listed.group === "Growth" ? ["Includes Marketing Advanced", ...(service.features ?? [])] : recurring || !service.timeline ? service.features ?? [] : [...(service.features ?? []), `Delivery: ${service.timeline}`]}
+        features={listed.group === "Growth" ? ["Includes Marketing Advanced", "Includes Sites Business", ...(service.features ?? [])] : recurring || !service.timeline ? service.features ?? [] : [...(service.features ?? []), `Delivery: ${service.timeline}`]}
         ctaLabel={label(service.id)}
         ctaHref={cartHref}
         onCtaClick={buy(service.id)}

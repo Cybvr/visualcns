@@ -1,6 +1,6 @@
 import { FieldValue, Timestamp, type Firestore } from "firebase-admin/firestore"
 
-import { cartService } from "@/lib/cart"
+import { cartService, isPlanService } from "@/lib/cart"
 import { paystack } from "@/lib/server/paystack"
 
 /**
@@ -26,7 +26,7 @@ type Plan = { plan_code: string; name?: string; amount: number; interval: string
  */
 export async function growthPlanCode(db: Firestore, serviceId: string): Promise<string> {
   const service = cartService(serviceId)
-  if (!service || (service.group !== "Growth" && service.group !== "Marketing")) return ""
+  if (!service || !isPlanService(service)) return ""
   const amount = service.price.amount * 100
   const interval = service.price.suffix === "/yr" ? "annually" : "monthly"
   const settings = db.collection("billingConfig").doc("paystack")

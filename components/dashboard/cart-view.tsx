@@ -7,7 +7,7 @@ import { ShoppingCart, X } from "lucide-react"
 import { useCart } from "@/components/dashboard/use-cart"
 import { SectionHeader } from "@/components/dashboard/section-header"
 import { Button } from "@/components/ui/button"
-import { cartTotal, formatMoney } from "@/lib/cart"
+import { cartTotal, formatMoney, isPlanService } from "@/lib/cart"
 import { useLocalCurrency } from "@/components/use-local-currency"
 import { formatPrice } from "@/lib/plans"
 
@@ -83,7 +83,7 @@ export function CartView({ checkoutHref, servicesHref }: { checkoutHref: string;
             <span className="surface-body">Subtotal</span>
             <span className="text-lg font-semibold text-foreground">{formatMoney(total, currency)}</span>
           </div>
-          {currency === "NGN" && items.some((item) => item.group === "Growth" || item.group === "Marketing") && (
+          {currency === "NGN" && items.some(isPlanService) && (
             <p className="surface-caption">Plans renew automatically at the same price. Cancel any time from your billing page.</p>
           )}
           <div className="border-t border-border" />

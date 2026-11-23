@@ -168,6 +168,40 @@ export const marketingPlanRows: ServiceRow[] = [
   },
 ]
 
+/** Sites: the do-it-yourself website plans. More sites and domains going up. */
+export const sitesPlanRows: ServiceRow[] = [
+  {
+    service: "Starter",
+    scope: "1 site",
+    description: "For Getting Online",
+    price: { amount: 10000, suffix: "/mo", usd: 8 },
+    timeline: "Monthly",
+    included: "1 site, free web address",
+    icon: "globe",
+    features: ["1 website", "AI builds and edits your site", "All templates", "Free web address", "Works on every phone", "Messages inbox for your forms"],
+  },
+  {
+    service: "Pro",
+    scope: "3 sites + own domain",
+    description: "For Your Own Brand",
+    price: { amount: 20000, suffix: "/mo", usd: 15 },
+    timeline: "Monthly",
+    included: "3 sites, 1 custom domain",
+    icon: "layout",
+    features: ["Everything in Starter", "3 websites", "Connect 1 domain of your own", "Contact and booking forms", "Search engine basics"],
+  },
+  {
+    service: "Business",
+    scope: "10 sites + domains",
+    description: "For Several Brands",
+    price: { amount: 35000, suffix: "/mo", usd: 26 },
+    timeline: "Monthly",
+    included: "10 sites, 10 custom domains",
+    icon: "layers",
+    features: ["Everything in Pro", "10 websites", "Connect up to 10 domains", "Priority help with your sites"],
+  },
+]
+
 export const growthPlanRows: GrowthPlan[] = [
   {
     service: "Free",

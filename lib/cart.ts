@@ -1,5 +1,5 @@
 import type { PlanKey } from "@/lib/subscription"
-import { BUILD_FEATURES, customDevelopmentRows, growthPlanRows, marketingPlanRows, ngnToUsd, platformRows, retainers, type Currency, type Price, type ServiceRow } from "@/lib/plans"
+import { BUILD_FEATURES, customDevelopmentRows, growthPlanRows, marketingPlanRows, sitesPlanRows, ngnToUsd, platformRows, retainers, type Currency, type Price, type ServiceRow } from "@/lib/plans"
 
 /**
  * The services someone can buy from the dashboard checkout. Prices
@@ -58,8 +58,8 @@ function fromRows(group: string, rows: ServiceRow[], idPrefix = group): CartServ
 /** The tab and group name for monthly upkeep: Growth and Development Support. */
 export const SUPPORT_GROUP = "G&D Support"
 
-/** The pricing tabs in order, by their address: /pricing/growth, /pricing/development, /pricing/support. */
-export const PRICING_TABS: Record<string, string> = { marketing: "Marketing", growth: "Growth", development: "Development", support: SUPPORT_GROUP }
+/** The pricing tabs in order, by their address: /pricing/marketing, /pricing/sites, /pricing/growth, /pricing/development, /pricing/support. */
+export const PRICING_TABS: Record<string, string> = { marketing: "Marketing", sites: "Sites", growth: "Growth", development: "Development", support: SUPPORT_GROUP }
 
 /** Everything listed for sale, one entry each, billed as shown (one-off or monthly). */
 export const LISTED_SERVICES: CartService[] = [
@@ -69,6 +69,7 @@ export const LISTED_SERVICES: CartService[] = [
   ...fromRows("Development", customDevelopmentRows.filter((row) => row.service.startsWith("Add-on"))),
   ...fromRows("Development", platformRows.filter((row) => row.service.startsWith("Add-on")), "Platforms"),
   ...fromRows("Marketing", marketingPlanRows),
+  ...fromRows("Sites", sitesPlanRows),
   ...fromRows("Growth", growthPlanRows),
   ...retainers.map((tier) => ({
     id: tier.id,
@@ -116,6 +117,9 @@ export function serviceFor(service: CartService, interval: BillingInterval) {
 
 /** The app plan (Pass, Pulse and Ngai allowances) a paid Growth tier unlocks, cheapest first. */
 export const GROWTH_APP_PLAN: Record<string, PlanKey> = {
+  "sites-starter": "starter",
+  "sites-pro": "starter",
+  "sites-business": "starter",
   "marketing-essential": "starter",
   "marketing-pro": "business",
   "marketing-advanced": "business",
@@ -130,9 +134,15 @@ export const GROWTH_TIERS: CartService[] = LISTED_SERVICES.filter((service) => s
 /** The Marketing plans, cheapest first, billed monthly. */
 export const MARKETING_TIERS: CartService[] = LISTED_SERVICES.filter((service) => service.group === "Marketing")
 
-/** Plans that renew (Marketing and Growth), as opposed to one-off builds. */
+/** The Sites plans, cheapest first, billed monthly. */
+export const SITES_TIERS: CartService[] = LISTED_SERVICES.filter((service) => service.group === "Sites")
+
+/** The groups that hold plans which renew, as opposed to one-off builds and support. */
+export const PLAN_GROUPS = ["Marketing", "Sites", "Growth"]
+
+/** Plans that renew (Marketing, Sites and Growth), as opposed to one-off builds. */
 export function isPlanService(service: CartService | null | undefined) {
-  return service?.group === "Marketing" || service?.group === "Growth"
+  return PLAN_GROUPS.includes(service?.group ?? "")
 }
 
 const BY_ID = new Map(CART_SERVICES.map((service) => [service.id, service]))

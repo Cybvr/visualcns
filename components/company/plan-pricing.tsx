@@ -12,18 +12,21 @@ import { useCart } from "@/components/dashboard/use-cart"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { useLocalCurrency } from "@/components/use-local-currency"
-import { GROWTH_APP_PLAN, GROWTH_TIERS, MARKETING_TIERS, serviceFor, type BillingInterval } from "@/lib/cart"
+import { GROWTH_APP_PLAN, GROWTH_TIERS, MARKETING_TIERS, SITES_TIERS, serviceFor, type BillingInterval } from "@/lib/cart"
 import { formatPrice } from "@/lib/plans"
 import { PLANS, planAccess, type Subscription } from "@/lib/subscription"
 import { cn } from "@/lib/utils"
 
 const POPULAR = "growth-max"
+const FAMILIES = ["Marketing", "Sites", "Growth"] as const
+type Family = (typeof FAMILIES)[number]
+const FAMILY_TIERS: Record<Family, typeof GROWTH_TIERS> = { Marketing: MARKETING_TIERS, Sites: SITES_TIERS, Growth: GROWTH_TIERS }
 
 /** The Growth plan a company is on now, if it bought one and it hasn't run out. */
 export function activeGrowthTier(billing: Subscription | null | undefined) {
   const access = billing ? planAccess(billing) : null
   if (!access || (access.state !== "active" && access.state !== "grace")) return null
-  return [...GROWTH_TIERS, ...MARKETING_TIERS].find((tier) => tier.id === billing?.growthTier) ?? null
+  return [...GROWTH_TIERS, ...MARKETING_TIERS, ...SITES_TIERS].find((tier) => tier.id === billing?.growthTier) ?? null
 }
 
 /** A free way in, shown as a button above the plans, e.g. "Continue with free". */
@@ -58,9 +61,9 @@ export function PlanPricing({ billing, seats = null, free, onBeforeSubscribe, he
   const cartHref = page ? `/${encodeURIComponent(page.company.slug || page.company.id)}/cart` : "/cart"
   const paystack = usePaystackCheckout(cartHref.replace(/\/cart$/, "/checkout"))
   const current = activeGrowthTier(billing)
-  // Marketing (do it yourself) or Growth (our team does it); opens on whichever the company is on.
-  const [family, setFamily] = useState<"Marketing" | "Growth">(current?.group === "Growth" ? "Growth" : "Marketing")
-  const tiers = family === "Marketing" ? MARKETING_TIERS : GROWTH_TIERS
+  // Marketing or Sites (do it yourself), or Growth (our team does it); opens on whichever the company is on.
+  const [family, setFamily] = useState<Family>(current?.group === "Growth" || current?.group === "Sites" ? current.group : "Marketing")
+  const tiers = FAMILY_TIERS[family]
 
   async function choose(id: string) {
     setBusy(id)
@@ -87,7 +90,7 @@ export function PlanPricing({ billing, seats = null, free, onBeforeSubscribe, he
         <div className="flex flex-wrap items-center gap-3">
           {header}
           <div className="inline-flex shrink-0 rounded-lg bg-muted p-0.5 text-xs font-medium" role="tablist" aria-label="Plan type">
-            {(["Marketing", "Growth"] as const).map((option) => (
+            {FAMILIES.map((option) => (
               <button
                 key={option}
                 type="button"
@@ -130,7 +133,7 @@ export function PlanPricing({ billing, seats = null, free, onBeforeSubscribe, he
           const staff = PLANS[GROWTH_APP_PLAN[listed.id] ?? "business"].staff
           const isCurrent = current?.id === listed.id
           const tooSmall = seats !== null && seats > staff
-          const popular = listed.id === POPULAR || listed.id === "marketing-pro"
+          const popular = listed.id === POPULAR || listed.id === "marketing-pro" || listed.id === "sites-pro"
           const inCart = has(tier.id)
           // On auto-renew already: buying the same plan again would charge twice.
           const renewing = isCurrent && Boolean(billing?.subscriptionCode || billing?.polarSubscriptionId) && billing?.status !== "cancelled"

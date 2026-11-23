@@ -8,7 +8,7 @@ import { Header } from "@/components/header"
 import { PricingView } from "@/components/pricing-view"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 
-/* Sites: the home for the AI website builder. Sites have no price of their own; they come with every Growth plan. */
+/* Sites: the home for the AI website builder. Sites have their own plans, and Sites Business comes with every Growth plan. */
 
 const START_HREF = "/signup"
 const SALES_HREF = "/contact"
@@ -37,7 +37,7 @@ const STEPS = [
 ]
 
 const FAQS = [
-  { question: "How much does a website cost?", answer: "Sites do not have a separate price, because they come included with every Growth plan along with Marketing, Pass and Pulse." },
+  { question: "How much does a website cost?", answer: "Sites plans start at Starter for one website, and every Growth plan includes Sites Business at no extra cost." },
   { question: "Do I need to know how to code or design?", answer: "No, because you build and edit your site by describing what you want in plain words, and AI does the design and the code for you." },
   { question: "Can I use my own domain name?", answer: "Yes, you can connect a domain you already own, and your site will show at that address instead of the one we give you." },
   { question: "Where do messages from my site go?", answer: "Entries from the forms on your site go to the Messages inbox in your dashboard, where you can read and follow up on each one." },
@@ -63,7 +63,7 @@ export default function SitesPage() {
                 Let AI build your business a website
               </h1>
               <p className="mt-6 max-w-md text-lg opacity-85">
-                Describe your business and AI builds a website you can edit, publish and grow yourself, and it comes included with every Growth plan.
+                Describe your business and AI builds a website you can edit, publish and grow yourself.
               </p>
               <ul className="mt-6 max-w-md space-y-2">
                 {TASKS.map((task) => (
@@ -117,10 +117,10 @@ export default function SitesPage() {
         {/* Plans */}
         <section id="plans" className="scroll-mt-24 bg-muted/40">
           <div className="mx-auto max-w-6xl px-4 py-16 md:px-8 md:py-24">
-            <h2 className="font-semibold tracking-tight">Sites come with every Growth plan</h2>
-            <p className="mb-8 mt-4 max-w-2xl text-muted-foreground">There is no separate price for a website, because building and publishing sites is part of every Growth plan alongside Marketing, Pass and Pulse.</p>
+            <h2 className="font-semibold tracking-tight">Pick a Sites plan</h2>
+            <p className="mb-8 mt-4 max-w-2xl text-muted-foreground">Choose how many websites and domains you need. If you would rather our team run your marketing too, every Growth plan includes Sites Business.</p>
             <AuthProvider>
-              <PricingView cartHref="/cart" freeHref={START_HREF} only="Growth" showCompare={false} />
+              <PricingView cartHref="/cart" freeHref={START_HREF} only="Sites" />
             </AuthProvider>
           </div>
         </section>
