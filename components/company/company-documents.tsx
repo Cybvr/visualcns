@@ -57,6 +57,8 @@ type Entry = {
   searchText?: string[]
   /** An image, video or media link: listed on Assets, not Documents. */
   media?: boolean
+  /** An image or video that opens full size in the lightbox instead of a new tab. */
+  lightbox?: { url: string; type: "image" | "video" }
   actions: CollectionItemActions
 }
 

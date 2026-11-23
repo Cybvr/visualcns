@@ -340,7 +340,7 @@ export function Ngai({ scope, layout = "page", onClose, menuInSidebar = false, c
     <div className="flex min-h-0 flex-1 gap-4">
       <div className={cn("flex min-w-0 flex-1 flex-col", artifact && (layout === "panel" ? "hidden" : "max-md:hidden"))}>
         {!chatsInSidebar && <NgaiHeader layout={layout} onClose={onClose} heading={heading} actions={headerActions} />}
-        <NgaiConversation layout={layout} startingOptions={startingOptions} onOpenArtifact={setArtifact} activeArtifactId={artifact?.id} minimalWelcome={scope.kind === "document" || scope.kind === "invoice"} />
+        <NgaiConversation layout={layout} startingOptions={startingOptions} onOpenArtifact={setArtifact} activeArtifactId={artifact?.id} minimalWelcome={scope.kind === "document" || scope.kind === "invoice" || (scope.kind === "company" && layout === "panel")} />
       </div>
       {artifact && (
         <DocumentArtifact

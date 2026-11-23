@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 
-import { CompanyDocuments, type CompanyDocumentKind } from "@/components/company/company-documents"
+import { CompanyDocuments, type CompanyDocumentKind, type ExtraDocumentEntry } from "@/components/company/company-documents"
+import { MediaLightbox, type MediaLightboxItem } from "@/components/ui/media-lightbox"
 import { useCompanyPage } from "@/components/company/company-page-context"
 import { useCompanyCampaignMedia, useCompanyFiles } from "@/components/company/sections/files-section"
 import { DocumentArtifact } from "@/components/dashboard/document-artifact"
@@ -50,6 +51,10 @@ export function DocumentsSection({ view = "documents" }: { view?: "documents" | 
   const campaignMedia = useCompanyCampaignMedia()
   // Uploaded files sit in the same list too, and open in a new tab.
   const files = useCompanyFiles(campaignMedia.urls)
+  // Images and videos open full size in the lightbox, with arrows between them.
+  const [lightboxId, setLightboxId] = useState<string | null>(null)
+  const withLightbox = (entries: ExtraDocumentEntry[]) => entries.map((entry) => entry.lightbox ? { ...entry, actions: { ...entry.actions, onOpen: () => setLightboxId(entry.key) } } : entry)
+  const lightboxItems: MediaLightboxItem[] = [...files.entries, ...campaignMedia.entries].flatMap((entry) => entry.lightbox ? [{ id: entry.key, title: entry.title, url: entry.lightbox.url, type: entry.lightbox.type }] : [])
 
   // The open document is ?doc={kind}:{id}, so it can be linked to directly.
   const docParam = searchParams.get("doc") ?? ""
@@ -123,7 +128,7 @@ export function DocumentsSection({ view = "documents" }: { view?: "documents" | 
           emptyDescription="Images and videos, uploaded here or added to campaigns, will appear here."
           onSelect={() => {}}
           canAdd={false}
-          extraEntries={[...files.entries.filter((entry) => entry.media), ...campaignMedia.entries]}
+          extraEntries={withLightbox([...files.entries.filter((entry) => entry.media), ...campaignMedia.entries])}
           extraAddItems={files.addItem ?? undefined}
           canManage={canEditDocuments}
           onChanged={admin?.reload}
@@ -154,7 +159,7 @@ export function DocumentsSection({ view = "documents" }: { view?: "documents" | 
           canAdd={Boolean(admin)}
           onAdd={handleAdd}
           campaignName={(projectId) => projectId ? projects.find((project) => project.id === projectId)?.title : undefined}
-          extraEntries={artifacts ? [...files.entries, ...campaignMedia.entries] : files.entries.filter((entry) => !entry.media)}
+          extraEntries={withLightbox(artifacts ? [...files.entries, ...campaignMedia.entries] : files.entries.filter((entry) => !entry.media))}
           extraAddItems={files.addItem ?? undefined}
           canManage={canEditDocuments}
           onChanged={admin?.reload}
@@ -164,6 +169,7 @@ export function DocumentsSection({ view = "documents" }: { view?: "documents" | 
       )}
 
       {files.dialogs}
+      <MediaLightbox items={lightboxItems} activeId={lightboxId} onChange={setLightboxId} />
 
       {admin && (
         <NewDocumentDialog
