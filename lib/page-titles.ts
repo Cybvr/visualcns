@@ -13,7 +13,8 @@ const DASHBOARD_SECTION_TITLES: Record<string, string> = {
   email: "Email",
   estimates: "Estimates",
   invoices: "Invoices",
-  leads: "Leads",
+  crm: "CRM",
+  leads: "CRM",
   media: "Media",
   notes: "Notes",
   overview: "Overview",
@@ -22,7 +23,7 @@ const DASHBOARD_SECTION_TITLES: Record<string, string> = {
   seo: "SEO",
   settings: "Settings",
   tasks: "Tasks",
-  users: "Contacts",
+  users: "CRM",
   visitors: "Visitors",
 }
 
@@ -115,7 +116,7 @@ export function dashboardPageTitle(pathname: string, searchParams?: SearchParams
   if (section === "settings") return record === "business" ? "Organization Profile" : "Settings"
   if (section === "clients" || section === "companies") {
     const clientRef = record || searchParams?.get("client")
-    if (!clientRef) return "Companies"
+    if (!clientRef) return "CRM"
     if (action === "edit") return "Edit Company"
     const tab = searchParams?.get("tab") || (searchParams?.get("campaign") || searchParams?.get("task") ? "projects" : null)
     return tab === "activity" ? "Home" : tab === "about" ? "Settings" : companySectionTitle(tab, "Home")

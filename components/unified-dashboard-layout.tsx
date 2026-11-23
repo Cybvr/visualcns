@@ -5,7 +5,7 @@ import { Suspense, useCallback, useEffect, useState, type ReactNode } from "reac
 import Image from "next/image"
 import { usePathname, useRouter } from "next/navigation"
 import { BarChart3, CalendarClock, Eye, FolderOpen, House, LogOut, Megaphone, UserRound } from "lucide-react"
-import { FiBriefcase, FiMail, FiTrendingUp, FiUsers } from "react-icons/fi"
+import { FiMail, FiUsers } from "react-icons/fi"
 import { AuthProvider, useAuth } from "@/components/auth-provider"
 import { AgentProvider } from "@/components/agent/agent-context"
 import { NgaiMark } from "@/components/agent/ngai-mark"
@@ -25,10 +25,8 @@ const DASHBOARD_NAV: NavLink[] = [
   { label: "Home", href: "/dashboard", icon: House },
   { label: "Chat", href: "/dashboard/chat", icon: NgaiMark },
   { label: "Email", href: "/dashboard/email/inbox", icon: FiMail, alsoActive: ["/dashboard/email"] },
-  { label: "Leads", href: "/dashboard/leads", icon: FiTrendingUp, adminOnly: true },
+  { label: "CRM", href: "/dashboard/crm", icon: FiUsers, adminOnly: true, alsoActive: ["/dashboard/leads", "/dashboard/companies", "/dashboard/users"] },
   { label: "Schedules", href: "/dashboard/schedules", icon: CalendarClock },
-  { label: "Contacts", href: "/dashboard/users", icon: FiUsers, adminOnly: true },
-  { label: "Companies", href: "/dashboard/companies", icon: FiBriefcase, adminOnly: true },
   { label: "Campaigns", href: "/dashboard/projects", icon: Megaphone, adminOnly: true },
   { label: "Drive", href: "/dashboard/drive", icon: FolderOpen, adminOnly: true, alsoActive: ["/dashboard/invoices", "/dashboard/estimates", "/dashboard/documents", "/dashboard/notes"] },
   { label: "Analytics", href: "/dashboard/analytics", icon: BarChart3, adminOnly: true },
