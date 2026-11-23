@@ -112,9 +112,10 @@ export function ProjectDetail({
   const requestedTab = TAB_FROM_VIEW[view ?? ""] ?? "home"
   // On the company page, campaigns keep to the work itself: media lives in Assets, and
   // Ngai, Analytics and Settings stay on the admin pages.
-  const hiddenOnCompany: CampaignTab[] = ["build", "analytics", "media", "settings", "payments"]
-  const tab = (requestedTab === "tasks" && !showTasks) || (embedded && hiddenOnCompany.includes(requestedTab)) ? "home" : requestedTab
-  const setTab = (next: CampaignTab) => setView(next === "home" ? null : VIEW_FROM_TAB[next])
+  // Creators live at company level, and the brief is where a campaign opens, so Home and Creators go too.
+  const hiddenOnCompany: CampaignTab[] = ["build", "analytics", "media", "settings", "payments", "home", "people"]
+  const tab = (requestedTab === "tasks" && !showTasks) || (embedded && hiddenOnCompany.includes(requestedTab)) ? (embedded ? "about" : "home") : requestedTab
+  const setTab = (next: CampaignTab) => setView(next === "home" || (embedded && next === "about") ? null : VIEW_FROM_TAB[next])
   // Where the campaign keeps its own section menu, the app menu folds to its icon rail while it is open.
   // On the company page the sections move into the sidebar instead, so it stays open.
   const sidebar = useOptionalSidebar()
@@ -391,9 +392,9 @@ export function ProjectDetail({
   )
 
   const sections = [
-    { key: "home", label: "Home", icon: MdHome },
+    ...(embedded ? [] : [{ key: "home", label: "Home", icon: MdHome }]),
     { key: "about", label: "About campaign", icon: MdDescription },
-    { key: "people", label: "Creators", count: roster.length, icon: MdPeople },
+    ...(embedded ? [] : [{ key: "people", label: "Creators", count: roster.length, icon: MdPeople }]),
     { key: "creatives", label: "Content", count: contentItems.length, icon: MdPalette },
     ...(embedded ? [] : [
       { key: "media", label: "Drive", count: mediaItems.length, icon: MdPhotoLibrary },

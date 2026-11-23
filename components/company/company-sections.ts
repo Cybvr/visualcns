@@ -3,6 +3,8 @@ import { Image as ImageIcon, Settings2, Activity, BadgeDollarSign, Bot, ChartCol
 /** The sections of a company page, in menu order. Plain module so server routes can check a section too. */
 export const COMPANY_SECTIONS = [
   { key: "projects", label: "Campaigns", icon: Megaphone },
+  // Every campaign's creators, at company level.
+  { key: "creators", label: "Creators", icon: Users },
   { key: "social", label: "Social Media", icon: Share2 },
   // Marketing: Overview takes the business details and builds the scan the pages below show.
   { key: "marketing", label: "Marketing", icon: Megaphone },
