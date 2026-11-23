@@ -38,6 +38,9 @@ interface PageTitleContextValue {
   /** When set, phones show a Back button in the header in place of the menu button. */
   backAction: { label: string; onClick: () => void } | null
   setBackAction: Dispatch<SetStateAction<{ label: string; onClick: () => void } | null>>
+  /** Hides the dashboard header row (search, apps, account) from md up, e.g. on a full-screen editor. */
+  hideHeader: boolean
+  setHideHeader: Dispatch<SetStateAction<boolean>>
   /** A client page is open with its own Share, so the header hides the workspace Share and Create. */
   clientOpen: boolean
   setClientOpen: Dispatch<SetStateAction<boolean>>
@@ -56,9 +59,10 @@ export function PageTitleProvider({ children }: { children: ReactNode }) {
   const [recordTitle, setRecordTitle] = useState<string | null>(null)
   const [backAction, setBackAction] = useState<{ label: string; onClick: () => void } | null>(null)
   const [clientOpen, setClientOpen] = useState(false)
+  const [hideHeader, setHideHeader] = useState(false)
   const value = useMemo(
-    () => ({ override, setOverride, titleNode, setTitleNode, headerSearch, setHeaderSearch, actions, setActions, replacesMobileDefaults, setReplacesMobileDefaults, headerSlot, setHeaderSlot, hideMobileFooter, setHideMobileFooter, recordTitle, setRecordTitle, backAction, setBackAction, clientOpen, setClientOpen }),
-    [override, titleNode, headerSearch, actions, replacesMobileDefaults, headerSlot, hideMobileFooter, recordTitle, backAction, clientOpen],
+    () => ({ override, setOverride, titleNode, setTitleNode, headerSearch, setHeaderSearch, actions, setActions, replacesMobileDefaults, setReplacesMobileDefaults, headerSlot, setHeaderSlot, hideMobileFooter, setHideMobileFooter, recordTitle, setRecordTitle, backAction, setBackAction, hideHeader, setHideHeader, clientOpen, setClientOpen }),
+    [override, titleNode, headerSearch, actions, replacesMobileDefaults, headerSlot, hideMobileFooter, recordTitle, backAction, hideHeader, clientOpen],
   )
   return <PageTitleContext.Provider value={value}>{children}</PageTitleContext.Provider>
 }
@@ -138,6 +142,16 @@ export function usePageHeaderSearch(search: PageHeaderSearch | null) {
 }
 
 /** Hides the mobile footer nav while `hidden` is true and the caller is mounted. */
+/** Hides the dashboard header row while the caller is mounted, see `hideHeader`. */
+export function useHideHeader(hidden: boolean) {
+  const { setHideHeader } = usePageHeaderOverride()
+
+  useEffect(() => {
+    setHideHeader(hidden)
+    return () => setHideHeader(false)
+  }, [hidden, setHideHeader])
+}
+
 export function useHideMobileFooter(hidden: boolean) {
   const { setHideMobileFooter } = usePageHeaderOverride()
 

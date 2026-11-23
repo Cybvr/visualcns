@@ -6,7 +6,7 @@ import { ArrowLeft, Send, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
-import { useRecordTitle, usePageHeaderActions, usePageHeaderBack, usePageHeaderTitle, usePageHeaderOverride } from "@/components/dashboard/page-title-context"
+import { useHideHeader, useRecordTitle, usePageHeaderActions, usePageHeaderBack, usePageHeaderTitle, usePageHeaderOverride } from "@/components/dashboard/page-title-context"
 import { useUrlSelection } from "@/hooks/use-url-selection"
 import { CompactListRow, CompactListSkeleton, MOBILE_LIST_CARD } from "@/components/dashboard/compact-list-row"
 import { EmptySearchState, FirstRunState } from "@/components/dashboard/empty-state"
@@ -178,6 +178,7 @@ export default function DocumentsPage() {
     setRevision((value) => value + 1)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [notes])
+  useHideHeader(Boolean(openId))
   const ngaiDocument = useMemo(() => (openId ? { id: openId, title: title || "Untitled document" } : null), [openId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // A note opened from the address bar, or by going back and forward, fills the editor once the list arrives.
@@ -341,7 +342,7 @@ export default function DocumentsPage() {
         <div className={cn(openId ? "lg:grid lg:grid-cols-[20rem_minmax(0,1fr)] lg:items-start" : "lg:grid lg:grid-cols-[minmax(18rem,0.7fr)_minmax(0,1.3fr)] lg:items-start lg:gap-6")}>
           {/* Ngai first, the document beside it. */}
           {ngaiDocument && (
-            <aside className="hidden overflow-hidden border-r border-border lg:flex lg:h-[calc(100svh-5rem)] lg:flex-col">
+            <aside className="hidden overflow-hidden border-r border-border lg:flex lg:h-[calc(100svh-0.75rem)] lg:flex-col">
               <Ngai
                 scope={{ kind: "document", document: ngaiDocument }}
                 layout="panel"
@@ -355,11 +356,6 @@ export default function DocumentsPage() {
                     aria-label="Document title"
                     className="min-w-0 flex-1 truncate bg-transparent text-sm font-semibold outline-none placeholder:text-muted-foreground"
                   />
-                </>}
-                headerActions={<>
-                  <span className="sr-only" aria-live="polite">{saving ? "Saving" : "Saved"}</span>
-                  <Button type="button" variant="ghost" size="icon" className="size-8 text-muted-foreground" onClick={() => openShare()} aria-label="Share document" title="Share"><Send className="size-4" aria-hidden="true" /></Button>
-                  <Button type="button" variant="ghost" size="icon" className="size-8 text-muted-foreground hover:text-destructive" onClick={askDelete} aria-label="Delete document" title="Delete"><Trash2 className="size-4" aria-hidden="true" /></Button>
                 </>}
               />
             </aside>
@@ -399,19 +395,19 @@ export default function DocumentsPage() {
           </div>
 
           <section className={cn(
-            "min-w-0 lg:flex lg:h-[calc(100svh-5rem)] lg:min-h-0 lg:flex-col lg:overflow-hidden",
+            cn("min-w-0 lg:flex lg:min-h-0 lg:flex-col lg:overflow-hidden", ngaiDocument ? "lg:h-[calc(100svh-0.75rem)]" : "lg:h-[calc(100svh-5rem)]"),
             !openId && "hidden",
           )}>
             {openId ? (
               <div className="flex min-h-[70svh] flex-1 flex-col lg:min-h-0">
-                <div className="flex h-16 items-center gap-3 border-b border-border py-0 max-sm:hidden lg:hidden">
-                  <Button type="button" variant="ghost" size="icon" onClick={close} aria-label="Back to Artifacts"><ArrowLeft className="size-4" aria-hidden="true" /></Button>
+                <div className="flex h-14 items-center gap-3 border-b border-border py-0 max-sm:hidden lg:px-4">
+                  <Button type="button" variant="ghost" size="icon" onClick={close} aria-label="Back to Artifacts" className="lg:hidden"><ArrowLeft className="size-4" aria-hidden="true" /></Button>
                   <input
                     value={title}
                     onChange={(event) => edit({ title: event.target.value })}
                     placeholder="Untitled document"
                     aria-label="Document title"
-                    className="sidebar-nav-label min-w-0 flex-1 bg-transparent font-medium text-sidebar-foreground/70 outline-none placeholder:text-muted-foreground"
+                    className="sidebar-nav-label min-w-0 flex-1 bg-transparent font-medium text-sidebar-foreground/70 outline-none placeholder:text-muted-foreground lg:invisible"
                   />
                   <div className="flex shrink-0 items-center gap-2">
                     <span className="text-xs text-muted-foreground" aria-live="polite">{saving ? "Saving…" : "Saved"}</span>

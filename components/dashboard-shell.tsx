@@ -90,13 +90,13 @@ export function DashboardShell({
   const isEmailRoute = pathname?.startsWith("/dashboard/email") ?? false
   // Invoice, estimate, contract and document pages (and their editors), not their lists or the New screens.
   const isRecordDetailRoute = /^\/dashboard\/(?:invoices|estimates|contracts|documents)\/(?!new(?:\/|$))[^/]+/.test(pathname ?? "")
-  const hideHeader = isDocumentRoute
   const [sidebarOpen, setSidebarOpen] = useState(!isDocumentRoute)
   const { open: agentOpen } = useAgent()
   const { agency } = useAuth()
   const unreadEmailCount = useUnreadEmailCount()
   const navCounts = useNavCounts()
-  const { override: titleOverride, titleNode, headerSearch, actions: headerActions, replacesMobileDefaults, setHeaderSlot, hideMobileFooter: pageHidesMobileFooter, backAction, clientOpen } = usePageHeaderOverride()
+  const { override: titleOverride, titleNode, headerSearch, actions: headerActions, replacesMobileDefaults, setHeaderSlot, hideMobileFooter: pageHidesMobileFooter, backAction, clientOpen, hideHeader: pageHidesHeader } = usePageHeaderOverride()
+  const hideHeader = isDocumentRoute || pageHidesHeader
   // Detail pages (anything with a back arrow) give the phone screen to the record, without the tab bar.
   const hideMobileFooter = pageHidesMobileFooter || isBackDetailRoute || isRecordDetailRoute || Boolean(backAction)
   const { open: searchOpen, setOpen: setSearchOpen, openSearch, results: searchResults, loading: searchLoading } = useDashboardSearch()
