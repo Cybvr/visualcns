@@ -463,6 +463,7 @@ export function AgentChat({
   campaignMentions,
   onOpenArtifact,
   activeArtifactId,
+  minimalWelcome = false,
 }: {
   messages: AgentMessage[]
   conversations: AgentConversation[]
@@ -486,6 +487,8 @@ export function AgentChat({
   onOpenArtifact?: (artifact: AgentArtifact) => void
   /** The document open now, so its card shows as open. */
   activeArtifactId?: string
+  /** A new chat shows only a short line: no logo, suggestions or recent chats. */
+  minimalWelcome?: boolean
 }) {
   const recentChats = conversations.filter((conversation) => conversation.messages.length > 0).slice(0, 3)
   const [input, setInput] = useState("")
@@ -738,7 +741,11 @@ export function AgentChat({
           </div>
         </div>
       )}
-      {messages.length === 0 ? (
+      {messages.length === 0 && minimalWelcome ? (
+        <div className="flex min-h-0 flex-1 items-center justify-center px-4 py-6">
+          <p className="text-sm text-muted-foreground">{welcome ?? "How can I help?"}</p>
+        </div>
+      ) : messages.length === 0 ? (
         <div className={cn("scrollbar-none flex min-h-0 flex-1 flex-col overflow-y-auto text-center", compact ? "px-4 py-6" : "px-4 py-6 sm:px-6 sm:pb-16")}>
           <div className="m-auto flex w-full min-w-0 max-w-2xl flex-col items-center">
             <div className="flex items-center justify-center gap-3">

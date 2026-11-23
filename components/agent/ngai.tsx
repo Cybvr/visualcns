@@ -56,20 +56,21 @@ const STARTING_OPTIONS: Record<Exclude<NgaiScope["kind"], "app">, string[]> = {
 const iconButton = "flex size-8 items-center justify-center rounded-full text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
 
 /** New chat, past chats and (in a panel) close. The same buttons on every Ngai. */
-function NgaiHeader({ layout, onClose }: { layout: NgaiLayout; onClose?: () => void }) {
+function NgaiHeader({ layout, onClose, heading, actions }: { layout: NgaiLayout; onClose?: () => void; heading?: ReactNode; actions?: ReactNode }) {
   const { conversations, activeConversationId, sending, reset, selectConversation } = useAgent()
   const chatted = conversations.filter((conversation) => conversation.messages.length > 0)
   const [deleting, setDeleting] = useState<NgaiChatRef | null>(null)
   return (
     // A page already has its title, so the page header is just the buttons.
     <div className={cn("flex shrink-0 items-center justify-between gap-2", layout === "panel" ? "h-14 border-b border-border px-4" : "h-10 justify-end")}>
-      {layout === "panel" && (
+      {layout === "panel" && (heading ? <div className="flex min-w-0 flex-1 items-center gap-1">{heading}</div> : (
         <div className="flex min-w-0 items-center gap-2 text-sm font-semibold">
           <Image src="/ngai-logo.png" alt="" width={20} height={20} className="rounded-full" />
           Ngai
         </div>
-      )}
-      <div className="flex items-center gap-1">
+      ))}
+      <div className="flex shrink-0 items-center gap-1">
+        {actions}
         <button type="button" onClick={reset} disabled={sending} aria-label="New chat" title="New chat" className={iconButton}>
           <Plus className="size-4" aria-hidden="true" />
         </button>
@@ -153,7 +154,7 @@ export function DeleteChatDialog({ chat, onClose }: { chat: NgaiChatRef | null; 
   )
 }
 
-function NgaiConversation({ layout, startingOptions, onOpenArtifact, activeArtifactId }: { layout: NgaiLayout; startingOptions?: string[]; onOpenArtifact: (artifact: ArtifactRef) => void; activeArtifactId?: string }) {
+function NgaiConversation({ layout, startingOptions, onOpenArtifact, activeArtifactId, minimalWelcome }: { layout: NgaiLayout; startingOptions?: string[]; onOpenArtifact: (artifact: ArtifactRef) => void; activeArtifactId?: string; minimalWelcome?: boolean }) {
   const { messages, conversations, activeConversationId, sending, send, rateResponse, reset, selectConversation } = useAgent()
   const pathname = usePathname()
   const router = useRouter()
@@ -205,6 +206,7 @@ function NgaiConversation({ layout, startingOptions, onOpenArtifact, activeArtif
       onOpenArtifact={onOpenArtifact}
       activeArtifactId={activeArtifactId}
       compact={layout === "panel"}
+      minimalWelcome={minimalWelcome}
     />
   )
 }
@@ -260,7 +262,18 @@ function NgaiSignIn({ companyName }: { companyName: string }) {
  * gate on company pages and its own sizing. The parent only gives it room:
  * a page or tab of fixed height, or a panel.
  */
-export function Ngai({ scope, layout = "page", onClose, menuInSidebar = false, className }: { scope: NgaiScope; layout?: NgaiLayout; onClose?: () => void; /** New chat and past chats are in the sidebar, so the page drops its own buttons for them. */ menuInSidebar?: boolean; className?: string }) {
+export function Ngai({ scope, layout = "page", onClose, menuInSidebar = false, className, heading, headerActions }: {
+  scope: NgaiScope
+  layout?: NgaiLayout
+  onClose?: () => void
+  /** New chat and past chats are in the sidebar, so the page drops its own buttons for them. */
+  menuInSidebar?: boolean
+  className?: string
+  /** Replaces the Ngai name in a panel's header, e.g. the open document's title. */
+  heading?: ReactNode
+  /** Extra buttons before New chat and history. */
+  headerActions?: ReactNode
+}) {
   const access = useCompanyAccess()
   const pageRef = useRef<HTMLDivElement>(null)
 
@@ -309,8 +322,8 @@ export function Ngai({ scope, layout = "page", onClose, menuInSidebar = false, c
   const chat = (startingOptions?: string[], chatsInSidebar = menuInSidebar) => (
     <div className="flex min-h-0 flex-1 gap-4">
       <div className={cn("flex min-w-0 flex-1 flex-col", artifact && (layout === "panel" ? "hidden" : "max-md:hidden"))}>
-        {!chatsInSidebar && <NgaiHeader layout={layout} onClose={onClose} />}
-        <NgaiConversation layout={layout} startingOptions={startingOptions} onOpenArtifact={setArtifact} activeArtifactId={artifact?.id} />
+        {!chatsInSidebar && <NgaiHeader layout={layout} onClose={onClose} heading={heading} actions={headerActions} />}
+        <NgaiConversation layout={layout} startingOptions={startingOptions} onOpenArtifact={setArtifact} activeArtifactId={artifact?.id} minimalWelcome={scope.kind === "document"} />
       </div>
       {artifact && (
         <DocumentArtifact

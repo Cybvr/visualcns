@@ -316,7 +316,7 @@ export default function DocumentsPage() {
   )
 
   return (
-    <main className="notes-page mx-auto w-full max-w-6xl px-4 pt-4 pb-12 sm:px-6">
+    <main className={cn("notes-page mx-auto w-full", ngaiDocument ? "lg:max-w-none lg:p-0 max-w-6xl px-4 pt-4 pb-12 sm:px-6" : "max-w-6xl px-4 pt-4 pb-12 sm:px-6")}>
       {error ? (
         <p role="alert" className="mt-10 text-sm text-destructive">Documents unavailable. Refresh to try again.</p>
       ) : notes === null ? (
@@ -338,11 +338,30 @@ export default function DocumentsPage() {
           />
         </>
       ) : (
-        <div className={cn(openId ? "lg:grid lg:grid-cols-[minmax(20rem,26rem)_minmax(0,1fr)] lg:items-start lg:gap-6" : "lg:grid lg:grid-cols-[minmax(18rem,0.7fr)_minmax(0,1.3fr)] lg:items-start lg:gap-6")}>
+        <div className={cn(openId ? "lg:grid lg:grid-cols-[20rem_minmax(0,1fr)] lg:items-start" : "lg:grid lg:grid-cols-[minmax(18rem,0.7fr)_minmax(0,1.3fr)] lg:items-start lg:gap-6")}>
           {/* Ngai first, the document beside it. */}
           {ngaiDocument && (
-            <aside className="hidden overflow-hidden rounded-xl border border-border lg:flex lg:h-[calc(100svh-6rem)] lg:flex-col">
-              <Ngai scope={{ kind: "document", document: ngaiDocument }} layout="panel" />
+            <aside className="hidden overflow-hidden border-r border-border lg:flex lg:h-[calc(100svh-5rem)] lg:flex-col">
+              <Ngai
+                scope={{ kind: "document", document: ngaiDocument }}
+                layout="panel"
+                className="bg-transparent"
+                heading={<>
+                  <Button type="button" variant="ghost" size="icon" className="size-8 shrink-0" onClick={close} aria-label="Back to Artifacts"><ArrowLeft className="size-4" aria-hidden="true" /></Button>
+                  <input
+                    value={title}
+                    onChange={(event) => edit({ title: event.target.value })}
+                    placeholder="Untitled document"
+                    aria-label="Document title"
+                    className="min-w-0 flex-1 truncate bg-transparent text-sm font-semibold outline-none placeholder:text-muted-foreground"
+                  />
+                </>}
+                headerActions={<>
+                  <span className="sr-only" aria-live="polite">{saving ? "Saving" : "Saved"}</span>
+                  <Button type="button" variant="ghost" size="icon" className="size-8 text-muted-foreground" onClick={() => openShare()} aria-label="Share document" title="Share"><Send className="size-4" aria-hidden="true" /></Button>
+                  <Button type="button" variant="ghost" size="icon" className="size-8 text-muted-foreground hover:text-destructive" onClick={askDelete} aria-label="Delete document" title="Delete"><Trash2 className="size-4" aria-hidden="true" /></Button>
+                </>}
+              />
             </aside>
           )}
           <div className={cn("min-w-0", openId && "hidden")}>
@@ -385,7 +404,7 @@ export default function DocumentsPage() {
           )}>
             {openId ? (
               <div className="flex min-h-[70svh] flex-1 flex-col lg:min-h-0">
-                <div className="flex h-16 items-center gap-3 border-b border-border py-0 max-sm:hidden">
+                <div className="flex h-16 items-center gap-3 border-b border-border py-0 max-sm:hidden lg:hidden">
                   <Button type="button" variant="ghost" size="icon" onClick={close} aria-label="Back to Artifacts"><ArrowLeft className="size-4" aria-hidden="true" /></Button>
                   <input
                     value={title}
