@@ -24,12 +24,13 @@ import { useAuth } from "@/components/auth-provider"
 
 import {
   DepartmentField,
-  EditorActionBar,
   EditorCard,
   EditorDeleteCard,
   EditorField,
   EditorHeader,
+  EditorToolbar,
   ExpandableTextRow,
+  billingShareActions,
 } from "@/components/dashboard/billing-editor"
 import { EstimateDocument } from "@/components/dashboard/estimate-document"
 import { downloadEstimatePdf } from "@/components/dashboard/estimate-pdf"
@@ -446,27 +447,50 @@ export function EstimateBuilder({ estimate, initialCompanyId, onSaved, onDeleted
   return (
     <>
     <form onSubmit={submit} className="billing-editor mx-auto max-w-2xl space-y-3 bg-card px-2 pt-2 print:hidden sm:rounded-2xl sm:px-4 sm:pt-3">
-      <div className="flex items-center gap-1">
-        <button
-          type="button"
-          // Back to wherever they came from; straight to the list when the page was opened directly.
-          onClick={() => (window.history.length > 1 ? router.back() : router.push("/dashboard/artifacts?type=estimate"))}
-          aria-label="Back"
-          className="-ml-2 inline-flex size-9 shrink-0 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          <ArrowLeft className="size-4" aria-hidden="true" />
-        </button>
-      </div>
+      <EditorToolbar
+        leading={
+          <button
+            type="button"
+            // Back to wherever they came from; straight to the list when the page was opened directly.
+            onClick={() => (window.history.length > 1 ? router.back() : router.push("/dashboard/artifacts?type=estimate"))}
+            aria-label="Back"
+            className="-ml-1 inline-flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <ArrowLeft className="size-4" aria-hidden="true" />
+          </button>
+        }
+        status={statusMeta}
+        shareAction={
+          <ShareDialog
+            triggerText="Share"
+            triggerLabel="Share estimate"
+            triggerClassName="billing-editor-action"
+            path={estimate ? `/share/estimates/${encodeURIComponent(estimate.id)}` : ""}
+            title={estimate?.title || title || "estimate"}
+            access={{ enabled: shareEnabled, onEnabledChange: (enabled) => { void changeShareEnabled(enabled) }, disabled: shareSaving }}
+            extraActions={billingShareActions({
+              onPrint: () => window.print(),
+              onDownload: () => void handleDownloadPdf(),
+              downloading: pdfDownloading,
+              onEmail: () => void saveEstimate("email"),
+              saving,
+            })}
+          />
+        }
+        deleteAction={isEdit && estimate ? (
+          <EditorDeleteCard
+            label="estimate"
+            confirmTitle="Delete this estimate?"
+            confirmDescription={`${estimate.estimateNumber} will be removed for good. This cannot be undone.`}
+            onDelete={handleDelete}
+          />
+        ) : undefined}
+        onPreview={() => setPreviewOpen(true)}
+        saving={saving}
+        saveLabel="Save"
+      />
 
-      <EditorHeader issuer={issuer} kind="Estimate" onPrint={() => window.print()} onDownload={() => void handleDownloadPdf()} downloading={pdfDownloading} number={estimateNumber} status={statusMeta} shareAction={
-        <ShareDialog
-          triggerLabel="Share estimate"
-          triggerClassName="size-8 bg-primary/10 text-primary hover:bg-primary/15"
-          path={estimate ? `/share/estimates/${encodeURIComponent(estimate.id)}` : ""}
-          title={estimate?.title || title || "estimate"}
-          access={{ enabled: shareEnabled, onEnabledChange: (enabled) => { void changeShareEnabled(enabled) }, disabled: shareSaving }}
-        />
-      } />
+      <EditorHeader issuer={issuer} kind="Estimate" number={estimateNumber} />
 
       <EditorCard>
         <EditorField label="Title" htmlFor="estimate-title">
@@ -631,20 +655,6 @@ export function EstimateBuilder({ estimate, initialCompanyId, onSaved, onDeleted
 
       {error && <p className="px-1 text-destructive">{error}</p>}
 
-      <EditorActionBar
-        onPreview={() => setPreviewOpen(true)}
-        onSend={() => void saveEstimate("email")}
-        saving={saving}
-        saveLabel="Save"
-        deleteAction={isEdit && estimate ? (
-          <EditorDeleteCard
-            label="estimate"
-            confirmTitle="Delete this estimate?"
-            confirmDescription={`${estimate.estimateNumber} will be removed for good. This cannot be undone.`}
-            onDelete={handleDelete}
-          />
-        ) : undefined}
-      />
     </form>
 
     <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>

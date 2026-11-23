@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState, type ReactNode } from "react"
 import { ArrowLeft, ChevronDown, Globe2, Link2, LockKeyhole, Send, X } from "lucide-react"
 import { toast } from "sonner"
 
@@ -34,6 +34,10 @@ type ShareDialogProps = {
   emailMode?: "internal" | "system"
   /** For opening over something above the usual dialog layer, like the post viewer. */
   contentClassName?: string
+  /** Shows the trigger as a text button with this label instead of the send icon. */
+  triggerText?: string
+  /** More ways to share, like Print, Download and Email. Each closes the dialog first. */
+  extraActions?: { label: string; icon: ReactNode; onSelect: () => void; disabled?: boolean }[]
 }
 
 function suggestedMessage(path: string, title: string): string {
@@ -61,6 +65,8 @@ export function ShareDialog({
   access,
   emailMode = "internal",
   contentClassName,
+  triggerText,
+  extraActions,
 }: ShareDialogProps) {
   const auth = useOptionalAuth()
   const [internalOpen, setInternalOpen] = useState(false)
@@ -242,9 +248,15 @@ export function ShareDialog({
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       {showTrigger && (
         <DialogTrigger asChild>
-          <Button type="button" variant="ghost" size="icon" aria-label={triggerLabel} title={triggerLabel} className={cn("shrink-0 rounded-full text-foreground hover:bg-muted/50", triggerClassName)}>
-            <Send className="size-[18px]" aria-hidden="true" />
-          </Button>
+          {triggerText ? (
+            <Button type="button" variant="secondary" size="sm" title={triggerLabel} className={cn("shrink-0 rounded-md shadow-none", triggerClassName)}>
+              {triggerText}
+            </Button>
+          ) : (
+            <Button type="button" variant="ghost" size="icon" aria-label={triggerLabel} title={triggerLabel} className={cn("shrink-0 rounded-full text-foreground hover:bg-muted/50", triggerClassName)}>
+              <Send className="size-[18px]" aria-hidden="true" />
+            </Button>
+          )}
         </DialogTrigger>
       )}
       <DialogContent className={cn("max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-lg gap-0 overflow-y-auto p-0", contentClassName)}>
@@ -353,6 +365,24 @@ export function ShareDialog({
               </div>
             </div>
           </section>
+
+          {extraActions && extraActions.length > 0 && (
+            <section aria-label="More ways to share" className="grid grid-cols-3 gap-2">
+              {extraActions.map((action) => (
+                <button
+                  key={action.label}
+                  type="button"
+                  disabled={action.disabled}
+                  // Close first, so printing or the email composer isn't under this dialog.
+                  onClick={() => { handleOpenChange(false); window.setTimeout(action.onSelect, 150) }}
+                  className="flex flex-col items-center gap-2 rounded-xl border border-border px-2 py-3 text-sm font-medium outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
+                >
+                  <span className="flex size-9 items-center justify-center rounded-full bg-primary/10 text-primary [&_svg]:size-4" aria-hidden="true">{action.icon}</span>
+                  {action.label}
+                </button>
+              ))}
+            </section>
+          )}
         </div>}
 
         <div className="flex items-center justify-between gap-3 px-5 py-5 sm:px-6">

@@ -6,13 +6,14 @@ import { ArrowLeft, Loader2, Plus, Printer, X } from "lucide-react"
 import { useAuth } from "@/components/auth-provider"
 
 import {
-  EditorActionBar,
   EditorCard,
   EditorDeleteCard,
   EditorField,
   EditorHeader,
   EditorToggle,
+  EditorToolbar,
   ExpandableTextRow,
+  billingShareActions,
 } from "@/components/dashboard/billing-editor"
 import { Button } from "@/components/ui/button"
 import { Combobox, type ComboboxOption } from "@/components/ui/combobox"
@@ -563,30 +564,51 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate, onS
   return (
     <>
     <form onSubmit={submit} className="billing-editor mx-auto max-w-2xl space-y-3 bg-card px-2 pt-2 print:hidden sm:rounded-2xl sm:px-4 sm:pt-3">
-      <div className={cn("flex items-center gap-1", hideBack && "lg:hidden")}>
-        <button
-          type="button"
-          // Back to wherever they came from; straight to the list when the page was opened directly.
-          onClick={() => (window.history.length > 1 ? router.back() : router.push("/dashboard/invoices"))}
-          aria-label="Back"
-          className="-ml-2 inline-flex size-9 shrink-0 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          <ArrowLeft className="size-4" aria-hidden="true" />
-        </button>
-      </div>
-
-      <EditorHeader issuer={issuer} visualCnsBrand kind="Invoice" onPrint={() => window.print()} onDownload={() => void handleDownloadPdf()} downloading={pdfDownloading} number={invoiceNumber} status={statusMeta} shareAction={
-        <>
+      <EditorToolbar
+        leading={
+          <button
+            type="button"
+            // Back to wherever they came from; straight to the list when the page was opened directly.
+            onClick={() => (window.history.length > 1 ? router.back() : router.push("/dashboard/invoices"))}
+            aria-label="Back"
+            className={cn("-ml-1 inline-flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring", hideBack && "lg:hidden")}
+          >
+            <ArrowLeft className="size-4" aria-hidden="true" />
+          </button>
+        }
+        status={statusMeta}
+        tools={headerExtra}
+        shareAction={
           <ShareDialog
+            triggerText="Share"
             triggerLabel="Share invoice"
-            triggerClassName="size-8 bg-primary/10 text-primary hover:bg-primary/15"
+            triggerClassName="billing-editor-action"
             path={invoice ? `/share/invoices/${encodeURIComponent(invoice.id)}` : ""}
             title={invoice?.title || invoiceTitle || "invoice"}
             access={{ enabled: shareEnabled, onEnabledChange: (enabled) => { void changeShareEnabled(enabled) }, disabled: shareSaving }}
+            extraActions={billingShareActions({
+              onPrint: () => window.print(),
+              onDownload: () => void handleDownloadPdf(),
+              downloading: pdfDownloading,
+              onEmail: () => void saveInvoice("email"),
+              saving,
+            })}
           />
-          {headerExtra}
-        </>
-      } />
+        }
+        deleteAction={isEdit && invoice ? (
+          <EditorDeleteCard
+            label="invoice"
+            confirmTitle="Delete this invoice?"
+            confirmDescription={`${invoice.invoiceNumber} will be removed for good. This cannot be undone.`}
+            onDelete={handleDelete}
+          />
+        ) : undefined}
+        onPreview={() => setPreviewOpen(true)}
+        saving={saving}
+        saveLabel="Save"
+      />
+
+      <EditorHeader issuer={issuer} visualCnsBrand kind="Invoice" number={invoiceNumber} />
 
       <EditorCard>
         <EditorField label="Title" htmlFor="invoice-title">
@@ -911,20 +933,6 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate, onS
 
       {error && <p className="px-1 text-destructive">{error}</p>}
 
-      <EditorActionBar
-        onPreview={() => setPreviewOpen(true)}
-        onSend={() => void saveInvoice("email")}
-        saving={saving}
-        saveLabel="Save"
-        deleteAction={isEdit && invoice ? (
-          <EditorDeleteCard
-            label="invoice"
-            confirmTitle="Delete this invoice?"
-            confirmDescription={`${invoice.invoiceNumber} will be removed for good. This cannot be undone.`}
-            onDelete={handleDelete}
-          />
-        ) : undefined}
-      />
 
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
         <DialogContent className="w-[calc(100vw-0.5rem)] max-h-[calc(100vh-0.5rem)] max-w-5xl overflow-hidden p-2 print:hidden sm:p-6">

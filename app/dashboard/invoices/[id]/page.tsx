@@ -10,7 +10,7 @@ import { Ngai } from "@/components/agent/ngai"
 import { DashboardPageSkeleton } from "@/components/dashboard/dashboard-page-skeleton"
 import { DocumentActions } from "@/components/dashboard/document-actions"
 import { InvoiceBuilder } from "@/components/dashboard/invoice-builder"
-import { InvoiceOverview, InvoicePaymentSettings } from "@/components/dashboard/invoice-overview"
+import { InvoiceOverview } from "@/components/dashboard/invoice-overview"
 import { useHideHeader, usePageTitle } from "@/components/dashboard/page-title-context"
 import { Button } from "@/components/ui/button"
 import { getBusinessProfile, type BusinessProfile } from "@/lib/business-profile"
@@ -93,7 +93,7 @@ export default function InvoiceDetailPage() {
 
   return (
     // Ngai first, the invoice beside it, filling the dashboard card; each side scrolls on its own.
-    <main className="w-full lg:grid lg:min-h-0 lg:flex-1 lg:grid-cols-[20rem_minmax(0,1fr)] lg:grid-rows-[minmax(0,1fr)]">
+    <main className="w-full lg:grid lg:h-full lg:min-h-0 lg:flex-1 lg:grid-cols-[20rem_minmax(0,1fr)] lg:grid-rows-[minmax(0,1fr)] lg:overflow-hidden">
       <aside className="hidden min-h-0 overflow-hidden border-r border-border lg:flex lg:flex-col">
         <Ngai
           scope={{ kind: "invoice", invoice: { id: invoice.id, title } }}
@@ -114,8 +114,6 @@ export default function InvoiceDetailPage() {
             hideBack
             onSaved={(saved) => setInvoice(saved)}
             onDeleted={() => router.push("/dashboard/invoices")}
-            // A payment changes status and amount paid, so the editor reloads to match.
-            headerExtra={<InvoicePaymentSettings invoice={invoice} canEdit onChange={(next) => { setInvoice(next); setEditorKey((key) => key + 1) }} className="size-8 rounded-full border-0 bg-primary/10 text-primary hover:bg-primary/15" />}
           />
         </div>
       </section>

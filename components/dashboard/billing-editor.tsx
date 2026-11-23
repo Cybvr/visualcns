@@ -24,33 +24,86 @@ import { cn } from "@/lib/utils"
 
 /**
  * Shared pieces for the invoice and estimate editors: a stack of white cards
- * on a grey page, with Preview and Save pinned to the bottom.
+ * on a grey page, with every action in one bar pinned to the top.
  */
 
+/** Print, Download and Email, for the Share dialog of an invoice or estimate. */
+export function billingShareActions({ onPrint, onDownload, downloading = false, onEmail, saving = false }: {
+  onPrint: () => void
+  onDownload: () => void
+  downloading?: boolean
+  /** Saves, then opens an email with the PDF attached. */
+  onEmail?: () => void
+  saving?: boolean
+}) {
+  return [
+    { label: "Print", icon: <Printer />, onSelect: onPrint },
+    { label: "Download", icon: downloading ? <Loader2 className="animate-spin" /> : <Download />, onSelect: onDownload, disabled: downloading },
+    ...(onEmail ? [{ label: "Email", icon: <Mail />, onSelect: onEmail, disabled: saving }] : []),
+  ]
+}
+
+/**
+ * The bar across the top of the editor: back and status on the left, then delete
+ * and any round tools, then Preview, Share and Save.
+ */
+export function EditorToolbar({
+  status,
+  tools,
+  shareAction,
+  deleteAction,
+  onPreview,
+  saving,
+  saveLabel,
+  leading,
+}: {
+  /** Before the status, e.g. a back button. */
+  leading?: ReactNode
+  status?: { label: string; className: string }
+  /** Round icon buttons after Delete, e.g. payment settings. */
+  tools?: ReactNode
+  /** The Share button; its dialog holds Print, Download and Email. */
+  shareAction?: ReactNode
+  /** An EditorDeleteCard, for saved records. */
+  deleteAction?: ReactNode
+  onPreview: () => void
+  saving: boolean
+  saveLabel: string
+}) {
+  return (
+    <div className="sticky top-0 z-20 -mx-2 -mt-2 flex items-center gap-2 border-b border-border bg-card px-2 py-2 sm:-mx-4 sm:-mt-3 sm:rounded-t-2xl sm:px-4">
+      {leading}
+      {status && <span className={cn("shrink-0 rounded-full px-3 py-1 font-medium", status.className)}>{status.label}</span>}
+      <div className="ml-auto flex min-w-0 items-center gap-1.5 overflow-x-auto [scrollbar-width:none]">
+        {deleteAction}
+        {tools}
+        <span className="mx-1 h-6 w-px shrink-0 bg-border" aria-hidden="true" />
+        <Button type="button" variant="secondary" size="sm" onClick={onPreview} aria-label="Preview" className="billing-editor-action shrink-0 rounded-md shadow-none">
+          <Eye className="size-4" aria-hidden="true" />
+          <span className="max-sm:sr-only">Preview</span>
+        </Button>
+        {shareAction}
+        <Button type="submit" size="sm" disabled={saving} className="billing-editor-action shrink-0 rounded-md">
+          {saving && <Loader2 className="mr-2 size-4 animate-spin" aria-hidden="true" />}
+          {saveLabel}
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+/** Who the record is from, and its kind and number. The actions live in EditorToolbar. */
 export function EditorHeader({
   issuer,
   kind,
   number,
-  status,
-  onPrint,
-  onDownload,
-  shareAction,
-  downloading = false,
   visualCnsBrand = false,
 }: {
   issuer: BusinessProfile | null
   kind: string
   number: string
-  status?: { label: string; className: string }
-  onPrint: () => void
-  onDownload: () => void
-  /** Shown beside Download when the record can be shared by link. */
-  shareAction?: ReactNode
-  downloading?: boolean
   visualCnsBrand?: boolean
 }) {
-  const round =
-    "inline-flex size-8 items-center justify-center rounded-full bg-primary/10 text-primary outline-none transition-colors hover:bg-primary/15 focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
   return (
     <header className="flex items-start justify-between gap-4 px-1 py-2">
       <div className="flex min-w-0 items-center gap-3">
@@ -70,18 +123,6 @@ export function EditorHeader({
       <div className="min-w-0 shrink-0 text-right">
         <p className="text-muted-foreground">{kind}</p>
         <p className="billing-editor-number truncate">{number || "—"}</p>
-        <div className="mt-2 flex items-center justify-end gap-2">
-          {status && (
-            <span className={cn("rounded-full px-3 py-1 font-medium", status.className)}>{status.label}</span>
-          )}
-          <button type="button" onClick={onPrint} title="Print" aria-label="Print" className={round}>
-            <Printer className="size-4" aria-hidden="true" />
-          </button>
-          <button type="button" onClick={onDownload} disabled={downloading} title="Download PDF" aria-label="Download PDF" className={round}>
-            {downloading ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <Download className="size-4" aria-hidden="true" />}
-          </button>
-          {shareAction}
-        </div>
       </div>
     </header>
   )
@@ -282,41 +323,6 @@ export function EditorDeleteCard({
  * The page pads its bottom by 1.5rem from md up, so md:-bottom-6 sits it flush
  * with the screen edge instead of floating above that padding.
  */
-export function EditorActionBar({
-  onPreview,
-  onSend,
-  saving,
-  saveLabel,
-  deleteAction,
-}: {
-  onPreview: () => void
-  onSend?: () => void
-  saving: boolean
-  saveLabel: string
-  /** An EditorDeleteCard, shown first in the row for saved records. */
-  deleteAction?: ReactNode
-}) {
-  return (
-    <div className="sticky bottom-0 z-20 -mx-2 mt-2 flex items-center gap-2 border-t border-border bg-card px-2 py-2 sm:-mx-4 sm:rounded-b-2xl sm:px-4 md:-bottom-6">
-      {deleteAction}
-      <Button type="button" variant="secondary" size="sm" onClick={onPreview} aria-label="Preview" className="billing-editor-action ml-auto shrink-0 rounded-md shadow-none">
-        <Eye className="size-4" aria-hidden="true" />
-        <span className="max-sm:sr-only">Preview</span>
-      </Button>
-      {onSend && (
-        <Button type="button" variant="secondary" size="sm" onClick={onSend} disabled={saving} aria-label="Send" title="Save and open email draft" className="billing-editor-action shrink-0 rounded-md shadow-none">
-          <Mail className="size-4" aria-hidden="true" />
-          <span className="max-sm:sr-only">Send</span>
-        </Button>
-      )}
-      <Button type="submit" size="sm" disabled={saving} className="billing-editor-action shrink-0 rounded-md">
-        {saving && <Loader2 className="mr-2 size-4 animate-spin" aria-hidden="true" />}
-        {saveLabel}
-      </Button>
-    </div>
-  )
-}
-
 /**
  * Departments are the names a client's invoices and estimates were addressed
  * to before, e.g. "School of Media and Communications" at a university.
