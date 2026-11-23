@@ -1,12 +1,11 @@
 "use client"
 
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 
 import { useAgent } from "@/components/agent/agent-context"
 import { ArtifactTitleMenu } from "@/components/agent/artifact-title-menu"
 import { DocumentPane, InvoicePane, type ArtifactInfo } from "@/components/agent/artifact-panes"
 import { ArtifactWindowControls } from "@/components/agent/artifact-window-controls"
-import { MobileNgaiButton, MobileNgaiClose, mobileChatClass } from "@/components/agent/mobile-ngai"
 import { NgaiConversation, NgaiHeader, NgaiOpenItemContext } from "@/components/agent/ngai"
 import { DocumentArtifact, type ArtifactRef } from "@/components/dashboard/document-artifact"
 import { useHideHeader, useHideMobileFooter } from "@/components/dashboard/page-title-context"
@@ -29,28 +28,6 @@ export function parseOpenParam(value: string | null): ArtifactRef | undefined {
   return { kind: kind as ArtifactRef["kind"], id: decodeURIComponent(id) }
 }
 
-/** Runs from where it starts to the bottom of the window, so the composer sits at the bottom edge. */
-function useFitToWindow() {
-  const ref = useRef<HTMLElement>(null)
-  useLayoutEffect(() => {
-    const element = ref.current
-    if (!element) return
-    const fit = () => {
-      const top = element.getBoundingClientRect().top
-      // On wider screens the dashboard card has a small margin below it.
-      const below = window.innerWidth >= 768 ? 12 : 0
-      element.style.height = `${Math.max(320, Math.floor(window.innerHeight - Math.max(0, top) - below))}px`
-    }
-    fit()
-    const frame = requestAnimationFrame(fit)
-    const observer = new ResizeObserver(fit)
-    observer.observe(document.body)
-    window.addEventListener("resize", fit)
-    return () => { cancelAnimationFrame(frame); observer.disconnect(); window.removeEventListener("resize", fit) }
-  }, [])
-  return ref
-}
-
 /**
  * Ngai, the one UI. The chat is always the same panel: its title and menu on top, the
  * messages, the composer. With nothing open it spans the page. When the conversation brings
@@ -67,7 +44,6 @@ export function NgaiWorkspace({ initial }: { initial?: ArtifactRef }) {
   const [sharing, setSharing] = useState(false)
   // Moves when the title menu changes the item, so its editor reloads.
   const [revision, setRevision] = useState(0)
-  const mainRef = useFitToWindow()
 
   useHideMobileFooter(true)
   useHideHeader(true)
@@ -132,7 +108,6 @@ export function NgaiWorkspace({ initial }: { initial?: ArtifactRef }) {
         onShare={editable ? () => setSharing(true) : undefined}
         onDelete={editable ? remove : undefined}
       />
-      <MobileNgaiClose onClick={() => setMobileChat(false)} />
     </>
   ) : (
     <ArtifactTitleMenu
@@ -149,16 +124,37 @@ export function NgaiWorkspace({ initial }: { initial?: ArtifactRef }) {
   return (
     <NgaiOpenItemContext.Provider value={open}>
       <main
-        ref={mainRef}
         className={cn(
-          "grid w-full min-h-0 grid-rows-[minmax(0,1fr)] overflow-hidden",
+          // From under the header to the bottom of the screen; the panes scroll inside.
+          "grid h-[calc(100dvh-var(--shell-header-h,0px))] w-full min-h-0 overflow-hidden md:h-[calc(100dvh-var(--shell-header-h,0px)-12px)]",
+          item ? "grid-rows-[auto_minmax(0,1fr)] lg:grid-rows-[minmax(0,1fr)]" : "grid-rows-[minmax(0,1fr)]",
           !item || expanded ? "grid-cols-[minmax(0,1fr)]" : "grid-cols-[minmax(0,1fr)] lg:grid-cols-[20rem_minmax(0,1fr)]",
         )}
       >
+        {/* Phones and tablets: one at a time, switched here, so the chat is never out of sight. */}
+        {item && (
+          <div className="flex gap-1 border-b border-border p-2 lg:hidden" role="tablist" aria-label="Chat or item">
+            {([["chat", "Ngai"], ["item", item.kind.charAt(0).toUpperCase() + item.kind.slice(1)]] as const).map(([key, label]) => {
+              const active = key === "chat" ? mobileChat : !mobileChat
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  role="tab"
+                  aria-selected={active}
+                  onClick={() => setMobileChat(key === "chat")}
+                  className={cn("flex-1 rounded-md px-3 py-2 text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring", active ? "bg-muted text-foreground" : "text-muted-foreground")}
+                >
+                  {label}
+                </button>
+              )
+            })}
+          </div>
+        )}
         {/* The chat panel: the same at any width. Beside an item it is the left column. */}
         <aside className={cn(
           "min-h-0 flex-col overflow-hidden",
-          item ? cn("hidden border-r border-border lg:flex", expanded && "lg:hidden", mobileChatClass(mobileChat)) : "flex",
+          item ? cn("border-r border-border lg:flex", mobileChat ? "flex" : "hidden", expanded && "lg:hidden") : "flex",
         )}>
           <NgaiHeader layout="panel" heading={heading} />
           <NgaiConversation
@@ -171,8 +167,7 @@ export function NgaiWorkspace({ initial }: { initial?: ArtifactRef }) {
 
         {item && (
           <>
-            {!mobileChat && <MobileNgaiButton onClick={() => setMobileChat(true)} />}
-            <section className="flex min-h-0 min-w-0 flex-col overflow-hidden">
+            <section className={cn("flex min-h-0 min-w-0 flex-col overflow-hidden", mobileChat && "max-lg:hidden")}>
               {isDocument ? (
                 <DocumentPane key={`${item.id}-${revision}`} id={item.id} controls={controls} onInfo={setInfo} onShare={() => setSharing(true)} onDelete={() => void remove()} />
               ) : isInvoice ? (
