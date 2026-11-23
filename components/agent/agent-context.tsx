@@ -120,11 +120,22 @@ function splitStream(raw: string): { steps: string[]; answer: string } {
   return { steps, answer: head.includes(STEP_MARKER) ? "" : raw }
 }
 
+/** The document or invoice a chat was started beside. It travels with the chat. */
+export type AgentChatContext = { kind: "document" | "invoice"; id: string; title: string }
+
+function validChatContext(value: unknown): AgentChatContext | undefined {
+  if (!value || typeof value !== "object") return undefined
+  const { kind, id, title } = value as Record<string, unknown>
+  if ((kind !== "document" && kind !== "invoice") || typeof id !== "string" || !id) return undefined
+  return { kind, id, title: typeof title === "string" ? title : "" }
+}
+
 export type AgentConversation = {
   id: string
   title: string
   messages: AgentMessage[]
   updatedAt?: number
+  context?: AgentChatContext
 }
 
 interface AgentContextValue {
@@ -142,6 +153,8 @@ interface AgentContextValue {
   reset: () => void
   selectConversation: (id: string) => void
   deleteConversations: (ids: string[]) => Promise<void>
+  /** The open chat's document or invoice, when this chat isn't already beside it. */
+  conversationContext: AgentChatContext | null
 }
 
 const AgentContext = createContext<AgentContextValue | null>(null)
@@ -230,11 +243,13 @@ export function AgentProvider({
                 .map((message) => ({ ...message, id: String(message.id), ...(Array.isArray(message.images) ? { images: message.images.filter((url): url is string => typeof url === "string") } : {}), ...(Array.isArray(message.files) ? { files: message.files.filter((file): file is AgentFile => Boolean(file) && typeof file.url === "string" && typeof file.name === "string") } : {}), ...(validMentions(message.mentions).length ? { mentions: validMentions(message.mentions) } : {}) }))
             : []
           const updatedAt = chat.data().updatedAt
+          const context = validChatContext(chat.data().context)
           return {
             id: chat.id,
             title: String(chat.data().title || NEW_CHAT_TITLE),
             messages: chatMessages,
             ...(updatedAt instanceof Timestamp ? { updatedAt: updatedAt.toMillis() } : {}),
+            ...(context ? { context } : {}),
           }
         })
 
@@ -289,7 +304,7 @@ export function AgentProvider({
       if (!user?.uid) return
       void setDoc(
         doc(db, "agentConversations", user.uid, "chats", conversation.id),
-        { title: conversation.title || NEW_CHAT_TITLE, messages: conversation.messages.slice(-MAX_HISTORY_MESSAGES), updatedAt: Timestamp.now() },
+        { title: conversation.title || NEW_CHAT_TITLE, messages: conversation.messages.slice(-MAX_HISTORY_MESSAGES), updatedAt: Timestamp.now(), ...(conversation.context ? { context: conversation.context } : {}) },
         { merge: true },
       ).catch((error) => console.error("Agent history save failed", error))
     },
@@ -330,10 +345,19 @@ export function AgentProvider({
       const fallbackTitle = content.slice(0, 56) || (fileAttachments.length ? fileAttachments[0].name : "Shared a file")
       const title = existing?.title && existing.title !== NEW_CHAT_TITLE ? existing.title : fallbackTitle
       const pending = [...history, { id: assistantId, role: "assistant" as const, content: "" }]
+      // Beside a document or invoice, the chat remembers it; reopened elsewhere, it still points there.
+      const context: AgentChatContext | undefined = documentContext
+        ? { kind: "document", ...documentContext }
+        : invoiceContext
+          ? { kind: "invoice", ...invoiceContext }
+          : existing?.context
+      const sentDocumentContext = documentContext ?? (context?.kind === "document" ? { id: context.id, title: context.title } : undefined)
+      const sentInvoiceContext = invoiceContext ?? (context?.kind === "invoice" ? { id: context.id, title: context.title } : undefined)
+      const remember = (list: AgentMessage[]) => rememberConversation({ id: conversationId, title, messages: list, ...(context ? { context } : {}) })
 
       setActiveConversationId(conversationId)
       setMessages(pending)
-      rememberConversation({ id: conversationId, title, messages: history })
+      remember(history)
       setSending(true)
 
       // A plan lives outside the text, so spell it out for the model to follow on "go ahead".
@@ -354,7 +378,7 @@ export function AgentProvider({
           const response = await fetch("/api/agent", {
             method: "POST",
             headers: { "content-type": "application/json", Authorization: `Bearer ${await currentUser.getIdToken()}` },
-            body: JSON.stringify({ messages: payload, firstName, surface, companyContext, campaignContext, documentContext, invoiceContext, conversationId }),
+            body: JSON.stringify({ messages: payload, firstName, surface, companyContext, campaignContext, documentContext: sentDocumentContext, invoiceContext: sentInvoiceContext, conversationId }),
           })
 
           if (!response.ok || !response.body) {
@@ -364,7 +388,7 @@ export function AgentProvider({
                 : "Sorry, I could not respond just now. Please try again."
             const failed = [...history, { id: assistantId, role: "assistant" as const, content: message }]
             setMessages(failed)
-            rememberConversation({ id: conversationId, title, messages: failed })
+            remember(failed)
             return
           }
 
@@ -388,11 +412,11 @@ export function AgentProvider({
           acc = text.trim() ? text : plan ? "Here's what I'll do." : "I did not catch that. Could you rephrase?"
           const completed = [...history, { id: assistantId, role: "assistant" as const, content: acc, ...(steps.length ? { steps } : {}), ...(form ? { form } : {}), ...(plan ? { plan } : {}), ...(artifacts ? { artifacts } : {}) }]
           setMessages(completed)
-          rememberConversation({ id: conversationId, title, messages: completed })
+          remember(completed)
         } catch {
           const failed = [...history, { id: assistantId, role: "assistant" as const, content: "Something went wrong reaching the assistant." }]
           setMessages(failed)
-          rememberConversation({ id: conversationId, title, messages: failed })
+          remember(failed)
         } finally {
           setSending(false)
         }
@@ -450,9 +474,15 @@ export function AgentProvider({
   }, [user?.uid, sending, activeConversationId, conversations, reset])
   const toggle = useCallback(() => setOpen((current) => !current), [])
 
+  // Only when this chat isn't already open beside its document or invoice.
+  const conversationContext = useMemo(() => {
+    if (documentContext || invoiceContext) return null
+    return conversations.find((item) => item.id === activeConversationId)?.context ?? null
+  }, [documentContext, invoiceContext, conversations, activeConversationId])
+
   const value = useMemo(
-    () => ({ open, setOpen, toggle, messages, conversations, conversationsLoading, activeConversationId, sending, firstName, send, rateResponse, reset, selectConversation, deleteConversations }),
-    [open, toggle, messages, conversations, conversationsLoading, activeConversationId, sending, firstName, send, rateResponse, reset, selectConversation, deleteConversations],
+    () => ({ open, setOpen, toggle, messages, conversations, conversationsLoading, activeConversationId, sending, firstName, send, rateResponse, reset, selectConversation, deleteConversations, conversationContext }),
+    [open, toggle, messages, conversations, conversationsLoading, activeConversationId, sending, firstName, send, rateResponse, reset, selectConversation, deleteConversations, conversationContext],
   )
 
   return <AgentContext.Provider value={value}>{children}</AgentContext.Provider>

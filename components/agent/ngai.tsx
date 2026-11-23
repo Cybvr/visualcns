@@ -162,7 +162,17 @@ export function DeleteChatDialog({ chat, onClose }: { chat: NgaiChatRef | null; 
 }
 
 function NgaiConversation({ layout, startingOptions, onOpenArtifact, activeArtifactId, minimalWelcome }: { layout: NgaiLayout; startingOptions?: string[]; onOpenArtifact: (artifact: ArtifactRef) => void; activeArtifactId?: string; minimalWelcome?: boolean }) {
-  const { messages, conversations, activeConversationId, sending, send, rateResponse, reset, selectConversation } = useAgent()
+  const { messages, conversations, activeConversationId, sending, send, rateResponse, reset, selectConversation, conversationContext } = useAgent()
+
+  // A chat started beside a document or invoice opens it beside the chat again, once per chat.
+  const openedFor = useRef<string | null>(null)
+  useEffect(() => {
+    if (layout !== "page" || !conversationContext) { openedFor.current = null; return }
+    const key = `${activeConversationId}:${conversationContext.kind}:${conversationContext.id}`
+    if (openedFor.current === key) return
+    openedFor.current = key
+    onOpenArtifact({ kind: conversationContext.kind, id: conversationContext.id, title: conversationContext.title })
+  }, [layout, conversationContext, activeConversationId, onOpenArtifact])
   const pathname = usePathname()
   const router = useRouter()
   const page = useOptionalCompanyPage()
@@ -336,7 +346,8 @@ export function Ngai({ scope, layout = "page", onClose, menuInSidebar = false, c
         <DocumentArtifact
           artifact={artifact}
           canEdit={isAgency}
-          fullHref={isAgency ? `/dashboard/${artifact.kind}s/${encodeURIComponent(artifact.id)}` : undefined}
+          // Documents open beside Ngai on the Documents page; the rest on their own pages.
+          fullHref={isAgency ? (artifact.kind === "document" ? `/dashboard/documents?document=${encodeURIComponent(artifact.id)}` : `/dashboard/${artifact.kind}s/${encodeURIComponent(artifact.id)}`) : undefined}
           onClose={() => setArtifact(null)}
           className={cn("w-full shrink-0", layout === "page" && "md:w-[min(48rem,55%)] md:border-l md:border-border")}
         />
