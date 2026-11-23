@@ -1,7 +1,6 @@
-"use client"
+import { redirect } from "next/navigation"
 
-import { NgaiPage } from "@/components/agent/ngai-page"
-
+/** New chats start on the home page now. */
 export default function ChatPage() {
-  return <NgaiPage />
+  redirect("/dashboard")
 }

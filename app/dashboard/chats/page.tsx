@@ -95,7 +95,7 @@ export default function AllChatsPage() {
 
   function startChat() {
     reset()
-    router.push("/dashboard/chat")
+    router.push("/dashboard")
   }
 
   return (

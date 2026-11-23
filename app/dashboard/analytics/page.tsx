@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react"
 import Link from "next/link"
+
+import { HomeOverview } from "@/components/dashboard/home-overview"
 import { ArrowRight, RefreshCw } from "lucide-react"
 import { Bar, BarChart, CartesianGrid, Tooltip, XAxis, YAxis } from "recharts"
 
@@ -196,6 +198,7 @@ export default function AgencyAnalyticsPage() {
 
   return (
     <main className="mx-auto w-full max-w-7xl px-4 pb-12 pt-5 sm:px-6 sm:pt-7">
+      <HomeOverview />
       {invoices === null ? (error ? (
         <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-destructive/30 px-4 py-3 text-sm text-destructive"><span>{error}</span><Button type="button" variant="outline" size="sm" onClick={() => void load()}>Retry</Button></div>
       ) : <AnalyticsLoading />) : (

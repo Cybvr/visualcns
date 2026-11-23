@@ -154,7 +154,7 @@ function NgaiConversation({ layout, startingOptions, onOpenArtifact, activeArtif
 
   function startNewChat() {
     reset()
-    if (/^\/dashboard\/chat\/[^/]+$/.test(pathname ?? "")) router.push("/dashboard/chat")
+    if (/^\/dashboard\/chat\/[^/]+$/.test(pathname ?? "")) router.push("/dashboard")
   }
 
   // A document Ngai has just made opens by itself; documents in older chats wait to be clicked.

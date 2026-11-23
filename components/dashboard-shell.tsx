@@ -7,7 +7,7 @@ import dynamic from "next/dynamic"
 import { useEffect, useState, type ReactNode } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { ArrowLeft, Building2, FolderOpen, Home, Search, X } from "lucide-react"
+import { ArrowLeft, Building2, FolderOpen, Home, Plus, Search, X } from "lucide-react"
 import { FiMail, FiUser } from "react-icons/fi"
 
 import { useAgent } from "@/components/agent/agent-context"
@@ -42,9 +42,9 @@ function DashboardMobileFooterNav({ unreadEmailCount }: { unreadEmailCount: numb
   const pathname = usePathname()
   const items: MobileFooterNavItem[] = [
     // Home only lights up on the home page itself, not on every page under /dashboard.
-    { key: "home", label: "Home", icon: Home, href: "/dashboard", isActive: pathname === "/dashboard" },
+    { key: "new", label: "New", icon: Plus, href: "/dashboard", isActive: pathname === "/dashboard" },
     { key: "email", label: "Emails", icon: FiMail, href: "/dashboard/email/inbox", isActive: pathname.startsWith("/dashboard/email"), badge: unreadEmailCount },
-    { key: "crm", label: "CRM", icon: Building2, href: "/dashboard/crm", isActive: ["/dashboard/crm", "/dashboard/leads", "/dashboard/companies", "/dashboard/users"].some((path) => pathname.startsWith(path)) },
+    { key: "crm", label: "CRM", icon: Building2, href: "/dashboard/crm", isActive: ["/dashboard/crm", "/dashboard/leads", "/dashboard/companies", "/dashboard/users", "/dashboard/schedules"].some((path) => pathname.startsWith(path)) },
     { key: "artifacts", label: "Artifacts", icon: FolderOpen, href: "/dashboard/artifacts", isActive: ["artifacts", "drive", "estimates", "documents", "notes"].some((section) => pathname.startsWith(`/dashboard/${section}`)) },
     { key: "profile", label: "Profile", icon: FiUser, href: "/dashboard/account" },
   ]

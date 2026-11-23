@@ -20,7 +20,7 @@ const DASHBOARD_SECTION_TITLES: Record<string, string> = {
   notes: "Notes",
   overview: "Overview",
   projects: "Campaigns",
-  schedules: "Schedules",
+  schedules: "CRM",
   seo: "SEO",
   settings: "Settings",
   tasks: "Tasks",
@@ -97,7 +97,7 @@ export function dashboardPageTitle(pathname: string, searchParams?: SearchParams
   const record = segments[2]
   const action = segments[3]
 
-  if (!section) return "Home"
+  if (!section) return "New"
 
   if (section === "account") {
     const accountTitles: Record<string, string> = {

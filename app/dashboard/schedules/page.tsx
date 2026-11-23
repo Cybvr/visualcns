@@ -173,7 +173,7 @@ export default function SchedulesPage() {
   if (!user) return null
 
   return (
-    <main className="mx-auto w-full max-w-4xl px-4 pt-4 pb-12 sm:px-6">
+    <main className="mx-auto w-full max-w-6xl px-4 pt-4 pb-12 sm:px-6">
       <div className="flex items-center justify-between gap-3">
         <h1 className="text-lg font-semibold">Schedules</h1>
         <Button onClick={() => setEditing("new")}>

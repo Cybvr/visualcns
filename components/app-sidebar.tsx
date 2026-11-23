@@ -1,6 +1,6 @@
 "use client"
 
-import { SidebarTakeoverMenu } from "@/components/company/sidebar-takeover"
+import { SidebarTakeoverMenu, useSidebarTakeoverState } from "@/components/company/sidebar-takeover"
 import * as React from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
@@ -57,6 +57,53 @@ export type NavLink = {
   items?: Array<{ label: string; href: string; icon: ComponentType<{ className?: string }>; adminOnly?: boolean }>
 }
 
+/** How many recent chats the sidebar lists; the rest are on All chats. */
+const RECENT_CHATS = 8
+
+/** The latest Ngai chats under the main links, with a link to the full list. */
+function RecentChats({ onNavigate }: { onNavigate: () => void }) {
+  const pathname = usePathname()
+  const router = useRouter()
+  const takeover = useSidebarTakeoverState()
+  const { conversations, activeConversationId, selectConversation } = useAgent()
+  const chats = conversations
+    .filter((conversation) => conversation.messages.length > 0)
+    .sort((a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0))
+    .slice(0, RECENT_CHATS)
+  const onChat = pathname === "/dashboard" || pathname.startsWith("/dashboard/chat/")
+  if (takeover || chats.length === 0) return null
+
+  return (
+    <SidebarGroup className="pt-0 group-data-[collapsible=icon]:hidden">
+      <p className="surface-section-label px-2 pb-1 pt-3">Recent chats</p>
+      <SidebarMenu className="gap-0.5">
+        {chats.map((chat) => (
+          <SidebarMenuItem key={chat.id}>
+            <SidebarMenuButton
+              type="button"
+              isActive={onChat && chat.id === activeConversationId}
+              className={mobileNavButton}
+              title={chat.title}
+              onClick={() => {
+                selectConversation(chat.id)
+                onNavigate()
+                router.push(`/dashboard/chat/${encodeURIComponent(chat.id)}`)
+              }}
+            >
+              <span className="sidebar-nav-label truncate">{chat.title || "New chat"}</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        ))}
+        <SidebarMenuItem>
+          <SidebarMenuButton asChild isActive={pathname === "/dashboard/chats"} className={cn(mobileNavButton, "text-muted-foreground")}>
+            <Link href="/dashboard/chats" onClick={onNavigate}><span className="sidebar-nav-label">All chats</span></Link>
+          </SidebarMenuButton>
+        </SidebarMenuItem>
+      </SidebarMenu>
+    </SidebarGroup>
+  )
+}
+
 function isActive(pathname: string, href: string, rootHref: string, alsoActive: string[] = []) {
   if (alsoActive.some((path) => pathname.startsWith(path))) return true
   return href === rootHref ? pathname === rootHref : pathname.startsWith(href)
@@ -87,7 +134,7 @@ export function AppSidebar({
   const { isImpersonating, stopViewingAs } = useAuth()
   const { open: agentOpen, setOpen: setAgentOpen, reset } = useAgent()
   const { isMobile, setOpenMobile } = useSidebar()
-  const brandHref = isMobile ? "/dashboard/chat" : rootHref
+  const brandHref = rootHref
   const displayedBrandName = brandName?.trim() || "VisualCNS"
   const sidebarLogoUrl = displayedBrandName.toLowerCase() === "visualcns" ? undefined : brandLogoUrl
 
@@ -215,6 +262,7 @@ export function AppSidebar({
             </SidebarMenu>
             {navExtra && <div className="mt-2 group-data-[collapsible=icon]:hidden">{navExtra}</div>}
           </SidebarGroup>
+          {navLinks.some((link) => link.startsNewChat) && <RecentChats onNavigate={() => handleNavigate()} />}
         </SidebarContent>
       </div>
       <SidebarRail />

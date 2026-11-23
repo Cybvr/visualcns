@@ -4,11 +4,10 @@ import dynamic from "next/dynamic"
 import { Suspense, useCallback, useEffect, useState, type ReactNode } from "react"
 import Image from "next/image"
 import { usePathname, useRouter } from "next/navigation"
-import { BarChart3, CalendarClock, Eye, FolderOpen, House, LogOut, Megaphone, Receipt, UserRound } from "lucide-react"
+import { BarChart3, Eye, FolderOpen, LogOut, Megaphone, Plus, Receipt, UserRound } from "lucide-react"
 import { FiMail, FiUsers } from "react-icons/fi"
 import { AuthProvider, useAuth } from "@/components/auth-provider"
 import { AgentProvider } from "@/components/agent/agent-context"
-import { NgaiMark } from "@/components/agent/ngai-mark"
 import { Button } from "@/components/ui/button"
 import { DashboardShell, type NavLink } from "@/components/dashboard-shell"
 import { PageTitleProvider } from "@/components/dashboard/page-title-context"
@@ -22,11 +21,9 @@ import { setPageCacheScope } from "@/lib/page-cache"
 const AgentDock = dynamic(() => import("@/components/agent/agent-dock").then((module) => module.AgentDock), { ssr: false })
 
 const DASHBOARD_NAV: NavLink[] = [
-  { label: "Home", href: "/dashboard", icon: House },
-  { label: "Chat", href: "/dashboard/chat", icon: NgaiMark },
+  { label: "New", href: "/dashboard", icon: Plus, startsNewChat: true },
   { label: "Email", href: "/dashboard/email/inbox", icon: FiMail, alsoActive: ["/dashboard/email"] },
-  { label: "CRM", href: "/dashboard/crm", icon: FiUsers, adminOnly: true, alsoActive: ["/dashboard/leads", "/dashboard/companies", "/dashboard/users"] },
-  { label: "Schedules", href: "/dashboard/schedules", icon: CalendarClock },
+  { label: "CRM", href: "/dashboard/crm", icon: FiUsers, adminOnly: true, alsoActive: ["/dashboard/leads", "/dashboard/companies", "/dashboard/users", "/dashboard/schedules"] },
   { label: "Campaigns", href: "/dashboard/projects", icon: Megaphone, adminOnly: true },
   { label: "Invoices", href: "/dashboard/invoices", icon: Receipt, adminOnly: true },
   { label: "Artifacts", href: "/dashboard/artifacts", icon: FolderOpen, adminOnly: true, alsoActive: ["/dashboard/drive", "/dashboard/estimates", "/dashboard/documents", "/dashboard/notes"] },
