@@ -285,7 +285,9 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate, onS
       if (!current || (email && senderEmail && current.trim().toLowerCase() === senderEmail)) return email || current
       return current
     })
-    setBillToAddress((current) => current || client.address || "")
+    // The billing address, or the company's location when no billing address is saved.
+    setBillToAddress((current) => current || client.address?.trim() || client.location?.trim() || "")
+    setBillToTaxNumber((current) => current || client.taxNumber?.trim() || "")
   }, [companyId, clients, people, isEdit, user?.email])
 
   useEffect(() => {
@@ -367,7 +369,8 @@ export function InvoiceBuilder({ invoice, initialCompanyId, initialEstimate, onS
     setCompanyId(value)
     const client = clients.find((entry) => entry.id === value)
     setBillToEmail(client ? clientEmail(client, people) : "")
-    setBillToAddress(client?.address ?? "")
+    setBillToAddress(client?.address?.trim() || client?.location?.trim() || "")
+    setBillToTaxNumber(client?.taxNumber?.trim() || "")
   }
   const draftInvoice: Invoice = {
     ...(invoice ?? {}),
