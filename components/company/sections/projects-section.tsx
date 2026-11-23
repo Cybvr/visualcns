@@ -3,10 +3,11 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { useSearchParams } from "next/navigation"
-import { ChevronRight, Eye, House, ListTodo, Megaphone } from "lucide-react"
+import { ArrowLeft, ChevronRight, Eye, House, ListTodo, Megaphone } from "lucide-react"
 import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
+import { Ngai } from "@/components/agent/ngai"
 import { useCompanyPage } from "@/components/company/company-page-context"
 import { Button } from "@/components/ui/button"
 import { SectionAddButton } from "@/components/company/section-add-button"
@@ -17,12 +18,15 @@ import { NewProjectDialog } from "@/components/dashboard/new-project-dialog"
 import { ProjectDetail } from "@/components/dashboard/project-detail"
 import { deleteProjectWithTasks, duplicateProject, getProject, isProjectArchived, renameProject, setProjectArchived, type Project } from "@/lib/projects"
 import { taskStatusMeta, tsToMillis } from "@/lib/tasks"
+import { cn } from "@/lib/utils"
 
 export function ProjectsSection() {
   const { company, projects: loadedProjects, admin, emptyProjectsLabel, tasks, tasksLoading, updateParams, setRecordOpen, invoices, sectionHref, mode } = useCompanyPage()
   const share = useCampaignShare()
   // On the dashboard, the client's public page is one click from an open campaign.
   const visitHref = mode === "tabs" ? admin?.sharePath : undefined
+  // On the dashboard, an open campaign has Ngai beside it for the agency.
+  const withNgai = mode === "tabs" && Boolean(admin)
   const { appUser } = useAuth()
   // The public page has no admin handle, but the agency's own admins can still create campaigns there.
   const canCreate = Boolean(admin)
@@ -180,7 +184,22 @@ export function ProjectsSection() {
   return (
     <div className={selectedProject ? "mt-0" : "mt-5"}>
       {selectedProject ? (
-        <div>
+        // On the dashboard the agency gets Ngai beside the campaign, like an open document or invoice.
+        <div className={cn(withNgai && "lg:grid lg:grid-cols-[20rem_minmax(0,1fr)] lg:items-start lg:gap-6")}>
+        {withNgai && (
+          <aside className="hidden overflow-hidden rounded-2xl border border-border lg:sticky lg:top-3 lg:flex lg:h-[calc(100svh-7rem)] lg:flex-col">
+            <Ngai
+              scope={{ kind: "campaign", campaign: { id: selectedProject.id, title: selectedProject.title } }}
+              layout="panel"
+              className="bg-transparent"
+              heading={<>
+                <Button type="button" variant="ghost" size="icon" className="size-8 shrink-0" onClick={closeCampaign} aria-label="Back to Campaigns"><ArrowLeft className="size-4" aria-hidden="true" /></Button>
+                <span className="min-w-0 flex-1 truncate text-sm font-semibold">{selectedProject.title}</span>
+              </>}
+            />
+          </aside>
+        )}
+        <div className="min-w-0">
           <div className="flex items-center justify-between gap-3 max-sm:justify-end">
           <nav aria-label="Campaign breadcrumb" className="min-w-0 max-sm:hidden">
             <ol className="flex min-w-0 items-center gap-1 text-sm">
@@ -244,6 +263,7 @@ export function ProjectsSection() {
               } : undefined}
             />
           </div>
+        </div>
         </div>
       ) : (
         <>
