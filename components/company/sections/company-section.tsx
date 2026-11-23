@@ -1,9 +1,6 @@
 "use client"
 
 import type { ComponentType } from "react"
-import { useSearchParams } from "next/navigation"
-
-import { cn } from "@/lib/utils"
 
 import { Pulse } from "@/components/company/pulse"
 import { CompanySettingsLayout } from "@/components/company/company-settings-layout"
@@ -107,41 +104,21 @@ function PulseSection() {
 }
 
 /**
- * On the dashboard, Marketing: Campaigns and Social Media as two views of one tab,
- * chosen by ?view=social. Old ?tab=social links land on the Social Media view.
+ * On the dashboard, Marketing: the campaigns, and under them the social media accounts.
+ * One page, no switch. An open campaign takes the page on its own.
  */
 function MarketingTabSection() {
-  const { mode, canSeeVisitors, updateParams, recordOpen } = useCompanyPage()
-  const searchParams = useSearchParams()
+  const { mode, canSeeVisitors, recordOpen } = useCompanyPage()
   if (mode === "routes") return <ProjectsSection />
-  const social = canSeeVisitors && (searchParams.get("view") === "social" || searchParams.get("tab") === "social")
-  const views = [
-    { key: "campaigns", label: "Campaigns", active: !social, onSelect: () => updateParams({ view: null, tab: "projects" }) },
-    ...(canSeeVisitors ? [{ key: "social", label: "Social Media", active: social, onSelect: () => updateParams({ view: "social", tab: "projects", campaign: null, task: null }) }] : []),
-  ]
   return (
     <>
-      {/* An open campaign has its own header, so the switch steps aside. */}
-      {!recordOpen && views.length > 1 && (
-        <div role="tablist" aria-label="Marketing" className="mt-5 inline-flex rounded-full bg-muted p-1">
-          {views.map((view) => (
-            <button
-              key={view.key}
-              type="button"
-              role="tab"
-              aria-selected={view.active}
-              onClick={view.onSelect}
-              className={cn(
-                "rounded-full px-4 py-1.5 text-sm font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring",
-                view.active ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              {view.label}
-            </button>
-          ))}
-        </div>
+      <ProjectsSection />
+      {canSeeVisitors && !recordOpen && (
+        <section aria-labelledby="marketing-social-heading" className="mt-10">
+          <h2 id="marketing-social-heading" className="text-base font-semibold">Social media</h2>
+          <SocialSection />
+        </section>
       )}
-      {social ? <SocialSection /> : <ProjectsSection />}
     </>
   )
 }
