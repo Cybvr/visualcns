@@ -23,7 +23,7 @@ type AttachedFile = { name?: string; url?: string; mimeType?: string }
 type ChatMention = { type?: string; id?: string; label?: string; companyId?: string }
 type ChatMessage = { role: "user" | "assistant"; content: string; images?: string[]; files?: AttachedFile[]; mentions?: ChatMention[] }
 type Surface = "client_portal" | "agency_dashboard"
-type AgentBody = { messages?: ChatMessage[]; firstName?: string; surface?: Surface; companyContext?: { id?: string; name?: string }; campaignContext?: { id?: string; title?: string }; conversationId?: string }
+type AgentBody = { messages?: ChatMessage[]; firstName?: string; surface?: Surface; companyContext?: { id?: string; name?: string }; campaignContext?: { id?: string; title?: string }; documentContext?: { id?: string; title?: string }; conversationId?: string }
 
 function adminServices() {
   const app = getApps()[0] ?? initializeApp({
@@ -1572,7 +1572,13 @@ export async function POST(request: Request) {
     const scopedInstruction = campaignId
       ? `${pageInstruction}\n\nThis chat is open inside the campaign "${campaignTitle || "Untitled campaign"}". Treat it as the active campaign and use projectId ${campaignId} to scope query_workspace unless the person explicitly asks about another campaign.`
       : pageInstruction
-    const systemInstruction = `${scopedInstruction}\n\nWhen a user selects a campaign with the @ picker, the message contains its exact projectId and companyId. Treat that selected record as the campaign they mean, use projectId to scope query_workspace, and do not resolve it again from its display name.\n\nAgent prompt version: ${AGENT_PROMPT_VERSION}. Toolset version: ${AGENT_TOOLSET_VERSION}.`
+    const documentId = typeof body.documentContext?.id === "string" ? body.documentContext.id.trim().slice(0, 200) : ""
+    const documentTitle = typeof body.documentContext?.title === "string" ? body.documentContext.title.trim().slice(0, 200) : ""
+    // Open beside a document: that document is what "this", "it" and "the document" mean.
+    const documentInstruction = documentId && !portal
+      ? `${scopedInstruction}\n\nThis chat is open beside the document "${documentTitle || "Untitled document"}" (collection companyDocuments, id ${documentId}). "This document", "it" and "the doc" mean that one. Read it with read_file (collection companyDocuments, id ${documentId}) before changing it. To change it, call update_record on collection companyDocuments with id ${documentId} and a patchJson holding the full new "body" as HTML (and "title" if it changes). Keep everything the user did not ask to change. The editor beside the chat updates by itself, so just say briefly what you changed.`
+      : scopedInstruction
+    const systemInstruction = `${documentInstruction}\n\nWhen a user selects a campaign with the @ picker, the message contains its exact projectId and companyId. Treat that selected record as the campaign they mean, use projectId to scope query_workspace, and do not resolve it again from its display name.\n\nAgent prompt version: ${AGENT_PROMPT_VERSION}. Toolset version: ${AGENT_TOOLSET_VERSION}.`
 
     const apiKey = await getAgencySecret(agencyId, "OPENAI_API_KEY", process.env.OPENAI_API_KEY || "")
     if (!apiKey) return new Response(JSON.stringify({ error: "The assistant is not configured yet." }), { status: 503, headers: { "content-type": "application/json" } })

@@ -13,6 +13,7 @@ import { EmptySearchState, FirstRunState } from "@/components/dashboard/empty-st
 import { TableFilterBar } from "@/components/dashboard/table-filter-bar"
 import { useFilterBar } from "@/components/dashboard/filter-bar"
 import { RichTextEditor } from "@/components/dashboard/rich-text-editor"
+import { Ngai } from "@/components/agent/ngai"
 import { ShareLinkField } from "@/components/dashboard/share-link-field"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
@@ -164,6 +165,20 @@ export default function DocumentsPage() {
     setTitle(nextTitle)
     setBody(nextBody)
   }
+
+  // Ngai can change the open document. When the saved copy moves on and nothing
+  // typed here is waiting to save, load it into the editor.
+  const [revision, setRevision] = useState(0)
+  useEffect(() => {
+    if (!notes || !openId || openId !== loadedId.current || pending.current) return
+    const latest = notes.find((item) => item.id === openId)
+    if (!latest || (latest.title === title && latest.body === body)) return
+    setTitle(latest.title)
+    setBody(latest.body)
+    setRevision((value) => value + 1)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [notes])
+  const ngaiDocument = useMemo(() => (openId ? { id: openId, title: title || "Untitled document" } : null), [openId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // A note opened from the address bar, or by going back and forward, fills the editor once the list arrives.
   useEffect(() => {
@@ -323,7 +338,13 @@ export default function DocumentsPage() {
           />
         </>
       ) : (
-        <div className={cn(openId ? "mx-auto max-w-4xl" : "lg:grid lg:grid-cols-[minmax(18rem,0.7fr)_minmax(0,1.3fr)] lg:items-start lg:gap-6")}>
+        <div className={cn(openId ? "lg:grid lg:grid-cols-[minmax(20rem,26rem)_minmax(0,1fr)] lg:items-start lg:gap-6" : "lg:grid lg:grid-cols-[minmax(18rem,0.7fr)_minmax(0,1.3fr)] lg:items-start lg:gap-6")}>
+          {/* Ngai first, the document beside it. */}
+          {ngaiDocument && (
+            <aside className="hidden overflow-hidden rounded-xl border border-border lg:flex lg:h-[calc(100svh-6rem)] lg:flex-col">
+              <Ngai scope={{ kind: "document", document: ngaiDocument }} layout="panel" />
+            </aside>
+          )}
           <div className={cn("min-w-0", openId && "hidden")}>
             {noteFilter}
             {visibleNotes.length === 0 ? (
@@ -384,7 +405,7 @@ export default function DocumentsPage() {
                   </div>
                 </div>
                 <RichTextEditor
-                  key={openId}
+                  key={`${openId}-${revision}`}
                   value={noteBodyHtml(body)}
                   onChange={(html) => edit({ body: html })}
                   placeholder="Start writing"

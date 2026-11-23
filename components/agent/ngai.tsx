@@ -27,6 +27,7 @@ export type NgaiScope =
   | { kind: "app" }
   | { kind: "company" }
   | { kind: "campaign"; campaign: { id: string; title: string } }
+  | { kind: "document"; document: { id: string; title: string } }
 
 /** "page" fills a page or tab; "panel" is a narrow box with a close button. */
 export type NgaiLayout = "page" | "panel"
@@ -37,6 +38,12 @@ const STARTING_OPTIONS: Record<Exclude<NgaiScope["kind"], "app">, string[]> = {
     "How are my campaigns going?",
     "Show me my outstanding invoices",
     "What is VisualCNS Pass?",
+  ],
+  document: [
+    "Make this document clearer",
+    "Add a summary at the top",
+    "Fix spelling and grammar",
+    "Turn this into a proposal",
   ],
   campaign: [
     "What's left to do on this campaign?",
@@ -318,6 +325,15 @@ export function Ngai({ scope, layout = "page", onClose, menuInSidebar = false, c
   )
 
   if (scope.kind === "app") return frame(chat())
+
+  // Beside an open document: Ngai knows which one it is and can edit it in place.
+  if (scope.kind === "document") {
+    return (
+      <AgentProvider key={`document-${scope.document.id}`} documentContext={scope.document}>
+        {frame(chat(STARTING_OPTIONS.document))}
+      </AgentProvider>
+    )
+  }
 
   if (!access.page) throw new Error("A company or campaign Ngai needs a company page around it.")
   const { company } = access.page
