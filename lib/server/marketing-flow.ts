@@ -292,11 +292,11 @@ async function runEmails(tools: Tools, state: FlowState): Promise<Email[]> {
 async function runSocial(tools: Tools, state: FlowState): Promise<SocialPlan> {
   const raw = await tools.ask<{ posts: { title: string; text: string }[] }>(
     "social",
-    object({ posts: list({ title: text("What the post is about, in a few words."), text: text("The post, under 90 words, ready to publish.") }, "Four posts, one for each week of the month.") }),
+    object({ posts: list({ title: text("What the post is about, in a few words."), text: text("The post, under 90 words, ready to publish.") }, "Three posts.") }),
     "Write social posts that the people in these audiences would find useful. Teach something or show proof. No hashtag walls.",
     `${about(state)}\nAUDIENCES\n${audiencesText(state.audiences ?? [])}`,
   )
-  return { posts: (raw.posts ?? []).slice(0, 4).map((item) => ({ id: id(), title: str(item.title, 80), text: (typeof item.text === "string" ? item.text : "").trim().slice(0, 1200) })) }
+  return { posts: (raw.posts ?? []).slice(0, 3).map((item) => ({ id: id(), title: str(item.title, 80), text: (typeof item.text === "string" ? item.text : "").trim().slice(0, 1200) })) }
 }
 
 async function runAds(tools: Tools, state: FlowState): Promise<Ad[]> {
@@ -312,10 +312,10 @@ async function runAds(tools: Tools, state: FlowState): Promise<Ad[]> {
           cta: { type: "string", enum: ["Learn more", "Book a call", "Get a quote", "Sign up", "Download"] },
           jobTitles: texts("Three to five job titles to target."),
         },
-        "One LinkedIn ad for each audience.",
+        "One ad for each audience.",
       ),
     }),
-    "Write one LinkedIn ad per audience. Speak to the audience's pain.",
+    "Write one ad per audience. Speak to the audience's pain.",
     `${about(state)}\nAUDIENCES\n${audiencesText(audiences)}`,
   )
   const seen = new Set<string>()

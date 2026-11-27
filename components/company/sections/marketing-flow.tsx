@@ -613,12 +613,12 @@ function SocialStep({ flow }: { flow: FlowState }) {
         </Card>
       )}
       <Card>
-        <Label>This month&apos;s posts</Label>
+        <Label>Posts</Label>
         <ol className="mt-3 space-y-4">
           {flow.social!.posts.map((post, index) => (
             <li key={post.id} className="rounded-lg bg-muted/60 p-4">
               <div className="flex items-start justify-between gap-3">
-                <p className="text-sm font-semibold">Week {index + 1}: {post.title}</p>
+                <p className="text-sm font-semibold">{post.title}</p>
                 <button type="button" aria-label="Copy post" title="Copy" className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground" onClick={() => copy(post.text)}><Copy className="size-4" aria-hidden="true" /></button>
               </div>
               <p className="mt-2 whitespace-pre-line text-[15px] leading-relaxed">{post.text}</p>
@@ -652,7 +652,7 @@ function AdsStep({ flow }: { flow: FlowState }) {
         const companies = (flow.customers ?? []).filter((item) => item.audienceId === ad.audienceId)
         return (
           <Card key={ad.id}>
-            <Label>{audience?.name} · LinkedIn</Label>
+            <Label>{audience?.name}</Label>
             <div className="mt-3 overflow-hidden rounded-lg border border-border">
               <div className="flex items-center gap-2 px-4 pt-3">
                 <Favicon url={research.website} name={research.name} />
