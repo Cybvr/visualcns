@@ -271,9 +271,12 @@ export function InvoiceBuilder({ invoice, initialCompanyId, onSaved, onDeleted, 
       if (!current || (email && senderEmail && current.trim().toLowerCase() === senderEmail)) return email || current
       return current
     })
-    // The billing address, or the company's location when no billing address is saved.
-    setBillToAddress((current) => current || client.address?.trim() || client.location?.trim() || "")
+    // The company's billing address, or its location when no billing address is saved.
+    // Drafts always pull the company's current address, so an old value like a state name gets replaced.
+    const companyAddress = client.address?.trim() || client.location?.trim() || ""
+    setBillToAddress((current) => (!isEdit || status === "draft") && companyAddress ? companyAddress : current || companyAddress)
     setBillToTaxNumber((current) => current || client.taxNumber?.trim() || "")
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- runs when the client or their details load, not on each status change
   }, [companyId, clients, people, isEdit, user?.email])
 
   useEffect(() => {
