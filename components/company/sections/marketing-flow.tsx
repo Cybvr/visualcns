@@ -327,11 +327,13 @@ function Label({ children, className }: { children: ReactNode; className?: strin
   return <p className={cn("text-xs font-medium uppercase tracking-wider text-muted-foreground", className)}>{children}</p>
 }
 
+const BADGE = "inline-flex max-w-full items-center gap-1.5 rounded-full border border-border bg-secondary px-3 py-1 text-sm font-medium text-secondary-foreground"
+
 function Chips({ items, icon }: { items: string[]; icon?: ReactNode }) {
   return (
     <ul className="mt-2 flex flex-wrap gap-2">
       {items.map((item) => (
-        <li key={item} className="inline-flex items-center gap-1.5 rounded-full bg-muted px-3 py-1 text-sm text-muted-foreground">{icon}{item}</li>
+        <li key={item} className={BADGE}>{icon}{item}</li>
       ))}
     </ul>
   )
@@ -505,6 +507,62 @@ function AudiencesStep({ flow }: { flow: FlowState }) {
 const initials = (name: string) => name.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join("")
 
 /** Leads: the companies found for each audience, with the person to contact at each. */
+export function KeywordsSection() {
+  const { flow, error, signedOut, act } = useFlow()
+  if (signedOut) return <p className="mt-6 text-sm text-muted-foreground">Please sign in to use Marketing.</p>
+  if (error) return <p className="mt-6 text-sm text-destructive">{error}</p>
+  if (!flow) return <div className="mx-auto mt-6 h-40 w-full max-w-3xl animate-pulse rounded-xl bg-muted/50" aria-busy="true" />
+  return <div className="mx-auto mt-5 w-full max-w-3xl min-w-0"><KeywordsList flow={flow} act={act} /></div>
+}
+
+function KeywordsList({ flow, act }: { flow: FlowState; act: Act }) {
+  const [value, setValue] = useState("")
+  const found = flow.research?.keywords ?? []
+  const mine = flow.myKeywords ?? []
+
+  function add(event: FormEvent) {
+    event.preventDefault()
+    const words = value.split(",").map((item) => item.trim()).filter(Boolean)
+    if (!words.length) return
+    const all = [...found, ...mine].map((item) => item.toLowerCase())
+    const fresh = words.filter((item) => !all.includes(item.toLowerCase()))
+    setValue("")
+    if (fresh.length) void act({ action: "keywords", keywords: [...mine, ...fresh] })
+  }
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <form onSubmit={add} className="flex gap-2">
+          <Input value={value} onChange={(event) => setValue(event.target.value)} placeholder="Add a keyword" aria-label="Add a keyword" maxLength={200} />
+          <Button type="submit" disabled={!value.trim()}>Add</Button>
+        </form>
+        <Label className="mt-5">Your keywords</Label>
+        {mine.length ? (
+          <ul className="mt-2 flex flex-wrap gap-2">
+            {mine.map((item) => (
+              <li key={item} className={cn(BADGE, "pr-1.5")}>
+                <span className="truncate">{item}</span>
+                <button type="button" aria-label={`Remove ${item}`} onClick={() => void act({ action: "keywords", keywords: mine.filter((word) => word !== item) })} className="rounded-full p-0.5 text-muted-foreground hover:bg-background hover:text-foreground">
+                  <X className="size-3.5" aria-hidden="true" />
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="mt-2 text-sm text-muted-foreground">None yet.</p>
+        )}
+      </Card>
+      {found.length > 0 && (
+        <Card>
+          <Label>Found on your website</Label>
+          <Chips items={found} />
+        </Card>
+      )}
+    </div>
+  )
+}
+
 export function LeadsSection() {
   const { flow, error, signedOut, act } = useFlow()
   return (

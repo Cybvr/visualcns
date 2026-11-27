@@ -131,6 +131,7 @@ const MENU_GROUPS = [
   { key: "websites", label: "Websites", icon: Globe, items: [{ key: "websites-home", label: "Home" }, { key: "sites", label: "Sites" }, { key: "domains", label: "Domains" }] },
   { key: "marketing", label: "Marketing", icon: Megaphone, items: [
     { key: "marketing", label: "Home" },
+    { key: "keywords", label: "Keywords" },
     { key: "leads", label: "Leads" },
     { key: "outreach", label: "Outreach" },
     { key: "ads", label: "Ads" },

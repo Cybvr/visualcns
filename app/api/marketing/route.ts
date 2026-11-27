@@ -69,7 +69,7 @@ export async function GET(request: Request) {
   return json({ flow: stored?.flow ?? { website: caller.website } })
 }
 
-type Body = { companyId?: string; action?: string; step?: string; website?: string; id?: string; ids?: unknown[]; url?: string; subject?: string; body?: string }
+type Body = { companyId?: string; action?: string; step?: string; website?: string; id?: string; ids?: unknown[]; url?: string; subject?: string; body?: string; keywords?: unknown[] }
 
 const REMOVABLE = ["customers", "people", "emails", "competitors"] as const
 
@@ -77,6 +77,7 @@ const REMOVABLE = ["customers", "people", "emails", "competitors"] as const
  * run: run one step and clear the steps after it.
  * remove: drop one row the company doesn't want (a customer, person, email or competitor).
  * email: save an edited email.
+ * keywords: save the keywords the company added itself.
  */
 export async function POST(request: Request) {
   let body: Body = {}
@@ -108,6 +109,16 @@ export async function POST(request: Request) {
     } else {
       return json({ error: "That can't be removed." }, 400)
     }
+    await ref.set({ flow: { ...flow, updatedAt: new Date().toISOString() } }, { merge: true })
+    return json({ flow })
+  }
+
+  if (body.action === "keywords") {
+    const seen = new Set<string>()
+    flow.myKeywords = (Array.isArray(body.keywords) ? body.keywords : [])
+      .map((item) => String(item ?? "").trim().replace(/\s+/g, " ").slice(0, 60))
+      .filter((item) => item && !seen.has(item.toLowerCase()) && seen.add(item.toLowerCase()))
+      .slice(0, 100)
     await ref.set({ flow: { ...flow, updatedAt: new Date().toISOString() } }, { merge: true })
     return json({ flow })
   }

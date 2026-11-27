@@ -22,7 +22,7 @@ export { COMPANY_SECTIONS, isCompanySection, type CompanySectionKey } from "@/co
 
 /** Marketing pages after Social Media, in menu order. Overview comes first, before Campaigns. */
 const OLD_MARKETING_KEYS = ["brand-health", "pulse", "reports", "insights", "seo", "reviews", "google-ads", "business-profile", "marketing-settings"]
-const MARKETING_KEYS: CompanySectionKey[] = ["marketing", "leads", "outreach", "ads", "websites-home", "finance-home", "security-home"]
+const MARKETING_KEYS: CompanySectionKey[] = ["marketing", "keywords", "leads", "outreach", "ads", "websites-home", "finance-home", "security-home"]
 
 export interface CompanyPagePerson {
   id: string
@@ -200,6 +200,7 @@ export function CompanyPageProvider({
       find("sites"),
       find("domains"),
       find("marketing"),
+      find("keywords"),
       find("leads"),
       find("outreach"),
       find("ads"),

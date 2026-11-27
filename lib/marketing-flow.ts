@@ -63,6 +63,8 @@ export type FlowState = {
   ads?: Ad[]
   /** Steps the company chose to skip. They count as done, with nothing in them. */
   skipped?: FlowStep[]
+  /** Keywords the company added itself. Kept when Marketing runs again. */
+  myKeywords?: string[]
   updatedAt?: string
 }
 

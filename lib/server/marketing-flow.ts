@@ -84,7 +84,7 @@ const rowsText = (rows: Row[]) => rows.map((row) => `- ${row.title} | ${row.url}
 
 function about(state: FlowState) {
   const research = state.research
-  let out = `BUSINESS: ${research?.name || ""}\nWebsite: ${state.website}\nWhat they do: ${research?.summary || ""}\nKeywords: ${(research?.keywords ?? []).join(", ")}\n`
+  let out = `BUSINESS: ${research?.name || ""}\nWebsite: ${state.website}\nWhat they do: ${research?.summary || ""}\nKeywords: ${[...(research?.keywords ?? []), ...(state.myKeywords ?? [])].join(", ")}\n`
   if (state.competitors) out += `Product: ${state.competitors.product}\nStrengths: ${state.competitors.points.join("; ")}\n`
   return out
 }
