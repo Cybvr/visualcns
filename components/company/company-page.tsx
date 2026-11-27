@@ -28,7 +28,7 @@ import {
 } from "@/components/company/company-page-context"
 import { SectionNav } from "@/components/company/section-nav"
 import { CompanySection } from "@/components/company/sections/company-section"
-import { useClientOpen, useHideHeader, usePageHeaderActions, usePageHeaderBack, usePageHeaderTitle } from "@/components/dashboard/page-title-context"
+import { useClientOpen, useHideHeader, usePageHeaderActions, usePageHeaderOverride, usePageHeaderBack, usePageHeaderTitle } from "@/components/dashboard/page-title-context"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { buildEmailComposeHref } from "@/lib/email-composer"
 import { cn } from "@/lib/utils"
@@ -157,7 +157,14 @@ function DashboardCompanyView({ embedded = false, onBack }: { embedded?: boolean
     )
   }, [sharePath, company.id, company.name, recipientEmail, recipientName, canDelete])
 
-  usePageHeaderActions(headerActions)
+  // With the tabs row on the page, the menu lives there only, and the top bar drops its search on phones.
+  usePageHeaderActions(withNgai ? null : headerActions)
+  const { setReplacesMobileDefaults } = usePageHeaderOverride()
+  useEffect(() => {
+    if (!withNgai) return
+    setReplacesMobileDefaults(true)
+    return () => setReplacesMobileDefaults(false)
+  }, [withNgai, setReplacesMobileDefaults])
   useClientOpen(Boolean(sharePath))
 
   const deleteDialog = canDelete ? (
@@ -214,11 +221,7 @@ function DashboardCompanyView({ embedded = false, onBack }: { embedded?: boolean
           <ShareDialog showTrigger={false} open={sharing} onOpenChange={setSharing} path={publicHref} title={company.name} />
         </aside>
         <section className="flex min-w-0 flex-col lg:min-h-0">
-          {/* The company's name, then its tabs as rounded pills with the menu beside them. */}
-          <div className={cn("px-4 pt-4 sm:px-6 lg:hidden", campaignOpen && "max-sm:hidden")}>
-            <p className="text-sm font-medium text-muted-foreground">Business profile</p>
-            <h1 className="mt-1 text-3xl font-bold leading-tight tracking-tight">{company.name}</h1>
-          </div>
+          {/* The company's tabs as rounded pills with the menu beside them. */}
           <div className={cn("sticky top-0 z-30 flex shrink-0 items-center gap-2 bg-background px-4 py-3 print:hidden sm:px-6", campaignOpen && "max-sm:hidden")}>
             <Button type="button" variant="ghost" size="icon" className="size-8 shrink-0 max-md:hidden lg:hidden" onClick={goBack} aria-label="Back to Companies"><ArrowLeft className="size-4" aria-hidden="true" /></Button>
             <SectionNav pill sections={sections} active={section} href={sectionHref} phoneVisible={3} className="min-w-0 flex-1" />
