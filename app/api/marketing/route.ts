@@ -173,7 +173,9 @@ export async function POST(request: Request) {
   }
 
   // skip: mark a step done with nothing in it, so the run can carry on. Research can't be skipped.
-  if (body.action === "skip") {
+  // Emails need decision makers, and decision makers need companies: with none, those steps skip too.
+  const nothingToWorkOn = body.action === "run" && ((body.step === "emails" && !flow.people?.length) || (body.step === "people" && !flow.customers?.length))
+  if (body.action === "skip" || nothingToWorkOn) {
     if (!isFlowStep(body.step) || body.step === "research") return json({ error: "That step can't be skipped." }, 400)
     const skippedStep: FlowStep = body.step
     const next: FlowState = { ...flow, [skippedStep]: EMPTY_STEP[skippedStep], skipped: Array.from(new Set([...(flow.skipped ?? []), skippedStep])), updatedAt: new Date().toISOString() }

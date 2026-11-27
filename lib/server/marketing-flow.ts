@@ -255,9 +255,11 @@ async function runPeople(tools: Tools, state: FlowState): Promise<Person[]> {
   )
   const known = new Set(results.flatMap(({ rows }) => rows.map((row) => row.url)))
   const seen = new Set<string>()
-  return (raw.people ?? [])
+  const people = (raw.people ?? [])
     .filter((item) => customers.some((c) => c.id === item.customerId) && known.has(item.linkedin) && !seen.has(item.customerId) && seen.add(item.customerId))
     .map((item) => ({ id: id(), customerId: item.customerId, name: str(item.name, 80), title: str(item.title, 120), company: str(item.company, 80), linkedin: str(item.linkedin, 300) }))
+  if (!people.length) throw new Error("No decision makers found.")
+  return people
 }
 
 const EMAIL_LIMIT = 3
