@@ -43,11 +43,16 @@ function useFlowApi(companyId: string) {
   }, [companyId])
 }
 
-/** Done means it found something, or the company skipped it. An empty list counts as not done. */
-const has = (flow: FlowState | null, step: FlowStep) => {
+/**
+ * Done means it found something, the company skipped it, or the run already went past it.
+ * An empty list with nothing after it is where the run stopped.
+ */
+const has = (flow: FlowState | null, step: FlowStep): boolean => {
   const value = flow?.[step]
   if (!value) return false
-  return !Array.isArray(value) || value.length > 0 || Boolean(flow?.skipped?.includes(step))
+  if (!Array.isArray(value) || value.length > 0 || flow?.skipped?.includes(step)) return true
+  const index = FLOW_STEPS.findIndex((item) => item.key === step)
+  return FLOW_STEPS.slice(index + 1).some((item) => Boolean(flow?.[item.key]))
 }
 const NOTHING_FOUND: Partial<Record<FlowStep, string>> = { customers: "No companies found.", people: "No decision makers found." }
 
