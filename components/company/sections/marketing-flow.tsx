@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type FormEvent, type ReactNode } from "react"
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type DragEvent, type FormEvent, type ReactNode } from "react"
 import { ArrowRight, Check, ChevronDown, Copy, Download, ExternalLink, ImageIcon, Loader2, Mail, MoreHorizontal, Pencil, RotateCcw, Search, Swords, Upload, UsersRound, X } from "lucide-react"
 import { toast } from "sonner"
 
@@ -944,6 +944,59 @@ function SocialStep({ flow, act }: { flow: FlowState; act: Act }) {
   )
 }
 
+/** The ad's image: a drop area to choose or drag one in, then the image with a remove button. */
+function AdImageDrop({ image, alt, onChange }: { image?: string; alt: string; onChange: (url: string) => Promise<void> }) {
+  const input = useRef<HTMLInputElement>(null)
+  const [busy, setBusy] = useState(false)
+  const [dragging, setDragging] = useState(false)
+
+  async function upload(file: File | undefined) {
+    if (!file) return
+    if (!file.type.startsWith("image/")) return toast.error("Choose an image.")
+    if (file.size > CLIENT_FILE_MAX_BYTES) return toast.error("That image is too large.")
+    setBusy(true)
+    try {
+      await onChange(await uploadFileToStorage(file))
+    } catch {
+      toast.error("Couldn't upload that image.")
+    } finally {
+      setBusy(false)
+      if (input.current) input.current.value = ""
+    }
+  }
+
+  const dropProps = {
+    onDragOver: (event: DragEvent) => { event.preventDefault(); setDragging(true) },
+    onDragLeave: () => setDragging(false),
+    onDrop: (event: DragEvent) => { event.preventDefault(); setDragging(false); void upload(event.dataTransfer.files[0]) },
+  }
+
+  return (
+    <div className="relative aspect-square w-full bg-muted/40 p-2" {...dropProps}>
+      {image ? (
+        <>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={image} alt={alt} className="size-full rounded-md object-cover" />
+          <button type="button" aria-label="Remove image" title="Remove image" disabled={busy} onClick={() => void onChange("")} className="absolute right-4 top-4 flex size-8 items-center justify-center rounded-full bg-background/90 text-foreground shadow">
+            <X className="size-4" aria-hidden="true" />
+          </button>
+        </>
+      ) : (
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => input.current?.click()}
+          className={cn("flex size-full flex-col items-center justify-center gap-4 rounded-md border-2 border-dashed text-muted-foreground transition-colors", dragging ? "border-foreground bg-muted" : "border-border hover:border-muted-foreground")}
+        >
+          {busy ? <Loader2 className="size-10 animate-spin" aria-hidden="true" /> : <Download className="size-10" aria-hidden="true" />}
+          <span className="text-sm"><span className="font-semibold text-foreground">Choose a file</span> or drag it here.</span>
+        </button>
+      )}
+      <input ref={input} type="file" accept="image/*" className="hidden" onChange={(event) => void upload(event.target.files?.[0])} />
+    </div>
+  )
+}
+
 /** The post or ad's image: the uploaded one, or a plain placeholder, with upload, replace and remove. */
 function Thumbnail({ image, alt, className, onChange }: { image?: string; alt: string; className?: string; onChange: (url: string) => Promise<void> }) {
   const input = useRef<HTMLInputElement>(null)
@@ -1035,7 +1088,7 @@ function AdCard({ ad, flow, act }: { ad: NonNullable<FlowState["ads"]>[number]; 
           </div>
         </div>
         <p className="whitespace-pre-line px-4 py-3 text-sm">{ad.text}</p>
-        <Thumbnail image={ad.image} alt={ad.headline} className="rounded-none" onChange={(url) => act({ action: "image", step: "ads", id: ad.id, url })} />
+        <AdImageDrop image={ad.image} alt={ad.headline} onChange={(url) => act({ action: "image", step: "ads", id: ad.id, url })} />
         <div className="flex items-center justify-between gap-3 bg-muted/60 px-4 py-3">
           <p className="min-w-0 text-sm font-semibold">{ad.headline}</p>
           <span className="shrink-0 rounded-full border border-border px-3 py-1 text-xs font-medium">{ad.cta}</span>
