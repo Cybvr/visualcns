@@ -6,8 +6,8 @@ import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
 import { useCompanyPage } from "@/components/company/company-page-context"
-import { SectionAddButton } from "@/components/company/section-add-button"
 import { SocialIcon } from "@/components/company/social-icon"
+import { TableFilterBar } from "@/components/dashboard/table-filter-bar"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
@@ -500,15 +500,38 @@ function StepPage({ render }: { render: (flow: FlowState, act: Act) => ReactNode
 
 type Field = { name: string; placeholder: string; required?: boolean; type?: string; multiline?: boolean; options?: { value: string; label: string }[] }
 
-/** The page's + New button, opening a small window to add one item. */
-function AddDialog({ title, fields, onAdd }: { title: string; fields: Field[]; onAdd: (values: Record<string, string>) => Promise<void> }) {
+/** The standard filter bar: search, and New opening a small window to add one item. */
+function StepBar({ placeholder, query, onQuery, title, fields, onAdd }: {
+  placeholder: string
+  query: string
+  onQuery: (value: string) => void
+  title: string
+  fields: Field[]
+  onAdd: (values: Record<string, string>) => Promise<void>
+}) {
   const [open, setOpen] = useState(false)
   return (
     <>
-      <SectionAddButton label={title} onClick={() => setOpen(true)} />
+      <TableFilterBar
+        query={query}
+        onQueryChange={onQuery}
+        placeholder={placeholder}
+        sortKey=""
+        onSortKeyChange={() => undefined}
+        direction="desc"
+        onDirectionChange={() => undefined}
+        sorts={[]}
+        createAction={{ label: title, onClick: () => setOpen(true) }}
+      />
       <FieldsDialog open={open} onOpenChange={setOpen} title={title} fields={fields} submitLabel="Add" onSubmit={onAdd} />
     </>
   )
+}
+
+/** True when every word of the search shows up in one of the texts. */
+function matches(query: string, ...texts: Array<string | undefined>) {
+  const haystack = texts.filter(Boolean).join(" ").toLowerCase()
+  return query.trim().toLowerCase().split(/\s+/).every((word) => haystack.includes(word))
 }
 
 /** A small window of fields, used to add or edit one item. */
@@ -571,11 +594,6 @@ function FieldsDialog({ open, onOpenChange, title, fields, initial, submitLabel,
 
 const NONE = "__none"
 
-/** The page's top row: the + New button on the right. */
-function Toolbar({ children }: { children: ReactNode }) {
-  return <div className="flex justify-end">{children}</div>
-}
-
 export function KeywordsSection() {
   return <StepPage render={(flow, act) => <KeywordsList flow={flow} act={act} />} />
 }
@@ -585,16 +603,18 @@ export function CompetitorsSection() {
 }
 
 function CompetitorsList({ flow, act }: { flow: FlowState; act: Act }) {
-  const competitors = flow.competitors?.competitors ?? []
+  const [query, setQuery] = useState("")
+  const competitors = (flow.competitors?.competitors ?? []).filter((item) => matches(query, item.name, item.url))
   return (
     <div className="space-y-4">
-      <Toolbar>
-        <AddDialog
-          title="New competitor"
-          fields={[{ name: "name", placeholder: "Company name" }, { name: "url", placeholder: "Website", required: true }]}
-          onAdd={(values) => act({ action: "add", step: "competitors", ...values })}
-        />
-      </Toolbar>
+      <StepBar
+        placeholder="Search competitors"
+        query={query}
+        onQuery={setQuery}
+        title="New competitor"
+        fields={[{ name: "name", placeholder: "Company name" }, { name: "url", placeholder: "Website", required: true }]}
+        onAdd={(values) => act({ action: "add", step: "competitors", ...values })}
+      />
       {competitors.length > 0 && (
         <Card className="p-0">
           <ul className="divide-y divide-border">
@@ -620,16 +640,18 @@ export function AudiencesSection() {
 }
 
 function AudiencesList({ flow, act }: { flow: FlowState; act: Act }) {
-  const audiences = flow.audiences ?? []
+  const [query, setQuery] = useState("")
+  const audiences = (flow.audiences ?? []).filter((item) => matches(query, item.name))
   return (
     <div className="space-y-4">
-      <Toolbar>
-        <AddDialog
-          title="New audience"
-          fields={[{ name: "name", placeholder: "Audience", required: true }]}
-          onAdd={(values) => act({ action: "add", step: "audiences", ...values })}
-        />
-      </Toolbar>
+      <StepBar
+        placeholder="Search audiences"
+        query={query}
+        onQuery={setQuery}
+        title="New audience"
+        fields={[{ name: "name", placeholder: "Audience", required: true }]}
+        onAdd={(values) => act({ action: "add", step: "audiences", ...values })}
+      />
       {audiences.length > 0 && (
         <Card className="p-0">
           <ul className="divide-y divide-border">
@@ -647,20 +669,21 @@ function AudiencesList({ flow, act }: { flow: FlowState; act: Act }) {
 }
 
 function KeywordsList({ flow, act }: { flow: FlowState; act: Act }) {
-  const found = flow.research?.keywords ?? []
-  const mine = flow.myKeywords ?? []
+  const [query, setQuery] = useState("")
+  const allFound = flow.research?.keywords ?? []
+  const allMine = flow.myKeywords ?? []
+  const found = allFound.filter((item) => matches(query, item))
+  const mine = allMine.filter((item) => matches(query, item))
 
   async function add(value: string) {
-    const all = [...found, ...mine].map((item) => item.toLowerCase())
+    const all = [...allFound, ...allMine].map((item) => item.toLowerCase())
     const fresh = value.split(",").map((item) => item.trim()).filter((item) => item && !all.includes(item.toLowerCase()))
-    if (fresh.length) await act({ action: "keywords", keywords: [...mine, ...fresh] })
+    if (fresh.length) await act({ action: "keywords", keywords: [...allMine, ...fresh] })
   }
 
   return (
     <div className="space-y-4">
-      <Toolbar>
-        <AddDialog title="New keyword" fields={[{ name: "keyword", placeholder: "Keyword", required: true }]} onAdd={(values) => add(values.keyword)} />
-      </Toolbar>
+      <StepBar placeholder="Search keywords" query={query} onQuery={setQuery} title="New keyword" fields={[{ name: "keyword", placeholder: "Keyword", required: true }]} onAdd={(values) => add(values.keyword)} />
       {mine.length > 0 && (
         <Card>
           <Label>Your keywords</Label>
@@ -668,7 +691,7 @@ function KeywordsList({ flow, act }: { flow: FlowState; act: Act }) {
             {mine.map((item) => (
               <li key={item} className={cn(BADGE, "pr-1.5")}>
                 <span className="truncate">{item}</span>
-                <button type="button" aria-label={`Remove ${item}`} onClick={() => void act({ action: "keywords", keywords: mine.filter((word) => word !== item) })} className="rounded-full p-0.5 text-muted-foreground hover:bg-background hover:text-foreground">
+                <button type="button" aria-label={`Remove ${item}`} onClick={() => void act({ action: "keywords", keywords: allMine.filter((word) => word !== item) })} className="rounded-full p-0.5 text-muted-foreground hover:bg-background hover:text-foreground">
                   <X className="size-3.5" aria-hidden="true" />
                 </button>
               </li>
@@ -739,34 +762,48 @@ function PersonEmail({ person, act }: { person: Person; act: Act }) {
 
 /** Outreach: one email for each decision maker. */
 export function OutreachSection() {
-  return <StepPage render={(flow, act) => (
+  return <StepPage render={(flow, act) => <OutreachList flow={flow} act={act} />} />
+}
+
+function OutreachList({ flow, act }: { flow: FlowState; act: Act }) {
+  const [query, setQuery] = useState("")
+  const emails = (flow.emails ?? []).filter((email) => {
+    const person = flow.people?.find((p) => p.id === email.personId)
+    return matches(query, email.subject, email.body, email.to, person?.name, person?.company, person?.email)
+  })
+  return (
     <div className="space-y-4">
-      <Toolbar>
-        <AddDialog
-          title="New email"
-          fields={[
-            { name: "to", placeholder: "To", type: "email" },
-            { name: "subject", placeholder: "Subject", required: true },
-            { name: "body", placeholder: "Email", multiline: true },
-          ]}
-          onAdd={(values) => act({ action: "add", step: "emails", ...values })}
-        />
-      </Toolbar>
-      {(flow.emails ?? []).length > 0 && <EmailsStep flow={flow} act={act} />}
+      <StepBar
+        placeholder="Search emails"
+        query={query}
+        onQuery={setQuery}
+        title="New email"
+        fields={[
+          { name: "to", placeholder: "To", type: "email" },
+          { name: "subject", placeholder: "Subject", required: true },
+          { name: "body", placeholder: "Email", multiline: true },
+        ]}
+        onAdd={(values) => act({ action: "add", step: "emails", ...values })}
+      />
+      {emails.length > 0 && <EmailsStep flow={{ ...flow, emails }} act={act} />}
     </div>
-  )} />
+  )
 }
 
 /** Ads: one ad for each audience, aimed at the same companies. */
 export function AdsSection() {
-  return <StepPage render={(flow, act) => (
+  return <StepPage render={(flow, act) => <AdsList flow={flow} act={act} />} />
+}
+
+function AdsList({ flow, act }: { flow: FlowState; act: Act }) {
+  const [query, setQuery] = useState("")
+  const ads = (flow.ads ?? []).filter((ad) => matches(query, ad.headline, ad.text, ad.cta, flow.audiences?.find((item) => item.id === ad.audienceId)?.name))
+  return (
     <div className="space-y-4">
-      <Toolbar>
-        <AddDialog title="New ad" fields={adFields(flow)} onAdd={(values) => act({ action: "add", step: "ads", ...values })} />
-      </Toolbar>
-      {(flow.ads ?? []).length > 0 && <AdsStep flow={flow} act={act} />}
+      <StepBar placeholder="Search ads" query={query} onQuery={setQuery} title="New ad" fields={adFields(flow)} onAdd={(values) => act({ action: "add", step: "ads", ...values })} />
+      {ads.length > 0 && <AdsStep flow={{ ...flow, ads }} act={act} />}
     </div>
-  )} />
+  )
 }
 
 const adFields = (flow: FlowState): Field[] => [

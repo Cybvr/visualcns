@@ -18,7 +18,7 @@ export type TableFilterBarProps = FilterBarProps & {
 
 /** Clients-style toolbar shared by dashboard lists and tables. */
 export function TableFilterBar({ className, actions, createAction, ...props }: TableFilterBarProps) {
-  const desktopCreateClass = "h-9 gap-1 rounded-full bg-sidebar-accent px-3 text-sm font-semibold text-sidebar-accent-foreground hover:bg-sidebar-accent/80 active:bg-sidebar-accent/80 [&>svg]:size-[18px]"
+  const desktopCreateClass = "h-11 gap-1 rounded-full bg-sidebar-accent px-3 text-sm font-semibold text-sidebar-accent-foreground hover:bg-sidebar-accent/80 active:bg-sidebar-accent/80 [&>svg]:size-[18px]"
   const createButton = createAction && (
     createAction.href ? (
       <Button asChild variant="ghost" className={desktopCreateClass}>

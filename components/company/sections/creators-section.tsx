@@ -6,7 +6,6 @@ import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
 import { useCompanyPage } from "@/components/company/company-page-context"
-import { SectionAddButton } from "@/components/company/section-add-button"
 import { LeadFavicon, useMarketingLeads } from "@/components/company/sections/marketing-flow"
 import { AddCreatorRow, CreatorDialog, CreatorThumbnail } from "@/components/dashboard/campaign-people"
 import { CollectionView } from "@/components/dashboard/collection-view"
@@ -168,8 +167,8 @@ export function LeadsPage() {
             </SelectContent>
           </Select>
         )}
-        actions={<SectionAddButton label="New lead" onClick={() => setAdding(true)} />}
-        empty={{ icon: Contact, title: "No leads yet", action: <SectionAddButton label="New lead" onClick={() => setAdding(true)} /> }}
+        createAction={{ label: "New lead", onClick: () => setAdding(true) }}
+        empty={{ icon: Contact, title: "No leads yet" }}
         card={(lead) => ({
           icon: icon(lead),
           title: title(lead),
