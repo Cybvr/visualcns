@@ -210,6 +210,8 @@ export function MarketingFlowSection() {
             const isFailed = failed?.step === step.key
             const isOpen = open === step.key && isDone
             const isSkipped = flow.skipped?.includes(step.key)
+            // The run stopped here with nothing showing: offer Skip.
+            const isStuck = !running && !isFailed && !isDone && step.key !== "research" && FLOW_STEPS.findIndex((item) => !has(flow, item.key)) === index
             return (
               <li key={step.key}>
                 <button
@@ -232,6 +234,11 @@ export function MarketingFlowSection() {
                   {isSkipped && <span className="shrink-0 text-sm text-muted-foreground">Skipped</span>}
                   {isDone && !isSkipped && <ChevronDown className={cn("size-5 shrink-0 text-muted-foreground transition-transform", isOpen && "rotate-180")} aria-hidden="true" />}
                 </button>
+                {isStuck && (
+                  <div className="mb-3 flex justify-end">
+                    <Button type="button" size="sm" variant="outline" onClick={() => void skip(step.key)}>Skip</Button>
+                  </div>
+                )}
                 {isFailed && (
                   <div className="mb-3 ml-10 text-sm">
                     <p className="text-destructive">{failed.message}</p>
