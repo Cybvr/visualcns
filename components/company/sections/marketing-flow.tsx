@@ -504,13 +504,106 @@ function AudiencesStep({ flow }: { flow: FlowState }) {
 
 const initials = (name: string) => name.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join("")
 
-/** Leads: the companies found for each audience, with the person to contact at each. */
-export function KeywordsSection() {
+/** A step's own page: what the run found, plus what the company adds. Works before any run. */
+function StepPage({ render }: { render: (flow: FlowState, act: Act) => ReactNode }) {
   const { flow, error, signedOut, act } = useFlow()
   if (signedOut) return <p className="mt-6 text-sm text-muted-foreground">Please sign in to use Marketing.</p>
   if (error) return <p className="mt-6 text-sm text-destructive">{error}</p>
   if (!flow) return <div className="mx-auto mt-6 h-40 w-full max-w-3xl animate-pulse rounded-xl bg-muted/50" aria-busy="true" />
-  return <div className="mx-auto mt-5 w-full max-w-3xl min-w-0"><KeywordsList flow={flow} act={act} /></div>
+  return <div className="mx-auto mt-5 w-full max-w-3xl min-w-0">{render(flow, act)}</div>
+}
+
+/** A row of inputs and an Add button. Clears itself once added. */
+function AddForm({ fields, onAdd, children }: { fields: { name: string; placeholder: string; required?: boolean; type?: string }[]; onAdd: (values: Record<string, string>) => Promise<void>; children?: ReactNode }) {
+  const empty = Object.fromEntries(fields.map((field) => [field.name, ""]))
+  const [values, setValues] = useState<Record<string, string>>(empty)
+  const [busy, setBusy] = useState(false)
+  const ready = fields.every((field) => !field.required || values[field.name].trim())
+  async function submit(event: FormEvent) {
+    event.preventDefault()
+    if (!ready || busy) return
+    setBusy(true)
+    await onAdd(values)
+    setBusy(false)
+    setValues(empty)
+  }
+  return (
+    <form onSubmit={submit} className="flex flex-col gap-2 sm:flex-row">
+      {fields.map((field) => (
+        <Input key={field.name} type={field.type} value={values[field.name]} onChange={(event) => setValues({ ...values, [field.name]: event.target.value })} placeholder={field.placeholder} aria-label={field.placeholder} maxLength={300} />
+      ))}
+      {children}
+      <Button type="submit" className="shrink-0" disabled={!ready || busy}>Add</Button>
+    </form>
+  )
+}
+
+export function KeywordsSection() {
+  return <StepPage render={(flow, act) => <KeywordsList flow={flow} act={act} />} />
+}
+
+export function CompetitorsSection() {
+  return <StepPage render={(flow, act) => <CompetitorsList flow={flow} act={act} />} />
+}
+
+function CompetitorsList({ flow, act }: { flow: FlowState; act: Act }) {
+  const competitors = flow.competitors?.competitors ?? []
+  return (
+    <div className="space-y-4">
+      <Card>
+        <AddForm
+          fields={[{ name: "name", placeholder: "Company name" }, { name: "url", placeholder: "Website", required: true }]}
+          onAdd={(values) => act({ action: "add", step: "competitors", ...values })}
+        />
+      </Card>
+      {competitors.length > 0 && (
+        <Card className="p-0">
+          <ul className="divide-y divide-border">
+            {competitors.map((item) => (
+              <li key={item.url} className="flex items-center gap-3 px-5 py-3">
+                <Favicon url={item.url} name={item.name} />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-medium">{item.name}</p>
+                  <a href={item.url} target="_blank" rel="noreferrer" className="block truncate text-sm text-muted-foreground hover:underline">{hostOf(item.url)}</a>
+                </div>
+                <RemoveButton label={`Remove ${item.name}`} onClick={() => void act({ action: "remove", step: "competitors", id: item.url })} />
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
+    </div>
+  )
+}
+
+export function AudiencesSection() {
+  return <StepPage render={(flow, act) => <AudiencesList flow={flow} act={act} />} />
+}
+
+function AudiencesList({ flow, act }: { flow: FlowState; act: Act }) {
+  const audiences = flow.audiences ?? []
+  return (
+    <div className="space-y-4">
+      <Card>
+        <AddForm
+          fields={[{ name: "name", placeholder: "e.g. 30 year old restaurant owners in Lagos", required: true }]}
+          onAdd={(values) => act({ action: "add", step: "audiences", ...values })}
+        />
+      </Card>
+      {audiences.length > 0 && (
+        <Card className="p-0">
+          <ul className="divide-y divide-border">
+            {audiences.map((audience) => (
+              <li key={audience.id} className="flex items-center gap-3 px-5 py-3">
+                <p className="min-w-0 flex-1 text-[15px] font-medium">{audience.name}</p>
+                <RemoveButton label={`Remove ${audience.name}`} onClick={() => void act({ action: "remove", step: "audiences", id: audience.id })} />
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
+    </div>
+  )
 }
 
 function KeywordsList({ flow, act }: { flow: FlowState; act: Act }) {
@@ -562,17 +655,35 @@ function KeywordsList({ flow, act }: { flow: FlowState; act: Act }) {
 }
 
 export function LeadsSection() {
-  const { flow, error, signedOut, act } = useFlow()
+  return <StepPage render={(flow, act) => <LeadsList flow={flow} act={act} />} />
+}
+
+function AddLead({ flow, act }: { flow: FlowState; act: Act }) {
+  const audiences = flow.audiences ?? []
+  const [audienceId, setAudienceId] = useState("")
   return (
-    <FlowGate flow={flow} error={error} signedOut={signedOut} step="customers">
-      {flow && <LeadsList flow={flow} act={act} />}
-    </FlowGate>
+    <Card>
+      <AddForm
+        fields={[{ name: "name", placeholder: "Company name", required: true }, { name: "url", placeholder: "Website" }]}
+        onAdd={(values) => act({ action: "add", step: "customers", audienceId, ...values })}
+      >
+        {audiences.length > 0 && (
+          <select value={audienceId} onChange={(event) => setAudienceId(event.target.value)} aria-label="Audience" className="h-9 min-w-0 rounded-md border border-input bg-background px-3 text-sm sm:max-w-48">
+            <option value="">No audience</option>
+            {audiences.map((audience) => <option key={audience.id} value={audience.id}>{audience.name}</option>)}
+          </select>
+        )}
+      </AddForm>
+    </Card>
   )
 }
 
 function LeadsList({ flow, act }: { flow: FlowState; act: Act }) {
   const customers = flow.customers ?? []
-  if (!customers.length) return <Card><p className="text-sm text-muted-foreground">No companies found.</p></Card>
+  if (!customers.length) return <AddLead flow={flow} act={act} />
+  const known = new Set((flow.audiences ?? []).map((item) => item.id))
+  const groups = [...(flow.audiences ?? []), { id: "", name: "Added by you" }]
+  const inGroup = (item: { audienceId: string }, groupId: string) => (groupId ? item.audienceId === groupId : !known.has(item.audienceId))
   const people = flow.people ?? []
   const withEmail = people.filter((person) => person.email).length
   const unchecked = people.filter((person) => !person.email && person.emailSource !== "none").length
@@ -592,11 +703,12 @@ function LeadsList({ flow, act }: { flow: FlowState; act: Act }) {
           )}
         </div>
       </div>
-      {(flow.audiences ?? []).map((audience) => {
-        const rows = customers.filter((item) => item.audienceId === audience.id)
+      <AddLead flow={flow} act={act} />
+      {groups.map((audience) => {
+        const rows = customers.filter((item) => inGroup(item, audience.id))
         if (!rows.length) return null
         return (
-          <Card key={audience.id} className="p-0">
+          <Card key={audience.id || "mine"} className="p-0">
             <div className="border-b border-border px-5 py-3">
               <p className="text-sm font-semibold">{audience.name} · {rows.length}</p>
             </div>
@@ -687,11 +799,36 @@ function PersonEmail({ person, act }: { person: Person; act: Act }) {
 
 /** Outreach: one email for each decision maker. */
 export function OutreachSection() {
-  const { flow, error, signedOut, act } = useFlow()
+  return <StepPage render={(flow, act) => (
+    <div className="space-y-4">
+      <AddEmail act={act} />
+      {(flow.emails ?? []).length > 0 && <EmailsStep flow={flow} act={act} />}
+    </div>
+  )} />
+}
+
+function AddEmail({ act }: { act: Act }) {
+  const [to, setTo] = useState("")
+  const [subject, setSubject] = useState("")
+  const [body, setBody] = useState("")
+  const [busy, setBusy] = useState(false)
+  async function submit(event: FormEvent) {
+    event.preventDefault()
+    if (busy || (!subject.trim() && !body.trim())) return
+    setBusy(true)
+    await act({ action: "add", step: "emails", to, subject, body })
+    setBusy(false)
+    setTo(""); setSubject(""); setBody("")
+  }
   return (
-    <FlowGate flow={flow} error={error} signedOut={signedOut} step="emails">
-      {flow && <EmailsStep flow={flow} act={act} />}
-    </FlowGate>
+    <Card>
+      <form onSubmit={submit} className="space-y-2">
+        <Input type="email" value={to} onChange={(event) => setTo(event.target.value)} placeholder="To" aria-label="To" />
+        <Input value={subject} onChange={(event) => setSubject(event.target.value)} placeholder="Subject" aria-label="Subject" maxLength={120} />
+        <Textarea value={body} onChange={(event) => setBody(event.target.value)} placeholder="Email" aria-label="Email" rows={5} />
+        <div className="flex justify-end"><Button type="submit" disabled={busy || (!subject.trim() && !body.trim())}>Add</Button></div>
+      </form>
+    </Card>
   )
 }
 

@@ -1,4 +1,4 @@
-import { Image as ImageIcon, Palette, Activity, BadgeDollarSign, Mail, Bot, Contact, CreditCard, FileText, Fingerprint, Globe, Info, Link2, ListTodo, Megaphone, Share2, Tag, TrendingUp, Users } from "lucide-react"
+import { Image as ImageIcon, Palette, Activity, BadgeDollarSign, Mail, Bot, Contact, CreditCard, FileText, Fingerprint, Globe, Info, Link2, ListTodo, Megaphone, Share2, Swords, Tag, TrendingUp, Users, UsersRound } from "lucide-react"
 
 /** The sections of a company page, in menu order. Plain module so server routes can check a section too. */
 export const COMPANY_SECTIONS = [
@@ -12,6 +12,8 @@ export const COMPANY_SECTIONS = [
   { key: "marketing", label: "Marketing", icon: Megaphone },
   // What the Marketing run finds: companies and people, the emails to them, and the ads.
   { key: "keywords", label: "Keywords", icon: Tag },
+  { key: "competitors", label: "Competitors", icon: Swords },
+  { key: "audiences", label: "Audiences", icon: UsersRound },
   { key: "leads", label: "Leads", icon: Contact },
   { key: "outreach", label: "Outreach", icon: Mail },
   { key: "ads", label: "Ads", icon: BadgeDollarSign },

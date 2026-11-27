@@ -69,15 +69,22 @@ export async function GET(request: Request) {
   return json({ flow: stored?.flow ?? { website: caller.website } })
 }
 
-type Body = { companyId?: string; action?: string; step?: string; website?: string; id?: string; ids?: unknown[]; url?: string; subject?: string; body?: string; to?: string; keywords?: unknown[] }
+type Body = { companyId?: string; action?: string; step?: string; website?: string; id?: string; ids?: unknown[]; url?: string; subject?: string; body?: string; to?: string; keywords?: unknown[]; name?: string; audienceId?: string }
 
 const REMOVABLE = ["customers", "people", "emails", "competitors"] as const
+const newId = () => Math.random().toString(36).slice(2, 10)
+const clip = (value: unknown, max: number) => String(value ?? "").trim().replace(/\s+/g, " ").slice(0, max)
+const siteUrl = (value: unknown) => {
+  const url = clip(value, 300)
+  return !url ? "" : /^https?:\/\//i.test(url) ? url : `https://${url}`
+}
 
 /**
  * run: run one step and clear the steps after it.
  * remove: drop one row the company doesn't want (a customer, person, email or competitor).
  * email: save an edited email.
  * keywords: save the keywords the company added itself.
+ * add: add the company's own competitor, audience, lead or email.
  */
 export async function POST(request: Request) {
   let body: Body = {}
@@ -99,6 +106,14 @@ export async function POST(request: Request) {
     if (step === "competitors") {
       if (!flow.competitors) return json({ flow })
       flow.competitors = { ...flow.competitors, competitors: flow.competitors.competitors.filter((item) => item.url !== rowId) }
+    } else if (step === "audiences") {
+      // An audience takes its companies, their people, their emails and its ad with it.
+      flow.audiences = flow.audiences?.filter((item) => item.id !== rowId)
+      const gone = new Set((flow.customers ?? []).filter((item) => item.audienceId === rowId).map((item) => item.id))
+      flow.customers = flow.customers?.filter((item) => !gone.has(item.id))
+      flow.people = flow.people?.filter((item) => !gone.has(item.customerId))
+      flow.emails = flow.emails?.filter((item) => item.audienceId !== rowId && (!item.personId || flow.people?.some((person) => person.id === item.personId)))
+      flow.ads = flow.ads?.filter((item) => item.audienceId !== rowId)
     } else if ((REMOVABLE as readonly string[]).includes(step)) {
       const key = step as "customers" | "people" | "emails"
       const rows = (flow[key] ?? []) as { id: string }[]
@@ -120,6 +135,33 @@ export async function POST(request: Request) {
       .filter((item) => item && !seen.has(item.toLowerCase()) && seen.add(item.toLowerCase()))
       .slice(0, 100)
     await ref.set({ flow: { ...flow, updatedAt: new Date().toISOString() } }, { merge: true })
+    return json({ flow })
+  }
+
+  if (body.action === "add") {
+    const name = clip(body.name, 80)
+    if (body.step === "competitors") {
+      const url = siteUrl(body.url)
+      if (!url) return json({ error: "Enter their website." }, 400)
+      const current = flow.competitors ?? EMPTY_STEP.competitors
+      if (current.competitors.some((item) => item.url === url)) return json({ flow })
+      flow.competitors = { ...current, competitors: [...current.competitors, { name: name || url.replace(/^https?:\/\/(www\.)?/, ""), url }] }
+    } else if (body.step === "audiences") {
+      if (!name) return json({ error: "Describe the audience." }, 400)
+      flow.audiences = [...(flow.audiences ?? []), { id: newId(), name, offer: "", pain: "", criteria: [], examples: [] }]
+    } else if (body.step === "customers") {
+      if (!name) return json({ error: "Enter the company name." }, 400)
+      const audienceId = flow.audiences?.some((item) => item.id === body.audienceId) ? String(body.audienceId) : ""
+      flow.customers = [...(flow.customers ?? []), { id: newId(), audienceId, name, url: siteUrl(body.url), description: "", country: "" }]
+    } else if (body.step === "emails") {
+      const subject = clip(body.subject, 120)
+      const text = String(body.body ?? "").trim().slice(0, 4000)
+      if (!subject && !text) return json({ error: "Write the email first." }, 400)
+      flow.emails = [...(flow.emails ?? []), { id: newId(), personId: "", to: clip(body.to, 200) || undefined, subject, body: text }]
+    } else {
+      return json({ error: "That can't be added." }, 400)
+    }
+    await ref.set({ flow: withoutUndefined({ ...flow, updatedAt: new Date().toISOString() }) }, { merge: true })
     return json({ flow })
   }
 

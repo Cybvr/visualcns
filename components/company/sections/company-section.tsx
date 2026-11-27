@@ -20,7 +20,7 @@ import { NgaiSection } from "@/components/company/sections/ngai-section"
 import { SitesSection } from "@/components/company/sections/sites-section"
 import { DomainsSection } from "@/components/company/sections/domains-section"
 import { TeamSection } from "@/components/company/sections/team-section"
-import { AdsSection, KeywordsSection, LeadsSection, MarketingFlowSection, OutreachSection } from "@/components/company/sections/marketing-flow"
+import { AdsSection, AudiencesSection, CompetitorsSection, KeywordsSection, LeadsSection, MarketingFlowSection, OutreachSection } from "@/components/company/sections/marketing-flow"
 import { FinanceHomeSection, SecurityHomeSection, WebsitesHomeSection } from "@/components/company/sections/area-homes"
 
 /** Documents and media in one grid. An open document takes the whole page. On the dashboard it's Artifacts, with assets in it too. */
@@ -106,6 +106,8 @@ const SECTION_COMPONENTS: Record<CompanySectionKey, ComponentType> = {
   social: SocialSection,
   marketing: MarketingFlowSection,
   keywords: KeywordsSection,
+  competitors: CompetitorsSection,
+  audiences: AudiencesSection,
   leads: LeadsSection,
   outreach: OutreachSection,
   ads: AdsSection,
