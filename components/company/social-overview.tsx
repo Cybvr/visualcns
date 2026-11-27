@@ -260,14 +260,13 @@ export function SocialOverview() {
           searchFields={searchPost}
           searchPlaceholder="Search posts"
           viewKey="social-posts"
-          fixedView="list"
-          listStyle="thumbnail"
-          hideToolbar
+          initialView="grid"
           loading={!loaded}
+          createAction={{ label: "New post", onClick: () => setWriting(true) }}
           empty={{ icon: ImageIcon, title: allPosts.length ? "No posts here" : "No posts yet" }}
           card={(post) => ({
             title: postLabel(post),
-            preview: post.mediaUrl ? <PostMedia post={post} /> : thumbnailIcon(ImageIcon),
+            preview: post.mediaUrl ? <PostMedia post={post} /> : <p className="line-clamp-6 p-4 text-left text-sm leading-relaxed text-muted-foreground">{post.body}</p>,
             ariaLabel: `Open ${postLabel(post)}`,
             menuLabel: `Options for ${postLabel(post)}`,
             ...openPost(post),

@@ -59,13 +59,31 @@ const withoutUndefined = <T,>(value: T): T => JSON.parse(JSON.stringify(value)) 
 
 const thisMonth = () => new Date().toISOString().slice(0, 7)
 
-type Stored = { flow?: FlowState; runMonth?: string; runsThisMonth?: number }
+type Stored = { flow?: FlowState; runMonth?: string; runsThisMonth?: number; socialCopied?: string[] }
+
+/** Marketing's social posts go into the company's Posts as drafts, once each. */
+async function copySocialPosts(db: FirebaseFirestore.Firestore, ref: FirebaseFirestore.DocumentReference, agencyId: string, companyId: string, flow: FlowState, copied: string[]) {
+  const fresh = (flow.social?.posts ?? []).filter((post) => !copied.includes(post.id))
+  if (!fresh.length) return
+  const batch = db.batch()
+  for (const post of fresh) {
+    batch.set(db.collection("campaignCreatives").doc(), {
+      agencyId, companyId, projectId: "", title: post.title || "Post", url: "", type: "text", kind: "content",
+      body: post.text, postedBy: "Founder", status: "Draft",
+      ...(post.image ? { mediaUrl: post.image, mediaType: "image" } : {}),
+      createdAt: FieldValue.serverTimestamp(), updatedAt: FieldValue.serverTimestamp(),
+    })
+  }
+  batch.set(ref, { socialCopied: [...copied, ...fresh.map((post) => post.id)] }, { merge: true })
+  await batch.commit()
+}
 
 export async function GET(request: Request) {
   const caller = await resolveCaller(request, new URL(request.url).searchParams.get("companyId") || "")
   if ("error" in caller) return caller.error
-  const snap = await caller.db.collection(COLLECTION).doc(caller.companyId).get()
-  const stored = snap.data() as Stored | undefined
+  const ref = caller.db.collection(COLLECTION).doc(caller.companyId)
+  const stored = (await ref.get()).data() as Stored | undefined
+  if (stored?.flow?.social) await copySocialPosts(caller.db, ref, caller.agencyId, caller.companyId, stored.flow, stored.socialCopied ?? []).catch((error) => console.error("Copying social posts failed", error))
   return json({ flow: stored?.flow ?? { website: caller.website } })
 }
 
@@ -299,6 +317,7 @@ export async function POST(request: Request) {
     if (step === "research" && !caller.website) {
       await db.collection("organizations").doc(companyId).set({ website: flow.website }, { merge: true })
     }
+    if (step === "social") await copySocialPosts(db, ref, agencyId, companyId, next, []).catch((error) => console.error("Copying social posts failed", error))
     void recordAgencyUsage(agencyId, "marketingFlowSteps").catch(() => undefined)
     return json({ flow: next })
   } catch (error) {

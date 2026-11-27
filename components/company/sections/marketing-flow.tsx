@@ -836,13 +836,6 @@ const adFields = (flow: FlowState): Field[] => [
   ...((flow.audiences ?? []).length ? [{ name: "audienceId", placeholder: "No audience", options: flow.audiences!.map((item) => ({ value: item.id, label: item.name })) }] : []),
 ]
 
-/** On Social Media, above the accounts: who to follow first and this month's posts. Nothing until Marketing has run. */
-export function MarketingSocialPanel() {
-  const { flow, act } = useFlow()
-  if (!flow?.social) return null
-  return <SocialStep flow={flow} act={act} />
-}
-
 function EmailsStep({ flow, act }: { flow: FlowState; act: Act }) {
   const emails = flow.emails!
   if (!emails.length) return <Card><p className="text-sm text-muted-foreground">No emails yet.</p></Card>

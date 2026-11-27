@@ -7,7 +7,7 @@ export const COMPANY_SECTIONS = [
   { key: "creators", label: "Leads", icon: Contact },
   // Every campaign's posts, at company level.
   { key: "content", label: "Content", icon: Palette },
-  { key: "social", label: "Social Media", icon: Share2 },
+  { key: "social", label: "Posts", icon: Share2 },
   // Marketing: the company gives its website and the outreach flow runs from there.
   { key: "marketing", label: "Marketing", icon: Megaphone },
   // What the Marketing run finds: companies and people, the emails to them, and the ads.
