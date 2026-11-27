@@ -87,7 +87,7 @@ export async function GET(request: Request) {
   return json({ flow: stored?.flow ?? { website: caller.website } })
 }
 
-type Body = { companyId?: string; action?: string; step?: string; website?: string; id?: string; ids?: unknown[]; url?: string; subject?: string; body?: string; to?: string; keywords?: unknown[]; name?: string; audienceId?: string; headline?: string; text?: string; cta?: string }
+type Body = { companyId?: string; action?: string; step?: string; website?: string; id?: string; ids?: unknown[]; url?: string; subject?: string; body?: string; to?: string; keywords?: unknown[]; name?: string; audienceId?: string; headline?: string; text?: string; cta?: string; sent?: boolean }
 
 const REMOVABLE = ["customers", "people", "emails", "competitors", "ads"] as const
 const adFields = (body: Body, flow: FlowState) => ({
@@ -208,6 +208,7 @@ export async function POST(request: Request) {
     email.subject = String(body.subject ?? email.subject).trim().slice(0, 120)
     email.body = String(body.body ?? email.body).trim().slice(0, 4000)
     if (body.to !== undefined) email.to = String(body.to).trim().slice(0, 200) || undefined
+    if (typeof body.sent === "boolean") email.sent = body.sent
     await ref.set({ flow: { ...flow, updatedAt: new Date().toISOString() } }, { merge: true })
     return json({ flow })
   }

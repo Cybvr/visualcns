@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type DragEvent, type FormEvent, type ReactNode } from "react"
-import { ArrowRight, Check, ChevronDown, Copy, Download, ExternalLink, ImageIcon, Loader2, Mail, MoreHorizontal, Pencil, RotateCcw, Search, Tag, Upload, X } from "lucide-react"
+import { ArrowRight, Check, ChevronDown, Copy, Download, ExternalLink, ImageIcon, Loader2, Mail, MoreHorizontal, Pencil, Plus, RotateCcw, Search, Tag, Trash2, Upload, X } from "lucide-react"
 import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
@@ -759,30 +759,45 @@ export function OutreachSection() {
   return <StepPage render={(flow, act) => <OutreachList flow={flow} act={act} />} />
 }
 
+type EmailFilter = "all" | "drafts" | "sent"
+
 function OutreachList({ flow, act }: { flow: FlowState; act: Act }) {
   const [query, setQuery] = useState("")
-  const emails = (flow.emails ?? []).filter((email) => {
+  const [filter, setFilter] = useState<EmailFilter>("all")
+  const all = flow.emails ?? []
+  const counts = { all: all.length, drafts: all.filter((email) => !email.sent).length, sent: all.filter((email) => email.sent).length }
+  const emails = all.filter((email) => {
+    if (filter === "drafts" && email.sent) return false
+    if (filter === "sent" && !email.sent) return false
     const person = flow.people?.find((p) => p.id === email.personId)
     return matches(query, email.subject, email.body, email.to, person?.name, person?.company, person?.email)
   })
   return (
     <div className="space-y-4">
-      <StepBar
-        placeholder="Search emails"
-        query={query}
-        onQuery={setQuery}
-        title="New email"
-        fields={[
-          { name: "to", placeholder: "To", type: "email" },
-          { name: "subject", placeholder: "Subject", required: true },
-          { name: "body", placeholder: "Email", multiline: true },
-        ]}
-        onAdd={(values) => act({ action: "add", step: "emails", ...values })}
-      />
+      <StepBar placeholder="Search emails" query={query} onQuery={setQuery} title="New draft" fields={EMAIL_FIELDS} onAdd={(values) => act({ action: "add", step: "emails", ...values })} />
+      <div className="flex gap-2 overflow-x-auto">
+        {([["all", "All"], ["drafts", "Drafts"], ["sent", "Sent"]] as const).map(([value, label]) => (
+          <button
+            key={value}
+            type="button"
+            aria-pressed={filter === value}
+            onClick={() => setFilter(value)}
+            className={cn("shrink-0 rounded-full border px-4 py-1.5 text-sm font-medium transition-colors", filter === value ? "border-foreground bg-foreground text-background" : "border-border text-foreground hover:bg-muted")}
+          >
+            {label} <span className={filter === value ? "text-background/70" : "text-muted-foreground"}>{counts[value]}</span>
+          </button>
+        ))}
+      </div>
       {emails.length > 0 && <EmailsStep flow={{ ...flow, emails }} act={act} />}
     </div>
   )
 }
+
+const EMAIL_FIELDS: Field[] = [
+  { name: "to", placeholder: "To", type: "email" },
+  { name: "subject", placeholder: "Subject", required: true },
+  { name: "body", placeholder: "Email", multiline: true },
+]
 
 /** Ads: one ad for each audience, aimed at the same companies. */
 export function AdsSection() {
@@ -819,59 +834,44 @@ function EmailsStep({ flow, act }: { flow: FlowState; act: Act }) {
 
 function EmailCard({ email, person, act }: { email: NonNullable<FlowState["emails"]>[number]; person?: NonNullable<FlowState["people"]>[number]; act: Act }) {
   const [editing, setEditing] = useState(false)
-  const [subject, setSubject] = useState(email.subject)
-  const [body, setBody] = useState(email.body)
-  const [to, setTo] = useState(email.to ?? "")
-  const [saving, setSaving] = useState(false)
   const address = person?.email || email.to
-
-  async function save() {
-    setSaving(true)
-    await act({ action: "email", id: email.id, subject, body, ...(person ? {} : { to }) })
-    setSaving(false)
-    setEditing(false)
-  }
+  const recipient = person ? [person.name, person.email].filter(Boolean).join(" · ") : email.to
+  const mailto = `mailto:${address ? encodeURIComponent(address) : ""}?subject=${encodeURIComponent(email.subject)}&body=${encodeURIComponent(email.body)}`
+  const iconButton = "flex size-10 items-center justify-center rounded-full text-foreground hover:bg-muted"
 
   return (
     <Card className="p-0">
-      <div className="flex gap-4 border-b border-border px-5 py-3 text-sm">
-        <span className="w-12 shrink-0 text-muted-foreground">To</span>
-        <span className="min-w-0 flex-1 truncate">
-          {person?.name}{person && <span className="text-muted-foreground"> · {person.company}</span>}
-          {person?.email ? <span className="block truncate text-muted-foreground">{person.email}</span> : person && <span className="block text-muted-foreground">No email</span>}
-          {!person && (editing
-            ? <Input type="email" value={to} onChange={(event) => setTo(event.target.value)} placeholder="name@company.com" aria-label="To" className="h-8" />
-            : email.to ? <span className="block truncate">{email.to}</span> : <button type="button" className="text-muted-foreground hover:text-foreground hover:underline" onClick={() => setEditing(true)}>Add email address</button>)}
-        </span>
-      </div>
-      <div className="flex items-center gap-4 border-b border-border px-5 py-3 text-sm">
-        <span className="w-12 shrink-0 text-muted-foreground">Subj</span>
-        {editing ? <Input value={subject} onChange={(event) => setSubject(event.target.value)} aria-label="Subject" className="h-8" /> : <span className="font-semibold">{email.subject}</span>}
-      </div>
-      <div className="px-5 py-4">
-        {editing ? (
-          <Textarea value={body} onChange={(event) => setBody(event.target.value)} aria-label="Email" rows={10} />
-        ) : (
-          <p className="whitespace-pre-line text-[15px] leading-relaxed">{email.body}</p>
-        )}
-        <div className="mt-4 flex flex-wrap gap-2">
-          {editing ? (
-            <>
-              <Button type="button" size="sm" disabled={saving} onClick={() => void save()}>{saving ? "Saving..." : "Save"}</Button>
-              <Button type="button" size="sm" variant="ghost" onClick={() => { setEditing(false); setSubject(email.subject); setBody(email.body); setTo(email.to ?? "") }}>Cancel</Button>
-            </>
-          ) : (
-            <>
-              <Button type="button" size="sm" variant="outline" onClick={() => setEditing(true)}><Pencil className="size-4" aria-hidden="true" /> Edit</Button>
-              <Button type="button" size="sm" variant="outline" onClick={() => copy(`${email.subject}\n\n${email.body}`)}><Copy className="size-4" aria-hidden="true" /> Copy</Button>
-              <Button asChild size="sm" variant="outline">
-                <a href={`mailto:${address ? encodeURIComponent(address) : ""}?subject=${encodeURIComponent(email.subject)}&body=${encodeURIComponent(email.body)}`}><Mail className="size-4" aria-hidden="true" /> Open in email</a>
-              </Button>
-              <button type="button" className="ml-auto text-sm text-muted-foreground hover:text-foreground" onClick={() => void act({ action: "remove", step: "emails", id: email.id })}>Remove</button>
-            </>
-          )}
+      <div className="px-5 pt-5 pb-4">
+        <div className="flex items-start justify-between gap-3">
+          <h3 className="min-w-0 text-xl font-semibold leading-snug">{email.subject || "No subject"}</h3>
+          <span className="shrink-0 rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">{email.sent ? "Sent" : "Draft"}</span>
         </div>
+        {recipient ? (
+          <p className="mt-3 truncate text-sm text-muted-foreground">{recipient}</p>
+        ) : (
+          <button type="button" onClick={() => setEditing(true)} className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-dashed border-border px-3.5 py-1.5 text-sm font-medium text-primary hover:bg-muted">
+            <Plus className="size-4" aria-hidden="true" /> Add recipient
+          </button>
+        )}
+        <p className="mt-3 line-clamp-3 whitespace-pre-line text-[15px] leading-relaxed text-muted-foreground">{email.body}</p>
       </div>
+      <div className="flex items-center gap-1 border-t border-border px-3 py-3">
+        <button type="button" className={iconButton} aria-label="Edit" title="Edit" onClick={() => setEditing(true)}><Pencil className="size-5" aria-hidden="true" /></button>
+        <button type="button" className={iconButton} aria-label="Copy" title="Copy" onClick={() => copy(`${email.subject}\n\n${email.body}`)}><Copy className="size-5" aria-hidden="true" /></button>
+        <button type="button" className={iconButton} aria-label="Delete" title="Delete" onClick={() => void act({ action: "remove", step: "emails", id: email.id })}><Trash2 className="size-5" aria-hidden="true" /></button>
+        <Button asChild className="ml-auto rounded-full">
+          <a href={mailto} onClick={() => { if (!email.sent) void act({ action: "email", id: email.id, sent: true }) }}>Open in email <ArrowRight className="size-4" aria-hidden="true" /></a>
+        </Button>
+      </div>
+      <FieldsDialog
+        open={editing}
+        onOpenChange={setEditing}
+        title="Edit email"
+        fields={person ? EMAIL_FIELDS.slice(1) : EMAIL_FIELDS}
+        initial={{ to: email.to ?? "", subject: email.subject, body: email.body }}
+        submitLabel="Save"
+        onSubmit={(values) => act({ action: "email", id: email.id, ...values })}
+      />
     </Card>
   )
 }

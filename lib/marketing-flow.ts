@@ -46,7 +46,7 @@ export type Person = {
 }
 
 /** personId is empty on a draft written for an audience, before anyone is found; `to` is the address the company typed in. */
-export type Email = { id: string; personId: string; audienceId?: string; to?: string; subject: string; body: string }
+export type Email = { id: string; personId: string; audienceId?: string; to?: string; subject: string; body: string; sent?: boolean }
 
 export type SocialPlan = { posts: { id: string; title: string; text: string; image?: string }[] }
 
