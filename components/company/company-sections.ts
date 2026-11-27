@@ -1,4 +1,4 @@
-import { Image as ImageIcon, Palette, Activity, Bot, Contact, CreditCard, FileText, Fingerprint, Globe, Info, Link2, ListTodo, Megaphone, Share2, TrendingUp, Users } from "lucide-react"
+import { Image as ImageIcon, Palette, Activity, BadgeDollarSign, Mail, Bot, Contact, CreditCard, FileText, Fingerprint, Globe, Info, Link2, ListTodo, Megaphone, Share2, TrendingUp, Users } from "lucide-react"
 
 /** The sections of a company page, in menu order. Plain module so server routes can check a section too. */
 export const COMPANY_SECTIONS = [
@@ -10,6 +10,10 @@ export const COMPANY_SECTIONS = [
   { key: "social", label: "Social Media", icon: Share2 },
   // Marketing: the company gives its website and the outreach flow runs from there.
   { key: "marketing", label: "Marketing", icon: Megaphone },
+  // What the Marketing run finds: companies and people, the emails to them, and the ads.
+  { key: "leads", label: "Leads", icon: Contact },
+  { key: "outreach", label: "Outreach", icon: Mail },
+  { key: "ads", label: "Ads", icon: BadgeDollarSign },
   { key: "documents", label: "Documents", icon: FileText },
   // Images and videos, under Marketing.
   { key: "assets", label: "Assets", icon: ImageIcon },

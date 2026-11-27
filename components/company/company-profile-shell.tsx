@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState, type ComponentProps, type ComponentType, type ReactNode } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { ChevronRight, CreditCard, FileText, Fingerprint, Globe, House, Image as ImageIcon, LayoutTemplate, Link2, LogIn, Megaphone, Search, Share2, Target, Users, Wallet } from "lucide-react"
+import { BadgeDollarSign, ChevronRight, Contact, Mail, CreditCard, FileText, Fingerprint, Globe, House, Image as ImageIcon, LayoutTemplate, Link2, LogIn, Megaphone, Search, Share2, Target, Users, Wallet } from "lucide-react"
 
 import { NgaiMark } from "@/components/agent/ngai-mark"
 import { useAuth } from "@/components/auth-provider"
@@ -47,6 +47,9 @@ const SUBMENU_ICONS: Record<string, ComponentType<{ className?: string }>> = {
   sites: LayoutTemplate,
   domains: Link2,
   marketing: House,
+  leads: Contact,
+  outreach: Mail,
+  ads: BadgeDollarSign,
   projects: Target,
   social: Share2,
   assets: ImageIcon,
@@ -128,6 +131,9 @@ const MENU_GROUPS = [
   { key: "websites", label: "Websites", icon: Globe, items: [{ key: "websites-home", label: "Home" }, { key: "sites", label: "Sites" }, { key: "domains", label: "Domains" }] },
   { key: "marketing", label: "Marketing", icon: Megaphone, items: [
     { key: "marketing", label: "Home" },
+    { key: "leads", label: "Leads" },
+    { key: "outreach", label: "Outreach" },
+    { key: "ads", label: "Ads" },
     { key: "projects", label: "Campaigns" },
     { key: "social", label: "Social Media" },
     { key: "assets", label: "Assets" },

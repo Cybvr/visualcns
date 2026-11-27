@@ -8,6 +8,7 @@ import { toast } from "sonner"
 import { useCompanyPage } from "@/components/company/company-page-context"
 import { formatWhen, PlatformPreviews, PublishPostDialog } from "@/components/company/publish-post-dialog"
 import { CampaignBrandContext, CampaignPostViewDialog, postLabel, postMediaType } from "@/components/dashboard/campaign-creatives"
+import { SocialConnectDialog } from "@/components/company/social-connect-dialog"
 import { SocialIcon } from "@/components/company/social-icon"
 import { CollectionView } from "@/components/dashboard/collection-view"
 import { thumbnailIcon } from "@/components/dashboard/grid-card"
@@ -97,7 +98,7 @@ export function PillFilter<T extends string>({ options, value, onChange }: { opt
  * The Social page's front: connected accounts and a direct view of every post.
  */
 export function SocialOverview() {
-  const { company, sectionHref } = useCompanyPage()
+  const { company } = useCompanyPage()
   const { info, reload, request } = useSocialAccounts(company.id)
   const [numbers, setNumbers] = useState<{ accounts: AccountNumbers[]; posts: PostNumbers[] }>({ accounts: [], posts: [] })
   const [posts, setPosts] = useState<CampaignCreative[]>([])
@@ -105,6 +106,7 @@ export function SocialOverview() {
   const [openId, setOpenId] = useState<string | null>(null)
   const [publishingId, setPublishingId] = useState<string | null>(null)
   const [loaded, setLoaded] = useState(false)
+  const [connectOpen, setConnectOpen] = useState(false)
 
   useEffect(() => {
     setLoaded(false)
@@ -244,11 +246,11 @@ export function SocialOverview() {
       )}
 
       <section aria-label="Posts">
-        {/* Nothing posted and nothing connected: point to Marketing, where accounts are connected. */}
+        {/* Nothing posted and nothing connected: connect an account right here. */}
         {loaded && allPosts.length === 0 && accounts.length === 0 && info?.configured ? (
           <div className="rounded-2xl border border-dashed border-border p-8 text-center">
             <p className="text-sm text-muted-foreground">No social accounts connected yet.</p>
-            <Button asChild size="sm" className="mt-4"><Link href={sectionHref("marketing")}>Connect accounts</Link></Button>
+            <Button type="button" size="sm" className="mt-4" onClick={() => setConnectOpen(true)}>Connect accounts</Button>
           </div>
         ) : (
         <CollectionView
@@ -290,6 +292,7 @@ export function SocialOverview() {
         />
       </CampaignBrandContext.Provider>
       <PublishPostDialog post={allPosts.find((post) => post.id === publishingId) ?? null} companyId={company.id} open={publishingId !== null} onOpenChange={(open) => { if (!open) setPublishingId(null) }} />
+      <SocialConnectDialog companyId={company.id} platforms={["linkedin", "instagram", "facebook", "twitter"]} open={connectOpen} onOpenChange={setConnectOpen} title="Connect an account" text="Sign in on the platform, then you'll come straight back here." />
     </div>
   )
 }
