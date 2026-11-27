@@ -235,8 +235,9 @@ export function MarketingFlowSection() {
                   {isDone && !isSkipped && <ChevronDown className={cn("size-5 shrink-0 text-muted-foreground transition-transform", isOpen && "rotate-180")} aria-hidden="true" />}
                 </button>
                 {isStuck && (
-                  <div className="mb-3 flex justify-end">
+                  <div className="mb-3 flex justify-end gap-2">
                     <Button type="button" size="sm" variant="outline" onClick={() => void skip(step.key)}>Skip</Button>
+                    <Button type="button" size="sm" onClick={() => void runFrom(step.key)}>Continue</Button>
                   </div>
                 )}
                 {isFailed && (
