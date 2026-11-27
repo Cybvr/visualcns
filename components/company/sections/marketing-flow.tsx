@@ -1,13 +1,12 @@
 "use client"
 
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type DragEvent, type FormEvent, type ReactNode } from "react"
-import { ArrowRight, Check, ChevronDown, Copy, Download, ExternalLink, ImageIcon, Loader2, Mail, MoreHorizontal, Pencil, RotateCcw, Search, Swords, Upload, UsersRound, X } from "lucide-react"
+import { ArrowRight, Check, ChevronDown, Copy, Download, ExternalLink, ImageIcon, Loader2, Mail, MoreHorizontal, Pencil, RotateCcw, Search, Tag, Upload, X } from "lucide-react"
 import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
 import { useCompanyPage } from "@/components/company/company-page-context"
 import { SocialIcon } from "@/components/company/social-icon"
-import { CollectionView } from "@/components/dashboard/collection-view"
 import { TableFilterBar } from "@/components/dashboard/table-filter-bar"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -604,47 +603,35 @@ export function CompetitorsSection() {
 }
 
 function CompetitorsList({ flow, act }: { flow: FlowState; act: Act }) {
-  const [adding, setAdding] = useState(false)
-  const competitors = flow.competitors?.competitors ?? []
-  const openUrl = (url: string) => window.open(url, "_blank", "noopener,noreferrer")
+  const [query, setQuery] = useState("")
+  const competitors = (flow.competitors?.competitors ?? []).filter((item) => matches(query, item.name, item.url))
   return (
-    <>
-      <CollectionView
-        className=""
-        items={competitors}
-        getKey={(item) => item.url}
-        searchFields={(item) => [item.name, item.url]}
-        searchPlaceholder="Search competitors"
-        viewKey="marketing-competitors"
-        initialView="list"
-        createAction={{ label: "New competitor", onClick: () => setAdding(true) }}
-        empty={{ icon: Swords, title: "No competitors yet" }}
-        card={(item) => ({
-          icon: <Favicon url={item.url} name={item.name} />,
-          title: item.name,
-          subtitle: hostOf(item.url),
-          placeholder: <Favicon url={item.url} name={item.name} large />,
-          onClick: () => openUrl(item.url),
-          ariaLabel: `Open ${item.name}`,
-          menuLabel: `Options for ${item.name}`,
-        })}
-        row={(item) => ({ subtitle: hostOf(item.url) })}
-        itemActions={(item) => ({
-          noun: "competitor",
-          name: item.name,
-          onOpen: () => openUrl(item.url),
-          onDelete: () => act({ action: "remove", step: "competitors", id: item.url }),
-        })}
-      />
-      <FieldsDialog
-        open={adding}
-        onOpenChange={setAdding}
+    <div className="space-y-4">
+      <StepBar
+        placeholder="Search competitors"
+        query={query}
+        onQuery={setQuery}
         title="New competitor"
         fields={[{ name: "name", placeholder: "Company name" }, { name: "url", placeholder: "Website", required: true }]}
-        submitLabel="Add"
-        onSubmit={(values) => act({ action: "add", step: "competitors", ...values })}
+        onAdd={(values) => act({ action: "add", step: "competitors", ...values })}
       />
-    </>
+      {competitors.length > 0 && (
+        <Card className="p-0">
+          <ul className="divide-y divide-border">
+            {competitors.map((item) => (
+              <li key={item.url} className="flex items-center gap-3 px-5 py-3">
+                <Favicon url={item.url} name={item.name} />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-medium">{item.name}</p>
+                  <a href={item.url} target="_blank" rel="noreferrer" className="block truncate text-sm text-muted-foreground hover:underline">{hostOf(item.url)}</a>
+                </div>
+                <RemoveButton label={`Remove ${item.name}`} onClick={() => void act({ action: "remove", step: "competitors", id: item.url })} />
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
+    </div>
   )
 }
 
@@ -653,41 +640,31 @@ export function AudiencesSection() {
 }
 
 function AudiencesList({ flow, act }: { flow: FlowState; act: Act }) {
-  const [adding, setAdding] = useState(false)
+  const [query, setQuery] = useState("")
+  const audiences = (flow.audiences ?? []).filter((item) => matches(query, item.name))
   return (
-    <>
-      <CollectionView
-        className=""
-        items={flow.audiences ?? []}
-        getKey={(item) => item.id}
-        searchFields={(item) => [item.name]}
-        searchPlaceholder="Search audiences"
-        viewKey="marketing-audiences"
-        initialView="list"
-        createAction={{ label: "New audience", onClick: () => setAdding(true) }}
-        empty={{ icon: UsersRound, title: "No audiences yet" }}
-        card={(item) => ({
-          icon: <UsersRound className="size-4 text-muted-foreground" aria-hidden="true" />,
-          title: item.name,
-          placeholder: <UsersRound className="size-10 text-muted-foreground" aria-hidden="true" />,
-          menuLabel: `Options for ${item.name}`,
-        })}
-        itemActions={(item) => ({
-          noun: "audience",
-          name: item.name,
-          onDelete: () => act({ action: "remove", step: "audiences", id: item.id }),
-          deleteMessage: "Its leads, emails and ad go with it.",
-        })}
-      />
-      <FieldsDialog
-        open={adding}
-        onOpenChange={setAdding}
+    <div className="space-y-4">
+      <StepBar
+        placeholder="Search audiences"
+        query={query}
+        onQuery={setQuery}
         title="New audience"
         fields={[{ name: "name", placeholder: "Audience", required: true }]}
-        submitLabel="Add"
-        onSubmit={(values) => act({ action: "add", step: "audiences", ...values })}
+        onAdd={(values) => act({ action: "add", step: "audiences", ...values })}
       />
-    </>
+      {audiences.length > 0 && (
+        <Card className="p-0">
+          <ul className="divide-y divide-border">
+            {audiences.map((audience) => (
+              <li key={audience.id} className="flex items-center gap-3 px-5 py-3">
+                <p className="min-w-0 flex-1 text-[15px] font-medium">{audience.name}</p>
+                <RemoveButton label={`Remove ${audience.name}`} onClick={() => void act({ action: "remove", step: "audiences", id: audience.id })} />
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
+    </div>
   )
 }
 
@@ -695,8 +672,10 @@ function KeywordsList({ flow, act }: { flow: FlowState; act: Act }) {
   const [query, setQuery] = useState("")
   const allFound = flow.research?.keywords ?? []
   const allMine = flow.myKeywords ?? []
-  const found = allFound.filter((item) => matches(query, item))
-  const mine = allMine.filter((item) => matches(query, item))
+  const rows = [
+    ...allMine.map((word) => ({ word, mine: true })),
+    ...allFound.filter((word) => !allMine.some((item) => item.toLowerCase() === word.toLowerCase())).map((word) => ({ word, mine: false })),
+  ].filter((row) => matches(query, row.word))
 
   async function add(value: string) {
     const all = [...allFound, ...allMine].map((item) => item.toLowerCase())
@@ -707,25 +686,17 @@ function KeywordsList({ flow, act }: { flow: FlowState; act: Act }) {
   return (
     <div className="space-y-4">
       <StepBar placeholder="Search keywords" query={query} onQuery={setQuery} title="New keyword" fields={[{ name: "keyword", placeholder: "Keyword", required: true }]} onAdd={(values) => add(values.keyword)} />
-      {mine.length > 0 && (
-        <Card>
-          <Label>Your keywords</Label>
-          <ul className="mt-2 flex flex-wrap gap-2">
-            {mine.map((item) => (
-              <li key={item} className={cn(BADGE, "pr-1.5")}>
-                <span className="truncate">{item}</span>
-                <button type="button" aria-label={`Remove ${item}`} onClick={() => void act({ action: "keywords", keywords: allMine.filter((word) => word !== item) })} className="rounded-full p-0.5 text-muted-foreground hover:bg-background hover:text-foreground">
-                  <X className="size-3.5" aria-hidden="true" />
-                </button>
+      {rows.length > 0 && (
+        <Card className="p-0">
+          <ul className="divide-y divide-border">
+            {rows.map((row) => (
+              <li key={row.word} className="flex items-center gap-3 px-5 py-3">
+                <Tag className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                <p className="min-w-0 flex-1 text-[15px] font-medium">{row.word}</p>
+                {row.mine && <RemoveButton label={`Remove ${row.word}`} onClick={() => void act({ action: "keywords", keywords: allMine.filter((word) => word !== row.word) })} />}
               </li>
             ))}
           </ul>
-        </Card>
-      )}
-      {found.length > 0 && (
-        <Card>
-          <Label>Found on your website</Label>
-          <Chips items={found} />
         </Card>
       )}
     </div>

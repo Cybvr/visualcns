@@ -263,8 +263,11 @@ export function SocialOverview() {
           fixedView="grid"
           gridClassName="mx-auto w-full max-w-xl grid-cols-1 sm:grid-cols-1 lg:grid-cols-1"
           gridItem={(post) => (
-            <button type="button" onClick={() => setOpenId(post.id)} aria-label={`Open ${postLabel(post)}`} className="block aspect-square w-full overflow-hidden rounded-2xl bg-muted outline-none focus-visible:ring-2 focus-visible:ring-ring">
-              {post.mediaUrl ? <PostMedia post={post} /> : thumbnailIcon(ImageIcon)}
+            <button type="button" onClick={() => setOpenId(post.id)} aria-label={`Open ${postLabel(post)}`} className="block w-full text-left outline-none focus-visible:ring-2 focus-visible:ring-ring">
+              <span className="block aspect-square w-full overflow-hidden rounded-2xl bg-muted">
+                {post.mediaUrl ? <PostMedia post={post} /> : thumbnailIcon(ImageIcon)}
+              </span>
+              {post.body?.trim() && <span className="mt-2 line-clamp-2 block text-sm leading-relaxed">{post.body}</span>}
             </button>
           )}
           loading={!loaded}
