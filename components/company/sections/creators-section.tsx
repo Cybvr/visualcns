@@ -49,8 +49,8 @@ export function LeadsPage() {
 
   return (
     <div className="mt-5 space-y-10">
-      <section aria-label="From Marketing" className="max-w-3xl min-w-0 space-y-3">
-        <h2 className="text-lg font-semibold">From Marketing</h2>
+      <section aria-label="Marketing" className="space-y-3">
+        <h2 className="min-w-0 truncate text-base font-semibold">Marketing</h2>
         <MarketingLeads />
       </section>
       {campaigns.map((project) => (

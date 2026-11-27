@@ -2,14 +2,21 @@
 
 import Link from "next/link"
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type FormEvent, type ReactNode } from "react"
-import { ArrowRight, Check, ChevronDown, Copy, Download, ExternalLink, ImageIcon, Loader2, Mail, Pencil, RotateCcw, Search, Upload, X } from "lucide-react"
+import { ArrowRight, Check, Contact, ChevronDown, Copy, Download, ExternalLink, ImageIcon, Loader2, Mail, Pencil, RotateCcw, Search, Upload, X } from "lucide-react"
 import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
 import { useCompanyPage, type CompanySectionKey } from "@/components/company/company-page-context"
+import { SectionAddButton } from "@/components/company/section-add-button"
 import { SocialIcon } from "@/components/company/social-icon"
+import { CollectionView } from "@/components/dashboard/collection-view"
+import type { ItemActions } from "@/components/dashboard/item-menu"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { CLIENT_FILE_MAX_BYTES, uploadFileToStorage } from "@/lib/documents"
 import { FLOW_STEPS, hostOf, type FlowState, type FlowStep, type Person } from "@/lib/marketing-flow"
@@ -513,12 +520,16 @@ function StepPage({ render }: { render: (flow: FlowState, act: Act) => ReactNode
   return <div className="mx-auto mt-5 w-full max-w-3xl min-w-0">{render(flow, act)}</div>
 }
 
-/** A row of inputs and an Add button. Clears itself once added. */
-function AddForm({ fields, onAdd, children }: { fields: { name: string; placeholder: string; required?: boolean; type?: string }[]; onAdd: (values: Record<string, string>) => Promise<void>; children?: ReactNode }) {
+type Field = { name: string; placeholder: string; required?: boolean; type?: string; multiline?: boolean; options?: { value: string; label: string }[] }
+
+/** The page's + New button, opening a small window to add one item. */
+function AddDialog({ title, fields, onAdd }: { title: string; fields: Field[]; onAdd: (values: Record<string, string>) => Promise<void> }) {
   const empty = Object.fromEntries(fields.map((field) => [field.name, ""]))
+  const [open, setOpen] = useState(false)
   const [values, setValues] = useState<Record<string, string>>(empty)
   const [busy, setBusy] = useState(false)
   const ready = fields.every((field) => !field.required || values[field.name].trim())
+  const set = (name: string, value: string) => setValues((current) => ({ ...current, [name]: value }))
   async function submit(event: FormEvent) {
     event.preventDefault()
     if (!ready || busy) return
@@ -526,16 +537,47 @@ function AddForm({ fields, onAdd, children }: { fields: { name: string; placehol
     await onAdd(values)
     setBusy(false)
     setValues(empty)
+    setOpen(false)
   }
   return (
-    <form onSubmit={submit} className="flex flex-col gap-2 sm:flex-row">
-      {fields.map((field) => (
-        <Input key={field.name} type={field.type} value={values[field.name]} onChange={(event) => setValues({ ...values, [field.name]: event.target.value })} placeholder={field.placeholder} aria-label={field.placeholder} maxLength={300} />
-      ))}
-      {children}
-      <Button type="submit" className="shrink-0" disabled={!ready || busy}>Add</Button>
-    </form>
+    <>
+      <SectionAddButton label={title} onClick={() => setOpen(true)} />
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{title}</DialogTitle>
+            <DialogDescription className="sr-only">{title}</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={submit} className="space-y-3">
+            {fields.map((field) => field.options ? (
+              <Select key={field.name} value={values[field.name] || NONE} onValueChange={(value) => set(field.name, value === NONE ? "" : value)}>
+                <SelectTrigger aria-label={field.placeholder} className="w-full"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NONE}>{field.placeholder}</SelectItem>
+                  {field.options.map((option) => <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            ) : field.multiline ? (
+              <Textarea key={field.name} value={values[field.name]} onChange={(event) => set(field.name, event.target.value)} placeholder={field.placeholder} aria-label={field.placeholder} rows={6} />
+            ) : (
+              <Input key={field.name} type={field.type} value={values[field.name]} onChange={(event) => set(field.name, event.target.value)} placeholder={field.placeholder} aria-label={field.placeholder} maxLength={300} />
+            ))}
+            <DialogFooter>
+              <Button type="button" variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
+              <Button type="submit" disabled={!ready || busy}>{busy ? "Adding..." : "Add"}</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </>
   )
+}
+
+const NONE = "__none"
+
+/** The page's top row: the + New button on the right. */
+function Toolbar({ children }: { children: ReactNode }) {
+  return <div className="flex justify-end">{children}</div>
 }
 
 export function KeywordsSection() {
@@ -550,12 +592,13 @@ function CompetitorsList({ flow, act }: { flow: FlowState; act: Act }) {
   const competitors = flow.competitors?.competitors ?? []
   return (
     <div className="space-y-4">
-      <Card>
-        <AddForm
+      <Toolbar>
+        <AddDialog
+          title="New competitor"
           fields={[{ name: "name", placeholder: "Company name" }, { name: "url", placeholder: "Website", required: true }]}
           onAdd={(values) => act({ action: "add", step: "competitors", ...values })}
         />
-      </Card>
+      </Toolbar>
       {competitors.length > 0 && (
         <Card className="p-0">
           <ul className="divide-y divide-border">
@@ -584,12 +627,13 @@ function AudiencesList({ flow, act }: { flow: FlowState; act: Act }) {
   const audiences = flow.audiences ?? []
   return (
     <div className="space-y-4">
-      <Card>
-        <AddForm
-          fields={[{ name: "name", placeholder: "Add an audience", required: true }]}
+      <Toolbar>
+        <AddDialog
+          title="New audience"
+          fields={[{ name: "name", placeholder: "Audience", required: true }]}
           onAdd={(values) => act({ action: "add", step: "audiences", ...values })}
         />
-      </Card>
+      </Toolbar>
       {audiences.length > 0 && (
         <Card className="p-0">
           <ul className="divide-y divide-border">
@@ -607,29 +651,23 @@ function AudiencesList({ flow, act }: { flow: FlowState; act: Act }) {
 }
 
 function KeywordsList({ flow, act }: { flow: FlowState; act: Act }) {
-  const [value, setValue] = useState("")
   const found = flow.research?.keywords ?? []
   const mine = flow.myKeywords ?? []
 
-  function add(event: FormEvent) {
-    event.preventDefault()
-    const words = value.split(",").map((item) => item.trim()).filter(Boolean)
-    if (!words.length) return
+  async function add(value: string) {
     const all = [...found, ...mine].map((item) => item.toLowerCase())
-    const fresh = words.filter((item) => !all.includes(item.toLowerCase()))
-    setValue("")
-    if (fresh.length) void act({ action: "keywords", keywords: [...mine, ...fresh] })
+    const fresh = value.split(",").map((item) => item.trim()).filter((item) => item && !all.includes(item.toLowerCase()))
+    if (fresh.length) await act({ action: "keywords", keywords: [...mine, ...fresh] })
   }
 
   return (
     <div className="space-y-4">
-      <Card>
-        <form onSubmit={add} className="flex gap-2">
-          <Input value={value} onChange={(event) => setValue(event.target.value)} placeholder="Add a keyword" aria-label="Add a keyword" maxLength={200} />
-          <Button type="submit" disabled={!value.trim()}>Add</Button>
-        </form>
-        <Label className="mt-5">Your keywords</Label>
-        {mine.length > 0 && (
+      <Toolbar>
+        <AddDialog title="New keyword" fields={[{ name: "keyword", placeholder: "Keyword", required: true }]} onAdd={(values) => add(values.keyword)} />
+      </Toolbar>
+      {mine.length > 0 && (
+        <Card>
+          <Label>Your keywords</Label>
           <ul className="mt-2 flex flex-wrap gap-2">
             {mine.map((item) => (
               <li key={item} className={cn(BADGE, "pr-1.5")}>
@@ -640,8 +678,8 @@ function KeywordsList({ flow, act }: { flow: FlowState; act: Act }) {
               </li>
             ))}
           </ul>
-        )}
-      </Card>
+        </Card>
+      )}
       {found.length > 0 && (
         <Card>
           <Label>Found on your website</Label>
@@ -652,106 +690,106 @@ function KeywordsList({ flow, act }: { flow: FlowState; act: Act }) {
   )
 }
 
-/** The Marketing run's companies and decision makers, on the Leads page. Shows nothing until loaded. */
+/** The Marketing run's companies and decision makers, as one list on the Leads page. */
 export function MarketingLeads() {
   const { flow, act } = useFlow()
   if (!flow) return null
   return <LeadsList flow={flow} act={act} />
 }
 
-function AddLead({ flow, act }: { flow: FlowState; act: Act }) {
-  const audiences = flow.audiences ?? []
-  const [audienceId, setAudienceId] = useState("")
-  return (
-    <Card>
-      <AddForm
-        fields={[{ name: "name", placeholder: "Company name", required: true }, { name: "url", placeholder: "Website" }]}
-        onAdd={(values) => act({ action: "add", step: "customers", audienceId, ...values })}
-      >
-        {audiences.length > 0 && (
-          <select value={audienceId} onChange={(event) => setAudienceId(event.target.value)} aria-label="Audience" className="h-9 min-w-0 rounded-md border border-input bg-background px-3 text-sm sm:max-w-48">
-            <option value="">No audience</option>
-            {audiences.map((audience) => <option key={audience.id} value={audience.id}>{audience.name}</option>)}
-          </select>
-        )}
-      </AddForm>
-    </Card>
-  )
-}
+const ALL = "__all"
 
 function LeadsList({ flow, act }: { flow: FlowState; act: Act }) {
   const customers = flow.customers ?? []
-  if (!customers.length) return <AddLead flow={flow} act={act} />
-  const known = new Set((flow.audiences ?? []).map((item) => item.id))
-  const groups = [...(flow.audiences ?? []), { id: "", name: "Added by you" }]
-  const inGroup = (item: { audienceId: string }, groupId: string) => (groupId ? item.audienceId === groupId : !known.has(item.audienceId))
   const people = flow.people ?? []
-  const withEmail = people.filter((person) => person.email).length
+  const audiences = flow.audiences ?? []
+  const [audience, setAudience] = useState(ALL)
+  const audienceName = (id: string) => audiences.find((item) => item.id === id)?.name ?? ""
+  const shown = audience === ALL ? customers : customers.filter((item) => item.audienceId === audience)
+  const personOf = (id: string) => people.find((person) => person.customerId === id)
   const unchecked = people.filter((person) => !person.email && person.emailSource !== "none").length
+
+  function actionsFor(item: (typeof customers)[number]): ItemActions {
+    const person = personOf(item.id)
+    return {
+      noun: "lead",
+      name: item.name,
+      onOpen: item.url ? () => window.open(item.url, "_blank", "noopener,noreferrer") : undefined,
+      extra: person && (
+        <>
+          {person.email && <DropdownMenuItem asChild><a href={`mailto:${encodeURIComponent(person.email)}`}>Email {person.name}</a></DropdownMenuItem>}
+          {person.email && <DropdownMenuItem onSelect={() => copy(person.email!)}>Copy email</DropdownMenuItem>}
+          {!person.email && <DropdownMenuItem onSelect={() => void act({ action: "find-emails", ids: [person.id] })}>Find email</DropdownMenuItem>}
+          {person.linkedin && <DropdownMenuItem asChild><a href={person.linkedin} target="_blank" rel="noreferrer">LinkedIn</a></DropdownMenuItem>}
+          <DropdownMenuItem onSelect={() => void act({ action: "remove", step: "people", id: person.id })}>Remove {person.name}</DropdownMenuItem>
+        </>
+      ),
+      onDelete: () => act({ action: "remove", step: "customers", id: item.id }),
+      deleteMessage: "They'll be removed from your leads.",
+    }
+  }
+
+  const contact = (item: (typeof customers)[number]) => {
+    const person = personOf(item.id)
+    return person ? [person.name, person.title, person.email].filter(Boolean).join(" · ") : hostOf(item.url)
+  }
+
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-muted-foreground">{customers.length} companies · {people.length} decision makers · {withEmail} emails</p>
-        <div className="flex flex-wrap gap-2">
+    <CollectionView
+      className=""
+      items={shown}
+      getKey={(item) => item.id}
+      searchFields={(item) => [item.name, item.url, item.description, audienceName(item.audienceId), personOf(item.id)?.name]}
+      searchPlaceholder="Search leads"
+      viewKey="marketing-leads"
+      initialView="list"
+      filters={audiences.length > 1 && (
+        <Select value={audience} onValueChange={setAudience}>
+          <SelectTrigger size="sm" aria-label="Audience" className="w-auto min-w-32 max-w-56"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value={ALL}>Everyone</SelectItem>
+            {audiences.map((item) => <SelectItem key={item.id} value={item.id}>{item.name}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      )}
+      actions={
+        <>
           {unchecked > 0 && <FindEmailsButton act={act} label={`Find ${unchecked} ${unchecked === 1 ? "email" : "emails"}`} />}
           {people.length > 0 && (
-            <Button type="button" size="sm" variant="outline" onClick={() => download("leads.csv", csv([
+            <Button type="button" variant="outline" className="h-11 shrink-0" aria-label="Export" title="Export" onClick={() => download("leads.csv", csv([
               ["name", "title", "company", "website", "email", "linkedin"],
               ...people.map((person) => [person.name, person.title, person.company, customers.find((c) => c.id === person.customerId)?.url ?? "", person.email ?? "", person.linkedin]),
             ]))}>
-              <Download className="size-4" aria-hidden="true" /> Export
+              <Download className="size-4" aria-hidden="true" />
             </Button>
           )}
-        </div>
-      </div>
-      <AddLead flow={flow} act={act} />
-      {groups.map((audience) => {
-        const rows = customers.filter((item) => inGroup(item, audience.id))
-        if (!rows.length) return null
-        return (
-          <Card key={audience.id || "mine"} className="p-0">
-            <div className="border-b border-border px-5 py-3">
-              <p className="text-sm font-semibold">{audience.name} · {rows.length}</p>
-            </div>
-            <ul className="divide-y divide-border">
-              {rows.map((item) => {
-                const person = people.find((p) => p.customerId === item.id)
-                return (
-                  <li key={item.id} className="flex gap-3 px-5 py-4">
-                    <Favicon url={item.url} name={item.name} />
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-baseline justify-between gap-x-3">
-                        <p className="font-semibold">{item.name}</p>
-                        {item.url && <a href={item.url} target="_blank" rel="noreferrer" className="text-sm text-muted-foreground hover:underline">{hostOf(item.url)}</a>}
-                      </div>
-                      <p className="mt-0.5 text-sm text-muted-foreground">{item.description}</p>
-                      {item.country && <span className="mt-1.5 inline-block rounded bg-muted px-2 py-0.5 text-xs text-muted-foreground">{item.country}</span>}
-                      {person ? (
-                        <div className="mt-3 flex items-center gap-2.5 rounded-lg bg-muted/60 px-3 py-2">
-                          <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-background text-xs font-semibold text-muted-foreground" aria-hidden="true">{initials(person.name)}</span>
-                          <div className="min-w-0 flex-1">
-                            <p className="flex items-center gap-1.5 text-sm font-medium">
-                              {person.name}
-                              <a href={person.linkedin} target="_blank" rel="noreferrer" aria-label={`${person.name} on LinkedIn`}><SocialIcon platform="linkedin" /></a>
-                            </p>
-                            <p className="truncate text-xs text-muted-foreground">{person.title}</p>
-                            <PersonEmail person={person} act={act} />
-                          </div>
-                          <RemoveButton label={`Remove ${person.name}`} onClick={() => void act({ action: "remove", step: "people", id: person.id })} />
-                        </div>
-                      ) : (
-                        flow.people && <p className="mt-2 text-xs text-muted-foreground">No contact found.</p>
-                      )}
-                    </div>
-                    <RemoveButton label={`Remove ${item.name}`} onClick={() => void act({ action: "remove", step: "customers", id: item.id })} />
-                  </li>
-                )
-              })}
-            </ul>
-          </Card>
-        )
+          <AddDialog
+            title="New lead"
+            fields={[
+              { name: "name", placeholder: "Company name", required: true },
+              { name: "url", placeholder: "Website" },
+              ...(audiences.length ? [{ name: "audienceId", placeholder: "No audience", options: audiences.map((item) => ({ value: item.id, label: item.name })) }] : []),
+            ]}
+            onAdd={(values) => act({ action: "add", step: "customers", ...values })}
+          />
+        </>
+      }
+      empty={{ icon: Contact, title: "No leads yet" }}
+      card={(item) => ({
+        icon: <Favicon url={item.url} name={item.name} />,
+        title: item.name,
+        subtitle: contact(item),
+        placeholder: <Favicon url={item.url} name={item.name} large />,
+        onClick: item.url ? () => window.open(item.url, "_blank", "noopener,noreferrer") : undefined,
+        ariaLabel: `Open ${item.name}`,
+        menuLabel: `Options for ${item.name}`,
       })}
-    </div>
+      itemActions={actionsFor}
+      row={(item) => ({
+        subtitle: contact(item),
+        trailing: audienceName(item.audienceId) ? <Badge variant="secondary" className="max-w-48 truncate rounded-full">{audienceName(item.audienceId)}</Badge> : undefined,
+      })}
+    />
   )
 }
 
@@ -802,35 +840,20 @@ function PersonEmail({ person, act }: { person: Person; act: Act }) {
 export function OutreachSection() {
   return <StepPage render={(flow, act) => (
     <div className="space-y-4">
-      <AddEmail act={act} />
+      <Toolbar>
+        <AddDialog
+          title="New email"
+          fields={[
+            { name: "to", placeholder: "To", type: "email" },
+            { name: "subject", placeholder: "Subject", required: true },
+            { name: "body", placeholder: "Email", multiline: true },
+          ]}
+          onAdd={(values) => act({ action: "add", step: "emails", ...values })}
+        />
+      </Toolbar>
       {(flow.emails ?? []).length > 0 && <EmailsStep flow={flow} act={act} />}
     </div>
   )} />
-}
-
-function AddEmail({ act }: { act: Act }) {
-  const [to, setTo] = useState("")
-  const [subject, setSubject] = useState("")
-  const [body, setBody] = useState("")
-  const [busy, setBusy] = useState(false)
-  async function submit(event: FormEvent) {
-    event.preventDefault()
-    if (busy || (!subject.trim() && !body.trim())) return
-    setBusy(true)
-    await act({ action: "add", step: "emails", to, subject, body })
-    setBusy(false)
-    setTo(""); setSubject(""); setBody("")
-  }
-  return (
-    <Card>
-      <form onSubmit={submit} className="space-y-2">
-        <Input type="email" value={to} onChange={(event) => setTo(event.target.value)} placeholder="To" aria-label="To" />
-        <Input value={subject} onChange={(event) => setSubject(event.target.value)} placeholder="Subject" aria-label="Subject" maxLength={120} />
-        <Textarea value={body} onChange={(event) => setBody(event.target.value)} placeholder="Email" aria-label="Email" rows={5} />
-        <div className="flex justify-end"><Button type="submit" disabled={busy || (!subject.trim() && !body.trim())}>Add</Button></div>
-      </form>
-    </Card>
-  )
 }
 
 /** Ads: one ad for each audience, aimed at the same companies. */
