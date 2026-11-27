@@ -174,6 +174,7 @@ export function MarketingFlowSection() {
           <h2 className="text-4xl font-semibold leading-tight tracking-tight sm:text-5xl">
             Turn your website into customers
           </h2>
+          <p className="mt-4 text-lg text-muted-foreground">Learns what you sell, finds who buys it, and writes your emails, posts and ads.</p>
           <Input
             value={website}
             onChange={(event) => setWebsite(event.target.value)}
