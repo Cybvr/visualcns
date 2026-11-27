@@ -302,10 +302,6 @@ export function AboutSection({ singleColumn = false, formStyle = false }: { sing
           // The client Home: the account card, then every other section as its own card.
           <>
             <div id="company-settings-account">{admin.profileSettings}</div>
-            <div id="company-settings-details">{details}</div>
-            <div id="company-settings-tags">{tags}</div>
-            <div id="company-settings-links">{links}</div>
-            {social && <div id="company-settings-social">{social}</div>}
           </>
         ) : (
           <>

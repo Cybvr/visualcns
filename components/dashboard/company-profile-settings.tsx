@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState, type ReactNode } from "react"
-import { Camera, Copy, Eye, ImageIcon, Info, Loader2, Share } from "lucide-react"
+import { Camera, Copy, Eye, ImageIcon, Loader2, Share } from "lucide-react"
 import { toast } from "sonner"
 
 import { useCompany } from "@/components/dashboard/company-context"
@@ -39,12 +39,10 @@ export function CompanyProfileSettings() {
   const { client, organization, workspaceId, reload } = useCompany()
   const savedName = organization?.name || client.company || ""
   const savedSlug = organization?.slug ?? ""
-  const savedDescription = organization?.description ?? ""
   const logoUrl = organization?.logoUrl || client.photoURL || ""
 
   const [name, setName] = useState(savedName)
   const [slug, setSlug] = useState(savedSlug)
-  const [description, setDescription] = useState(savedDescription)
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [sharing, setSharing] = useState(false)
@@ -52,11 +50,10 @@ export function CompanyProfileSettings() {
 
   useEffect(() => setName(savedName), [savedName])
   useEffect(() => setSlug(savedSlug), [savedSlug])
-  useEffect(() => setDescription(savedDescription), [savedDescription])
 
   const publicSlug = savedSlug || workspaceId
   const publicPath = `/${encodeURIComponent(publicSlug)}`
-  const dirty = name.trim() !== savedName || slug.trim() !== savedSlug || description.trim() !== savedDescription
+  const dirty = name.trim() !== savedName || slug.trim() !== savedSlug
 
   async function uploadLogo(file: File) {
     if (!file.type.startsWith("image/")) return
@@ -79,11 +76,10 @@ export function CompanyProfileSettings() {
     try {
       const nextName = name.trim() || "Unnamed company"
       const typedSlug = slug.trim()
-      const patch: { name?: string; slug?: string; description?: string } = {}
+      const patch: { name?: string; slug?: string } = {}
       if (nextName !== savedName) patch.name = nextName
       // Cleans it up and avoids reserved words and other companies' addresses; blank falls back to the name.
       if (typedSlug !== savedSlug) patch.slug = await uniqueOrganizationSlug(typedSlug || nextName, workspaceId)
-      if (description.trim() !== savedDescription) patch.description = description.trim()
       await updateOrganization(workspaceId, patch)
       // The user record keeps the name too, as the fallback before an org doc existed.
       if (patch.name) await updateUser(client.uid, { company: patch.name })
@@ -198,24 +194,6 @@ export function CompanyProfileSettings() {
             </span>
           </label>
         </div>
-        <p className="flex gap-2 px-1 text-sm text-muted-foreground">
-          <Info className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-          Changing the URL moves your public page to the new address.
-        </p>
-      </section>
-
-      <section className="space-y-3">
-        <GroupLabel>About</GroupLabel>
-        <label className="block rounded-3xl bg-muted/50 px-5 py-4">
-          <span className="text-sm text-muted-foreground">Description</span>
-          <textarea
-            value={description}
-            onChange={(event) => setDescription(event.target.value)}
-            placeholder="Tell people what the company does"
-            rows={5}
-            className="mt-1 block w-full resize-none bg-transparent text-base leading-7 outline-none placeholder:text-muted-foreground"
-          />
-        </label>
       </section>
 
       {/* Pinned to the bottom of the screen for the whole page, not just this section. */}
