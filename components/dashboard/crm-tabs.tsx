@@ -18,13 +18,17 @@ export const CRM_TABS = [
   { label: "Contacts", href: "/admin/users", collection: "users" },
 ] as const
 
+/** Last known counts, kept between tab switches. */
+let cachedCounts: Record<string, number> = {}
+
 export const CRM_PATHS = CRM_TABS.map((tab) => tab.href)
 
 /** The CRM tab bar. Shows only on the three list pages, not on a company's own page. */
 export function CrmTabs() {
   const pathname = usePathname()
   const { isAdmin, isImpersonating } = useAuth()
-  const [counts, setCounts] = useState<Record<string, number>>({})
+  // Start from the last counts so switching tabs (which remounts this bar) doesn't blink.
+  const [counts, setCounts] = useState<Record<string, number>>(() => cachedCounts)
 
   // How many records each list holds, shown beside its tab name.
   useEffect(() => {
@@ -39,7 +43,10 @@ export function CrmTabs() {
           }),
         ),
       )
-      .then((entries) => { if (!cancelled) setCounts(Object.fromEntries(entries)) })
+      .then((entries) => {
+        cachedCounts = Object.fromEntries(entries)
+        if (!cancelled) setCounts(cachedCounts)
+      })
       .catch((error) => console.warn("Could not load list counts:", error))
     return () => { cancelled = true }
   }, [isAdmin, isImpersonating, pathname])
