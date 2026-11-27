@@ -301,7 +301,7 @@ async function saveCreators(scope: Scope, rows: CampaignPersonInput[]) {
 }
 
 /** A row of boxes above the list to add a creator. */
-function AddCreatorRow({ scope, onDone, onCancel }: { scope: Scope; onDone: () => void; onCancel: () => void }) {
+export function AddCreatorRow({ scope, onDone, onCancel }: { scope: Scope; onDone: () => void; onCancel: () => void }) {
   const [handle, setHandle] = useState("")
   const [app, setApp] = useState<string>(PERSON_APPS[0])
   const [category, setCategory] = useState("")
@@ -348,7 +348,7 @@ function AddCreatorRow({ scope, onDone, onCancel }: { scope: Scope; onDone: () =
 }
 
 /** Edit every detail of one creator, then Save. */
-function CreatorDialog({ person, onClose }: { person: CampaignPerson | null; onClose: () => void }) {
+export function CreatorDialog({ person, onClose }: { person: CampaignPerson | null; onClose: () => void }) {
   return (
     <Dialog open={Boolean(person)} onOpenChange={(next) => { if (!next) onClose() }}>
       <DialogContent className="max-h-[85vh] max-w-md overflow-y-auto">

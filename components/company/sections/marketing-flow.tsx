@@ -2,19 +2,15 @@
 
 import Link from "next/link"
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type FormEvent, type ReactNode } from "react"
-import { ArrowRight, Check, Contact, ChevronDown, Copy, Download, ExternalLink, ImageIcon, Loader2, Mail, Pencil, RotateCcw, Search, Upload, X } from "lucide-react"
+import { ArrowRight, Check, ChevronDown, Copy, Download, ExternalLink, ImageIcon, Loader2, Mail, Pencil, RotateCcw, Search, Upload, X } from "lucide-react"
 import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
 import { useCompanyPage, type CompanySectionKey } from "@/components/company/company-page-context"
 import { SectionAddButton } from "@/components/company/section-add-button"
 import { SocialIcon } from "@/components/company/social-icon"
-import { CollectionView } from "@/components/dashboard/collection-view"
-import type { ItemActions } from "@/components/dashboard/item-menu"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
@@ -690,108 +686,13 @@ function KeywordsList({ flow, act }: { flow: FlowState; act: Act }) {
   )
 }
 
-/** The Marketing run's companies and decision makers, as one list on the Leads page. */
-export function MarketingLeads() {
+/** The Marketing run's saved state and its actions, for the Leads page. */
+export function useMarketingLeads() {
   const { flow, act } = useFlow()
-  if (!flow) return null
-  return <LeadsList flow={flow} act={act} />
+  return { flow, act }
 }
 
-const ALL = "__all"
-
-function LeadsList({ flow, act }: { flow: FlowState; act: Act }) {
-  const customers = flow.customers ?? []
-  const people = flow.people ?? []
-  const audiences = flow.audiences ?? []
-  const [audience, setAudience] = useState(ALL)
-  const audienceName = (id: string) => audiences.find((item) => item.id === id)?.name ?? ""
-  const shown = audience === ALL ? customers : customers.filter((item) => item.audienceId === audience)
-  const personOf = (id: string) => people.find((person) => person.customerId === id)
-  const unchecked = people.filter((person) => !person.email && person.emailSource !== "none").length
-
-  function actionsFor(item: (typeof customers)[number]): ItemActions {
-    const person = personOf(item.id)
-    return {
-      noun: "lead",
-      name: item.name,
-      onOpen: item.url ? () => window.open(item.url, "_blank", "noopener,noreferrer") : undefined,
-      extra: person && (
-        <>
-          {person.email && <DropdownMenuItem asChild><a href={`mailto:${encodeURIComponent(person.email)}`}>Email {person.name}</a></DropdownMenuItem>}
-          {person.email && <DropdownMenuItem onSelect={() => copy(person.email!)}>Copy email</DropdownMenuItem>}
-          {!person.email && <DropdownMenuItem onSelect={() => void act({ action: "find-emails", ids: [person.id] })}>Find email</DropdownMenuItem>}
-          {person.linkedin && <DropdownMenuItem asChild><a href={person.linkedin} target="_blank" rel="noreferrer">LinkedIn</a></DropdownMenuItem>}
-          <DropdownMenuItem onSelect={() => void act({ action: "remove", step: "people", id: person.id })}>Remove {person.name}</DropdownMenuItem>
-        </>
-      ),
-      onDelete: () => act({ action: "remove", step: "customers", id: item.id }),
-      deleteMessage: "They'll be removed from your leads.",
-    }
-  }
-
-  const contact = (item: (typeof customers)[number]) => {
-    const person = personOf(item.id)
-    return person ? [person.name, person.title, person.email].filter(Boolean).join(" · ") : hostOf(item.url)
-  }
-
-  return (
-    <CollectionView
-      className=""
-      items={shown}
-      getKey={(item) => item.id}
-      searchFields={(item) => [item.name, item.url, item.description, audienceName(item.audienceId), personOf(item.id)?.name]}
-      searchPlaceholder="Search leads"
-      viewKey="marketing-leads"
-      initialView="list"
-      filters={audiences.length > 1 && (
-        <Select value={audience} onValueChange={setAudience}>
-          <SelectTrigger size="sm" aria-label="Audience" className="w-auto min-w-32 max-w-56"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value={ALL}>Everyone</SelectItem>
-            {audiences.map((item) => <SelectItem key={item.id} value={item.id}>{item.name}</SelectItem>)}
-          </SelectContent>
-        </Select>
-      )}
-      actions={
-        <>
-          {unchecked > 0 && <FindEmailsButton act={act} label={`Find ${unchecked} ${unchecked === 1 ? "email" : "emails"}`} />}
-          {people.length > 0 && (
-            <Button type="button" variant="outline" className="h-11 shrink-0" aria-label="Export" title="Export" onClick={() => download("leads.csv", csv([
-              ["name", "title", "company", "website", "email", "linkedin"],
-              ...people.map((person) => [person.name, person.title, person.company, customers.find((c) => c.id === person.customerId)?.url ?? "", person.email ?? "", person.linkedin]),
-            ]))}>
-              <Download className="size-4" aria-hidden="true" />
-            </Button>
-          )}
-          <AddDialog
-            title="New lead"
-            fields={[
-              { name: "name", placeholder: "Company name", required: true },
-              { name: "url", placeholder: "Website" },
-              ...(audiences.length ? [{ name: "audienceId", placeholder: "No audience", options: audiences.map((item) => ({ value: item.id, label: item.name })) }] : []),
-            ]}
-            onAdd={(values) => act({ action: "add", step: "customers", ...values })}
-          />
-        </>
-      }
-      empty={{ icon: Contact, title: "No leads yet" }}
-      card={(item) => ({
-        icon: <Favicon url={item.url} name={item.name} />,
-        title: item.name,
-        subtitle: contact(item),
-        placeholder: <Favicon url={item.url} name={item.name} large />,
-        onClick: item.url ? () => window.open(item.url, "_blank", "noopener,noreferrer") : undefined,
-        ariaLabel: `Open ${item.name}`,
-        menuLabel: `Options for ${item.name}`,
-      })}
-      itemActions={actionsFor}
-      row={(item) => ({
-        subtitle: contact(item),
-        trailing: audienceName(item.audienceId) ? <Badge variant="secondary" className="max-w-48 truncate rounded-full">{audienceName(item.audienceId)}</Badge> : undefined,
-      })}
-    />
-  )
-}
+export { Favicon as LeadFavicon }
 
 function FindEmailsButton({ act, label, ids, variant = "outline" }: { act: Act; label: string; ids?: string[]; variant?: "outline" | "link" }) {
   const [busy, setBusy] = useState(false)
