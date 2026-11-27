@@ -11,7 +11,7 @@ import { SocialIcon } from "@/components/company/social-icon"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { FLOW_STEPS, hostOf, type FlowState, type FlowStep } from "@/lib/marketing-flow"
+import { FLOW_STEPS, hostOf, type FlowState, type FlowStep, type Person } from "@/lib/marketing-flow"
 import { cn } from "@/lib/utils"
 
 /*
@@ -392,9 +392,24 @@ function LeadsList({ flow, act }: { flow: FlowState; act: Act }) {
   const customers = flow.customers ?? []
   if (!customers.length) return <Card><p className="text-sm text-muted-foreground">No matching companies turned up. Try redoing from Define audiences on Marketing Home.</p></Card>
   const people = flow.people ?? []
+  const withEmail = people.filter((person) => person.email).length
+  const unchecked = people.filter((person) => !person.email && person.emailSource !== "none").length
   return (
     <div className="space-y-4">
-      <p className="text-sm text-muted-foreground">{customers.length} companies · {people.length} decision makers</p>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-muted-foreground">{customers.length} companies · {people.length} decision makers · {withEmail} emails</p>
+        <div className="flex flex-wrap gap-2">
+          {unchecked > 0 && <FindEmailsButton act={act} label={`Find ${unchecked} ${unchecked === 1 ? "email" : "emails"}`} />}
+          {people.length > 0 && (
+            <Button type="button" size="sm" variant="outline" onClick={() => download("leads.csv", csv([
+              ["name", "title", "company", "website", "email", "linkedin"],
+              ...people.map((person) => [person.name, person.title, person.company, customers.find((c) => c.id === person.customerId)?.url ?? "", person.email ?? "", person.linkedin]),
+            ]))}>
+              <Download className="size-4" aria-hidden="true" /> Export
+            </Button>
+          )}
+        </div>
+      </div>
       {(flow.audiences ?? []).map((audience) => {
         const rows = customers.filter((item) => item.audienceId === audience.id)
         if (!rows.length) return null
@@ -426,6 +441,7 @@ function LeadsList({ flow, act }: { flow: FlowState; act: Act }) {
                               <a href={person.linkedin} target="_blank" rel="noreferrer" aria-label={`${person.name} on LinkedIn`}><SocialIcon platform="linkedin" /></a>
                             </p>
                             <p className="truncate text-xs text-muted-foreground">{person.title}</p>
+                            <PersonEmail person={person} act={act} />
                           </div>
                           <RemoveButton label={`Remove ${person.name}`} onClick={() => void act({ action: "remove", step: "people", id: person.id })} />
                         </div>
@@ -443,6 +459,49 @@ function LeadsList({ flow, act }: { flow: FlowState; act: Act }) {
       })}
     </div>
   )
+}
+
+function FindEmailsButton({ act, label, ids, variant = "outline" }: { act: Act; label: string; ids?: string[]; variant?: "outline" | "link" }) {
+  const [busy, setBusy] = useState(false)
+  async function find() {
+    setBusy(true)
+    await act({ action: "find-emails", ...(ids ? { ids } : {}) })
+    setBusy(false)
+  }
+  if (variant === "link") {
+    return (
+      <button type="button" disabled={busy} onClick={() => void find()} className="text-xs font-medium text-foreground underline-offset-2 hover:underline disabled:opacity-60">
+        {busy ? "Looking..." : label}
+      </button>
+    )
+  }
+  return (
+    <Button type="button" size="sm" disabled={busy} onClick={() => void find()}>
+      {busy ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <Mail className="size-4" aria-hidden="true" />} {busy ? "Finding..." : label}
+    </Button>
+  )
+}
+
+/** A decision maker's address, where it came from, or a way to look for one. */
+function PersonEmail({ person, act }: { person: Person; act: Act }) {
+  if (person.email) {
+    return (
+      <p className="mt-1 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs">
+        <button type="button" className="truncate font-medium text-foreground hover:underline" title="Copy" onClick={() => copy(person.email!)}>{person.email}</button>
+        <span className={cn("rounded px-1.5 py-0.5", person.emailSource === "hunter" && (person.emailScore ?? 0) >= 80 ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400" : "bg-background text-muted-foreground")}>
+          {person.emailSource === "website" ? "From their website" : person.emailScore !== undefined ? `${person.emailScore}% sure` : "Found"}
+        </span>
+      </p>
+    )
+  }
+  if (person.emailSource === "none") {
+    return (
+      <p className="mt-1 text-xs text-muted-foreground">
+        No email found. <FindEmailsButton act={act} ids={[person.id]} label="Look again" variant="link" />
+      </p>
+    )
+  }
+  return <p className="mt-1"><FindEmailsButton act={act} ids={[person.id]} label="Find email" variant="link" /></p>
 }
 
 /** Outreach: one email for each decision maker. */
@@ -499,7 +558,10 @@ function EmailCard({ email, person, act }: { email: NonNullable<FlowState["email
     <Card className="p-0">
       <div className="flex gap-4 border-b border-border px-5 py-3 text-sm">
         <span className="w-10 text-muted-foreground">To</span>
-        <span className="min-w-0 flex-1 truncate">{person?.name}{person && <span className="text-muted-foreground"> · {person.company}</span>}</span>
+        <span className="min-w-0 flex-1 truncate">
+          {person?.name}{person && <span className="text-muted-foreground"> · {person.company}</span>}
+          {person?.email ? <span className="block truncate text-muted-foreground">{person.email}</span> : person && <span className="block text-muted-foreground">No email address yet. Find one on Leads.</span>}
+        </span>
       </div>
       <div className="flex items-center gap-4 border-b border-border px-5 py-3 text-sm">
         <span className="w-10 text-muted-foreground">Subj</span>
@@ -522,7 +584,7 @@ function EmailCard({ email, person, act }: { email: NonNullable<FlowState["email
               <Button type="button" size="sm" variant="outline" onClick={() => setEditing(true)}><Pencil className="size-4" aria-hidden="true" /> Edit</Button>
               <Button type="button" size="sm" variant="outline" onClick={() => copy(`${email.subject}\n\n${email.body}`)}><Copy className="size-4" aria-hidden="true" /> Copy</Button>
               <Button asChild size="sm" variant="outline">
-                <a href={`mailto:?subject=${encodeURIComponent(email.subject)}&body=${encodeURIComponent(email.body)}`}><Mail className="size-4" aria-hidden="true" /> Open in email</a>
+                <a href={`mailto:${person?.email ? encodeURIComponent(person.email) : ""}?subject=${encodeURIComponent(email.subject)}&body=${encodeURIComponent(email.body)}`}><Mail className="size-4" aria-hidden="true" /> Open in email</a>
               </Button>
               <button type="button" className="ml-auto text-sm text-muted-foreground hover:text-foreground" onClick={() => void act({ action: "remove", step: "emails", id: email.id })}>Remove</button>
             </>

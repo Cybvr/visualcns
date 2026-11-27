@@ -31,7 +31,19 @@ export type Audience = { id: string; name: string; offer: string; pain: string; 
 
 export type Customer = { id: string; audienceId: string; name: string; url: string; description: string; country: string }
 
-export type Person = { id: string; customerId: string; name: string; title: string; company: string; linkedin: string }
+export type Person = {
+  id: string
+  customerId: string
+  name: string
+  title: string
+  company: string
+  linkedin: string
+  email?: string
+  /** hunter: the person's own address. website: published on the company's site. none: looked, found nothing. */
+  emailSource?: "hunter" | "website" | "none"
+  /** Hunter's confidence, 0 to 100. */
+  emailScore?: number
+}
 
 export type Email = { id: string; personId: string; subject: string; body: string }
 

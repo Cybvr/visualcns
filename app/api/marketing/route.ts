@@ -4,6 +4,7 @@ import { adminServices } from "@/lib/firebase-admin"
 import { FLOW_STEPS, isFlowStep, stepsAfter, type FlowState, type FlowStep } from "@/lib/marketing-flow"
 import { requireAgencyId } from "@/lib/require-agency-id"
 import { getAgencySecret, recordAgencyUsage } from "@/lib/server/agency-secrets"
+import { findEmails } from "@/lib/server/email-finder"
 import { runFlowStep } from "@/lib/server/marketing-flow"
 import { ensureSubscription } from "@/lib/server/paystack"
 import { currentPlan, PLANS, planAccess } from "@/lib/subscription"
@@ -53,6 +54,9 @@ async function resolveCaller(request: Request, companyId: string) {
   return { db, agencyId, companyId, isAdmin, website: typeof org.website === "string" ? org.website : "" }
 }
 
+/** Firestore refuses undefined fields. */
+const withoutUndefined = <T,>(value: T): T => JSON.parse(JSON.stringify(value)) as T
+
 const thisMonth = () => new Date().toISOString().slice(0, 7)
 
 type Stored = { flow?: FlowState; runMonth?: string; runsThisMonth?: number }
@@ -65,7 +69,7 @@ export async function GET(request: Request) {
   return json({ flow: stored?.flow ?? { website: caller.website } })
 }
 
-type Body = { companyId?: string; action?: string; step?: string; website?: string; id?: string; subject?: string; body?: string }
+type Body = { companyId?: string; action?: string; step?: string; website?: string; id?: string; ids?: unknown[]; subject?: string; body?: string }
 
 const REMOVABLE = ["customers", "people", "emails", "competitors"] as const
 
@@ -117,6 +121,33 @@ export async function POST(request: Request) {
     return json({ flow })
   }
 
+  // find-emails: look up addresses for decision makers that don't have one. ids limits it to some people.
+  if (body.action === "find-emails") {
+    if (!flow.people?.length) return json({ error: "Find decision makers first." }, 400)
+    const billing = isAdmin ? null : await ensureSubscription(db, agencyId, companyId)
+    if (billing && !planAccess(billing as Parameters<typeof planAccess>[0]).allowed) {
+      return json({ error: "Your plan is paused. Choose a plan to use Marketing again." }, 402)
+    }
+    const [hunter, firecrawl] = await Promise.all([
+      getAgencySecret(agencyId, "HUNTER_API_KEY", process.env.HUNTER_API_KEY || ""),
+      getAgencySecret(agencyId, "FIRECRAWL_API_KEY", process.env.FIRECRAWL_API_KEY || ""),
+    ])
+    if (!hunter && !firecrawl) return json({ error: "Email finding isn't set up yet. Add a Hunter or Firecrawl API key." }, 503)
+    const only = Array.isArray(body.ids) ? new Set(body.ids.map(String)) : null
+    // Asking again for one person looks again, even if the last look found nothing.
+    const targets = flow.people.filter((person) => (only ? only.has(person.id) : !person.email && person.emailSource !== "none"))
+    const fresh = targets.map(({ email: _email, emailSource: _source, emailScore: _score, ...person }) => person)
+    const found = await findEmails({ hunter, firecrawl }, fresh, flow.customers ?? [])
+    // An address found before is kept when a second look finds nothing.
+    flow.people = flow.people.map((person) => {
+      const update = found.find((item) => item.id === person.id)
+      return update && (update.email || !person.email) ? update : person
+    })
+    await ref.set({ flow: withoutUndefined({ ...flow, updatedAt: new Date().toISOString() }) }, { merge: true })
+    void recordAgencyUsage(agencyId, "marketingEmailLookups", targets.length).catch(() => undefined)
+    return json({ flow })
+  }
+
   if (body.action !== "run" || !isFlowStep(body.step)) return json({ error: "Unknown action." }, 400)
   const step: FlowStep = body.step
 
@@ -152,8 +183,13 @@ export async function POST(request: Request) {
   if (!openai) return json({ error: "The AI isn't set up yet. Add an OpenAI API key." }, 503)
 
   try {
-    const result = await runFlowStep({ firecrawl, openai }, step, flow)
-    const next: FlowState = { ...flow, [step]: result, updatedAt: new Date().toISOString() }
+    let result = await runFlowStep({ firecrawl, openai }, step, flow)
+    // Decision makers come with their email addresses where they can be found.
+    if (step === "people") {
+      const hunter = await getAgencySecret(agencyId, "HUNTER_API_KEY", process.env.HUNTER_API_KEY || "")
+      result = (await findEmails({ hunter, firecrawl }, result as NonNullable<FlowState["people"]>, flow.customers ?? [])) as typeof result
+    }
+    const next: FlowState = withoutUndefined({ ...flow, [step]: result, updatedAt: new Date().toISOString() })
     for (const later of stepsAfter(step)) delete next[later]
     // set without merge, so cleared steps are really gone.
     await ref.set({ agencyId, companyId, flow: next, runMonth: thisMonth(), runsThisMonth: runs, updatedAt: FieldValue.serverTimestamp() })
