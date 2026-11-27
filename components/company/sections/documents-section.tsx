@@ -118,7 +118,6 @@ export function DocumentsSection({ view = "documents" }: { view?: "documents" | 
           heading="Assets"
           emptyTitle="No assets yet"
           addKinds={[]}
-          emptyDescription="Images and videos, uploaded here or added to campaigns, will appear here."
           onSelect={() => {}}
           canAdd={false}
           extraEntries={withLightbox([...files.entries.filter((entry) => entry.media), ...campaignMedia.entries])}

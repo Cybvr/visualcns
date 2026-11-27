@@ -20,7 +20,7 @@ export const SectionAddButton = forwardRef<HTMLButtonElement, SectionAddButtonPr
         type="button"
         aria-label={label}
         title={label}
-        className={cn(buttonVariants(), "h-11 shrink-0 gap-0 px-5", className)}
+        className={cn(buttonVariants({ variant: "ghost" }), "h-11 shrink-0 gap-1 rounded-full bg-sidebar-accent px-3 text-sm font-semibold text-sidebar-accent-foreground hover:bg-sidebar-accent/80 active:bg-sidebar-accent/80 [&>svg]:size-[18px]", className)}
         {...props}
       >
         <Plus className="size-4" aria-hidden="true" />
