@@ -24,8 +24,8 @@ type Step = "idle" | "queued" | "working" | "done" | "failed"
 const PARTS: { key: PartKey; label: string }[] = [
   { key: "announcement", label: "Announcement post" },
   { key: "hooks", label: "Hooks" },
-  { key: "rosterTarget", label: "Creator target" },
-  { key: "creatorSuggestions", label: "Creator research" },
+  { key: "rosterTarget", label: "Lead target" },
+  { key: "creatorSuggestions", label: "Lead research" },
   { key: "tasks", label: "Tasks" },
 ]
 

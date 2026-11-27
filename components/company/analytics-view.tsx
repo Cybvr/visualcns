@@ -27,7 +27,7 @@ const analyticsRanges: Array<{ value: AnalyticsRange; label: string; days: numbe
 ]
 
 const creatorChartConfig = {
-  creators: { label: "Creators", color: "var(--chart-1)" },
+  creators: { label: "Leads", color: "var(--chart-1)" },
 } satisfies ChartConfig
 
 const contentChartConfig = {
@@ -35,17 +35,17 @@ const contentChartConfig = {
 } satisfies ChartConfig
 
 const platformChartConfig = {
-  creators: { label: "Creators", color: "var(--chart-1)" },
+  creators: { label: "Leads", color: "var(--chart-1)" },
 } satisfies ChartConfig
 
 const campaignChartConfig = {
-  creators: { label: "Creators", color: "var(--chart-1)" },
+  creators: { label: "Leads", color: "var(--chart-1)" },
   posts: { label: "Posts", color: "var(--chart-2)" },
 } satisfies ChartConfig
 
 const creatorPaymentChartConfig = {
-  paid: { label: "Creators paid", color: "var(--chart-1)" },
-  outstanding: { label: "Creator payments due", color: "var(--chart-3)" },
+  paid: { label: "Leads paid", color: "var(--chart-1)" },
+  outstanding: { label: "Lead payments due", color: "var(--chart-3)" },
 } satisfies ChartConfig
 
 const billingChartConfig = {
@@ -304,7 +304,7 @@ export function AnalyticsView({
   const stats = [
     { value: outstandingValue, label: "Outstanding invoices", danger: hasOutstanding },
     { value: hasReachData ? compactNumber(totalReach) : "—", label: "Potential reach", danger: false },
-    { value: `${livePosts}/${scopedPeople.length}`, label: "Creators posted", danger: false },
+    { value: `${livePosts}/${scopedPeople.length}`, label: "Leads posted", danger: false },
     { value: `${approvedPosts}/${scopedContent.length}`, label: "Posts approved", danger: false },
   ]
   const hasPeopleOutsideRange = scopePeople.length > 0 && allScopedPeople.length === 0
@@ -385,12 +385,12 @@ export function AnalyticsView({
         )}
 
         <section className="rounded-2xl border border-border p-5 sm:p-6">
-          <SectionHeader as="h3" title="Creator pipeline" />
+          <SectionHeader as="h3" title="Lead pipeline" />
           <p className="mt-1 text-sm text-muted-foreground">
-            {isCompany ? "Where rostered creators are across campaigns." : "Where rostered creators are in the campaign."}
+            {isCompany ? "Where leads are across campaigns." : "Where leads are in the campaign."}
           </p>
           {scopedPeople.length === 0 ? (
-            <EmptyChart>{term && allScopedPeople.length ? "No creators match your search." : hasPeopleOutsideRange ? "No creators in this period." : "Add creators to see their progress."}</EmptyChart>
+            <EmptyChart>{term && allScopedPeople.length ? "No leads match your search." : hasPeopleOutsideRange ? "No leads in this period." : "Add leads to see their progress."}</EmptyChart>
           ) : (
             <ChartContainer id={`${scopeId}-creator-pipeline`} config={creatorChartConfig} className="mt-6 min-h-60 w-full">
               <BarChart accessibilityLayer data={creatorData} layout="vertical" margin={{ left: 4, right: 16 }}>
@@ -477,9 +477,9 @@ export function AnalyticsView({
         </section>
 
         <section className="rounded-2xl border border-border p-5 sm:p-6 xl:col-span-2">
-          <SectionHeader as="h3" title="Creator payments" />
+          <SectionHeader as="h3" title="Lead payments" />
           {creatorPaymentData.length === 0 ? (
-            <EmptyChart>{term && allScopedPeople.some((person) => Math.max(0, person.pay || 0) > 0) ? "No payments match your search." : hasCreatorPaymentsOutsideRange ? "No creator payments in this period." : "Add creator fees to track payments."}</EmptyChart>
+            <EmptyChart>{term && allScopedPeople.some((person) => Math.max(0, person.pay || 0) > 0) ? "No payments match your search." : hasCreatorPaymentsOutsideRange ? "No lead payments in this period." : "Add lead fees to track payments."}</EmptyChart>
           ) : (
             <ChartContainer
               id={`${scopeId}-creator-payments`}
@@ -508,9 +508,9 @@ export function AnalyticsView({
         </section>
 
         <section className="rounded-2xl border border-border p-5 sm:p-6 xl:col-span-2">
-          <SectionHeader as="h3" title="Creators by platform" />
+          <SectionHeader as="h3" title="Leads by platform" />
           {platformData.length === 0 ? (
-            <EmptyChart>{term && allScopedPeople.length ? "No platforms match your search." : hasPeopleOutsideRange ? "No creators in this period." : "Add creators to compare platforms."}</EmptyChart>
+            <EmptyChart>{term && allScopedPeople.length ? "No platforms match your search." : hasPeopleOutsideRange ? "No leads in this period." : "Add leads to compare platforms."}</EmptyChart>
           ) : (
             <ChartContainer
               id={`${scopeId}-platforms`}

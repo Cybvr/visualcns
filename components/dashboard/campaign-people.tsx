@@ -107,7 +107,7 @@ export function CampaignPeople({ people, agencyId, companyId, projectId, project
     const href = profileUrl(person)
     const canAdd = !onRoster(person) && (canEdit || canReview)
     return {
-      noun: "creator",
+      noun: "lead",
       name: person.handle,
       onOpen: href ? () => window.open(href, "_blank", "noopener,noreferrer") : undefined,
       extra: (canEdit || canAdd) && (
@@ -139,7 +139,7 @@ export function CampaignPeople({ people, agencyId, companyId, projectId, project
         items={sorted}
         getKey={(person) => person.id}
         searchFields={(person) => [person.handle, person.app, person.category, person.status, person.opening ?? ""]}
-        searchPlaceholder="Search creators"
+        searchPlaceholder="Search leads"
         viewKey="campaign-creators-inline"
         initialView="list"
         filters={roles.length > 1 && (
@@ -153,7 +153,7 @@ export function CampaignPeople({ people, agencyId, companyId, projectId, project
         )}
         actions={
           <>
-            {canEdit && <SectionAddButton label="New creator" disabled={adding} onClick={() => setAdding(true)} />}
+            {canEdit && <SectionAddButton label="New lead" disabled={adding} onClick={() => setAdding(true)} />}
           </>
         }
         before={canEdit && adding ? (
@@ -163,9 +163,8 @@ export function CampaignPeople({ people, agencyId, companyId, projectId, project
         ) : undefined}
         empty={{
           icon: Users,
-          title: "No creators yet",
-          description: "Add creators one by one.",
-          action: canEdit ? <SectionAddButton label="New creator" onClick={() => setAdding(true)} /> : undefined,
+          title: "No leads yet",
+          action: canEdit ? <SectionAddButton label="New lead" onClick={() => setAdding(true)} /> : undefined,
         }}
         card={(person) => {
           const status = personStatusLabel(person)
@@ -222,7 +221,7 @@ const ALL_ROLES = "__all"
 
 /** The opening they applied for, or Creators for everyone who posts. */
 function roleOf(person: CampaignPerson) {
-  return person.opening || "Creators"
+  return person.opening || "Leads"
 }
 
 const PLATFORM_ICONS: Record<string, IconType> = {
@@ -263,9 +262,9 @@ function CreatorListRow({
       <div className="min-w-0 flex-1">
         <div className="flex min-w-0 items-center gap-2">
           <button type="button" onClick={onOpen} className="truncate text-left text-sm font-semibold text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:text-base">{person.handle}</button>
-          <span className="hidden truncate text-xs text-muted-foreground sm:inline">{person.opening || person.category || "Creator"}</span>
+          <span className="hidden truncate text-xs text-muted-foreground sm:inline">{person.opening || person.category || "Lead"}</span>
         </div>
-        <p className="mt-0.5 truncate text-xs text-muted-foreground">{meta || "Creator"}</p>
+        <p className="mt-0.5 truncate text-xs text-muted-foreground">{meta || "Lead"}</p>
         <div className="mt-2 flex flex-wrap gap-1.5">
           {profileHref && PlatformIcon && <a href={profileHref} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label={`Open ${person.app} profile`} title={`Open ${person.app} profile`}><PlatformIcon className="size-4" /></a>}
         </div>
@@ -343,7 +342,7 @@ function AddCreatorRow({ scope, onDone, onCancel }: { scope: Scope; onDone: () =
         <input value={pay} onChange={(event) => setPay(event.target.value)} placeholder="Pay" inputMode="numeric" aria-label="Pay" className={fieldClass} />
       </div>
       <Button type="button" variant="ghost" onClick={onCancel} disabled={busy}>Cancel</Button>
-      <Button type="submit" disabled={busy || !normalizeHandle(handle)}>Add creator</Button>
+      <Button type="submit" disabled={busy || !normalizeHandle(handle)}>Add lead</Button>
     </form>
   )
 }
@@ -354,8 +353,8 @@ function CreatorDialog({ person, onClose }: { person: CampaignPerson | null; onC
     <Dialog open={Boolean(person)} onOpenChange={(next) => { if (!next) onClose() }}>
       <DialogContent className="max-h-[85vh] max-w-md overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Edit {person?.handle ?? "creator"}</DialogTitle>
-          <DialogDescription className="sr-only">Change this creator&apos;s details.</DialogDescription>
+          <DialogTitle>Edit {person?.handle ?? "lead"}</DialogTitle>
+          <DialogDescription className="sr-only">Change this lead&apos;s details.</DialogDescription>
         </DialogHeader>
         {person && <CreatorForm key={person.id} person={person} onDone={onClose} />}
       </DialogContent>

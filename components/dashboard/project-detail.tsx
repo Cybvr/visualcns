@@ -394,7 +394,7 @@ export function ProjectDetail({
   const sections = [
     ...(embedded ? [] : [{ key: "home", label: "Home", icon: MdHome }]),
     { key: "about", label: "About campaign", icon: MdDescription },
-    ...(embedded ? [] : [{ key: "people", label: "Creators", count: roster.length, icon: MdPeople }]),
+    ...(embedded ? [] : [{ key: "people", label: "Leads", count: roster.length, icon: MdPeople }]),
     ...(embedded ? [] : [{ key: "creatives", label: "Content", count: contentItems.length, icon: MdPalette }]),
     ...(embedded ? [] : [
       { key: "media", label: "Drive", count: mediaItems.length, icon: MdPhotoLibrary },

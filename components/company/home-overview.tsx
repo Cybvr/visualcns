@@ -36,7 +36,7 @@ export function HomeOverview() {
   ), [company.id])
 
   if (posts.length === 0 && creators.length === 0) {
-    return <p className="text-sm text-muted-foreground">Posts and creators from this company&apos;s campaigns will show here.</p>
+    return null
   }
 
   return (

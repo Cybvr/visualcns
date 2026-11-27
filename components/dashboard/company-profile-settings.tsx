@@ -106,7 +106,7 @@ export function CompanyProfileSettings() {
       </div>
 
       <div className="space-y-3 border-t border-border pt-5">
-        <h3 className="text-sm font-medium">Creator defaults</h3>
+        <h3 className="text-sm font-medium">Lead defaults</h3>
         <CreatorDefaultsForm companyId={workspaceId} saved={organization?.creatorDefaults} onSaved={reload} />
       </div>
 

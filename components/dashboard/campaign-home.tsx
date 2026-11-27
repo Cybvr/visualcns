@@ -63,7 +63,7 @@ export function CampaignHome({
         <section aria-label="Campaign actions" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           {[
             { action: "run" as const, label: "Run Campaign", icon: Megaphone },
-            { action: "creator" as const, label: "New Creator", icon: UserPlus },
+            { action: "creator" as const, label: "New Lead", icon: UserPlus },
             { action: "post" as const, label: "New Post", icon: PenLine },
             { action: "media" as const, label: "New Media", icon: Images },
           ].map(({ action, label, icon: Icon }) => (

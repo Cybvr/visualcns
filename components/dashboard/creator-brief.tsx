@@ -112,7 +112,7 @@ export function CreatorsJobFields({ value, onChange }: { value: CreatorBrief; on
       <DateField label="Apply by" value={value.registerBy} onChange={(registerBy) => set({ registerBy })} />
       <OfferField value={value} onChange={set} />
       <div className="space-y-4">
-        <p className="text-sm font-medium">Creators</p>
+        <p className="text-sm font-medium">Leads</p>
         <div className="grid gap-4 sm:grid-cols-3">
           <Pick label="Gender" value={value.gender} options={BRIEF_GENDERS} onChange={(gender) => set({ gender })} />
           <Pick label="Age" value={value.age} options={BRIEF_AGES} onChange={(age) => set({ age })} />
@@ -192,8 +192,8 @@ function OfferField({ value, onChange }: { value: CreatorBrief; onChange: Patch 
             inputMode="numeric"
             value={value.offerAmount || ""}
             onChange={(event) => onChange({ offerAmount: Math.max(0, Math.round(Number(event.target.value) || 0)) })}
-            placeholder="Amount per creator"
-            aria-label="Amount per creator"
+            placeholder="Amount per lead"
+            aria-label="Amount per lead"
           />
         </div>
       )}
@@ -233,7 +233,7 @@ function ContentFields({ value, onChange }: { value: CreatorBrief; onChange: Pat
 function CreatorFields({ value, onChange, compact = false }: { value: CreatorBrief; onChange: Patch; compact?: boolean }) {
   return (
     <div className="space-y-4">
-      {!compact && <p className="text-sm font-medium">Creators</p>}
+      {!compact && <p className="text-sm font-medium">Leads</p>}
       <div className="grid gap-4 sm:grid-cols-3">
         <Pick label="Gender" value={value.gender} options={BRIEF_GENDERS} onChange={(gender) => onChange({ gender })} />
         <Pick label="Age" value={value.age} options={BRIEF_AGES} onChange={(age) => onChange({ age })} />
@@ -354,7 +354,7 @@ export function CreatorBriefSummary({ brief, brand, hideOffer = false, shared = 
         {creators && !hideOffer && formatOffer(brief) && <Fact label="Offer" icon={Wallet}>{formatOffer(brief)}</Fact>}
         {creators && content && <Fact label="Content" icon={Clapperboard}>{content}</Fact>}
         {creators && brief.registerBy && <Fact label="Apply by" icon={CalendarClock}>{formatBriefDate(brief.registerBy)}</Fact>}
-        {creators && (!shared || brief.showCreatorDetails) && who && <Fact label="Creators" icon={Users}>{who}</Fact>}
+        {creators && (!shared || brief.showCreatorDetails) && who && <Fact label="Leads" icon={Users}>{who}</Fact>}
         {creators && !hideOffer && <Fact label="Payment" icon={CreditCard}>{brief.paymentMethod}</Fact>}
         {creators && !shared && brief.paidAds && <Fact label="Paid ads" icon={Megaphone}>Yes</Fact>}
       </dl>

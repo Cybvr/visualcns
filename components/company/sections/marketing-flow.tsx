@@ -586,7 +586,7 @@ function AudiencesList({ flow, act }: { flow: FlowState; act: Act }) {
     <div className="space-y-4">
       <Card>
         <AddForm
-          fields={[{ name: "name", placeholder: "e.g. 30 year old restaurant owners in Lagos", required: true }]}
+          fields={[{ name: "name", placeholder: "Add an audience", required: true }]}
           onAdd={(values) => act({ action: "add", step: "audiences", ...values })}
         />
       </Card>
@@ -629,7 +629,7 @@ function KeywordsList({ flow, act }: { flow: FlowState; act: Act }) {
           <Button type="submit" disabled={!value.trim()}>Add</Button>
         </form>
         <Label className="mt-5">Your keywords</Label>
-        {mine.length ? (
+        {mine.length > 0 && (
           <ul className="mt-2 flex flex-wrap gap-2">
             {mine.map((item) => (
               <li key={item} className={cn(BADGE, "pr-1.5")}>
@@ -640,8 +640,6 @@ function KeywordsList({ flow, act }: { flow: FlowState; act: Act }) {
               </li>
             ))}
           </ul>
-        ) : (
-          <p className="mt-2 text-sm text-muted-foreground">None yet.</p>
         )}
       </Card>
       {found.length > 0 && (

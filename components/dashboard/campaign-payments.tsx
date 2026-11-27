@@ -81,7 +81,7 @@ export function CampaignPayments({ people, invoices, canEdit, invoiceHref }: Cam
       viewKey="campaign-payments"
       before={
         <div className="mt-4 grid grid-cols-3 gap-3">
-          <Tile label="Creators total" value={sumByCurrency(paidPeople)} />
+          <Tile label="Leads total" value={sumByCurrency(paidPeople)} />
           <Tile label="Paid" value={sumByCurrency(paidPeople.filter((person) => person.paid))} />
           <Tile label="Still to pay" value={sumByCurrency(paidPeople.filter((person) => !person.paid))} />
         </div>
@@ -101,13 +101,13 @@ export function CampaignPayments({ people, invoices, canEdit, invoiceHref }: Cam
       date={(entry) => entry.kind === "creator" ? entry.person.updatedAt ?? entry.person.createdAt : entry.invoice.updatedAt ?? entry.invoice.createdAt}
       itemActions={(entry) => entry.kind === "creator"
         ? {
-          noun: "creator",
+          noun: "lead",
           name: entry.title,
           extra: canEdit ? <DropdownMenuItem onSelect={() => open(entry)}>{entry.person.paid ? "Mark as not paid" : "Mark as paid"}</DropdownMenuItem> : undefined,
         }
         : { noun: "invoice", name: entry.title, onOpen: invoiceHref ? () => open(entry) : undefined }}
       // The amount goes with the kind and status, so the right side is always the date.
-      row={(entry) => ({ subtitle: `${entry.kind === "creator" ? "Creator" : "Invoice"} · ${entry.status} · ${entry.amount}` })}
+      row={(entry) => ({ subtitle: `${entry.kind === "creator" ? "Lead" : "Invoice"} · ${entry.status} · ${entry.amount}` })}
     />
   )
 }

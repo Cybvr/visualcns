@@ -518,7 +518,7 @@ export function CampaignPostViewDialog({
 
   if (!open || !post) return null
   const menuActions = actions?.(() => setEditing(true))
-  const brandName = post.postedBy === "Roster" ? "Creators" : brand.name || "Post"
+  const brandName = post.postedBy === "Roster" ? "Leads" : brand.name || "Post"
 
   return (
     <div
@@ -596,7 +596,7 @@ export function CampaignPostViewDialog({
               <Bookmark className="size-7 shrink-0 text-foreground" strokeWidth={2} aria-hidden="true" />
             </div>
             <div className={cn("mt-3 break-words text-sm leading-5 text-foreground", !captionOpen && "line-clamp-3")}>
-              <PostCaption name={post.postedBy === "Roster" ? "Creators" : brand.name || "Post"} body={post.body} />
+              <PostCaption name={post.postedBy === "Roster" ? "Leads" : brand.name || "Post"} body={post.body} />
             </div>
             {!captionOpen && (post.body?.trim().length ?? 0) > 120 && (
               <button type="button" onClick={() => setCaptionOpen(true)} className="mt-0.5 text-[15px] text-muted-foreground outline-none">more</button>
@@ -652,7 +652,7 @@ export function CampaignPostViewDialog({
               <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-5">
                 <div className="flex gap-3 text-sm leading-6 text-foreground">
                   <BrandAvatar className="mt-0.5 size-6" />
-                  <div className="min-w-0 break-words text-sm leading-5"><PostCaption name={post.postedBy === "Roster" ? "Creators" : brand.name || "Post"} body={post.body} /></div>
+                  <div className="min-w-0 break-words text-sm leading-5"><PostCaption name={post.postedBy === "Roster" ? "Leads" : brand.name || "Post"} body={post.body} /></div>
                 </div>
               </div>
               <footer className="shrink-0 border-t border-border px-5 py-4">

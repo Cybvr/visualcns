@@ -56,7 +56,7 @@ const STARTING_OPTIONS: Record<Exclude<NgaiScope["kind"], "app">, string[]> = {
   campaign: [
     "What's left to do on this campaign?",
     "Draft three post ideas for it",
-    "Suggest creators who fit it",
+    "Suggest leads who fit it",
     "How is it going so far?",
   ],
 }

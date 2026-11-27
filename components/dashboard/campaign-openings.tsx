@@ -61,7 +61,7 @@ export function CampaignOpeningsForm({
   return (
     <div className="space-y-4">
       {brief.hireCreators && (
-        <JobCard title="Creators" defaultOpen={!creatorsSaved} linkReady={creatorsSaved} onView={() => viewPost(CREATORS_ROLE)} onShare={() => setSharing({ id: CREATORS_ROLE, title: "Creators" })} onCopyLink={() => void copyLink(CREATORS_ROLE)} onRemove={() => onBriefChange({ hireCreators: false })}>
+        <JobCard title="Leads" defaultOpen={!creatorsSaved} linkReady={creatorsSaved} onView={() => viewPost(CREATORS_ROLE)} onShare={() => setSharing({ id: CREATORS_ROLE, title: "Creators" })} onCopyLink={() => void copyLink(CREATORS_ROLE)} onRemove={() => onBriefChange({ hireCreators: false })}>
           <CreatorsJobFields value={brief} onChange={onBriefChange} />
         </JobCard>
       )}
