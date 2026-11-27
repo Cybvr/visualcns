@@ -69,8 +69,8 @@ export interface CompanyPageAdmin {
   /** Attach a contact to this company (if needed) and make them the primary contact. */
   onSelectPrimaryContact?: (contactId: string) => Promise<void>
   reload: () => Promise<void>
-  /** Logo, name, public address and delete, shown at the top of About. */
-  profileSettings?: ReactNode
+  /** Removes the client's account; offered as Delete client in the header menu. */
+  onDeleteClient?: () => Promise<void>
 }
 
 export interface CompanyPageData {

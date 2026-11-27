@@ -3,13 +3,23 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
-import { ArrowLeft, ExternalLink, Mail, MoreVertical } from "lucide-react"
+import { ArrowLeft, ExternalLink, Mail, MoreVertical, Trash2 } from "lucide-react"
 
 import { Ngai } from "@/components/agent/ngai"
 import { ArtifactTitleMenu } from "@/components/agent/artifact-title-menu"
 import { ShareDialog } from "@/components/dashboard/share-dialog"
 import { deleteOrganization } from "@/lib/organizations"
 import { Button } from "@/components/ui/button"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 import {
   CompanyPageProvider,
@@ -19,7 +29,7 @@ import {
 import { SectionNav } from "@/components/company/section-nav"
 import { CompanySection } from "@/components/company/sections/company-section"
 import { useClientOpen, useHideHeader, usePageHeaderActions, usePageHeaderBack, usePageHeaderTitle } from "@/components/dashboard/page-title-context"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { buildEmailComposeHref } from "@/lib/email-composer"
 import { cn } from "@/lib/utils"
 
@@ -72,6 +82,26 @@ function DashboardCompanyView({ embedded = false, onBack }: { embedded?: boolean
   // `admin` is rebuilt on every render, so the header actions depend on its
   // share path instead. Depending on the object caused a render loop.
   const sharePath = admin?.sharePath
+  const onDeleteClient = admin?.onDeleteClient
+  const [pendingDelete, setPendingDelete] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
+  const deleteRef = useRef(onDeleteClient)
+  deleteRef.current = onDeleteClient
+  const canDelete = Boolean(onDeleteClient)
+
+  async function handleDelete() {
+    if (deleting || !deleteRef.current) return
+    setDeleting(true)
+    setDeleteError(null)
+    try {
+      await deleteRef.current()
+    } catch (error) {
+      console.error("Error deleting company:", error)
+      setDeleteError(error instanceof Error ? error.message : "The company could not be removed.")
+      setDeleting(false)
+    }
+  }
   const recipientEmail = primaryContact?.adminUser?.email
   const recipientName = primaryContact?.adminUser?.displayName || primaryContact?.name
 
@@ -110,14 +140,51 @@ function DashboardCompanyView({ embedded = false, onBack }: { embedded?: boolean
                 Open page
               </Link>
             </DropdownMenuItem>
+            {canDelete && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem variant="destructive" onSelect={() => setPendingDelete(true)}>
+                  <Trash2 className="size-4" aria-hidden="true" />
+                  Delete client
+                </DropdownMenuItem>
+              </>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
     )
-  }, [sharePath, company.id, company.name, recipientEmail, recipientName])
+  }, [sharePath, company.id, company.name, recipientEmail, recipientName, canDelete])
 
   usePageHeaderActions(headerActions)
   useClientOpen(Boolean(sharePath))
+
+  const deleteDialog = canDelete ? (
+    <AlertDialog open={pendingDelete} onOpenChange={(open) => { if (!open && !deleting) { setPendingDelete(false); setDeleteError(null) } }}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Remove company?</AlertDialogTitle>
+          <AlertDialogDescription>
+            This removes {company.name || "this company"}&apos;s account. Their projects, tasks, and documents will remain in the
+            database, but the company will no longer appear here. This cannot be undone.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        {deleteError && <p className="text-sm text-destructive">{deleteError}</p>}
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+          <AlertDialogAction
+            disabled={deleting}
+            onClick={(event) => {
+              event.preventDefault()
+              void handleDelete()
+            }}
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+          >
+            {deleting ? "Removing…" : "Remove Company"}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  ) : null
 
   const publicHref = `/${encodeURIComponent(company.slug || company.id)}`
   if (withNgai) {
@@ -155,6 +222,7 @@ function DashboardCompanyView({ embedded = false, onBack }: { embedded?: boolean
             <CompanySection section={section} />
           </div>
         </section>
+        {deleteDialog}
       </main>
     )
   }
@@ -180,6 +248,7 @@ function DashboardCompanyView({ embedded = false, onBack }: { embedded?: boolean
       </div>
 
       {admin && !embedded && <div className="h-[calc(4.5rem+env(safe-area-inset-bottom))] md:hidden" aria-hidden="true" />}
+      {deleteDialog}
     </main>
   )
 }
