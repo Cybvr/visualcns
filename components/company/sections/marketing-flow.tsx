@@ -172,7 +172,7 @@ export function MarketingFlowSection() {
       {!started || editingSite ? (
         <form onSubmit={start} className="mx-auto flex max-w-xl flex-col items-center py-10 text-center sm:py-16">
           <h2 className="text-4xl font-semibold leading-tight tracking-tight sm:text-5xl">
-            Turn your website into <span className="text-emerald-600 dark:text-emerald-400">customers</span>
+            Turn your website into customers
           </h2>
           <ul className="mt-6 flex flex-wrap justify-center gap-2" aria-label="What you get">
             {["Audiences", "Leads", "Emails", "Posts", "Ads"].map((item) => (
