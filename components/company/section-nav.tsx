@@ -21,9 +21,16 @@ interface SectionNavProps<K extends string> {
   /** On phones, show only this many tabs and put the rest under More. */
   phoneVisible?: number
   vertical?: boolean
+  /** Rounded segmented tabs, with the active one filled. */
+  pill?: boolean
 }
 
-function tabClass(active: boolean, vertical = false) {
+function tabClass(active: boolean, vertical = false, pill = false) {
+  if (pill) {
+    return `flex h-11 flex-1 shrink-0 items-center justify-center rounded-full px-5 text-[15px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+      active ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"
+    }`
+  }
   if (vertical) {
     return `flex w-full items-center rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
       active ? "bg-muted text-foreground" : ""
@@ -35,25 +42,28 @@ function tabClass(active: boolean, vertical = false) {
 }
 
 /** Plain text tab nav, shared by the company dashboard page and the public page on phones. */
-export function SectionNav<K extends string>({ sections, active, href, className, phoneVisible, vertical = false }: SectionNavProps<K>) {
+export function SectionNav<K extends string>({ sections, active, href, className, phoneVisible, vertical = false, pill = false }: SectionNavProps<K>) {
   const overflow = phoneVisible !== undefined && sections.length > phoneVisible + 1 ? sections.slice(phoneVisible) : []
   const overflowActive = overflow.find((s) => s.key === active)
   return (
-    <nav className={cn(vertical ? "flex flex-col gap-1" : "scrollbar-none flex items-end justify-start gap-1 overflow-x-auto px-2 text-sm md:px-4", className)}>
+    <nav className={cn(
+      vertical ? "flex flex-col gap-1" : pill ? "scrollbar-none flex items-center gap-1 overflow-x-auto rounded-full bg-muted p-1" : "scrollbar-none flex items-end justify-start gap-1 overflow-x-auto px-2 text-sm md:px-4",
+      className,
+    )}>
       {sections.map((s) => (
         <Link
           key={s.key}
           href={href(s.key)}
           scroll={false}
           aria-current={active === s.key ? "page" : undefined}
-          className={cn(tabClass(active === s.key, vertical), overflow.includes(s) && "max-sm:hidden")}
+          className={cn(tabClass(active === s.key, vertical, pill), overflow.includes(s) && "max-sm:hidden")}
         >
           {s.label}
         </Link>
       ))}
       {overflow.length > 0 && (
         <DropdownMenu>
-          <DropdownMenuTrigger className={cn(tabClass(Boolean(overflowActive)), "inline-flex items-center gap-1 sm:hidden")}>
+          <DropdownMenuTrigger className={cn(tabClass(Boolean(overflowActive), false, pill), "inline-flex items-center gap-1 sm:hidden")}>
             {overflowActive?.label ?? "More"}
             <MoreHorizontal className="size-4" aria-hidden="true" />
           </DropdownMenuTrigger>

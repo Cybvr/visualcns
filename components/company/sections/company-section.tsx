@@ -44,7 +44,7 @@ function HomeActivitySection() {
   const { mode } = useCompanyPage()
   if (mode !== "tabs") return <ActivitySection />
   return (
-    <div className="mx-auto mt-5 min-w-0 max-w-xl">
+    <div className="mx-auto mt-2 min-w-0 max-w-xl pb-28">
       <AboutSection singleColumn />
       <div className="mt-10 empty:hidden">
         <HomeOverview />

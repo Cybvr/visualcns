@@ -218,12 +218,13 @@ export function CompanyProfileSettings() {
         </label>
       </section>
 
-      <div className="sticky bottom-4 z-10">
+      {/* Pinned to the bottom of the screen for the whole page, not just this section. */}
+      <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 bg-gradient-to-t from-background via-background/80 to-transparent px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-6 lg:left-auto lg:right-6 lg:w-[min(36rem,calc(100vw-24rem))] lg:bg-none lg:px-0">
         <button
           type="button"
           onClick={() => void save()}
           disabled={!dirty || saving}
-          className="h-14 w-full rounded-full bg-foreground text-base font-semibold text-background shadow-lg outline-none transition-opacity focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
+          className="pointer-events-auto h-14 w-full rounded-full bg-foreground text-base font-semibold text-background shadow-lg outline-none transition-opacity focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
         >
           {saving ? "Saving…" : "Save changes"}
         </button>

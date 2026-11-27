@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
-import { ArrowLeft, ExternalLink, Mail, MoreVertical, Trash2 } from "lucide-react"
+import { ArrowLeft, ExternalLink, Mail, MoreHorizontal, Trash2 } from "lucide-react"
 
 import { Ngai } from "@/components/agent/ngai"
 import { ArtifactTitleMenu } from "@/components/agent/artifact-title-menu"
@@ -60,13 +60,15 @@ function DashboardCompanyView({ embedded = false, onBack }: { embedded?: boolean
   const campaignOpen = Boolean(campaignTitle)
   const latest = useRef({ updateParams, onBack })
   latest.current = { updateParams, onBack }
-  const headerTitle = phone ? (campaignTitle ?? company.name) : null
+  const headerTitle = phone ? (campaignTitle ?? null) : null
   const headerBack = useMemo(() => {
     if (!phone) return null
     if (campaignOpen) return { label: "Back to campaigns", onClick: () => latest.current.updateParams({ campaign: null, view: null, task: null }) }
     return onBack ? { label: "Back to companies", onClick: () => latest.current.onBack?.() } : null
   }, [phone, campaignOpen, onBack])
-  usePageHeaderTitle(useMemo(() => headerTitle ? <span className="block truncate">{headerTitle}</span> : null, [headerTitle]))
+  usePageHeaderTitle(useMemo(() => headerTitle
+    ? <span className="block truncate">{headerTitle}</span>
+    : phone ? <span className="sr-only">{company.name}</span> : null, [headerTitle, phone, company.name]))
   usePageHeaderBack(headerBack)
 
   // The dashboard sidebar stays as it is; the company's sections are tabs above its content.
@@ -115,9 +117,9 @@ function DashboardCompanyView({ embedded = false, onBack }: { embedded?: boolean
               type="button"
               aria-label="More actions"
               title="More actions"
-              className="flex size-10 items-center justify-center rounded-full bg-transparent text-current outline-none transition-colors hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring"
+              className="flex size-[52px] shrink-0 items-center justify-center rounded-full bg-muted text-foreground outline-none transition-colors hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring"
             >
-              <MoreVertical className="size-5" aria-hidden="true" />
+              <MoreHorizontal className="size-5" aria-hidden="true" />
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
@@ -212,10 +214,14 @@ function DashboardCompanyView({ embedded = false, onBack }: { embedded?: boolean
           <ShareDialog showTrigger={false} open={sharing} onOpenChange={setSharing} path={publicHref} title={company.name} />
         </aside>
         <section className="flex min-w-0 flex-col lg:min-h-0">
-          {/* The company's tabs, edge to edge like an open document's toolbar. */}
-          <div className={cn("sticky top-0 z-30 flex h-14 shrink-0 items-center gap-2 border-b border-border bg-background px-3 print:hidden lg:px-4", campaignOpen && "max-sm:hidden")}>
+          {/* The company's name, then its tabs as rounded pills with the menu beside them. */}
+          <div className={cn("px-4 pt-4 sm:px-6 lg:hidden", campaignOpen && "max-sm:hidden")}>
+            <p className="text-sm font-medium text-muted-foreground">Business profile</p>
+            <h1 className="mt-1 text-3xl font-bold leading-tight tracking-tight">{company.name}</h1>
+          </div>
+          <div className={cn("sticky top-0 z-30 flex shrink-0 items-center gap-2 bg-background px-4 py-3 print:hidden sm:px-6", campaignOpen && "max-sm:hidden")}>
             <Button type="button" variant="ghost" size="icon" className="size-8 shrink-0 max-md:hidden lg:hidden" onClick={goBack} aria-label="Back to Companies"><ArrowLeft className="size-4" aria-hidden="true" /></Button>
-            <SectionNav sections={sections} active={section} href={sectionHref} phoneVisible={3} className="h-full min-w-0 flex-1 px-0 md:px-0" />
+            <SectionNav pill sections={sections} active={section} href={sectionHref} phoneVisible={3} className="min-w-0 flex-1" />
             {headerActions}
           </div>
           <div className="min-w-0 flex-1 px-4 pb-16 sm:px-6 lg:overflow-y-auto">
