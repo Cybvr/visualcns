@@ -482,25 +482,13 @@ function PeopleStep({ flow, act }: { flow: FlowState; act: Act }) {
 
 function AudiencesStep({ flow }: { flow: FlowState }) {
   return (
-    <div className="space-y-3">
-      {flow.audiences!.map((audience) => (
-        <Card key={audience.id}>
-          <p className="text-lg font-semibold">{audience.name}</p>
-          <p className="mt-2 text-[15px] text-muted-foreground">{audience.offer}</p>
-          <div className="mt-4 rounded-lg bg-muted/60 p-3">
-            <Label>Pain</Label>
-            <p className="mt-1 text-[15px]">{audience.pain}</p>
-          </div>
-          <Label className="mt-4">Criteria</Label>
-          <ul className="mt-2 space-y-1.5">
-            {audience.criteria.map((item) => (
-              <li key={item} className="flex gap-2 text-[15px]"><Check className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden="true" />{item}</li>
-            ))}
-          </ul>
-          <div className="mt-4"><Chips items={audience.examples} /></div>
-        </Card>
-      ))}
-    </div>
+    <Card className="p-0">
+      <ul className="divide-y divide-border">
+        {flow.audiences!.map((audience) => (
+          <li key={audience.id} className="px-5 py-4 text-[15px] font-medium">{audience.name}</li>
+        ))}
+      </ul>
+    </Card>
   )
 }
 
@@ -601,7 +589,6 @@ function LeadsList({ flow, act }: { flow: FlowState; act: Act }) {
           <Card key={audience.id} className="p-0">
             <div className="border-b border-border px-5 py-3">
               <p className="text-sm font-semibold">{audience.name} · {rows.length}</p>
-              <p className="text-xs text-muted-foreground">{audience.pain}</p>
             </div>
             <ul className="divide-y divide-border">
               {rows.map((item) => {

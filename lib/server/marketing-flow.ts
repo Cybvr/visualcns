@@ -159,25 +159,24 @@ async function runAudiences(tools: Tools, state: FlowState): Promise<Audience[]>
     object({
       audiences: list(
         {
-          name: text("Short name of the group, e.g. 'Product startups'."),
-          offer: text("One sentence on what the business offers this group."),
-          pain: text("The problem this group has, in under twelve words."),
-          criteria: texts("Three short signs a company is in this group."),
-          examples: texts("Three well-known example companies in this group."),
+          name: text("One short phrase describing the people, the way Facebook or Google ads target them: age, job, and a place or habit. E.g. '30 year old restaurant owners in Lagos' or '27 year old lawyers who follow tech news'. Under ten words."),
+          offer: text("One sentence on what the business offers these people."),
+          pain: text("The problem these people have, in under twelve words."),
+          criteria: texts("Three short signs a company employs or is run by these people."),
         },
-        "Exactly three groups of customers to go after, best first.",
+        "Four or five audiences to go after, best first.",
       ),
     }),
-    "Suggest the groups of customers this business should reach out to. Example companies may come from your own knowledge.",
+    "Suggest the audiences this business should reach, described as people the way ad platforms target them.",
     `${about(state)}\nCompetitors: ${(state.competitors?.competitors ?? []).map((item) => item.name).join(", ")}`,
   )
-  return (raw.audiences ?? []).slice(0, 3).map((item) => ({
+  return (raw.audiences ?? []).slice(0, 5).map((item) => ({
     id: id(),
-    name: str(item.name, 60),
+    name: str(item.name, 80),
     offer: str(item.offer, 240),
     pain: str(item.pain, 120),
     criteria: strs(item.criteria, 3, 80),
-    examples: strs(item.examples, 3, 40),
+    examples: [],
   }))
 }
 
@@ -190,7 +189,7 @@ async function runCustomers(tools: Tools, state: FlowState): Promise<Customer[]>
     "Write web searches that turn up real companies matching each audience. Aim for company websites and startup directories, not articles about the topic.",
     `${about(state)}\nAUDIENCES\n${audiencesText(audiences)}`,
   )
-  const searches = (plan.searches ?? []).filter((item) => audiences.some((a) => a.id === item.audienceId)).slice(0, 6)
+  const searches = (plan.searches ?? []).filter((item) => audiences.some((a) => a.id === item.audienceId)).slice(0, 10)
   const results = await Promise.all(searches.map(async (item) => ({ audienceId: item.audienceId, rows: await tools.search(str(item.query, 120), 10) })))
   const own = hostOf(state.website)
   const competitorHosts = new Set((state.competitors?.competitors ?? []).map((item) => hostOf(item.url)))
