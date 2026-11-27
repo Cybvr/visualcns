@@ -170,13 +170,28 @@ export function MarketingFlowSection() {
   return (
     <div className="mx-auto mt-5 w-full max-w-3xl min-w-0">
       {!started || editingSite ? (
-        <form onSubmit={start} className="rounded-xl border border-border bg-card p-5 shadow-sm sm:p-6">
-          <h2 className="text-lg font-semibold">Find customers</h2>
-          <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-            <Input value={website} onChange={(event) => setWebsite(event.target.value)} placeholder="yourcompany.com" aria-label="Your website" inputMode="url" autoComplete="url" className="h-11 flex-1" />
-            <Button type="submit" className="h-11" disabled={!website.trim() || Boolean(running)}>Start</Button>
-            {editingSite && <Button type="button" variant="ghost" className="h-11" onClick={() => setEditingSite(false)}>Cancel</Button>}
-          </div>
+        <form onSubmit={start} className="mx-auto flex max-w-xl flex-col items-center py-10 text-center sm:py-16">
+          <h2 className="text-4xl font-semibold leading-tight tracking-tight sm:text-5xl">
+            Turn your website into <span className="text-emerald-600 dark:text-emerald-400">customers</span>
+          </h2>
+          <ul className="mt-6 flex flex-wrap justify-center gap-2" aria-label="What you get">
+            {["Audiences", "Leads", "Emails", "Posts", "Ads"].map((item) => (
+              <li key={item} className="rounded-full bg-muted px-4 py-1.5 text-sm font-medium">{item}</li>
+            ))}
+          </ul>
+          <Input
+            value={website}
+            onChange={(event) => setWebsite(event.target.value)}
+            placeholder="Paste your website, e.g. yourcompany.com"
+            aria-label="Your website"
+            inputMode="url"
+            autoComplete="url"
+            className="mt-8 h-16 rounded-2xl border-2 border-x-2 border-t-2 border-foreground bg-background px-5 text-lg md:text-lg"
+          />
+          <Button type="submit" className="mt-3 h-14 w-full rounded-2xl text-lg" disabled={!website.trim() || Boolean(running)}>
+            Start <ArrowRight className="size-5" aria-hidden="true" />
+          </Button>
+          {editingSite && <Button type="button" variant="ghost" className="mt-2" onClick={() => setEditingSite(false)}>Cancel</Button>}
         </form>
       ) : (
         <div className="flex flex-wrap items-center justify-between gap-3">
