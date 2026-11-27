@@ -188,6 +188,7 @@ export function MarketingFlowSection() {
             Start <ArrowRight className="size-5" aria-hidden="true" />
           </Button>
           {editingSite && <Button type="button" variant="ghost" className="mt-2" onClick={() => setEditingSite(false)}>Cancel</Button>}
+          {!editingSite && <HowItWorks />}
         </form>
       ) : (
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -260,6 +261,43 @@ export function MarketingFlowSection() {
           })}
         </ol>
       )}
+    </div>
+  )
+}
+
+/** Example cards under Start, one per stage of the run. */
+const HOW_IT_WORKS: { title: string; head?: [string, string]; rows: [string, string][] }[] = [
+  { title: "Learns what you sell", rows: [["freshcrumb.com", "Wholesale bread for cafes and hotels"]] },
+  { title: "Finds your competitors", head: ["Competitor", "Website"], rows: [["Daily Loaf", "dailyloaf.com"], ["Bakehouse Supply", "bakehouse.co"], ["Crust & Co", "crustco.com"]] },
+  { title: "Figures out who buys it", head: ["Audience", "Pain"], rows: [["Cafes", "Stale stock"], ["Boutique hotels", "Breakfast costs"], ["Caterers", "Late deliveries"]] },
+  { title: "Finds the companies and who decides", head: ["Company", "Contact"], rows: [["Bean There Cafe", "Ada Obi, Owner"], ["The Linden Hotel", "Tom Reyes, GM"], ["Plate Catering", "Sara Lin, Founder"]] },
+  { title: "Writes your emails, posts and ads", head: ["Ready", "Count"], rows: [["Emails", "12"], ["Posts", "3"], ["Ads", "3"]] },
+]
+
+function HowItWorks() {
+  return (
+    <div className="mt-14 w-full space-y-4 text-left">
+      {HOW_IT_WORKS.map((card) => (
+        <section key={card.title} className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+          <h3 className="text-xl font-medium">{card.title}</h3>
+          <div className="mt-4 overflow-hidden rounded-xl border border-border">
+            {card.head && (
+              <div className="flex justify-between bg-muted/60 px-4 py-2.5 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                <span>{card.head[0]}</span>
+                <span>{card.head[1]}</span>
+              </div>
+            )}
+            <ul className="divide-y divide-border">
+              {card.rows.map(([left, right]) => (
+                <li key={left} className={cn("flex gap-4 px-4 py-3", card.head ? "items-center justify-between" : "flex-col gap-1 bg-muted/60")}>
+                  <span className="font-medium">{left}</span>
+                  <span className="text-muted-foreground">{right}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+      ))}
     </div>
   )
 }
