@@ -19,6 +19,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { VideoThumbnail } from "@/components/ui/video-thumbnail"
+import { useIsMobile } from "@/hooks/use-mobile"
 import { addCampaignCreative, creativeStatus, deleteCampaignCreative, READY_FOR_REVIEW, updateCampaignCreative, watchCompanyCampaignCreatives, type CampaignCreative } from "@/lib/campaign-creatives"
 import { uploadFileToStorage } from "@/lib/documents"
 import { mediaKindForFile } from "@/lib/media"
@@ -75,13 +76,27 @@ function PostMedia({ post }: { post: CampaignCreative }) {
 /** A post like Instagram shows it: the picture, the company's name and caption with more, then the date. */
 function PostCard({ post, name, when, onOpen }: { post: CampaignCreative; name: string; when: string; onOpen: () => void }) {
   const [expanded, setExpanded] = useState(false)
+  const phone = useIsMobile()
   const caption = post.body?.trim() ?? ""
   const long = caption.length > 90
+  const frame = "block aspect-square w-full overflow-hidden bg-muted sm:rounded-2xl"
   return (
     <article className="min-w-0">
-      <button type="button" onClick={onOpen} aria-label={`Open ${postLabel(post)}`} className="block aspect-square w-full overflow-hidden rounded-2xl bg-muted outline-none focus-visible:ring-2 focus-visible:ring-ring">
-        {post.mediaUrl ? <PostMedia post={post} /> : thumbnailIcon(ImageIcon)}
-      </button>
+      {phone ? (
+        // Phones show the post right here: videos play in place, no window.
+        <div className={frame}>
+          {!post.mediaUrl ? thumbnailIcon(ImageIcon) : postMediaType(post) === "video" ? (
+            <video src={post.mediaUrl} controls playsInline preload="metadata" className="size-full object-cover" />
+          ) : (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={post.mediaUrl} alt="" loading="lazy" className="size-full object-cover" />
+          )}
+        </div>
+      ) : (
+        <button type="button" onClick={onOpen} aria-label={`Open ${postLabel(post)}`} className={`${frame} outline-none focus-visible:ring-2 focus-visible:ring-ring`}>
+          {post.mediaUrl ? <PostMedia post={post} /> : thumbnailIcon(ImageIcon)}
+        </button>
+      )}
       <p className="mt-2 whitespace-pre-line text-sm leading-relaxed">
         <span className="font-semibold">{name}</span>{" "}
         {long && !expanded ? `${caption.slice(0, 90).trimEnd()}…` : caption}
