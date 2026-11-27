@@ -174,11 +174,6 @@ export function MarketingFlowSection() {
           <h2 className="text-4xl font-semibold leading-tight tracking-tight sm:text-5xl">
             Turn your website into customers
           </h2>
-          <ul className="mt-6 flex flex-wrap justify-center gap-2" aria-label="What you get">
-            {["Audiences", "Leads", "Emails", "Posts", "Ads"].map((item) => (
-              <li key={item} className="rounded-full bg-muted px-4 py-1.5 text-sm font-medium">{item}</li>
-            ))}
-          </ul>
           <Input
             value={website}
             onChange={(event) => setWebsite(event.target.value)}
