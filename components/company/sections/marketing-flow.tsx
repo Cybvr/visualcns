@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type FormEvent, type ReactNode } from "react"
-import { ArrowRight, Check, Users, ChevronDown, Copy, Download, ExternalLink, ImageIcon, Loader2, Mail, Pencil, RotateCcw, Search, Upload, X } from "lucide-react"
+import { ArrowRight, Check, ChevronDown, Copy, Download, ExternalLink, ImageIcon, Loader2, Mail, Pencil, RotateCcw, Search, Upload, X } from "lucide-react"
 import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
@@ -209,7 +209,7 @@ export function MarketingFlowSection() {
       )}
 
       {started && (
-        <ol className="mt-6 space-y-2">
+        <ol className="mt-5 divide-y divide-border">
           {FLOW_STEPS.map((step, index) => {
             const isDone = has(flow, step.key)
             const isRunning = running === step.key
@@ -220,33 +220,33 @@ export function MarketingFlowSection() {
               <li key={step.key}>
                 <button
                   type="button"
-                  className="flex w-full items-center gap-4 py-4 text-left disabled:cursor-default"
+                  className="flex w-full items-center gap-3 py-3 text-left disabled:cursor-default"
                   disabled={!isDone}
                   aria-expanded={isDone ? isOpen : undefined}
                   onClick={() => setOpen(isOpen ? null : step.key)}
                 >
                   <span
                     className={cn(
-                      "flex size-8 shrink-0 items-center justify-center rounded-full text-sm font-semibold",
-                      isDone ? "bg-emerald-600 text-white" : isFailed ? "bg-destructive/15 text-destructive" : "bg-muted text-muted-foreground",
+                      "flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold",
+                      isDone ? "bg-foreground text-background" : isFailed ? "bg-destructive/15 text-destructive" : "bg-muted text-muted-foreground",
                     )}
                     aria-hidden="true"
                   >
-                    {isRunning ? <Loader2 className="size-4 animate-spin" /> : isDone ? <Check className="size-5" strokeWidth={3} /> : index + 1}
+                    {isRunning ? <Loader2 className="size-4 animate-spin" /> : isDone ? <Check className="size-4" /> : index + 1}
                   </span>
-                  <span className={cn("flex-1 text-xl font-semibold tracking-tight sm:text-2xl", !isDone && !isRunning && "text-muted-foreground")}>{index + 1}. {step.title}</span>
+                  <span className={cn("flex-1 text-base font-semibold sm:text-lg", !isDone && !isRunning && "text-muted-foreground")}>{index + 1}. {step.title}</span>
                   {isSkipped && <span className="shrink-0 text-sm text-muted-foreground">Skipped</span>}
-                  {isDone && !isSkipped && <ChevronDown className={cn("size-6 shrink-0 text-muted-foreground transition-transform", isOpen && "rotate-180")} aria-hidden="true" />}
+                  {isDone && !isSkipped && <ChevronDown className={cn("size-5 shrink-0 text-muted-foreground transition-transform", isOpen && "rotate-180")} aria-hidden="true" />}
                 </button>
                 {isFailed && (
-                  <div className="mb-3 ml-12 flex flex-wrap items-center gap-3 text-sm">
+                  <div className="mb-3 ml-10 flex flex-wrap items-center gap-3 text-sm">
                     <span className="text-destructive">{failed.message}</span>
                     <Button type="button" size="sm" variant="outline" onClick={() => void runFrom(step.key)}>Try again</Button>
                     {step.key !== "research" && <Button type="button" size="sm" variant="ghost" onClick={() => void skip(step.key)}>Skip</Button>}
                   </div>
                 )}
                 {isOpen && !isSkipped && (
-                  <div className="pb-6">
+                  <div className="pb-5">
                     <StepBody step={step.key} flow={flow} act={act} />
                     {!running && (
                       <button type="button" className="mt-3 inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground" onClick={() => void runFrom(step.key)}>
@@ -322,18 +322,18 @@ function StepBody({ step, flow, act }: { step: FlowStep; flow: FlowState; act: A
 }
 
 function Card({ children, className }: { children: ReactNode; className?: string }) {
-  return <div className={cn("rounded-3xl border border-border bg-card p-5 shadow-sm", className)}>{children}</div>
+  return <div className={cn("rounded-xl border border-border bg-card p-5 shadow-sm", className)}>{children}</div>
 }
 
 function Label({ children, className }: { children: ReactNode; className?: string }) {
-  return <p className={cn("text-sm font-medium uppercase tracking-widest text-muted-foreground", className)}>{children}</p>
+  return <p className={cn("text-xs font-medium uppercase tracking-wider text-muted-foreground", className)}>{children}</p>
 }
 
 function Chips({ items, icon }: { items: string[]; icon?: ReactNode }) {
   return (
     <ul className="mt-2 flex flex-wrap gap-2">
       {items.map((item) => (
-        <li key={item} className="inline-flex items-center gap-1.5 rounded-full bg-muted px-4 py-1.5 text-base text-muted-foreground">{icon}{item}</li>
+        <li key={item} className="inline-flex items-center gap-1.5 rounded-full bg-muted px-3 py-1 text-sm text-muted-foreground">{icon}{item}</li>
       ))}
     </ul>
   )
@@ -343,7 +343,7 @@ function Favicon({ url, name, large }: { url: string; name: string; large?: bool
   const host = hostOf(url)
   if (!host) return <span className="flex size-6 shrink-0 items-center justify-center rounded bg-muted text-[10px] font-semibold text-muted-foreground" aria-hidden="true">{name.slice(0, 1).toUpperCase()}</span>
   // eslint-disable-next-line @next/next/no-img-element
-  return <img src={`https://www.google.com/s2/favicons?domain=${encodeURIComponent(host)}&sz=64`} alt="" className={cn("shrink-0 rounded", large ? "size-14" : "size-6")} loading="lazy" />
+  return <img src={`https://www.google.com/s2/favicons?domain=${encodeURIComponent(host)}&sz=64`} alt="" className={cn("shrink-0 rounded", large ? "size-10" : "size-6")} loading="lazy" />
 }
 
 function RemoveButton({ label, onClick }: { label: string; onClick: () => void }) {
@@ -360,8 +360,8 @@ function copy(text: string) {
 
 function FoundPill({ children }: { children: ReactNode }) {
   return (
-    <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-emerald-600 px-3 py-1 text-sm font-medium text-white">
-      <Check className="size-4" aria-hidden="true" />{children}
+    <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium">
+      <Check className="size-3.5" aria-hidden="true" />{children}
     </span>
   )
 }
@@ -369,17 +369,17 @@ function FoundPill({ children }: { children: ReactNode }) {
 function ResearchStep({ flow }: { flow: FlowState }) {
   const research = flow.research!
   return (
-    <Card className="p-6 sm:p-8">
+    <Card>
       <div className="flex items-center gap-4">
         <Favicon url={research.website} name={research.name} large />
         <div className="min-w-0 flex-1">
-          <p className="truncate text-2xl font-semibold">{research.name}</p>
-          <a href={research.website} target="_blank" rel="noreferrer" className="text-base text-muted-foreground hover:underline">{hostOf(research.website)}</a>
+          <p className="truncate text-lg font-semibold">{research.name}</p>
+          <a href={research.website} target="_blank" rel="noreferrer" className="text-sm text-muted-foreground hover:underline">{hostOf(research.website)}</a>
         </div>
         <FoundPill>Found</FoundPill>
       </div>
-      <p className="mt-6 text-lg leading-relaxed">{research.summary}</p>
-      <Label className="mt-6">Keywords</Label>
+      <p className="mt-4 text-[15px] leading-relaxed">{research.summary}</p>
+      <Label className="mt-5">Keywords</Label>
       <Chips items={research.keywords} />
     </Card>
   )
@@ -388,33 +388,33 @@ function ResearchStep({ flow }: { flow: FlowState }) {
 function CompetitorsStep({ flow }: { flow: FlowState; act: Act }) {
   const data = flow.competitors!
   return (
-    <Card className="p-6 sm:p-8">
+    <Card>
       <Label>Your product</Label>
-      <p className="mt-2 text-2xl font-semibold leading-snug">{data.product}</p>
-      <ul className="mt-4 space-y-3">
+      <p className="mt-1 text-lg font-semibold">{data.product}</p>
+      <ul className="mt-3 space-y-2">
         {data.points.map((point) => (
-          <li key={point} className="flex gap-3 text-lg"><Check className="mt-1 size-5 shrink-0 text-emerald-600" aria-hidden="true" />{point}</li>
+          <li key={point} className="flex gap-2 text-[15px]"><Check className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden="true" />{point}</li>
         ))}
       </ul>
-      <Label className="mt-8">How buyers search</Label>
-      <ul className="mt-3 flex flex-col items-start gap-3">
+      <Label className="mt-6">How buyers search</Label>
+      <ul className="mt-2 flex flex-wrap gap-2">
         {data.searches.map((item) => (
-          <li key={item} className="inline-flex max-w-full items-center gap-3 rounded-xl bg-muted px-4 py-3 text-lg">
-            <Search className="size-5 shrink-0 text-muted-foreground" aria-hidden="true" /><span className="truncate">{item}</span>
+          <li key={item} className="inline-flex max-w-full items-center gap-1.5 rounded-full bg-muted px-3 py-1 text-sm text-muted-foreground">
+            <Search className="size-3.5 shrink-0" aria-hidden="true" /><span className="truncate">{item}</span>
           </li>
         ))}
       </ul>
-      <div className="mt-8 flex items-center gap-3">
+      <div className="mt-6 flex items-center gap-2">
         <Label>Competitors</Label>
         <FoundPill>{data.competitors.length} found</FoundPill>
       </div>
       {data.competitors.length > 0 && (
-        <ul className="mt-3 grid grid-cols-2 gap-3">
+        <ul className="mt-2 grid grid-cols-2 gap-2">
           {data.competitors.map((item) => (
             <li key={item.url}>
-              <a href={item.url} target="_blank" rel="noreferrer" className="flex min-w-0 items-center gap-3 rounded-xl bg-muted px-4 py-3 hover:bg-muted/70">
+              <a href={item.url} target="_blank" rel="noreferrer" className="flex min-w-0 items-center gap-2 rounded-lg bg-muted/60 px-3 py-2 hover:bg-muted">
                 <Favicon url={item.url} name={item.name} />
-                <span className="min-w-0 truncate text-lg">{hostOf(item.url)}</span>
+                <span className="min-w-0 truncate text-sm font-medium">{hostOf(item.url)}</span>
               </a>
             </li>
           ))}
@@ -432,18 +432,18 @@ function CustomersStep({ flow, act }: { flow: FlowState; act: Act }) {
     <Card className="max-h-[36rem] overflow-y-auto p-0">
       <ul className="divide-y divide-border">
         {customers.map((item) => (
-          <li key={item.id} className="px-6 py-5">
+          <li key={item.id} className="px-5 py-4">
             <div className="flex items-center gap-3">
               <Favicon url={item.url} name={item.name} />
-              <p className="min-w-0 flex-1 truncate text-lg font-semibold">{item.name}</p>
-              {item.url && <a href={item.url} target="_blank" rel="noreferrer" className="shrink-0 text-muted-foreground hover:underline">{hostOf(item.url)}</a>}
+              <p className="min-w-0 flex-1 truncate font-semibold">{item.name}</p>
+              {item.url && <a href={item.url} target="_blank" rel="noreferrer" className="shrink-0 text-sm text-muted-foreground hover:underline">{hostOf(item.url)}</a>}
               <RemoveButton label={`Remove ${item.name}`} onClick={() => void act({ action: "remove", step: "customers", id: item.id })} />
             </div>
-            <p className="mt-2 line-clamp-2 text-muted-foreground">{item.description}</p>
+            <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{item.description}</p>
             {(item.country || item.industry) && (
-              <div className="mt-3 flex flex-wrap gap-2">
+              <div className="mt-2 flex flex-wrap gap-1.5">
                 {[item.country, item.industry].filter(Boolean).map((tag) => (
-                  <span key={tag} className="rounded-md bg-muted px-2.5 py-1 text-muted-foreground">{tag}</span>
+                  <span key={tag} className="rounded bg-muted px-2 py-0.5 text-xs text-muted-foreground">{tag}</span>
                 ))}
               </div>
             )}
@@ -462,15 +462,14 @@ function PeopleStep({ flow, act }: { flow: FlowState; act: Act }) {
     <Card className="max-h-[36rem] overflow-y-auto p-0">
       <ul className="divide-y divide-border">
         {people.map((person) => (
-          <li key={person.id} className="flex items-center gap-4 px-6 py-5">
-            <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-muted font-semibold text-muted-foreground" aria-hidden="true">{initials(person.name)}</span>
+          <li key={person.id} className="flex items-center gap-3 px-5 py-4">
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-semibold text-muted-foreground" aria-hidden="true">{initials(person.name)}</span>
             <div className="min-w-0 flex-1">
-              <p className="flex items-center gap-2 text-lg font-semibold">
+              <p className="flex items-center gap-1.5 font-semibold">
                 <span className="truncate">{person.name}</span>
                 <a href={person.linkedin} target="_blank" rel="noreferrer" aria-label={`${person.name} on LinkedIn`} className="shrink-0"><SocialIcon platform="linkedin" /></a>
               </p>
-              <p className="truncate text-muted-foreground">{person.title}</p>
-              <p className="truncate text-muted-foreground">{person.title} at {person.company}</p>
+              <p className="truncate text-sm text-muted-foreground">{person.title} at {person.company}</p>
               <PersonEmail person={person} act={act} />
             </div>
             <RemoveButton label={`Remove ${person.name}`} onClick={() => void act({ action: "remove", step: "people", id: person.id })} />
@@ -483,22 +482,19 @@ function PeopleStep({ flow, act }: { flow: FlowState; act: Act }) {
 
 function AudiencesStep({ flow }: { flow: FlowState }) {
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {flow.audiences!.map((audience) => (
-        <Card key={audience.id} className="p-6 sm:p-8">
-          <div className="flex items-center gap-4">
-            <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-muted" aria-hidden="true"><Users className="size-6" /></span>
-            <p className="text-2xl font-semibold">{audience.name}</p>
-          </div>
-          <p className="mt-6 text-xl leading-relaxed text-muted-foreground">{audience.offer}</p>
-          <div className="mt-6 rounded-2xl bg-muted p-5">
+        <Card key={audience.id}>
+          <p className="text-lg font-semibold">{audience.name}</p>
+          <p className="mt-2 text-[15px] text-muted-foreground">{audience.offer}</p>
+          <div className="mt-4 rounded-lg bg-muted/60 p-3">
             <Label>Pain</Label>
-            <p className="mt-2 text-lg">{audience.pain}</p>
+            <p className="mt-1 text-[15px]">{audience.pain}</p>
           </div>
-          <Label className="mt-6">Criteria</Label>
-          <ul className="mt-3 space-y-3">
+          <Label className="mt-4">Criteria</Label>
+          <ul className="mt-2 space-y-1.5">
             {audience.criteria.map((item) => (
-              <li key={item} className="flex gap-3 text-lg"><Check className="mt-1 size-5 shrink-0 text-emerald-600" aria-hidden="true" />{item}</li>
+              <li key={item} className="flex gap-2 text-[15px]"><Check className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden="true" />{item}</li>
             ))}
           </ul>
           <div className="mt-4"><Chips items={audience.examples} /></div>
@@ -620,7 +616,7 @@ function PersonEmail({ person, act }: { person: Person; act: Act }) {
     return (
       <p className="mt-1 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs">
         <button type="button" className="truncate font-medium text-foreground hover:underline" title="Copy" onClick={() => copy(person.email!)}>{person.email}</button>
-        <span className={cn("rounded px-1.5 py-0.5", person.emailSource === "hunter" && (person.emailScore ?? 0) >= 80 ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400" : "bg-background text-muted-foreground")}>
+        <span className={cn("rounded px-1.5 py-0.5", person.emailSource === "hunter" && (person.emailScore ?? 0) >= 80 ? "bg-foreground text-background" : "bg-background text-muted-foreground")}>
           {person.emailSource === "website" ? "From their website" : person.emailScore !== undefined ? `${person.emailScore}% sure` : "Found"}
         </span>
       </p>
@@ -688,22 +684,22 @@ function EmailCard({ email, person, act }: { email: NonNullable<FlowState["email
 
   return (
     <Card className="p-0">
-      <div className="flex gap-4 border-b border-border px-6 py-4 text-lg">
+      <div className="flex gap-4 border-b border-border px-5 py-3 text-sm">
         <span className="w-12 shrink-0 text-muted-foreground">To</span>
         <span className="min-w-0 flex-1 truncate">
           {person?.name}{person && <span className="text-muted-foreground"> · {person.company}</span>}
           {person?.email ? <span className="block truncate text-muted-foreground">{person.email}</span> : person && <span className="block text-muted-foreground">No email</span>}
         </span>
       </div>
-      <div className="flex items-center gap-4 border-b border-border px-6 py-4 text-lg">
+      <div className="flex items-center gap-4 border-b border-border px-5 py-3 text-sm">
         <span className="w-12 shrink-0 text-muted-foreground">Subj</span>
         {editing ? <Input value={subject} onChange={(event) => setSubject(event.target.value)} aria-label="Subject" className="h-8" /> : <span className="font-semibold">{email.subject}</span>}
       </div>
-      <div className="px-6 py-5">
+      <div className="px-5 py-4">
         {editing ? (
           <Textarea value={body} onChange={(event) => setBody(event.target.value)} aria-label="Email" rows={10} />
         ) : (
-          <p className="whitespace-pre-line text-lg leading-relaxed">{email.body}</p>
+          <p className="whitespace-pre-line text-[15px] leading-relaxed">{email.body}</p>
         )}
         <div className="mt-4 flex flex-wrap gap-2">
           {editing ? (
