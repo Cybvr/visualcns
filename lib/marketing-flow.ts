@@ -47,9 +47,9 @@ export type Person = {
 
 export type Email = { id: string; personId: string; subject: string; body: string }
 
-export type SocialPlan = { posts: { id: string; title: string; text: string }[] }
+export type SocialPlan = { posts: { id: string; title: string; text: string; image?: string }[] }
 
-export type Ad = { id: string; audienceId: string; headline: string; text: string; cta: string; jobTitles: string[] }
+export type Ad = { id: string; audienceId: string; headline: string; text: string; cta: string; jobTitles: string[]; image?: string }
 
 export type FlowState = {
   website: string

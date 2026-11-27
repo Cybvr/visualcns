@@ -69,7 +69,7 @@ export async function GET(request: Request) {
   return json({ flow: stored?.flow ?? { website: caller.website } })
 }
 
-type Body = { companyId?: string; action?: string; step?: string; website?: string; id?: string; ids?: unknown[]; subject?: string; body?: string }
+type Body = { companyId?: string; action?: string; step?: string; website?: string; id?: string; ids?: unknown[]; url?: string; subject?: string; body?: string }
 
 const REMOVABLE = ["customers", "people", "emails", "competitors"] as const
 
@@ -118,6 +118,19 @@ export async function POST(request: Request) {
     email.subject = String(body.subject ?? email.subject).trim().slice(0, 120)
     email.body = String(body.body ?? email.body).trim().slice(0, 4000)
     await ref.set({ flow: { ...flow, updatedAt: new Date().toISOString() } }, { merge: true })
+    return json({ flow })
+  }
+
+  // image: set (or clear, with an empty url) the uploaded image on a post or an ad.
+  if (body.action === "image") {
+    const url = String(body.url || "").trim()
+    if (url && !/^https:\/\/firebasestorage\.googleapis\.com\//.test(url)) return json({ error: "Upload the image first." }, 400)
+    const rows: { id: string; image?: string }[] | undefined = body.step === "social" ? flow.social?.posts : body.step === "ads" ? flow.ads : undefined
+    const row = rows?.find((item) => item.id === body.id)
+    if (!row) return json({ error: "That post or ad doesn't exist." }, 404)
+    if (url) row.image = url.slice(0, 2000)
+    else delete row.image
+    await ref.set({ flow: withoutUndefined({ ...flow, updatedAt: new Date().toISOString() }) }, { merge: true })
     return json({ flow })
   }
 

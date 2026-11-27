@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type FormEvent, type ReactNode } from "react"
-import { ArrowRight, Check, ChevronDown, Copy, Download, ExternalLink, Loader2, Mail, Pencil, RotateCcw, Search, X } from "lucide-react"
+import { ArrowRight, Check, ChevronDown, Copy, Download, ExternalLink, ImageIcon, Loader2, Mail, Pencil, RotateCcw, Search, Upload, X } from "lucide-react"
 import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
@@ -11,6 +11,7 @@ import { SocialIcon } from "@/components/company/social-icon"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
+import { CLIENT_FILE_MAX_BYTES, uploadFileToStorage } from "@/lib/documents"
 import { FLOW_STEPS, hostOf, type FlowState, type FlowStep, type Person } from "@/lib/marketing-flow"
 import { cn } from "@/lib/utils"
 
@@ -513,19 +514,19 @@ export function OutreachSection() {
 
 /** Ads: one ad for each audience, aimed at the same companies. */
 export function AdsSection() {
-  const { flow, error, signedOut } = useFlow()
+  const { flow, error, signedOut, act } = useFlow()
   return (
     <FlowGate flow={flow} error={error} signedOut={signedOut} step="ads">
-      {flow && <AdsStep flow={flow} />}
+      {flow && <AdsStep flow={flow} act={act} />}
     </FlowGate>
   )
 }
 
 /** On Social Media, above the accounts: who to follow first and this month's posts. Nothing until Marketing has run. */
 export function MarketingSocialPanel() {
-  const { flow } = useFlow()
+  const { flow, act } = useFlow()
   if (!flow?.social) return null
-  return <SocialStep flow={flow} />
+  return <SocialStep flow={flow} act={act} />
 }
 
 function EmailsStep({ flow, act }: { flow: FlowState; act: Act }) {
@@ -592,7 +593,7 @@ function EmailCard({ email, person, act }: { email: NonNullable<FlowState["email
   )
 }
 
-function SocialStep({ flow }: { flow: FlowState }) {
+function SocialStep({ flow, act }: { flow: FlowState; act: Act }) {
   const people = flow.people ?? []
   return (
     <div className="space-y-3">
@@ -622,10 +623,50 @@ function SocialStep({ flow }: { flow: FlowState }) {
                 <button type="button" aria-label="Copy post" title="Copy" className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground" onClick={() => copy(post.text)}><Copy className="size-4" aria-hidden="true" /></button>
               </div>
               <p className="mt-2 whitespace-pre-line text-[15px] leading-relaxed">{post.text}</p>
+              <Thumbnail image={post.image} alt={post.title} className="mt-3" onChange={(url) => act({ action: "image", step: "social", id: post.id, url })} />
             </li>
           ))}
         </ol>
       </Card>
+    </div>
+  )
+}
+
+/** The post or ad's image: the uploaded one, or a plain placeholder, with upload, replace and remove. */
+function Thumbnail({ image, alt, className, onChange }: { image?: string; alt: string; className?: string; onChange: (url: string) => Promise<void> }) {
+  const input = useRef<HTMLInputElement>(null)
+  const [busy, setBusy] = useState(false)
+
+  async function upload(file: File | undefined) {
+    if (!file) return
+    if (!file.type.startsWith("image/")) return toast.error("Choose an image.")
+    if (file.size > CLIENT_FILE_MAX_BYTES) return toast.error("That image is too large.")
+    setBusy(true)
+    try {
+      await onChange(await uploadFileToStorage(file))
+    } catch {
+      toast.error("Couldn't upload that image.")
+    } finally {
+      setBusy(false)
+      if (input.current) input.current.value = ""
+    }
+  }
+
+  return (
+    <div className={cn("relative aspect-square w-full overflow-hidden rounded-lg bg-muted", className)}>
+      {image ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={image} alt={alt} className="size-full object-cover" />
+      ) : (
+        <div className="flex size-full items-center justify-center text-muted-foreground"><ImageIcon className="size-10" aria-hidden="true" /></div>
+      )}
+      <div className="absolute bottom-3 right-3 flex gap-2">
+        {image && <Button type="button" size="sm" variant="secondary" disabled={busy} onClick={() => void onChange("")}>Remove</Button>}
+        <Button type="button" size="sm" variant="secondary" disabled={busy} onClick={() => input.current?.click()}>
+          {busy ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <Upload className="size-4" aria-hidden="true" />} {image ? "Replace" : "Upload"}
+        </Button>
+      </div>
+      <input ref={input} type="file" accept="image/*" className="hidden" onChange={(event) => void upload(event.target.files?.[0])} />
     </div>
   )
 }
@@ -643,7 +684,7 @@ function download(name: string, content: string) {
   URL.revokeObjectURL(url)
 }
 
-function AdsStep({ flow }: { flow: FlowState }) {
+function AdsStep({ flow, act }: { flow: FlowState; act: Act }) {
   const research = flow.research!
   return (
     <div className="space-y-3">
@@ -662,6 +703,7 @@ function AdsStep({ flow }: { flow: FlowState }) {
                 </div>
               </div>
               <p className="px-4 py-3 text-sm">{ad.text}</p>
+              <Thumbnail image={ad.image} alt={ad.headline} className="rounded-none" onChange={(url) => act({ action: "image", step: "ads", id: ad.id, url })} />
               <div className="flex items-center justify-between gap-3 bg-muted/60 px-4 py-3">
                 <p className="min-w-0 text-sm font-semibold">{ad.headline}</p>
                 <span className="shrink-0 rounded-full border border-border px-3 py-1 text-xs font-medium">{ad.cta}</span>
