@@ -31,8 +31,8 @@ export default async function CompanySectionPage({ params, searchParams }: { par
   if (section === "drive") return <CompanySection section="documents" />
   if (section === "documents" || section === "finance" || section === "media") redirect(`/${encodeURIComponent(clientSlug)}/drive${doc ? `?doc=${encodeURIComponent(doc)}` : ""}`)
   if (section === "tasks") redirect(`/${encodeURIComponent(clientSlug)}/projects${task ? `?task=${encodeURIComponent(task)}` : ""}`)
-  // Reports (formerly Pulse) is now Marketing.
-  if (section === "brand-health" || section === "pulse" || section === "reports") redirect(`/${encodeURIComponent(clientSlug)}/marketing`)
+  // Reports, Pulse and the old Marketing pages are now the one Marketing page.
+  if (["brand-health", "pulse", "reports", "insights", "seo", "reviews", "google-ads", "business-profile", "marketing-settings"].includes(section)) redirect(`/${encodeURIComponent(clientSlug)}/marketing`)
   if (section === "analytics") redirect(`/${encodeURIComponent(clientSlug)}/settings/analytics`)
   if (section === "activity") redirect(`/${encodeURIComponent(clientSlug)}/notifications`)
   if (section === "team") redirect(`/${encodeURIComponent(clientSlug)}`)

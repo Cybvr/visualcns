@@ -244,11 +244,11 @@ export function SocialOverview() {
       )}
 
       <section aria-label="Posts">
-        {/* Nothing posted and nothing connected: point to Marketing Settings, where accounts are connected. */}
+        {/* Nothing posted and nothing connected: point to Marketing, where accounts are connected. */}
         {loaded && allPosts.length === 0 && accounts.length === 0 && info?.configured ? (
           <div className="rounded-2xl border border-dashed border-border p-8 text-center">
             <p className="text-sm text-muted-foreground">No social accounts connected yet.</p>
-            <Button asChild size="sm" className="mt-4"><Link href={sectionHref("marketing-settings")}>Connect accounts</Link></Button>
+            <Button asChild size="sm" className="mt-4"><Link href={sectionHref("marketing")}>Connect accounts</Link></Button>
           </div>
         ) : (
         <CollectionView

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState, type ComponentProps, type ComponentType, type ReactNode } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { BadgeDollarSign, ChevronRight, CreditCard, FileText, Fingerprint, Globe, House, Image as ImageIcon, LayoutTemplate, Lightbulb, Link2, LogIn, Megaphone, Search, Settings2, Share2, Star, Store, Target, Users, Wallet } from "lucide-react"
+import { ChevronRight, CreditCard, FileText, Fingerprint, Globe, House, Image as ImageIcon, LayoutTemplate, Link2, LogIn, Megaphone, Search, Share2, Target, Users, Wallet } from "lucide-react"
 
 import { NgaiMark } from "@/components/agent/ngai-mark"
 import { useAuth } from "@/components/auth-provider"
@@ -47,15 +47,9 @@ const SUBMENU_ICONS: Record<string, ComponentType<{ className?: string }>> = {
   sites: LayoutTemplate,
   domains: Link2,
   marketing: House,
-  insights: Lightbulb,
   projects: Target,
   social: Share2,
   assets: ImageIcon,
-  seo: Search,
-  "business-profile": Store,
-  reviews: Star,
-  "google-ads": BadgeDollarSign,
-  "marketing-settings": Settings2,
   "finance-home": House,
   documents: FileText,
   billings: CreditCard,
@@ -134,15 +128,9 @@ const MENU_GROUPS = [
   { key: "websites", label: "Websites", icon: Globe, items: [{ key: "websites-home", label: "Home" }, { key: "sites", label: "Sites" }, { key: "domains", label: "Domains" }] },
   { key: "marketing", label: "Marketing", icon: Megaphone, items: [
     { key: "marketing", label: "Home" },
-    { key: "insights", label: "Insights" },
     { key: "projects", label: "Campaigns" },
     { key: "social", label: "Social Media" },
     { key: "assets", label: "Assets" },
-    { key: "seo", label: "SEO" },
-    { key: "business-profile", label: "Business Profile" },
-    { key: "reviews", label: "Reviews" },
-    { key: "google-ads", label: "Google Ads" },
-    { key: "marketing-settings", label: "Settings" },
   ] },
   { key: "finance", label: "Finance", icon: Wallet, items: [{ key: "finance-home", label: "Home" }, { key: "documents", label: "Documents" }] },
   { key: "security", label: "Security", icon: Fingerprint, items: [{ key: "security-home", label: "Home" }, { key: "visitors", label: "Visitors" }] },

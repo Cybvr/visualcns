@@ -2,7 +2,6 @@
 
 import type { ComponentType } from "react"
 
-import { Pulse } from "@/components/company/pulse"
 import { CompanySettingsLayout } from "@/components/company/company-settings-layout"
 import { CompanyBillings } from "@/components/company/company-billings"
 import { CustomersSection } from "@/components/company/sections/customers-section"
@@ -21,9 +20,7 @@ import { NgaiSection } from "@/components/company/sections/ngai-section"
 import { SitesSection } from "@/components/company/sections/sites-section"
 import { DomainsSection } from "@/components/company/sections/domains-section"
 import { TeamSection } from "@/components/company/sections/team-section"
-import { MarketingSettingsSection } from "@/components/company/sections/marketing-pages"
-import { BusinessProfilePage, GoogleAdsPage, InsightsPage, ReviewsPage, SeoPage } from "@/components/company/sections/marketing-area"
-import { MarketingOverviewSection } from "@/components/company/sections/marketing-home"
+import { MarketingFlowSection } from "@/components/company/sections/marketing-flow"
 import { FinanceHomeSection, SecurityHomeSection, WebsitesHomeSection } from "@/components/company/sections/area-homes"
 
 /** Documents and media in one grid. An open document takes the whole page. On the dashboard it's Artifacts, with assets in it too. */
@@ -82,27 +79,6 @@ function SettingsSection() {
   )
 }
 
-function PulseSection() {
-  const { company, admin } = useCompanyPage()
-  return (
-    <>
-      <Pulse
-        companyId={company.id}
-        details={{
-          name: company.name,
-          logoUrl: company.logoUrl,
-          website: company.website,
-          industry: company.industry,
-          description: company.description,
-          targetCustomers: company.targetCustomers,
-          location: company.location,
-        }}
-        onSave={admin?.onUpdateCompany}
-      />
-    </>
-  )
-}
-
 /**
  * On the dashboard, Marketing: the campaigns, and under them the social media accounts.
  * One page, no switch. An open campaign takes the page on its own.
@@ -128,16 +104,10 @@ const SECTION_COMPONENTS: Record<CompanySectionKey, ComponentType> = {
   creators: CreatorsSection,
   content: ContentSection,
   social: SocialSection,
-  marketing: MarketingOverviewSection,
+  marketing: MarketingFlowSection,
   "websites-home": WebsitesHomeSection,
   "finance-home": FinanceHomeSection,
   "security-home": SecurityHomeSection,
-  "marketing-settings": MarketingSettingsSection,
-  reviews: ReviewsPage,
-  insights: InsightsPage,
-  seo: SeoPage,
-  "google-ads": GoogleAdsPage,
-  "business-profile": BusinessProfilePage,
   ngai: NgaiSection,
   sites: SitesSection,
   domains: DomainsSection,
@@ -146,7 +116,6 @@ const SECTION_COMPONENTS: Record<CompanySectionKey, ComponentType> = {
   about: SettingsSection,
   team: TeamSection,
   activity: HomeActivitySection,
-  pulse: PulseSection,
   documents: DriveSection,
   assets: AssetsSection,
   billings: BillingsSection,

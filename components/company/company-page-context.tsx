@@ -21,8 +21,8 @@ import type { AppUser } from "@/lib/users"
 export { COMPANY_SECTIONS, isCompanySection, type CompanySectionKey } from "@/components/company/company-sections"
 
 /** Marketing pages after Social Media, in menu order. Overview comes first, before Campaigns. */
-const MARKETING_PAGE_KEYS: CompanySectionKey[] = ["reviews", "insights", "seo", "google-ads", "business-profile", "marketing-settings"]
-const MARKETING_KEYS: CompanySectionKey[] = ["marketing", ...MARKETING_PAGE_KEYS, "websites-home", "finance-home", "security-home"]
+const OLD_MARKETING_KEYS = ["brand-health", "pulse", "reports", "insights", "seo", "reviews", "google-ads", "business-profile", "marketing-settings"]
+const MARKETING_KEYS: CompanySectionKey[] = ["marketing", "websites-home", "finance-home", "security-home"]
 
 export interface CompanyPagePerson {
   id: string
@@ -161,8 +161,6 @@ export function CompanyPageProvider({
     // Tasks and media live inside each campaign, so they have no menu entry of their own.
     const visible = COMPANY_SECTIONS
       .filter((item) => item.key !== "tasks")
-      // Reports (Pulse) is now Marketing; its old address redirects there.
-      .filter((item) => item.key !== "pulse")
       // Team sits on Account in the dashboard tabs.
       .filter((item) => mode === "routes" || item.key !== "team")
       .filter((item) => mode === "routes" || item.key !== "ngai")
@@ -207,7 +205,6 @@ export function CompanyPageProvider({
       find("content"),
       find("assets"),
       find("social"),
-      ...MARKETING_PAGE_KEYS.map(find),
       find("finance-home"),
       find("documents"),
       find("billings"),
@@ -222,9 +219,9 @@ export function CompanyPageProvider({
 
   const basePath = mode === "routes" ? `/${pathname.split("/")[1] ?? ""}` : pathname
   const requested = mode === "routes" ? pathname.split("/")[2] : searchParams.get("tab")
-  // "brand-health" is Pulse's old key; keep links that still use it working.
-  const requestedSection = requested === "brand-health"
-    ? "pulse"
+  // Old Marketing pages (Pulse, Insights, SEO and the rest) are now the one Marketing page.
+  const requestedSection = OLD_MARKETING_KEYS.includes(requested ?? "")
+    ? "marketing"
     : requested === "tasks" || (mode !== "routes" && requested === "social")
       ? "projects"
       : requested === "drive" || requested === "documents" || requested === "media" || requested === "notes" || requested === "finance" || (mode !== "routes" && requested === "assets")
