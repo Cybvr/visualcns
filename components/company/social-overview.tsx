@@ -11,7 +11,6 @@ import { CampaignBrandContext, CampaignPostViewDialog, postLabel, postMediaType 
 import { SocialConnectDialog } from "@/components/company/social-connect-dialog"
 import { SocialIcon } from "@/components/company/social-icon"
 import { CollectionView } from "@/components/dashboard/collection-view"
-import { thumbnailIcon } from "@/components/dashboard/grid-card"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
