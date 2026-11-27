@@ -1,7 +1,7 @@
 import { FieldValue } from "firebase-admin/firestore"
 
 import { adminServices } from "@/lib/firebase-admin"
-import { FLOW_STEPS, isFlowStep, stepsAfter, type FlowState, type FlowStep } from "@/lib/marketing-flow"
+import { EMPTY_STEP, FLOW_STEPS, isFlowStep, stepsAfter, type FlowState, type FlowStep } from "@/lib/marketing-flow"
 import { requireAgencyId } from "@/lib/require-agency-id"
 import { getAgencySecret, recordAgencyUsage } from "@/lib/server/agency-secrets"
 import { findEmails } from "@/lib/server/email-finder"
@@ -161,6 +161,18 @@ export async function POST(request: Request) {
     return json({ flow })
   }
 
+  // skip: mark a step done with nothing in it, so the run can carry on. Research can't be skipped.
+  if (body.action === "skip") {
+    if (!isFlowStep(body.step) || body.step === "research") return json({ error: "That step can't be skipped." }, 400)
+    const skippedStep: FlowStep = body.step
+    const next: FlowState = { ...flow, [skippedStep]: EMPTY_STEP[skippedStep], skipped: Array.from(new Set([...(flow.skipped ?? []), skippedStep])), updatedAt: new Date().toISOString() }
+    for (const later of stepsAfter(skippedStep)) delete next[later]
+    next.skipped = next.skipped?.filter((key) => !stepsAfter(skippedStep).includes(key))
+    // update, not a merge, so the cleared later steps are really gone.
+    await ref.update({ flow: withoutUndefined(next) })
+    return json({ flow: next })
+  }
+
   if (body.action !== "run" || !isFlowStep(body.step)) return json({ error: "Unknown action." }, 400)
   const step: FlowStep = body.step
 
@@ -202,7 +214,12 @@ export async function POST(request: Request) {
       const hunter = await getAgencySecret(agencyId, "HUNTER_API_KEY", process.env.HUNTER_API_KEY || "")
       result = (await findEmails({ hunter, firecrawl }, result as NonNullable<FlowState["people"]>, flow.customers ?? [])) as typeof result
     }
-    const next: FlowState = withoutUndefined({ ...flow, [step]: result, updatedAt: new Date().toISOString() })
+    const next: FlowState = withoutUndefined({
+      ...flow,
+      [step]: result,
+      skipped: (flow.skipped ?? []).filter((key) => key !== step && !stepsAfter(step).includes(key)),
+      updatedAt: new Date().toISOString(),
+    })
     for (const later of stepsAfter(step)) delete next[later]
     // set without merge, so cleared steps are really gone.
     await ref.set({ agencyId, companyId, flow: next, runMonth: thisMonth(), runsThisMonth: runs, updatedAt: FieldValue.serverTimestamp() })

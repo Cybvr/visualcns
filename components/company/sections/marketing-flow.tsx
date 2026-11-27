@@ -101,13 +101,15 @@ function FlowGate({ flow, error, signedOut, step, children }: { flow: FlowState 
   return <div className="mx-auto mt-5 w-full max-w-3xl min-w-0">{children}</div>
 }
 
+const count = (n = 0, one: string, many: string) => `${n} ${n === 1 ? one : many}`
+
 /** Steps whose results have their own page, and where that is. */
 const RESULT_PAGES: Partial<Record<FlowStep, { section: CompanySectionKey; label: (flow: FlowState) => string }>> = {
-  customers: { section: "leads", label: (flow) => `${flow.customers?.length ?? 0} companies` },
-  people: { section: "leads", label: (flow) => `${flow.people?.length ?? 0} decision makers` },
-  emails: { section: "outreach", label: (flow) => `${flow.emails?.length ?? 0} emails` },
-  social: { section: "social", label: (flow) => `${flow.social?.posts.length ?? 0} posts` },
-  ads: { section: "ads", label: (flow) => `${flow.ads?.length ?? 0} ads` },
+  customers: { section: "leads", label: (flow) => count(flow.customers?.length, "company", "companies") },
+  people: { section: "leads", label: (flow) => count(flow.people?.length, "decision maker", "decision makers") },
+  emails: { section: "outreach", label: (flow) => count(flow.emails?.length, "email", "emails") },
+  social: { section: "social", label: (flow) => count(flow.social?.posts.length, "post", "posts") },
+  ads: { section: "ads", label: (flow) => count(flow.ads?.length, "ad", "ads") },
 }
 
 export function MarketingFlowSection() {
@@ -145,6 +147,19 @@ export function MarketingFlowSection() {
       }
     }
     setRunning(null)
+  }
+
+  /** Skips a step, then carries on with the rest. */
+  async function skip(step: FlowStep) {
+    setFailed(null)
+    try {
+      setFlow((await api({ action: "skip", step })).flow)
+    } catch (error) {
+      setFailed({ step, message: error instanceof Error ? error.message : "Couldn't skip that step." })
+      return
+    }
+    const next = FLOW_STEPS[FLOW_STEPS.findIndex((item) => item.key === step) + 1]
+    if (next) void runFrom(next.key)
   }
 
   function start(event: FormEvent) {
@@ -217,7 +232,7 @@ export function MarketingFlowSection() {
                   <Link href={sectionHref(results.section)} className="flex w-full items-center gap-3 rounded-md py-3 text-left">
                     <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-white" aria-hidden="true"><Check className="size-4" /></span>
                     <span className="flex-1 text-base font-semibold sm:text-lg">{index + 1}. {step.title}</span>
-                    <span className="inline-flex shrink-0 items-center gap-1 text-sm text-muted-foreground">{results.label(flow)}<ArrowRight className="size-4" aria-hidden="true" /></span>
+                    <span className="inline-flex shrink-0 items-center gap-1 text-sm text-muted-foreground">{flow.skipped?.includes(step.key) ? "Skipped" : results.label(flow)}<ArrowRight className="size-4" aria-hidden="true" /></span>
                   </Link>
                 ) : (
                 <button
@@ -244,6 +259,7 @@ export function MarketingFlowSection() {
                   <div className="mb-3 ml-10 flex flex-wrap items-center gap-3 text-sm">
                     <span className="text-destructive">{failed.message}</span>
                     <Button type="button" size="sm" variant="outline" onClick={() => void runFrom(step.key)}>Try again</Button>
+                    {step.key !== "research" && <Button type="button" size="sm" variant="ghost" onClick={() => void skip(step.key)}>Skip</Button>}
                   </div>
                 )}
                 {isOpen && !results && (

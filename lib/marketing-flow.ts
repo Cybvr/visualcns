@@ -61,6 +61,8 @@ export type FlowState = {
   emails?: Email[]
   social?: SocialPlan
   ads?: Ad[]
+  /** Steps the company chose to skip. They count as done, with nothing in them. */
+  skipped?: FlowStep[]
   updatedAt?: string
 }
 
@@ -76,4 +78,16 @@ export function hostOf(url: string) {
   } catch {
     return ""
   }
+}
+
+/** What a skipped step holds: nothing, in the shape later steps expect. */
+export const EMPTY_STEP: { [K in FlowStep]: NonNullable<FlowState[K]> } = {
+  research: { name: "", website: "", summary: "", keywords: [] },
+  competitors: { product: "", points: [], searches: [], competitors: [] },
+  audiences: [],
+  customers: [],
+  people: [],
+  emails: [],
+  social: { posts: [] },
+  ads: [],
 }
