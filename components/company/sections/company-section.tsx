@@ -39,15 +39,17 @@ function BillingsSection() {
   return <CompanyBillings />
 }
 
-/** On the dashboard this tab is called Home: the latest leads, then the account details and team. */
+/** On the dashboard this tab is called Home: the account card and details, the latest leads, then the team. */
 function HomeActivitySection() {
   const { mode } = useCompanyPage()
   if (mode !== "tabs") return <ActivitySection />
   return (
-    <div className="mt-5">
-      <HomeOverview />
-      <div className="mt-8 min-w-0 max-w-xl first:mt-0">
-        <AboutSection singleColumn />
+    <div className="mx-auto mt-5 min-w-0 max-w-xl">
+      <AboutSection singleColumn />
+      <div className="mt-10 empty:hidden">
+        <HomeOverview />
+      </div>
+      <div>
         <div className="relative mt-10">
           <SettingsGroup id="company-settings-team" title="Team">
             <TeamSection />

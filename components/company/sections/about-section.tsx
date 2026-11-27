@@ -298,9 +298,9 @@ export function AboutSection({ singleColumn = false, formStyle = false }: { sing
   if (singleColumn) {
     return (
       <div className="mt-5 min-w-0 space-y-10">
-        <SettingsGroup id="company-settings-profile" title="Profile">
-          {admin?.profileSettings ? <div>{admin.profileSettings}</div> : null}
-          <div id="company-settings-about">{about}</div>
+        {admin?.profileSettings ? <div id="company-settings-account">{admin.profileSettings}</div> : null}
+        <SettingsGroup id="company-settings-profile" title={admin?.profileSettings ? "More" : "Profile"}>
+          {!admin?.profileSettings && <div id="company-settings-about">{about}</div>}
           <div id="company-settings-details">{details}</div>
           <div id="company-settings-tags">{tags}</div>
           <div id="company-settings-links">{links}</div>
