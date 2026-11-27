@@ -32,7 +32,7 @@ export function SitesSection() {
 
   // Opens the builder already signed in as this user.
   const openBuilder = (path: string) => void openInBuilder(path, async () => user ? user.getIdToken() : null)
-  const newSite = () => openBuilder("/dashboard")
+  const newSite = () => openBuilder("/admin")
 
   return (
     <div className="mt-5">
@@ -80,7 +80,7 @@ export function SitesSection() {
       />
       {chats && chats.length >= 50 && (
         <p className="mt-4 text-center text-sm">
-          <button type="button" onClick={() => openBuilder("/dashboard/projects")} className="text-muted-foreground underline-offset-4 hover:underline">
+          <button type="button" onClick={() => openBuilder("/admin/projects")} className="text-muted-foreground underline-offset-4 hover:underline">
             See all your websites
           </button>
         </p>

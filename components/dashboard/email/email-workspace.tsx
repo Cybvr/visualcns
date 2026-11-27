@@ -260,7 +260,7 @@ export function EmailWorkspace({ initialTab, initialMessageId }: { initialTab: E
   const successfulInboxRefreshRef = useRef(0)
   const [selectedReceivedId, setSelectedReceivedId] = useState<string | null>(initialMessageId ?? null)
 
-  const folderHref = (folder: EmailTab) => `/dashboard/email/${folder === "messages" ? "sent" : folder}`
+  const folderHref = (folder: EmailTab) => `/admin/email/${folder === "messages" ? "sent" : folder}`
   const openFolder = (folder: EmailTab) => {
     setTab(folder)
     setSelectedReceivedId(null)

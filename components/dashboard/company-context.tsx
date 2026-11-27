@@ -95,7 +95,7 @@ export function CompanyProvider({ children, companyRef, publicView = false }: { 
     setError(null)
     try {
       // Prefer the organization ref because company URLs use the organization's
-      // canonical slug. Fall back to user refs so older /dashboard/{userSlug}
+      // canonical slug. Fall back to user refs so older /admin/{userSlug}
       // links and raw ids continue to resolve.
       const resolvedOrg = publicView ? await getPublicOrganizationBySlug(ref) : await getOrganizationByRef(ref)
       const found = publicView

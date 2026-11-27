@@ -175,7 +175,7 @@ export function NgaiConversation({ layout, startingOptions, onOpenArtifact, acti
 
   function startNewChat() {
     reset()
-    if (/^\/dashboard\/chat\/[^/]+$/.test(pathname ?? "")) router.push("/dashboard")
+    if (/^\/admin\/chat\/[^/]+$/.test(pathname ?? "")) router.push("/admin")
   }
 
   // Items Ngai made, or the one a chat started beside, show as cards in the conversation.

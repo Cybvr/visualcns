@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 
 const APPS = [
-  { name: "VisualCNS", href: "/dashboard", letter: "V", tone: "bg-blue-600" },
+  { name: "VisualCNS", href: "/admin", letter: "V", tone: "bg-blue-600" },
   { name: "Pasive", href: "https://pasive.co", letter: "P", tone: "bg-emerald-600" },
 ]
 

@@ -26,7 +26,7 @@ export function NewProjectDialog({ open, onOpenChange, entityLabel = "project", 
       onCreated(project)
       return
     }
-    router.push(project ? `/dashboard/projects/${projectSlug(project)}` : "/dashboard/projects")
+    router.push(project ? `/admin/projects/${projectSlug(project)}` : "/admin/projects")
   }
 
   return (

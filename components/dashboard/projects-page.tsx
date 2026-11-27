@@ -209,8 +209,8 @@ export default function ProjectsAdminPage() {
                   <GridCard
                     key={p.id}
                     {...campaignGridCardProps(p, {
-                      href: `/dashboard/projects/${projectSlug(p)}`,
-                      onOpen: () => router.push(`/dashboard/projects/${projectSlug(p)}`),
+                      href: `/admin/projects/${projectSlug(p)}`,
+                      onOpen: () => router.push(`/admin/projects/${projectSlug(p)}`),
                       archived: !isCampaignActive(p),
                       ...campaignActions(p),
                       // The grid has no bulk bar, so it gets Share but not Select.
@@ -233,7 +233,7 @@ export default function ProjectsAdminPage() {
                 <ul className={MOBILE_LIST_CARD}>
                   {visibleProjects.map((p) => {
                     const meta = projectStatusMeta[p.status] ?? projectStatusMeta["in-progress"]
-                    const href = `/dashboard/projects/${projectSlug(p)}`
+                    const href = `/admin/projects/${projectSlug(p)}`
                     const checked = selection.isSelected(p.id)
                     const selecting = selection.selectedCount > 0
                     return (
@@ -276,7 +276,7 @@ export default function ProjectsAdminPage() {
                 </label>
                 {visibleProjects.map((p) => {
                   const meta = projectStatusMeta[p.status] ?? projectStatusMeta["in-progress"]
-                  const href = `/dashboard/projects/${projectSlug(p)}`
+                  const href = `/admin/projects/${projectSlug(p)}`
                   const selected = selection.isSelected(p.id)
                   return <MobileDataCard
                     key={p.id}

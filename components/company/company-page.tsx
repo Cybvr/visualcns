@@ -61,7 +61,7 @@ function DashboardCompanyView({ embedded = false, onBack }: { embedded?: boolean
 
   // The dashboard sidebar stays as it is; the company's sections are tabs above its content.
   const router = useRouter()
-  const goBack = () => (latest.current.onBack ? latest.current.onBack() : router.push("/dashboard/companies"))
+  const goBack = () => (latest.current.onBack ? latest.current.onBack() : router.push("/admin/companies"))
   // The agency gets Ngai beside the company, like an open document or invoice, so the dashboard header steps aside.
   const withNgai = !embedded && Boolean(admin)
   useHideHeader(withNgai)

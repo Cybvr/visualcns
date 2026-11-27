@@ -57,7 +57,7 @@ export function ClientSectionPage({ section }: { section: "projects" | "tasks" }
 
   async function handleProjectCreated() {
     await fetchData()
-    router.replace("/dashboard/projects")
+    router.replace("/admin/projects")
   }
 
   return (
@@ -78,7 +78,7 @@ export function ClientSectionPage({ section }: { section: "projects" | "tasks" }
           companyId={companyId}
           clientName={clientName}
           onOpenChange={(open) => {
-            if (!open) router.replace("/dashboard/projects")
+            if (!open) router.replace("/admin/projects")
           }}
           onCreated={handleProjectCreated}
         />

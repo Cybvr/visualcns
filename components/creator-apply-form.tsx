@@ -78,7 +78,7 @@ export function CreatorApplyForm({ projectId, brief, opening }: { projectId: str
       if (!response.ok) throw new Error(result.error || "That didn't send. Try again.")
       setSent(true)
       // A full load, so the app reads their creator role fresh and opens their campaigns.
-      window.location.assign("/dashboard/projects")
+      window.location.assign("/admin/projects")
     } catch (err) {
       const code = (err as { code?: string }).code
       setError(code ? AUTH_ERRORS[code] ?? "We couldn't create your account. Try again." : err instanceof Error ? err.message : "That didn't send. Try again.")

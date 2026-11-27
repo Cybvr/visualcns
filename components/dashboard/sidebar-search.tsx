@@ -44,7 +44,7 @@ export function useDashboardSearch() {
             group: "Companies",
             label: org.name,
             sublabel: join(org.industry, org.location) || undefined,
-            href: `/dashboard/companies/${organizationRef(org)}`,
+            href: `/admin/companies/${organizationRef(org)}`,
             keywords: keywords(org.industry, org.location, org.website, org.email, (org.tags || []).join(" "), org.slug),
           })),
           ...users.map((user) => ({
@@ -52,7 +52,7 @@ export function useDashboardSearch() {
             group: "Contacts",
             label: user.displayName || user.email,
             sublabel: join(user.company, user.email) || undefined,
-            href: "/dashboard/users",
+            href: "/admin/users",
             keywords: keywords(user.email, user.role, user.company),
           })),
         ])
@@ -78,7 +78,7 @@ export function useDashboardSearch() {
             group: "Campaigns",
             label: project.title,
             sublabel: join(project.client, project.service) || undefined,
-            href: `/dashboard/projects/${projectSlug(project)}`,
+            href: `/admin/projects/${projectSlug(project)}`,
             keywords: keywords(project.client, project.service, project.summary, (project.category || []).join(" ")),
           })),
           ...tasks.map((task) => ({
@@ -86,7 +86,7 @@ export function useDashboardSearch() {
             group: "Tasks",
             label: task.name,
             sublabel: join(task.project, task.client) || undefined,
-            href: "/dashboard/tasks",
+            href: "/admin/tasks",
             keywords: keywords(task.project, task.client, stripHtml(task.content || "")),
           })),
           ...documents.map((doc) => ({
@@ -94,7 +94,7 @@ export function useDashboardSearch() {
             group: "Documents",
             label: doc.title,
             sublabel: join(doc.kind, doc.client) || undefined,
-            href: `/dashboard/documents/${doc.id}`,
+            href: `/admin/documents/${doc.id}`,
             keywords: keywords(doc.client, doc.project, doc.summary, stripHtml(doc.body || "")),
           })),
           ...invoices.map((invoice) => ({
@@ -102,7 +102,7 @@ export function useDashboardSearch() {
             group: "Invoices",
             label: invoice.invoiceNumber || "Invoice",
             sublabel: join(invoice.client, invoice.project) || undefined,
-            href: `/dashboard/invoices/${invoice.id}`,
+            href: `/admin/invoices/${invoice.id}`,
             keywords: keywords(invoice.client, invoice.project, invoice.poReference),
           })),
           ...contracts.map((contract) => ({
@@ -110,7 +110,7 @@ export function useDashboardSearch() {
             group: "Contracts",
             label: contract.title || "Contract",
             sublabel: join(contract.client, contract.project) || undefined,
-            href: `/dashboard/contracts/${contract.id}`,
+            href: `/admin/contracts/${contract.id}`,
             keywords: keywords(contract.client, contract.project),
           })),
         ])

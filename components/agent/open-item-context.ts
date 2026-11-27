@@ -10,11 +10,11 @@ export const NgaiOpenItemContext = createContext<((artifact: ArtifactRef) => voi
 /** The item a dashboard link points at, if it is one the workspace can open. */
 export function itemFromHref(href: string): ArtifactRef | null {
   const url = new URL(href, "http://x")
-  const invoice = url.pathname.match(/^\/dashboard\/invoices\/([^/]+)\/?(?:edit\/?)?$/)
+  const invoice = url.pathname.match(/^\/admin\/invoices\/([^/]+)\/?(?:edit\/?)?$/)
   if (invoice && invoice[1] !== "new") return { kind: "invoice", id: decodeURIComponent(invoice[1]) }
-  const document = url.pathname === "/dashboard/documents" ? url.searchParams.get("document") : url.pathname.match(/^\/dashboard\/documents\/([^/]+)/)?.[1]
+  const document = url.pathname === "/admin/documents" ? url.searchParams.get("document") : url.pathname.match(/^\/admin\/documents\/([^/]+)/)?.[1]
   if (document) return { kind: "document", id: decodeURIComponent(document) }
-  const contract = url.pathname.match(/^\/dashboard\/contracts\/([^/]+)/)
+  const contract = url.pathname.match(/^\/admin\/contracts\/([^/]+)/)
   if (contract && contract[1] !== "new") return { kind: "contract", id: decodeURIComponent(contract[1]) }
   return null
 }

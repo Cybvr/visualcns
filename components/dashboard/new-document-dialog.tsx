@@ -129,7 +129,7 @@ export function NewDocumentDialog({
       })
       onOpenChange(false)
       // Opens beside Ngai, like every other document.
-      router.push(`/dashboard/documents?document=${encodeURIComponent(id)}`)
+      router.push(`/admin/documents?document=${encodeURIComponent(id)}`)
     } catch (createError) {
       console.error("Error creating document:", createError)
       setError("Couldn't create this document. Try again.")

@@ -225,19 +225,19 @@ export function HomeOverview() {
               const formatted = formatMoney(amount, currency)
               return <span key={currency} title={formatted} className="block min-w-0 truncate">{formatted}</span>
             })}</span>}
-            href="/dashboard/invoices"
+            href="/admin/invoices"
             money
           />
-          <Metric label="Leads" value={leads?.length ?? 0} href="/dashboard/leads" />
-          <Metric label="Reached out" value={reachedOut} href="/dashboard/leads" />
-          <Metric label="Client campaigns" value={projects.length} href="/dashboard/projects" />
+          <Metric label="Leads" value={leads?.length ?? 0} href="/admin/leads" />
+          <Metric label="Reached out" value={reachedOut} href="/admin/leads" />
+          <Metric label="Client campaigns" value={projects.length} href="/admin/projects" />
         </div>
       </section>
 
       <div className="mt-8 grid gap-8 lg:grid-cols-3 lg:gap-6">
-        <HomeColumn id="latest-campaigns-heading" title="Latest campaigns" href="/dashboard/projects" empty="No campaigns yet.">
+        <HomeColumn id="latest-campaigns-heading" title="Latest campaigns" href="/admin/projects" empty="No campaigns yet.">
           {latestCampaigns.map((project) => {
-            const href = `/dashboard/projects/${encodeURIComponent(projectSlug(project))}`
+            const href = `/admin/projects/${encodeURIComponent(projectSlug(project))}`
             const title = project.title || "Untitled campaign"
             return (
               <ThumbnailListItem
@@ -266,7 +266,7 @@ export function HomeOverview() {
           {latestPosts.map((post) => {
             const project = projects.find((item) => item.id === post.projectId)
             // Opens the post in its campaign's Content tab.
-            const href = project ? `/dashboard/projects/${encodeURIComponent(projectSlug(project))}?view=content&post=${encodeURIComponent(post.id)}` : undefined
+            const href = project ? `/admin/projects/${encodeURIComponent(projectSlug(project))}?view=content&post=${encodeURIComponent(post.id)}` : undefined
             const title = post.title || "Post"
             return (
               <ThumbnailListItem
@@ -294,10 +294,10 @@ export function HomeOverview() {
           })}
         </HomeColumn>
 
-        <HomeColumn id="outstanding-invoices-heading" title="Outstanding invoices" href="/dashboard/invoices" empty="No outstanding invoices.">
+        <HomeColumn id="outstanding-invoices-heading" title="Outstanding invoices" href="/admin/invoices" empty="No outstanding invoices.">
           {outstandingInvoices.map((invoice) => {
             const title = invoiceTitle(invoice)
-            const href = `/dashboard/invoices/${encodeURIComponent(invoice.id)}`
+            const href = `/admin/invoices/${encodeURIComponent(invoice.id)}`
             const amount = formatMoney(invoiceBalance(invoice), invoice.currency)
             const overdue = invoiceIsOverdue(invoice)
             const status = overdue ? "Overdue" : "Sent"
@@ -322,7 +322,7 @@ export function HomeOverview() {
                   noun: "invoice",
                   name: title,
                   onRename: (next) => refreshAfter(updateInvoice(invoice.id, { title: next })),
-                  extra: <DropdownMenuItem onSelect={() => router.push(`/dashboard/invoices/${invoice.id}/edit`)}>Edit invoice</DropdownMenuItem>,
+                  extra: <DropdownMenuItem onSelect={() => router.push(`/admin/invoices/${invoice.id}/edit`)}>Edit invoice</DropdownMenuItem>,
                   onDelete: () => refreshAfter(deleteInvoice(invoice.id)),
                   deleteMessage: `${invoice.invoiceNumber || "This invoice"} will be removed for good. This cannot be undone.`,
                 }}

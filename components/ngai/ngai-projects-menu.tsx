@@ -50,7 +50,7 @@ export function NgaiProjectsMenu({ className }: { className?: string }) {
               ))
             )}
             <DropdownMenuSeparator />
-            <DropdownMenuItem onSelect={() => openBuilder("/dashboard/projects")}>View all</DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => openBuilder("/admin/projects")}>View all</DropdownMenuItem>
           </>
         )}
       </DropdownMenuContent>

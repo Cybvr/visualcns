@@ -22,7 +22,7 @@ export function DashboardDocumentTitle() {
   const appName = agency?.name?.trim() || APP_NAME
 
   useEffect(() => {
-    const routeTitle = dashboardPageTitle(pathname ?? "/dashboard", searchParams)
+    const routeTitle = dashboardPageTitle(pathname ?? "/admin", searchParams)
     const pageTitle = override?.homeHref ? routeTitle : override?.title ?? routeTitle
     const activeRecordTitle = recordTitle || (override?.homeHref ? override.title : null)
     document.title = documentTitle(pageTitle, activeRecordTitle, appName)

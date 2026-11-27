@@ -277,7 +277,7 @@ export function CalendarPage() {
                   <div key={`task-${task.id}`} className="flex flex-wrap items-center gap-3 px-4 py-3">
                     <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"><CheckSquare className="size-4" /></div>
                     <div className="min-w-0 flex-1">
-                      <Link href={`/dashboard/tasks/${encodeURIComponent(task.id)}`} className={`truncate font-medium hover:underline ${task.status === "done" ? "text-muted-foreground line-through" : "text-foreground"}`}>{task.name}</Link>
+                      <Link href={`/admin/tasks/${encodeURIComponent(task.id)}`} className={`truncate font-medium hover:underline ${task.status === "done" ? "text-muted-foreground line-through" : "text-foreground"}`}>{task.name}</Link>
                       <p className="mt-1 truncate text-sm text-muted-foreground">Task · {task.client || "No company"}{task.project ? ` · ${task.project}` : ""}</p>
                     </div>
                     <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">{task.status === "done" ? "Done" : task.status === "in-progress" ? "In progress" : task.status === "review" ? "In review" : "Backlog"}</span>

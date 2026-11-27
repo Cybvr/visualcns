@@ -50,7 +50,7 @@ export function TaskEditorSheet({
             </div>
             {task && (
               <Button variant="ghost" size="icon" asChild className="mr-8 shrink-0" title="Open full task page">
-                <Link href={`/dashboard/tasks/${encodeURIComponent(task.id)}`} aria-label="Open full task page">
+                <Link href={`/admin/tasks/${encodeURIComponent(task.id)}`} aria-label="Open full task page">
                   <Maximize2 className="size-4" aria-hidden="true" />
                 </Link>
               </Button>

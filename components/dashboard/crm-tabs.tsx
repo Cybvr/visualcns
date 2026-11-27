@@ -9,9 +9,9 @@ import { cn } from "@/lib/utils"
 
 /** The three lists that make up the CRM, each on its own address so old links keep working. */
 export const CRM_TABS = [
-  { label: "Leads", href: "/dashboard/leads" },
-  { label: "Companies", href: "/dashboard/companies" },
-  { label: "Contacts", href: "/dashboard/users" },
+  { label: "Leads", href: "/admin/leads" },
+  { label: "Companies", href: "/admin/companies" },
+  { label: "Contacts", href: "/admin/users" },
 ] as const
 
 export const CRM_PATHS = CRM_TABS.map((tab) => tab.href)
@@ -24,7 +24,7 @@ export function CrmTabs() {
   if (!isAdmin || isImpersonating) return null
   if (!CRM_PATHS.includes(pathname as (typeof CRM_PATHS)[number])) return null
   return (
-    <nav aria-label="Databases" className={cn("w-full px-4 pt-4 sm:px-6", pathname !== "/dashboard/companies" && "mx-auto max-w-6xl")}>
+    <nav aria-label="Databases" className={cn("w-full px-4 pt-4 sm:px-6", pathname !== "/admin/companies" && "mx-auto max-w-6xl")}>
       <div className="inline-flex rounded-lg bg-muted p-0.5 text-sm font-medium">
         {CRM_TABS.map((tab) => {
           const active = pathname === tab.href

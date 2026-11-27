@@ -30,7 +30,7 @@ export default function LoginPage() {
   useEffect(() => {
     const requested = safeReturnTo(new URLSearchParams(window.location.search).get("next"))
     if (requested) setSignupHref(`/signup?next=${encodeURIComponent(requested)}`)
-    if (requested === "/dashboard/visitors") setVisitorLogin(true)
+    if (requested === "/admin/visitors") setVisitorLogin(true)
   }, [])
 
   useEffect(() => {
@@ -48,8 +48,8 @@ export default function LoginPage() {
     if (loading || action || !user || needsWorkspaceSelection) return
 
     const requested = safeReturnTo(new URLSearchParams(window.location.search).get("next"))
-    if (requested === "/dashboard/visitors" && !appUser) return
-    if (requested === "/dashboard/visitors" && appUser?.role === "client") {
+    if (requested === "/admin/visitors" && !appUser) return
+    if (requested === "/admin/visitors" && appUser?.role === "client") {
       if (!appUser.companyId) {
         setError("We couldn't find your company. Please contact support.")
         return
@@ -73,13 +73,13 @@ export default function LoginPage() {
       let active = true
       getOwnerOrganization()
         .then((organization) => {
-          if (active) router.replace(organization ? `/${encodeURIComponent(organizationRef(organization))}` : "/dashboard")
+          if (active) router.replace(organization ? `/${encodeURIComponent(organizationRef(organization))}` : "/admin")
         })
-        .catch(() => { if (active) router.replace("/dashboard") })
+        .catch(() => { if (active) router.replace("/admin") })
       return () => { active = false }
     }
     if (isAdmin) {
-      router.replace("/dashboard")
+      router.replace("/admin")
       return
     }
     if (!appUser?.companyId) return

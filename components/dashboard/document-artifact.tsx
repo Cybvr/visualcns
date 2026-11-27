@@ -37,13 +37,13 @@ const KIND_META: Record<ArtifactKind, { label: string; icon: typeof FileText; co
 export function artifactPageHref(artifact: Pick<ArtifactRef, "kind" | "id">, chat?: string) {
   const id = encodeURIComponent(artifact.id)
   const withChat = (href: string) => chat ? `${href}${href.includes("?") ? "&" : "?"}chat=${encodeURIComponent(chat)}` : href
-  if (artifact.kind === "document") return withChat(`/dashboard/documents?document=${id}`)
-  if (artifact.kind === "invoice") return withChat(`/dashboard/invoices/${id}`)
-  return `/dashboard/contracts/${id}`
+  if (artifact.kind === "document") return withChat(`/admin/documents?document=${id}`)
+  if (artifact.kind === "invoice") return withChat(`/admin/invoices/${id}`)
+  return `/admin/contracts/${id}`
 }
 
 export function artifactEditHref(artifact: ArtifactRef) {
-  return `/dashboard/${artifact.kind}s/${encodeURIComponent(artifact.id)}/edit`
+  return `/admin/${artifact.kind}s/${encodeURIComponent(artifact.id)}/edit`
 }
 
 async function loadRecord(artifact: ArtifactRef): Promise<ArtifactRecord | null> {

@@ -26,7 +26,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar"
 
-export function NavUser({ variant = "sidebar", accountLabel = "Account", accountHref = "/dashboard/account", backToDashboard = false }: { variant?: "sidebar" | "header"; accountLabel?: string; accountHref?: string; backToDashboard?: boolean }) {
+export function NavUser({ variant = "sidebar", accountLabel = "Account", accountHref = "/admin/account", backToDashboard = false }: { variant?: "sidebar" | "header"; accountLabel?: string; accountHref?: string; backToDashboard?: boolean }) {
   const { isMobile } = useSidebar()
   const { user, appUser, isAdmin, isViewingAs, stopViewingAs, signOut } = useAuth()
   const { resolvedTheme, setTheme } = useTheme()
@@ -79,7 +79,7 @@ export function NavUser({ variant = "sidebar", accountLabel = "Account", account
       <DropdownMenuSeparator />
       {backToDashboard && isAdmin && (
         <DropdownMenuItem asChild>
-          <Link href="/dashboard" onClick={stopViewingAs}>
+          <Link href="/admin" onClick={stopViewingAs}>
             <ArrowLeft />
             Back to Dashboard
           </Link>

@@ -30,29 +30,29 @@ export function useNavCounts(): Record<string, number> {
     const set = (href: string, value: number) => { if (active) setCounts((current) => ({ ...current, [href]: value })) }
 
     getUsers()
-      .then((rows) => set("/dashboard/users", rows.filter((row) => Boolean(row.displayName?.trim() || row.email?.trim())).length))
+      .then((rows) => set("/admin/users", rows.filter((row) => Boolean(row.displayName?.trim() || row.email?.trim())).length))
       .catch(() => {})
     // The Companies page folds companies with the same name into one row.
     getOrganizations()
-      .then((rows) => set("/dashboard/companies", new Set(rows.map((row) => (row.name || row.id).trim().toLowerCase())).size))
+      .then((rows) => set("/admin/companies", new Set(rows.map((row) => (row.name || row.id).trim().toLowerCase())).size))
       .catch(() => {})
     let driveCount = 0
-    const updateDriveCount = () => set("/dashboard/artifacts", driveCount)
+    const updateDriveCount = () => set("/admin/artifacts", driveCount)
     Promise.allSettled([getInvoices(), getCompanyDocuments()])
       .then(([invoices, ...rest]) => {
-        if (invoices.status === "fulfilled") set("/dashboard/invoices", invoices.value.length)
+        if (invoices.status === "fulfilled") set("/admin/invoices", invoices.value.length)
         driveCount = rest.reduce((total, result) => total + (result.status === "fulfilled" ? result.value.length : 0), 0)
         updateDriveCount()
       })
     getProjects()
-      .then((rows) => set("/dashboard/projects", rows.length))
+      .then((rows) => set("/admin/projects", rows.length))
       .catch(() => {})
 
     let stopLeads = () => {}
     getCurrentAgencyId()
       .then((agencyId) => {
         if (!active) return
-        stopLeads = watchLeads(agencyId, (rows) => set("/dashboard/leads", rows.length), () => {})
+        stopLeads = watchLeads(agencyId, (rows) => set("/admin/leads", rows.length), () => {})
       })
       .catch(() => {})
 

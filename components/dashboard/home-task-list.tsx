@@ -35,7 +35,7 @@ export function HomeTaskList({
 
   return (
     <section className={cn("mt-8 min-w-0", className)} aria-labelledby="home-tasks-heading">
-      <SectionHeader id="home-tasks-heading" title="Tasks" href="/dashboard/tasks" />
+      <SectionHeader id="home-tasks-heading" title="Tasks" href="/admin/tasks" />
 
       {tasks.length === 0 ? (
         <p className="mt-3 border border-border bg-card px-4 py-5 text-sm text-muted-foreground">

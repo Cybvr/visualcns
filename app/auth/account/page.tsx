@@ -39,9 +39,9 @@ export default function AccountRedirectPage() {
         // Clients belong to a company; agency staff use their own business's page.
         const company = (profile?.companyId ? await getOrganization(profile.companyId) : null)
           ?? (profile?.role === "admin" || profile?.role === "superadmin" ? await getOwnerOrganization() : null)
-        window.location.replace(company ? `/${encodeURIComponent(organizationRef(company))}${suffix}` : "/dashboard")
+        window.location.replace(company ? `/${encodeURIComponent(organizationRef(company))}${suffix}` : "/admin")
       } catch {
-        window.location.replace("/dashboard")
+        window.location.replace("/admin")
       }
     })
     return unsubscribe

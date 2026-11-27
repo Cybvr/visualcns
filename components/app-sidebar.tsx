@@ -70,7 +70,7 @@ function RecentChats({ onNavigate }: { onNavigate: () => void }) {
     .filter((conversation) => conversation.messages.length > 0)
     .sort((a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0))
     .slice(0, RECENT_CHATS)
-  const onChat = pathname === "/dashboard" || pathname.startsWith("/dashboard/chat/")
+  const onChat = pathname === "/admin" || pathname.startsWith("/admin/chat/")
   if (takeover || chats.length === 0) return null
 
   return (
@@ -87,7 +87,7 @@ function RecentChats({ onNavigate }: { onNavigate: () => void }) {
               onClick={() => {
                 selectConversation(chat.id)
                 onNavigate()
-                router.push(`/dashboard/chat/${encodeURIComponent(chat.id)}`)
+                router.push(`/admin/chat/${encodeURIComponent(chat.id)}`)
               }}
             >
               <span className="sidebar-nav-label truncate">{chat.title || "New chat"}</span>
@@ -95,8 +95,8 @@ function RecentChats({ onNavigate }: { onNavigate: () => void }) {
           </SidebarMenuItem>
         ))}
         <SidebarMenuItem>
-          <SidebarMenuButton asChild isActive={pathname === "/dashboard/chats"} className={cn(mobileNavButton, "text-muted-foreground")}>
-            <Link href="/dashboard/chats" onClick={onNavigate}><span className="sidebar-nav-label">All chats</span></Link>
+          <SidebarMenuButton asChild isActive={pathname === "/admin/chats"} className={cn(mobileNavButton, "text-muted-foreground")}>
+            <Link href="/admin/chats" onClick={onNavigate}><span className="sidebar-nav-label">All chats</span></Link>
           </SidebarMenuButton>
         </SidebarMenuItem>
       </SidebarMenu>
@@ -241,10 +241,10 @@ export function AppSidebar({
                       </SidebarMenuButton>
                     ) : (
                       <SidebarMenuButton asChild isActive={isActive(pathname, link.href, rootHref, link.alsoActive)} tooltip={link.label} className={mobileNavButton}>
-                        <Link href={link.href} onClick={() => handleNavigate(link.adminOnly)} className={link.href === "/dashboard/email/inbox" ? "relative" : undefined} aria-label={link.href === "/dashboard/email/inbox" && unreadEmailCount > 0 ? `${link.label}, ${unreadEmailCount} unread` : undefined}>
+                        <Link href={link.href} onClick={() => handleNavigate(link.adminOnly)} className={link.href === "/admin/email/inbox" ? "relative" : undefined} aria-label={link.href === "/admin/email/inbox" && unreadEmailCount > 0 ? `${link.label}, ${unreadEmailCount} unread` : undefined}>
                           <link.icon className="h-4 w-4" />
-                          <span className={cn("sidebar-nav-label", link.href === "/dashboard/email/inbox" && unreadEmailCount > 0 && "font-semibold")}>{link.label}</span>
-                          {link.href === "/dashboard/email/inbox" && unreadEmailCount > 0 && (
+                          <span className={cn("sidebar-nav-label", link.href === "/admin/email/inbox" && unreadEmailCount > 0 && "font-semibold")}>{link.label}</span>
+                          {link.href === "/admin/email/inbox" && unreadEmailCount > 0 && (
                             <span className="ml-auto rounded-full bg-button px-1.5 py-0.5 text-[10px] font-bold leading-none tabular-nums text-button-foreground group-data-[collapsible=icon]:absolute group-data-[collapsible=icon]:-right-1 group-data-[collapsible=icon]:-top-1" aria-hidden="true">
                               {unreadEmailCount > 99 ? "99+" : unreadEmailCount}
                             </span>

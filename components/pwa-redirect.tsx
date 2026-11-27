@@ -20,7 +20,7 @@ export function PwaRedirect({ children, to = "/login" }: { children: ReactNode; 
       (window.navigator as Navigator & { standalone?: boolean }).standalone === true
 
     const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) window.location.replace("/dashboard")
+      if (user) window.location.replace("/admin")
       else if (standalone) window.location.replace(to)
       else setReady(true)
     })

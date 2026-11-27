@@ -25,7 +25,7 @@ const onboardingFeatures = [
 /** Where to go once the company exists. /onboarding is skipped now that the company is made here. */
 function destinationAfterSignup(returnTo: string | null, slug: string) {
   const companyPage = `/${encodeURIComponent(slug)}`
-  if (!returnTo || returnTo === "/dashboard/visitors") return companyPage
+  if (!returnTo || returnTo === "/admin/visitors") return companyPage
   const url = new URL(returnTo, "https://visualhq.invalid")
   if (url.pathname === "/onboarding") return safeReturnTo(url.searchParams.get("next")) || companyPage
   return returnTo

@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
       const slug = String(org.slug || companyId)
       // Back to the page they paid from, on this company's own pages only.
       const companyPath = `/${encodeURIComponent(slug)}`
-      const returnTo = typeof body.returnTo === "string" && (body.returnTo === companyPath || body.returnTo.startsWith(`${companyPath}/`) || body.returnTo.startsWith("/dashboard/")) && !body.returnTo.startsWith("//") ? body.returnTo : companyPath
+      const returnTo = typeof body.returnTo === "string" && (body.returnTo === companyPath || body.returnTo.startsWith(`${companyPath}/`) || body.returnTo.startsWith("/admin/")) && !body.returnTo.startsWith("//") ? body.returnTo : companyPath
       const checkout = await paystack<{ authorization_url: string; reference: string }>("/transaction/initialize", {
         method: "POST",
         body: {

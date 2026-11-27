@@ -58,7 +58,7 @@ export function TemplatesSection() {
           </p>
         </div>
         <Button asChild>
-          <Link href="/dashboard/projects">Open your agency</Link>
+          <Link href="/admin/projects">Open your agency</Link>
         </Button>
       </div>
     </div>

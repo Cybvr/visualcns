@@ -359,7 +359,7 @@ export function Header({ pinned = true }: { pinned?: boolean } = {}) {
           <div className="flex items-center gap-2">
             {currentUser ? (
               <Link
-                href="/dashboard"
+                href="/admin"
                 aria-label="Dashboard"
                 className="inline-flex size-10 items-center justify-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
               >

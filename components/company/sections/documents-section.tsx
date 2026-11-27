@@ -19,15 +19,15 @@ const KIND_LABELS: Record<CompanyDocumentKind, string> = {
 }
 
 function editHref(kind: CompanyDocumentKind, id: string) {
-  return `/dashboard/${kind}s/${encodeURIComponent(id)}/edit`
+  return `/admin/${kind}s/${encodeURIComponent(id)}/edit`
 }
 
 /** Where the main Artifacts page opens each kind: documents and invoices beside Ngai. */
 function artifactHref(kind: CompanyDocumentKind, id: string) {
   const ref = encodeURIComponent(id)
-  if (kind === "document") return `/dashboard/documents?document=${ref}`
-  if (kind === "invoice") return `/dashboard/invoices/${ref}`
-  return `/dashboard/contracts/${ref}`
+  if (kind === "document") return `/admin/documents?document=${ref}`
+  if (kind === "invoice") return `/admin/invoices/${ref}`
+  return `/admin/contracts/${ref}`
 }
 
 /**
@@ -82,7 +82,7 @@ export function DocumentsSection({ view = "documents" }: { view?: "documents" | 
       setCreatingDocument(true)
       return
     }
-    router.push(`/dashboard/${kind}s/new?companyId=${encodeURIComponent(company.id)}`)
+    router.push(`/admin/${kind}s/new?companyId=${encodeURIComponent(company.id)}`)
   }
 
   const selectedRecord = selected

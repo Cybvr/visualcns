@@ -136,7 +136,7 @@ export function contractsAsDocuments(contracts: Contract[]): SharedDocument[] {
     id: `contract-${contract.id}`,
     title: contract.title,
     // Written agreements live on their own page; linked ones point at the file.
-    url: contract.url || `/dashboard/contracts/${contract.id}`,
+    url: contract.url || `/admin/contracts/${contract.id}`,
     description: contract.project || "",
     companyId: contract.companyId,
     type: "doc" as const,

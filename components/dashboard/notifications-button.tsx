@@ -19,10 +19,10 @@ const SEEN_KEY = "visualcns.notificationsSeenAt"
 /** Where a notification jumps to in the workspace. */
 function notificationHref(item: ActivityItem): string | undefined {
   switch (item.kind) {
-    case "invoice": return `/dashboard/invoices/${item.refId}`
-    case "contract": return `/dashboard/contracts/${item.refId}`
-    case "project": return "/dashboard/projects"
-    case "task": return "/dashboard/tasks"
+    case "invoice": return `/admin/invoices/${item.refId}`
+    case "contract": return `/admin/contracts/${item.refId}`
+    case "project": return "/admin/projects"
+    case "task": return "/admin/tasks"
     default: return undefined
   }
 }

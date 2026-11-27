@@ -137,7 +137,7 @@ export function ContractBuilder({ contract, initialCompanyId }: { contract?: Con
       if (contract) await updateContract(contract.id, payload)
       else await createContract(payload)
 
-      router.push("/dashboard/contracts")
+      router.push("/admin/contracts")
     } catch (err) {
       console.error("Error saving contract:", err)
       setError("Couldn't save this contract. Try again.")
@@ -148,7 +148,7 @@ export function ContractBuilder({ contract, initialCompanyId }: { contract?: Con
   async function handleDelete() {
     if (!contract) return
     await deleteContract(contract.id)
-    router.push("/dashboard/contracts")
+    router.push("/admin/contracts")
   }
 
   return (
@@ -158,7 +158,7 @@ export function ContractBuilder({ contract, initialCompanyId }: { contract?: Con
           <button
             type="button"
             // Back to wherever they came from; straight to the list when the page was opened directly.
-            onClick={() => (window.history.length > 1 ? router.back() : router.push("/dashboard/contracts"))}
+            onClick={() => (window.history.length > 1 ? router.back() : router.push("/admin/contracts"))}
             aria-label="Back"
             className="inline-flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
           >
@@ -169,7 +169,7 @@ export function ContractBuilder({ contract, initialCompanyId }: { contract?: Con
           </h1>
         </div>
         <div className="flex items-center gap-3">
-          <Button type="button" variant="ghost" onClick={() => router.push("/dashboard/contracts")}>
+          <Button type="button" variant="ghost" onClick={() => router.push("/admin/contracts")}>
             Cancel
           </Button>
           <Button type="submit" disabled={saving}>

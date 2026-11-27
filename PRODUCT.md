@@ -30,7 +30,7 @@ The existing application contains projects, tasks, companies, invoices, estimate
 
 ## Evidence on Hand
 
-- Existing implementation in app/dashboard, app/[clientSlug], app/share, components/company, and lib.
+- Existing implementation in app/admin, app/[clientSlug], app/share, components/company, and lib.
 - User supplied a project-portal screenshot showing a project header, horizontal tabs, outstanding items, tasks, billing, and files/links. It is a layout reference, not a source of production data.
 
 ## Product Principles

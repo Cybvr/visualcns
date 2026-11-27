@@ -34,7 +34,7 @@ export interface AppUser {
   /** Top-level agency boundary. Never infer this from companyId. */
   agencyId?: string
   company?: string
-  /** The user's own dashboard URL segment, e.g. /dashboard/ada-obi */
+  /** The user's own dashboard URL segment, e.g. /admin/ada-obi */
   slug?: string
   /** Links a client user to their project/deliverable data. */
   companyId?: string

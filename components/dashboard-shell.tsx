@@ -41,12 +41,12 @@ export type { NavLink }
 function DashboardMobileFooterNav({ unreadEmailCount }: { unreadEmailCount: number }) {
   const pathname = usePathname()
   const items: MobileFooterNavItem[] = [
-    // Home only lights up on the home page itself, not on every page under /dashboard.
-    { key: "new", label: "New", icon: Plus, href: "/dashboard", isActive: pathname === "/dashboard" },
-    { key: "email", label: "Emails", icon: FiMail, href: "/dashboard/email/inbox", isActive: pathname.startsWith("/dashboard/email"), badge: unreadEmailCount },
-    { key: "artifacts", label: "Artifacts", icon: FolderOpen, href: "/dashboard/artifacts", isActive: ["artifacts", "drive", "documents", "notes", "invoices"].some((section) => pathname.startsWith(`/dashboard/${section}`)) },
-    { key: "crm", label: "Databases", icon: Building2, href: "/dashboard/crm", isActive: ["/dashboard/crm", "/dashboard/leads", "/dashboard/companies", "/dashboard/users", "/dashboard/projects"].some((path) => pathname.startsWith(path)) },
-    { key: "profile", label: "Profile", icon: FiUser, href: "/dashboard/account" },
+    // Home only lights up on the home page itself, not on every page under /admin.
+    { key: "new", label: "New", icon: Plus, href: "/admin", isActive: pathname === "/admin" },
+    { key: "email", label: "Emails", icon: FiMail, href: "/admin/email/inbox", isActive: pathname.startsWith("/admin/email"), badge: unreadEmailCount },
+    { key: "artifacts", label: "Artifacts", icon: FolderOpen, href: "/admin/artifacts", isActive: ["artifacts", "drive", "documents", "notes", "invoices"].some((section) => pathname.startsWith(`/admin/${section}`)) },
+    { key: "crm", label: "Databases", icon: Building2, href: "/admin/crm", isActive: ["/admin/crm", "/admin/leads", "/admin/companies", "/admin/users", "/admin/projects"].some((path) => pathname.startsWith(path)) },
+    { key: "profile", label: "Profile", icon: FiUser, href: "/admin/account" },
   ]
 
   return <MobileFooterNav items={items} />
@@ -80,16 +80,16 @@ export function DashboardShell({
   const router = useRouter()
   // Document detail and editor screens keep the focused layout, while the
   // navigation remains available as a collapsed icon rail.
-  const isDocumentRoute = /^\/dashboard\/documents\/[^/]+/.test(pathname ?? "")
-  const isProjectDetailRoute = /^\/dashboard\/projects\/[^/]+$/.test(pathname ?? "")
-  const isTaskDetailRoute = /^\/dashboard\/tasks\/[^/]+$/.test(pathname ?? "")
+  const isDocumentRoute = /^\/admin\/documents\/[^/]+/.test(pathname ?? "")
+  const isProjectDetailRoute = /^\/admin\/projects\/[^/]+$/.test(pathname ?? "")
+  const isTaskDetailRoute = /^\/admin\/tasks\/[^/]+$/.test(pathname ?? "")
   const isBackDetailRoute = isProjectDetailRoute || isTaskDetailRoute
-  const isCompanyDetailRoute = /^\/dashboard\/(?:companies|clients)\/[^/]+(?:\/|$)/.test(pathname ?? "")
+  const isCompanyDetailRoute = /^\/admin\/(?:companies|clients)\/[^/]+(?:\/|$)/.test(pathname ?? "")
   // The dashboard home is Ngai too, so it gets the same full-height chat layout.
-  const isChatRoute = /^\/dashboard\/chat(?:\/[^/]+)?$/.test(pathname ?? "")
-  const isEmailRoute = pathname?.startsWith("/dashboard/email") ?? false
+  const isChatRoute = /^\/admin\/chat(?:\/[^/]+)?$/.test(pathname ?? "")
+  const isEmailRoute = pathname?.startsWith("/admin/email") ?? false
   // Invoice, contract and document pages (and their editors), not their lists or the New screens.
-  const isRecordDetailRoute = /^\/dashboard\/(?:invoices|contracts|documents)\/(?!new(?:\/|$))[^/]+/.test(pathname ?? "")
+  const isRecordDetailRoute = /^\/admin\/(?:invoices|contracts|documents)\/(?!new(?:\/|$))[^/]+/.test(pathname ?? "")
   const [sidebarOpen, setSidebarOpen] = useState(!isDocumentRoute)
   const { open: agentOpen } = useAgent()
   const { agency } = useAuth()
@@ -148,7 +148,7 @@ export function DashboardShell({
                     if (window.history.length > 1) {
                       router.back()
                     } else {
-                      router.push(isTaskDetailRoute ? "/dashboard/tasks" : "/dashboard/projects")
+                      router.push(isTaskDetailRoute ? "/admin/tasks" : "/admin/projects")
                     }
                   }}
                   aria-label={isTaskDetailRoute ? "Back to tasks" : "Back to projects"}
@@ -199,7 +199,7 @@ export function DashboardShell({
                 </Link>
               )}
               <h1 className={cn("surface-title min-w-0 truncate max-md:[--surface-title-size:17px]", titleNode && "flex-1", !titleNode && "md:sr-only")}>
-                {titleNode ?? titleOverride?.title ?? dashboardPageTitle(pathname ?? "/dashboard")}
+                {titleNode ?? titleOverride?.title ?? dashboardPageTitle(pathname ?? "/admin")}
               </h1>
             </div>
             <div className="ml-auto flex shrink-0 items-center gap-2">

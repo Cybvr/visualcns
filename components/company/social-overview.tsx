@@ -209,7 +209,7 @@ export function SocialOverview() {
       {info && !info.configured ? (
         <p className="rounded-lg bg-muted/50 px-4 py-3 text-sm text-muted-foreground">
           {info.role === "agency" ? (
-            <>Add your SocialAPI key in <Link href="/dashboard/account/agency" className="font-medium text-foreground underline underline-offset-4">Agency settings</Link> so posts can go out and followers show here.</>
+            <>Add your SocialAPI key in <Link href="/admin/account/agency" className="font-medium text-foreground underline underline-offset-4">Agency settings</Link> so posts can go out and followers show here.</>
           ) : (
             "Posting to your accounts isn't switched on yet. You can still write posts; they go to your agency."
           )}

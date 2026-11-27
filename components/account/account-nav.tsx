@@ -8,21 +8,21 @@ import { Activity, ArrowLeft, Bell, BookOpen, ChevronRight, Database, Landmark, 
 import { useAuth } from "@/components/auth-provider"
 
 const LINKS: { label: string; href: string; icon: ComponentType<{ className?: string }>; adminOnly?: boolean; superAdminOnly?: boolean; creatorOnly?: boolean }[] = [
-  { label: "Profile Settings", href: "/dashboard/account/profile", icon: UserRound },
-  { label: "Payouts", href: "/dashboard/account/payouts", icon: Landmark, creatorOnly: true },
-  { label: "Agency Settings", href: "/dashboard/account/agency", icon: Sparkles, adminOnly: true },
-  { label: "Ngai Knowledge", href: "/dashboard/account/knowledge", icon: BookOpen, adminOnly: true },
-  { label: "Ngai Operations", href: "/dashboard/account/agent-operations", icon: Activity, adminOnly: true },
-  { label: "Integrations", href: "/dashboard/account/integrations", icon: Link2, adminOnly: true },
-  { label: "Agency Management", href: "/dashboard/admin/agencies", icon: Server, superAdminOnly: true },
-  { label: "Discount Codes", href: "/dashboard/admin/discount-codes", icon: TicketPercent, superAdminOnly: true },
-  { label: "Team", href: "/dashboard/account/team", icon: Users, adminOnly: true },
-  { label: "App Settings", href: "/dashboard/account/customization", icon: Palette },
-  { label: "Notifications", href: "/dashboard/account/notifications", icon: Bell, adminOnly: true },
-  { label: "Data", href: "/dashboard/account/data", icon: Database, adminOnly: true },
+  { label: "Profile Settings", href: "/admin/account/profile", icon: UserRound },
+  { label: "Payouts", href: "/admin/account/payouts", icon: Landmark, creatorOnly: true },
+  { label: "Agency Settings", href: "/admin/account/agency", icon: Sparkles, adminOnly: true },
+  { label: "Ngai Knowledge", href: "/admin/account/knowledge", icon: BookOpen, adminOnly: true },
+  { label: "Ngai Operations", href: "/admin/account/agent-operations", icon: Activity, adminOnly: true },
+  { label: "Integrations", href: "/admin/account/integrations", icon: Link2, adminOnly: true },
+  { label: "Agency Management", href: "/admin/agencies", icon: Server, superAdminOnly: true },
+  { label: "Discount Codes", href: "/admin/discount-codes", icon: TicketPercent, superAdminOnly: true },
+  { label: "Team", href: "/admin/account/team", icon: Users, adminOnly: true },
+  { label: "App Settings", href: "/admin/account/customization", icon: Palette },
+  { label: "Notifications", href: "/admin/account/notifications", icon: Bell, adminOnly: true },
+  { label: "Data", href: "/admin/account/data", icon: Database, adminOnly: true },
 ]
 
-const MENU_HREF = "/dashboard/account"
+const MENU_HREF = "/admin/account"
 
 /** The section title, shown under the back link. */
 export function AccountHeader({ title }: { title: string }) {
@@ -45,7 +45,7 @@ export function AccountMenu() {
 
   return (
     <div>
-      <Link href="/dashboard/account/profile" className="flex items-center gap-3 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring">
+      <Link href="/admin/account/profile" className="flex items-center gap-3 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring">
         <span className="flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-full bg-muted text-lg font-semibold text-muted-foreground">
           {photo ? (
             // eslint-disable-next-line @next/next/no-img-element

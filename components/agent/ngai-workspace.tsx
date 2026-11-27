@@ -17,7 +17,7 @@ import { cn } from "@/lib/utils"
 
 /** The chat's own address. The open item rides along as ?open=, so you stay on the chat. */
 function chatUrl(conversationId: string, item?: ArtifactRef | null) {
-  const base = conversationId ? `/dashboard/chat/${encodeURIComponent(conversationId)}` : "/dashboard"
+  const base = conversationId ? `/admin/chat/${encodeURIComponent(conversationId)}` : "/admin"
   return item ? `${base}?open=${item.kind}:${encodeURIComponent(item.id)}` : base
 }
 
@@ -114,7 +114,7 @@ export function NgaiWorkspace({ initial }: { initial?: ArtifactRef }) {
       title={chat?.title || "New chat"}
       noun="chat"
       onRename={chat ? (title) => renameConversation(chat.id, title) : undefined}
-      onDelete={chat ? async () => { await deleteConversations([chat.id]); reset(); window.history.replaceState(null, "", "/dashboard") } : undefined}
+      onDelete={chat ? async () => { await deleteConversations([chat.id]); reset(); window.history.replaceState(null, "", "/admin") } : undefined}
       deleteDescription={chat ? `"${chat.title}" and its messages will be removed for good. This cannot be undone.` : undefined}
     />
   )

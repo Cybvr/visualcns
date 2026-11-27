@@ -21,20 +21,20 @@ import { setPageCacheScope } from "@/lib/page-cache"
 const AgentDock = dynamic(() => import("@/components/agent/agent-dock").then((module) => module.AgentDock), { ssr: false })
 
 const DASHBOARD_NAV: NavLink[] = [
-  { label: "New", href: "/dashboard", icon: Plus, startsNewChat: true },
-  { label: "Email", href: "/dashboard/email/inbox", icon: FiMail, alsoActive: ["/dashboard/email"] },
-  { label: "Artifacts", href: "/dashboard/artifacts", icon: FolderOpen, adminOnly: true, alsoActive: ["/dashboard/drive", "/dashboard/documents", "/dashboard/notes", "/dashboard/invoices"] },
-  { label: "Databases", href: "/dashboard/crm", icon: FiUsers, adminOnly: true, alsoActive: ["/dashboard/leads", "/dashboard/companies", "/dashboard/users", "/dashboard/projects"] },
-  { label: "Analytics", href: "/dashboard/analytics", icon: BarChart3, adminOnly: true },
+  { label: "New", href: "/admin", icon: Plus, startsNewChat: true },
+  { label: "Email", href: "/admin/email/inbox", icon: FiMail, alsoActive: ["/admin/email"] },
+  { label: "Artifacts", href: "/admin/artifacts", icon: FolderOpen, adminOnly: true, alsoActive: ["/admin/drive", "/admin/documents", "/admin/notes", "/admin/invoices"] },
+  { label: "Databases", href: "/admin/crm", icon: FiUsers, adminOnly: true, alsoActive: ["/admin/leads", "/admin/companies", "/admin/users", "/admin/projects"] },
+  { label: "Analytics", href: "/admin/analytics", icon: BarChart3, adminOnly: true },
 ]
 
 /** Creators sign up by applying to a campaign: they see their campaigns and their account. */
 const CREATOR_NAV: NavLink[] = [
-  { label: "Campaigns", href: "/dashboard/projects", icon: Megaphone },
-  { label: "Account", href: "/dashboard/account", icon: UserRound },
+  { label: "Campaigns", href: "/admin/projects", icon: Megaphone },
+  { label: "Account", href: "/admin/account", icon: UserRound },
 ]
 
-const CREATOR_PATHS = /^\/dashboard\/(?:projects$|account(?:\/|$))/
+const CREATOR_PATHS = /^\/admin\/(?:projects$|account(?:\/|$))/
 
 function UnifiedDashboardShell({ children, requireAdmin = false }: { children: ReactNode; requireAdmin?: boolean }) {
   const { user, appUser, role, isAdmin, isImpersonating, isViewingAs, impersonatedUser, stopViewingAs, loading, signOut, agencyStatus } = useAuth()
@@ -46,8 +46,8 @@ function UnifiedDashboardShell({ children, requireAdmin = false }: { children: R
   // Before any page reads its remembered data: a different account, view-as or agency starts clean.
   if (!loading) setPageCacheScope([user?.uid, impersonatedUser?.uid, appUser?.agencyId, role].join(":"))
   const pathname = usePathname()
-  const isTaskDetailRoute = /^\/dashboard\/tasks\/[^/]+$/.test(pathname ?? "")
-  const openingHome = !loading && Boolean(user) && isAdmin && !isImpersonating && pathname === "/dashboard"
+  const isTaskDetailRoute = /^\/admin\/tasks\/[^/]+$/.test(pathname ?? "")
+  const openingHome = !loading && Boolean(user) && isAdmin && !isImpersonating && pathname === "/admin"
 
   useEffect(() => {
     if (loading || hasEntered) return
@@ -71,8 +71,8 @@ function UnifiedDashboardShell({ children, requireAdmin = false }: { children: R
   useEffect(() => {
     if (loading) return
     if (!user && !isTaskDetailRoute) router.replace(`/login?next=${encodeURIComponent(window.location.pathname + window.location.search)}`)
-    else if (role === "creator" && !CREATOR_PATHS.test(pathname ?? "")) router.replace("/dashboard/projects")
-    else if (requireAdmin && !isAdmin) router.replace("/dashboard")
+    else if (role === "creator" && !CREATOR_PATHS.test(pathname ?? "")) router.replace("/admin/projects")
+    else if (requireAdmin && !isAdmin) router.replace("/admin")
   }, [loading, user, isAdmin, role, pathname, requireAdmin, router, isTaskDetailRoute])
 
   useEffect(() => {
@@ -107,7 +107,7 @@ function UnifiedDashboardShell({ children, requireAdmin = false }: { children: R
     return (
       <AgentProvider>
         <PageTitleProvider>
-          <DashboardShell title="VisualCNS" navLinks={CREATOR_NAV} rootHref="/dashboard/projects">{children}</DashboardShell>
+          <DashboardShell title="VisualCNS" navLinks={CREATOR_NAV} rootHref="/admin/projects">{children}</DashboardShell>
         </PageTitleProvider>
       </AgentProvider>
     )
@@ -146,7 +146,7 @@ function UnifiedDashboardShell({ children, requireAdmin = false }: { children: R
                   <Eye className="h-4 w-4 shrink-0" />
                   <span className="truncate">Viewing as <strong>{impersonatedUser?.displayName || impersonatedUser?.email}</strong></span>
                 </span>
-                <Button size="sm" variant="outline" className="h-7 shrink-0 border-amber-300 bg-white text-amber-900 dark:border-amber-500/40 dark:bg-transparent dark:text-amber-200" onClick={() => { stopViewingAs(); router.push("/dashboard/users") }}>Exit view</Button>
+                <Button size="sm" variant="outline" className="h-7 shrink-0 border-amber-300 bg-white text-amber-900 dark:border-amber-500/40 dark:bg-transparent dark:text-amber-200" onClick={() => { stopViewingAs(); router.push("/admin/users") }}>Exit view</Button>
               </div>
             ) : undefined}
           >
@@ -175,7 +175,7 @@ function DashboardWithAgent({
   return (
     <>
       <PageTitleProvider>
-        <DashboardShell title="VisualCNS" navLinks={navLinks} rootHref="/dashboard" banner={banner}>
+        <DashboardShell title="VisualCNS" navLinks={navLinks} rootHref="/admin" banner={banner}>
           {children}
         </DashboardShell>
       </PageTitleProvider>

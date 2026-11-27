@@ -24,7 +24,7 @@ export default function InvitePage() {
     })).then(async (response) => {
       const data = await response.json()
       if (!response.ok) throw new Error(data.error || "Could not accept invite")
-      if (active) { setState("done"); setTimeout(() => window.location.replace("/dashboard"), 800) }
+      if (active) { setState("done"); setTimeout(() => window.location.replace("/admin"), 800) }
     }).catch((acceptError) => { if (active) { setError(acceptError instanceof Error ? acceptError.message : "Could not accept invite"); setState("error") } })
     return () => { active = false }
   }, [loading, user, params.token])

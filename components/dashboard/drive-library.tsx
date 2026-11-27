@@ -118,8 +118,8 @@ export function MakeSomethingNew({ tiles }: { tiles: MakeNewTile[] }) {
 
 function itemHref(item: DriveItem) {
   const id = encodeURIComponent(item.record.id)
-  if (item.type === "document") return `/dashboard/documents?document=${id}`
-  return `/dashboard/invoices/${id}`
+  if (item.type === "document") return `/admin/documents?document=${id}`
+  return `/admin/invoices/${id}`
 }
 /** "Nov 14", with the year only when it isn't this year. */
 function shortDate(item: DriveItem) {
@@ -290,7 +290,7 @@ export function DriveLibrary({ mode = "artifacts" }: { mode?: "artifacts" | "inv
       onRename: adminView ? (next) => renameItem(item, next) : undefined,
       onDuplicate: adminView ? () => setDuplicateTarget(item) : undefined,
       extra: adminView ? <>
-        {item.type === "document" && <DropdownMenuItem onSelect={() => router.push(`/dashboard/documents/${encodeURIComponent(item.record.id)}/edit`)}>Client, type and status</DropdownMenuItem>}
+        {item.type === "document" && <DropdownMenuItem onSelect={() => router.push(`/admin/documents/${encodeURIComponent(item.record.id)}/edit`)}>Client, type and status</DropdownMenuItem>}
         <DropdownMenuItem onSelect={() => setSharing(item)}>Share</DropdownMenuItem>
       </> : undefined,
       onDelete: adminView ? () => deleteItem(item) : undefined,
@@ -307,11 +307,11 @@ export function DriveLibrary({ mode = "artifacts" }: { mode?: "artifacts" | "inv
         const { id: _id, createdAt: _createdAt, updatedAt: _updatedAt, ...rest } = target.record
         const invoiceNumber = await nextInvoiceNumber()
         const id = await createInvoice({ ...rest, invoiceNumber, status: "draft", shareEnabled: false, companyId: selection.companyId, client: selection.client || target.record.client, projectId: selection.projectId, project: selection.project })
-        router.push(`/dashboard/invoices/${encodeURIComponent(id)}`)
+        router.push(`/admin/invoices/${encodeURIComponent(id)}`)
       } else {
         const { id: _id, createdAt: _createdAt, updatedAt: _updatedAt, ...rest } = target.record
         const id = await createCompanyDocument({ ...rest, title: `${target.record.title || "Document"} (Copy)`, status: "draft", shareEnabled: false, companyId: selection.companyId, client: selection.client || target.record.client, projectId: selection.projectId, project: selection.project })
-        router.push(`/dashboard/documents?document=${encodeURIComponent(id)}`)
+        router.push(`/admin/documents?document=${encodeURIComponent(id)}`)
       }
       setDuplicateTarget(null)
     } catch (error) {
@@ -327,7 +327,7 @@ export function DriveLibrary({ mode = "artifacts" }: { mode?: "artifacts" | "inv
     setCreatingNote(true)
     try {
       const id = await createNote(user.uid)
-      router.push(`/dashboard/documents?document=${encodeURIComponent(id)}`)
+      router.push(`/admin/documents?document=${encodeURIComponent(id)}`)
     } catch (error) {
       console.error("Error creating note:", error)
       toast.error("Couldn't create a note.")
@@ -339,7 +339,7 @@ export function DriveLibrary({ mode = "artifacts" }: { mode?: "artifacts" | "inv
 
   const newMenu = invoicesOnly ? (
     <Button asChild variant="ghost" className="h-9 gap-1 rounded-full bg-sidebar-accent px-3 text-sm font-semibold text-sidebar-accent-foreground hover:bg-sidebar-accent/80">
-      <Link href="/dashboard/invoices/new"><Plus className="size-[18px]" aria-hidden="true" /> New invoice</Link>
+      <Link href="/admin/invoices/new"><Plus className="size-[18px]" aria-hidden="true" /> New invoice</Link>
     </Button>
   ) : (
     <DropdownMenu>
@@ -358,7 +358,7 @@ export function DriveLibrary({ mode = "artifacts" }: { mode?: "artifacts" | "inv
 
   const makeNew: MakeNewTile[] = [
     { label: "Document", icon: FileText, tone: "bg-blue-700 text-blue-100 dark:bg-blue-900 dark:text-blue-200", onSelect: () => void createNewNote(), disabled: creatingNote },
-    { label: "Invoice", icon: Receipt, tone: "bg-emerald-700 text-emerald-100 dark:bg-emerald-900 dark:text-emerald-200", href: "/dashboard/invoices/new" },
+    { label: "Invoice", icon: Receipt, tone: "bg-emerald-700 text-emerald-100 dark:bg-emerald-900 dark:text-emerald-200", href: "/admin/invoices/new" },
   ]
 
   return (
@@ -369,7 +369,7 @@ export function DriveLibrary({ mode = "artifacts" }: { mode?: "artifacts" | "inv
         <>
           {toolbar}
           {invoicesOnly ? (
-            <FirstRunState label="Invoices" title="No invoices yet" description="Invoices you send will appear here, with what is still owed." action={<Button asChild><Link href="/dashboard/invoices/new">New invoice</Link></Button>} />
+            <FirstRunState label="Invoices" title="No invoices yet" description="Invoices you send will appear here, with what is still owed." action={<Button asChild><Link href="/admin/invoices/new">New invoice</Link></Button>} />
           ) : (
             <FirstRunState label="Artifacts" title="No documents yet" description="Your documents will appear here." action={<Button onClick={() => void createNewNote()} disabled={creatingNote}>New document</Button>} />
           )}

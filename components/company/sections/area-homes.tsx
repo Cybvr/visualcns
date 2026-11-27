@@ -99,7 +99,7 @@ export function WebsitesHomeSection() {
   const connected = (domains ?? []).filter((domain) => domain.status === "connected").length
 
   const step: Step | null = !sites.length
-    ? { title: "Build your website", text: "Describe your business and get a fast website you can edit yourself, in minutes.", cta: "Start building", onClick: () => open("/dashboard") }
+    ? { title: "Build your website", text: "Describe your business and get a fast website you can edit yourself, in minutes.", cta: "Start building", onClick: () => open("/admin") }
     : !live.length && draft
       ? { title: `Publish ${draft.title}`, text: "Your site is ready to go live. Pick a name and it gets its own address straight away.", cta: "Open and publish", onClick: () => open(`/chat/${encodeURIComponent(draft.id)}`) }
       : domains && !domains.length
@@ -142,7 +142,7 @@ export function WebsitesHomeSection() {
         <section aria-label="Start with a template" className="mt-6">
           <div className="flex items-center justify-between gap-3">
             <h3 className="min-w-0 text-base font-medium text-foreground">Start with a template</h3>
-            <button type="button" onClick={() => open("/dashboard/templates")} className="shrink-0 text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">See all</button>
+            <button type="button" onClick={() => open("/admin/templates")} className="shrink-0 text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">See all</button>
           </div>
           <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {templates === null

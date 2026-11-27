@@ -55,7 +55,7 @@ the user:
    ask for line items, dates, prices, terms or long text in chat.
 4. Reply with one short line and a markdown link to the url the tool returned, so the user finishes
    the details on the real page. For example: Draft invoice INV-004 created for Acme.
-   [Open it](/dashboard/invoices/abc/edit)
+   [Open it](/admin/invoices/abc/edit)
 
 If the thing already exists, use update_record to change it in place. You can fill in line items,
 scope, terms, dates, notes and status. Never say you can only create and not edit, and never make a
@@ -640,12 +640,12 @@ const UPDATABLE_COLLECTIONS = ["organizations", "projects", "tasks", "invoices",
 
 /** Where a record lives in the dashboard, so the agent can link straight to it. */
 function recordUrl(collectionName: string, id: string) {
-  if (collectionName === "invoices") return `/dashboard/invoices/${id}/edit`
-  if (collectionName === "contracts") return `/dashboard/contracts/${id}/edit`
-  if (collectionName === "companyDocuments") return `/dashboard/documents/${id}/edit`
-  if (collectionName === "organizations") return `/dashboard/companies/${id}`
-  if (collectionName === "projects") return `/dashboard/projects/${id}`
-  return "/dashboard/tasks"
+  if (collectionName === "invoices") return `/admin/invoices/${id}/edit`
+  if (collectionName === "contracts") return `/admin/contracts/${id}/edit`
+  if (collectionName === "companyDocuments") return `/admin/documents/${id}/edit`
+  if (collectionName === "organizations") return `/admin/companies/${id}`
+  if (collectionName === "projects") return `/admin/projects/${id}`
+  return "/admin/tasks"
 }
 
 /** Internal-only fields a client must never receive back through the agent. */
@@ -1068,7 +1068,7 @@ async function runAgentTool(name: string, rawArgs: string, uid: string, authoriz
       projectId,
       count: creators.length,
       creators,
-      url: `/dashboard/projects/${projectId}`,
+      url: `/admin/projects/${projectId}`,
     }
   }
 
@@ -1091,7 +1091,7 @@ async function runAgentTool(name: string, rawArgs: string, uid: string, authoriz
       parts,
       fieldsUpdated: Object.keys(generated.patch || {}),
       creatorResearchIncluded: parts.includes("creatorSuggestions"),
-      url: `/dashboard/projects/${projectId}`,
+      url: `/admin/projects/${projectId}`,
     }
   }
 
@@ -1176,7 +1176,7 @@ async function runAgentTool(name: string, rawArgs: string, uid: string, authoriz
       createdAt: now,
       updatedAt: now,
     })
-    return { type: "company", id: ref.id, name, url: `/dashboard/companies/${ref.id}` }
+    return { type: "company", id: ref.id, name, url: `/admin/companies/${ref.id}` }
   }
 
   if (name === "create_project") {
@@ -1188,7 +1188,7 @@ async function runAgentTool(name: string, rawArgs: string, uid: string, authoriz
     const dueDate = optionalText(args, "dueDate")
     const summary = optionalText(args, "summary")
     await ref.set({ agencyId, companyId, client, title, service, status: "in-progress", progress: 0, dueDate, summary, isPublic: false, createdAt: now, updatedAt: now })
-    return { type: "project", id: ref.id, title, client, url: `/dashboard/projects/${ref.id}` }
+    return { type: "project", id: ref.id, title, client, url: `/admin/projects/${ref.id}` }
   }
 
   if (name === "create_task") {
@@ -1203,7 +1203,7 @@ async function runAgentTool(name: string, rawArgs: string, uid: string, authoriz
     const dueDate = optionalText(args, "dueDate")
     const content = optionalText(args, "content")
     await ref.set({ agencyId, name: taskName, companyId, client, projectId, project, status: "todo", priority, dueDate, content, isPublic: false, createdAt: now, updatedAt: now })
-    return { type: "task", id: ref.id, name: taskName, project, url: `/dashboard/tasks` }
+    return { type: "task", id: ref.id, name: taskName, project, url: `/admin/tasks` }
   }
 
   if (name === "create_invoice") {
@@ -1221,7 +1221,7 @@ async function runAgentTool(name: string, rawArgs: string, uid: string, authoriz
     const currency = optionalText(args, "currency") || "NGN"
     const title = optionalText(args, "title")
     await ref.set({ agencyId, companyId, client, title, invoiceNumber, projectId: optionalText(args, "projectId"), project: optionalText(args, "project"), status: "draft", lineItems: items, subtotal, discountTotal: 0, taxTotal, amount: subtotal + taxTotal, currency, issuedOn: optionalText(args, "issuedOn") || today(), dueOn: optionalText(args, "dueOn"), notes: optionalText(args, "notes"), createdAt: now, updatedAt: now })
-    return { type: "invoice", id: ref.id, number: invoiceNumber, title, amount: subtotal + taxTotal, currency, status: "draft", url: `/dashboard/invoices/${ref.id}/edit` }
+    return { type: "invoice", id: ref.id, number: invoiceNumber, title, amount: subtotal + taxTotal, currency, status: "draft", url: `/admin/invoices/${ref.id}/edit` }
   }
 
   if (name === "create_contract") {
@@ -1230,7 +1230,7 @@ async function runAgentTool(name: string, rawArgs: string, uid: string, authoriz
     const title = requireText(args, "title")
     const ref = db.collection("contracts").doc()
     await ref.set({ agencyId, companyId, client, title, body: optionalText(args, "body"), projectId: optionalText(args, "projectId"), project: optionalText(args, "project"), status: "draft", createdAt: now, updatedAt: now })
-    return { type: "contract", id: ref.id, title, status: "draft", url: `/dashboard/contracts/${ref.id}/edit` }
+    return { type: "contract", id: ref.id, title, status: "draft", url: `/admin/contracts/${ref.id}/edit` }
   }
 
   if (name === "create_document") {
@@ -1257,7 +1257,7 @@ async function runAgentTool(name: string, rawArgs: string, uid: string, authoriz
       createdAt: now,
       updatedAt: now,
     })
-    return { type: "document", id: ref.id, title, status: "draft", url: `/dashboard/documents/${ref.id}/edit` }
+    return { type: "document", id: ref.id, title, status: "draft", url: `/admin/documents/${ref.id}/edit` }
   }
 
   if (name === "find_client") {
@@ -1339,7 +1339,7 @@ async function runAgentTool(name: string, rawArgs: string, uid: string, authoriz
   if (name === "remember_style") {
     const note = requireText(args, "note").replace(/\s+/g, " ")
     const memoryId = await proposeAgentMemory({ agencyId, scope: "agency", kind: "preference", content: note, source: "Ngai conversation", createdBy: uid })
-    return { type: "memory_proposed", note, id: memoryId, status: "proposed", url: "/dashboard/account/agent-operations" }
+    return { type: "memory_proposed", note, id: memoryId, status: "proposed", url: "/admin/account/agent-operations" }
   }
 
   if (name === "draft_email") {
@@ -1383,7 +1383,7 @@ async function runAgentTool(name: string, rawArgs: string, uid: string, authoriz
       agencyId, name: title, companyId, client, projectId: "", project: "", status: "todo", priority: "high",
       dueDate, content: optionalText(args, "notes"), reminder: true, isPublic: false, createdAt: now, updatedAt: now,
     })
-    return { type: "reminder", id: ref.id, title, dueDate, url: "/dashboard/tasks" }
+    return { type: "reminder", id: ref.id, title, dueDate, url: "/admin/tasks" }
   }
 
   if (name === "create_agent_job") {
@@ -1396,7 +1396,7 @@ async function runAgentTool(name: string, rawArgs: string, uid: string, authoriz
       surface: "agency_dashboard",
       maxAttempts: numberValue(args, "maxAttempts", 3),
     })
-    return { type: "agent_job", id: jobId, status: "queued", url: `/dashboard/account/agent-operations` }
+    return { type: "agent_job", id: jobId, status: "queued", url: `/admin/account/agent-operations` }
   }
 
   if (name === "attach_file") {
@@ -1420,7 +1420,7 @@ async function runAgentTool(name: string, rawArgs: string, uid: string, authoriz
       type: fileType,
       createdAt: now,
     })
-    return { type: "file", id: ref.id, title, client, url: `/dashboard/companies/${companyId}` }
+    return { type: "file", id: ref.id, title, client, url: `/admin/companies/${companyId}` }
   }
 
   throw new Error(`Unknown agent tool: ${name}`)

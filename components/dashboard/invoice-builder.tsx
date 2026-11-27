@@ -507,7 +507,7 @@ export function InvoiceBuilder({ invoice, initialCompanyId, onSaved, onDeleted, 
         onSaved?.(savedInvoice)
         setSaving(false)
       } else {
-        router.push("/dashboard/artifacts")
+        router.push("/admin/artifacts")
       }
     } catch (err) {
       console.error("Error saving invoice:", err)
@@ -544,7 +544,7 @@ export function InvoiceBuilder({ invoice, initialCompanyId, onSaved, onDeleted, 
     if (!invoice) return
     await deleteInvoice(invoice.id)
     if (onDeleted) onDeleted(invoice.id)
-    else router.push("/dashboard/artifacts")
+    else router.push("/admin/artifacts")
   }
 
   async function changeShareEnabled(enabled: boolean) {
@@ -587,7 +587,7 @@ export function InvoiceBuilder({ invoice, initialCompanyId, onSaved, onDeleted, 
           <button
             type="button"
             // Back to wherever they came from; straight to the list when the page was opened directly.
-            onClick={() => (window.history.length > 1 ? router.back() : router.push("/dashboard/artifacts"))}
+            onClick={() => (window.history.length > 1 ? router.back() : router.push("/admin/artifacts"))}
             aria-label="Back"
             className={cn("-ml-1 inline-flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring", hideBack && "lg:hidden")}
           >

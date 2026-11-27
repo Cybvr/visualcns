@@ -98,7 +98,7 @@ function TaskContentPane({
               {emailingId === selectedTask.id ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <Mail className="size-4" aria-hidden="true" />}
             </Button>
             <Button variant="ghost" size="icon" asChild className="h-8 w-8 text-muted-foreground hover:text-foreground" title="Open full task page">
-              <Link href={`/dashboard/tasks/${encodeURIComponent(selectedTask.id)}`} aria-label="Open full task page">
+              <Link href={`/admin/tasks/${encodeURIComponent(selectedTask.id)}`} aria-label="Open full task page">
                 <Maximize2 className="size-4" aria-hidden="true" />
               </Link>
             </Button>
@@ -336,7 +336,7 @@ export default function TasksAdminPage() {
               )}
               {selectedTask && (
                 <Button variant="ghost" size="icon" asChild className="absolute top-2 right-8 z-10" title="Open full task page">
-                  <Link href={`/dashboard/tasks/${encodeURIComponent(selectedTask.id)}`} aria-label="Open full task page">
+                  <Link href={`/admin/tasks/${encodeURIComponent(selectedTask.id)}`} aria-label="Open full task page">
                     <Maximize2 className="size-4" aria-hidden="true" />
                   </Link>
                 </Button>

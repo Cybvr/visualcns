@@ -32,7 +32,7 @@ export function ProjectsView({
 }: {
   projects: Project[]
   onChanged?: () => Promise<void>
-  /** Opens a quick-create dialog instead of navigating to /dashboard/projects?new=1. */
+  /** Opens a quick-create dialog instead of navigating to /admin/projects?new=1. */
   onNewProject?: () => void
   /** Home page: the tab label already provides the section heading. */
   hideHeader?: boolean
@@ -111,7 +111,7 @@ export function ProjectsView({
               <Button onClick={onNewProject}>New Project</Button>
             ) : (
               <Button asChild>
-                <Link href="/dashboard/projects?new=1">New Project</Link>
+                <Link href="/admin/projects?new=1">New Project</Link>
               </Button>
             )
           }
@@ -126,7 +126,7 @@ export function ProjectsView({
                 title={project.title}
                 subtitle={project.dueDate || "No due date"}
                 icon={<ReactIcon icon={FaFolderOpen} className="size-5 text-amber-600 dark:text-amber-400" aria-hidden="true" />}
-                href={`/dashboard/projects/${projectSlug(project)}`}
+                href={`/admin/projects/${projectSlug(project)}`}
                 ariaLabel={`Open ${project.title}`}
                 menuLabel={`Options for ${project.title}`}
                 actions={onChanged ? {
@@ -204,7 +204,7 @@ export function ProjectsView({
           {previewing && (
             <div className="border-t border-border p-4">
               <Button asChild className="w-full">
-                <Link href={`/dashboard/projects/${projectSlug(previewing)}`}>Open project</Link>
+                <Link href={`/admin/projects/${projectSlug(previewing)}`}>Open project</Link>
               </Button>
             </div>
           )}

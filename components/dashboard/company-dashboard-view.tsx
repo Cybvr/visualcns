@@ -15,7 +15,7 @@ export function CompanyDashboardView({ embedded, keepParams, onBack }: { embedde
   const router = useRouter()
   const { viewAsUser, isAdmin } = useAuth()
   const [allContacts, setAllContacts] = useState<AppUser[]>([])
-  const goToCompanies = useCallback(() => router.push("/dashboard/companies"), [router])
+  const goToCompanies = useCallback(() => router.push("/admin/companies"), [router])
 
   useEffect(() => {
     if (!isAdmin) return
@@ -95,7 +95,7 @@ export function CompanyDashboardView({ embedded, keepParams, onBack }: { embedde
                 if (!canViewClient && !canViewAdmin) return
                 viewAsUser(person)
                 const clientWorkspace = organization?.slug || person.companyId
-                router.push(canViewClient ? `/${encodeURIComponent(clientWorkspace as string)}` : "/dashboard/overview")
+                router.push(canViewClient ? `/${encodeURIComponent(clientWorkspace as string)}` : "/admin/overview")
               },
               onMediaChange: async (media) => {
                 await updateOrganization(workspaceId, { media })

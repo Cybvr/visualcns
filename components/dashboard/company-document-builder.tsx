@@ -141,7 +141,7 @@ export function CompanyDocumentBuilder({ document: record }: { document: Company
 
   async function handleDelete() {
     await deleteCompanyDocument(record.id)
-    router.push("/dashboard/artifacts")
+    router.push("/admin/artifacts")
   }
 
   const companyName = clients.find((entry) => entry.companyId === companyId)
@@ -151,7 +151,7 @@ export function CompanyDocumentBuilder({ document: record }: { document: Company
     <form ref={formRef} onSubmit={submit} className="doc-editor sm:overflow-clip sm:rounded-2xl sm:border sm:border-border">
       <div className="sticky top-0 z-30 flex h-16 items-center gap-1 bg-background px-2 sm:px-3 [--doc-editor-top:4rem]">
         <Link
-          href={`/dashboard/documents/${record.id}`}
+          href={`/admin/documents/${record.id}`}
           aria-label="Back to document"
           className="inline-flex size-10 shrink-0 items-center justify-center rounded-full text-foreground outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring"
         >
@@ -184,7 +184,7 @@ export function CompanyDocumentBuilder({ document: record }: { document: Company
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem onSelect={() => router.push(`/dashboard/documents/${record.id}`)}>
+            <DropdownMenuItem onSelect={() => router.push(`/admin/documents/${record.id}`)}>
               <Eye aria-hidden="true" />
               <span>View document</span>
             </DropdownMenuItem>

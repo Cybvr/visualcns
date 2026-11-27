@@ -100,7 +100,7 @@ export function TemplatesView({
           templates={templates}
           onUse={adminView ? undefined : handleUse}
           applyingId={applying}
-          projectHref={adminView ? (project) => `/dashboard/projects/${projectSlug(project)}` : undefined}
+          projectHref={adminView ? (project) => `/admin/projects/${projectSlug(project)}` : undefined}
         />
       </div>
     </section>

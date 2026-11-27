@@ -176,7 +176,7 @@ export function EmailMessageSurfaces({
           <div role="alert" className="flex items-center justify-between gap-3 border-b border-destructive/30 bg-destructive/5 px-4 py-3 text-xs leading-5 text-destructive">
             <span>{receivedError}</span>
             {receivedReconnectRequired ? (
-              <Button asChild variant="outline" size="sm"><Link href="/dashboard/account/integrations">Reconnect Google</Link></Button>
+              <Button asChild variant="outline" size="sm"><Link href="/admin/account/integrations">Reconnect Google</Link></Button>
             ) : (
               <Button type="button" variant="outline" size="sm" onClick={onRetryReceived} disabled={receivedLoading}>Try again</Button>
             )}

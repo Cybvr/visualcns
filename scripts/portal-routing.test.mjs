@@ -8,10 +8,10 @@ test('old company document selection survives migration', () => {
   assert.equal(legacyCompanyDestination('falcon', '?tab=documents'), '/portal/falcon/documents')
 })
 test('old client dashboard details reach the matching resource', () => {
-  assert.equal(legacyDashboardDestination('falcon','/dashboard/invoices/inv-1/edit'), '/portal/falcon/documents/invoice/inv-1')
-  assert.equal(legacyDashboardDestination('falcon','/dashboard/projects/my-project'), '/portal/falcon/projects/my-project')
-  assert.equal(legacyDashboardDestination('falcon','/dashboard/tasks'), '/portal/falcon/tasks')
-  assert.equal(legacyDashboardDestination('falcon','/dashboard/projects/%ZZ'), '/portal/falcon')
+  assert.equal(legacyDashboardDestination('falcon','/admin/invoices/inv-1/edit'), '/portal/falcon/documents/invoice/inv-1')
+  assert.equal(legacyDashboardDestination('falcon','/admin/projects/my-project'), '/portal/falcon/projects/my-project')
+  assert.equal(legacyDashboardDestination('falcon','/admin/tasks'), '/portal/falcon/tasks')
+  assert.equal(legacyDashboardDestination('falcon','/admin/projects/%ZZ'), '/portal/falcon')
 })
 test('login accepts local deep links but rejects external destinations and auth loops', () => {
   assert.equal(safeReturnTo('/portal/falcon/documents/invoice/1?tab=billing'), '/portal/falcon/documents/invoice/1?tab=billing')
