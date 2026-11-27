@@ -338,13 +338,13 @@ export function DriveLibrary({ mode = "artifacts" }: { mode?: "artifacts" | "inv
   if (!user || !adminView) return null
 
   const newMenu = invoicesOnly ? (
-    <Button asChild variant="ghost" className="h-9 gap-1 rounded-full bg-sidebar-accent px-3 text-sm font-semibold text-sidebar-accent-foreground hover:bg-sidebar-accent/80">
+    <Button asChild variant="ghost" className="h-11 gap-1 rounded-full bg-sidebar-accent px-3 text-sm font-semibold text-sidebar-accent-foreground hover:bg-sidebar-accent/80">
       <Link href="/admin/invoices/new"><Plus className="size-[18px]" aria-hidden="true" /> New invoice</Link>
     </Button>
   ) : (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button type="button" variant="ghost" className="h-9 gap-1 rounded-full bg-sidebar-accent px-3 text-sm font-semibold text-sidebar-accent-foreground hover:bg-sidebar-accent/80" aria-label="New in Artifacts">
+        <Button type="button" variant="ghost" className="h-11 gap-1 rounded-full bg-sidebar-accent px-3 text-sm font-semibold text-sidebar-accent-foreground hover:bg-sidebar-accent/80" aria-label="New in Artifacts">
           <Plus className="size-[18px]" aria-hidden="true" /> New
         </Button>
       </DropdownMenuTrigger>

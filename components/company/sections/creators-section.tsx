@@ -82,7 +82,17 @@ export function LeadsPage() {
     ...campaigns.filter((project) => leads.some((lead) => lead.group === project.id)).map((project) => ({ value: project.id, label: project.title || "Campaign" })),
   ]
   const activeGroup = groups.some((item) => item.value === group) ? group : EVERYONE
-  const shown = activeGroup === EVERYONE ? leads : leads.filter((lead) => lead.group === activeGroup)
+  // Everyone: one row per person, even when they're on more than one campaign.
+  const seenHandles = new Set<string>()
+  const shown = activeGroup === EVERYONE
+    ? leads.filter((lead) => {
+      if (lead.kind === "company") return true
+      const key = `${lead.person.app}:${lead.person.handle.toLowerCase()}`
+      if (seenHandles.has(key)) return false
+      seenHandles.add(key)
+      return true
+    })
+    : leads.filter((lead) => lead.group === activeGroup)
   const open = people.find((person) => person.id === openId) ?? null
 
   if (!loaded) {

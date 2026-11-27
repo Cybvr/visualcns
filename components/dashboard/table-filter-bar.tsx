@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { Plus } from "lucide-react"
 
-import { FilterBar, MOBILE_CREATE_BUTTON_CLASS, type FilterBarProps } from "@/components/dashboard/filter-bar"
+import { FilterBar, type FilterBarProps } from "@/components/dashboard/filter-bar"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
@@ -40,28 +40,8 @@ export function TableFilterBar({ className, actions, createAction, ...props }: T
     )
   )
 
-  const mobileCreate = createAction && (
-    createAction.href ? (
-      <Button asChild variant="outline" size="icon" className={MOBILE_CREATE_BUTTON_CLASS}>
-        <Link href={createAction.href} aria-label={createAction.label} title={createAction.label}>
-          <Plus className="size-5" aria-hidden="true" />
-        </Link>
-      </Button>
-    ) : (
-      <Button
-        type="button"
-        variant="outline"
-        size="icon"
-        className={MOBILE_CREATE_BUTTON_CLASS}
-        aria-label={createAction.label}
-        title={createAction.label}
-        disabled={createAction.disabled}
-        onClick={createAction.onClick}
-      >
-        <Plus className="size-5" aria-hidden="true" />
-      </Button>
-    )
-  )
+  // Phones show the same New button as larger screens.
+  const mobileCreate = createButton
 
   return (
     <FilterBar
