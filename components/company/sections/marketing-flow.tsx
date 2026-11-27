@@ -654,8 +654,11 @@ function KeywordsList({ flow, act }: { flow: FlowState; act: Act }) {
   )
 }
 
-export function LeadsSection() {
-  return <StepPage render={(flow, act) => <LeadsList flow={flow} act={act} />} />
+/** The Marketing run's companies and decision makers, on the Leads page. Shows nothing until loaded. */
+export function MarketingLeads() {
+  const { flow, act } = useFlow()
+  if (!flow) return null
+  return <LeadsList flow={flow} act={act} />
 }
 
 function AddLead({ flow, act }: { flow: FlowState; act: Act }) {

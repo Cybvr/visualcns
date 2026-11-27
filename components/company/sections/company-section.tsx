@@ -12,7 +12,7 @@ import { AboutSection, SettingsGroup } from "@/components/company/sections/about
 import { ActivitySection } from "@/components/company/sections/activity-section"
 import { AnalyticsSection } from "@/components/company/sections/analytics-section"
 import { DocumentsSection } from "@/components/company/sections/documents-section"
-import { CreatorsSection } from "@/components/company/sections/creators-section"
+import { LeadsPage } from "@/components/company/sections/creators-section"
 import { ContentSection } from "@/components/company/sections/content-section"
 import { ProjectsSection } from "@/components/company/sections/projects-section"
 import { SocialSection } from "@/components/company/sections/social-section"
@@ -20,7 +20,7 @@ import { NgaiSection } from "@/components/company/sections/ngai-section"
 import { SitesSection } from "@/components/company/sections/sites-section"
 import { DomainsSection } from "@/components/company/sections/domains-section"
 import { TeamSection } from "@/components/company/sections/team-section"
-import { AdsSection, AudiencesSection, CompetitorsSection, KeywordsSection, LeadsSection, MarketingFlowSection, OutreachSection } from "@/components/company/sections/marketing-flow"
+import { AdsSection, AudiencesSection, CompetitorsSection, KeywordsSection, MarketingFlowSection, OutreachSection } from "@/components/company/sections/marketing-flow"
 import { FinanceHomeSection, SecurityHomeSection, WebsitesHomeSection } from "@/components/company/sections/area-homes"
 
 /** Documents and media in one grid. An open document takes the whole page. On the dashboard it's Artifacts, with assets in it too. */
@@ -101,14 +101,14 @@ function MarketingTabSection() {
 
 const SECTION_COMPONENTS: Record<CompanySectionKey, ComponentType> = {
   projects: MarketingTabSection,
-  creators: CreatorsSection,
+  creators: LeadsPage,
   content: ContentSection,
   social: SocialSection,
   marketing: MarketingFlowSection,
   keywords: KeywordsSection,
   competitors: CompetitorsSection,
   audiences: AudiencesSection,
-  leads: LeadsSection,
+  leads: LeadsPage,
   outreach: OutreachSection,
   ads: AdsSection,
   "websites-home": WebsitesHomeSection,

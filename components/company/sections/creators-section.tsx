@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react"
 
 import { useAuth } from "@/components/auth-provider"
 import { useCompanyPage } from "@/components/company/company-page-context"
+import { MarketingLeads } from "@/components/company/sections/marketing-flow"
 import { CampaignGroupHeader } from "@/components/company/sections/campaign-group-header"
 import { CampaignPeople } from "@/components/dashboard/campaign-people"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -11,10 +12,10 @@ import { watchCompanyCampaignPeople, type CampaignPerson } from "@/lib/campaign-
 import { isProjectArchived } from "@/lib/projects"
 
 /**
- * Creators, at company level: every campaign's creators on one page, grouped by
- * campaign, with the same adding, matching and reviewing the campaign used to have.
+ * Leads, at company level: the Marketing run's companies and decision makers,
+ * then every campaign's people grouped by campaign, with adding, matching and reviewing.
  */
-export function CreatorsSection() {
+export function LeadsPage() {
   const { company, projects, admin } = useCompanyPage()
   const { appUser } = useAuth()
   const [people, setPeople] = useState<CampaignPerson[]>([])
@@ -46,12 +47,12 @@ export function CreatorsSection() {
     )
   }
 
-  if (campaigns.length === 0) {
-    return <p className="mt-8 text-sm text-muted-foreground">Creators join through campaigns. Start a campaign to add creators.</p>
-  }
-
   return (
     <div className="mt-5 space-y-10">
+      <section aria-label="From Marketing" className="max-w-3xl min-w-0 space-y-3">
+        <h2 className="text-lg font-semibold">From Marketing</h2>
+        <MarketingLeads />
+      </section>
       {campaigns.map((project) => (
         <section key={project.id} aria-label={project.title} className="space-y-3">
           <CampaignGroupHeader project={project} />

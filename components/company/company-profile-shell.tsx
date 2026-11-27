@@ -137,7 +137,6 @@ const MENU_GROUPS = [
     { key: "keywords", label: "Keywords" },
     { key: "competitors", label: "Competitors" },
     { key: "audiences", label: "Audiences" },
-    { key: "leads", label: "Leads" },
     { key: "outreach", label: "Outreach" },
     { key: "ads", label: "Ads" },
     { key: "projects", label: "Campaigns" },

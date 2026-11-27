@@ -3,8 +3,8 @@ import { Image as ImageIcon, Palette, Activity, BadgeDollarSign, Mail, Bot, Cont
 /** The sections of a company page, in menu order. Plain module so server routes can check a section too. */
 export const COMPANY_SECTIONS = [
   { key: "projects", label: "Campaigns", icon: Megaphone },
-  // Every campaign's creators, at company level.
-  { key: "creators", label: "Creators", icon: Users },
+  // Old address of Leads: every campaign's people, at company level.
+  { key: "creators", label: "Leads", icon: Contact },
   // Every campaign's posts, at company level.
   { key: "content", label: "Content", icon: Palette },
   { key: "social", label: "Social Media", icon: Share2 },

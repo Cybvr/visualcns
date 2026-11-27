@@ -72,7 +72,7 @@ export function HomeOverview() {
 
       {creators.length > 0 && (
         <section aria-labelledby="home-creators-heading" className={posts.length > 0 ? "mt-8" : undefined}>
-          <SectionHeader id="home-creators-heading" title="Creators" href={sectionHref("creators")} />
+          <SectionHeader id="home-creators-heading" title="Leads" href={sectionHref("leads")} />
           <div className="mt-4">
             <GridCardList>
               {creators.slice(0, PREVIEW_LIMIT).map((person) => (
@@ -81,7 +81,7 @@ export function HomeOverview() {
                   title={person.handle}
                   icon={<Users className="size-4 text-muted-foreground" aria-hidden="true" />}
                   preview={<CreatorThumbnail person={person} showMeta={false} />}
-                  href={sectionHref("creators")}
+                  href={sectionHref("leads")}
                   ariaLabel={`Open ${person.handle}`}
                 />
               ))}

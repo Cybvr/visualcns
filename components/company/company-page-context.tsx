@@ -203,11 +203,10 @@ export function CompanyPageProvider({
       find("keywords"),
       find("competitors"),
       find("audiences"),
-      find("leads"),
       find("outreach"),
       find("ads"),
       find("projects"),
-      find("creators"),
+      find("leads"),
       find("content"),
       find("assets"),
       find("social"),
@@ -234,6 +233,8 @@ export function CompanyPageProvider({
         ? "documents"
       : requested === "settings"
         ? "about"
+        : mode === "routes" && requested === "creators"
+          ? "leads"
         : mode === "routes" && requested === "notifications"
             ? "activity"
             : requested
