@@ -11,6 +11,7 @@ import { CampaignBrandContext, CampaignPostViewDialog, postLabel, postMediaType 
 import { SocialConnectDialog } from "@/components/company/social-connect-dialog"
 import { SocialIcon } from "@/components/company/social-icon"
 import { CollectionView } from "@/components/dashboard/collection-view"
+import { thumbnailIcon } from "@/components/dashboard/grid-card"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
@@ -259,13 +260,19 @@ export function SocialOverview() {
           searchFields={searchPost}
           searchPlaceholder="Search posts"
           viewKey="social-posts"
-          initialView="grid"
+          fixedView="grid"
+          gridClassName="mx-auto w-full max-w-xl grid-cols-1 sm:grid-cols-1 lg:grid-cols-1"
+          gridItem={(post) => (
+            <button type="button" onClick={() => setOpenId(post.id)} aria-label={`Open ${postLabel(post)}`} className="block aspect-square w-full overflow-hidden rounded-2xl bg-muted outline-none focus-visible:ring-2 focus-visible:ring-ring">
+              {post.mediaUrl ? <PostMedia post={post} /> : thumbnailIcon(ImageIcon)}
+            </button>
+          )}
           loading={!loaded}
           createAction={{ label: "New post", onClick: () => setWriting(true) }}
           empty={{ icon: ImageIcon, title: allPosts.length ? "No posts here" : "No posts yet" }}
           card={(post) => ({
             title: postLabel(post),
-            preview: post.mediaUrl ? <PostMedia post={post} /> : <p className="line-clamp-6 p-4 text-left text-sm leading-relaxed text-muted-foreground">{post.body}</p>,
+            preview: post.mediaUrl ? <PostMedia post={post} /> : thumbnailIcon(ImageIcon),
             ariaLabel: `Open ${postLabel(post)}`,
             menuLabel: `Options for ${postLabel(post)}`,
             ...openPost(post),
