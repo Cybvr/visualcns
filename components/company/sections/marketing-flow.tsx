@@ -92,8 +92,8 @@ function FlowGate({ flow, error, signedOut, step, children }: { flow: FlowState 
   if (!flow[step]) {
     return (
       <div className="mx-auto mt-6 w-full max-w-3xl rounded-xl border border-dashed border-border p-8 text-center">
-        <p className="text-sm text-muted-foreground">Nothing here yet. Enter your website on Marketing Home and this fills in.</p>
-        <Button asChild size="sm" className="mt-4"><Link href={sectionHref("marketing")}>Go to Marketing Home</Link></Button>
+        <p className="text-sm text-muted-foreground">Nothing here yet.</p>
+        <Button asChild size="sm" className="mt-4"><Link href={sectionHref("marketing")}>Start</Link></Button>
       </div>
     )
   }
@@ -170,10 +170,7 @@ export function MarketingFlowSection() {
     <div className="mx-auto mt-5 w-full max-w-3xl min-w-0">
       {!started || editingSite ? (
         <form onSubmit={start} className="rounded-xl border border-border bg-card p-5 shadow-sm sm:p-6">
-          <h2 className="text-lg font-semibold">Find your next customers</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Enter your website. We research your business and competitors, pick who to go after, find the companies and the people who decide, and write the emails, posts and ads.
-          </p>
+          <h2 className="text-lg font-semibold">Find customers</h2>
           <div className="mt-4 flex flex-col gap-2 sm:flex-row">
             <Input value={website} onChange={(event) => setWebsite(event.target.value)} placeholder="yourcompany.com" aria-label="Your website" inputMode="url" autoComplete="url" className="h-11 flex-1" />
             <Button type="submit" className="h-11" disabled={!website.trim() || Boolean(running)}>Start</Button>
@@ -185,7 +182,7 @@ export function MarketingFlowSection() {
           <p className="min-w-0 text-sm text-muted-foreground">
             <span className="font-medium text-foreground">{hostOf(flow.website)}</span>
             {" · "}
-            {running ? `Working on step ${FLOW_STEPS.findIndex((step) => step.key === running) + 1} of ${FLOW_STEPS.length}` : `${done} of ${FLOW_STEPS.length} steps done`}
+            {running ? `Step ${FLOW_STEPS.findIndex((step) => step.key === running) + 1} of ${FLOW_STEPS.length}` : `${done}/${FLOW_STEPS.length}`}
           </p>
           <Button type="button" variant="outline" size="sm" disabled={Boolean(running)} onClick={() => setEditingSite(true)}>
             <RotateCcw className="size-4" aria-hidden="true" /> Start over
@@ -241,7 +238,7 @@ export function MarketingFlowSection() {
                     <StepBody step={step.key} flow={flow} act={act} />
                     {!running && (
                       <button type="button" className="mt-3 inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground" onClick={() => void runFrom(step.key)}>
-                        <RotateCcw className="size-3.5" aria-hidden="true" /> Redo from this step
+                        <RotateCcw className="size-3.5" aria-hidden="true" /> Redo
                       </button>
                     )}
                   </div>
@@ -336,7 +333,7 @@ function CompetitorsStep({ flow, act }: { flow: FlowState; act: Act }) {
       <Chips items={data.searches} icon={<Search className="size-3.5" aria-hidden="true" />} />
       <Label className="mt-6">Competitors · {data.competitors.length} found</Label>
       {data.competitors.length === 0 ? (
-        <p className="mt-2 text-sm text-muted-foreground">No clear competitors turned up in search.</p>
+        <p className="mt-2 text-sm text-muted-foreground">No competitors found.</p>
       ) : (
         <ul className="mt-2 grid gap-2 sm:grid-cols-2">
           {data.competitors.map((item) => (
@@ -390,7 +387,7 @@ export function LeadsSection() {
 
 function LeadsList({ flow, act }: { flow: FlowState; act: Act }) {
   const customers = flow.customers ?? []
-  if (!customers.length) return <Card><p className="text-sm text-muted-foreground">No matching companies turned up. Try redoing from Define audiences on Marketing Home.</p></Card>
+  if (!customers.length) return <Card><p className="text-sm text-muted-foreground">No companies found.</p></Card>
   const people = flow.people ?? []
   const withEmail = people.filter((person) => person.email).length
   const unchecked = people.filter((person) => !person.email && person.emailSource !== "none").length
@@ -446,7 +443,7 @@ function LeadsList({ flow, act }: { flow: FlowState; act: Act }) {
                           <RemoveButton label={`Remove ${person.name}`} onClick={() => void act({ action: "remove", step: "people", id: person.id })} />
                         </div>
                       ) : (
-                        flow.people && <p className="mt-2 text-xs text-muted-foreground">No decision maker found yet.</p>
+                        flow.people && <p className="mt-2 text-xs text-muted-foreground">No contact found.</p>
                       )}
                     </div>
                     <RemoveButton label={`Remove ${item.name}`} onClick={() => void act({ action: "remove", step: "customers", id: item.id })} />
@@ -497,7 +494,7 @@ function PersonEmail({ person, act }: { person: Person; act: Act }) {
   if (person.emailSource === "none") {
     return (
       <p className="mt-1 text-xs text-muted-foreground">
-        No email found. <FindEmailsButton act={act} ids={[person.id]} label="Look again" variant="link" />
+        No email. <FindEmailsButton act={act} ids={[person.id]} label="Look again" variant="link" />
       </p>
     )
   }
@@ -560,7 +557,7 @@ function EmailCard({ email, person, act }: { email: NonNullable<FlowState["email
         <span className="w-10 text-muted-foreground">To</span>
         <span className="min-w-0 flex-1 truncate">
           {person?.name}{person && <span className="text-muted-foreground"> · {person.company}</span>}
-          {person?.email ? <span className="block truncate text-muted-foreground">{person.email}</span> : person && <span className="block text-muted-foreground">No email address yet. Find one on Leads.</span>}
+          {person?.email ? <span className="block truncate text-muted-foreground">{person.email}</span> : person && <span className="block text-muted-foreground">No email</span>}
         </span>
       </div>
       <div className="flex items-center gap-4 border-b border-border px-5 py-3 text-sm">
@@ -601,8 +598,7 @@ function SocialStep({ flow }: { flow: FlowState }) {
     <div className="space-y-3">
       {people.length > 0 && (
         <Card>
-          <Label>Warm them up first</Label>
-          <p className="mt-1 text-sm text-muted-foreground">Follow these people and comment on a recent post a few days before you email.</p>
+          <Label>Follow</Label>
           <ul className="mt-3 grid gap-2 sm:grid-cols-2">
             {people.map((person) => (
               <li key={person.id}>
@@ -681,7 +677,6 @@ function AdsStep({ flow }: { flow: FlowState }) {
                 </Button>
               )}
             </div>
-            {companies.length > 0 && <p className="mt-2 text-xs text-muted-foreground">Upload the company list in LinkedIn Campaign Manager to show this ad to the same companies you email.</p>}
           </Card>
         )
       })}
