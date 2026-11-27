@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
-import { Bell, FolderOpen, House, Settings } from "lucide-react"
+import { Bell, FolderOpen, House } from "lucide-react"
 import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
@@ -176,17 +176,14 @@ export function CompanyPageProvider({
       .filter((item) => item.key !== "customers" || canSeeVisitors)
     if (mode !== "routes") {
       // Dashboard tabs open on Home: the company's activity, with its name and logo on top.
-      // About holds the client's editable details, so it's called Settings and goes last.
+      // The account details sit on Home, so there is no Account or Content tab.
       // Documents and Assets are one Artifacts tab here, and Billing, Customers and Security stay off it.
       const home = visible.find((item) => item.key === "activity")
-      const settings = visible.find((item) => item.key === "about")
       return [
         ...(home ? [{ ...home, label: "Home", icon: House }] : []),
         ...visible
-          // No Campaigns/Marketing tab: campaigns show as the groups on Content and Creators.
-          .filter((item) => !["activity", "about", "assets", "billings", "customers", "visitors", "security-home", "social", "analytics", "projects", "tasks"].includes(item.key))
+          .filter((item) => !["activity", "about", "content", "assets", "billings", "customers", "visitors", "security-home", "social", "analytics", "projects", "tasks"].includes(item.key))
           .map((item) => item.key === "documents" ? { ...item, label: "Artifacts", icon: FolderOpen } : item),
-        ...(settings ? [{ ...settings, label: "Account", icon: Settings }] : []),
       ]
     }
     const about = visible.find((item) => item.key === "about")!
