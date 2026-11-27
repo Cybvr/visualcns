@@ -276,22 +276,27 @@ const HOW_IT_WORKS: { title: string; head?: [string, string]; rows: [string, str
 
 function HowItWorks() {
   return (
-    <div className="mt-14 w-full space-y-4 text-left">
-      {HOW_IT_WORKS.map((card) => (
-        <section key={card.title} className="rounded-2xl border border-border bg-card p-5 shadow-sm">
-          <h3 className="text-xl font-medium">{card.title}</h3>
-          <div className="mt-4 overflow-hidden rounded-xl border border-border">
+    <div className="mt-14 w-full text-left">
+      {HOW_IT_WORKS.map((card, index) => (
+        // Each card sticks a little lower than the last, so they stack like a deck as you scroll.
+        <section
+          key={card.title}
+          style={{ top: `${72 + index * 14}px` }}
+          className="sticky mb-6 min-h-[22rem] rounded-3xl border border-border bg-card p-6 shadow-[0_-8px_24px_rgba(0,0,0,0.06)] sm:p-8"
+        >
+          <h3 className="text-3xl font-normal leading-tight tracking-tight sm:text-4xl">{card.title}</h3>
+          <div className="mt-6 overflow-hidden rounded-2xl border border-border">
             {card.head && (
-              <div className="flex justify-between bg-muted/60 px-4 py-2.5 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              <div className="flex justify-between bg-muted/60 px-5 py-4 text-sm uppercase tracking-wider text-muted-foreground">
                 <span>{card.head[0]}</span>
                 <span>{card.head[1]}</span>
               </div>
             )}
             <ul className="divide-y divide-border">
               {card.rows.map(([left, right]) => (
-                <li key={left} className={cn("flex gap-4 px-4 py-3", card.head ? "items-center justify-between" : "flex-col gap-1 bg-muted/60")}>
+                <li key={left} className={cn("flex px-5 py-4 text-lg", card.head ? "items-center justify-between gap-4" : "flex-col gap-3 bg-muted/60 py-6")}>
                   <span className="font-medium">{left}</span>
-                  <span className="text-muted-foreground">{right}</span>
+                  <span className={cn("text-muted-foreground", card.head && "shrink-0 text-right")}>{right}</span>
                 </li>
               ))}
             </ul>
