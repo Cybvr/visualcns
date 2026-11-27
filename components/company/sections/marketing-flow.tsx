@@ -1,16 +1,16 @@
 "use client"
 
-import Link from "next/link"
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type FormEvent, type ReactNode } from "react"
-import { ArrowRight, Check, ChevronDown, Copy, Download, ExternalLink, ImageIcon, Loader2, Mail, Pencil, RotateCcw, Search, Upload, X } from "lucide-react"
+import { ArrowRight, Check, ChevronDown, Copy, Download, ExternalLink, ImageIcon, Loader2, Mail, MoreHorizontal, Pencil, RotateCcw, Search, Upload, X } from "lucide-react"
 import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
-import { useCompanyPage, type CompanySectionKey } from "@/components/company/company-page-context"
+import { useCompanyPage } from "@/components/company/company-page-context"
 import { SectionAddButton } from "@/components/company/section-add-button"
 import { SocialIcon } from "@/components/company/social-icon"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
@@ -92,24 +92,6 @@ function useFlow() {
 
   return { flow, error, signedOut: !authLoading && !user, api, set, act }
 }
-
-/** Shown while the flow loads, or on a results page before Marketing has run. */
-function FlowGate({ flow, error, signedOut, step, children }: { flow: FlowState | null; error: string; signedOut: boolean; step: FlowStep; children: ReactNode }) {
-  const { sectionHref } = useCompanyPage()
-  if (signedOut) return <p className="mt-6 text-sm text-muted-foreground">Please sign in to use Marketing.</p>
-  if (error) return <p className="mt-6 text-sm text-destructive">{error}</p>
-  if (!flow) return <div className="mx-auto mt-6 h-40 w-full max-w-3xl animate-pulse rounded-xl bg-muted/50" aria-busy="true" />
-  if (!flow[step]) {
-    return (
-      <div className="mx-auto mt-6 w-full max-w-3xl rounded-xl border border-dashed border-border p-8 text-center">
-        <p className="text-sm text-muted-foreground">Nothing here yet.</p>
-        <Button asChild size="sm" className="mt-4"><Link href={sectionHref("marketing")}>Start</Link></Button>
-      </div>
-    )
-  }
-  return <div className="mx-auto mt-5 w-full max-w-3xl min-w-0">{children}</div>
-}
-
 
 export function MarketingFlowSection() {
   const { company } = useCompanyPage()
@@ -520,52 +502,70 @@ type Field = { name: string; placeholder: string; required?: boolean; type?: str
 
 /** The page's + New button, opening a small window to add one item. */
 function AddDialog({ title, fields, onAdd }: { title: string; fields: Field[]; onAdd: (values: Record<string, string>) => Promise<void> }) {
-  const empty = Object.fromEntries(fields.map((field) => [field.name, ""]))
   const [open, setOpen] = useState(false)
-  const [values, setValues] = useState<Record<string, string>>(empty)
+  return (
+    <>
+      <SectionAddButton label={title} onClick={() => setOpen(true)} />
+      <FieldsDialog open={open} onOpenChange={setOpen} title={title} fields={fields} submitLabel="Add" onSubmit={onAdd} />
+    </>
+  )
+}
+
+/** A small window of fields, used to add or edit one item. */
+function FieldsDialog({ open, onOpenChange, title, fields, initial, submitLabel, onSubmit }: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  title: string
+  fields: Field[]
+  initial?: Record<string, string>
+  submitLabel: string
+  onSubmit: (values: Record<string, string>) => Promise<void>
+}) {
+  const start = () => Object.fromEntries(fields.map((field) => [field.name, initial?.[field.name] ?? ""]))
+  const [values, setValues] = useState<Record<string, string>>(start)
   const [busy, setBusy] = useState(false)
-  const ready = fields.every((field) => !field.required || values[field.name].trim())
+  const ready = fields.every((field) => !field.required || (values[field.name] ?? "").trim())
   const set = (name: string, value: string) => setValues((current) => ({ ...current, [name]: value }))
+  useEffect(() => {
+    if (open) setValues(start())
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open])
   async function submit(event: FormEvent) {
     event.preventDefault()
     if (!ready || busy) return
     setBusy(true)
-    await onAdd(values)
+    await onSubmit(values)
     setBusy(false)
-    setValues(empty)
-    setOpen(false)
+    onOpenChange(false)
   }
   return (
-    <>
-      <SectionAddButton label={title} onClick={() => setOpen(true)} />
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{title}</DialogTitle>
-            <DialogDescription className="sr-only">{title}</DialogDescription>
-          </DialogHeader>
-          <form onSubmit={submit} className="space-y-3">
-            {fields.map((field) => field.options ? (
-              <Select key={field.name} value={values[field.name] || NONE} onValueChange={(value) => set(field.name, value === NONE ? "" : value)}>
-                <SelectTrigger aria-label={field.placeholder} className="w-full"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={NONE}>{field.placeholder}</SelectItem>
-                  {field.options.map((option) => <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            ) : field.multiline ? (
-              <Textarea key={field.name} value={values[field.name]} onChange={(event) => set(field.name, event.target.value)} placeholder={field.placeholder} aria-label={field.placeholder} rows={6} />
-            ) : (
-              <Input key={field.name} type={field.type} value={values[field.name]} onChange={(event) => set(field.name, event.target.value)} placeholder={field.placeholder} aria-label={field.placeholder} maxLength={300} />
-            ))}
-            <DialogFooter>
-              <Button type="button" variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
-              <Button type="submit" disabled={!ready || busy}>{busy ? "Adding..." : "Add"}</Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-    </>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[85vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription className="sr-only">{title}</DialogDescription>
+        </DialogHeader>
+        <form onSubmit={submit} className="space-y-3">
+          {fields.map((field) => field.options ? (
+            <Select key={field.name} value={values[field.name] || NONE} onValueChange={(value) => set(field.name, value === NONE ? "" : value)}>
+              <SelectTrigger aria-label={field.placeholder} className="w-full"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value={NONE}>{field.placeholder}</SelectItem>
+                {field.options.map((option) => <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          ) : field.multiline ? (
+            <Textarea key={field.name} value={values[field.name]} onChange={(event) => set(field.name, event.target.value)} placeholder={field.placeholder} aria-label={field.placeholder} rows={6} />
+          ) : (
+            <Input key={field.name} type={field.type} value={values[field.name]} onChange={(event) => set(field.name, event.target.value)} placeholder={field.placeholder} aria-label={field.placeholder} maxLength={300} />
+          ))}
+          <DialogFooter>
+            <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
+            <Button type="submit" disabled={!ready || busy}>{busy ? "Saving..." : submitLabel}</Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   )
 }
 
@@ -759,13 +759,22 @@ export function OutreachSection() {
 
 /** Ads: one ad for each audience, aimed at the same companies. */
 export function AdsSection() {
-  const { flow, error, signedOut, act } = useFlow()
-  return (
-    <FlowGate flow={flow} error={error} signedOut={signedOut} step="ads">
-      {flow && <AdsStep flow={flow} act={act} />}
-    </FlowGate>
-  )
+  return <StepPage render={(flow, act) => (
+    <div className="space-y-4">
+      <Toolbar>
+        <AddDialog title="New ad" fields={adFields(flow)} onAdd={(values) => act({ action: "add", step: "ads", ...values })} />
+      </Toolbar>
+      {(flow.ads ?? []).length > 0 && <AdsStep flow={flow} act={act} />}
+    </div>
+  )} />
 }
+
+const adFields = (flow: FlowState): Field[] => [
+  { name: "text", placeholder: "Ad text", multiline: true, required: true },
+  { name: "headline", placeholder: "Headline" },
+  { name: "cta", placeholder: "Button text" },
+  ...((flow.audiences ?? []).length ? [{ name: "audienceId", placeholder: "No audience", options: flow.audiences!.map((item) => ({ value: item.id, label: item.name })) }] : []),
+]
 
 /** On Social Media, above the accounts: who to follow first and this month's posts. Nothing until Marketing has run. */
 export function MarketingSocialPanel() {
@@ -935,43 +944,59 @@ function download(name: string, content: string) {
 }
 
 function AdsStep({ flow, act }: { flow: FlowState; act: Act }) {
-  const research = flow.research!
   return (
     <div className="space-y-3">
-      {flow.ads!.map((ad) => {
-        const audience = flow.audiences?.find((item) => item.id === ad.audienceId)
-        const companies = (flow.customers ?? []).filter((item) => item.audienceId === ad.audienceId)
-        return (
-          <Card key={ad.id}>
-            <Label>{audience?.name}</Label>
-            <div className="mt-3 overflow-hidden rounded-lg border border-border">
-              <div className="flex items-center gap-2 px-4 pt-3">
-                <Favicon url={research.website} name={research.name} />
-                <div>
-                  <p className="text-sm font-semibold leading-tight">{research.name}</p>
-                  <p className="text-xs text-muted-foreground">Promoted</p>
-                </div>
-              </div>
-              <p className="px-4 py-3 text-sm">{ad.text}</p>
-              <Thumbnail image={ad.image} alt={ad.headline} className="rounded-none" onChange={(url) => act({ action: "image", step: "ads", id: ad.id, url })} />
-              <div className="flex items-center justify-between gap-3 bg-muted/60 px-4 py-3">
-                <p className="min-w-0 text-sm font-semibold">{ad.headline}</p>
-                <span className="shrink-0 rounded-full border border-border px-3 py-1 text-xs font-medium">{ad.cta}</span>
-              </div>
-            </div>
-            <Label className="mt-4">Target job titles</Label>
-            <Chips items={ad.jobTitles} />
-            <div className="mt-4 flex flex-wrap gap-2">
-              <Button type="button" size="sm" variant="outline" onClick={() => copy(`${ad.text}\n\n${ad.headline}\n${ad.cta}`)}><Copy className="size-4" aria-hidden="true" /> Copy ad</Button>
-              {companies.length > 0 && (
-                <Button type="button" size="sm" variant="outline" onClick={() => download(`${(audience?.name || "companies").toLowerCase().replace(/\W+/g, "-")}.csv`, csv([["companyname", "companywebsite"], ...companies.map((item) => [item.name, item.url])]))}>
-                  <Download className="size-4" aria-hidden="true" /> Company list ({companies.length})
-                </Button>
-              )}
-            </div>
-          </Card>
-        )
-      })}
+      {flow.ads!.map((ad) => <AdCard key={ad.id} ad={ad} flow={flow} act={act} />)}
     </div>
+  )
+}
+
+function AdCard({ ad, flow, act }: { ad: NonNullable<FlowState["ads"]>[number]; flow: FlowState; act: Act }) {
+  const [editing, setEditing] = useState(false)
+  const name = flow.research?.name || hostOf(flow.website) || "Your business"
+  const audience = flow.audiences?.find((item) => item.id === ad.audienceId)
+  const companies = (flow.customers ?? []).filter((item) => ad.audienceId && item.audienceId === ad.audienceId)
+  return (
+    <Card>
+      <div className="flex items-center justify-between gap-3">
+        <Label className="min-w-0 truncate">{audience?.name}</Label>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button type="button" variant="ghost" size="icon" className="size-8 shrink-0 rounded-full" aria-label="Ad options"><MoreHorizontal className="size-4" aria-hidden="true" /></Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onSelect={() => setEditing(true)}>Edit</DropdownMenuItem>
+            {companies.length > 0 && (
+              <DropdownMenuItem onSelect={() => download(`${(audience?.name || "companies").toLowerCase().replace(/\W+/g, "-")}.csv`, csv([["companyname", "companywebsite"], ...companies.map((item) => [item.name, item.url])]))}>Download company list</DropdownMenuItem>
+            )}
+            <DropdownMenuItem className="text-destructive" onSelect={() => void act({ action: "remove", step: "ads", id: ad.id })}>Delete</DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+      <div className="mt-3 overflow-hidden rounded-lg border border-border">
+        <div className="flex items-center gap-2 px-4 pt-3">
+          <Favicon url={flow.research?.website || flow.website || ""} name={name} />
+          <div>
+            <p className="text-sm font-semibold leading-tight">{name}</p>
+            <p className="text-xs text-muted-foreground">Promoted</p>
+          </div>
+        </div>
+        <p className="whitespace-pre-line px-4 py-3 text-sm">{ad.text}</p>
+        <Thumbnail image={ad.image} alt={ad.headline} className="rounded-none" onChange={(url) => act({ action: "image", step: "ads", id: ad.id, url })} />
+        <div className="flex items-center justify-between gap-3 bg-muted/60 px-4 py-3">
+          <p className="min-w-0 text-sm font-semibold">{ad.headline}</p>
+          <span className="shrink-0 rounded-full border border-border px-3 py-1 text-xs font-medium">{ad.cta}</span>
+        </div>
+      </div>
+      <FieldsDialog
+        open={editing}
+        onOpenChange={setEditing}
+        title="Edit ad"
+        fields={adFields(flow)}
+        initial={{ text: ad.text, headline: ad.headline, cta: ad.cta, audienceId: ad.audienceId }}
+        submitLabel="Save"
+        onSubmit={(values) => act({ action: "ad", id: ad.id, ...values })}
+      />
+    </Card>
   )
 }

@@ -69,9 +69,15 @@ export async function GET(request: Request) {
   return json({ flow: stored?.flow ?? { website: caller.website } })
 }
 
-type Body = { companyId?: string; action?: string; step?: string; website?: string; id?: string; ids?: unknown[]; url?: string; subject?: string; body?: string; to?: string; keywords?: unknown[]; name?: string; audienceId?: string }
+type Body = { companyId?: string; action?: string; step?: string; website?: string; id?: string; ids?: unknown[]; url?: string; subject?: string; body?: string; to?: string; keywords?: unknown[]; name?: string; audienceId?: string; headline?: string; text?: string; cta?: string }
 
-const REMOVABLE = ["customers", "people", "emails", "competitors"] as const
+const REMOVABLE = ["customers", "people", "emails", "competitors", "ads"] as const
+const adFields = (body: Body, flow: FlowState) => ({
+  headline: clip(body.headline, 80),
+  text: String(body.text ?? "").trim().slice(0, 300),
+  cta: clip(body.cta, 20) || "Learn more",
+  audienceId: flow.audiences?.some((item) => item.id === body.audienceId) ? String(body.audienceId) : "",
+})
 const newId = () => Math.random().toString(36).slice(2, 10)
 const clip = (value: unknown, max: number) => String(value ?? "").trim().replace(/\s+/g, " ").slice(0, max)
 const siteUrl = (value: unknown) => {
@@ -115,7 +121,7 @@ export async function POST(request: Request) {
       flow.emails = flow.emails?.filter((item) => item.audienceId !== rowId && (!item.personId || flow.people?.some((person) => person.id === item.personId)))
       flow.ads = flow.ads?.filter((item) => item.audienceId !== rowId)
     } else if ((REMOVABLE as readonly string[]).includes(step)) {
-      const key = step as "customers" | "people" | "emails"
+      const key = step as "customers" | "people" | "emails" | "ads"
       const rows = (flow[key] ?? []) as { id: string }[]
       ;(flow as Record<string, unknown>)[key] = rows.filter((item) => item.id !== rowId)
       // A removed company takes its person and email with it, and a removed person their email.
@@ -158,9 +164,22 @@ export async function POST(request: Request) {
       const text = String(body.body ?? "").trim().slice(0, 4000)
       if (!subject && !text) return json({ error: "Write the email first." }, 400)
       flow.emails = [...(flow.emails ?? []), { id: newId(), personId: "", to: clip(body.to, 200) || undefined, subject, body: text }]
+    } else if (body.step === "ads") {
+      const ad = adFields(body, flow)
+      if (!ad.headline && !ad.text) return json({ error: "Write the ad first." }, 400)
+      flow.ads = [...(flow.ads ?? []), { id: newId(), jobTitles: [], ...ad }]
     } else {
       return json({ error: "That can't be added." }, 400)
     }
+    await ref.set({ flow: withoutUndefined({ ...flow, updatedAt: new Date().toISOString() }) }, { merge: true })
+    return json({ flow })
+  }
+
+  // ad: save an edited ad.
+  if (body.action === "ad") {
+    const ad = flow.ads?.find((item) => item.id === body.id)
+    if (!ad) return json({ error: "That ad doesn't exist." }, 404)
+    Object.assign(ad, adFields(body, flow))
     await ref.set({ flow: withoutUndefined({ ...flow, updatedAt: new Date().toISOString() }) }, { merge: true })
     return json({ flow })
   }
