@@ -716,11 +716,13 @@ function EmailCard({ email, person, act }: { email: NonNullable<FlowState["email
   const [editing, setEditing] = useState(false)
   const [subject, setSubject] = useState(email.subject)
   const [body, setBody] = useState(email.body)
+  const [to, setTo] = useState(email.to ?? "")
   const [saving, setSaving] = useState(false)
+  const address = person?.email || email.to
 
   async function save() {
     setSaving(true)
-    await act({ action: "email", id: email.id, subject, body })
+    await act({ action: "email", id: email.id, subject, body, ...(person ? {} : { to }) })
     setSaving(false)
     setEditing(false)
   }
@@ -732,6 +734,9 @@ function EmailCard({ email, person, act }: { email: NonNullable<FlowState["email
         <span className="min-w-0 flex-1 truncate">
           {person?.name}{person && <span className="text-muted-foreground"> · {person.company}</span>}
           {person?.email ? <span className="block truncate text-muted-foreground">{person.email}</span> : person && <span className="block text-muted-foreground">No email</span>}
+          {!person && (editing
+            ? <Input type="email" value={to} onChange={(event) => setTo(event.target.value)} placeholder="name@company.com" aria-label="To" className="h-8" />
+            : email.to ? <span className="block truncate">{email.to}</span> : <button type="button" className="text-muted-foreground hover:text-foreground hover:underline" onClick={() => setEditing(true)}>Add email address</button>)}
         </span>
       </div>
       <div className="flex items-center gap-4 border-b border-border px-5 py-3 text-sm">
@@ -748,14 +753,14 @@ function EmailCard({ email, person, act }: { email: NonNullable<FlowState["email
           {editing ? (
             <>
               <Button type="button" size="sm" disabled={saving} onClick={() => void save()}>{saving ? "Saving..." : "Save"}</Button>
-              <Button type="button" size="sm" variant="ghost" onClick={() => { setEditing(false); setSubject(email.subject); setBody(email.body) }}>Cancel</Button>
+              <Button type="button" size="sm" variant="ghost" onClick={() => { setEditing(false); setSubject(email.subject); setBody(email.body); setTo(email.to ?? "") }}>Cancel</Button>
             </>
           ) : (
             <>
               <Button type="button" size="sm" variant="outline" onClick={() => setEditing(true)}><Pencil className="size-4" aria-hidden="true" /> Edit</Button>
               <Button type="button" size="sm" variant="outline" onClick={() => copy(`${email.subject}\n\n${email.body}`)}><Copy className="size-4" aria-hidden="true" /> Copy</Button>
               <Button asChild size="sm" variant="outline">
-                <a href={`mailto:${person?.email ? encodeURIComponent(person.email) : ""}?subject=${encodeURIComponent(email.subject)}&body=${encodeURIComponent(email.body)}`}><Mail className="size-4" aria-hidden="true" /> Open in email</a>
+                <a href={`mailto:${address ? encodeURIComponent(address) : ""}?subject=${encodeURIComponent(email.subject)}&body=${encodeURIComponent(email.body)}`}><Mail className="size-4" aria-hidden="true" /> Open in email</a>
               </Button>
               <button type="button" className="ml-auto text-sm text-muted-foreground hover:text-foreground" onClick={() => void act({ action: "remove", step: "emails", id: email.id })}>Remove</button>
             </>

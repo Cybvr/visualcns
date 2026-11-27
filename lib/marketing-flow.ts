@@ -45,7 +45,8 @@ export type Person = {
   emailScore?: number
 }
 
-export type Email = { id: string; personId: string; subject: string; body: string }
+/** personId is empty on a draft written for an audience, before anyone is found; `to` is the address the company typed in. */
+export type Email = { id: string; personId: string; audienceId?: string; to?: string; subject: string; body: string }
 
 export type SocialPlan = { posts: { id: string; title: string; text: string; image?: string }[] }
 

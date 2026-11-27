@@ -69,7 +69,7 @@ export async function GET(request: Request) {
   return json({ flow: stored?.flow ?? { website: caller.website } })
 }
 
-type Body = { companyId?: string; action?: string; step?: string; website?: string; id?: string; ids?: unknown[]; url?: string; subject?: string; body?: string; keywords?: unknown[] }
+type Body = { companyId?: string; action?: string; step?: string; website?: string; id?: string; ids?: unknown[]; url?: string; subject?: string; body?: string; to?: string; keywords?: unknown[] }
 
 const REMOVABLE = ["customers", "people", "emails", "competitors"] as const
 
@@ -105,7 +105,7 @@ export async function POST(request: Request) {
       ;(flow as Record<string, unknown>)[key] = rows.filter((item) => item.id !== rowId)
       // A removed company takes its person and email with it, and a removed person their email.
       if (key === "customers") flow.people = flow.people?.filter((item) => item.customerId !== rowId)
-      if (key === "customers" || key === "people") flow.emails = flow.emails?.filter((item) => flow.people?.some((person) => person.id === item.personId))
+      if (key === "customers" || key === "people") flow.emails = flow.emails?.filter((item) => !item.personId || flow.people?.some((person) => person.id === item.personId))
     } else {
       return json({ error: "That can't be removed." }, 400)
     }
@@ -128,6 +128,7 @@ export async function POST(request: Request) {
     if (!email) return json({ error: "That email doesn't exist." }, 404)
     email.subject = String(body.subject ?? email.subject).trim().slice(0, 120)
     email.body = String(body.body ?? email.body).trim().slice(0, 4000)
+    if (body.to !== undefined) email.to = String(body.to).trim().slice(0, 200) || undefined
     await ref.set({ flow: { ...flow, updatedAt: new Date().toISOString() } }, { merge: true })
     return json({ flow })
   }
@@ -173,8 +174,8 @@ export async function POST(request: Request) {
   }
 
   // skip: mark a step done with nothing in it, so the run can carry on. Research can't be skipped.
-  // Emails need decision makers, and decision makers need companies: with none, those steps skip too.
-  const nothingToWorkOn = body.action === "run" && ((body.step === "emails" && !flow.people?.length) || (body.step === "people" && !flow.customers?.length))
+  // Decision makers need companies: with none, that step skips too.
+  const nothingToWorkOn = body.action === "run" && body.step === "people" && !flow.customers?.length
   if (body.action === "skip" || nothingToWorkOn) {
     if (!isFlowStep(body.step) || body.step === "research") return json({ error: "That step can't be skipped." }, 400)
     const skippedStep: FlowStep = body.step

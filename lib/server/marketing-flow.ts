@@ -267,7 +267,7 @@ const EMAIL_LIMIT = 3
 async function runEmails(tools: Tools, state: FlowState): Promise<Email[]> {
   // Three emails: the first three decision makers.
   const people = (state.people ?? []).slice(0, EMAIL_LIMIT)
-  if (!people.length) throw new Error("Find decision makers first.")
+  if (!people.length) return runDraftEmails(tools, state)
   const lines = people.map((person) => {
     const customer = state.customers?.find((c) => c.id === person.customerId)
     const audience = state.audiences?.find((a) => a.id === customer?.audienceId)
@@ -292,6 +292,31 @@ async function runEmails(tools: Tools, state: FlowState): Promise<Email[]> {
   return (raw.emails ?? [])
     .filter((item) => people.some((p) => p.id === item.personId) && !seen.has(item.personId) && seen.add(item.personId))
     .map((item) => ({ id: id(), personId: item.personId, subject: str(item.subject, 80), body: (typeof item.body === "string" ? item.body : "").trim().slice(0, 2000) }))
+}
+
+/** With no decision makers, one draft per audience, for the company to address itself. */
+async function runDraftEmails(tools: Tools, state: FlowState): Promise<Email[]> {
+  const audiences = (state.audiences ?? []).slice(0, EMAIL_LIMIT)
+  if (!audiences.length) throw new Error("Define audiences first.")
+  const raw = await tools.ask<{ emails: { audienceId: string; subject: string; body: string }[] }>(
+    "emails",
+    object({
+      emails: list(
+        {
+          audienceId: text("The audience id in brackets."),
+          subject: text("Two or three plain words."),
+          body: text("The email. Start with 'Hi [Name],', one line on a problem these people have, one line on how the business helps, a small low-effort offer, then 'Best,' and the business name. Under 110 words. Paragraphs separated by blank lines."),
+        },
+        "One email for each audience, three at most.",
+      ),
+    }),
+    "Write a short first email to someone in each audience. Make it about them, not about the sender. No flattery, no buzzwords.",
+    `${about(state)}\nAUDIENCES\n${audiencesText(audiences)}`,
+  )
+  const seen = new Set<string>()
+  return (raw.emails ?? [])
+    .filter((item) => audiences.some((a) => a.id === item.audienceId) && !seen.has(item.audienceId) && seen.add(item.audienceId))
+    .map((item) => ({ id: id(), personId: "", audienceId: item.audienceId, subject: str(item.subject, 80), body: (typeof item.body === "string" ? item.body : "").trim().slice(0, 2000) }))
 }
 
 async function runSocial(tools: Tools, state: FlowState): Promise<SocialPlan> {
