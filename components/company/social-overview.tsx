@@ -72,6 +72,26 @@ function PostMedia({ post }: { post: CampaignCreative }) {
     : <img src={post.mediaUrl} alt="" loading="lazy" className="size-full object-cover" />
 }
 
+/** A post like Instagram shows it: the picture, the company's name and caption with more, then the date. */
+function PostCard({ post, name, when, onOpen }: { post: CampaignCreative; name: string; when: string; onOpen: () => void }) {
+  const [expanded, setExpanded] = useState(false)
+  const caption = post.body?.trim() ?? ""
+  const long = caption.length > 90
+  return (
+    <article className="min-w-0">
+      <button type="button" onClick={onOpen} aria-label={`Open ${postLabel(post)}`} className="block aspect-square w-full overflow-hidden rounded-2xl bg-muted outline-none focus-visible:ring-2 focus-visible:ring-ring">
+        {post.mediaUrl ? <PostMedia post={post} /> : thumbnailIcon(ImageIcon)}
+      </button>
+      <p className="mt-2 whitespace-pre-line text-sm leading-relaxed">
+        <span className="font-semibold">{name}</span>{" "}
+        {long && !expanded ? `${caption.slice(0, 90).trimEnd()}…` : caption}
+        {long && !expanded && <>{" "}<button type="button" onClick={() => setExpanded(true)} className="text-muted-foreground">more</button></>}
+      </p>
+      <p className="mt-1 text-xs text-muted-foreground">{when}</p>
+    </article>
+  )
+}
+
 /** Pill buttons that narrow a list, beside the search in the filter bar. */
 export function PillFilter<T extends string>({ options, value, onChange }: { options: { value: T; label: string }[]; value: T; onChange: (value: T) => void }) {
   return (
@@ -262,14 +282,7 @@ export function SocialOverview() {
           viewKey="social-posts"
           fixedView="grid"
           gridClassName="mx-auto w-full max-w-xl grid-cols-1 sm:grid-cols-1 lg:grid-cols-1"
-          gridItem={(post) => (
-            <button type="button" onClick={() => setOpenId(post.id)} aria-label={`Open ${postLabel(post)}`} className="block w-full text-left outline-none focus-visible:ring-2 focus-visible:ring-ring">
-              <span className="block aspect-square w-full overflow-hidden rounded-2xl bg-muted">
-                {post.mediaUrl ? <PostMedia post={post} /> : thumbnailIcon(ImageIcon)}
-              </span>
-              {post.body?.trim() && <span className="mt-2 line-clamp-2 block text-sm leading-relaxed">{post.body}</span>}
-            </button>
-          )}
+          gridItem={(post) => <PostCard post={post} name={company.name} when={formatWhen(new Date(postTime(post)).toISOString())} onOpen={() => setOpenId(post.id)} />}
           loading={!loaded}
           createAction={{ label: "New post", onClick: () => setWriting(true) }}
           empty={{ icon: ImageIcon, title: allPosts.length ? "No posts here" : "No posts yet" }}
