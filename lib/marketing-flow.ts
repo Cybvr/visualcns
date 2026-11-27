@@ -29,7 +29,7 @@ export type Competitors = {
 
 export type Audience = { id: string; name: string; offer: string; pain: string; criteria: string[]; examples: string[] }
 
-export type Customer = { id: string; audienceId: string; name: string; url: string; description: string; country: string }
+export type Customer = { id: string; audienceId: string; name: string; url: string; description: string; country: string; industry?: string }
 
 export type Person = {
   id: string

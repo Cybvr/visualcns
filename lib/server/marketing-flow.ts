@@ -206,6 +206,7 @@ async function runCustomers(tools: Tools, state: FlowState): Promise<Customer[]>
           url: text("The company's own website, from the results, or empty if only its name appears."),
           description: text("One sentence on what the company does."),
           country: text("Two-letter country code if known, else empty."),
+          industry: text("The company's industry in two or three words, e.g. 'Software Development'."),
         },
         "Up to eight real companies for each audience. Only companies named in the results. No directories, publishers or competitors of the business.",
       ),
@@ -216,7 +217,7 @@ async function runCustomers(tools: Tools, state: FlowState): Promise<Customer[]>
   const seen = new Set<string>()
   return (raw.customers ?? [])
     .filter((item) => audiences.some((a) => a.id === item.audienceId))
-    .map((item) => ({ id: id(), audienceId: item.audienceId, name: str(item.name, 80), url: str(item.url, 300), description: str(item.description, 240), country: str(item.country, 2).toUpperCase() }))
+    .map((item) => ({ id: id(), audienceId: item.audienceId, name: str(item.name, 80), url: str(item.url, 300), description: str(item.description, 240), country: str(item.country, 2).toUpperCase(), industry: str(item.industry, 60) }))
     .filter((item) => {
       const key = hostOf(item.url) || item.name.toLowerCase()
       if (!item.name || seen.has(key) || hostOf(item.url) === own || competitorHosts.has(hostOf(item.url))) return false
@@ -260,8 +261,11 @@ async function runPeople(tools: Tools, state: FlowState): Promise<Person[]> {
     .map((item) => ({ id: id(), customerId: item.customerId, name: str(item.name, 80), title: str(item.title, 120), company: str(item.company, 80), linkedin: str(item.linkedin, 300) }))
 }
 
+const EMAIL_LIMIT = 3
+
 async function runEmails(tools: Tools, state: FlowState): Promise<Email[]> {
-  const people = state.people ?? []
+  // Three emails: the first three decision makers.
+  const people = (state.people ?? []).slice(0, EMAIL_LIMIT)
   if (!people.length) throw new Error("Find decision makers first.")
   const lines = people.map((person) => {
     const customer = state.customers?.find((c) => c.id === person.customerId)
@@ -277,7 +281,7 @@ async function runEmails(tools: Tools, state: FlowState): Promise<Email[]> {
           subject: text("Two or three plain words."),
           body: text("The email. Greeting with their first name, one line about their company, one line on how the business helps, a small low-effort offer, then 'Best,' and the business name. Under 110 words. Paragraphs separated by blank lines."),
         },
-        "One email for each person.",
+        "One email for each person, three at most.",
       ),
     }),
     "Write a short first email to each person. Make it about them, not about the sender. No flattery, no buzzwords.",
