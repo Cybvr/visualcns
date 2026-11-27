@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type FormEvent, type ReactNode } from "react"
-import { ArrowRight, BadgeDollarSign, Check, ChevronDown, Copy, Download, ExternalLink, ImageIcon, Loader2, Mail, MoreHorizontal, Pencil, RotateCcw, Search, Swords, Upload, UsersRound, X } from "lucide-react"
+import { ArrowRight, Check, ChevronDown, Copy, Download, ExternalLink, ImageIcon, Loader2, Mail, MoreHorizontal, Pencil, RotateCcw, Search, Swords, Upload, UsersRound, X } from "lucide-react"
 import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
@@ -789,78 +789,29 @@ export function OutreachSection() {
 }
 
 function OutreachList({ flow, act }: { flow: FlowState; act: Act }) {
-  const [adding, setAdding] = useState(false)
-  const [editingId, setEditingId] = useState<string | null>(null)
-  const emails = flow.emails ?? []
-  const editing = emails.find((email) => email.id === editingId)
-  const personOf = (email: (typeof emails)[number]) => flow.people?.find((p) => p.id === email.personId)
-  const addressOf = (email: (typeof emails)[number]) => personOf(email)?.email || email.to || ""
-  const toLine = (email: (typeof emails)[number]) => {
-    const person = personOf(email)
-    return person ? [person.name, person.company].filter(Boolean).join(" · ") : email.to || "No email address"
-  }
-  const mailto = (email: (typeof emails)[number]) => `mailto:${encodeURIComponent(addressOf(email))}?subject=${encodeURIComponent(email.subject)}&body=${encodeURIComponent(email.body)}`
+  const [query, setQuery] = useState("")
+  const emails = (flow.emails ?? []).filter((email) => {
+    const person = flow.people?.find((p) => p.id === email.personId)
+    return matches(query, email.subject, email.body, email.to, person?.name, person?.company, person?.email)
+  })
   return (
-    <>
-      <CollectionView
-        className=""
-        items={emails}
-        getKey={(email) => email.id}
-        searchFields={(email) => [email.subject, email.body, toLine(email), addressOf(email)]}
-        searchPlaceholder="Search emails"
-        viewKey="marketing-emails"
-        initialView="list"
-        createAction={{ label: "New email", onClick: () => setAdding(true) }}
-        empty={{ icon: Mail, title: "No emails yet" }}
-        card={(email) => ({
-          icon: <Mail className="size-4 text-muted-foreground" aria-hidden="true" />,
-          title: email.subject || "No subject",
-          subtitle: toLine(email),
-          preview: <p className="line-clamp-6 whitespace-pre-line p-4 text-left text-xs text-muted-foreground">{email.body}</p>,
-          onClick: () => setEditingId(email.id),
-          ariaLabel: `Edit ${email.subject}`,
-          menuLabel: `Options for ${email.subject}`,
-        })}
-        row={(email) => ({ subtitle: toLine(email) })}
-        itemActions={(email) => ({
-          noun: "email",
-          name: email.subject,
-          onOpen: () => setEditingId(email.id),
-          extra: (
-            <>
-              <DropdownMenuItem asChild><a href={mailto(email)}>Open in email</a></DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => copy(`${email.subject}\n\n${email.body}`)}>Copy</DropdownMenuItem>
-            </>
-          ),
-          onDelete: () => act({ action: "remove", step: "emails", id: email.id }),
-        })}
-      />
-      <FieldsDialog
-        open={adding}
-        onOpenChange={setAdding}
+    <div className="space-y-4">
+      <StepBar
+        placeholder="Search emails"
+        query={query}
+        onQuery={setQuery}
         title="New email"
-        fields={EMAIL_FIELDS}
-        submitLabel="Add"
-        onSubmit={(values) => act({ action: "add", step: "emails", ...values })}
+        fields={[
+          { name: "to", placeholder: "To", type: "email" },
+          { name: "subject", placeholder: "Subject", required: true },
+          { name: "body", placeholder: "Email", multiline: true },
+        ]}
+        onAdd={(values) => act({ action: "add", step: "emails", ...values })}
       />
-      <FieldsDialog
-        open={Boolean(editing)}
-        onOpenChange={(open) => { if (!open) setEditingId(null) }}
-        title="Edit email"
-        fields={editing && personOf(editing) ? EMAIL_FIELDS.slice(1) : EMAIL_FIELDS}
-        initial={editing && { to: editing.to ?? "", subject: editing.subject, body: editing.body }}
-        submitLabel="Save"
-        onSubmit={(values) => act({ action: "email", id: editingId, ...values })}
-      />
-    </>
+      {emails.length > 0 && <EmailsStep flow={{ ...flow, emails }} act={act} />}
+    </div>
   )
 }
-
-const EMAIL_FIELDS: Field[] = [
-  { name: "to", placeholder: "To", type: "email" },
-  { name: "subject", placeholder: "Subject", required: true },
-  { name: "body", placeholder: "Email", multiline: true },
-]
 
 /** Ads: one ad for each audience, aimed at the same companies. */
 export function AdsSection() {
@@ -868,53 +819,13 @@ export function AdsSection() {
 }
 
 function AdsList({ flow, act }: { flow: FlowState; act: Act }) {
-  const [adding, setAdding] = useState(false)
-  const [editingId, setEditingId] = useState<string | null>(null)
-  const ads = flow.ads ?? []
-  const editing = ads.find((ad) => ad.id === editingId)
-  const audienceName = (id: string) => flow.audiences?.find((item) => item.id === id)?.name ?? ""
+  const [query, setQuery] = useState("")
+  const ads = (flow.ads ?? []).filter((ad) => matches(query, ad.headline, ad.text, ad.cta, flow.audiences?.find((item) => item.id === ad.audienceId)?.name))
   return (
-    <>
-      <CollectionView
-        className=""
-        items={ads}
-        getKey={(ad) => ad.id}
-        searchFields={(ad) => [ad.headline, ad.text, ad.cta, audienceName(ad.audienceId)]}
-        searchPlaceholder="Search ads"
-        viewKey="marketing-ads"
-        initialView="grid"
-        createAction={{ label: "New ad", onClick: () => setAdding(true) }}
-        empty={{ icon: BadgeDollarSign, title: "No ads yet" }}
-        gridItem={(ad) => <AdCard ad={ad} flow={flow} act={act} />}
-        card={(ad) => ({
-          icon: <BadgeDollarSign className="size-4 text-muted-foreground" aria-hidden="true" />,
-          title: ad.headline || ad.text,
-          subtitle: audienceName(ad.audienceId),
-          imageUrl: ad.image,
-          imageAlt: ad.headline,
-          onClick: () => setEditingId(ad.id),
-          ariaLabel: `Edit ${ad.headline}`,
-          menuLabel: `Options for ${ad.headline}`,
-        })}
-        row={(ad) => ({ subtitle: audienceName(ad.audienceId) || ad.text })}
-        itemActions={(ad) => ({
-          noun: "ad",
-          name: ad.headline || "ad",
-          onOpen: () => setEditingId(ad.id),
-          onDelete: () => act({ action: "remove", step: "ads", id: ad.id }),
-        })}
-      />
-      <FieldsDialog open={adding} onOpenChange={setAdding} title="New ad" fields={adFields(flow)} submitLabel="Add" onSubmit={(values) => act({ action: "add", step: "ads", ...values })} />
-      <FieldsDialog
-        open={Boolean(editing)}
-        onOpenChange={(open) => { if (!open) setEditingId(null) }}
-        title="Edit ad"
-        fields={adFields(flow)}
-        initial={editing && { text: editing.text, headline: editing.headline, cta: editing.cta, audienceId: editing.audienceId }}
-        submitLabel="Save"
-        onSubmit={(values) => act({ action: "ad", id: editingId, ...values })}
-      />
-    </>
+    <div className="space-y-4">
+      <StepBar placeholder="Search ads" query={query} onQuery={setQuery} title="New ad" fields={adFields(flow)} onAdd={(values) => act({ action: "add", step: "ads", ...values })} />
+      {ads.length > 0 && <AdsStep flow={{ ...flow, ads }} act={act} />}
+    </div>
   )
 }
 
