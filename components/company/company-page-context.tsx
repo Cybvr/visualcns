@@ -71,6 +71,8 @@ export interface CompanyPageAdmin {
   reload: () => Promise<void>
   /** Removes the client's account; offered as Delete client in the header menu. */
   onDeleteClient?: () => Promise<void>
+  /** Logo, name and public address, shown at the top of the account details. */
+  profileSettings?: ReactNode
 }
 
 export interface CompanyPageData {

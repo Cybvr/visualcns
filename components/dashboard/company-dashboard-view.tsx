@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 
 import { useAuth } from "@/components/auth-provider"
 import { CompanyPage } from "@/components/company/company-page"
+import { CompanyProfileSettings } from "@/components/dashboard/company-profile-settings"
 import { useCompany } from "@/components/dashboard/company-context"
 import { updateOrganization } from "@/lib/organizations"
 import { addUserToCompany, deleteUser, getUsers, type AppUser } from "@/lib/users"
@@ -125,6 +126,7 @@ export function CompanyDashboardView({ embedded, keepParams, onBack }: { embedde
                 await deleteUser(client.uid)
                 router.push("/admin/companies")
               },
+              profileSettings: <CompanyProfileSettings />,
             }
           : undefined
       }
