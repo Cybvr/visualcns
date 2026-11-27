@@ -12,7 +12,7 @@ import { useCompanyPage } from "@/components/company/company-page-context"
 import { CompanyDetails, type CompanyDetailsPatch } from "@/components/company/company-sidebar"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { SectionHeader } from "@/components/dashboard/section-header"
+import { SectionBody, SectionHeader } from "@/components/dashboard/section-header"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
@@ -32,7 +32,7 @@ function ProfileCard({ title, children }: { title: string; children: ReactNode }
   return (
     <section className="py-2">
       <SectionHeader title={title} />
-      <div className="mt-5">{children}</div>
+      <SectionBody className="mt-5">{children}</SectionBody>
     </section>
   )
 }
@@ -298,14 +298,26 @@ export function AboutSection({ singleColumn = false, formStyle = false }: { sing
   if (singleColumn) {
     return (
       <div className="mt-5 min-w-0 space-y-10">
-        {admin?.profileSettings ? <div id="company-settings-account">{admin.profileSettings}</div> : null}
-        <SettingsGroup id="company-settings-profile" title={admin?.profileSettings ? "More" : "Profile"}>
-          {!admin?.profileSettings && <div id="company-settings-about">{about}</div>}
-          <div id="company-settings-details">{details}</div>
-          <div id="company-settings-tags">{tags}</div>
-          <div id="company-settings-links">{links}</div>
-        </SettingsGroup>
-        {social && <SettingsGroup id="company-settings-social" title="Social">{social}</SettingsGroup>}
+        {admin?.profileSettings ? (
+          // The client Home: the account card, then every other section as its own card.
+          <>
+            <div id="company-settings-account">{admin.profileSettings}</div>
+            <div id="company-settings-details">{details}</div>
+            <div id="company-settings-tags">{tags}</div>
+            <div id="company-settings-links">{links}</div>
+            {social && <div id="company-settings-social">{social}</div>}
+          </>
+        ) : (
+          <>
+            <SettingsGroup id="company-settings-profile" title="Profile">
+              <div id="company-settings-about">{about}</div>
+              <div id="company-settings-details">{details}</div>
+              <div id="company-settings-tags">{tags}</div>
+              <div id="company-settings-links">{links}</div>
+            </SettingsGroup>
+            {social && <SettingsGroup id="company-settings-social" title="Social">{social}</SettingsGroup>}
+          </>
+        )}
         <div id="company-settings-bookings" className="empty:hidden">{bookings}</div>
       </div>
     )

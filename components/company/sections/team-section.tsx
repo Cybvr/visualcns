@@ -1,7 +1,7 @@
 "use client"
 
 import { useMemo, useState } from "react"
-import { SectionHeader } from "@/components/dashboard/section-header"
+import { SectionBody, SectionHeader } from "@/components/dashboard/section-header"
 import { User as UserIcon } from "lucide-react"
 import { toast } from "sonner"
 
@@ -86,6 +86,7 @@ export function TeamSection() {
       <SectionHeader title={`Team members${teamSeats.info ? (teamSeats.info.limit === null ? ` · ${teamSeats.info.seats} seats` : ` · ${teamSeats.info.seats} of ${teamSeats.info.limit} seats`) : ""}`}>
         {admin && <SectionAddButton label="Add team members" onClick={openDialog} />}
       </SectionHeader>
+      <SectionBody>
       {canManageTeam && teamSeats.info && (
         <TeamMembersPanel info={teamSeats.info} call={teamSeats.call} onChange={() => { void teamSeats.reload(); void admin?.reload() }} />
       )}
@@ -124,6 +125,8 @@ export function TeamSection() {
           ))}
         </div>
       )}
+
+      </SectionBody>
 
       {admin && (
         <Dialog

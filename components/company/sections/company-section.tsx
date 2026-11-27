@@ -9,6 +9,7 @@ import { useCompanyPage, type CompanySectionKey } from "@/components/company/com
 import { CompanyVisitors } from "@/components/company/company-visitors"
 import { HomeOverview } from "@/components/company/home-overview"
 import { AboutSection, SettingsGroup } from "@/components/company/sections/about-section"
+import { SectionCards } from "@/components/dashboard/section-header"
 import { ActivitySection } from "@/components/company/sections/activity-section"
 import { AnalyticsSection } from "@/components/company/sections/analytics-section"
 import { DocumentsSection } from "@/components/company/sections/documents-section"
@@ -44,19 +45,17 @@ function HomeActivitySection() {
   const { mode } = useCompanyPage()
   if (mode !== "tabs") return <ActivitySection />
   return (
-    <div className="mx-auto mt-2 min-w-0 max-w-xl pb-28">
-      <AboutSection singleColumn />
-      <div className="mt-10 empty:hidden">
-        <HomeOverview />
-      </div>
-      <div>
-        <div className="relative mt-10">
-          <SettingsGroup id="company-settings-team" title="Team">
-            <TeamSection />
-          </SettingsGroup>
+    <SectionCards>
+      <div className="mx-auto mt-2 min-w-0 max-w-xl pb-28">
+        <AboutSection singleColumn />
+        <div className="mt-10 empty:hidden">
+          <HomeOverview />
+        </div>
+        <div className="mt-5">
+          <TeamSection />
         </div>
       </div>
-    </div>
+    </SectionCards>
   )
 }
 

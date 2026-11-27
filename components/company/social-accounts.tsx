@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState, type FormEvent } from "react"
-import { SectionHeader } from "@/components/dashboard/section-header"
+import { SectionBody, SectionHeader } from "@/components/dashboard/section-header"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { Loader2, X } from "lucide-react"
 import { toast } from "sonner"
@@ -126,7 +126,8 @@ export function SocialAccounts({ companyId, variant = "default" }: { companyId: 
   return (
     <section className="py-2">
       <SectionHeader title="Social accounts" />
-      <div className="mt-5 space-y-5">
+      <SectionBody className="mt-5">
+      <div className="space-y-5">
         {loading && !info ? (
           <p className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="size-4 animate-spin" aria-hidden="true" />Loading</p>
         ) : !info ? (
@@ -167,6 +168,7 @@ export function SocialAccounts({ companyId, variant = "default" }: { companyId: 
           </>
         )}
       </div>
+      </SectionBody>
     </section>
   )
 }

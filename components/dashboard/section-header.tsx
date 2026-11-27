@@ -1,7 +1,22 @@
+"use client"
+
 import Link from "next/link"
-import type { ReactNode } from "react"
+import { createContext, useContext, type ReactNode } from "react"
 
 import { cn } from "@/lib/utils"
+
+/** On the client Home, each section is a rounded card with a small uppercase label above it. */
+export const SectionCardsContext = createContext(false)
+
+export function SectionCards({ children }: { children: ReactNode }) {
+  return <SectionCardsContext.Provider value>{children}</SectionCardsContext.Provider>
+}
+
+/** A section's body: plain where it sits, or the rounded card inside SectionCards. */
+export function SectionBody({ className, children }: { className?: string; children: ReactNode }) {
+  const cards = useContext(SectionCardsContext)
+  return <div className={cards ? "mt-3 rounded-3xl bg-muted/50 p-5" : className}>{children}</div>
+}
 
 /**
  * The row at the top of a section: the heading, then an optional "View all"
@@ -19,9 +34,10 @@ export function SectionHeader({ title, id, href, linkLabel = "View all", as: Hea
   /** Actions on the right, after the link. */
   children?: ReactNode
 }) {
+  const cards = useContext(SectionCardsContext)
   return (
-    <div className={cn("flex min-h-8 items-center justify-between gap-3", className)}>
-      <Heading id={id} className="surface-section-label min-w-0 truncate">{title}</Heading>
+    <div className={cn("flex min-h-8 items-center justify-between gap-3", className, cards && "px-1")}>
+      <Heading id={id} className={cn("min-w-0 truncate", cards ? "text-xs font-semibold uppercase tracking-wider text-muted-foreground" : "surface-section-label")}>{title}</Heading>
       {(href || children) && (
         <div className="flex shrink-0 items-center gap-2">
           {href && <Link href={href} className="text-sm font-medium text-foreground underline-offset-4 hover:underline">{linkLabel}</Link>}

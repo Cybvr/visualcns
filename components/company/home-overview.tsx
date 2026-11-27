@@ -5,7 +5,7 @@ import { Users } from "lucide-react"
 
 import { useCompanyPage } from "@/components/company/company-page-context"
 import { GridCard, GridCardList } from "@/components/dashboard/grid-card"
-import { SectionHeader } from "@/components/dashboard/section-header"
+import { SectionBody, SectionHeader } from "@/components/dashboard/section-header"
 import { onRoster, watchCompanyCampaignPeople, type CampaignPerson } from "@/lib/campaign-people"
 import { CreatorThumbnail } from "@/components/dashboard/campaign-people"
 import { tsToMillis } from "@/lib/tasks"
@@ -34,7 +34,7 @@ export function HomeOverview() {
       {creators.length > 0 && (
         <section aria-labelledby="home-creators-heading">
           <SectionHeader id="home-creators-heading" title="Leads" href={sectionHref("leads")} />
-          <div className="mt-4">
+          <SectionBody className="mt-4">
             <GridCardList>
               {creators.slice(0, PREVIEW_LIMIT).map((person) => (
                 <GridCard
@@ -47,7 +47,7 @@ export function HomeOverview() {
                 />
               ))}
             </GridCardList>
-          </div>
+          </SectionBody>
         </section>
       )}
     </>

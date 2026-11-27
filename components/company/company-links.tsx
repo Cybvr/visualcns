@@ -1,7 +1,7 @@
 "use client"
 
 import { Link2, Plus } from "lucide-react"
-import { SectionHeader } from "@/components/dashboard/section-header"
+import { SectionBody, SectionHeader } from "@/components/dashboard/section-header"
 import { useState, type FormEvent } from "react"
 
 import { Button } from "@/components/ui/button"
@@ -63,8 +63,9 @@ export function CompanyLinks({
         )}
       </div>
 
+      <SectionBody className="mt-5">
       {links.length > 0 ? (
-        <div className="mt-5 space-y-2">
+        <div className="space-y-2">
           {links.map((link) => (
             <MobileDataCard
               key={link.id}
@@ -86,11 +87,11 @@ export function CompanyLinks({
           ))}
         </div>
       ) : !adding ? (
-        <p className="mt-5 text-sm text-muted-foreground">No links yet.</p>
+        <p className="text-sm text-muted-foreground">No links yet.</p>
       ) : null}
 
       {adding && (
-        <form onSubmit={addLink} className="mt-5 grid gap-3 sm:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)_auto] sm:items-end">
+        <form onSubmit={addLink} className="mt-4 grid gap-3 sm:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)_auto] sm:items-end">
           <label className="space-y-1.5">
             <span className="text-xs text-muted-foreground">Label</span>
             <Input value={label} onChange={(event) => setLabel(event.target.value)} placeholder="Instagram" autoFocus />
@@ -105,6 +106,7 @@ export function CompanyLinks({
           </div>
         </form>
       )}
+      </SectionBody>
     </section>
   )
 }

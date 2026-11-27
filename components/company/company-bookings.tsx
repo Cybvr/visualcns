@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useContext, useEffect, useState } from "react"
 import { CalendarDays, MapPin } from "lucide-react"
 import { toast } from "sonner"
 
@@ -8,6 +8,7 @@ import { useAuth } from "@/components/auth-provider"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
 import { MobileDataCard } from "@/components/dashboard/mobile-data-card"
+import { SectionBody, SectionCardsContext, SectionHeader } from "@/components/dashboard/section-header"
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { bookingTime, type CalendarBooking } from "@/lib/calendar-bookings"
 
@@ -72,14 +73,18 @@ export function CompanyBookings({ companyId, canCancel = false }: { companyId: s
     }
   }
 
+  const cards = useContext(SectionCardsContext)
   if (!loading && bookings.length === 0) return null
 
   return (
-    <section className="mb-8 rounded-lg border border-border bg-card p-4 sm:p-5">
-      <div className="mb-3 flex items-center gap-2">
-        <CalendarDays className="size-4 text-muted-foreground" aria-hidden="true" />
-        <h2 className="font-semibold">Upcoming bookings</h2>
-      </div>
+    <section className={cards ? undefined : "mb-8 rounded-lg border border-border bg-card p-4 sm:p-5"}>
+      {cards ? <SectionHeader title="Upcoming bookings" /> : (
+        <div className="mb-3 flex items-center gap-2">
+          <CalendarDays className="size-4 text-muted-foreground" aria-hidden="true" />
+          <h2 className="font-semibold">Upcoming bookings</h2>
+        </div>
+      )}
+      <SectionBody>
       {loading ? (
         <p className="text-sm text-muted-foreground">Loading bookings…</p>
       ) : (
@@ -105,6 +110,7 @@ export function CompanyBookings({ companyId, canCancel = false }: { companyId: s
           ))}
         </div>
       )}
+      </SectionBody>
       <AlertDialog open={cancelTarget !== null} onOpenChange={(open) => !open && !cancelling && setCancelTarget(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
