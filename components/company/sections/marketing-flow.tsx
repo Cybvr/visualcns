@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type FormEvent, type ReactNode } from "react"
-import { ArrowRight, Check, ChevronDown, Copy, Download, ExternalLink, ImageIcon, Loader2, Mail, Pencil, RotateCcw, Search, Upload, X } from "lucide-react"
+import { ArrowRight, Check, ChevronDown, Copy, Download, ExternalLink, ImageIcon, Loader2, Mail, Pencil, Search, Upload, X } from "lucide-react"
 import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
@@ -109,7 +109,6 @@ export function MarketingFlowSection() {
   const [failed, setFailed] = useState<{ step: FlowStep; message: string } | null>(null)
   const [open, setOpen] = useState<FlowStep | null>(null)
   const [website, setWebsite] = useState(company.website ?? "")
-  const [editingSite, setEditingSite] = useState(false)
 
   // Once loaded: the saved website, and the step to show open.
   const loaded = Boolean(flow)
@@ -155,7 +154,6 @@ export function MarketingFlowSection() {
   function start(event: FormEvent) {
     event.preventDefault()
     if (!website.trim() || running) return
-    setEditingSite(false)
     void runFrom("research", website.trim())
   }
 
@@ -174,7 +172,7 @@ export function MarketingFlowSection() {
 
   return (
     <div className="mx-auto mt-5 w-full max-w-3xl min-w-0">
-      {!started || editingSite ? (
+      {!started ? (
         <form onSubmit={start} className="mx-auto flex max-w-xl flex-col items-center py-10 text-center sm:py-16">
           <h2 className="text-4xl font-semibold leading-tight tracking-tight sm:text-5xl">
             Turn your website into customers
@@ -192,8 +190,7 @@ export function MarketingFlowSection() {
           <Button type="submit" className="mt-3 h-14 w-full rounded-2xl text-lg" disabled={!website.trim() || Boolean(running)}>
             Start <ArrowRight className="size-5" aria-hidden="true" />
           </Button>
-          {editingSite && <Button type="button" variant="ghost" className="mt-2" onClick={() => setEditingSite(false)}>Cancel</Button>}
-          {!editingSite && <HowItWorks />}
+          <HowItWorks />
         </form>
       ) : (
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -202,9 +199,6 @@ export function MarketingFlowSection() {
             {" · "}
             {running ? `Step ${FLOW_STEPS.findIndex((step) => step.key === running) + 1} of ${FLOW_STEPS.length}` : `${done}/${FLOW_STEPS.length}`}
           </p>
-          <Button type="button" variant="outline" size="sm" disabled={Boolean(running)} onClick={() => setEditingSite(true)}>
-            <RotateCcw className="size-4" aria-hidden="true" /> Start over
-          </Button>
         </div>
       )}
 
@@ -239,20 +233,17 @@ export function MarketingFlowSection() {
                   {isDone && !isSkipped && <ChevronDown className={cn("size-5 shrink-0 text-muted-foreground transition-transform", isOpen && "rotate-180")} aria-hidden="true" />}
                 </button>
                 {isFailed && (
-                  <div className="mb-3 ml-10 flex flex-wrap items-center gap-3 text-sm">
-                    <span className="text-destructive">{failed.message}</span>
-                    <Button type="button" size="sm" variant="outline" onClick={() => void runFrom(step.key)}>Try again</Button>
-                    {step.key !== "research" && <Button type="button" size="sm" variant="ghost" onClick={() => void skip(step.key)}>Skip</Button>}
+                  <div className="mb-3 ml-10 text-sm">
+                    <p className="text-destructive">{failed.message}</p>
+                    <div className="mt-2 flex justify-end gap-2">
+                      <Button type="button" size="sm" variant="outline" onClick={() => void runFrom(step.key)}>Try again</Button>
+                      {step.key !== "research" && <Button type="button" size="sm" onClick={() => void skip(step.key)}>Skip</Button>}
+                    </div>
                   </div>
                 )}
                 {isOpen && !isSkipped && (
                   <div className="pb-5">
                     <StepBody step={step.key} flow={flow} act={act} />
-                    {!running && (
-                      <button type="button" className="mt-3 inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground" onClick={() => void runFrom(step.key)}>
-                        <RotateCcw className="size-3.5" aria-hidden="true" /> Redo
-                      </button>
-                    )}
                   </div>
                 )}
               </li>
