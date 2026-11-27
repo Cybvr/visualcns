@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type FormEvent, type ReactNode } from "react"
-import { ArrowRight, Check, ChevronDown, Copy, Download, ExternalLink, ImageIcon, Loader2, Mail, Pencil, Search, Upload, X } from "lucide-react"
+import { ArrowRight, Check, ChevronDown, Copy, Download, ExternalLink, ImageIcon, Loader2, Mail, Pencil, RotateCcw, Search, Upload, X } from "lucide-react"
 import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
@@ -35,12 +35,18 @@ function useFlowApi(companyId: string) {
       ...(body ? { body: JSON.stringify({ companyId, ...body }) } : {}),
     })
     const data = await response.json().catch(() => ({}))
-    if (!response.ok) throw new Error(data?.error || "Something went wrong. Please try again.")
+    if (!response.ok) throw Object.assign(new Error(data?.error || "Something went wrong. Please try again."), { status: response.status })
     return data
   }, [companyId])
 }
 
-const has = (flow: FlowState | null, step: FlowStep) => Boolean(flow?.[step])
+/** Done means it found something, or the company skipped it. An empty list counts as not done. */
+const has = (flow: FlowState | null, step: FlowStep) => {
+  const value = flow?.[step]
+  if (!value) return false
+  return !Array.isArray(value) || value.length > 0 || Boolean(flow?.skipped?.includes(step))
+}
+const NOTHING_FOUND: Partial<Record<FlowStep, string>> = { customers: "No companies found.", people: "No decision makers found." }
 
 // One copy of each company's flow, shared by Home, Leads, Outreach, Social and Ads,
 // so a run keeps updating every page while you move between them.
@@ -117,8 +123,11 @@ export function MarketingFlowSection() {
     if (flow.website) setWebsite(flow.website)
     setOpen((current) => current ?? ([...FLOW_STEPS].reverse().find((step) => flow[step.key])?.key ?? null))
     // A run that stopped part way picks up where it left off.
-    const next = FLOW_STEPS.find((step) => !flow[step.key])
-    if (flow.research && next) void runFrom(next.key)
+    const next = FLOW_STEPS.find((step) => !has(flow, step.key))
+    if (!flow.research || !next) return
+    // A step that ran and found nothing waits on that step for Try again or Skip.
+    if (flow[next.key]) setFailed({ step: next.key, message: NOTHING_FOUND[next.key] ?? "Nothing found." })
+    else void runFrom(next.key)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loaded])
 
@@ -128,14 +137,21 @@ export function MarketingFlowSection() {
     const startIndex = FLOW_STEPS.findIndex((step) => step.key === start)
     for (const { key } of FLOW_STEPS.slice(startIndex)) {
       setRunning(key)
-      try {
-        const { flow: next } = await api({ action: "run", step: key, ...(key === "research" && site ? { website: site } : {}) })
-        setFlow(next)
-        setOpen(key)
-      } catch (error) {
-        setFailed({ step: key, message: error instanceof Error ? error.message : "That step didn't finish." })
-        setRunning(null)
-        return
+      // Two tries. Plan, setup and input problems (4xx, 503) don't get better with a second try.
+      for (let attempt = 1; ; attempt++) {
+        try {
+          const { flow: next } = await api({ action: "run", step: key, ...(key === "research" && site ? { website: site } : {}) })
+          setFlow(next)
+          setOpen(key)
+          break
+        } catch (error) {
+          const status = (error as { status?: number }).status
+          const retry = attempt < 2 && (status === undefined || status === 502)
+          if (retry) continue
+          setFailed({ step: key, message: status === undefined ? "Network error." : error instanceof Error ? error.message : "That step didn't finish." })
+          setRunning(null)
+          return
+        }
       }
     }
     setRunning(null)
@@ -236,12 +252,10 @@ export function MarketingFlowSection() {
                   {isDone && !isSkipped && <ChevronDown className={cn("size-5 shrink-0 text-muted-foreground transition-transform", isOpen && "rotate-180")} aria-hidden="true" />}
                 </button>
                 {isFailed && (
-                  <div className="mb-3 ml-10 text-sm">
-                    <p className="text-destructive">{failed.message}</p>
-                    <div className="mt-2 flex justify-end gap-2">
-                      <Button type="button" size="sm" variant="outline" onClick={() => void runFrom(step.key)}>Try again</Button>
-                      {step.key !== "research" && <Button type="button" size="sm" onClick={() => void skip(step.key)}>Skip</Button>}
-                    </div>
+                  <div className="mb-3 ml-10 flex items-center gap-2 text-sm">
+                    <p className="min-w-0 flex-1 text-destructive">{failed.message}</p>
+                    <Button type="button" size="icon" variant="outline" className="size-8 shrink-0" aria-label="Try again" title="Try again" onClick={() => void runFrom(step.key)}><RotateCcw className="size-4" aria-hidden="true" /></Button>
+                    {step.key !== "research" && <Button type="button" size="sm" className="shrink-0" onClick={() => void skip(step.key)}>Skip</Button>}
                   </div>
                 )}
                 {isOpen && !isSkipped && (

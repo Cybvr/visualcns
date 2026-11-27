@@ -174,9 +174,7 @@ export async function POST(request: Request) {
   }
 
   // skip: mark a step done with nothing in it, so the run can carry on. Research can't be skipped.
-  // Decision makers need companies: with none, that step skips too.
-  const nothingToWorkOn = body.action === "run" && body.step === "people" && !flow.customers?.length
-  if (body.action === "skip" || nothingToWorkOn) {
+  if (body.action === "skip") {
     if (!isFlowStep(body.step) || body.step === "research") return json({ error: "That step can't be skipped." }, 400)
     const skippedStep: FlowStep = body.step
     const next: FlowState = { ...flow, [skippedStep]: EMPTY_STEP[skippedStep], skipped: Array.from(new Set([...(flow.skipped ?? []), skippedStep])), updatedAt: new Date().toISOString() }
@@ -244,7 +242,11 @@ export async function POST(request: Request) {
     return json({ flow: next })
   } catch (error) {
     console.error(`Marketing step ${step} failed`, error)
-    const message = error instanceof Error && /website|first\./.test(error.message) ? error.message : "That step didn't finish. Please try again."
+    const text = error instanceof Error ? error.message : ""
+    const message = /website|first\.|found\.$/.test(text) ? text
+      : /quota|credit|billing|insufficient/i.test(text) ? "Out of AI credits."
+      : /fetch failed|network|timeout|timed out|ECONN|ENOTFOUND|socket/i.test(text) ? "Network error."
+      : "That step didn't finish."
     return json({ error: message }, 502)
   }
 }

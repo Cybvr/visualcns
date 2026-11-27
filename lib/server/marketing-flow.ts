@@ -214,7 +214,7 @@ async function runCustomers(tools: Tools, state: FlowState): Promise<Customer[]>
     `${about(state)}\nAUDIENCES\n${audiencesText(audiences)}\n\nSEARCH RESULTS\n${evidence}`,
   )
   const seen = new Set<string>()
-  return (raw.customers ?? [])
+  const customers = (raw.customers ?? [])
     .filter((item) => audiences.some((a) => a.id === item.audienceId))
     .map((item) => ({ id: id(), audienceId: item.audienceId, name: str(item.name, 80), url: str(item.url, 300), description: str(item.description, 240), country: str(item.country, 2).toUpperCase(), industry: str(item.industry, 60) }))
     .filter((item) => {
@@ -224,13 +224,15 @@ async function runCustomers(tools: Tools, state: FlowState): Promise<Customer[]>
       return true
     })
     .slice(0, 24)
+  if (!customers.length) throw new Error("No companies found.")
+  return customers
 }
 
 const PEOPLE_LIMIT = 12
 
 async function runPeople(tools: Tools, state: FlowState): Promise<Person[]> {
   const customers = (state.customers ?? []).slice(0, PEOPLE_LIMIT)
-  if (!customers.length) throw new Error("Find potential customers first.")
+  if (!customers.length) throw new Error("No companies found.")
   const results = await Promise.all(customers.map(async (customer) => ({
     customer,
     rows: await tools.search(`site:linkedin.com/in "${customer.name}" founder OR CEO OR "head of marketing" OR CMO`, 5),
