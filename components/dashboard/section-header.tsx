@@ -6,16 +6,17 @@ import { createContext, useContext, type ReactNode } from "react"
 import { cn } from "@/lib/utils"
 
 /** On the client Home, each section is a rounded card with a small uppercase label above it. */
-export const SectionCardsContext = createContext(false)
+export const SectionCardsContext = createContext<false | "cards" | "inner">(false)
 
-export function SectionCards({ children }: { children: ReactNode }) {
-  return <SectionCardsContext.Provider value>{children}</SectionCardsContext.Provider>
+/** "inner" puts each section's title inside its card, like a field label. */
+export function SectionCards({ inner = false, children }: { inner?: boolean; children: ReactNode }) {
+  return <SectionCardsContext.Provider value={inner ? "inner" : "cards"}>{children}</SectionCardsContext.Provider>
 }
 
 /** A section's body: plain where it sits, or the rounded card inside SectionCards. */
 export function SectionBody({ className, children }: { className?: string; children: ReactNode }) {
   const cards = useContext(SectionCardsContext)
-  return <div className={cards ? "mt-3 rounded-3xl bg-muted/50 p-5" : className}>{children}</div>
+  return <div className={cards === "inner" ? "mt-2" : cards ? "mt-3 rounded-3xl bg-muted/50 p-5" : className}>{children}</div>
 }
 
 /**
@@ -36,8 +37,8 @@ export function SectionHeader({ title, id, href, linkLabel = "View all", as: Hea
 }) {
   const cards = useContext(SectionCardsContext)
   return (
-    <div className={cn("flex min-h-8 items-center justify-between gap-3", className, cards && "px-1")}>
-      <Heading id={id} className={cn("min-w-0 truncate", cards ? "text-xs font-semibold uppercase tracking-wider text-muted-foreground" : "surface-section-label")}>{title}</Heading>
+    <div className={cn("flex min-h-8 items-center justify-between gap-3", className, cards === "cards" && "px-1")}>
+      <Heading id={id} className={cn("min-w-0 truncate", cards === "inner" ? "text-sm font-normal text-muted-foreground" : cards ? "text-xs font-semibold uppercase tracking-wider text-muted-foreground" : "surface-section-label")}>{title}</Heading>
       {(href || children) && (
         <div className="flex shrink-0 items-center gap-2">
           {href && <Link href={href} className="text-sm font-medium text-foreground underline-offset-4 hover:underline">{linkLabel}</Link>}

@@ -12,7 +12,7 @@ import { useCompanyPage } from "@/components/company/company-page-context"
 import { CompanyDetails, type CompanyDetailsPatch } from "@/components/company/company-sidebar"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { SectionBody, SectionHeader } from "@/components/dashboard/section-header"
+import { SectionBody, SectionCards, SectionHeader } from "@/components/dashboard/section-header"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
@@ -301,7 +301,17 @@ export function AboutSection({ singleColumn = false, formStyle = false }: { sing
         {admin?.profileSettings ? (
           // The client Home: the account card, then every other section as its own card.
           <>
-            <div id="company-settings-account">{admin.profileSettings}</div>
+            <div id="company-settings-account">
+              {admin.profileSettings(
+                // Everything else about the company sits in the Profile section, one card each.
+                <SectionCards inner>
+                  <div id="company-settings-details" className="rounded-3xl bg-muted/50 px-5 py-3">{details}</div>
+                  <div id="company-settings-tags" className="rounded-3xl bg-muted/50 px-5 py-3">{tags}</div>
+                  <div id="company-settings-links" className="rounded-3xl bg-muted/50 px-5 py-3">{links}</div>
+                  {social && <div id="company-settings-social" className="rounded-3xl bg-muted/50 px-5 py-3">{social}</div>}
+                </SectionCards>,
+              )}
+            </div>
           </>
         ) : (
           <>

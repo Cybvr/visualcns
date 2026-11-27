@@ -7,7 +7,6 @@ import { CompanyBillings } from "@/components/company/company-billings"
 import { CustomersSection } from "@/components/company/sections/customers-section"
 import { useCompanyPage, type CompanySectionKey } from "@/components/company/company-page-context"
 import { CompanyVisitors } from "@/components/company/company-visitors"
-import { HomeOverview } from "@/components/company/home-overview"
 import { AboutSection, SettingsGroup } from "@/components/company/sections/about-section"
 import { SectionCards } from "@/components/dashboard/section-header"
 import { ActivitySection } from "@/components/company/sections/activity-section"
@@ -40,7 +39,7 @@ function BillingsSection() {
   return <CompanyBillings />
 }
 
-/** On the dashboard this tab is called Home: the account card and details, the latest leads, then the team. */
+/** On the dashboard this tab is called Home: two sections, Profile and Team. */
 function HomeActivitySection() {
   const { mode } = useCompanyPage()
   if (mode !== "tabs") return <ActivitySection />
@@ -48,10 +47,7 @@ function HomeActivitySection() {
     <SectionCards>
       <div className="mx-auto mt-2 min-w-0 max-w-xl pb-28">
         <AboutSection singleColumn />
-        <div className="mt-10 empty:hidden">
-          <HomeOverview />
-        </div>
-        <div className="mt-5">
+        <div className="mt-10">
           <TeamSection />
         </div>
       </div>

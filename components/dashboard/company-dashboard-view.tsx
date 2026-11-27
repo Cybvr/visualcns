@@ -126,7 +126,7 @@ export function CompanyDashboardView({ embedded, keepParams, onBack }: { embedde
                 await deleteUser(client.uid)
                 router.push("/admin/companies")
               },
-              profileSettings: <CompanyProfileSettings />,
+              profileSettings: (extra) => <CompanyProfileSettings extra={extra} />,
             }
           : undefined
       }
