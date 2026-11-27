@@ -31,6 +31,8 @@ export interface AppUser {
   displayName?: string
   photoURL?: string
   role?: UserRole
+  /** Super admins only: where sign-in opens. "company" (default) is their own company page, "admin" the admin area. */
+  landingPage?: "company" | "admin"
   /** Top-level agency boundary. Never infer this from companyId. */
   agencyId?: string
   company?: string

@@ -68,8 +68,8 @@ export default function LoginPage() {
       router.replace(requested)
       return
     }
-    // Super admins land on their own company page; the dashboard is one click away from its account menu.
-    if (appUser?.role === "superadmin") {
+    // Super admins land on their own company page unless they chose the admin area in App settings.
+    if (appUser?.role === "superadmin" && appUser.landingPage !== "admin") {
       let active = true
       getOwnerOrganization()
         .then((organization) => {
