@@ -120,7 +120,7 @@ export function CollectionView<T>({
   selection?: { noun: string; onDelete: (items: T[]) => Promise<void> }
 }) {
   const [savedView, setSavedView] = useViewMode(viewKey, initialView)
-  // Phones always get one row per item: thumbnail, title and details, and a menu.
+  // Phones in list view get one row per item: thumbnail, title and details, and a menu.
   const phone = useIsMobile()
   const view = fixedView ?? savedView
   const { query, results, bar } = useFilterBar({ items, search: searchFields, sorts, defaultSort, defaultDirection })
@@ -179,10 +179,10 @@ export function CollectionView<T>({
         <TableFilterBar
           {...bar}
           placeholder={searchPlaceholder}
-          controls={(filters || (!fixedView && !phone)) && (
+          controls={(filters || !fixedView) && (
             <>
               {filters}
-              {!fixedView && !phone && <ViewToggle view={view} onChange={setSavedView} />}
+              {!fixedView && <ViewToggle view={view} onChange={setSavedView} />}
             </>
           )}
           actions={actions}
@@ -207,7 +207,7 @@ export function CollectionView<T>({
         <CompanyEmptyState {...empty} />
       ) : results.length === 0 && !(view === "grid" && cardsAfter && hasExtraCards) ? (
         <p className="px-3 py-8 text-center text-sm text-muted-foreground">Nothing matches your search.</p>
-      ) : phone ? (
+      ) : phone && view === "list" ? (
         <div className="flex flex-col gap-1">
           {results.map((item) => {
             const props = cardFor(item)
